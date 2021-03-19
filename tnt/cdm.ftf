@@ -1,0 +1,54 @@
+      INTEGER Strtm,Strtd,Strty,Endm,Endd,Endy,STRT,END
+      INTEGER MAX
+      INTEGER TNUM,SDAT,TIM,DUP,TUP,SVER,COC
+      INTEGER mm,dd,yy
+      REAL ELM
+      
+      Call DBSTRT (-1,1,-4,0,1,0,5,0,-1,0,-4,1,1,1,5,1)
+C     Accept/Convert Start Date - STRT
+   10 Type 15
+   15 Format (/3x,'Enter Start Date (mm/dd/yy) : ',$)
+   20 Accept 25, Strtm, Strtd, Strty
+   25 Format (I2,1x,I2,1x,I2)
+   30 Strty=Strty+1900
+   35 Call DBDATN (STRT,Strtm,Strtd,Strty)
+C     Accept/Convert End Date - END
+   50 Type 55
+   55 Format (3x,'Enter Stop Date (mm/dd/yy) : ',$)
+   60 Accept 65,Endm,Endd,Endy 
+   65 Format (I2,1x,I2,1x,I2)
+   70 Endy=Endy+1900
+   75 Call DBDATN (END,Endm,Endd,Endy)
+C     Database Search Process
+  100 Call DBerr ($150,IERT,IERC,0)
+  105 Goto 170
+  150 If (IERT.NE.7) Goto 10000
+  155 Type 160
+  160 Format(/2x,'Database Busy -- Waiting')
+  165 Call WAIT (9,0)
+  170 Call DBOPEN ('(TNT)BASE4')
+  175 Call DBFIND ('DUP','GE',STRT,1,'DUP','LE',END)
+      Call DBSRCH ('HN','EQ',1)  
+  180 Call DBSRCH ('net','eq','MGTBNET')
+      Call DBNREC (MAX)
+      Do 250 I=1,MAX
+      Call DBGREC ($10000,I)
+      Call DBVAL ('tnum',TNUM)
+      Call DBVAL ('sdat',SDAT)
+      Call DBVAL ('time',TIM)
+      Call DBVAL ('dup',DUP)
+      Call DBVAL ('tup',TUP)
+      Call DBVAL ('sver',SVER)
+      Call DBVAL ('coc',COC)
+      Call DBVAL ('elm',ELM)
+      Type 200,TNUM,SDAT,TIM,DUP,TUP,SVER,COC,ELM
+  200 Format(/,I8,1x,I5,1x,I11,1x,I5,1x,
+     1I11,1x,I2,1x,2A5,1x,F8.1)
+  250 Continue
+      GOTO 10020
+
+10000 type 10010,IERT,IERC
+10010 format('Error Type = ',i5,4x,'Error Code = ',i5)
+      Call DBEND
+10020 STOP
+      END         
