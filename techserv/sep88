@@ -1,0 +1,648 @@
+
+*******************************************************************************
+*                                                                             *
+*            T      E      C      H             T      I      P     S         *
+*                                                                             *
+*                           S e p t e m b e r   1 9 8 8                       *
+*                                                                             *
+*******************************************************************************
+
+
+
+
+
+
+
+
+
+  1.        TMCS Message Meanings
+            Douglas Ellenberg
+
+  2.        ISIS Dispatcher messages
+            Scott Wedel
+
+  3.        Circuit Rebuild Failures 
+            Scott Wedel & Don Rhodes   
+
+  4.        "Referred to" Groups in Paper
+            Louise Curri
+
+  5.        Notice of Change in Gateway Service from Canada DNIC 3020
+            Steve White
+ 
+  6.        Patch File Inquiry System on TECHREF:38
+            **** INTERNAL DISTRIBUTION ONLY ****
+            Jeff Liu
+
+
+
+
+
+
+
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Douglas Ellenberg
+
+SUBJECT:
+
+TMCS Message Meanings
+
+The reasons for "data on an unassigned channel" may be  that there was a
+zap sent on that channel, causing node code to think the circuit was
+terminated (or now unassigned) and following the zap being sent out data
+was received.  This would be because of timing (data in the circuit not
+yet cleaned up by the zap).
+
+Neighbor 0 may have been reported because this circuit was a dispatcher
+circuit where there would be no node number, the permuter tables could
+have been corrupted, or this may be an undetected node code bug
+(probably the cause was this was a dispatcher circuit).
+
+Circuit lifetimes are reported after certain error conditions occur.
+This is to aid in tracking the causes of problems.  If the circuit
+lifetime is long, you know the circuit has been up for awhile.  If the
+circuit lifetime is very short you may have an indication of a timing or
+race condition occurring which may be a potential cause of the
+associated error message.
+
+In this instance, the circuit lifetime message may be being sent in
+error so the times reported may be of questionable value.  There is no
+negative impact so this is nothing to worry about.
+
+Original question:
+
+2112 node report, data on unassigned channel 1E
+       neighbor 0  <8.2>
+2112 node report, circuit lifetime 310 seconds on channel 1e
+
+Why is there "data on unassigned channel"?
+Why is there a "non-existent" neighbor node "0" to node 2112?
+What is the purpose of reporting circuit lifetimes?
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Scott Wedel
+
+SUBJECT:
+
+ISIS Dispatcher messages
+
+Anyone writing an application slot should be well versed with the ISIS
+Dispatcher messages.  The application slot does not talk directly to the
+Supervisor.  The Node Code talks to the Sup and translates messages from
+the Sup to ISIS messages.
+
+During logging mode, Sup messages can cause Node Code to send the
+following ISIS messages:  
+
+     1) 01-9D data text string 
+     2) AF hang up 3) B4 normal logon status 
+     4) B5 logon failure 
+     5) B6 successful logon 
+     6) B8 super-'hang up'
+
+The actual text in the data text string depends on whether extended
+logon status was set.  I did not include a list of text strings since
+specific messages can be downloaded for particular hosts by such
+programs as TMCS.  Thus, there is no such entity as a complete list of
+text strings.  An intelligent interface can do quite well be setting
+extended logon status obey the hang signals and use the error code in
+the B4 and B5 messages.
+
+Once the circuit is connected then there is no way for the supervisor to
+send any message on that circuit (unless, of course, the circuit was
+built to probe).
+
+ORIGINAL QUESTION:
+
+A customer needs to write an application to access a host and needs to
+know all possible messages that could be sent to the user's application
+from the supervisor.  This includes logon to the network and anything
+that might be sent during the session.  
+
+******************** 
+*                  *
+*  T E C H T I P   * 
+*                  * 
+********************
+
+
+Scott Wedel
+Don Rhodes
+
+SUBJECT:
+
+Circuit Nodecode REBUILD Failures 
+
+Rebuild does not rebuild circuits in every case.  There is a way to
+increase the percentage of successful rebuilds that does not require new
+development.  If you turn on rebuild in the Supervisor base then when
+the origination node loses its command circuit, the circuit can still be
+rebuilt.  When the origination loses its command circuit it cannot send
+up the rebuild request so the rebuild fails and the origination cannot
+report this to the Supervisor since it does not have a command circuit.
+By turning on rebuild in the Sup base when the origination node loses
+its command circuit then the origination's rebuild requests are buffered
+until its command circuit is rebuilt.  Thus, user circuits are rebuilt
+even when the command circuits are lost due to a link outage.
+
+Turning on rebuild in the Supervisor base also increases the chances of
+rebuild succeeding when the destination node loses its command circuit
+due to link outage.  Since the destination's command circuit is to be
+rebuilt then supervisor still thinks the destination node is in the net.
+Thus, a rebuild needle will be created unless the destination is dead
+ended since a path must exist to the destination.  The rebuild needle
+could fail if it's path happened to include a downed link which is
+unlikely since the rebuild request includes the neighbors of the downed
+link.  Thus, the likelihood of rebuild succeeding when the destination
+node loses its command circuit is increased.
+
+There is a drawback to turning on rebuild in the sup base.  If the sup
+base crashes or is isolated from the rest of the net by link outages
+then the nodes still think they have command circuits for one to two
+minutes until the nodes time out the rebuildable command channel.  In
+that period of time, the nodes will reject takeovers from sups of a
+lower number (higher priority) than the current (isolated) sup.  Thus,
+for a period of a couple minutes there will, in essence, be no active
+sup in the net.  If the troubles caused by losing command circuits
+outweighs the potential problems of a sup base crash/isolation then
+enabling rebuild in the sup base is an effective means of increasing the
+percentage of successful rebuilds.
+
+Another drawback is that rebuild requires more memory in the Supervisor
+base.
+
+Note:  All of the above assumes that Node Code version 5.22 with
+REBTST EQ 1 (or version 5.31 which defaults REBTST to 1) is being
+used in the affected network.  V5.22 and REBTST fixes numerous rebuild
+bugs and has major improvements to the rebuild logic.  If the sup
+base is gong to run rebuild, it is strongly recommended that V5.22+
+be used.
+  
+ORIGINAL QUESTION:
+
+Circuit REBUILD Failures
+ 
+The customer has complained of a high number of circuit rebuild failures.
+Information obtained from PROBE shows that the vast majority of failures
+are due to: UNKNOWN DESTINATION NODE
+ 
+The following is my interpretation of what's probably causing this reason
+to be given for failure. Of course I could be "off base", in which case I
+would appreciate your interpretation of the message:
+ 
+The destination node is actually dropping out of the net, in which case
+the reason is completely valid for the loss of the command circuit from
+the SUPervisor to this node, when that portion of the circuit path or
+link that's lost is shared by the SUP's command circuit and the user's
+session circuit resulting in the user's originating node generating a
+single rebuild request.
+ 
+When the command circuit from the SUP to the node is lost the SUP no
+longer recognizes this node as being in the net and attempts to retake
+the node via an alternate path.  The SUP receives the rebuild request
+before it has time to take the node and therefore rejects the request
+due to the above reason.
+ 
+If my analysis of the situation is correct, then one or all of the
+following fixes could be implemented to reduce the number of rebuild
+failures encountered:
+
+1. Allow the requesting node to send more than a single request for rebuild
+   before giving up.
+
+2. Provide for the requesting node to wait a sufficient amount of time
+   to allow the SUP time to retake the lost node before sending a rebuild
+   request.
+ 
+3. Give the SUP the capability to retain enough information concerning
+   a lost node until it has retaken the node or determined that retake is
+   not possible at which time it can attempt or reject the rebuild request
+   accordingly.
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Louise Curri
+(With MUCH help from NCS and NSSC folks)
+
+SUBJECT:
+
+"Referred to" Groups in Paper
+
+Sometimes it is hard to decipher what physical location an Escalation
+comes from, so I thought a breakdown by region/area and the numbers as
+they exist in the PAPER system might be helpful.
+
+1  -  CENTRAL REGION
+
+15   CFOCH      Chicago
+46   CTSCH   	Chicago
+47   CTSHO   	Houston
+48   CTSDE   	Detroit
+49   CTSSL   	St. Louis
+
+2  -  EASTERN REGION
+
+ 1   EFTEC      Tech Support (Telco)
+ 2   EFONE     	New England
+ 3   EFOBO     	Boston
+ 4   EFONY     	Upstate New York (plus Stamford & North Haven,CT)
+ 5   EFOMN      New York City 
+ 6   EFOPA    	Philadelphia
+ 7   EFOLI      Long Island
+ 8   EFOKP      King of Prussia
+10   EFOMD    	Maryland
+11   EFOVA   	Virginia 
+13   EFOCA   	North & South Carolina 
+16   EFOPL      Plymouth, Michigan  
+23   EFOAT   	Atlanta
+24   EFOTA   	Tampa
+25   EFOMI    	Miami
+26   EFOCI      Cincinnati
+50   ETSNY   	New York
+51   ETSNJ     	New Jersey
+52   ETSBO	Boston
+53   ETSVI	Vienna, VA
+
+3  -  WESTERN REGION
+
+17   WFOMP   	Minneapolis
+18   WFOSL   	St. Louis
+19   WFOSM   	Kansas City, Oklahoma City, Omaha, Tulsa, Witchita
+20   WFODA   	Dallas
+21   WFOAU   	Austin
+22   WFOHO   	Houston
+27   WFTEC   	Tech Support (Telco)
+28   WFODE   	Denver
+29   WFOPH   	Phoenix
+
+30   WFONB   	North Bay
+31   WFOEB   	East Bay
+32   WFOSB   	South Bay
+33   WFOLA   	Los Angeles
+34   WFOOC   	Orange County
+35   WFOSE   	Seattle
+43   WTSSF   	San Francisco
+44   WTSSJ   	San Jose
+45   WTSIR   	Irvine
+
+3  -  EXNET REGION
+
+62   CANADA  	Canada
+64   INTLT   	International
+
+4  -  MDISI REGION
+
+59   MDUK       United Kingdom
+60   MDGER    	Germany
+69   MDTSG   	Tech Support - Paris
+73   MDSWE   	Sweden
+74   MDSZ  	Switzerland  
+75   MDBNL   	Belgium, Netherlands, Luxembourg
+76   MDITA	Italy
+77   MDFR       France
+78   MDAUS	Australia
+79   MDHK 	Hong Kong
+
+5  -  HEADQUARTERS REGION
+
+36   NTS     	Hardware Tech Support
+38   VANMC   	VA Customer Support
+40   NCS    	Customer Support
+41   STS       	Software Technical Services
+37   NSSC    	Customer Support - Pvt Nets
+39   NETCON  	Network Control
+54   DBTEL	Telecom group in Order Entry
+58   NETQC	NetQC 
+61   PI         Project Implementation
+63   CHAD     	FSC Central Dispatch
+70   PROJ    	Projects
+71   MFG     	Manufacturing (Irvine)
+72   NTD     	Development
+80   DOC	Marketing Communications
+
+6  -  VENDOR REGION
+
+55   DISCO      Private Network Use only
+66   ATCOM   	AT & T Communications
+67   ATTIS   	AT & T Info Systems
+68   TELCO   	Anything goes here
+
+  7  -  CUSTOMER
+
+42   CUSTM   	Customer
+
+FO = Field Office
+TS = Tech Support
+MD = McDonnell Douglas
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Steve White
+
+SUBJECT:
+
+Notice of Change in Gateway Service from Canada DNIC 3020
+NOTICE OF CHANGE IN INTERNATIONAL SERVICE 
+
+The change described below affects ALL terminal-originated calls from
+Datapac Canada (DNIC 3020).  Be sure to let all your customers know that
+they can be informed and prepared!
+
+On Datapac, the default value for X.3 parameter 4 (PAD idletimer) is
+zero.  Currently, TYMNET's X.75 gateways to Datapac set parameter 4 to a
+value of 80 (4 seconds) after call-establishment on ALL inbound calls
+where the protocol-id indicates the call was terminal originated.  This
+is a hang-over from days past, no other TYMNET X.75 gateways set X.3
+parameter 4 in this way.
+
+After August 14, 1988 TYMNET will no longer over-ride the Datapac
+idletimer.  In common with all other TYMNET X.75 gateways, users or
+their application program(s), will be responsible for setting an
+appropriate value for the idletimer if necessary.
+
+This change is necessary for some important reasons:
+
+1 - To give applications the chance to select an appropriate idletimer
+so the response time will be "as expected".  Currently, many
+applications have better response via Telenet than Tymnet for this
+reason.
+
+2 - To enable TYMNET to offer X.PC access from Datapac.  Our recommended
+PAD parameters for X.PC requires a 1/2 second idletimer - a 4 second
+timer causes large delays and results in session failures.
+
+FURTHER DETAILS:
+
+A few applications may be reliant on TYMNET to set Datapac's idletimer
+for them.  Once this change is in effect, either the application or the
+user will need to set the idletimer to an appropriate value.  An example
+of an affected application is described below.  Brief instructions on
+how to set the idletimer to a new value are also given.
+
+Customers with programmed logon sequences may need to to change their
+logon scripts.  The time from now until August 14th should be sufficient
+for customers to adapt, if necessary.  Contact External Network Services
+IMMEDIATELY if your customer foresees a problem making the deadline.
+
+The pending change improves the quality of service for the great majority of applications and will enable us to offer
+new services such as X.PC access via Datapac.
+
+                            >>>EXAMPLE <<<
+
+AN AFFECTED APPLICATION:  A terminal user running a full-screen
+emulation places a call from Datapac to Tymnet.
+
+The user hits a "PF" key to send each screen.  Since, in this example
+application, the "PF" key does not end with a data-forwarding character
+(default <cr>), a non-zero idletimer is critical if the user's data is
+to ever get sent to the host.
+
+Currently, the idletimer is set by Tymnet just after the call is
+established to a value of 4 seconds.  So, even if the destination DTE
+does not (or cannot) set the idletimer, the data will forward from the
+PAD buffer after 4 seconds of idleline.
+
+After August 14th, 1988 the users and applications must choose and set a
+non-zero value idletimer as appropriate for themselves.  This could be
+done in one of at least three ways:-
+
+1. The user/script sends a "SET 4:xx" command at the PAD prompt upon
+   first connecting to the PAD.  xx is the value of the timer in 1/20ths of
+   a second.  EG:  80 = 4 seconds.
+
+2. Use the "PROF N" command to select a complete new PAD profile (N, an
+   integer) with appropriate alternate settings.
+
+2) The destination DTE application, being connected via X.25, sends an
+X.29 Set-PAD packet to configure the terminal PAD appropriately.  In
+some respects, this the preferred method.  
+
+*********************
+*                   * 
+* T E C H T I P     * 
+*                   *
+*********************
+
+*****************INTERNAL DISTRIBUTION ONLY*******************
+
+Jeff Liu
+
+SUBJECT:
+
+PATCH FILE INQUIRY SYSTEM ON PDP-10
+
+
+1.  Log on to PDP-10 system 38, GFD to TECHREF directory.  Enter:
+
+    - run patch
+
+    Or log on to PDP-10 system 38, in your current directory.  Enter:
+
+    - run (techref)patch
+
+2.  The following will be displayed:
+
+    PATCH FILE INFORMATION INQUIRY
+     
+        1. INQUIRY BY PRODUCT ID
+        2. INQUIRY BY PATCH FILE NAME
+        3. INQUIRY BY (NSR/PIR) NUMBER
+        4. EXIT
+
+    PLEASE ENTER NUMBER (1,2,3 OR 4)
+    ?
+      
+3.  Enter "1" to retrieve the patch file list by product id.  The system will
+    prompt:
+
+    PLEASE ENTER PRODUCT ID ('*' or '#'ACCEPTABLE)
+    ?
+
+    Enter the product id, such as XPC, SNA or RAM, etc., wild card is
+    acceptable.
+    Go to Step #6.
+
+4.  Enter "2" to retrieve the list by patch file name.  The system will
+    prompt:
+
+    PLEASE ENTER PATCH FILE NAME ('*' or '#' ACCEPTABLE)
+    ?
+
+    Enter the specific patch file name, such as ACOMTO.203.
+    Go to Step #6.
+
+5.  Enter "3" to retrieve the list by NSR/PIR number or other miscellaneous
+    reason code (see the Patch File System Procedures for more explanation
+    on the reason code).  The system will prompt:
+
+    PLEASE ENTER (NSR/PIR) NUMBER ('*' or '#' ACCEPTABLE)
+    ENTER FORMAT: NSR nnnnnn,PIR nnnnnn,NO PIR,PIR PEND or TRAP.
+    ?
+
+    Enter NSR number or PIR number, or special reason code such as
+    "NO PIR", "PIR PEND" or "TRAP".
+    Got to Step #6.
+
+6.  After you make selection from the main menu and give the specific
+    category you wish to see, the system will again prompt you for the type
+    of files for that category:
+
+    DISPLAY BRIEF OR DETAIL PATCH FILE INFORMATION
+
+    1. BRIEF PATCH FILE INFORMATION
+    2. DETAIL PATCH FILE INFORMATION
+    3. EXIT
+
+    PLEASE ENTER NUMBER (1,2 OR 3)
+    ?
+
+    Set your hard copy printer ready and make your selection.  The system
+    will present the patch file information in the short form or long form
+    according to your choice.
+
+7.  After the print out or display, the system will then prompt for 
+    continuation:
+
+    DO YOU WANT TO CONTINUE?(Y/N)
+
+    Enter "Y" and you will be presented the main menu as in Step #2. 
+    Enter "N" will exit off the system.
+
+
+[Note:  At any point, selection of "EXIT" can get you out of the system.]
+
+                          SAMPLE PATCH REPORT SHORT FORM  
+                                 (REPORT.P01)
+                               PATCH FILE REPORT
+                            (SHORT FORM)
+                                   08/31/88
+ 
+ 
+Prod   File Name   Ver   (dir:sys)Original Name    Reason    Date
+--------------------------------------------------------------------
+ACOM  ACOMTO.203   2.03  (ASYNCPAT)ACOM02.PAR     NSR 1594   01/05/88
+BBXS  BODO.601     6.01  (RJECPAT)BBXS06.PAE      PIR 2222B  10/13/87
+MSVO  NADSC1.111   1.11  (MISCPAT)MSV01.PAG       NSR 1489   09/03/87
+.
+.
+.
+.
+.
+     *********************************************************
+       **  ALL PATCH FILE INFORMATION PRINTED ON 08/31/88 **
+     *********************************************************
+
+
+                          SAMPLE PATCH REPORT LONG FORM 
+                                  (REPORT.P02)
+                                PATCH FILE REPORT
+                                  (LONG  FORM)
+                                    08/31/88
+
+ 
+Product    ID              : ACOM
+Patch File Name            : ACMDDTO.203       Checksum       : BESMAX
+(dir:sys)Original Name     : (ASYNCPAT)ACOM02.PAR
+Version   : 2.03                     Reason(NSR/PIR): NSR 1594
+Author    : JOHN REILLY              Date(mm/dd/yy) : 01/05/88
+
+DESCRIPTION OF PROBLEM :
+
+TYMCOM SENDS LOW CHARACTER DISPATCHERMESSAGES WHICH CAUSES NODECODE TO
+SEND LOW CHARACTERNETWORK MESSAGES CAUSING INEFFICIENT BANDWIDTH
+UTILIZATON ON NETWORK LINKS.
+ 
+DESCRIPTION  OF  PATCH :
+
+PATCH CAUSES ISIS DISPATCHER MESSAGE TO BE SET AFTER40 MS OR RECEIPT OF
+29 DATA CHARACTERS WHICHEVER IS FIRST.  THIS ALLOWS FOR LARGER AND MORE
+EFFICIENT DISPATCHER MESSAGES.
+ 
+SUPERSEDED PATCH FILES :
+  -0-
+  -0-
+  -0-
+-------------------------------------------------------------------- 
+BBXS   BODO.601       6.01  (RJECPAT)BBXS06.PAE         PIR 2222B 10/13/87
+
+Product    ID                  : BBXS
+Patch File Name                : BODO.601       Checksum       : HANTUH
+(dir:sys)Original Name         : (RJEPAT)BBXS06.PAE
+Version   : 6.01                         Reason(NSR/PIR): PIR 2222B
+Author    : ALOK SHARMA                  Date(mm/dd/yy) : 10/13/87
+DESCRIPTION OF PROBLEM :
+
+THIS IS A SPECIAL PATCH WRITTEN FOR DUPONT.
+
+DESCRIPTION  OF  PATCH :
+
+THIS PATCH WILL DETECT AND RESOLVE DEADLOCK.
+ 
+SUPERSEDED PATCH FILES :
+  -0-
+  -0-
+  -0-
+ --------------------------------------------------------------------
+
+Product    ID                   : MSVO
+Patch File Name                 : NADSC1.111       Checksum       : TIDVIG
+(dir:sys)Original Name          : (MISCPAT)MSV01.PAG
+Version   : 1.11                        Reason(NSR/PIR): NSR 1489
+Author    : TED YEH                     Date(mm/dd/yy) : 09/03/87
+DESCRIPTION OF PROBLEM :
+
+WANG VS-TERM PROBLEM THAT ANZ IS RUNNING DOES NOT LIKE TO HIGH BIT SET
+CHARACTERS SENT BY MENU.
+ 
+DESCRIPTION  OF  PATCH :
+
+CHAR WITH PARITY BIT SET CONFUSES THE USER END MACHINE.  MASKED PARITY
+BIT BEFORE THE CHAR IS SENT OUT TO THE USE END.
+ 
+SUPERSEDED PATCH FILES :
+  -0-
+  -0-
+  -0-
+ --------------------------------------------------------------------
+       *********************************************************
+       **  All PATCH FILE INFORMATION PRINTED ON 08/13/86   **
+       *********************************************************
+    B@
