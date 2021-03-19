@@ -1,0 +1,252 @@
+                            X.121 Addressing
+
+      CCITT standard  X.121 defines a  universal standard  structure for
+      addressing data terminals that  insures that a data terminal  on a
+      public  network  can  be  accessed  using  the  same  address from
+      anywhere in the world.
+
+      A data terminal is defined as any addressable entity  connected to
+      the network, i.e., user  terminals, host computers and  host front
+      ends.  The address consists of a Data Network  Identification Code
+      (DNIC) and a  Network Terminal Number (NTN).   The DNIC is  a four
+      digit  number  used  to  uniquely  identify  a  particular  public
+      network.   For  example,  the TYMNET  domestic  public  network is
+      assigned  the DNIC  3106.  X.121  allows an  NTN to  be up  to 10
+      digits in  length.  The  NTN is not  otherwise restricted  and the
+      definition of its format is left to the network implementors.
+
+      The format of the NTN for public networks using  TYMNET technology
+      will be as follows.
+
+           a)  If DNIC does not indicate the local network, NTN may
+               be of any format of from zero to ten digits.
+
+           b)
+               0 + <5 digit host number> + <0 to 4 digit subaddress>
+
+               This format is used as a called or  calling address.
+               The host  number is a  destination host  number with
+               leading zeros.  The subaddress is optional.
+
+           c)  7 + <5 digit host number>
+
+               This format is used only as a calling  address.  The
+               host number is an originating only host number (less
+               than  65532).   A  call  cannot  be  placed  to this
+               number.
+
+
+
+                                       2
+      Addressing Standards in TYMNET                   September 30, 1982       
+
+
+     >       The  supervisor  has not  yet  implemented originating
+           only  host  numbers.   When  this  is  implemented,  the
+                                                     Page 16
+
+
+           destination interface will be informed that the  call is
+           from  an originate  only host.   For an  interim period,
+           TYMSATs  report "accounting"  host numbers  greater than
+           16000 and host numbers  in this range can  be considered
+           origination only.
+
+           d)  77 + <4 digit node number> + <4 digit port number>
+
+               This format is used only as a calling  address.  The
+               origination  node  number is  used  for  reports for
+               nodes that do  not report origination  host numbers.
+               As this  should only occur  for Varian  Tymsats, the
+               port number can be  assumed to be the  physical port
+               number on the Varian.
+
+           e)  9 + <1 to 9 digits>
+
+               This format  is used  to indicated a  2 to  10 digit
+               Network User Number (NUN) that is used as a username
+               and  does  not indicate  the  actual  destination or
+               origination of a call.  The leading 9 is included in
+               the username.  If entered  at a TYMSAT for  calls to
+               an X.25 or  X.75 interface, the called  interface can
+               be  optioned  to  substitute  the  DNIC+NUN  for the
+               actual calling  address.  If  present in  the called
+               address field of a call request from an X.25 or X.75
+               interface, the  NUN will be  used as a  username and
+               will be left in the called address field if the call
+               is to an X.25 or X.75 interface.
+
+           f)  Not present or the single digit 9
+
+               This format  is used  only as  a called  address and
+               indicates a  request for a  direct call  (no address
+               specified).   The  call  will  be  placed  using the
+               Network User  Identifier given (NUI,  i.e., username
+               and password).
+
+           g)  First digits of 1  through 6 and 8 are  reserved for
+               future expansion.
+
+
+                               X.25 Calls
+
+      When an X.25 DCE receives a call request from the link, the NTN of
+
+
+                                       3
+      Addressing Standards in TYMNET                   September 30, 1982       
+
+
+      the called address must follow the format specified in a),  b), e)
+      or f) above.
+
+      If a) then only  the DNIC is used  for routing.  A local  table of
+                                                     Page 17
+
+
+      DNICs is referenced to obtain a login string that is multitargeted
+      to  all the  gateways to  the specified  network.  If  the gateway
+      reached is  a Tymnet/Tymnet  gateway (i.e.,  not an  X.75 gateway)
+      then the digits following the DNIC will be examined and a username
+      string  will be  passed  to the  other network  using  the methods
+      described in b) and "X.75 calls" below.  In this case  the gateway
+      login  is transparent  to  the user.   All logon  prompts  and the
+      "interlink established" message from the Tymnet/Tymnet gateway are
+      suppressed.  For the case  of X.25 the username will  be X25.<orig
+      host  >.<our DNIC>  (where our DNIC and  orig host are  the values
+      for the originating interface).  For calls from X.75 the name will
+      be X75.<calling DNIC>.<our DNIC>.  In both cases the password will
+      be null.  This  username is only valid  in the called  network and
+      should be restricted to only originate on  Tymnet/Tymnet gateways.
+      It should be additionally restricted to only allow access to hosts
+      allowing international access.
+
+>>>     The usernames  in the  table should be  validated to  only allow
+      calls to international gateways.  In the future the table  will be
+      eliminated and the Supervisor will perform the routing.  This will
+      be  necessary  to  provide  security  for  public  dial  access as
+      described later.
+
+      If b) then the DNIC is that of the domestic network.  The DNIC may
+      either be specified or  omitted.  If omitted, the leading  zero of
+      the  NTN  will serve  to  indicate  a local  call  (in  which case
+      additional leading zeros are not necessary).  A login string will
+      be sent to the supervisor consisting of a username, a colon, the 5
+      digit destination host number  and, if a subaddress is  present, a
+      period and the subaddressing digits.  The username  is constructed
+      by prefixing "X25." to the 5 digit originating host number  of the
+      link that placed the call.  (The prefix "X25." may be  replaced by
+      any 4 character string on a per link basis at system generation or
+      with the XOM).
+
+>>>     This username has a null password.   Its class is  restricted to
+      originating only from its  own host number.  The username  has the
+      colon  option  and  therefore its  possible  destinations  must be
+      specifically stated in the seed username assigned to the customer.
+      Note  that  if calls  are  to  be placed  from  this  interface to
+      destinations not  owned by this  customer then both  this customer
+      and  the  customer  to  be  called  must  give  permission  to the
+      administrations  network  validations  department  before  a  seed
+
+
+                                       4
+      Addressing Standards in TYMNET                   September 30, 1982       
+
+
+      username containing the destination  host number is added  to this
+      customers  account.  The  username will  always be  used  with the
+      colon option.  Therefore,  the home host will  not be use  and the
+      username  cannot  itself  be  multitargeted.   In  order  to allow
+      multitargeting  at the  destination, the  destination  host number
+      should be multibased.
+                                                     Page 18
+
+
+
+>>      Calls placed using  this username should  only be billed  to the
+      owner of the username in the case where the accounting record does
+      not indicate reverse charging.  If reverse charging  is indicated,
+      the owner of the called  host will be billed.  Calls  to nonpacket
+      mode DTEs  (i.e., TYMCOMS  and not  X.25/X.75 interfaces)  will be
+      cleared  by the  X.25  DCE if  reverse charging  is  requested and
+      format b) is used.
+
+>       Before interfaces using this format may be installed in any X.25
+      that  originates  domestic  calls  the  above  username   must  be
+      validated  unless  the  following  condition  is  met.   Formerly,
+      addresses     of    this     type    were     of     the    format
+      DNIC+<4 digit host>+<0 to 6 digit subaddress>.   All   the  digits
+      following the  DNIC were used  as a numeric  username.  Therefore,
+      during the transition, a special global option will exist  so that
+      NTN less than 6 digits will be treated as a usernames.  Also, If 6
+      or more  digits are specified  and the first  6 digits  indicate a
+      number greater  or equal to  n (where n  is defined by  the global
+      option) then the  entire NTN will be  treated as a  username.  The
+      default for n is 4000.   This will cause all host  numbers greater
+      or equal  to 40  and using  the 4  digit format  to be  treated as
+      usernames.  For example, 005012  in the old format  indicates host
+      50  subaddress 12  but  host 5012  in  the new  format.   With the
+      temporary option set to 4000, host numbers above 3999 will  not be
+      allowed and 005012 will be used as a username.
+
+      Format  c)  will  be  created  for  calling  addresses   when  the
+      originating host number is known.  This is currently the  case for
+      host numbers above 16000.
+
+      Format  d)  will  be  created  for  calling  addresses   when  the
+      originating host number is not known.  This is the case for Varian
+      Tymsats.
+
+      If format e)  is specified, the  interface username X25.  + <orig-
+      node-number>  will  not  be  used and  the  NUN  will  be  used as
+      specified in e) above.
+
+>>      In this case billing should be done as in case b).
+
+
+
+                                       5
+      Addressing Standards in TYMNET                   September 30, 1982       
+
+
+      If format f) is specified, the interface will look for  a username
+      string in the call user data field of the call request.  This is a
+      request for a direct call.
+
+>>      Billing should be done as in case b).  The username and password
+      are always striped from the  call user data field.  An  option will
+      exist in the called X.25 interface which allows the  username (and
+      its separator) to  be put into  the CUD field  preceding anything
+                                                     Page 19
+
+
+      already there.  This options can be specified for X to X calls.
+
+
+                               X.75 Calls
+
+      X.75 calls are identical to X.25 calls except that for case b) the
+      username  that  is  constructed  is  "X75."  plus  the originating
+      network  DNIC (obtained  from  the calling  address).   The "X75."
+      prefix  can  be changed  on  a per  link  basis as  in  X.25.  The
+      originating network  DNIC is used  to allow restrictions  based on
+      network of origination.
+
+>>>     The X75.<orig-net> username must be validated to  only originate
+      on  gateways connected  to this  originating network  (or networks
+      connected  to  this originating  network).   A new  group  must be
+      created  that  contains  only  those  domestic  hosts  that  allow
+      international access.  The X75.<orig-net> username should  only be
+      valid to terminate on this group.
+
+>>      Accounting should be  done based on international  agreements in
+      effect.
+
+>       Compatibility consiteratoins are the same as in X.25
+                             TYMSAT logins
+
+      TYMSAT logins will be as defined in the section describing the new
+      login format.  The  command mode login  syntax for the  CONSAT PAD
+      will be described at a later date.
+
+
