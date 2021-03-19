@@ -1,0 +1,191 @@
+:******************************************************************
+:(NSCNET)ACKDLY.701
+:
+: 1. This patch apply to BBXS version 7.01
+:
+: 2. This patch allows to adjust ACK0/1 response to host and terminal.
+:
+: 3. TACK.n (n = line no.) is necessary on applied Host interface line.
+:    If this is not defined, it works same as normal.
+:    TACK.n is defined in 100 milseconds.
+:
+:***********************************************************************
+
+        LO      IRS00
+        LO      IR100
+        LO      ILS00
+        LO      LINE
+        LO      FCB
+        LO      BSCDEF
+        LO      IDS
+        LO      BSCPTP
+        LO      BSCHDX
+
+PATCH(900108,0945,NIS.KANETA,PA0PTR,,0A+7*NBILIN)
+
+
+        KILL    BSCLOP
+BSCLOP	MACRO(OPT,DFAULT,MODS)[
+OPT`LN	HS	0			:START OF TABLE FOR THIS OPTION
+Q	EQ	0
+	RE	NBILIN
+	IF	$A`\OPT|Q|
+	HC	$A`OPT|Q|`MODS		:USER SPECIFIED VALUE
+	ELSE
+	HC	$A`DFAULT`MODS		:DEFAULT
+	EI
+Q	EQ	Q+1
+	ER
+	]
+
+     BSCLOP(TACK.,0,*$A60)              : Time interval area for line basis
+                                        : Default = 0 and unit is 100 milsec.
+
+        KILL    BSCLOP
+
+WT.ACK  HS      2*NBILIN                : Time in fastc to send ACK0/1.
+BGREG2  WS      2                       : RESISTOR TEMPORARY SAVE AREA
+COUNT2  BS      NBILIN
+DLYFLG  HS      1
+ACKDLY  EQ      $0 38
+RL2     EQ      R9
+
+:
+:       CHECK TIME INTERVAL AND WAIT
+:
+RL2     EQ      R9      
+
+CONPATCH(XMT050,,6)
+        J       PA1PTR,,
+
+CONPATCH(PA1PTR,,52)
+        LHL     R0,TACK.LN,RL2          : LOAD TIME INTERVAL
+        JE      XMT05C                  : IF ZERO, SKIP WAITING
+        CLHI    R1,XCACK0               : ACK0 ?
+        JEFS    XMT05A                  : IF YES, GOTO CHECK
+        CLHI    R1,XCACK1               : ACK1 ?
+        JN      XMT05C                  : IF NO, SKIP
+XMT05A  A       R0,FASTC,,
+        ST      R0,WT.ACK,RL2,RL2       : SET DEAD LINE
+XMT05B  LO      BSCEXC
+        JAL     R5,PDMISS,,             : DISMISS
+        FO      BSCEXC
+        L       R0,WT.ACK,RL2,RL2       : GET TIME.
+        S       R0,FASTC,,              : 
+        JGBS    XMT05B                  : AGAIN
+        LB      R1,XMTOPC,RL            : GET OP CODE AGAIN
+        LHL     R2,XMTCNT,RL2           : GET CNT AGAIN
+        LHL     R3,XMTDAT,RL2           : GET DATA ADDR AGAIN
+XMT05C  LHL     R0,THX.LN,RL2,          : GET XMT OP WAIT TIME
+        SLLS    R0,TSCALE               : SCALE
+        J       XMT050+6,,              : RETURN
+
+
+CONPATCH(IDISC-6,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,30)
+        ST      R1,BGREG2               : SAVE R1 TO BGREG2
+        ST      R2,BGREG2+4             :  "   R2  TO BGREG2+4
+        LR      R1,R14                  : COPY R14 TO R1
+        SRLS    R1,1                    : R1 = LU#
+        LHL     R2,L.HOST,R1,R1         : GET HOST NUMBER
+        JNFS    DISC2                   : IF HIF THEN SKIP TO DISC2
+        LIS     R2,0                    : R2 = 0
+        STH     R2,TACK.LN,R14          : CLEAR TACK.LN AREA
+DISC2   L       R1,BGREG2               : RECOVER R1 RESISTOR
+        L       R2,BGREG2+4             :  "      R2   "
+        RL4(R1)                         : FROM SOURCE
+        LHL     R1,OFCB,R1              :  "    "
+        J       IDISC,,                 : RETURN TO SOURCE
+
+CONPATCH(LBADTY,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,2C)
+        CLHI    R0,024                  : IS THIS DATA ACKDLY ?
+        JEFS    LBADT2                  : YES , GOTO LBADT2
+LBADT1  LA      RAIS,ILS03,,            : ILS03 ADRESS SET
+        JR      RLINK                   : RETURN
+LBADT2  ST      R1,BGREG2               : SAVE R1 RESISTOR
+        LB      R1,F.LINE,RAFCB,        : GET LINE NO.
+        SBT     R1,DLYFLG               : SET DLYFLG
+        L       R1,BGREG2               : RECOVER R1 RESISTOR
+        LA      RAIS,ILS05,,            : ILS05 ADRESS SET
+        JR      RLINK                   : RETURN
+
+: If DLYFLG on then save TACK.LN value.
+
+CONPATCH(GSCB,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,62)
+        ST      R1,BGREG2               : SAVE R1 RESISTOR
+        LB      R1,F.LINE,RAFCB,        : GET LINE NO.
+        TBT     R1,DLYFLG               : IS THIS LINE SET DLYFLG
+        JN      GSCB2                   : YES , GOTO GSCB2
+        L       R1,BGREG2               : RECOVER R1 RESISTOR
+        SHI     RDATA,BIASP             : FROM SOURCE
+        JGER    R5                      :  "    "
+        J       GSCB+6,,                : RETURN TO SOURCE
+GSCB2   ST      R2,BGREG2+4             : SAVE R2 RESISTOR
+        LB      R2,COUNT2,R1            : GET COUNT2 VALUE
+        SLLS    R1,1                    : LU # X 2
+        STB     R0,TACK.LN,R1,R2        : STORE ACK DELAY VALUE TO TACK.LN
+        AIS     R2,1                    : R2 = R2 + 1
+        SRLS    R1,1                    : R1 = LU #
+        STB     R2,COUNT2,R1            : SAVE R2 TO COUNT2
+        CLHI    R2,2                    : COUNT2 = 2 ?
+        JEFS    GSCB4                   : YES , GOTO GSCB4
+GSCB3   L       R2,BGREG2+4             : RECOVER R2 RESISTOR
+        LA      RAIS,ILS05,,            : ILS05 ADRESS SET
+        JR      RLINK                   : RETURN
+GSCB4   RBT     R1,DLYFLG               : RESET DLYFLG
+        LIS     R2,0                    : R2 = 0
+        STB     R2,COUNT2,R1            : COUNT2 = 0
+        JBS     GSCB3                   : GOTO GSCB3
+
+
+
+
+: If host interface then send ackdly value.
+
+CONPATCH(CRICP-08,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,92)
+TXDLY1  JAL     R4,ELODR,,              : FROM SOURCE
+        LB      R3,F.LINE,RAFCB,        : GET LINE NO.
+        LHL     R4,L.HOST,R3,R3         : IS THIS LINE HOST INTERFACE ?
+        JNFS    TXDLY3                  : YES , GOTO TXDLY3
+TXDLY2  JR      R5                      : RETURN
+TXDLY3  LHL     R4,TACK.LN,R3,R3        : GET TACK.LN VALUE
+        JEBS    TXDLY2                  : IF TACK.LN = 0 THEN GOTO TXDLY2
+        ST      R5,BGREG2               : SAVE R5 RESISTOR
+        LIS     R0,8                    : R0 = 8
+        LHL     R1,F.PORT,RAFCB,        : GET PORT NO.
+        JAL     R4,SLOR,,               : START LOGICAL OUTPUT RECORD
+        LIS     R0,ID.SCF/2+TBIAS       : R0 = 9
+        JAL     R4,PUTCH,,              : PUT CHARACTER INTO THE RING
+        LHI     R0,ACKDLY/2+TBIAS       : R0 = 24 (ACKDLY SYMBOLE)
+        JAL     R4,PUTCH,,
+        LB      R3,F.LINE,RAFCB,        : GET LINE NO.
+        SLLS    R3,1                    : LU # X 2
+        LIS     R5,0                    : R5 = TRANSMIT COUNTER
+TXDLY4  LB      R0,TACK.LN,R3,R5        : GET TACK.LN VALU
+        JAL     R4,PUTCH,,
+        AIS     R5,1                    : R5 = R5 + 1
+        CLHI    R5,2                    : R5 = 2 ?
+        JN      TXDLY4                  : NO , GOTO TXDLY4
+        JAL     R4,ELODR,,              : END LOGICAL OUTPUT DATA RECORD
+        L       R5,BGREG2               : RECOVER R5 RESISTOR
+        JR      R5                      : RETURN
+
+
+ENDPATCH(Adjust time interval of ACK0/ACK1 according to HIF value)
+
+        FO      IRS00
+        FO      IR100
+        FO      ILS00
+        FO      LINE
+        FO      FCB
+        FO      IDS
+        FO      BSCDEF
+        FO      BSCPTP
+        FO      BSCHDX
