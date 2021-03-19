@@ -1,0 +1,88 @@
+   IF  T2GATE
+PATCH(880328,1530,JL,PA0PTR,,34)
+USRBFR   BS    20        :TEMPORARY BUFFER TO STORE USERNAME
+BUFLOC   BS     4        :LOCATION IN BUFFER WHERE : IS SEEN
+R4SAVE   BS     4        :REGISTER SAVE AREAS
+R6SAVE   BS     4        :          "
+R7SAVE   BS     4        :          "
+R9SAVE   BS     4        :          "
+CONPATCH(GDB212+6,,6)
+         J         PA1PTR,,
+CONPATCH(PA1PTR,,132)
+         JAL       R8,GCI,,           :GET FIRST CHARACTER OF USERNAME
+         LR        R8,R1
+         NHI       R8,7F
+         CLHI      R8,37              :CHECK FOR 7
+         JE        XPLG00             :YES - INTO THE MEAT OF THE PATCH
+         LHI       R0,0B300           :NO, EXIT TO NORMAL CODE FLOW
+         J         GDB212+0E,,
+XPLG00   ST        R4,R4SAVE,,        :SAVE THE WORKING REGISTERS
+         ST        R6,R6SAVE,,
+         ST        R7,R7SAVE,,
+         ST        R9,R9SAVE,,
+         LIS       R4,0               :INITIALIZE BUFFER POINTER TO 0
+         LIS       R9,0               :INIT. THE "COLON-FOUND" FLAG TO OFF
+         LR        R6,R8              :USE R6 AS SCRATCH REGISTER
+XPLG05   STB       R1,USRBFR,R4,      :STORE THE CHARACTER IN TEMPORARY BUFFER
+         AIS       R4,1               :BUMP THE BUFFER INDEX
+         CLHI      R6,0D              :END OF USERNAME?
+         JE        XPLG40             :YES, GO MOVE THE :. IF IT'S THERE
+         CLHI      R6,3A              :CHECK FOR :
+         JE        XPLG20             :YES, GO SAVE THE LOCATION OFFSET
+XPLG10   JAL       R8,GCI,,           :GET THE NEXT CHARACTER
+         LR        R6,R1
+         NHI       R6,7F
+         J         XPLG05
+XPLG20   STH       R4,BUFLOC,,        :SAVE THE LOCATION OF COLON
+         JAL       R8,GCI,,           :NEXT CHARACTER
+         LR        R6,R1
+         NHI       R6,7F
+         STB       R1,USRBFR,R4,      :STORE INTO BUFFER
+         AIS       R4,1
+         CLHI      R6,2E              :CHECK FOR PERIOD
+         JN        XPLG10             :NOT THERE, DON'T SET THE FLAG
+         LIS       R9,1               :FLAG THAT :. SEQUENCE WAS FOUND
+         J         XPLG10             :GO GT NEXT CHARACTER
+XPLG40   LR        R9,R9              :NOW HAVE USERNAME IN BUFFER
+         JN        XPLG60             :BRANCH IF THE FLAG IS SET
+         LIS       R4,0               :OTHERWISE DO STRAIGHT MOVE
+XPLG45   LB        R1,USRBFR,R4,      :GET CHARACTER FROM BUFFER
+         AIS       R4,1
+         LR        R6,R1
+         NHI       R6,7F
+         LHI       R0,0B300           :SEND TO DISPATCHER
+         AR        R1,R0
+         JAL       R8,DIRMES,,
+         CLHI      R6,0D              :CHECK IF DONE
+         JE        XPLG80             :YES, GO RESTORE REGS. AND LEAVE
+         J         XPLG45             :NO, CONTINUE MOVING
+XPLG60   LH        R9,BUFLOC,,        :GET POSITION+1 OF :
+         AIS       R9,4               :CONVERT TO POSITION+5
+         LIS       R4,0               :SET UP FOR MOVING
+XPLG65   LB        R1,USRBFR,R4,      :CHARACTER FROM BUFFER
+         AIS       R4,1
+         LR        R6,R1
+         NHI       R6,7F
+         CLHI      R6,3A              :CHECK FOR COLON
+         JE        XPLG65             :YES, IGNORE IT, WAIT UNTIL READY
+         CLHI      R6,2E              :SAME FOR PERIOD
+         JE        XPLG65
+         CR        R4,R9              :READY TO PLACE COLON AND DOT?
+         JN        XPLG70             :NO, JUST MOVE IT
+         LHI       R1,0B33A           :SEND COLON DOT TO DISPATCHER
+         JAL       R8,DIRMES,,
+         LHI       R1,0B32E
+         JAL       R8,DIRMES,,
+         J         XPLG65
+XPLG70   LHI       R0,0B300           :NOT A PERIOD OR DOT, SEND TO DISP.
+         AR        R1,R0
+         JAL       R8,DIRMES,,
+         CLHI      R6,0D              :DONE WHEN SEE C.R.
+         JN        XPLG65
+XPLG80   L         R4,R4SAVE,,        :RESTORE REGISTERS AND LEAVE
+         L         R6,R6SAVE,,
+         L         R7,R7SAVE,,
+         L         R9,R9SAVE,,
+         J         GDB214,,
+ENDPATCH(SHIFTS COLON DOT OVER 4 PLACES ON X-PARENT LOGON FROM H-NET)
+   EI
