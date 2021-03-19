@@ -1,0 +1,381 @@
+
+::                                      Last updated by JWANG, 07-May-84
+
+:       *****************************************************
+:       *****    SPECIAL PATCH FILE FOR VERSION 2.02    *****
+:       *****      CREATED BY TYMNET INTERNATIONAL      *****
+:       *****           FILENAME : INTL02.P02           *****
+:       *****     TO BE ASSEMBLED AFTER  XCOM02.P02     *****
+:       *****************************************************
+
+:       >>>>>   START PATCHES HERE      <<<<<
+
+
+PATCH(830613,1700,SKW,STP30A+6E,,4)
+        J       STP30C			:Was  LB  R0,DPRM,,
+ENDPATCH(Do not send Enter Deferred Echo message to a Tymcom)
+
+
+PATCH(830629,1230,SKW,L1TBL4+18,,2)
+        HC      L1PXE+6-L1TBL
+CONPATCH(L1TBL4+1A,,2)
+        HC      L1PXE+6-L1TBL
+ENDPATCH(Stop TPAD from reporting error indication for Parameter 6)
+
+
+   IF  X.75
+PATCH(830811,1200,JPM,ESPF,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,042)
+	LHL	R1,DIBUF
+	CBCT(R4)
+	LR	R4,R4
+	JE	CONTRK,,
+ESPF05	JAL	R4,GCI,,	:GET CALLING/CALLED ADDRESS LENGTHS
+	LR	R5,R0
+	NHI	R5,0F		:FIND CALLED  ADDRESS LENGTH
+	SRHLS	R0,4		:FIND CALLING ADDRESS LENGTH
+	LR	R7,R0		:
+	LR	R5,R5		:GET CALLED  ADDRESS LENGTH
+	JE	ESPF20,,	:JUMP IF NO ADDRESS FOLLOWS
+	LHL	R6,IPORT
+	SLLS	R6,3		:FORM INDEX
+	STB	R5,DTESAX,R6,	:STORE CALLED ADDRESS LENGTH
+	AIS	R6,1
+	LHL	R1,DIBUF
+	J	ESPF10,,
+ENDPATCH( Do not zero out DTESAX and DTESAV buffer if no addresses )
+   EI  X.75
+
+
+PATCH(830830,1500,JPM,STP3HA+10,,4)
+	LHI	R0,01
+ENDPATCH( Use X.3 parameter 7 value of 01 for ISIS STP 17 00 )
+
+
+PATCH(830930,1300,JPM,CON040+1E,,4)
+	JE	CON042-4
+ENDPATCH( Do not restore X.3 parameters if no response yet )
+
+
+PATCH(831020,1330,STUTZMAN,ESD100+6,,0C)
+	GL	ESD125		:Define new label
+	JE	ESD125,,	:Jump if completed current ISIS message
+	J	PA1PTR,,	:Jump to patch area to continue original logic
+				:that the insertion of this patch destroyed.
+CONPATCH(PA1PTR,,26)
+	JAL	R4,GETCH,,	:Continue with the original logic that was
+	JAL	R4,WCI,,	:destroyed when the above patch was inserted.
+	SIS	R6,1		:Resume original logic
+	J	ESD100,,
+ESD125	STH	R6,DNCNT,R7,R7	:Save unfinished packet length for next time
+	JAL	R4,ELIR,,	:Clean up IRING
+	J	MMFRA,,		:Return to main dispatcher logic
+ENDPATCH(Fix splitting of X.25 data packets in turkey mode problem)
+
+
+	IF	LAP!LAPB
+PATCH(840229,1425,STUTZMAN,PRIDEC+PRESET*STAT.L+8,,6)
+	HC	PRRINF-PRIDEC	:Process RR frame as if in info xsfer
+	HC	PRNINF-PRIDEC	:Process RNR frame as if in info xsfer
+	HC	PRJINF-PRIDEC	:Process REJ frame as if in info xsfer
+:
+: This patch allows us to process RR, RNR or REJ frames after we have just
+: sent a SARM or SABM.  This allows for the case where the other guy rotates
+: the window on a iframe that we had sent prior to the link reset.  In fact,
+: this happens on a very busy link like the DATAPAC X.75 gateway and is why
+: this patch was developed.
+:
+: Prior to this patch, the RR, RNR or REJ was totally ignored and we ended
+: up retransmitting any unacknowledged iframes starting with N(s)=0.  The
+: other guy thinks that these are new frames and passes them up to his packet
+: level.  Remember, these frames contain the exact same packet level data
+: as the frames we had sent prior to the reset.  What his packet level finds
+: is a packet with the same P(s) as he had already seen.  Usually, the other
+: guy will then send a packet level reset.  It is interesting that in this
+: case, the frame level is screwing up the packet level.
+:
+: This scenario is covered in both CCITT X.25 and X.75 and the way that our
+: works prior to this patch is the proper official way to handle this
+: situation.  However, the experience with DATAPAC has indicated that this
+: slightly different way of handling this situation will prevent the packet
+: level from being disrupted.  It is the opinion of the author of this patch
+: that this is an enhancement of the CCITT and should be permanantly implemen-
+: ted in our XCOM software.
+:
+: The CCITT does in fact say that the originator of a reset should reset
+: its frame sequence numbers ONLY AFTER receiving a UA response.  Thus, if
+: the other guy does send us an RR, RNR, or REJ with our old N(s) [his
+: N(r)] prior to his sending the UA, we can properly process the N(r) before
+: resetting our frame level counters to zero.  In this way we avoid retransmit-
+: ting a frame that we had already sent with a different N(s) and, thus, avoid
+: duplicating packet level information which causes packet resets.
+:
+ENDPATCH(Process RR`, RNR or REJ frames in link reset state)
+	EI
+
+
+PATCH(840411,1212,STUTZMAN,TIDTCL+0A,,0E)
+:		Tymnet NID (TID) to CCITT throughput class table
+:	This table is updated to include new Tymnet NIDs 18-23 (decimal)
+:	and to adjust the entries for NIDs decimal 10-12 and 15-17.
+:
+:	The logic is also modified to use the gouging level only when the
+:	table entry is zero.  This will allow the correct throughput class
+:	indication to be sent to the other side when the NID accurately
+:	reflects the speed of the terminal.  Prior to this patch, the
+:	throughput class was determined solely by the TYMNET-II gouging
+:	level.  Only for Tymnet-I was the correct throughput class sent.
+:
+	BC	$0 33		:NID 10 = 75 bps (for 110).  TPUT class 3
+				:is used for 110 baud to allow identification
+				:to other TYMNET technology networks and to
+				:distinguish it from 150 baud.
+	BC	0		:NID 11 = Use gouging level (2780).
+	BC	0		:NID 12 = Use gouging level (1200,2400,4800).
+	BC	$0 77		:NID 13 = 1200 bps (No Change).
+	BC	$0 99		:NID 14 = 4800 bps (No Change).
+	BC	$0 33		:NID 15 = 75 bps (Baudot).
+	BC	$0 88		:NID 16 = 2400 bps.
+	BC	0		:NID 17 = Use gouging level (3270 CRT).
+	BC	0		:NID 18 = Use gouging level (3270 printer).
+	BC	$0 99		:NID 19 = 4800 bps.
+	BC	$0 0AA		:NID 20 = 9600 bps.
+	BC	0		:NID 21 = Use gouging level (MPVC).
+	BC	0		:NID 22 = Use gouging level (audio response).
+	BC	$0 73		:NID 23 = 1200/75 bps (video-tex).
+CONPATCH(TCLTID+3,,2)
+:		CCITT Throughput Class to Tymnet NID (TID) table
+:	This table is being modified to change the entries for throughput
+:	classes 3 and 4 in order to allow close approximation to the proper
+:	Tymnet NID.  NID '$0 0CA' (TID "D" for 110 baud) is used for through-
+:	put class 3 to distinguish it from 150 baud which has its own NID.
+	BC	$0 0CA		:Throughput class 3 (75 bps) = 110 baud NID.
+	BC	$0 0C5		:Throughput class 4 (150 bps) = 150 baud NID.
+CONPATCH(NST220-24,,22)
+:	Changes in the dispatcher logic to select a throughput class value
+:	in the call request packet that is sent out on the link when we have
+:	received an ISIS needle.  The changes are two-fold:  1) Always use
+:	the NID/TID to select the appropriate throughput class regardless of
+:	whether TYMNET-I/TYMNET-II bit is set, and  2) Use the gouging level
+:	to determine the CCITT throughput class only when the entries in the
+:	TIDTCL table are zero.  Zero entries in the TIDTCL table should only
+:	be present for NID/TIDs which determine the TYPE of terminal device
+:	originating the call and not the SPEED of the devce.
+	JN	NST220		:Jump if we got a good tput class for this NID
+	LHI	R2,77		:Here if zero entry in TIDTCL.  Load 1200 baud
+				:t.class for these special TYMNET-I NID types.
+	LB	R3,LO6,,	:Get the TYMNET gouging level of this call.
+	CLHI	R3,80		:Test the TYMNET-II bit.
+	JLFS	NST220		:Treat TYMNET-I special NIDs as 1200 baud.
+	NHI	R3,7F		:Mask off the TYMNET-II bit.
+	CLHI	R3,MAXCS	:Check if .GT. highest known gouging level.
+	J	PA1PTR,,	:Continue patch in the patch area.
+CONPATCH(PA1PTR,,1C)
+	JGFS	NST230		:Jump if got a new gouging level.
+	LR	R4,RL		:Get the line number
+	SLLS	R4,CST.SC	:Compute the line offset into the CST.LT table.
+	LB	R2,CST.LT,R3,R4 :Get the tput class from the gouging level.
+	J	NST220,,	:Return to the old logic.
+:	Here if we got a new TYMNET gouging level.  Although this is a less
+:	efficient way of programming this situation, this case shouldn't ever
+:	happen.  Thus, this is more efficient for handling the normal case
+:	where we have a known gouging level.
+NST230	LHI	R2,MAXTC	:Use max CCITT tput class for new gouging level
+	J	NST220,,	:Return to the old logic.
+ENDPATCH(Update TID to/from Throughput Class mapping tables and logic.)
+
+
+: The following patch is to ensure that the XCOM always return
+: Throughput Class in the X.75 Utility Field in the Call Connected
+: Packet. The follow rules apply,
+: 1. If destination host returns a TC, the X.75 will use this one.
+: 2. If destination does not return TC, the X.75 will use the
+:    saved from the original Call Request Packet.
+: 3. A TC is sent by the X.75 even if the requested is the same
+:    as the default value.
+
+     IF   X.75
+PATCH(840426,2020,SWONG,ADDTC,,16)
+        LHL     R2,IPORT
+        TBT     R2,TCRCV,,      :TEST IF DESTINATION HOST RETURNS TC
+        JNR     R9              :NORMAL JUMP IF RECEIVED FROM HOST
+        LB      R3,TCLTR,R2,    :GET FINAL TC VALUE
+        AIS     R9,4            :SKIP RETURN AND SEND FINAL TC VALUE
+        JR      R9
+ENDPATCH( Return TC if destination host does not send one in Call Accept)
+     EI   X.75
+
+:^^^^^^^^^  END OF PATCH AREA!  INSERT NEW PATCHES ABOVE THIS LINE!  ^^^^^^^^^
+
+PATCHREPORT                     :REPORT BYTES OF PATCH AREAS USED
+FINPATCH                        :MAKE FINAL REPORT ON SEGMENT USAGE
+
+
+:   The following patches are either already implemented in (SOURCE)XCOM02.P02
+:   or are being archived here for another purpose to keep a historical record.
+
+:	IF	TPIDS
+:PATCH(831220,1500,STUTZMAN,PCR550+4,,16)
+:	LHL	R4,TIDHST	:All we are doing is moving the test and jump
+:	TBT	R1,ITICAL,,	:of TPID.F below the test and jump of ITICAL.
+:	JEFS	PCR552		:This is necessary to make sure that TEMP1 is
+:	TBT	RL,TPID.F,,	:not garbage if a call was placed with a non-
+:	JNFS	PCR553		:CCITT protocol ID on a link with TPID set.
+:	NOPR	R4,R4		:Note that the Telenet protocol ID has the
+:				:first byte set specifying that it is CCITT
+:				:even though it is an aberration.  Thus, ITICAL
+:				:will normally be set on Telenet PAD calls.
+:				:Also note that the symptom of this problem
+:				:is the sending of a request for psuedo needle
+:				:with TID of C0 (aux circuit?).  Without ISIS
+:				:aux circuit status, the dispatcher zaps us.
+:ENDPATCH(Fix call clear if we receive non-CCITT protocol ID on Telenet PID link)
+:	EI
+
+
+
+
+:	The following patch is now in (SOURCE)XCOM02.P02,
+:	somewhat modified from this original form and is
+:	split into two different patches.
+:PATCH(831027,1630,STUTZMAN,ESC050+2C,,4)
+:	JN	ESC110		:Correct logic on jump
+:CONPATCH(ESD010+1C,,4)
+:	JN	ESD012		:Correct logic on jump
+:CONPATCH(PFRA00+8,,4)
+:	JN	PFAC52		:Correct logic on jump
+:CONPATCH(XOMNA0+6,,20)
+:	XOMTAP(NAC.F)		:Correct the way XOM reports these switches
+:	XOMTAP(NAP.F)
+:CONPATCH(XOMUN0+6,,20)
+:	XOMTAP(UNC.F)		:Correct the way XOM reports these switches
+:	XOMTAP(UNP.F)
+:CONPATCH(XMCNAT,,0C)
+:	LA	R7,NAC.F,,	:Correct the way XOM changes these switches
+:	LA	R8,NAP.F,,
+:CONPATCH(XMCUNK,,0C)
+:	LA	R7,UNC.F,,	:Correct the way XOM changes these switches
+:	LA	R8,UNP.F,,
+:ENDPATCH(Correct handling and XOM reporting of NAC.F`, NAP.F`, UNC.F`, UNP.F)
+
+
+:	The following patch is now in (SOURCE)XCOM02.P02,
+:	somewhat modified from this original form.
+:PATCH(831027,1700,STUTZMAN,ESP+28,,2)
+:	HC	ESD120+0C-ESP	:Correct Jump table to by-pass ESP14 logic when
+:				:accessed via ESP jump table (near ESC365).  No
+:				:need to use ESP14 logic since we already know
+:				:that we are at the end of an IIX packet (DNCNT
+:				:=R6=zero or TIIX received) and at the end of
+:				:the current ISIS message (R5=zero tested after
+:				:ESC350).  Thus, if we used the ESP14 logic, we
+:				:would end up at ESD120 anyway.  This is faster.
+:CONPATCH(ESP14,,20)
+:	RBT	R7,WTFLGB,,	:All we are doing here is moving the AIS R5,1
+:	JN	ESD010		:a little further down in the logic, just prior
+:	RBT	R7,WTCNT1,,	:to the potential jump to ESD120 or ESD100.
+:	JN	ESD020		:The AIS R5,1 is a cludge to get around the
+:	RBT	R7,WTCNT2,,	:front-end loop counter at ESD120 and ESD100.
+:	JN	ESD030		:The reason for moving it is because it screws
+:	AIS	R5,1		:up every other routine that could be jumped to
+:				:from the ESP14 logic.  In fact, the next
+:CONPATCH(ESP14+34,,6)		:<---CONPATCH is necessary to insert a SIS R5,1
+:	J	PA1PTR,,	:to remove the cludge for the processesing of
+:CONPATCH(PA1PTR,,14)		:level 1 Q-bit packets.
+:	SIS	R5,1		:Remove Cludge
+:	RBT	R7,WTQMSG,,	:Imitate original logic
+:	JN	ESD040,,	:If have not gotten message code yet
+:	J	ESCM14-0E,,	:Return to original logic
+:CONPATCH(ESC325-4,,4)
+:	J	ESC310		:Reset WTCNT2 since we know that the 2nd byte
+:				:of the packet count is already in the IRING.
+:CONPATCH(ESC330+6,,4)
+:	JE	ESC350+0C	:Avoid subtracting 1 from the ISIS message
+:				:count if we have not fetched a character.
+:ENDPATCH(Fix escaped message length counter maintenance%     problems causing EF crashes under heavy loads )
+
+
+:	The following patch was an attempt to correct the EF crash problem
+:	(when a single X.25 packet was split into several ISIS data messages)
+:	by forcing the remaining escaped data message length (DNCNT) to zero
+:	after receiving a SIIX or TIIX.  This patch should not be necessary
+:	but is being kept here just in case it is needed again.
+:PATCH(831020,1345,STUTZMAN,ICSIX+1C,,6)
+:	J	PA1PTR,,	:Insert patch
+:CONPATCH(PA1PTR,,1A)
+:	LIS	R4,0		:Clear remaining packet length count that
+:	STH	R4,DNCNT,R1,R1	:may be leftover from a previous packet.
+:	TBT	R1,TURKEY,,	:Continue with original logic that was
+:	JN	MMFRA,,		:destroyed with the insertion of this patch.
+:	J	ICSIX+28,,	:Return to original logic
+:CONPATCH(ICTIX+0A,,6)
+:	J	PA1PTR,,	:Insert patch
+:CONPATCH(PA1PTR,,14)
+:	LIS	R4,0		:Clear remaining packet length count that
+:	STH	R4,DNCNT,R7,R7	:may be leftover from a previous packet.
+:	JAL	R4,ELIR,,	:Continue with original logic that was
+:	J	ESC365,,	:destroyed with the insertion of this patch.
+:ENDPATCH(Force DNCNT (remaining escaped message length) to%     zero upon receiving a TIIX or SIIX ISIS message )
+
+
+:	The following patch was an attempt to correct the EF crash problem
+:	(when a single X.25 packet was split into several ISIS data messages)
+:	by forcing all load references to DNCNT to be arithmetic instead of
+:	half logical and half arithmetic.  This patch should not be necessary
+:	but is being kept here just in case it is needed again.
+:PATCH(831027,0800,STUTZMAN,ESP14+20,,6)
+:	LH	R6,DNCNT,R7,R7	:Change LHL to LH
+:CONPATCH(ESD030+10,,6)
+:	LH	R6,DNCNT,R7,R7	:Change LHL to LH
+:CONPATCH(MAKD20+4,,6)
+:	LH	R9,DNCNT,R3,R3	:Change LHL to LH
+:ENDPATCH(Change some - LHL Rx`,DNCNT`,Ri`,Ri - references to - LH Rx`,DNCNT`,Ri`,Ri)
+
+
+:	The following patch is now in (SOURCE)XCOM02.P02,
+:	somewhat modified from this original form.
+:PATCH(831108,1400,JPM,PCR520+0E,,6)
+:	J	PA1PTR,,
+:CONPATCH(PA1PTR,,01E)
+:	TBT	R2,GATWAY,,		:Test use of GATEWAY option
+:	JN	PCR550,,
+:	TBT	R2,NTNCAL,,		:Test use of NTN login
+:	JE	PCR522,,
+:	J	PCR520+018,,
+:CONPATCH(PCR525+08,,6)
+:	J	PA1PTR,,
+:CONPATCH(PA1PTR,,024)
+:	TBT	R2,GATWAY,,		:Test use of GATEWAY option
+:	JN	PCR535,,
+:	TBT	R2,NTNCAL,,		:Test use of NTN login
+:	JE	PCR530,,
+:	SBT	R2,CUDUSD,,
+:	J	PCR525+018,,
+:CONPATCH(PCR578+06,,06)
+:	J	PA1PTR,,
+:CONPATCH(PA1PTR,,02A)
+:	TBT	R2,GATWAY,,		:Test use of GATEWAY option
+:	JN	PCR620,,
+:	TBT	R2,NTNCAL,,		:Test use of NTN login
+:	JN	PCR620,,
+:	TBT	RL,TKSP.F,,		:Test TKSUP option
+:	JN	PCR620,,
+:	J	PCR578+01A,,
+:CONPATCH(PCR620+02,,6)
+:	J	PA1PTR,,
+:CONPATCH(PA1PTR,,02A)
+:	TBT	R2,GATWAY,,		:Test use of GATEWAY option
+:	JN	PCR640,,
+:	TBT	R2,NTNCAL,,		:Test use of NTN login
+:	JN	PCR630,,
+:	TBT	RL,TKSP.F,,		:Test TKSUP option
+:	JN	PCR640,,
+:	J	PCR620+014,,
+:ENDPATCH( Correct tests for login usage to include GATEWAY option )
+
+
+:	NOTE:   DO NOT INSERT ADDITIONAL PATCHES HERE!!  THEY SHOULD BE
+:		INSERTED ABOVE, JUST PRIOR TO THE PATCHREPORT AND FINPATCH
+:		MACRO CALLS.
+   
