@@ -1,0 +1,19 @@
+:	This patch corrects the test for Reverse Charge Non-Acceptance (RCNA)
+:	in CONUP.  The test was made on the reverse charge flag (RVCHRG)
+:	which is set if reverse charge is requested.  This flag is set on 
+:	calls to and from the link.  The test at CONUP should be made only
+:	for calls to the link, becuase calls from the link are already
+:	tested against the appropriate flag in RT.   NSR 650 DRE 3/28/86
+
+
+PATCH(860328,1600,DRE,CONUP+24,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,1C)
+	TBT	R1,EXTCAL,,		:CALL FROM THE LINK?
+	JN	CON010,,		:YES, THIS ISN'T CORRECT TEST
+	TBT	RL,RCNA.F		:REVERSE CHARGING ACCEPTABLE?
+	JE	CON010,,		:YES, CONTINUE
+	J	CONUP+2C,,		:NO, HANDLE ERROR
+ENDPATCH(PERFORM REVERSE CHARGE NON-ACCEPTANCE TEST IN CORRECT DIRECTION)
+
+
