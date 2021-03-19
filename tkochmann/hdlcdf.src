@@ -1,0 +1,521 @@
+TITLE   SIO MICROASSEMBLER DEFINITIONS
+;
+;----------------------------------------------------------------
+;  Two problems, which cannot be conveniently handled by the    ;
+;  meta-assembler, were encountered in creating the definition  ;
+;  file for SIO microcode. The problems were:                   ;
+;                                                               ;
+;    1. several symbols used in SIO microcode could occur in    ; 
+;       more than one field and the values to be assigned to    ;
+;       them were field dependent thus requiring determination  ;
+;       of the fields in which the symbols were used in the     ;
+;       micro instruction prior to generation of the object     ;
+;       code.                                                   ;
+;                                                               ;
+;    2. either bit 24 or bit 29 of the micro instruction word   ;
+;       was to be used as the parity bit depending on the       ;
+;       micro operations specified in the micro instruction.    ;
+;                                                               ;
+;  Attempts to resolve the field dependencies via a macro       ;
+;  resulted in excessively long assembly time because each      ;
+;  micro instruction was expanded by the macro. Attempts to     ;
+;  generate the floating parity bit with a macro were           ;
+;  unsuccessful because macro expressions were evaluated        ;
+;  prior to resolution of symbolic forward address references.  ;
+;                                                               ;
+;  A post processor was created to resolve these problems.      ;
+;                                                               ;
+;  The micro assembler generated a 56 bit wide intermediate     ;
+;  object code containing information for the post processor    ;
+;  which then resolved the field dependencies and computed the  ; 
+;  parity and generated the 40 bit micro instruction word to    ;
+;  be used for controlling the SIO board.                       ;
+;                                                               ;
+;---------------------------------------------------------------;
+;
+;----------------------------------------------------------------
+;                                                               ;
+;       microword width and field formats for intermediate code ;
+;                                                               ;
+;----------------------------------------------------------------
+;
+WORD    56              ;intermediate microword is 56 bits wide
+;
+M:      DEF     20V:%H#0%,20V:%H#0%,16V:%H#0%;  3 fields
+;
+;---------------------------------------------------------------;
+;                                                               ;
+;  Field conflict problems are detailed in the following:       ;
+;                                                               ;
+;  RAMD                                                         ;
+;    The symbol RAMD is used for both B-bus destination         ;
+;    selection in field 1 and ALU destination selection in      ;
+;    field 2. In field 1, it has a value of H#009. In field 2,  ;
+;    it has a value of H#005.                                   ;
+;                                                               ;
+;  COUNT                                                        ;
+;    The symbol COUNT is used for both B-bus destination        ;
+;    selection in field 1 and B-bus source selection in field 2.;
+;    It has a value of H#00E in field 1 and H#400 in field 2.   ;
+;                                                               ;
+;  AB                                                           ;
+;    The symbol AB is used for both 2901 'A' register selection ;
+;    in field 1 and 2901 source operand selections in field 2.  ;
+;    It has a value of H#0B0 in field 1 and H#040 in field 2.   ;
+;                                                               ;
+;  DEFAULT VALUE FOR 2910 OP CODE                               ;
+;    The desired default value for 2910 op code in field 1 is   ;
+;    H#E00, corresponding to the symbol CONT, specifying        ;
+;    sequential execution of the microinstructions. Since H#E00 ;
+;    is the expected default value, the symbol CONT is often    ;
+;    not specified in the microinstruction and therefore H#000  ;
+;    is generated for the 2910 op code field. However, H#000 is ;
+;    a valid 2910 op code coressponding to the symbol JZ.       ;
+;                                                               ;
+;  DEFAULT VALUE FOR FIELD 2                                    ;
+;    Field 2 consists of 4 subfields namely, B-bus source       ;
+;    selection, 2901 ALU source operand selection, 2901 ALU     ;
+;    function specification, and 2901 destination selection.    ;
+;    The desired default value for this 12-bit field is H#821.  ;
+;    If any of the subfields is not specified in the micro-     ;
+;    instruction, the default value is to be used for that sub- ;
+;    field.                                                     ;
+;                                                               ;
+;  PARITY GENERATION                                            ;
+;    The preferred position to insert the parity                ;
+;    bits is bit 24 of the microinstruction. However, if        ;
+;    bit 24 is used, i.e., set to 1 because CARRY is specified  ;
+;    in the microinstruction, bit 29 of the microinstruction    ;
+;    is used for the parity.                                    ;
+;                                                               ;
+;                                                               ;
+;                                                               ;
+; A solution for the problems stated above has been implemented.;
+; The intermediate code generated by the meta assembler expands ;
+; field 1 and field 2 of the micro instruction to 20 bits each. ;
+; The most significant 8 bits of these fields are used to pass  ;
+; information to the post processor for special handling and    ;
+; the least significant 12 bits contain the value normally      ;
+; assigned to the fields.                                       ;
+;                                                               ;
+; Bit 4 (most significant bit = bit 0) of the 20 bit value for  ;
+; the symbol JZ is set to a 1 to indicate that JZ is specified. ;
+; If bit 4 is 0 (i.e. JZ not specified) and bits 8-11 of field  ;
+; 1 of the intermediate code are all zeroes (i.e. 2910 op code  ;
+; not specified), the post processor changes the 2910 op code   ;
+; field to 'E' (hex) which is the default value specifying      ;
+; sequential execution of the micro instructions.               ;
+;                                                               ;
+; Bit 0 (MSB) of the 20 bit value for the symbol RAMD is set to ;
+; 1 to indicate that RAMD is specified in the micro instruction.;
+; This bit is checked in field 1 and if detected, the B-bus     ;
+; destination value is changed to '9' (hex) indicating scratch  ;
+; pad RAM. In field 2, bit 0 is not checked because RAMD is     ;
+; assigned the value '5' (hex) which is the desired value for   ;
+; RAMD in field 2.                                              ;
+;                                                               ;
+; Bit 7 of the 20 bit value for the symbol COUNT is set to 1    ;
+; to indicate that COUNT is specified in the micro instruction. ;
+; If this bit is detected in field 1, B-bus destination value   ;
+; is changed to 'E' (hex) specifying the channel counter as the ;
+; B-bus destination. If it is detected in field 2, the  B-bus   ;
+; source select field is changed to '010' (binary) specifying   ;
+; the channel counter as the B-bus source.                      ;
+;                                                               ;
+; Bit 6 of the 20 bit value for the symbol AB is set to 1 to    ;
+; indicate that AB is specified in the micro instruction. If    ;
+; this bit is detected in field 1, the value for port A         ;
+; register selection for 2901 is changed to 'B' (hex)           ;
+; indicating selection of register B. If this bit is detected   ;
+; in field 2, the value for the source operands for the 2901    ;
+; operation is changed to '001' (binary).                       ;
+;                                                               ;
+; All symbols for B-bus source select subfield of field 2 are   ;
+; defined with bit 5 set to 1. If bit 5 is zero in field 2      ;
+; (i.e. B-bus select not specified), the default value of       ;
+; '100' (binary) is used specifying SIO as the B-bus source.    ;
+;                                                               ;
+; All symbols for 2901 ALU function subfield of field 2 are     ;
+; defined with bit 4 set to 1. If bit 4 is zero in field 2      ;
+; (i.e. 2901 ALU function not specified), the default value of  ;
+; '100' (binary) is used for 2901 ALU function specifying       ;
+; AND operation.                                                ;
+;                                                               ;
+; All symbols for 2901 destination select subfield of field 2   ;
+; are defined with bit 3 set to 1. If bit 3 is zero in field 2  ;
+; (i.e. 2901 destination select not specified), the default     ;
+; value of '001' (binary) is used specifying NULL for 2901      ;
+; destination.                                                  ;
+;                                                               ;
+; The symbols ADD, SUBR, and SUBS for 2901 arithmetic ALU       ;
+; operations are defined with bit 2 set to 1. If this bit is    ;
+; detected in field 2, then the preferred parity bit (bit 24)   ;
+; of the micro instrcution word cannot be set to 1 to achieve   ;
+; the desired odd parity. Bit 29 should be used.                ;
+;                                                               ;
+; The symbol CONST for B-bus source select is defined with      ;
+; bit 1 set to a 1. If this bit is detected in field 2, then    ;
+; bit 29 of the micro instruction word cannot be set to 1 to    ;
+; achieve the desired odd parity.                               ;
+;                                                               ;
+;----------------------------------------------------------------
+;
+;
+;----------------------------------------------------------------
+;                                                               ;
+;       symbol definitions                                      ;
+;                                                               ;
+;----------------------------------------------------------------
+;
+;------------------------------------------------
+;                                               ;
+;       definitions for field 1 symbols         ;
+;                                               ;
+;------------------------------------------------
+;
+;--------------------------------
+;                               ;
+;       Jump Code for 2910      ;
+;                               ;
+;--------------------------------
+;
+;JZ:                   ;defined in problem symbol section
+CJS:    EQU     H#00100 ;cond jsb pl
+JMAP:   EQU     H#00200 ;jump map
+CJP:    EQU     H#00300 ;cond jump pl
+PUSH:   EQU     H#00400 ;push/cond ld cntr
+JSRP:   EQU     H#00500 ;cond jsb r/pl
+CJV:    EQU     H#00600 ;cond jump vector
+JRP:    EQU     H#00700 ;cond jump r/pl
+RFCT:   EQU     H#00800 ;repeat loop, cntr <>0
+RPCT:   EQU     H#00900 ;repeat pl, cntr <>0
+CRTN:   EQU     H#00A00 ;cond rtn
+CJPP:   EQU     H#00B00 ;cond jump pl & pop
+LDCT:   EQU     H#00C00 ;ld cntr & continue
+LOOP:   EQU     H#00D00 ;test end loop
+;CONT:                 ;defined in problem symbol definition section
+TWB:    EQU     H#F00 ;three-way branch
+;
+;--------------------------------
+;                               ;
+;       2901 'A' reg selection  ;
+;                               ;
+;--------------------------------
+;
+A0:     EQU     H#00000 ;register 0
+A1:     EQU     H#00010 ;register 1
+A2:     EQU     H#00020 ;register 2
+A3:     EQU     H#00030 ;register 3
+A4:     EQU     H#00040 ;register 4
+A5:     EQU     H#00050 ;register 5
+A6:     EQU     H#00060 ;register 6
+A7:     EQU     H#00070 ;register 7
+A8:     EQU     H#00080 ;register 8
+A9:     EQU     H#00090 ;register 9
+AA:     EQU     H#000A0 ;register A
+;AB:                   ;defined in problem symbol definition section
+AC:     EQU     H#000C0 ;register C
+AD:     EQU     H#000D0 ;register D
+AE:     EQU     H#000E0 ;register E
+AF:     EQU     H#000F0 ;register F
+;
+;--------------------------------
+;                               ;
+;       Select B-bus destination;
+;                               ;
+;--------------------------------
+;
+REGD:   EQU     H#00007 ;register/counter in 2901
+MUXD:   EQU     H#00008 ;mux output register, also issue attention
+;RAMD:                 ;defined in problem symbol definition section
+COUNTD: EQU     H#0000A ;channel number counter
+DMAD:   EQU     H#0000B ;DMA data registers
+SIOD:   EQU     H#0000C ;SIO output data register
+DMAH:   EQU     H#0000D ;transfer data to high order DMA register
+;COUNT:                ;defined in problem symbol definition section
+DMAL:   EQU     H#0000F ;transfer data to low order DMA register
+;
+;------------------------------------------------
+;                                               ;
+;       definitions for field 2 symbols         ;
+;                                               ;
+;------------------------------------------------
+;
+;--------------------------------
+;                               ;
+;       B-bus source            ;
+;                               ;
+;--------------------------------
+;
+CONST:  EQU     H#44000 ;constant
+ALU:    EQU     H#04200 ;2901 ALU
+;COUNT:                ;defined in problem symbol definition section
+MUX:    EQU     H#04600 ;mux input data register
+SIO:    EQU     H#04800 ;SIO input data register
+MUXLN:  EQU     H#04A00 ;mux input command & line number register
+RAM:    EQU     H#04C00 ;scratch pad RAM
+DMA:    EQU     H#04E00 ;DMA input data register
+;
+;--------------------------------
+;                               ;
+; Source for 2901 ALU operation ;
+;                               ;
+;--------------------------------
+;
+AQ:     EQU     H#00000 ;operands are: A port data, Q register
+;AB:                   ;defined in problem symbol definition section
+ZQ:     EQU     H#00080 ;operands are: zero, Q register
+ZB:     EQU     H#000C0 ;operands are: zero, B port data
+ZA:     EQU     H#00100 ;operands are: zero, A port data
+DA:     EQU     H#00140 ;operands are: B-bus data, A port data
+DQ:     EQU     H#00180 ;operands are: B-bus data, Q register
+DZ:     EQU     H#001C0 ;operands are: B-bus data, zero
+;
+;--------------------------------
+;                               ;
+; 2901 ALU Function             ;
+;                               ;
+;--------------------------------
+;
+ADD:    EQU     H#28000 ;add operands
+SUBR:   EQU     H#28008 ;first operand subtracted from second operand
+SUBS:   EQU     H#28010 ;second operand subtracted from first operand
+OR:     EQU     H#08018 ;logical OR the operands
+AND:    EQU     H#08020 ;logical AND the operands
+NOTRS:  EQU     H#08028 ;logical NOT of first operand AND with second operand
+EXOR:   EQU     H#08030 ;exclusive OR operands
+EXNOR:  EQU     H#08038 ;exclusive NOR operands
+;
+;--------------------------------
+;                               ;
+; Destination for 2901 ALU      ;
+;                               ;
+;--------------------------------
+;
+QREG:   EQU     H#10000 ;Q register
+NULL:   EQU     H#10001 ;none
+RAMA:   EQU     H#10002 ;reg addressed by 'B', port A data avail as ALU output
+RAMF:   EQU     H#10003 ;reg addressed by 'B', ALU result avail as ALU output
+RAMQD:  EQU     H#10004 ;ALU result / 2 into reg addressed by 'B', Q/2 -> Q,
+                        ;ALU result avail as ALU output
+;RAMD:                 ;defined in problem symbol definition section
+RAMQU:  EQU     H#10006 ;ALU result * 2 into reg addressed by 'B', 2Q -> Q
+                        ;ALU result avail as ALU output
+RAMU:   EQU     H#10007 ;ALU result * 2 into reg addressed by 'B'
+                        ;ALU result avail as ALU output
+;
+;--------------------------------
+;                               ;
+; special symbols used          ;
+; in field 2                    ;
+;                               ;
+;--------------------------------
+;
+CONQ:   EQU     H#1C1D8 ;CONST+DZ+OR+QREG, load constant into Q register
+OUTQ:   EQU     H#1C299 ;ALU+ZQ+OR, Q register data ontp B-bus
+LOADQ:  EQU     H#181D8 ;DZ+OR+QREG, load B-bus data into Q register
+;
+;------------------------------------------------
+;                                               ;
+; Definitions for field 3 symbols               ;
+;                                               ;
+;------------------------------------------------
+;
+;--------------------------------
+;                               ;
+; B-bus to ALU[cn],             ;
+; carry in to ALU               ;
+;--------------------------------
+;
+CARRY:  EQU     H#8000 ;set carry bit for 2901 arithematic operations
+;
+;--------------------------------
+;                               ;
+; 2910 test conditions          ;
+;                               ;
+;--------------------------------
+;
+FALSE:  EQU     H#0000 ;always false
+TRUE:   EQU     H#0800 ;always true
+DMABY:  EQU     H#1000 ;DMA operation in progress
+F3:     EQU     H#1800 ;2901 ALU result has MSB = 1
+FE0:    EQU     H#2000 ;2901 ALU result is zero
+SIOBY:  EQU     H#2800 ;SIO sequence in progress
+MUXR:   EQU     H#3000 ;CPU request mux service
+IPEND:  EQU     H#3800 ;attention to CPU still pending
+BUS0:   EQU     H#4000 ;B-bus bit 0 = 1
+BUS1:   EQU     H#4800 ;B-bus bit 1 = 1
+BUS8:   EQU     H#5000 ;B-bus bit 8 = 1
+BUS9:   EQU     H#5800 ;B-bus bit 9 = 1
+BUS10:  EQU     H#6000 ;B-bus bit 10 = 1
+BUS12:  EQU     H#6800 ;B-bus bit 12 = 1
+BUS5:   EQU     H#7000 ;B-bus bit 5 = 1
+BUS7:   EQU     H#7800 ;B-bus bit 7 = 1
+;
+;--------------------------------
+;                               ;
+; 2901reg select           ;
+;                               ;
+;--------------------------------
+;
+B0:     EQU     H#0000 ;register 0
+B1:     EQU     H#0001 ;register 1
+B2:     EQU     H#0002 ;register 2
+B3:     EQU     H#0003 ;register 3
+B4:     EQU     H#0004 ;reigster 4
+B5:     EQU     H#0005 ;register 5
+B6:     EQU     H#0006 ;register 6
+B7:     EQU     H#0007 ;register 7
+B8:     EQU     H#0008 ;register 8
+B9:     EQU     H#0009 ;register 9
+BA:     EQU     H#000A ;register A
+BB:     EQU     H#000B ;register B
+BC:     EQU     H#000C ;register C
+BD:     EQU     H#000D ;register D
+BE:     EQU     H#000E ;register E
+BF:     EQU     H#000F ;register F
+;
+;--------------------------------
+;                               ;
+; RAM Register definitions      ;
+;                               ;
+;--------------------------------
+;
+TINTPC: EQU     H#0010 ;PC for transmitter to CPU interrupt
+RINTPC: EQU     H#0020 ;PC for receiver to CPU interrupt
+TBPC:   EQU     H#0030 ;PC for transmit background task
+RBPC:   EQU     H#0040 ;PC for receive background task
+TSPC:   EQU     H#0050 ;PC for transmit SIO serivce task
+RSPC:   EQU     H#0060 ;PC for receive SIO service task
+STAT:   EQU     H#0070 ;SIO status; content of SIO R0, R1
+RELOC:  EQU     H#0080 ;relocation base
+LWLIM:  EQU     H#0090 ;lower limit
+WINDOW: EQU     H#00A0 ;DMA window size
+TCADDH: EQU     H#00B0 ;high order output CCW addr
+TCADDL: EQU     H#00C0 ;low order output CCW addr
+RCADDH: EQU     H#00D0 ;high order input CCW addr
+RCADDL: EQU     H#00E0 ;low ordeir input CCW addr
+TDADDH: EQU     H#00F0 ;high order output record address
+TDADDL: EQU     H#0100 ;low order output record address
+RDADDH: EQU     H#0110 ;high order receive buffer addr
+RDADDL: EQU     H#0120 ;low order receive buffer addr
+RCDADH: EQU     H#0130 ;high order receive record addr for storing byte count
+RCDADL: EQU     H#0140 ;low order receive record addr for storing byte count
+RCDTH:  EQU     H#0150 ;high order addr for storing next receive byte
+RCDTL:  EQU     H#0160 ;low order addr for storing next receive byte
+TCADNL: EQU     H#0180 ;low order addr of next output CCW
+TINTFG: EQU     H#0190 ;transmitter to CPU interrupt code
+RINTFG: EQU     H#01A0 ;receiver to CPU interrupt code
+ABORT:  EQU     H#01B0 ;abort counter
+RICNT:  EQU     H#01C0 ;idle line counter
+RCHECK: EQU     H#01D0 ;CRC/framing error counter
+TDBUF:  EQU     H#01E0 ;transmit data buffer
+TDCNT:  EQU     H#01F0 ;transmit data counter
+RDBUF:  EQU     H#0200 ;receive data buffer
+RECNT:  EQU     H#0210 ;receive data counter
+RBSIZE: EQU     H#0220 ;receive buffer size
+RRSIZE: EQU     H#0230 ;receive record size
+TCOM:   EQU     H#0240 ;first half of output CCW command
+RCOM:   EQU     H#0250 ;first half of input CCW command
+TSTOP:  EQU     H#0260 ;set to 0 if XON, set to 80(hex) if XOFF
+XON:    EQU     H#0270 ;XON char
+XOFF:   EQU     H#0280 ;XOFF char
+;
+;------------------------------------------------
+;                                               ;
+; Problem symbol definition                     ;
+;                                               ;
+;------------------------------------------------
+;
+JZ:     EQU     H#08000 ;jump zero
+CONT:   EQU     H#00E00 ;continue
+COUNT:  EQU     H#05000 ;field 1: increment chan num ctr;
+                        ;field 2: chan num ctr is B-bus source
+AB:     EQU     H#02000 ;field 1: A port register B
+                        ;field 2: 2901 ALU operands are A and B port data
+RAMD:   EQU     H#90005 ;field 1: scratch pad RAM is B-bus source
+                        ;field 2: ALU result / 2 into register addressed by 'B'
+;
+;------------------------------------------------
+;                                               ;
+;       Symbols for HDLC micro engine           ;
+;                                               ;
+;------------------------------------------------
+;
+;-------------------------------
+;                              ;
+;       B-Bus destination      ;
+;                              ;
+;-------------------------------
+;
+MUXDL:  EQU     H#00004 ;second set of mux output register
+PROMHI: EQU     H#00006 ;bits 11, 12 of micro instruction addr latch
+;
+;------------------------------------------------------------------
+;                                                                 ;
+;       RAM register definition                                   ;
+;                                                                 ;
+;       THESE REGISTERS ARE USED EXCLUSIVELY BY HDLC MICRO ENGINE ;
+;       REGISTERS NOT USED BY HDLC MICRO ENGINE ARE:              ;
+;         RCDTH(15), RCDTL(16), TCADNL(18), RINTFG(1A)            ;
+;                                                                 ;
+;------------------------------------------------------------------
+;
+TXERPC: EQU     H#0010 ;PC for transmit errors
+RXCFPC: EQU     H#0020 ;PC for short receiver cpu request task
+TXCPPC: EQU     H#0030 ;PC for transmitter to CPU requests
+RXCPPC: EQU     H#0040 ;PC for receiver to CPU requests
+TXSIPC: EQU     H#0050 ;PC for trasmit SIO service task
+RXSIPC: EQU     H#0060 ;PC for receive SIO service task
+RSTAT1: EQU     H#0170 ;second 16 bits of response for read status I/O command
+SVTXSI: EQU     H#01A0 ;save area for TXSIPC
+RICHCK: EQU     H#01C0 ;bits 0-7 = idle counter, bits 8-15 = crc error count
+RRECNT: EQU     H#01D0 ;receive record byte count save area
+CMERPC: EQU     H#0290 ;PC for I/O or CCW command errors
+RDSTPC: EQU     H#02A0 ;PC for response to read status I/O command
+RDSTAH: EQU     H#02B0 ;high order addr to store status
+RDSTAL: EQU     H#02C0 ;low order addr to store status
+TXCFPC: EQU     H#02D0 ;PC for short transmitter cpu request task
+TXDCNT: EQU     H#02E0 ;transmit data counter (number of bytes transmitted)
+CMERFG: EQU     H#02F0 ;interrupt code for command error interrupt to CPU
+IBIPTR: EQU     H#0300 ;receive RAM buffer in-pointer
+IBOPTR: EQU     H#0310 ;receive RAM buffer out-pointer
+IBUF0:  EQU     H#0320 ;first halfword of receive RAM buffer
+IBUF1:  EQU     H#0330 ;second halfword of receive RAM buffer
+IBUF2:  EQU     H#0340 ;third halfword of receive RAM buffer
+IBUF3:  EQU     H#0350 ;fourth halfword of receive RAM buffer
+OBIPTR: EQU     H#0360 ;transmit RAM buffer in-pointer
+OBOPTR: EQU     H#0370 ;transmit RAM buffer out-pointer
+OBUF0:  EQU     H#0380 ;first halfword of transmit RAM buffer
+OBUF1:  EQU     H#0390 ;second halfword of transmit RAM buffer
+OBUF2:  EQU     H#03A0 ;third halfword of transmit RAM buffer
+OBUF3:  EQU     H#03B0 ;fourth halfword of transmit RAM buffer
+MXTXPC: EQU     H#03C0 ;PC for tranmit task waiting for CPU response
+MXRXPC: EQU     H#03D0 ;PC for receive task waiting for CPU response
+TXRXFG: EQU     H#03E0 ;flags
+ROVCNT: EQU     H#03F0 ;OVERRUN COUNTER
+;
+;-----------------------------------
+;                                  ;
+;       Function Code to CPU       ;
+;                                  ;
+;-----------------------------------
+;
+FIBUFA: EQU     H#1000 ;data is addr of input buffer
+FPIBFD: EQU     H#2000 ;store data into input buffer
+FPOCCW: EQU     H#3000 ;get next ccw and mark current ccw with 100 or 200
+FPOBFD: EQU     H#3000 ;store data into output buffer
+FGOBFD: EQU     H#4000 ;get data from output buffer
+FOBUFA: EQU     H#5000 ;data is address of output buffer
+FGOCCW: EQU     H#6000 ;get output CCW
+FOCCWA: EQU     H#7000 ;data is address of output CCW
+FGICCW: EQU     H#8000 ;get input CCW
+FICCWA: EQU     H#9000 ;data if address of input CCW
+FSTATA: EQU     H#A000 ;data is address where status is to be stored
+FSTATD: EQU     H#B000 ;store status information
+FSYNPD: EQU     H#C000 ;store sync data into input ring
+FSYNGD: EQU     H#D000 ;fetch sync data from output ring
+FPSINT: EQU     H#E000 ;issue software interrupt from pseudo device
+        END
+
+  GAŽ
