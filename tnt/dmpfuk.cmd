@@ -1,0 +1,5 @@
+GO SHZFUK
+
+R COM;SHRINK.CMD
+
+
