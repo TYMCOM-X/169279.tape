@@ -1,0 +1,60 @@
+			:****************************************************************
+			:*                                                              *
+			:* TCK TTE 440, MARCHING DIGITS PROGRAM, 14JUNE88, THANKS SUZIE *
+			:*                                                              *
+			:****************************************************************
+			:*                                                              *
+			:*  THE PURPOSE OF THIS PROGRAM IS TO PRODUCE A CONSOLE WITH    *
+			:*  ALL ZEROES, THEN PUT A 1 INTO THE RIGHTMOST COLUMN, THEN    *
+			:*  MOVE THE 1 TO THE SECOND COLUMN FROM THE RIGHT AND PUT A    *
+			:*  2 INTO THE RIGHTMOST COLUMN.  THIS PROCESS CONTINUES, WITH  *
+			:*  THE NEXT HEX DIGIT GOING INTO THE RIGHTMOST COLUMN AND THE  *
+			:*  OTHER DIGITS BEING SHIFTED ONE COLUMN TO THE LEFT, UNTIL    *
+			:*  THERE IS AN F IN THE RIGHTMOST COLUMN.  AT THAT POINT, THE  *
+			:*  PROGRAM PUTS A ZERO INTO THE RIGHTMOST DIGIT OF THE CON-    *
+			:*  SOLE.  CONTINUING TO EXECUTE THE CODE WILL START THE WHOLE  *
+			:*  PROCESS OF MARCHING DIGITS AGAIN.  USE %A TO ASSEMBLE, %Q   *
+			:*  TO EXIT THE NAD.                                            *
+			:****************************************************************
+			
+000000			R0	EQ	0
+000001			R1	EQ	1
+000002			R2	EQ	2
+000003			R3	EQ	3
+000004			R4	EQ	4
+000005			R5	EQ	5
+			
+010000				ORG	10000	:nice safe area to play!!!
+			
+010000	0700 		START	XR	R0,R0	:put a zero into R0
+010002	0711 			XR	R1,R1	:put a zero into R1
+010004	0722 			XR	R2,R2	:put a zero into R2
+010006	0744 			XR	R4,R4	:put a zero into R4--zero rightmost digit
+010008	0755 			XR	R5,R5	:put a zero into R5--zero counter for pause timer
+01000A	9902 			CIO	R0,R2	:display R1(bits 12..31)R0(bits 16..31)
+			
+01000C	0830 		MARCH	LR	R3,R0	:copy contents of R0 into R3
+01000E	103C 			SRLS	R3,0C	:logical shift R3 right 12 bits
+010010	1104 			SLLS	R0,04	:logical shift R0 left 4 bits--move hex digits left 1
+010012	F400 0000 FFFF 		NI	R0,0FFFF:mask out 16 MSB of R0--don't allow wrap-around
+010018	F410 0000 FFFF 		NI	R1,0FFFF:mask out 16 MSB of R1--don't allow wrap-around
+01001E	1114 			SLLS	R1,04	:logical shift R1 left 4 bits--move hex digits left 1
+010020	0A13 			AR	R1,R3	:move digit from 3rd from right end to 4th from end
+010022	0A04 			AR	R0,R4	:move next digit into rightmost digit place
+010024	0722 			XR	R2,R2	:put a zero into R2
+010026	9902 			CIO	R0,R2	:display R1(bits 12..31)R0(bits 16..31)
+			
+010028	4200 0000 	WAIT	NOP		:do nothing--this is a pause loop
+01002C	2651 			AIS	R5,01	:increment pause counter R5 by 1
+01002E	F950 0002 0000 		CI	R5,20000:compare pause counter to 20000 hex.
+010034	4210 FFF0 		JL	WAIT	:if R5 is less than 20000 hex, jump to WAIT
+010038	0755 			XR	R5,R5	:if R5 is equal to 20000 hex, zero it and continue
+			
+01003A	C940 000F 	TESTR4	CHI	R4,0F	:compare R4 to 0F--is it time to zero R4?
+01003E	4330 8006 		JE	ZEROR4	:if R4 = 0F, jump to ZEROR4, to put a zero into R4
+010042	2641 			AIS	R4,01	:increment value of rightmost digit
+010044	4300 8002 		J	AGAIN	:jump to AGAIN, to continue marching
+010048	0744 		ZEROR4	XR	R4,R4	:put a zero into R4
+01004A	4300 FFBE 	AGAIN	J	MARCH	:jump to continue marching
+			
+01004E				END
