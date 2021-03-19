@@ -1,0 +1,323 @@
+
+	Description of SIO MotherBoard Functions and Interface
+
+	Communication with the SIO motherboad is done on three levels.
+	Two of these levels are via programmed I/O, that is, writing and
+	reading data and status registers via the privileged
+	instructions WDR and SSR.  These instructions are executed from
+	SVC's in order to determine the status of the motherboard, or to
+	notify the motherboard that there is a channel command program
+	waiting to be executed.
+
+	The other means of communicating with the motherboard is via DMA
+	to shared memory.  Channel commands are written for the SIO chips
+	which control the lines, and the motherboard, when notified of
+	these programs, will read and execute them independently of the
+	Engine's CPU.
+
+	Addresses passed to the motherboard are MAC'ed, so that part of
+	connecting the interface to the motherboard is to pass a
+	relocation constant which will be used to decode the addresses
+	in the DMA region.
+
+	The address bus between the motherboard and the Engine CPU is
+	only sixteen bits wide.  An address passed over the bus is
+	converted to a twenty bit address (common in the Engine) by
+	shifting the sixteen bits of address four places to the left.
+	This forces all addresses used in the interface to be aligned to
+	a quad word boundary, and further forces the DMA region to
+	reside in the first megabyte of a multi-megabyte configuration.
+
+	Block Diagram of the Three Phases of Communication with the SIO
+	Motherboard
+
+	+---------------+
+	| mother	|	SSR	returns BUSY, AVAIL info
+	|	board	|	WDR	M-Board reset
+	+---------------+
+	| daughter	|	WDR	initialize SIO chip, output,
+	|	card	|		input, get line status
+	+---------------+
+	| data transfer |	DMA	via CCW's written in shared
+	|		|		memory, semaphore conventions
+	+---------------+
+
+
+
+
+
+
+
+	Initialization of SIO Interface
+
+	SSTART	fill in SIO interrupt tables by SIO device # (line #).
+
+	SV.BOT	(SVC to execute software boot of the machine)
+		reset Motherboard -- WDR 6000
+
+	NSTART	initialize DMA region (set up pointers to input and
+		output blocks, chain CCW's, move initialization CCW
+		sequences to SIOIPG, etc.)
+
+	SIOIZ	(from 2 second logic)
+		if line's SIOSTT+8 is non-zero (positive from INTSIO --
+		SIO interrupt handler, negative from various palces in
+		the software) then reinitialize the SIO line hardware:
+			SV.CSI	connect SVC
+			SV.OSI	output initialization CCW sequence
+			SV.ISI	(re)start input
+
+	SIO Mother-Board Interrupts
+	--- ------ ----- ----------
+
+	vector to INTSIO (vectos set up in SSTART)
+	issue SSR, to which motherboard returns halfword:
+
+		+-------------------------------+
+		| code	| line #| 0	|status	|
+		+-------------------------------+
+
+	Codes 0-8 are error codes, 9-15 are (as yet unmplemented)
+	fancier interrupts, such as output complete, reset received,
+	etc.
+
+	Store halfword error key in SIOSTT+8, and in SINCNT (8 halfword
+	circular ring) to attract the attention of SIOIZ, which will
+	reinitailize the line's hardware.
+
+
+	SIO SVC Usage
+	--- --- -----
+
+	SIOIZ
+		SV.CSI	connect
+		SV.OSI	output (line init CCW sequence, in this case)
+		SV.ISI	start up the input (it keeps going)
+
+	SIO output states
+		SV.OSI	once for each record, if not chained
+
+	LDRPT
+		SV.QSI	query line errors (HDLC checksum errors, etc.)
+
+
+	SIO Output States
+	--- ------ ------
+
+	In SYLVER, do sync lines.  Then, for each SIO line, INPUT while
+	you can, then OUTPUT by dispatching to the line's state routine.
+
+	Transmit States --
+
+	SIOTT
+	If RECN > LAR then begin
+		check if retransmission
+		set up SIOCO (current output CCW block)
+		copy reocrd to output buffer
+		checksum the record
+		fill in the STOP and OUTPUT commands in SIOCO
+		issue SV.OSI to tell M-Board to begin output
+		change state to SION
+		end
+
+	SION
+	check status of output from SIOCO (high order byte of CCW block)
+	(question -- is this checking if the cmd has changed, or if the
+	m-board has responded with a status?)
+	if not 1, then change state to SIOTT, and execute the SIOTT
+	routine.
+	else, if not ACK'ed next record, and not retransmission, then
+		set up SIONO (next CCW block) to send.
+		fill in STOP ands OUTPUT commands in SIONO.
+		fill in jump command in SIOC (to chain)
+		change state to SIOC
+
+	SIOC	
+	check status byte from SIOCO (current CCW output block)
+		if status = 0, then (we don't know)
+			dismiss to SIOIDL
+		if status = 1, then (chaining succeeded)
+			swap SIOCO and SIONO
+			change state to SION
+			jump to SION
+		if status = 2, then (chaining failed)
+			if status byte in SIONO <> 0
+			then
+				swap SIOCO and SIONO
+				change state to SION
+				jump to SION
+			else
+				restart output for new record via SV.OSI
+
+
+	Initial States of SIO Data Structures
+	(sample for SIO line 0)
+
+SIOBLK	+---------------+---------------+
+1st CCW	|	200	|	0	|	status is "chain failed"
+	|		|		|
+	+---------------+---------------+
+	|	0	|SIOBLK+10)/10	|	STOP/ptr to
+	|		|		|	pair block for chaining
+	+---------------+---------------+
+	|SIOBLO		|SIOBLO/10	|	ptrs to line's output buffer
+	|		|		|	and quad addr for same
+	+---------------+---------------+
+	|	0	|	0	|
+	|		|		|
+	+---------------+---------------+
+nxt CCW	|	0	|	8	|
+	|		|		|
+	+---------------+---------------+
+	|	0	|SIOBLK/10	|	STOP/quad addr of pair
+	|		|		|	block for chaining
+	+---------------+---------------+
+	|SIOBLO+90	|(SIOBL0+90)/10	|	ptrs to line's output buffer
+	|		|		|	and quad addr for same
+	+---------------+---------------+
+	|	0	|	0	|
+	|		|		|
+	+---------------+---------------+
+
+
+SIOSTT	+---------------+---------------+
+	|		|		|
+	|		|		|
+	+---------------+---------------+
+	|		|		|
+	|		|		|
+	+---------------+---------------+
+    +8	|	3	|SIBFSZ/2	|
+	|		|		|
+	+---------------+---------------+
+	|		|		|
+	|		|		|
+	+---------------+---------------+
+
+
+
+SIOBLI	+---------------+---------------+
+	|	3	|SIBFSZ/2	|	set buffer & max record
+	|		|		|	size
+	+---------------+---------------+
+	|	1	|SIBUF/10	|	input CCW w/ quad ptr to
+	|		|		|	buffer
+	+---------------+---------------+
+	|		|		|
+	|		|		|
+	+---------------+---------------+
+	|		|		|
+	|		|		|
+	+---------------+---------------+
+ 
+============================================================================
+
+                      PCSIO MUX I/O SOFTWARE INTERFACE
+                      -------------------------------
+
+1.  Test for busy with SSR - CC = 0 = AVAILABLE
+                             CC = 4 = NOT AVAILABLE
+                             CC = 8 = BUSY/NOT READY                        
+
+2.  Response to interrupt (ATN20) with SSR or RDR will return:-  
+    MUX I/O INTERRUPT STATUS  0  3 4  7
+                             +----+----+----+--------+    
+                             |CODE|LN# | 0  |BSY/AVL |
+                             +----+----+----+--------+   
+
+                             0001    1 = ASYNC INPUT CMD COMPLETE
+                             0010    2 = CCW ERROR
+                             0110 ?  6 = OVERRUN - LOST DATA, SIO CHIP
+                             1000    8 = I/O CMD ERROR
+
+3.  Format of MUX I/O output to PCSIO - via WRITE DATA/OUTPUT CMD INST.
+        0        3 4   7 8      15 16      31
+       +----------+-----+---------+----------+
+       | CMD TYPE | LN# | BD.ADD. | ADD/DATA |
+       +----------+-----+---------+----------+
+
+        0 = START INPUT         Address of 1st CCW}---Any current channel CMD
+        1 = START OUTPUT        Address of 1st CCW}   program will be stopped
+        2 = RELOCATION          Data = Relocation Magnitude
+        3 = LOWER LIMIT         Address (smallest), Default = 0000
+        4 = WINDOW SIZE         Data = Number of quad words, default = X'1000
+        5 = READ STATUS         Address of status destination (see note 2)
+        6 = BOARD RESET         All channel CMD progs. stop, reset all SIOchips
+        7 = LINE RESET          Chan. prog stop, reset SIO chip--this line only
+      8-F = NOT USED 
+                                NOTE 1  ADDRESS SPECIFIES A QUAD WORD BOUNDARY
+                                ------  A QUAD WORD = 8 HALFWORDS = 16 BYTES
+
+NOTE 2
+------
+0        7 8      15 16      23 24      31 32      43 44      47
++---------+---------+----------+----------+----------+----------+
+|  REG 0  |  REG 1  |IDLE LINE | CRC ERR  |HDLC ABORT| 1 X X X  |
++---------+---------+----------+----------+----------+-^-^-^-^--+
+ |                 | |                              |  | | | |         
+  -----------------   ------------------------------   | | | |                
+          |                         |                  | | | |
+     ON SIO CHIP                 COUNTERS              | | | 1 = TC PRESENT
+                                                       | | 1 = HDLC IDLE LINE
+                                                       | 1 = RC PRESENT
+                                                       ALWAYS A '1'
+4.  Address switch settings:-
+    BIG BOARD = X' 80
+    LITTLE BOARDS SET 2 ADDRESSES APART - 0,2,4, ---- ect.
+
+
+============================================================================
+
+		      PCSIO DMA SOFTWARE INTERFACE
+		      ----------------------------
+
+                                      0            15 16            31     
+                                     +---------------+----------------+
+CCW - CHANNEL COMMAND WORD FORMAT    |   CMD. CODE   |  ADDRESS/DATA  |
+      ------- ------- ---- ------    +---------------+----------------+
+
+1.  CHANNEL COMMANDS FOR OUTPUT
+
+    CMD CODE                        ADDRESS/DATA
+    --------                        ------------
+    0 = STOP                 STOP CHANNEL COMMAND PROGRAM
+    1 = OUTPUT HDLC RECORD   ADDRESS = START OF RECORD
+                             1st HALFWORD OF RECORD = BYTE COUNT
+                                        {STOP, X'100}      
+                             NEXT CMD ={             }--> THIS CMD CODE FIELD
+                                        {STOP, X'200}                          
+    2 = JUMP                 ADDRESS = NEXT CCW
+    3 = OUTPUT CMD PAIR      DATA = COMMAND PAIR TO SIO CHIP
+    4 = OUTPUT ASYNC RECORD  ADDRESS = START OF RECORD (i.e. LIKE 1 ABOVE)
+                                              
+
+2.  CHANNEL COMMANDS FOR INPUT
+
+    CMD CODE                        ADDRESS/DATA
+    --------                        ------------
+    0 = STOP                 STOP CHANNEL COMMAND PROGRAM
+    1 = INPUT TO BUFFER      ADDRESS = START OF BUFFER
+                             1st HALFWORD OF RECORD = BYTE COUNT            
+                             X'FFFF-->HALFWORD FOLLOWING DATA(NEGATIVE MARKER)
+                             BYTE COUNT OF NEXT RECORD-->X'FFFF OF PREV. REC.
+                             IF END OF BUFFER,NEXT REC. GOES TO START OF BUFF.
+
+    2 = JUMP                 ADDRESS = NEXT CCW
+    3 = SET BUFFER &         DATA = RECEIVE BUFFER SIZE IN HALFWORDS, MIN=X'20
+        MAX RECORD SIZE      MAX RECORD SIZE = (BUFFER SIZE/8) - 1
+    4 = INPUT ASYNC          ADDRESS = START OF INPUT AREA
+                             COMMEND COMPLETES THEN SENDS A CODE 1 INTERRUPT
+                             WHEN AT LEAST 1 CHAR IS RCV'D. AND TOTAL CHARS
+                             RCV'D. = 8 OR 20 MS. TIME OUT SINCE LAST CHAR
+                                        --
+    NOTE
+    ----
+                                                          0      7 8     15
+                                                         +--------+--------+
+      ADDRESS = QWB          ASYNC CHAR. FORMAT OF MEM.  |        |  CHAR  |
+      --> = REPLACES                                     +--------+--------+
+      X' = HEX NUM.                                           00 = NORMAL
+                                                              01 = BREAK
+
+
+  
