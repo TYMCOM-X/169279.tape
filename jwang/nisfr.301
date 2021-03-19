@@ -1,0 +1,52 @@
+:
+:  VERSION 3.01
+: THE FLAG 'NISFR' SHOULD BE REDEFINE IN THE COMMAND FILE AFTER GENNING THIS
+:  PATCH:
+:     .....
+:      @XCOM03.P01  and any other patches
+:      @NISFR.301
+:     NISFR[8000:         (IF LINK 0 IS TALKING TO WANG HOST.
+:     ...........          IF IT IS LINK 1, USE 'NISFR[4000:'  
+:                          DEFAULT IS 'NISFR[0000:')
+: IF THE CALL IS NOT TO THE WANG HOST (IE., NISFR BIT IS OFF, THIS
+: PATCH WILL NOT BE ENABLED.)
+: THE PATCH WILL ALSO CHECK IF THE CUD HAS BEEN INSERTED SPECIAL PROTOCOL
+: ID IN TYMNET FRANK RUSSEL HOST XCOM. THIS SPECIAL PID HAS 'C0' AS THE 
+: 4th BYTE OF PID. IF THE 4th BYTE ISN'T 'C0', THS CALL IS NOT FROM TYMNET
+:  FRANK RUSSELL HOST XCOM AND THE PATCH WILL NOT ENABLED.
+:
+:***********************************************************
+:
+: MAKE SURE THAT THE PATCH RUSSEL.TYM INSTALLED IN TYMNET
+: FRNAK RUSSEL HOST XCOM DEFINES FRPID AS 'LENGTH+000000C0'
+: HERE THE 4 BYTE 'C0' IS A SIGNAL.
+:
+:*************************************************************
+
+PATCH(870212,1200,JWANG,PA0PTR,,2)
+NISFR   HC      0       :DEFAULT VALUE IS OFF
+CONPATCH(ESP970+18,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,5A)
+        TBT     RL,NISFR,,      :IS IT WANG HOST?
+        JE      NOTFR           :NOT, RETURN TO NORMAL
+        L       R2,BB,R1,
+        LB      R4,3,R2,        :CHECK THE 4th BYTE IN THE PROTOCOL ID
+        CLHI    R4,0C0          :IS IT THE SIGNAL BYTE WE ADDED IN TYMNET
+                                :FRANK RUSSEL HOST XCOM?
+        JN      NOTFR           :NOT EQUAL, IT IS NOT THE CALL WE HAVE ADDED
+                                :PROTOCOL '000000C0' AND USERNAME AND PASSWORD
+                                :INTO CUD BEFORE PASS THE CALL TO NIS XCOM
+                                :GATEWAY.
+        JAL     R4,GCI,,        :FLUSH THESE 4 BYTES PID
+        JAL     R4,GCI,,
+        JAL     R4,GCI,,
+        JAL     R4,GCI,,
+        SIS     R7,4
+        JE      ESP990,,
+        J       ESP980,,
+NOTFR   JAL     R4,GCI,,
+        CLHI    R0,PI.PAD
+        JN      ESP985,,
+        J       ESP970+24,,
+ENDPATCH(REMOVE PID FOR THE CALL FROM FRANK RUSSEL TO JAPAN WANG HOST)
