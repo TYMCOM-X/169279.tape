@@ -1,0 +1,398 @@
+
+:*************************************************************************
+:
+: FILENAME: SAVTRC.204
+: VERSION : SDLC 2.04
+: WRITTEN BY: JAMES WANG
+: DATE: AUG, 1991
+:
+: PURPOSE OF THE PATCH:
+:   1. CUSTOMER IS NOT WILLING TO CRASH THE SLOT. BUT CUSTOMER IS STILL ASKING
+:       US TO ANALYZE THE PROBLEM. WE NEED SOME WAY TO CAPTURE SOME VALUABLE
+:       INFORMATIONS WITHOUT KILLING ANY USER CIRCUIT.
+:   2. FOR SOME PROBLEM, WE ONLY NEED SOME VALUABLE INFORMATION. IT IS NOT
+:      NECESSARY TO CRASH THE SLOT.
+:***************************************************************************
+:  TO USE THIS PATCH:
+:     ADD FOLLOWING IN THE COMMAND FILE--
+:          4000[P0SIZE:
+:           NOTE: THIS NUMBER 4000 IS BASED ON TWO LINKS SLOT.
+:           (APPROXIMATELY, 2000(HEX) OF P0SIZE PER LINK)
+:          ASSEMBLE TRACE.204
+:          ASSEMBLE <TRAP PATCHES>
+:***************************************************************************
+: VERSION 2.04
+:  FORMAT OF SAVING TABLES:
+:
+:  IRING AND ORING --- SAME AS IN THE CODE.
+:
+:
+:  FRAME TRACE TABLE ---  FFTRTB: STARTS AT FFTRTB+10, LENGTH ID FTRLEN.
+:        THE FIRST 10 (HEX) BYTES ARE:
+:        /4 BYTES OF CASE NUMBER/2 BYTES OF FTRLEN/2 BYTES OF FTRINP/...
+:       ......../2 BYTES OF TRAP OCCURRENCE COUNTER/
+:
+: OUTPUT SECTOR ---  OSTBL
+:     OSTBL CONTAINS ALL THE OUTPUT SECTORS FOR EACH LINK.
+:     OSTBK IS THE STARTING ADDRESS OF OUTPUT-SECTOR SAVE AREA FOR LINK K.
+:     OSTBL POINTS TO OSTB0. USE SECADR AND CCURSE AND SECBIA TO INTERPRET
+:     THE TABLES OSTBK.
+:
+: RECEIVE BUFFER --- RCVTBL
+:     RCVTBL CONTAINS ALL THE RECEIVE BUFFERS FOR EACH LINK.
+:     RCVTK IS THE STARTING ADDRESS OF RBUF SAVE AREA FOR EACH LINK K.
+:     RCVTBL POINTS TO RCVT0. USE RRINDE,TCVPTR TO INTERPRE RCVTBL.
+:
+: ROTOR LIST (INCLUDING NON-IFRAME OUTPUT AREA) --- TTCCL
+:     TTCCK SI THE STARING ADDRESS OF ROTOR LIST SAVE AREA FOR LINK K.
+:     TTCCL POINTS TO TTCC0.
+:     LENGTH OF ROTOR LIST IS (TCCWK - TCCLK) FOR EACH LINK K.
+:
+: CURRENT REGISTERS --
+:     REGSTK POINTS TO THE BEGINNING OF 16-REGISTERS TABLE FOR LINK K.
+:
+: CURRENT PORTS AND INTERNAL BLOCKS:
+:     DPORTK, DCBK,SCBK,STNK.
+:
+:
+:***************************************************************************
+:
+: STRUCTURE OF THIS PATCH:
+:
+: PART 1. DEFINE SAVING TABLES.
+:
+: PART 2. TRCSAV SUBROUTINE -- SAVE ALL THE ABOVE INFORMATIONS INTO PATCH0.
+:
+: PART 3. DISPLAY 'TRAP WAS CAUGHT ON LINK ??' BY DDT COMMAND 'HELP'.
+:
+: +++++++++++++++++++++++++++++++++
+:  (NOTE: PART 4,5,6 WILL BE IN ANOTHER 3 PATCH FILE.)
+: PART 4. REMOVE TRAPS WHICH WAS DESIGNED IN THE SOURCE CODE TO CRASH THE SLOT.
+:         (NOTE: THIS WILL BE DONE BY REMOVING TRAP MICRO AND CALL TRCSAV
+:                ROUTINE. THIS PART WILL BE PUT INTO ANOTHER PATCH FILE.
+:                TRCSAV ROUTINE IS NOT CALLED UNLESS THE PATCH FOR PART 4
+:                OR PART 5 IS INSTALLED.)
+:  PART 5. USER OPTIONAL TRAP --NEW INTRODUCED TRAP.
+:         (NOTE: THIS PART WILL BE PUT INTO ANOTHER PATCH FILE. TO CAPTURE
+:                SOME PARTICULAR MPTON, WE USED TO WRITE A TRAP PATCH TO
+:                CRASH THE SLOT. IF YOU DON'T WANT TO CRASH THE SLOT, YOU
+:                CAN JUST CALL THE SUBROUTINE TRCSAV.
+:
+: PART 6. PRINT OUT THE SAVED TABLES AND SAVE THEM INTO A PDP FILE.
+:         (MANUALLY READ ALL THE SAVING ATBLES AS STATED BELOW)
+:          OR
+:         (SIMPLY, USE THE COMMAND FILE --- TRCOUT.CMD. )
+:
+:
+:*****************************************************************************
+:
+:**************************************************************
+:
+: WHEN THE PROBLEM HAPPENS, SAVE THE FOLLOWING SAVE AREAS INTO A FILE.
+:
+: FOLLOWINGS ARE THE ORING,IRING,FRAME TRACE,LSDTAB,PORT TABLE SAVE AREAS
+:  (K IS THE LINK NUMBER)
+:   :R ORINGK,ORSIZE+4
+:   :R IRINGK,IRSIZE+4
+:   :R PTPTBK,PTPSIZ+20
+:   :R LSDTBK,LSDLEN*MAXSTN
+:   :R PORTBK,10+MAXSTN
+:
+:........................................................
+: FOLLOWINGS ARE NOT DONE YET.
+:..... DCBLKS, SCBLKS, CMDBLK..... NEEDS TO BE SAVED TOO.
+:
+: FOLLOWINGS ARE THE OUTPUT SECTOR SAVE AREAS
+:   :R SECADR,NSCTRS*4
+:   :R SECBIA,NLINES*2
+:   :R CCURSE+K,1 (THIS VALUE PLUS SECBIA POINTS TO A CELL INSIDE SECADR)
+:   :R OSTBK,RBUFK-TCCWK
+:
+: FOLLOWINGS ARE THE RECEIVE BUFFER SAVE AREAS.
+:   :R RRINDE+2K,2
+:   :R RCVK,RBUFHS*2
+:
+: FOLLOWINGS ARE THE ROTOR LIST (INCLUDING NON-I-FRAME OUTPUT AREA)
+:   FOR EACK LINK K.
+:   :R TTCCLK,(TCCWK-TCCLK)  WHERE K IS THE LINK NUMBER
+:
+: CRASH REGISTERS.
+:   :R REGSTK,10
+:
+:
+:**************************************************************
+:**************************************************************
+:
+:************************************************************************
+:************************************************************************
+:  PART 1 --- SAVE AREAS DEFINITIONS
+:
+
+::*************************************************************************
+
+::	DO LOOP MACROS
+:
+:	.DOB.(di,i,j,k)	DO BEGIN
+:		di	DO LOOP INDEX, ANY SYMBOL UP TO 4 CHARACTERS
+:		i	INITIAL VALUE OF di, ANY LEGAL EXPRESSION, DEF 0
+:		j	FINAL VALUE OF di, ANY LEGAL EXPRESSION,
+:			DEFAULT 10 IN CURRENT RADIX
+:		k	INCREMENT FOR di, ANY LEGAL EXPRESSION, DEF 1
+:		di IS INCREMENTED BY k AND THEN A TEST IS MADE AT
+:		THE END OF EACH LOOP.  IF di >= j THE LOOP IS EXITED.
+:		THEREFORE, 1. THE LOOP IS ALWAYS EXECUTED AT LEAST ONE TIME,
+:		2. THE LAST EXECUSION IS WITH di<j EXCEPT POSSIBLY FOR
+:		ONE TRIP LOOPS.
+:
+:	.DOE.l	DO END FOR DO AT LEVEL l, l=0,1,...
+:
+:	.DOB. AND .DOE.l MAY START IN ANY COLUMN INCLUDING COLUMN 1.
+:	INITIALLY, di WILL BE SET TO i.  IN ADDITION TO di, THREE OTHER
+:	VARIABLES ARE DEFINED BY .DOB.
+:		di.I	VALUE OF EXPRESSION i
+:		di.J	VALUE OF EXPRESSION j
+:		di.K	VALUE OF EXPRESSION k
+:		.DOL.	CURRENT DO LEVEL (THEREFORE .DOE.|.DOL.| MAY
+:			BE USED TO END THE CURRENT LOOP)
+:
+:	E.G.
+:		.DOB.(Q,FIRST+7,LAST/2+4)
+:			HC	Q
+:		.DOE.0
+
+	GL	.DOL.
+.DOL.	EQ	-1	:INITIALLY NO LOOPS
+.DOB.	MACRO(di,i,j,k)[
+.DOL.	EQ	.DOL.+1
+di	EQ	i 0
+di`.I	EQ	di
+di`.J	EQ	j 10
+di`.K	EQ	k 1
+	KILL	.DOE.|.DOL.|
+.DOE.|.DOL.|	MACRO[
+di	EQ	di+di`.K
+  IF	1-(di`.J-di)
+.DOL.	EQ	.DOL.-1
+  EI
+	ER	di`.J-di]
+	RE]
+
+
+::*************************************************************************
+:
+PA0PTR  EQ      ((PA0PTR+3)/4)*4
+TRCLEN  EQ      (IRSIZE+ORSIZE+PTPSIZ+LSDLEN*MAXSTN+48)*NLINES
+PATCH(860519,1000,JWANG,PA0PTR,,TRCLEN+6C)
+SAV0    WS      1
+SAV1    WS      1
+SAV2    WS      1
+SAV3    WS      1
+SAV4    WS      1
+SAV5    WS      1
+SAV6    WS      1
+SAV7    WS      1
+SAV8    WS      1
+SAV9    WS      1
+SAV10   WS      1
+SAVREG  WS      10
+:
+:-----------------------------------------------------------------------
+: SAVE AREAS FOR IRING,ORING,PORTAB,LSDTAB,PTPTTB, EACH BLINK HAS ITS
+: OWN SAVE AREAS.
+:-----------------------------------------------------------------------
+:
+IIRING   WS
+    .DOB.(Q,0,NLINES)
+IRING|Q| BS     IRSIZE+14
+    .DOE.0
+IRADR    WS
+    .DOB.(Q,0,NLINES)
+         WC     IRING|Q|
+    .DOE.0
+:
+OORING   WS
+    .DOB.(Q,0,NLINES)
+ORING|Q| BS     ORSIZE+14
+    .DOE.0
+ORADR     WS
+    .DOB.(Q,0,NLINES)
+         WC     ORING|Q|
+    .DOE.0
+:
+PPTPTB   WS
+    .DOB.(Q,0,NLINES)
+PTPTB|Q| BS     PTPSIZ+20
+    .DOE.0
+PTBADR   WS
+    .DOB.(Q,0,NLINES)
+         WC     PTPTB|Q|
+    .DOE.0
+:
+LLSDTB   WS
+    .DOB.(Q,0,NLINES)
+LSDTB|Q| BS     LSDLEN*MAXSTN
+    .DOE.0
+LSDADR   WS
+    .DOB.(Q,0,NLINES)
+         WC     LSDTB|Q|
+    .DOE.0
+:
+:---------------------------------------------------------------------
+: SAVE AREAS FOR CRASH REGISTERS, RPORT,,DCB#,SCB#..
+:------------------------------------------------------------------------
+PA0PTR  EQ      ((PA0PTR+3)/4)*4
+TRCLEN  EQ      4C
+CONPATCH(PA0PTR,,TRCLEN)
+    .DOB.(Q,0,NLINES)
+TABLE|Q| WS
+REGST|Q| WS     10
+RPORT|Q| HS     1
+DCB|Q|   HS     1
+SCB|Q|   HS     1
+ADDR|Q|  HS     1
+MADR|Q|  HS     1
+         HS     1
+    .DOE.0
+:
+PA0PTR  EQ      ((PA0PTR+3)/4)*4
+CONPATCH(PA0PTR,,4*NLINES)
+TABLES   WS
+    .DOB.(Q,0,NLINES)
+         WC     TABLE|Q|
+    .DOE.0
+:
+:
+CONPATCH(PA0PTR,,10+MAXSTN)
+PPORTB   WS
+    .DOB.(Q,0,NLINES)
+PORTB|Q| BS     10+MAXSTN
+    .DOE.0
+PA0PTR    EQ    ((PA0PTR+3)/4)*4
+CONPATCH(PA0PTR,,4*NLINES)
+PRTADR   WS
+    .DOB.(Q,0,NLINES)
+         WC     PORTB|Q|
+    .DOE.0
+ 
+:
+:**********************************************************************
+: PART 2 --- SAVE TABLES LOGIC
+:
+: TO JUMP TO THIS ROUTINE, R10 SHOULD HAVE THE RETURN ASDDRESS, R8 CONTAINS
+: LINK NUMBER, R7 SHOULD CONTAIN CASE NUMBER OR TRAP TYPE.
+: SAV1 THRU SAV10 CAN BE USED BEFORE JUMP TO THIS TRCSAV ROUTINE.
+:
+:***********************************************************************
+:
+ 
+CONPATCH(PA1PTR,,138)
+TRCSAV  STM     R0,SAVREG,,
+:
+        CLHI    R8,NLINES
+        JG      TRCRTN          :INVALID LINK NUMBER,SKIP TRCSAV ROUTINE
+        LR      R6,R8
+        SLLS    R6,2            :MAKE OFFSET TO THE TABLES FOR THIS LINK
+        L       R9,TABLES,R6,   :GET THE CORRESPONDING REGISTERS TABLE ADDRES
+:
+: SAVE TRAP REGISTERS
+:
+        LIS     R5,0
+REGCPY  L       R0,SAVREG,R5,   :GET BACK THE REGISTERS
+        ST      R0,,R9,R5       :STORE TO THE CORRESPONDING REGISTERS
+        AIS     R5,4
+        CLHI    R5,40           :END?
+        JL      REGCPY
+:
+: HERE IS TO RESTORE THE ORIGINAL CONTENTS OF REGISTER 7,8,10
+:
+        L       R0,SAV1,,
+        ST      R0,1C,R9,       :RESTORE BACK REGISTER 7
+        L       R0,SAV2,,
+        ST      R0,20,R9,       :RESTORE BACK REGISTER 8
+        L       R0,SAV3,,
+        ST      R0,28,R9,       :RESTORE BACK REGISTER 10
+:
+: SAVE DPORT,DCB,...
+:
+        LHL     R0,RPORT,,
+        STH     R0,40,R9,       :SAVE RPORT
+        LHL     R0,PORTAB,RPORT,RPORT
+        STH     R0,42,R9,       :SAVE DCB #
+ 
+:
+        LR      R5,R8
+        SLLS    R5,2
+:
+:
+: SAVE LSD TABLE
+:
+:
+LSAVE   L       R6,LSDADR,R5,   :WHERE TO SAVE FOR THIS LINK
+        LIS     R9,0
+LSAV1   LB      R0,LSDTAB,R9,   :FETCH A BYTE
+        STB     R0,,R6,R9       :START TO SAVE AT 10TH BYTE OF SAVING AREA
+        AIS     R9,1
+        CLHI    R9,LSDLEN*MAXSTN :END OF TABLE?
+        JL      LSAV1
+:
+: SAVE FRAME TRACE, RETURN ADDRESS IS IN R8, CASE NUMBER IS IN R7
+:
+FSAVE   L       R6,PTBADR,R5,   :WHERE TO SAVE
+        LIS     R9,0
+FSAV1   LB      R0,PTPTTB,R9,   :GET A BYTE FROM FT TABLE
+        STB     R0,10,R6,R9     :START TO SAVE AT THE 10TH BYTES
+        AIS     R9,1
+        CLHI    R9,PTPSIZ    :END OF TABLE?
+        JL      FSAV1
+        ST      R7,,R6,         :SAVE CASE/TRAP TYPE
+        LHI     R0,PTPSIZ
+        STH     R0,4,R6,        :SAVE THE FT LENGTH
+        LHL     R0,PTPTRX,,
+        STH     R0,6,R6,        :SAVE THE TRACE POINTER VALUE
+        LH      R0,0E,R6,       :GET PREVIOUS OCCURENCE COUNTER
+        AIS     R0,1
+        STH     R0,0E,R6,       :INCREMENTED BY ONE
+:
+: SAVE PORT TABLE
+:
+PRTSAV  L       R6,PRTADR,R5,
+        LIS     R9,0
+PRTSA1  LHL     R0,PORTAB,R9,R9  :GET DCB #
+        STH     R0,R6,R9,        :STORE DCB
+        AIS     R9,2
+        CLHI    R9,10+MAXSTN
+        JL      PRTSA1
+ 
+:
+: IRING AND ORING SAVING ROUTINE
+:
+IOSAVE  L       R6,ORADR,R5,    :WHERE TO SAVE
+        LIS     R9,0
+IOSAV1  LB      R0,ORING,R9,    :GET A BYTE
+        STB     R0,,R6,R9       :SAVE THIS BYTE
+        AIS     R9,1
+        CLHI    R9,ORSIZE+4     :END OF TABLE?
+        JL      IOSAV1
+:
+:
+        L       R6,IRADR,R5,    :WHERE TO SAVE IRING
+        LIS     R9,0
+IOSAV2  LB      R0,IRING,R9,    :GET A BYTE
+        STB     R0,,R6,R9       :SAVE IT
+        AIS     R9,1
+        CLHI    R9,IRSIZE+4     :END OF TABLE
+        JL      IOSAV2
+:
+:
+: RETURN TO THE CALLER
+:
+TRCRTN  LM      R0,SAVREG,,
+        JR      R10
+:
+CONPATCH(PTRBIT,,4)             :TURN ON FRAME TRACE
+        HC      0FFFF,0FFFF
+CONPATCH(DSCEXT,,6)
+        NOP     0,0,0,0         :NOT BE TURNED OFF WHEN EXITS THE SCOPE CMD
+ENDPATCH(SAVE TRACES WITHOUT CRASHING SLOT)
+ 
+ 
