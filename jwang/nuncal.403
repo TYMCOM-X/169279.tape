@@ -1,0 +1,34 @@
+:********************************************************************
+: Patchname: nuncal.403                    Product version: XCOM 4.03
+:   Author : JAmes Wang                       Organization: STS
+:  CUstomer: Tymdial X.32
+: Task:
+:
+:    '<our DNIC> + 9xxxxxxxxx' x.121 addressing takes precedence of
+:    NONTN option.
+:
+:*********************************************************************
+
+PATCH(890621,1000,JWANG,PCR461,,8)
+        NOP     0,0,0
+        NOP     0,0,0
+CONPATCH(PCR461+0E,,8)
+        J       PA1PTR,,
+        NOPR    0,0
+CONPATCH(PA1PTR,,1C)
+        NHI     R0,0F0
+        JN      PCR461+16,,
+        TBT     RL,NNTN.F,,
+        JN      PCR500,,
+        J       PCR466,,
+CONPATCH(PCR461+2C,,8)
+        J       PA1PTR,,
+        NOPR    0,0
+CONPATCH(PA1PTR,,22)
+        CLHI    R12,9           :IS IT  9 ?
+        JE      PCR461+34,,
+        TBT     RL,NNTN.F,,
+        JE      PCR462,,
+        RBT     R2,NTNCAL,,
+        J       PCR500,,
+ENDPATCH(ODNIC+9XXXXXXXXX TAKES PRECEDENCE OF NONTN OPTION IN TYMDIAL X.32)
