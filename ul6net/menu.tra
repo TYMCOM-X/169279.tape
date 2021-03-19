@@ -1,0 +1,1689 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    TYMNET MENU SERVICE
+                    ______ ____ _______
+
+
+                       TRAINING GUIDE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                      Shiao-Ming Tsui
+
+
+                        Tymnet, Inc.
+                 Network Technical Services
+                  Application Support Unit
+
+
+
+
+                        March 3, 1986
+
+
+
+
+Menu Service Training Guide                         PAGE   1
+
+
+
+                      Table of Contents
+
+
+            PREFACE                                     2
+        
+      I.    SYSTEM OVERVIEW                             3
+        
+      II.   SCENARIO                                    5
+        
+      III.  FIELD SET UP PROCEDURES                     6
+        
+      IV.   CONFIGURATION                               7
+        
+            1.  Hardware
+            2.  Software
+        
+      V.    DEMONSTRATION                               8
+        
+            1.  Tymnet Menu Service
+            2.  Cipher
+        
+      VI.   SYSGEN                                      10
+        
+            1.  Sysgen Statements
+            2.  Commands
+        
+      VII.  SAMPLE COMMAND FILE                         15
+        
+      VIII. SAMPLE TYM FILES                            16
+        
+            1.  Sample 1 - (MENUDEV:39)DEMO.TYM
+            2.  Sample 2 - (BETATEST)MSV001.T10
+            3.  Sample 3 - (MENUDEV:39)TYMINFO.TYM    
+        
+      IX.   SAMPLE CODE GENERATION                      27
+        
+      X.    TROUBLESHOOTING                             29
+        
+            1.  NAD - Extended DDT
+            2.  Crash Codes
+        
+            APPENDIX                                    32
+        
+            1.  Reference Documents
+            2.  New Features
+            3.  Lab
+         
+
+Menu Service Training Guide                         PAGE   2
+
+
+
+      PREFACE
+      =======
+
+
+      This document is in (MENUDEV:39)MENU.TRA.
+
+
+      The purpose of this document is twofold:
+        
+        1. To provide assistance in genning/debugging for Menu Service.
+        
+        2. To serve as an outline and resource for Menu Service training.
+
+      Revision History:
+
+        1. 11/11/85 by Fun-Lin Chen
+
+           Added new features AutoSelect and AutoLogoff.
+
+           Added ChHitSpace, ChNrTxt, ChNpTxt, ChTmTxt, and SeeUpToThen
+
+           which were previousl not defined in Training Guide.
+
+           Redefined default values for Hostcost.
+
+           Added new sample Tym File (sample 3).
+
+        2. 3/3/86 by Fun-Lin Chen.
+
+           Added new feature Proj.Code, Emergency Interrupt Key.
+
+           Updated Reference Documents.
+
+           Updated sample 3 Tym File.
+
+	3. 9/3/86 by Fun-Lin Chen
+
+	   Added new feature BiggerUBuffer (bigger UCB).
+
+Menu Service Training Guide                         PAGE   3
+
+
+
+      I.  SYSTEM OVERVIEW
+      ===================
+
+
+      Tymnet Menu Service is a user friendly,  menu-driven  host  selection
+      service,  providing  convenient  user  access  to a number of network
+      services  including  financial  systems,  electronic  mail,  database
+      inquiry and client tracking systems.
+
+      Menu Service runs as an ISIS slot in a Tymnet Engine and functions as
+      a  network  host.   In order to maximize reliability the Menu Service
+      interface uses proven design concepts and well  tested  ISIS  Library
+      routines.    Simplicity   of   both  code  and  data  structure  were
+      emphasized.
+
+      Network  access  to  Menu  Service  is  thru  Tymnet's  Tymsat/Consat
+      asynchronous terminal interface.  The Menu Service is compatible with
+      any ASCII terminal supported by the Tymsat/Consat.  
+
+      At login Menu Service dispays a menu of available services.  The menu
+      consists  of  text and a set of logon scenarios.  Each logon scenario
+      contains a string against which user input is matched and an  ordered
+      list  of  functions  to perform.  Functions provided include login to
+      Menu Service, send canned string, send username, and send  call  user
+      data.
+
+      Virtual circuits between the user and the Menu Service,  and  between
+      the  Menu Service and application hosts are routed using the services
+      of the Network Supervisor.  Tymnet's multi-based capability allows  a
+      user  to be connected to one of the multiple Menu Service slots which
+      has the least line cost (all these slots are assigned the  same  host
+      number).  Use of network multi-based maximizes system availability.
+
+      Menu Service contains an inactivity timeout feature.  If no user data
+      is  input  during  the timeout and a host circuit is not established,
+      then the user is logged out of Menu Service.  The timeout  value,  in
+      seconds,  is  a  configuration  parameter.   A  timeout message, also
+      configurable, will be sent prior to logging  the  user  out  of  Menu
+      Service.  
+
+Menu Service Training Guide                         PAGE   4
+
+
+
+      The figure below identifies the various system components involved in
+      the Menu Service application.
+  
+  
+   
+
+  
+  
+  
+
+                                           *    *    *
+                                       *                 *  
+                                   *                        * 
+                                *      T Y M N E T             *   
+                              *                                .-------.
+                            *                                 / Network \
+                           *          Virtual Circuits     :::\  Host   /
+                          *             //       \\       ::   \_______/
+                          *            //         \\     ::         *
+        Asynchronous    .---------.   //.---------.\\   ::           *  
+         Link   \\      |         |  // |         | V  ::             *    
+      __________ \\     |---------|  V  |         |   ::               * 
+     / .------. \ \\  ##|  Tymsat |:::: |---------|::::           .-------.
+     | !      ! |  V #  |---------|  :: | MENU    |::::::::::::::/ Network \
+     | !______! |  ##   |         |  :::| SERVICE |::::          \  Host   /
+     \__________/ #     |         |     |---------|   ::          \_______/
+       __/  \__ ##      |_________|     |_________|    ::               *
+      \________/           *                            ::             *  
+                            *                            ::           *
+                              *                           ::    .-------.
+                                 *                         ::  / Network \
+                                     *                      :::\  Host   /
+                                         *                    * \_______/
+                                              *     *     *
+                                                              
+
+Menu Service Training Guide                         PAGE   5
+
+
+
+      II.  SCENARIO
+      =============
+
+
+      When the user is connected to the Tymnet  network,  the  system  will
+      request  the user to enter his/her Terminal Identification character,
+      then prompts the user to please log in.  The user has to enter  login
+      username,  host  number  and password.  He/She will be then routed to
+      the Menu Service by a  network  virtual  circuit  built  between  the
+      user's access port and the Menu Service.
+
+      At this point the Menu Service outputs the predefined  menu  followed
+      by a prompt line.  The user enters the number for the service desired
+      followed by a carriage return.  Any invalid character entered  causes
+      an   error  message  and  the  prompt  line  to  be  displayed.   The
+      menu/prompt can be re-displayed by entering a carriage return to  the
+      prompt.
+
+      Once a valid service number is entered, Menu  Service  establishes  a
+      virtual  circuit to the network host providing the requested service.
+      If the network host is not available, the  user  receives  a  network
+      message  followed  by  the  menu/prompt.   If  the  network  host  is
+      available, the user is connected by Menu Service to that  host.   All
+      traffic is now passed transparently through the Menu Service slot.
+
+      Whenever the virtual circuit is cleared between the network host  and
+      the  Menu Service, by either the user logging off the network host or
+      a network failure, the menu/prompt is displayed again.
+
+      The user may log out of Menu Service by  selecting  the  menu  logoff
+      option or simply disconnecting from Tymnet access port.  Whenever the
+      virtual circuit is cleared between the user and the Menu Service  the
+      virtual  circuit  between  the  Menu Service and the network host, if
+      any, is also cleared.
+
+Menu Service Training Guide                         PAGE   6
+
+
+
+      III.  FIELD SET UP PROCEDURES
+      =============================
+
+
+      One of the advantages Menu Service offers is to allow  the  customers
+      tailor  the  screen format to their needs.  Not only can the customer
+      design the screen layout, but also can he word the  message  text  to
+      the  way  he  wants  to see and choose among those features that will
+      facilitate a even more user friendly environment.
+
+      The following is a list of configurable items that will require input
+      from  the  customer  and/or  your  sales representative prior to your
+      sysgen process:
+
+        1. main menu screen/in-depth menu screen layouts
+        
+        2. exact message texts for:
+             - welcome
+             - circuit zap
+             - logoff
+             - timeout
+             - making selection
+             - syntax error
+        
+        3. option items:
+             - password prompt
+             - space bar
+             - passthrough
+             - auto re-display
+             - rotor table
+             - manual login
+        
+        4. elements for login strings: 
+             - target hosts
+             - usernames
+             - passwords
+        
+        5. simultaneous users
+        
+        6. timeout frame.
+
+
+      After you have generated the code for the slot, it is imperative that
+      you use a special designed program to cipher/encrypt the slot tymfile
+      for proper password protection.   This  program  is  available  under
+      (MENUDEV:39)CIPHER.  
+
+      Any modification, addition or deletion to the  above  mentioned  list
+      will require the code to be regenerated and slot reloaded.
+
+Menu Service Training Guide                         PAGE   7
+
+
+
+      IV.  CONFIGURATION
+      ==================
+
+
+      1.  Hardware
+
+
+            ISIS Engine
+            Core size 60k for 200 simultaneous users & 10 login hosts
+              (the maximum simultaneous users for one slot is 256,
+               no limit on login hosts number)
+            + 2k for additional 10 users
+            + 1k for additional 10 login hosts
+
+
+
+      2.  Software
+
+
+            ISIS II version 5.07 or higher
+            Node Code version 5.06 or higher
+            Menu Service version 1.07 or higher
+
+Menu Service Training Guide                         PAGE   8
+
+
+
+      V.  DEMONSTRATION
+      =================
+
+
+      1.  Tymnet Menu Service
+
+
+      please log in: username:host#;password
+         
+          
+                   < welcome message >
+                      Service Title
+            Welcome to the User Services Menu
+        
+        
+         < password option/strike space bar option/passthrough option > 
+      Please enter your password: the same pswd as user log in <cr>
+       
+                   < menu screen >
+                      Main Menu
+        
+      < menu item >              < item description >
+          1        Host, Application, or Information Service  1
+          2                          "                        2
+          3        OnTyme
+                                   
+          Q        Log Off
+       
+         
+               < select message >         < syntax message >
+          Please Select a Service Number  >>    3
+      emsnss 
+      ONTYME II   21 FEB 85 21:51:00  GMT
+       
+      ID? nss.s/tsui
+       
+      KEY?
+       
+      ACCEPTED
+       
+       
+        (The user is in OnTyme now.  Tymnet Menu Service builds the 
+         circuit to  OnTyme for the  user s/tsui whose username and 
+         password are defined in the slot tym file.)
+       
+      :log
+       
+      DROPPED BY ONTYME II
+      21 FEB 85 21:53:00  
+        
+                      < circuit zap message > 
+      The circuit from menu to host has been cleared at your request.
+        
+
+Menu Service Training Guide                         PAGE   9
+
+
+
+                      < re-display option >
+                         < menu screen >
+
+                                            < timeout frame >
+          Please Select a Service Number  >>    (timeout)
+            
+                       < timeout message >
+          Since the Menu has not been used for two (2) minutes
+          Your connection to the Menu has been terminated.
+        
+      < logoff message >
+      zap menu
+
+      please log in:
+       
+       
+       
+      2.  CIPHER
+       
+       
+          -run (menudev)cipher
+       
+          ENTER KEY: (like password, only the user would know)
+          AGAIN:
+       
+          CIPHER OR UNCIPHER? (C OR U):
+       
+          INPUT FROM:  filename
+       
+          OUTPUT TO:   filename (is the same as the input filename)
+       
+          EXISTING FILE--OK?
+       
+       
+          When  genning the  code, use the  unciphered file.  NAD cannot 
+          recognize  the  ciphered file.   The  slot tym file  should be 
+          ciphered after the code is genned.   The ciphered  file can be 
+          unciphered  back to the ASCII  characters to re-gen the  slot.
+          There is only file  (either ciphered or  original)  existed in
+          the system.
+        
+
+Menu Service Training Guide                         PAGE  10
+
+
+
+      VI.  SYSGEN
+      ===========
+
+
+      1.  Sysgen Statements
+
+
+      Customization  of  the  Menu  Service  to  a  particular   customer's
+      requirements  calls  for  a custom Tymfile.  Elements of this tymfile
+      are invocations of configuration macros.  
+
+         
+      :------------------- for slot
+
+
+      -  Dtnote(text)                         text = message to display
+                                              Default: none
+         Description: tymfile message in version command
+        
+      -  Crash.Stop(arg)                      arg = yes/no
+                                              Default: none
+         Description: whether or not the slot stop should a crash occur
+        
+      -  TimeZone(n)                          n = -23d to 23d
+                                              Default: -8
+         Description: the time zone factor from GMT
+        
+      -  User.Ports(n)                        n = number
+                                              Default: none
+         Description: maximum number of simultaneous users of the slot
+        
+      - TO.Value(n)                          n = number in ten-second tick
+                                              Default: 0 - no timeout
+         Description: connect time for inactivity of the slot.
+        
+        
+      :------------------- for host
+         
+        
+      -  Host.Number(n)                       n = host number
+                                              Default: none
+         Description: slot host number
+        
+      -  NoPauseAfterWelcome
+         Description: no space bar/password option after welcome message
+        
+      -  Port.Quota(n)                        n = number
+                                              Default: none
+         Description: maximum number of simultaneous user for the host
+
+Menu Service Training Guide                         PAGE  11
+
+
+
+        
+      -  Pass.TPC
+         Description: circuit building via user's TPC (gouging level)
+        
+      -  Auto.Redisplay
+         Description: re-display menu screen when exit from menu item
+        
+      -  HostPortAvailability(n,n)            n = number
+                                              Default: 1,1
+         Description: host port availability message to the sup
+        
+      -  HostCost(n,n,n,n,n,n)                n = number
+                                              Default: 0,18,p,q,4,4
+                                              p = 1/4 * number of users
+                                              q = 3/4 * number of users
+         Description: host cost report to the sup, for multi-based facility
+        
+      -  chHitSpace
+         Description: message for hit space bar to continue after welcome,
+           must precede HIT.string
+           HIT.string(text)                   text = message to display
+           Default text: To continue, please strike the space bar.
+
+      -  chIStxt
+         Description: message for invalid select, must precede IS.string
+           IS.string(text)                    text = message to display
+           Default text: Invalid selection, please try again
+
+      -  chNPtxt
+         Description: message for out of ports, must precede NP.string
+           NP.string(text)                    text = message to display
+           Default text: No menu ports available, please try again later
+
+      -  chNRtxt
+         Description: message for out of rotor, must precede NR.string
+           NR.string(text)                    text = message to display
+           Default text: Can't connect another user right now, please
+                         try again later   
+
+      -  chTMtxt
+         Description: messor too many characters in selection field,
+           must precede TM.string
+           TM.string(text)                    text = message to display
+           Default text: Too many characters, please try again
+   
+      -  chZappedTxt
+         Description: message for circuit zap, must precede Zap.string
+           Zap.string(text)                   text = message to display
+           Default text: The circuit from the menu server to host has
+                         been cleared
+        
+
+Menu Service Training Guide                         PAGE  12
+
+
+      -  WELCOME
+         Description: message for entering the slot, must precede W.string
+           W.string(text)                     text = message to display
+                                              Default: none
+        
+      -  PASSWORD
+         Description:  message for password option, must precede P.string
+           P.string(text)                     text = message to display
+                                              Default: none
+        
+      -  TIMEOUT
+         Description: message for timeout, must precede T.string
+           T.string(text)                     text = message to display
+                                              Default: none
+       
+      -  LOGOFF
+         Description: message for logoff the slot, must precede L.string
+           L.string(text)                     text = message to display
+                                              Default: none
+          
+      -  MENU
+         Description: menu screen, must precede M.string
+           M.string(text)                     text = message to display
+                                              Default: none
+        
+      -  SELECT
+         Description: message for selection, must precede S.string
+           S.string(text)                     text = message to display
+                                              Default: none
+        
+
+Menu Service Training Guide                         PAGE  13
+
+
+      -  COMMAND(x)                           x = char string (1 - 8 chars)
+                                              Default: none
+         Description: define select char string, must precede the following
+        
+         . C.string(text)                     text = host login string
+                                              Default: none
+        
+         . C.text(text)                       text = menu screen
+                                              Default: none
+           Description: in-depth menu screen 
+         
+         . C.username                         Default: none
+           Description: the slot username from the needle as login string
+        
+         . C.password                         Default: none
+           Description: user password from password prompt as login string
+        
+         . C.PickFromRotor
+           Description: rotor table selection
+        
+         . C.rotor
+           Description: rotor table (1 to 245 entries), must precede C.re
+             C.re(text)                       text = login string
+                                                     up to 31 characters
+                                              Default: none
+        
+         . C.TosUpToThen(text)                text = user defined target string
+                                              Default: none
+           Description: discard input from host until defined text 
+        
+         . C.TosIncludingThen(text)           text = user defined target string
+                                              Default: none
+           Description: discard input from host inlcuding defined text
+        
+         . C.SeeUpToThen(text)                text = user defined target string
+                                              Default: none
+           Description: accept input from host until defined text
+
+         . C.SeeIncludingThen(text)           text = user defined target string
+                                              Default: none
+           Description: accept input from host including defined text
+        
+         . C.HandLogIn                  
+           Description: manual login facility
+
+
+
+
+Menu Service Training Guide                         PAGE  14
+
+
+
+      2.  Commands
+
+
+      The following is list of available commands for Menu  Service  users.
+      Command may be entered after select message prompt.
+
+
+      -  Carriage Return
+         Description: re-display the menu screen
+        
+      -  Escape Key
+         Description: re-display select message prompt
+        
+      -  Help
+         Description: re-display the menu screen
+        
+      -  Time
+         Description: the current date/time in format as ddmmyy tt:mm
+        
+      -  Version
+         Description: the information on the slot version in format as
+          
+         ms ver #.##  kh ####  n ###  s #  h ###  rh #
+        
+         this menu server was assembled ddmmyy tt:mm, fired up ddmmyy tt:mm
+                
+         I-file notes:
+         alpha test mmddyy 
+        
+         R-file notes:
+         alpha test mmddyy 
+        
+         T-file notes:
+         < message from dtnote >
+
+Menu Service Training Guide                         PAGE  15
+
+
+
+      VII.  SAMPLE COMMAND FILE
+      =========================
+
+
+      ;; Demo Menu Service Command File
+       TITLE Demo Menu Service Version 1.10
+      ;@(menudev)msv001.i10
+      ;@(menudev)demo.tym
+      ;@(menudev)msv001.r10
+      ;;
+      ;; this is the demo.cmd file for Tymnet Menu Service demo
+      ;; the tym file assembled is referred to host 1157, 1158, 1160
+      ;; in node 4551, kh 4855, slot 2 (in the public net!)
+      ;;
+      1;fnd4551.n02
+      segE,sEsize;P
+      seg0,s0size;P
+      seg1,s1size;P
+      %P%Q
+
+Menu Service Training Guide                         PAGE  16
+
+
+
+      VIII.  SAMPLE TYM FILES
+      =======================
+
+
+      1.  Sample 1 - (MENUDEV:39)DEMO.TYM
+
+
+        subttl Demo TymFile
+        
+      :------------------- for slot
+        
+      Crash.Stop(Yes)           :stop on crashes
+      TimeZone(-8)              :time zone is PST
+      User.Ports(60)            :number of user ports
+      To.Value(0)               :10 seconds per tick (ex. 18 = 3 min)
+        
+      :------------------- for the first host
+        
+      Host.Number(1158)
+      Auto.Redisplay
+         
+      WELCOME
+        W.String("8d"8a                   Tymnet)
+        W.String("8d"8a)
+        W.String("8d"8a       Welcome to the User Services Menu)
+        W.String("8d"8a)
+        W.String("8d"8aThe Menu Service is being tested in cooperation)
+        W.String("8d"8a               with Tymnet Inc.)
+        W.String("8d"8a)
+        W.String("8d"8a        Please report any problems to)
+        W.String("8d"8a          Tymnet at (408) 946-4900.)
+        W.String("8d"8a)
+        
+      PASSWORD
+        P.String("8d"8a)
+        
+      TIMEOUT
+        T.String("8d"8a"8a)
+        T.String( Since the Menu has not been used for a pre-defined and)
+        T.String( programmable"8d"8a)
+        T.String( time limit"ac your connection to the Menu has been)
+        T.String( terminated"ac saving"8d"8a)
+        T.String( you needless expense.  )
+        T.String("8d"8a)
+        
+      MENU
+        M.String("8d"8a"8a)
+        M.String(      Tymnet User Services Menu"8d"8a"8a)
+        M.String(              Main Menu"8d"8a"8a"8a)
+        M.String(   1   Tymnet Information Service"8d"8a)
+        M.String(   2   Official Airline Guide"8d"8a)
+        M.String(   3   Dow Jones News"afRetrieval"8d"8a)
+        M.String(   4   CMT 3270 Demonstration "28ADM-11"29"8d"8a)  
+
+Menu Service Training Guide                         PAGE  17
+
+
+
+        M.String(   C   Generalized CMT 3270 Demonstration "8d"8a)
+        M.String(   5   Asynchronous Outdial Demonstration"8d"8a)  
+        M.String(   6   2400 BPS Information "28ADM-11"29"8d"8a)  
+        M.String(   7   Tymnet Access Locations"8d"8a)  
+        M.String(   8   Net Message Service"8d"8a)
+        M.String(   9   Lockheed Dialog Information Services"8a"8d)
+        M.String("8a)
+        M.String(   Q   Log Off"8d"8a"8a)
+          
+      SELECT
+        S.String("8d"8a   Please select a service number  >> )
+        
+      COMMAND(1)                        : TYMNET information
+        C.String("04"12information"8d)
+        
+      COMMAND(2)                        : official airline guide
+        C.String("04"12oag"8d) 
+        C.String(tnt10003"8d)
+        C.String(sailor"8d)
+        C.Tosuptothen(WEL)
+        
+      COMMAND(3)                        : dow jones news/retrieval
+        C.String("04"12dow1"BB"bb)
+        C.String(djns"8d)
+        C.String(wx2jmipipl"8d)
+        
+      COMMAND(4)                        : cmt 3270 demo
+        C.String("04"12cmtdemo"BB)
+        C.String(demo cmt"8d)
+        C.String(6"8d)
+        C.String("8d)
+        C.String(tso sales13"2fdemotso"8d)
+        
+      COMMAND(C)
+        c.text("8d"8a"8d"8a CMT Demo Sub-Demo"8d"8a""8d"8a)
+        c.text(  c0 = vt100"8d"8a)
+        c.text(  c1 = scanset"8d"8a)
+        c.text(  c2 = adm3a"8d"8a)
+        c.text(  c3 = televideo"8d"8a)
+        c.text(  c4 = hazeltine"8d"8a)
+        c.text(  c6 = adm11"8d"8a)
+        
+      COMMAND(5)                        :async outdial demo
+        C.String("04"12outdialdemo"ba7019"BB)
+        C.String(demo"8d)
+        
+      COMMAND(6)                        : 2400 bps demo
+        C.String("04"12demo24"3a28"3bdemo it all"8d)
+        C.String(go demo24"8d)
+        
+      COMMAND(7)                        : TymNet local access program
+        C.String("04"12access "BB)
+        C.String(tym net"8d)
+
+Menu Service Training Guide                         PAGE  18
+
+
+
+        
+      COMMAND(8)                        : host message facility
+        C.String("04"12netmessage"BB)
+        C.String(demo"8d)
+        
+      COMMAND(9)                        : Lockheed Dialog Information Services
+        C.String("04"12dialog"8d)
+        
+      COMMAND(Q)                                : QUIT
+        C.Quit
+
+
+      :------------------- for the second host
+        
+      Host.Number(1160)
+      To.Value(30)
+      Auto.Redisplay
+        
+      WELCOME
+        w.string("8d"8a         Tymnet and McDonnell Douglas)
+        w.string("8d"8a               present the)
+        w.string("8d"8a)
+        w.string("8d"8a           National Association of)
+        w.string("8d"8a          Truck Stop Operators Menu)
+        w.string("8d"8a)
+        w.string("8d"8aThe Menu Service is being tested in cooperation)
+        w.string("8d"8a               with Tymnet Inc.)
+        w.string("8d"8a)
+        w.string("8d"8a        Please report any problems to)
+        w.string("8d"8a          Tymnet at (408) 946-4900.)
+        w.string("8d"8a)
+        w.string("8d"8a)
+        
+      PASSWORD
+        p.string("8d"8a)
+        
+      TIMEOUT
+        t.string("8d"8a"8a)
+        t.string( Since the Menu has not been used for a pre-defined and)
+        t.string( programmable"8d"8a)
+        t.string( time limit"ac your connection to the Menu has been 
+        t.string( terminated"ac saving"8d"8a)
+        t.string( you needless expense.  )
+        t.string("8d"8a)
+        
+      MENU
+        m.string("8d"8a"8d"8a)
+        m.string(       NATSO User Services Menu"8d"8a"8a)
+        m.string(              Main Menu"8d"8a"8a"8a)
+        m.string(   1   Rand McNally Mile Maker"8d"8a)
+        m.string(   2   Metra Com Weatherscan"8d"8a)  
+        m.string(   3   WSI Weather and Road Conditions"8d"8a)  
+
+Menu Service Training Guide                         PAGE  19
+
+
+
+        m.string(   4   USATAB Fuel Allocation Service"8d"8a)
+        m.string(   5   OnTyme Electronic Mail"8d"8a)
+        m.string("8a)
+        m.string(   Q   Log Off"8d"8a"8a)
+         
+      SELECT
+        s.string("8d"8a   Please select a service number  >> )
+        
+      COMMAND(5)                             :OnTyme Electronic Mail
+        c.string("04"12emstymvend"8d)
+        c.string(tymvend"2edemo"8d)
+        c.string(zowie@ "8d)
+        c.tosuptothen(ACC)
+        
+      COMMAND(4)                             :USATAB Fuel Allocation Service
+        c.string("04"12netmessage"3bdemo"8d) 
+        
+      COMMAND(1)                             :Rand McNally Mile Maker
+        c.string(RMCE22"3BRIYLGYJ5"8D)
+        c.string(XE22"8d)
+        c.string(CSSNNAME"3DRMCE22"2CPS"3D4EYU"8d)
+        c.string(M101"8d)
+        
+      COMMAND(2)                             :Metra Com Weatherscan
+        c.string("04"12wok"8d)
+        c.string(207"2cTT"8d)
+        
+      COMMAND(3)                             :WSI Weather and Road
+       Conditions
+        c.string("04"12wsi"8d)
+        c.string(login z11"8d)
+        c.string(truck"8d)
+        
+      COMMAND(Q)                             :QUIT
+        c.Quit
+
+
+      :------------------- for the third host
+        
+      Host.Number(1157)
+      Auto.Redisplay
+        
+      WELCOME
+        W.String("8d"8a                   Tymnet)
+        W.String("8d"8a)
+        W.String("8d"8a       Welcome to the Travel Services Menu)
+        W.String("8d"8a)
+        W.String("8d"8aThe Menu Service is being tested in cooperation)
+        W.String("8d"8a               with Tymnet Inc.)
+        W.String("8d"8a)
+        W.String("8d"8a        Please report any problems to)
+        W.String("8d"8a          Tymnet at (408) 946-4900.)
+
+Menu Service Training Guide                         PAGE  20
+
+
+
+        W.String("8d"8a)
+        
+      PASSWORD
+        P.String("8d"8a"8a"28Please enter any four letters"29 )
+        
+      TIMEOUT
+        T.String("8d"8a"8a)
+        T.String( Since the Menu has not been used for a pre-defined and)
+        T.String( programmable"8d"8a)
+        T.String( time limit"ac your connection to the Menu has been)
+        T.String( terminated"ac saving"8d"8a)
+        T.String( you needless expense.  )
+        T.String("8d"8a)
+        
+      MENU
+        M.String("8d"8a"8d"8a"8a)
+        M.String(      Tymnet User Services Menu"8d"8a"8a)
+        M.String(              Main Menu"8d"8a"8a"8a)
+        M.String(   1   MARSPLUS Airline Reservation System"8d"8a)
+        M.String(   2   Tymnet Travelers Guide"8d"8a)
+        M.String(   3   Official Airline Guide"8d"8a)
+        M.String(   4   On-Line Hotel Reservation System"8d"8a)  
+        M.String(   5   OnTyme Electronic Mail"8d"8a)  
+        M.String("8a)
+        M.String(   Q   Log Off"8d"8a"8a)
+        
+      SELECT
+        S.String("8d"8a   Please select a service number  >> )
+        
+      Command(1)                : MARSPLUS Airline Reservation System
+        C.String("04"12marsdemo5"bbplay2win"8d)
+        C.String(no"8d)
+        C.String(hard"8d)
+        
+      Command(2)                : Tymnet Travelers Guide
+        C.String("04"12tnaddemo"3bvlsi"2einc"8d)
+        C.String(2"8d)
+        C.String(2"8d)
+        
+      Command(3)                : Official Airline Guide
+        C.String("04"12oag"8d)
+        C.String(tnt10003"3bsailor"8d)
+        
+      Command(4)                : On-Line Hotel Reservation System
+        C.String("04"12netmessage"3bdemo"8d)
+        
+      Command(5)                : OnTyme Electronic Mail
+        C.String("04"12emstymvend"8d)
+        C.String(tymvend"2edemo"8d)
+        C.String(zowie@ "8d)
+        
+      Command(Q)                : QUIT
+        C.Quit
+
+Menu Service Training Guide                         PAGE  21
+
+
+
+      2.  Sample 2 - (BETATEST)MSV001.T10
+
+
+        subttl Sample TymFile
+
+      :------------------- for the slot
+
+      Crash.Stop(Yes)           
+      TimeZone(-8)
+      User.Ports(20)            :simultaneous users
+      TO.Value(6)               :timeout value, 10 seconds per tick 
+        
+      :-------------------- for the first host
+
+      Host.Number(867)
+      Auto.Redisplay            
+      Pass.TPC                  :circuit TPC (gouging level) user entered
+      TO.Value(0)               :no time out
+      NoPauseAfterWelcome
+
+      chIStxt
+        IS.string("8d"8a invalid selection, try again. "8d"8a)
+
+      chZappedTxt
+        Zap.string("8d"8a You are back to menu now. "8d"8a)
+         
+      WELCOME
+        w.string("8d"8a welcome text for host 867: "8d"8a)
+        
+      PASSWORD
+        p.string("8d"8a"8a password text for host 867: )
+        
+      TIMEOUT
+        t.string("8d"8a timeout text for host 867 8d"8a)
+        
+      LOGOFF
+        l.string("8d"8a  It's been a real pleasure.  Bye-bye!"8d"8a"8a)
+        
+      MENU
+        m.string("8d"8a"8a)
+        m.string(      menu text host 867"8d"8a"8a)
+        m.string(   <info1> Tymnet Information Service"8d"8a)
+        m.string(   <info2> Tymnet Information Service"8d"8a)
+        m.string(   <info3> Tymnet Information Service"8d"8a)
+        m.string(   <ont>   OnTyme"8d"8a)
+        m.string(   <cmt>   CMT demo"8d"8a)
+        m.string(   <oag>   Official Airline Guide"8d"8a)
+        m.string(   <phone> Tymnet Local Access Program"8d"8a)  
+        m.string(   <host>  Host Status Message Facility"8d"8a)  
+        m.string(   <more>  More Manual To Display"8d"8a)
+        m.string("8a)  
+        m.string(   <other> Hand Log In"8d"8a)
+        m.string("8a)
+
+Menu Service Training Guide                         PAGE  22
+
+
+
+        m.string(   <bye>  "8d"8a)
+        m.string(   <quit>  > Log Off"8d"8a)
+        m.string(   <exit> /"8d"8a)
+        
+      SELECT
+        s.string("8d"8a select number for host 867:  >> )
+        
+      COMMAND(INFO1)
+        c.string("12)                 :no TPC enter
+        c.PickFromRotor               :test rotor
+        c.TosUpToThen(INF)            :discard up to "INFORMATION"
+        
+        c.rotor
+          c.re(Information"8d)
+          c.re(iNformation"8d)
+          c.re(inFormation"8d)
+        
+      COMMAND(INFO2)
+        c.string("01"12)              :TPC = <ctl a> 
+        c.PickFromRotor
+        c.TosUpToThen(Wel)            :discard up to "WELCOME"
+        
+        c.rotor
+          c.re(Information"8d)
+          c.re(iNformation"8d)
+          c.re(inFormation"8d)
+        
+      COMMAND(INFO3)
+        c.string("04"12)                :high TPC = <ctl d>
+        c.string(information"8d)
+        
+      COMMAND(ONT)
+        c.string("04"12c"8d)            :pass gateway (Bubbnet->Tymnet)
+        c.string("04"12emsnss"8d)
+        c.string(nss.s"2ftsui"8d)
+        c.password
+        c.TosUpToThen(ACC)              :discard up to "ACCEPTED"
+        
+      COMMAND(OAG)
+        c.string("04"12oag"8d) 
+        c.string(tnt10003"8d)
+        c.string(sailor"8d)
+        c.TosUpToThen(WEL)              :discard up to "WELCOME"
+        
+      COMMAND(CMT)
+        c.string("04"12cmtdemo"3bdemo cmt"8d) 
+        c.TosIncludingThen(11)  :discard including terminals list
+        c.string(2"8d)          :"2" for ADM3 
+        c.SeeIncludingThen("1a) :pass the "clear screen" stuff thru
+        c.TosIncludingThen(SO)  :discard the next prompt (to hit <cr>)
+        c.string("8d)           :<cr>
+        c.SeeIncludingThen(C E) :pass the "hourglass" 
+        c.string(tso sales)     :send some more logon 
+
+Menu Service Training Guide                         PAGE  23
+
+
+
+        c.PickFromRotor         :choose unused entry 
+        c.string("2fdemo"8d)    :send a "canned" password
+        c.TosUpToThen("1b="20"20)  :don't echo username/password
+        c.SeeIncludingThen(LL)  :wait for yet another prompt 
+        c.string("8d)                   
+        
+      : at this point any type-ahead gets sent
+        
+        c.rotor
+          c.re(01)
+          c.re(02)
+          c.re(03)
+        
+      : this one acts a little differently
+        
+      COMMAND(CMTNOSEE)
+        c.string("04"12cmtdemo"3bdemo cmt"8d) 
+        c.TosIncludingThen(11)
+        c.string(2"8d)
+        c.SeeIncludingThen("1a)
+        c.TosIncludingThen(SO)
+        c.string("8d)
+        c.TosIncludingThen(C E)
+        c.string(tso sales)
+        c.PickFromRotor
+        c.string("2fdemo"8d)
+        c.TosUpToThen("1b="20"20)
+        c.TosUptoThen(IK)
+        c.SeeIncludingThen(LL)
+        c.string("8d)
+        
+        c.rotor
+          c.re(04)
+          c.re(05)
+          c.re(06)
+        
+      : more subtle differences
+        
+      COMMAND(CMTSEE)
+        c.string("04"12cmtdemo"3bdemo cmt"8d) 
+        c.SeeIncludingThen(11)
+        c.string(2"8d)
+        c.SeeIncludingThen(SO)
+        c.string("8d)
+        c.SeeIncludingThen(C E)
+        c.string(tso sales)
+        c.string("2fdemo"8d)
+        c.TosUpToThen("1b="20"20)
+        c.SeeIncludingThen(IK)
+        c.SeeIncludingThen(LL)
+        c.string("8d)
+         
+      COMMAND(PHONE)
+
+Menu Service Training Guide                         PAGE  24
+
+
+
+        c.string(access "BB)
+        c.string(tym net"8d)
+        c.TosUpToThen(WEL)
+        
+      COMMAND(HOST)
+        c.string(hoststatus"BB)
+        c.string(message"8d)
+        
+      COMMAND(BYE)
+        c.Quit
+      COMMAND(EXIT)
+        c.Quit
+      COMMAND(QUIT)
+        c.Quit
+        
+      COMMAND(more)
+        c.text("8d"8a    Second Menu    "8d"8a")
+        c.text("8d"8a type 3 for third menu  "8d"8a)
+        
+      COMMAND(3)
+        c.text("8d"8a    Third Menu    "8d"8a)
+        c.text("8d"8a  This is the end of menu screen."8d"8a)
+        
+      COMMAND(OTHER)
+        c.HandLogIn                     :manual login
+
+
+      :----------------------- for the second host
+        
+      Host.Number(868)
+      TO.value(0)
+      Port.Quota(10)                    :max 10 ports for this host
+      HostPortAvailability              
+      HostCost(34,102,2,9,4,6)
+       
+      WELCOME
+        w.string("8d"8a welcome text for host 868: "8d"8a)
+        
+      PASSWORD
+        p.string("8d"8a"8a password text for host 868: )
+        
+      TIMEOUT
+        t.string("8d"8a timeout text for host 868 "8d"8a)
+        
+      MENU
+        m.string("8d"8a"8a)
+        m.string(      menu text host 868"8d"8a"8a)
+        m.string(   1   Tymnet Information Service"8d"8a)
+        m.string(   a   Tymnet Information Service"8d"8a)
+        m.string(   b   Tymnet Information Service"8d"8a)
+        m.string(   r   OnTyme"8d"8a)
+        m.string(   7   Tymnet Local Access Program"8d"8a)  
+        m.string(   8   Host Status Message Facility"8d"8a)  
+
+Menu Service Training Guide                         PAGE  25
+
+
+
+        m.string("8a)
+        m.string(   Q   Log Off"8d"8a"8a)
+        
+      SELECT
+        s.string("8d"8a select number for host 868  >> )
+        
+      COMMAND(1)
+        c.string("04"12c"8d)            :pass gateway
+        c.PickFromRotor
+        
+        c.rotor
+          c.re(Information"8d)
+          c.re(iNformation"8d)
+          c.re(inFormation"8d)
+         
+      COMMAND(a)
+        c.PickFromRotor
+        c.Password
+        c.rotor
+          c.re(Information"8d)
+          c.re(iNformation"8d)
+          c.re(inFormation"8d)
+        
+      COMMAND(b)
+        c.string(information"8d)
+        
+      COMMAND(r)
+        c.OnTyme
+        c.string("04"12emstym"8d)
+        c.string(tym.tothetop"8d)
+        c.string(play2win"8d)
+        
+      COMMAND(7)
+        c.string(access "BB)
+        c.string(tym net"8d)
+        
+      COMMAND(8)
+        c.string(hoststatus"BB)
+        c.string(message"8d)
+        
+      COMMAND(Q)
+        c.Quit
+
+Menu Service Training Guide                         PAGE  26
+
+
+3.  Sample 3
+
+
+   SUBTTL SAMPLE TYMFILE
+
+:---------------------------------FOR SLOT
+
+CRASH.STOP(YES)
+TIMEZONE(-8)
+USER.PORTS(50)
+TO.VALUE(18)                      : 3 min. timeout               
+
+:---------------------------------FOR THE FIRST HOST
+
+HOST.NUMBER(xxxx)
+auto.select
+auto.logoff
+
+PASSWORD
+    P.STRING("8d"8aPlease Enter Your Password"ba)
+
+TIMEOUT
+   T.STRING("8D"8A"8A)
+   T.STRING(   SINCE THE MENU HAS NOT BEEN USED FOR A PRE-DEFINED AND PROGRAMMABLE)
+   T.STRING("8D"8A)
+   T.STRING(   TIME LIMIT"AC YOUR CONNECTION TO THE MENU HAS BEEN TERMINATED"AC SAVING)
+   T.STRING("8D"8A)
+   T.STRING(   YOU NEEDLESS EXPENSE"AE)
+     
+LOGOFF
+   L.STRING("8D"8A   Leaving System 25 "8d"8a)
+
+COMMAND(1)
+   C.USERNAME                    : username that's used for logging in to Menu
+   C.STRING("ba25"bb)            : x'ba'=: , 25 is the target host, x'bb'=;
+   C.PASSWORD                    : the 2nd user keyin password
+   C.STRING("8d)                 : x'8d' = <cr>
+
+Menu Service Training Guide                         PAGE  27
+
+
+
+      IX.  SAMPLE CODE GENERATION
+      ===========================
+
+
+      -r nad
+      1.1
+      ;x   demo.cmd
+        
+      ;; Demo Menu Service Command File
+       TITLE Demo Menu Service Version 1.10
+      ;@   (menudev)msv001.i10
+        
+      End of assembly
+      ;@   (menudev)demo.tym
+        
+      End of assembly
+      ;@   (menudev)msv001.r10
+        
+      Start.Lib Version 0.05
+      RING 0E0000 101BA 
+      Crash.Lib    11-15-84 AWT
+      This version has an option for extended crash processing.
+      CRASH 101BA 103D2
+      TIMOUT 103D2 104A6
+      CONVRT 104A6 10536
+      DATIME 10536 10764
+      STATUS 13078 133CA
+      STATUS 133CA 13728
+      STATUS 13728 14E12
+      default area protections assumed.
+        
+      MaxHst value is 3h (3d)
+      MaxPrt value is 77h (119d)
+      this is Version 1.10
+      ProdID is 79
+      Host0 is 1158
+      Host1 is 1160
+      Host2 is 1157
+      Host0 has 3Ch (60d) ports
+      Host1 has 3Ch (60d) ports
+      Host2 has 3Ch (60d) ports 
+      Segment 0 - length 11996d (2EDCh), requires 2F00h bytes of core. 
+      Segment 1 - length 20116d (4E94h), requires 4F00h bytes of core. 
+      Segment 2 - length 4224d (1080h), requires 1100h bytes of core. 
+      Segment 0E - length 468d (1D4h), requires 200h bytes of core.
+        
+      37d (25h) K-bytes of core
+        
+      End of assembly
+      ;;
+      ;; this is the demo.cmd file for Tymnet Menu Service demo
+      ;; the tym file assembled in referred to host 1157, 1158, 1160
+      ;; in node 4551, kh 4855, slot 2 (in the public net!)
+
+Menu Service Training Guide                         PAGE  28
+
+
+
+      ;; 
+      1;F   demo.nib
+        
+      segE,sEsize;P
+        
+      seg0,s0size;P
+        
+      seg1,s1size;P
+        
+      %P
+      %Q
+      EXIT
+
+
+
+Menu Service Training Guide                         PAGE  29
+
+
+
+      X.  TROUBLESHOOTING
+      ===================
+
+
+      1.  NAD - Extended DDT
+
+
+      -r nad
+      1.1
+      ;c   isistech:4855
+      Working
+      Circuit ready
+        
+      node: 4551
+      host: 4855
+        
+      slot #: ;r02\
+        
+      Slot 02 running: DDT
+        
+      *::?host
+        
+      0 Host 1158d has 60d ports, is answered
+      1 host 1160d has 60d ports, is answered
+      2 host 1157d has 60d ports, is answered
+      0d ports in use
+        
+      *::?stat
+        
+      :>::help
+            Menu Server
+        
+      --- Syntax ---   --- Action ---------------------------------------
+      DIR    <arg>     Display Dispatcher Input Ring
+                         From address <arg> or start
+      DOR    <arg>     Display Dispatcher Output Ring
+                         From address <arg> or start
+      DR               Display both Rings continuously
+                       Type / to terminate Display
+      EXI              Log off
+      HELP or ?        Print this list
+      SYM              Print a list of symbol addresses
+      Q                Back to DDT
+      ZZ               Log off
+        
+      :>::dr
+      Iring 20800 stuff into 20EF4 yank from 20EF4  (NFMI is  6F0 CEI is  6F0)
+      Oring 20000 stuff into 204BC yank from 204BC  (NFMI is  4B8 CEI is  4B8)
+      o 20084  BP  ON oo26 ao
+      I 20804  NEEDLE oo27 oo  2ooo4fa7 c5o486o4 1c8769oo  .'.  .O'E.....i.
+                      86oooooo 81oooocc o9495349 53544543  .......L.ISISTEC
+                      488d                                 H.              
+      o 20088    data oo27 9d  2o414343 4553532o 494e464f  .'.  ACCESS INFO
+
+Menu Service Training Guide                         PAGE  30
+
+
+
+                      524d4154 494f4eod oa332e2o 2o444154  RMATION..3.  DAT
+                      412o4241 53452o41 4e442o54 494d4553  A BASE AND TIMES
+                      48415249 4e472o53 45525649 4345532o  HARING SERVICES 
+                      41564149 4c41424c 452o4f56 45522o54  AVAILABLE OVER T
+                      594d4e45 54odoa34 2e2o2o49 4e544552  YMNET..4.  INTER
+                      4e415449 4f4e414c 2o414343 4553532o  NATIONAL ACCESS 
+                      494e464f 524d4154 494f4e2o 2o2o2ood  INFORMATION    .
+                      oa352e2o 2o582e32 352o5o52 4f445543  .5.  X.25 PRODUC
+                      54532o43 45525449 46494544 2o42592o  TS CERTIFIED BY 
+                      54                                   T               
+        
+      :>::dir
+      Iring 20800 stuff into 20EF4 yank from 20EF4  (NFMI is  6F0 CEI is  6F0)
+      I 20804  NEEDLE oo27 oo  2ooo4fa7 c5o486o4 1c8769oo  .'.  .O'E.....i.
+                      86oooooo 81oooocc o9495349 53544543  .......L.ISISTEC
+                      488d                                 H.              
+      I 20828 setXmtL oo27 b9  5o
+      I 2082C  BP  ON oo27 ao
+      I 20830 S termP oo27 b1  13oo
+      I 208D8  BP OFF oo27 a1
+      I 208DC    data oo27 o1  2o                          .'.             
+      I 208E0  BP  ON oo27 ao
+      I 208E4  BP OFF oo27 a1
+      I 208E8    data oo27 o1  31                          .'. 1           
+      I 208EC    data oo27 o1  od                          .'. .           
+      I 208F0 psNeedl oo26 b2  ooo39c
+      I 208F8 S termP oo27 b1  oooo
+      I 20900 cirComp oo26 b6  oooo4fa8 aoooo6
+      I 20EB0   GREEN oo26 aa
+      I 20EB4 DEM OFF oo27 a7
+      I 20EB8    data oo27 o1  65                          .'. e           
+      I 20EBC    data oo27 o1  78                          .'. x           
+      I 20EC0    data oo27 o1  69                          .'. i           
+      I 20EC4    data oo27 o1  74                          .'. t           
+      I 20EC8    data oo27 o1  od                          .'. .           
+      I 20ECC  YELLOW oo26 ac
+      I 20ED0     ZAP oo26 9f
+        
+      :>::dor
+      Oring 20000 stuff into 204BC yank from 204BC  (NFMI is  4B8 CEI is  4B8)
+      o 20084  BP  ON oo26 ao
+      o 20088    data oo27 9d  2o414343 4553532o 494e464f  .'.  ACCESS INFO
+                      524d4154 494f4eod oa332e2o 2o444154  RMATION..3.  DAT
+                      412o4241 53452o41 4e442o54 494d4553  A BASE AND TIMES
+                      48415249 4e472o53 45525649 4345532o  HARING SERVICES 
+                      41564149 4c41424c 452o4f56 45522o54  AVAILABLE OVER T
+                      594d4e45 54odoa34 2e2o2o49 4e544552  YMNET..4.  INTER
+                      4e415449 4f4e414c 2o414343 4553532o  NATIONAL ACCESS 
+                      494e464f 524d4154 494f4e2o 2o2o2ood  INFORMATION    .
+                      oa352e2o 2o582e32 352o5o52 4f445543  .5.  X.25 PRODUC
+                      54532o43 45525449 46494544 2o42592o  TS CERTIFIED BY 
+                      54                                   T               
+        
+
+Menu Service Training Guide                         PAGE  31
+
+
+
+      o 2048C    data oo27 28  8d8aaoao aodoece5 e1f3e5ao  .'( ..   Please 
+                      f3e5ece5 e3f4aoe1 aof3e5f2 f6e9e3e5  select a service
+                      aoeef5ed e2e5f2ao aobebeao            number  >>     
+      o 204B8 DETATCH oo27 9e
+
+      :>::sym
+        
+      20800  Iring
+      20000  Oring
+      00004  crat
+      00940  UCBbase
+      00094  UCBlength
+      0000C  inBhandler
+      00010  inHhandler
+      0015C  WhichUCB
+      00012  bossPort
+      00014  target
+      00040  ubufer
+
+      :>::q
+        
+      *
+        
+
+
+      2.  Crash Codes
+        
+                General Crash Types
+        
+                 0    : power failure
+                 1    : manual restart
+                0E    : parity error
+                10    : dispatcher crash
+                11    : illegal instruction
+                12    : illegal SVC
+                13    : system crash
+                14    : protection violation
+                15    : non-recoverable device check
+                16    : watch frog timer -- timeout
+
+Menu Service Training Guide                         PAGE  32
+
+
+
+      APPENDIX
+      ========
+
+
+      1.  Reference Documents
+
+
+      This document borrows much from the following work.   The  reader  is
+      encouraged  to  refer to them for more in-depth information regarding
+      Menu Service.
+
+
+      (TECHREF:56)MENU.GED  -
+                  "Menu Server General External Design"
+                          "Tymnet Menu Service Implementation Plan"
+        
+      OnTyme *** MENU.PROCS        -  "MENU Documents Announcement"
+
+      OnTyme *** MENU.PRICING      -  "Pricing Information"
+
+      OnTyme *** MENU.FEABEN       -  "Features and Benefits"
+
+      OnTyme *** MENU.INFORMATION  -  "General Information"
+
+      OnTyme *** MENU.ANSWERS      -  "Questions and Answers"
+
+      Ontyme *** MENU.LOGIN        -  "MENU Login Options"
+
+      OnTyme *** MENU.HINTS        -  "Hints on Operating the MENU"
+
+Menu Service Training Guide                         PAGE  33
+
+
+
+      2.  New Features
+
+          - AutoSelect
+            Description: This feature allows users to bypass welcome message,
+            menu display, and selection making. Menu Service automatically
+            sends out login string to target host if this option is chosen.
+            (please see sample 3)
+
+          - AutoLogoff
+            Description: This feature allows users to bypass menu re-display
+            after exiting from application host. Menu Service automatically
+            logs off.
+            (please see sample 3)
+
+          - Proj.Code
+            Description: This feature enables Menu slot to send the first
+            user keyin string, terminated by carriage return, to the network
+            supervisor as accounting addendum. This information will be
+            shown in the Tymnet session detail User Name/Project Code field.
+            Note: This feature is effective for the entire slot, not only
+            for one particular Menu when using multi-menu facility.
+
+          - Emergency Interrupt (Hit Escape Key 4 Times)
+            Description: Hit Escape key 4 times will resume the user back to
+            the Main Menu from waiting for previous selection's commands
+            to be completed. But if the last command of the selection has
+            been executed, Menu Service would ignore the ESCs.
+
+	  - BiggerUBuffer(n)			n = number of bytes (decimal)
+	    (for Version 1.12 and above)
+	    Description: Configure for bigger User Control Block if more than
+	    50 bytes (default) of UCB is needed. Size of UCB needed depends on
+	    options used in the slot tym-file and sizes of command strings.
+
+Menu Service Training Guide                         PAGE  34
+
+
+
+      3.  Lab
+
+
+          Assignment:  Generate and load a Menu Service slot given the 
+                       following information:
+        
+          Groups:
+            group A  -  node 4551, kh 4855, s# 2, sh 1158
+            group B  -  node 4305, kh 4369, s# 3, sh 1160
+            group C  -  node 4765, kh 5286, s# 5, sh 1157
+         
+          Working Directory:  (TECHSERV:33)MENU##.*
+                                          ## - group name
+                                           * - cmd, tym, nib
+        
+          Sample Files:
+            (TECHSERV:33)MENU.CMD - command file
+                         MENU.TYM - tym file
+          
+          Company Name:  Tymnet/McDonnell Douglas
+        
+          Define following messages via group discussion:
+            - welcome
+            - circuit zap
+            - logoff
+            - timeout
+            - making selection
+            - syntax error
+            
+          Options: 
+            - space bar
+            - auto re-display
+        
+          Simultaneous Users:  20
+        
+          Timeout Frame:  2 minutes
+        
+          Menus:  Main - general information & selection on
+                           1.  your OnTyme system
+                           2.  Tymnet information system
+                           3.  second menu access
+                  Second - details on OnTyme system
+        
+          Login Strings:
+            1.  OnTyme - your username, password
+                no echo on password
+         
+            2.  Information system - information, no password required
+                rotor table entry for 3
+        
+    >mS
