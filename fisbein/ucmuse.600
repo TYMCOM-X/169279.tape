@@ -1,0 +1,32 @@
+
+:****************************************************************
+:
+:	Patch by :		Stephane Fisbein - B.T. Tymnet - EurOps
+:	Patch to module :	CMTU ?STAT command handler : UCM
+:	Version :		6.00
+:	Related NSR # :		4353
+:	Description :		The UCM USER Username <port#> command is
+:				used to display several pieces of
+:	information regarding the circuits used by the Username
+:	specified, among which is the RID and SID of this terminal
+:	circuit. The code displays the information generated during
+:	tymfile assembly in the HDCB. The problem is that it is possible
+:	to configure RID=000 and SID=000 to select the first RID/SID
+:	available in the UTSH slot, and this case leads to a lack of
+:	information in the display of the USER command. This patch
+:	corrects this by using the DCCB instead. The DCCB has been
+:	updated upon reception of the call accepted IIX message from
+:	UTSH and contains the RID and SID information selected and/or
+:	provided by the UTSH (or CMTU if so configured).
+
+	lo	status
+	lo	ucm
+  if	db.sta
+patch(032891,1845,S/FISBEIN,GTDSP+4,,4)
+	LHL	R0,CRID,R11		: get destination RID from DCCB
+conpatch(GTDSP+14,,4)
+	LHL	R0,CSID,R11		: get destination SID from DCCB
+endpatch(provide RID and SID in all cases for UCM USER command)
+  ei	db.sta
+	fo	ucm
+	fo	status
