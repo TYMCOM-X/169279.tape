@@ -1,0 +1,311 @@
+
+	SUBTTL	ISIS Assembly Switch Definitions	- START.LIB
+:******************************************************************
+:
+:	This program is the sole property and confidential
+:	information of Tymshare, Inc., and may not be copied
+:	in whole or in part or disclosed to any third party
+:	without the prior written consent of Tymshare.
+:
+:*******************************************************************
+
+	REMARK %Start.Lib Version 
+SREV	EQ	0;	NUMBER SREV; REMARK .0
+SLEV	EQ	05;	NUMBER SLEV
+
+: Version 0.05 01/19/83 MDS
+:	Delete Remark regarding incompatibility with ISIS 5.00
+: Version 0.04 03/12/82  MDS
+:	Add new fields to SYS SVC Sub-operand definitions,
+:	per ISIS2 v.5.01
+: Version 0.03 03/08/82  MDS
+:	Add new fields to Seg F table per ISIS 5.01
+:	(note - Start.lib ** NOT ** compatible with ISIS 5.00
+:	because SLCNT and LCX were reversed in 5.00 )
+: Version 0.02  12/08/81  MDS
+:	Add QSTART remark, add I/O sub-ops for mother board.
+:	Delete ISIS (one) code - force ISIS2
+: Version 0.01  01/08/81  MDS
+:	Correct relative addresses of local clock index and values.
+
+	RA	0		:	START.LIB
+
+:	this file should always be assembled IMMEDIATELY AFTER the *.TYM file
+
+
+ISIS2	EQ	1	:Force ISIS2 for other library routines
+			:Note - ISIS 1 is no longer supported
+
+:			ISIS - II Version
+:
+:	The following parameters should be defined in the *.TYM file:
+:	MAXHST	maximum number of hosts associated with this interface slot
+:	MAXPRT	number of highest port associated with this interface slot
+:			(number of ports - 1)
+:	IRSIZE	 number of bytes to provide for input ring, from dispatcher
+:	ORSIZE	 number of bytes to provide for output ring, to dispatcher
+:	CNTRL	dispatcher control bits
+:	ENGINE	set to 1 if executing on a Tymnet Engine
+
+:	the following symbols MUST be defined SOMEWHERE in the assembly:
+:	IRING	the start of the input ring, from dispatcher
+:	ORING	the start of the output ring, to dispatcher
+:	ENTRY	the location of the first instruction to be executed
+
+:	the following symbols are defined for convenience:
+:	RATE	the rate of the fast clock (ticks/second)
+:	NRATE	word containing the value of RATE
+:	FASTC	word containing  realtime fast clock
+:	SLOWC	word containing  realtime slow clock (1-second)
+:	GMT	word containing GMT clock
+:	TEMPER	byte containing machine temperature
+:	VOLTS	byte containing machine voltage
+:	VERNO	halfword containing ISIS version number
+:	WWVBT	word containing WWVB time
+:	HOSTX	halfword containing kernel host number
+:	NODEX	halfword containing kernel node number
+:	LCX	halfword, offset of local clocks within seg F
+:	SLCNT	halfword, number of slots known to ISIS dispatcher
+:	LCT	halfword, pointer to crash table
+:	MAXP0	halfword, highest port 0 msg. #
+:	MAXMSG	halfword, highest msg # for all other ports
+:	LP0LST	halfword, length table for port 0 msgs.
+:	LENGTH	length table for msgs. all other ports
+:	R0-R15	symbolic names for the registers
+:	SEGn	the start address of segment n (0-0E)
+:	HOSTS	halfword array of host numbers as known by the dispatcher (R/O)
+:	PORTS	halfword array of ports/host as known by dispatcher (R/O)
+:
+:	the following symbols MAY be defined. defaults used otherwise
+:	APROTn	protection byte for area n. default area 1 write protected,
+:		other areas execution protected.
+:	HOSTn	host number for host position n. default none.
+:	HPRTn	number of ports for host position n. default none.
+:	DSTART	user DDT execution start address. default none.
+:	QSTART  user DDT query handler start address, default none.
+:	FPANEL	halfword cell for front panel display. default cell allocated
+:	FRISIS	bit array for input backpressure (1=no backpressure) default
+:			array allocated.
+:	TOISIS	bit array for output backpressure (1=no backpressure) default
+:			array allocated.
+:	VERSION	version number for slot code (default zero)
+:	PCTTBL	bit array for indicating terminating character for project
+:			code. (default none)
+:	REVLEV	revision level for slot code (default zero)
+:	A.DATA	segment number for data area. Default 0
+:	A.CODE	segment number for code area. Default 1
+:	A.BDAT	segment number for based data. Default 2.
+:	A.RING	segment number for rings. Default 2.
+:	A.BUFF	segment numberfor buffer(let)s. Default 2.
+:
+:	in addition most SVC calls have been assigned symbolic names.
+
+	GL	FASTC,SLOWC,RATE,NRATE,GMT,TEMPER,VOLTS,VERNO,HOSTX,NODEX,SLOTNO
+	GL	R0,R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12,R13,R14,R15
+	GL	IRSIZE,ORSIZE,CNTRL
+	GL	ENTRY,IRING,ORING,ENGINE,LCX
+	GL	VERREV,COREST,FPANEL,HOSTS,PORTS,FRISIS,TOISIS
+
+:	DEFINE SEG 15d LOCATIONS
+RATE	EQ	$A 600		:clock rate, ticks per second
+NRATE	EQ	0F0000		:word, contains RATE
+FASTC	EQ	0F0004		:word, contains fast clock (ticks)
+SLOWC	EQ	0F0008		:word, contains slow clock (seconds)
+GMT	EQ	0F000C		:word, contains GMT (seconds since 1/1/72)
+TEMPER	EQ	0F0010		:byte, contains machine temperature
+VOLTS	EQ	0F0011		:byte, contains machine voltage
+VERNO	EQ	0F0012		:halfword, ISIS version number
+WWVBT	EQ	0F0014		:word, WWVB time (format ??)
+HOSTX	EQ	0F0018		:halfword, kernel host number
+NODEX	EQ	0F001A		:halfword, kernel node number
+
+: Local clocks displacements
+
+LCX	EQ	0F001C	:1/2 word, contains offset of LOCLKS within seg F
+: LOCLKX and LOCLKS must be referenced by the pointer in LCX
+:LOCLKX	EQ	LOCLKS-2 :1/2 word, index to current clock from LOCLKX
+:LOCLKS	EQ	Seg F + contents of LCX
+			:clocks for slots, array of word entries per slot
+			:1st halfword is user ticks, 2nd is sys ticks for slot
+
+SLCNT	EQ	0F001E		:halfword, number of dispatcher slots
+LCT	EQ	0F0020		:halfword, pointer to crash table
+MAXP0	EQ	0F0022		:halfword, max. msg. # for port 0
+MAXMSG	EQ	0F0024		:halfword, max. msg #, all non-0 ports
+LP0LST	EQ	0F0026		:halfword, offset to port 0 msg length table
+LENGTH	EQ	0F0028		:byte table, lengths of non-0 port msgs
+
+:	Define Registers
+R0	EQ	0
+R1	EQ	1
+R2	EQ	2
+R3	EQ	3
+R4	EQ	4
+R5	EQ	5
+R6	EQ	6
+R7	EQ	7
+R8	EQ	8
+R9	EQ	9
+R10	EQ	$A 10
+R11	EQ	$A 11
+R12	EQ	$A 12
+R13	EQ	$A 13
+R14	EQ	$A 14
+R15	EQ	$A 15
+
+:	AREA DEFINITIONS
+	GL	A.DATA,A.CODE,A.BDAT,A.RING,A.BUFF
+:
+  IF	\A.DATA
+  ELSE
+A.DATA	EQ	0	:DEFAULT DATA AREA
+  EI
+
+  IF	\A.CODE
+  ELSE
+A.CODE	EQ	1	:DEFAULT CODE AREA
+  EI
+
+  IF	\A.BDAT
+  ELSE
+A.BDAT	EQ	2	:DEFAULT BASED DATA AREA
+  EI
+
+  IF	\A.RING
+  ELSE
+A.RING	EQ	2	:DEFAULT RING AREA
+  EI
+
+  IF	\A.BUFF
+  ELSE
+A.BUFF	EQ	2	:DEFAULT BUFFER AREA
+  EI
+
+:	SVC DEFINITIONS
+:
+	GL	DISMIS,FASTD,SYS,RSTRT.,CFGND.,DBGON.,DBGOF.,TSTDB.
+	GL	FREEZ.,THAW.,TFREZ.,RDDTR.,RDDTP.,RBREG.,RBPSD.
+	GL	RFREG.,RFPSD.,RDMAC.,RBMAC.,RFMAC.,SET1P.,SETP.,SETBE.
+	GL	SETFE.,IO,IOQRY.,CSYNI.,CSYNO.,FSYNO.,TIISC.
+	GL	CSUPF.,CSUPR.,FREZS.,THAWS.,ALARM.,RSCLK.,SSCLK.,SUDIA.
+	GL	SFREZ.,HALT.,SHALT.
+	GL	TIISI.,CASYN.,CPRT.,FPRT.,CSIO.,CMBRD.,FMBIN.,FMBOT.
+	GL	SHARE,K.IN,K.OUT,KIO,BDISC,SDISC
+:
+DISMIS	EQ	0	:DISMISS SVC
+FASTD	EQ	1	:FAST DISMISS SVC
+:
+SYS	EQ	2	:SYS SVC
+
+:	SYS SVC SUBOPERANDS
+RSTRT.	EQ	0	:Restart syscall
+CFGND.	EQ	1	:Connect foreground syscall
+DBGON.	EQ	2	:Debug mode ON syscall
+DBGOF.	EQ	3	:Debug mode OFF syscall
+TSTDB.	EQ	4	:Test debug mode syscall
+FREEZ.	EQ	5	:Freeze slot syscall
+THAW.	EQ	6	:Thaw slot syscall
+TFREZ.	EQ	7	:Test freeze syscall
+RDDTR.	EQ	8	:Read DDT register syscall
+RDDTP.	EQ	9	:Read DDT PSD syscall
+RBREG.	EQ	0A	:Read background register syscall
+RBPSD.	EQ	0B	:Read background PSD syscall
+RFREG.	EQ	0C	:Read foreground register syscall
+RFPSD.	EQ	0D	:Read foreground PSD syscall
+RDMAC.	EQ	0E	:Read DDT MAC register syscall
+RBMAC.	EQ	0F	:Read background MAC register syscall
+RFMAC.	EQ	10	:Read foreground MAC register syscall
+SET1P.	EQ	11	:Set 1 protect syscall
+SETP.	EQ	12	:Set protection syscall
+SETBE.	EQ	13	:Set background execution addr syscall
+SETFE.	EQ	14	:Set foreground execution addr syscall
+LMAC.	EQ	15	:Set up MAC from CTA (DDT only)
+CSUPF.	EQ	16	:Check SUP freeze state
+CSUPR.	EQ	17	:Check SUP run Q state
+FREZS.	EQ	18	:Freeze the SUP
+THAWS.	EQ	19	:Thaw the SUP
+ALARM.	EQ	1A	:Set/Clear alarm
+RSCLK.	EQ	1B	:Read the super-clock
+SSCLK.	EQ	1C	:Set the super-clock
+SUDIA.	EQ	1D	:Set user diagnostic
+UCORE.	EQ	1E	:Get slot physical addr & size (DDT only)
+SFREZ.	EQ	1F	:Super-freeze slot
+HALT.	EQ	20	:Halt the slot
+SHALT.	EQ	21	:Super-halt the slot
+SVSPY.	EQ	22	:Start/Stop SPY
+DISCO.	EQ	23	:Disconnect Logical Unit
+
+IO	EQ	3	:I/O SVC
+:	I/O SUBOPERANDS
+IOQRY.	EQ	8000	:Query I/O attributes
+CSYNI.	EQ	0	:Connect SYNC input
+CSYNO.	EQ	1	:Connect SYNC output
+FSYNO.	EQ	2	:Force SYNC output
+CASYN.	EQ	3	:Connect ASYNC
+CPRT.	EQ	4	:Connect Printer
+FPRT.	EQ	5	:Force Printer
+TIISC.	EQ	6	:T-II SYNC Connect
+TIISI.	EQ	7	:T-II SYNC Idle test
+CSIO.	EQ	8	:Connect SIO
+CMBRD.	EQ	9	:Connect SIO mother board
+FMBIN.	EQ	0A	:Force mother board input
+FMBOT.	EQ	0B	:Force mother board output
+SHARE	EQ	04	:Shared device SVC
+K.IN	EQ	0A	:Kernel Input SVC
+K.OUT	EQ	0B	:Kernel Output SVC
+KIO	EQ	0D	:Kernel-I/O (general) SVC
+BDISC	EQ	0E	:Big disc SVC (obsolete)
+SDISC	EQ	0F	:Small disc SVC (obsolete)
+
+	IF	IRSIZE&3;	REMARK	%IRSIZE should be multiple of 4
+IRSIZE	EQ	(IRSIZE!3)+1;	EI
+	IF	ORSIZE&3;	REMARK	%ORSIZE should be multiple of 4
+ORSIZE	EQ	(ORSIZE!3)+1;	EI
+
+  IF	\MAXPRT
+  ELSE
+	REMARK	%PLEASE DEFINE MAXPRT. NPORTT ASSUMED.
+MAXPRT	EQ	NPORTT-1
+HPRT0	EQ	MAXPRT
+  EI
+
+  IF	\MAXHST
+  ELSE
+	REMARK	%PLEASE DEFINE MAXHST. 1 ASSUMED.
+MAXHST	EQ	1
+HOST0	EQ	HOSTNO
+  EI
+
+
+:	DEFINE START OF SEGMENTS
+Q	EQ	0
+	NOLIST
+	RE	0F
+  IF	\SEG|Q|
+	GL	SEG|Q|
+  ELSE
+	SEG	Q
+	GL	SEG|Q|
+SEG|Q|
+  EI
+Q	EQ	Q+1
+	ER
+	LIST
+
+:GENERATE DIAGNOSTICS
+Q	EQ	0
+	NOLIST
+QQ	EQ	0;	RE	0F
+	IF	((Q*10000)%SEG|Q|)&7FFFFFFF
+QQ	EQ	1;	REMARK	%SYMBOL SEG
+	NUMBER	Q
+	REMARK	 IS NOT DEFINED PROPERLY. VALUE IS 
+	NUMBER	SEG|Q|
+	EI
+Q	EQ	Q+1;	ER
+	LIST
+
+	IF	QQ;
+	REMARK	%START.LIB **MUST** be assembled FIRST!!%;
+	EI
+   
