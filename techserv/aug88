@@ -1,0 +1,861 @@
+
+*******************************************************************************
+*                                                                             *
+*             T      E      C      H             T      I      P     S        *
+*                                                                             *
+*                             A U G U S T   1 9 8 8                           *
+*                                                                             *
+*******************************************************************************
+
+  1.  RAM 10.07 Patch
+      Carolyn Len
+
+  2.  Slot Tymfile Inactivity Timer
+      Ken Stone
+
+  3.  Keyboard mapping with Relay Gold Package for VT100 and TTY
+      Liza Hu
+
+  4.  Revised Staging Policy
+      Doug Zisa
+
+  5.  Little Known Network Statistics
+      Jeff Oliveto
+
+  6.  Frame Formats for X.25/X.75 Modulo 128
+      James Wang
+
+  7.  Interpretation of CMT Screen Buffer Addresses
+      Kal Kalenda
+
+  8.  TII 5.22 Gateway Users
+      Doug Ellenberg
+
+  9.  Large Amounts of Probe Messages from PBT
+      Jeff Morden
+
+10.  Tracing Circuits through TI and TII Gateways
+     Larry Iverson
+
+11.  X.25 via Nodecode Performance
+     Scott Wedel
+
+12.  TMCS Message Meanings
+     Douglas Ellenberg
+
+13.  EXCT Counts versus High Speed Interrupts
+     Doug Ellenberg
+
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Carolyn Len
+
+SUBJECT:
+
+NEW Patch for RAM 10.07
+
+This is to inform you of the NEW Patch File Release for RAM 10.07.
+
+This patch is necessary if you are running ISIS 7.03, are planning an
+upgrade to ISIS 7.03, or are having dispatcher crashes during aux
+circuit build.
+
+         Product Name:                 Raw Accounting Merger
+         Code Version:                 10.07  Date: 07/18/88
+         Release Document:             (BASELINE)RAM10.X07
+         Release Description:          (BASELINE)RAM10.Y07
+         Modified File:                (SOURCE)RAM10.P07    BEHFAD
+
+         Previous Patch File:          (SOURCE)RAM10.H07    JUCLIL
+
+Summary of Changes:
+ 
+This patch corrects the handling of Originating Node number in the RAM
+primary record.  The error was caused by NSR 00161.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Ken Stone
+
+SUBJECT:
+
+XCOM Slot TYMFILE Inactivity Timer 
+
+In order to help lessen the number of similar patches scattered throughout
+various individual directories, here is a Slot Tymfile patch for version 3.01
+Inactivity Timers.
+
+These patches (one includes host to host, gateway connections, one does
+not) are the same inactivity time patches you are familiar with now,
+with one change.  The line
+
+TOMINS          BC         14                : 20 MINUTES INACTIVITY
+
+which was near the top of any inactivity time patch has been replaced with 
+
+TOMINS          BC         INACTR            : SET VALUE IN SLOT TYMFILE
+                                 
+Add into your Slot Tymfile 
+
+INACTR EQ 14                                 : 20 MINUTE INACTIVITY TIMER
+
+And gen the patch into your Command file from (XCOMPAT) directory.  This
+will eliminate the need to edit the patch, change the value and rewrite
+it into your directory.
+
+"INACTR" must start in Column 1 in your Slot Tymfile, like the CRSTOP
+statement.  A sample Tymfile might start like this...
+
+ :        COMMENT
+ :        COMMENT
+
+CRSTOP EQ 1
+INACTR EQ 0A                                : 10 MINUTE INACTIVITY TIMER
+
+                     SEE CONFIGURATION(1)
+                     PROTOCOL(X.25,HDLC,LAPB)
+      
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Liza Hu
+
+SUBJECT:
+
+Keyboard mapping with Relay Gold package for VT100 and TTY
+
+The following is a list of keyboard mapping with Relay Gold package for
+VT100 and TTY.  The Relay Gold package is used for the file transfer
+running on either VM/CMS or MVS/TSAO.
+
+                       		   VT100                          TTY
+
+Redisplay                       ESC R (or r)                  ESC R (or r)
+
+Home Key                        ESC H (or h)                  ESC H (or h)    
+
+Insert                          ESC I (or i)                  Non-support
+
+PF 1                            ESC 1 (O,P)                   ESC 1
+
+PF 2                            ESC 2 (O,P)                   ESC 2
+
+PF 3                            ESC 3 (O,Q)                   ESC 3
+
+PF 4                            ESC 4 (O,S)                   ESC 4
+
+PF 5                            ESC 5                         ESC 5
+
+PF 6                            ESC 6                         ESC 6
+
+PF 7                            ESC 7                         ESC 7
+
+PF 8                            ESC 8                         ESC 8
+
+PF 9                            ESC 9                         ESC 9
+
+PF 10                           ESC 0                         ESC 0
+
+PF 11                           ESC !                         ESC !
+
+PF 12                           ESC @                         ESC @
+
+PF 13                           ESC #                         ESC #
+
+PF 14                           ESC $                         ESC $
+
+PF 15                           ESC %                         ESC %
+
+PF 16                           ESC ^                         ESC ^
+
+PF 17                           ESC  &                        ESC &
+
+PF 18                           ESC *                         ESC *
+
+PF 19                           ESC (                         ESC (
+
+PF 20                           ESC )                         ESC )
+
+If the user presses the ESC and another key instead of the labeled PF
+keys for the programmable function keys, the ESC key will take him back
+to the main menu of Relay Gold package.  The package always takes the
+user back to its main menu upon the first ESC key being pressed and
+brings him back to the original upon the second ESC key being pressed.
+
+I also found that the control-H key of the VT100 generates Hex code 1B
+5B 44 (ESC [ D) instead of Hex code 08, which key does the function just
+like left-arrow rol-H key for back-tab function on our existing VT100
+profile.  Surprisingly, the control-J key of VT100 generates Hex code 0e
+instead of 0A.
+
+In addition, when the CMT sends Hex 08 for moving one space back on TTY
+mode, the package not only does move one space back but also deletes the
+character at the cursor position.
+
+I recommend that two new terminal profiles will be created for VT100 and
+TTY for the file transfer so that we will not stay with the limitation
+of the existing profiles.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Doug Zisa 
+
+SUBJECT: 
+
+Revised Staging Policy - NETWORK SYSTEMS STAGING UNIT 
+     
+The Network Systems Staging Unit has recently moved under the direction
+of Tymnet Operations.  Enhancements have been made to the staging
+policy.  The revised staging policy follows.  You are encouraged to read
+and understand this policy which defines our commitment to serving your
+needs in satisfying customer requirements.
+
+MISSION
+
+We are committed to serving your needs and assuring our products conform
+to customer requirements.  We will insure the quality and the
+functionality of network system orders.  All request for exceptional
+service will be given careful consideration.
+
+POLICY STATEMENT
+
+The  Network  Systems  Staging  Unit  (NSSU)  will  insure  that  the
+responsibilities of this policy are accomplished.    
+              
+Staging is a mandatory requirement under specific conditions (See NODE
+SALES ORDER MANDATORY STAGING).  NSSU will comply with staging
+contractual requirements, and also, emulate the customer production
+environment of equipment as schedules and resources allow.
+
+Performance Certification  will  be  accomplished  after  the  system
+integration of the hardware and target code, (See Appendix A).
+
+When required, Customer Factory Acceptance Testing will be performed
+upon completion of staging.
+
+Field personnel are required to participate at the staging facility, for
+complex orders (See Appendix B) and to assist in meeting delivery
+schedules.  Field personnel may elect to participate in staging any
+order.  Field personnel will temporarily report to the Manager of NSSU
+for the duration of their participation at the staging facility.  For
+the time parameters associated with staging please refer to Appendix C.
+
+STAGING RESPONSIBILITIES
+
+The following tasks are performed on orders staged:
+
+          -  manage staging projects
+          -  coordinate with other companies/departments
+          -  accept hardware from manufacturing
+          -  install equipment in its ordered configuration
+          -  reconcile/modify the target code to conform to STAGENET
+          -  integrate the hardware and target code
+          -  certify network conformance
+
+          -  certify slot performance 
+          -  escalate discovered discrepancies for corrective action
+          -  complete and distribute the staging certification and
+             customer response form
+          -  release hardware back to manufacturing for shipment
+          -  record and feedback discrepancy information
+          -  factory acceptance testing when contractually required
+
+At the discretion of NSSU, tasks performed on orders staged are as follows:
+
+          -  audit the Interim Order Entry System (IOES) order for
+             administrative and technical completeness and accuracy
+          -  provide hardware configuration to manufacturing
+          -  reconcile the ordered hardware to the TYMFILE
+          -  reconcile the FOS (factory traveler) to the IOES order
+          -  reconcile the FOS to the equipment
+          -  reconcile the hardware and software to Beta Test
+             conformance
+          -  reconcile the equipment to ECO conformance
+          -  run diagnostics
+          -  certify every I/O port
+          -  certify battery backup
+          -  certify the 220 volt power system
+          -  perform corrective action
+          -  perform special test
+          -  perform special audits
+
+NODE SALES ORDER MANDATORY STAGING
+
+The equipment must be staged when a node sales order satisfies one or
+more of the following criteria:
+
+          -  all Private Network and Virtual Sub-network node  orders,
+             except  those processed through Computer Systems Company,
+             United Kingdom (CSCUK).
+          -  contractual obligation
+          -  all nodes destined outside the contiguous 48 states,
+          -  all nodes with peripherals
+          -  Beta Test products for as long as Product Marketing
+             determines
+
+STAGING WAIVER
+
+There may be exceptional situations, in which mandatory factory staging
+may be waived by plan.  The procedure that will allow variance to the
+staging policy, is as follows:
+
+1.  The District Sales Manager  must  request  the  staging  waiver
+    from  the Director, Field Operations via Ontyme, with a copy of
+    the request sent to the other Field  Sales personnel  involved.
+
+2.  The Ontyme  must  present  the  business  case  justifying  the
+    staging waiver and also identify the following:
+
+    a.  customer name
+    b.  contractual staging obligations
+    c.  Beta Test hardware or software (Y/N)
+
+    d.  hardware type, e.g. DMINI, MICRO4, etc.
+    e.  primary Tymnet software,  e.g. Consat, Switcher, SUP, TMCS, etc.
+    f.  IOES Purchase Order Number(s)  
+
+3.  The  Director, Field Operations will determine the merit of the request. 
+    If approved, the request will be processed through the Marketing Vice
+    President.
+
+    a.  If  staging is to be waived, the Director, Field Operations will send  
+        an Ontyme  message to the Manager of Order Processing notifying 
+        Operations to waive staging on the orders identified by customer
+        Purchase Order Number(s), and Requisition Number(s).
+    b.  If staging  will  NOT  be  waived, this decision will be conveyed to 
+        the  original  requester  and  CC  list  with explanation.
+
+                                 APPENDIX  A
+
+                   TARGET CODE AND HARDWARE CONFIGURATION
+
+Target code is the Tymnet production software which provides the
+customer's application upon installation at their site.  It is the
+unique loadable code for each order (Engine or node).  The hardware
+configuration provides detailed assembly location interrelationships,
+option and address selection information.  The organization responsible
+for generating the target code, or for initiating the order, is required
+to perform the following:
+
+1.  Certify  that  the  hardware  configuration reconciles to the IOES
+    Manufacturing Requisition and to the TYMFILE (software).
+
+2.  Provide the hardware configuration to Manufacturing and NSSU, twenty
+    one ( 21 ) days prior to the manufacturing commit date via IOES.
+
+3.  Notify NSSU of the location of the target code (BND, CMD, and TYM) files,
+    seven (7)  days prior to the manufacturing commit date via IOES
+
+4.  Provide "Staging Test Code" in lieu of target  code  when the customer's
+    situation prevents target code  generation.   This must be identified as 
+    staging test code and be a best approximation of the customers
+    application for this order.
+
+                               APPENDIX B
+
+               COMPLEX ORDER MANDATORY FIELD PARTICIPATION
+
+The organization responsible for generating, or supporting the target
+code may be required to participate at the staging facility.
+Individuals who participate in the staging function are often called
+upon for technical leadership.  Mandatory field participation is
+required at the staging facility, if an order satisfies one or more of
+the following criteria:
+
+          -  a network utility, e.g. SUP, NETVAL, TMCS, ONTYME, etc.
+          -  the initial phase of a new network system
+          -  a new major product in Beta Test
+
+                                  APPENDIX C
+
+                           STAGING AVERAGE DURATIONS
+
+Discretionary audits or testing will extend these durations.  Staging
+will not be expedited.  With weekends and holidays excluded, the usual
+workdays required for software staging are defined in the list below.
+          
+                PRODUCT                                    DAYS
+          
+          - PICO (BETA TEST)                                 5 
+          - MICRO                                            3 
+          - MINI/DMINI/STANDARD                              4   
+          - TURBO (BETA TEST)                               10 
+          - NETWORK                                         15  
+          - UTILITIES                                       10 
+          - MXP                                             12   
+          - ATC                                              0
+
+NOTE
+
+NETWORK =   the pilot or first use of a Supervisor for a particular customer
+            may be four (4) to twenty (20+) plus nodes.
+
+UTILITIES = Network  utilities   such   as  Supervisor  slaves, NETVAL, TMCS,
+            ONTYME, etc.
+
+ATCs are not staged
+
+Ontyme File:  *** NSSUPOLICY
+Author:  Doug Zisa, TYMOPS.D/ZISA, (714) 250-1000
+Owner:  TYMNET Network Resources
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Jeff Oliveto
+
+SUBJECT:
+
+Little Known Network Statistics
+
+Here is a little known network statistic that you can add to your next
+Tymnet sales pitch:
+
+     -  52 Public Data Network providers are currently utilizing Tymnet
+        Packet Switching Equipment to deliver their service.
+     -  43 of these are under a Managed Data Network Contract (Sub-net)
+        The other 9 have their own NCC (Supervisor).
+     -  This means that 43 Public Data Network providers trust Tymnet as
+        their partner in communications to provide reliable and cost effective
+        network management, accounting, validations, routing control,
+        software engineering and code management.
+     -  This is more Public Data Network providers than any other equipment
+        manufacturer.  We have been doing this since 1977, longer than anyone
+        else.
+
+             REFERENCE LIST OF SATISFIED TYMNET CUSTOMERS
+
+Country/DNIC/  m = Managed Data Network, t = turnkey
+
+Antigua/3443/ m                              Peru/3104/ m
+Argentina/7220/ m                            Philippines/5152/ m
+Austria/2329/ m                              Philippines/5254/ m
+Bahamas/3640/ m                              Philippines/5256/ m
+Bahrain/4263/ m                              Portugal/2682/ t
+Barbados/3423/ m                             Saudi Arabia/4263/ m
+Bermuda/3503/ m                              Sweden/2402/ t
+Cayman Island/3463/ m                        Taiwan/4872/ m
+Chile/3104/ m                                Thailand/5200/ m
+Columbia/7320/ m                             Tortola/3483/ m
+Dominican Republic/3700/ m                   Trinidad/3740/ m
+Egypt/6020/ m                                Turks & Caicos/3763/ m
+Germany, F.R./2624/ m                        UAE/3104/ m
+Greece/2022/ m                               Uruguay/7482/ m
+Guatemala/7043/ m                            United Kingdom/2350/ t
+Honduras/7080/ m                             United States
+Hong Kong/4542/ t                            Tymnet/3106
+Hungary/2621/ m                              Alaska/3135/ t
+Israel/3104/ m                               Guam/5351/ m
+Italy/2227/ t                                Puerto Rico/3300/ m
+Jamaica/3380/ m                              Puerto Rico/3301/ m
+Japan/4406/ t                                U.S. VI/3320/ m
+Kuwait/4263/ m                               WU Worldcom/3107/ m
+Netherlands Antilles/3620/ m                 RCA Global/3113/ m
+Panama/7141/ m                          MCII/3104/ m
+                                             TRT/3119/ m
+                                             FTCC/3124/ m
+                                             SW Bell/3146/ t
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+James Wang  
+
+SUBJECT:  
+
+Frame formats for X.25/X.75 LAPB modulo 128
+
+CCITT 1984 -- Modulo 128, LAPB
+
+     Standard formats for both x.25/x.75
+
+          Format        Command               ----- hex  coding ----
+                        Response              1st-byte        2nd-byte
+         -------        --------              ---------       --------
+
+       Infor xfer          I                   even           even or odd(p)
+       Supervisory         RR                  01             even or odd(p/f)
+           "              RNR                  05             even or odd(p/f)
+           "              REJ                  09             even or odd(p/f)
+       Unnumbered        SABME                 6F/7F(p)       none
+           "             DISC                  43/53(p)       none
+           "             FRMR                  87/97(f)       none
+           "               UA                  63/73(f)       none
+           "               DM                  0F/1F(f)       none
+
+     The following alternative formats can be used for x.75 for interim
+     period. (CCITT Table 6/x.75, Rec. X.75 page 163 note 2)
+
+          Format        Command               ----- hex  coding ----
+                        Response              1st-byte       2nd-byte
+         -------        --------              --------       --------
+
+         Infor xfer        I                   even          even or odd(p)
+         Supervisory       RR                   01           even or odd(p/f)
+           "              RNR                   05           even or odd(p/f)
+           "              REJ                   09           even or odd(p/f)
+         Unnumbered      SABME                  6F           00 or 01(p)
+           "              DISC                  43           00 or 01(p)
+           "               FR                   87           00 or 01(f)
+           "               UA                   63           00 or 01(f)
+           "               DM                   0F           00 or 01(f)
+
+        Where: p/f stands for poll/final bit on.
+
+Tymnet X.25/X.75 -- Frame formats for modulo 128, LAPB.  (versions 3.01, 4.03)
+
+     X.75 supports CCITT's alternative formats.
+
+     X.25 supports nonstandard, x.75-style, extended format.
+
+Patch for XCOM to use CCITT standard format as stated in II. A.  (Contact
+HQTECH for the location of the patch.)
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Kal Kalenda
+
+SUBJECT:
+
+Interpretation of CMT Screen Buffer Addresses
+
+QUESTION:
+
+In the receive buffers of the associated SNA 3.03 interface, one can see
+an LU-LU message with a particular 3270 order. It is 111D40 : SBA . The 
+host is a Facom computer (Fujitsu) speaking English. However, this order
+is passed on to the CMTK ring and CMTK clears this circuit with message
+CMT032 : invalid screen address. As a matter of fact, this is rather
+understandable for 1D does not seem to be a valid screen address. The
+problem is that the Facom terminal does understand it. We don't. The
+customer has been requested to provide detailed and adequate information 
+on this particular order. The thing is, we don't know how long this will take.
+Has anyone out there ever heard anything on this ? How should we interpret
+this order ? Should we ignore it ? Is the Facom faulty ? Should the latter
+be answered with yes, I'm not sure the customer would agree to modify his
+host. Anyhow, any input is most welcome.
+
+The use of CMTK has been recommended and approved last November by NTD's
+Mike Rude. This customer (the first one in Spain) must manage a Fujitsu
+host through FNA.
+
+In this case when the LU to LU addressing took place the host issued the
+Set Buffer Address (SBA) order 111D40, 11 is the SBA and 1D40 the actual
+address.  To determine what type of addressing will be used, the 14-bit
+binary or 12-bit coded CMTK looks at the first 2 bits of the byte
+following the SBA.  The 1D40 is interpreted as 0001 1101 0100 0000, the
+first two bits being the addressing type determiner are set to zero the
+CMTK selects 14 bit binary mode addressing.
+     
+                           ADDRESSING TABLE 
+     
+                 00             14-bit binary address follows    
+                 01             12-bit coded address follows
+                 10             Reserved
+                 11             12-bit coded address follows
+     
+To determine the actual screen position in the 14-bit mode, the next 14
+bits are represented in binary form and no actual translation is
+necessary.  In this case where the 1D40 was sent the CMTK took the
+binary form and translated it as follows:
+     
+         0001  1101  0100  0000        > 780 hex  
+         1      D      4    0          > 780 hex  
+     
+A value greater than 780 hex is a non-existent screen buffer address and
+CMTK issued the invalid screen address message.
+
+The Fujitsu host may be assuming that CMTK will always use the 12-bit
+coded addressing mode and code the address as follows:
+     
+        0001  1101  0100  0000        : > 780 hex 
+        XX          XX                : Throw away these bits    
+        0111  0100  0000              : compress to form address 
+          7         4       0         : < 780 hex 
+     
+Because 740 is less than 780 hex it is a valid screen buffer address and
+the hosts screen will respond without error if not going through the
+CMTK interface.  If the customers host wants to continue to use the
+12-bit coded method of addressing screen buffers, the two high order
+bits following the SBA must be set to 01 or 11.  I am making no
+recommendations on what your customer should do, I am just explaining
+what may have happened.
+
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Doug Ellenberg
+
+SUBJECT:
+
+5.22 TII Gateway Users                 
+
+Two corrections to TII gateway problems are included in the file:  
+
+(TECHSERV)TII05.P22  cksum=JAZQUL                   
+
+The problems addressed are:
+
+1.  Access through the TII gateway with a username of odd length causing
+    the user to have to re-enter their password.
+
+2.  Problem with transparent logins causing some logins to be zapped during
+    password requests.                           
+
+Anyone experiencing any gateway problems should regen using this patch
+file until it is delivered to (SOURCE).                      
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Jeff Morden
+
+SUBJECT:
+
+Large amounts of probe messages from PBT
+
+There has been a high incidence of probe messages that Southwestern Bell
+was seeing from their PBT.
+
+The message type 13 (facilities failure detected) is the result of
+supervisor messages issued by the PBT when a control unit stops
+responding to polls.  When that occurs a supervisor message will be
+issued for each device on that control unit.
+
+The message type 30(circuit zap) is generated when the PBT subsequently
+zaps the circuits for the devices on the control unit that went inactive.
+
+I first went into the BOM of the PBT and used the DERR command to see an
+hourly summarized error report for the last 24 hours that the interface
+was running.  One of those hour blocks showed a high incidence of errors
+including poll timeouts, transmit errors and receive errors.  I believe
+that this time period may have corresponded to the time period that the
+probe messages were being generated.
+
+I then reviewed both the probe log and the PBT's DERR record for the
+past 24 hours again.  I did not observe either a high incidence of
+errors or a high incidence of probe messages indicating interface
+problems or circuit zaps.
+
+My understanding is that the interface has been running for
+approximately two weeks.  Since during that time the occurrence of this
+event appears to be isolated, intermittent, and associated with
+indicated problems in communicating with the control unit, I don't think
+we are looking at a problem with the PBT.  Possibly this could be the
+result of a line or modem problem, a control unit problem, or the
+control unit just being turned off.
+
+Should this event occur again there are a few things you or somebody
+could do to get a better picture of the problem.  At the time the
+problem is occurring, go into the BOM and display the status of the
+control unit indicated in the probe messages; it will indicate some
+error conditions that may be occurring.  Verify the actual status of the
+control unit and line; powered on, good signals, etc..  Do a DERR
+command for the last 24 hours and see if it matches up with time of the
+probe reports.  If the findings appear unusual or can't be explained
+then we have something to start pursuing.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Larry Iverson
+
+SUBJECT:
+
+Tracing Circuits Through TI and TII Gateways
+
+The way to trace a circuit through a TII gateway from Tymnet into a
+private network is to log into the gateway slot and do a ?CT.  The port
+number which you got from the trace through the public network will be
+mapped to a DPort in the gateway.  Then go into Probe in the private
+network and do the race command using that new port number.  Please note
+that port numbers in Probe are DECIMAL and the port numbers from the ?CT
+command are in HEXADECIMAL.
+
+To trace through a TI gateway is a little more complicated.  After doing
+the ?CT command as above, do a ?STAT command followed by a port command.
+This set of commands will accomplish the following:
+
+    Node Code DPORT --> Gateway DPORT --> Gateway Channel Number
+
+When you go into Probe on the private network, you once again do a trace
+command.  This trace command is as follows:
+
+      : Trace n2 n1 c1
+ 
+where        n2 = Tymnet II node to which the gateway is attached
+                 n1 = Gateway node number (private net side)
+                 c1 = channel number
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Scott Wedel
+
+SUBJECT:
+
+X.25 via Nodecode Performance
+
+The question concerned delays when doing a file transfer between two X.25
+slots.  It was observed that slot to slot within node was much quicker
+than when the X.25 interfaces were in different machines.  The maximum
+Tymnet packet size was 62 bytes.  Changing DI.BFL to four increased the
+delay.
+ 
+Answer:  Throughput is best described in terms of Nodal throughput and
+Circuit throughput.
+
+NODAL THROUGHPUT:  The DI.BFL assigns the number of bufferlets to put in
+the bufferlet pool for each circuit.  The bufferlets are not actually
+assigned to a dispatcher port, but are used as needed.  Thus, one dport
+can require numerous bufferlets while other dports don't use any
+bufferlets.  Thus, DI.BFL affects the possibility of buffer zaps, but
+should not have a general effect upon throughput.  Increasing the size
+of the Node Code dispatcher rings (legal values are:  400x (default),
+800x, 1000x and 2000x) can prevent dispatcher buffering from occurring.
+Dispatcher buffering is much less efficient than the dispatcher copying
+ring to ring, thus preventing dispatcher buffering can have a serious
+improvement upon maximum sustained throughput.  Not much else can be
+done to improve performance although preliminary testing of Node Code
+V5.31 has shown a significant performance improvement since V5.31
+removed inefficiencies in earlier versions of Node Code.
+
+CIRCUIT THROUGHPUT is limited by line capacity and gouging level.
+Obviously a 9.6 line limits a circuit to 1200 cps.  Gouging level is
+used by node code to give high and low speed circuits fair usage of the
+link's bandwidth.  Gouging is not used in intranode slot to slot
+transfers.  Gouging limits a circuit to 64, 160, 512 and 2048 cps for
+gouging class A, B, C and D respectively.
+
+PACKET SIZE:  Node Code makes the biggest packet it can.  The packet
+size is limited by the amount of data and by gouging level.  Data may be
+waiting in the buffer but will not be sent since the cps maximum has
+already been reached for that second.  All user traffic through Node
+Code is treated as individual bytes.  Thus, a large X.25 packet received
+in Node Code's dispatcher ring can be sent as several Tymnet packets.
+Conversely, several small X.25 packets can be sent as one large Tymnet
+packet.  Thus, if the maximum packet size was 60 or so bytes when doing
+a file transfer then it appears that gouging level might have been the
+limiting factor.
+
+ADDITIONAL INFORMATION:
+
+One additional piece of information:  When data passes through Node Code,
+all characters less than hex 08 are escaped with a hex 00.  If in the
+file transfer there are a large number of characters less than hex 08 then
+the actual characters transferred is two for every one of these.  This
+extra overhead will effect the rate of transfer because of the additional
+characters transmitted.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Douglas Ellenberg
+
+SUBJECT:
+
+TMCS Message Meanings
+
+The reasons for "data on an unassigned channel" may be  that there was a
+zap sent on that channel, causing node code to think the circuit was
+terminated (or now unassigned) and following the zap being sent out data
+was received.  This would be because of timing (data in the circuit not
+yet cleaned up by the zap).
+
+Neighbor 0 may have been reported because this circuit was a dispatcher
+circuit where there would be no node number, the permuter tables could
+have been corrupted, or this may be an undetected node code bug
+(probably the cause was this was a dispatcher circuit).
+
+Circuit lifetimes are reported after certain error conditions occur.
+This is to aid in tracking the causes of problems.  If the circuit
+lifetime is long, you know the circuit has been up for awhile.  If the
+circuit lifetime is very short you may have an indication of a timing or
+race condition occurring which may be a potential cause of the associated
+error message.
+
+In this instance, the circuit lifetime message may be being sent in error
+so the times reported may be of questionable value.  There is no
+negative impact so this is nothing to worry about.
+
+Original question:
+
+2112 node report, data on unassigned channel 1E
+       neighbor 0  <8.2>
+2112 node report, circuit lifetime 310 seconds on channel 1e
+
+Why is there "data on unassigned channel"?
+Why is there a "non-existent" neighbor node "0" to node 2112?
+What is the purpose of reporting circuit lifetimes?
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Doug Ellenberg
+
+SUBJECT:
+
+EXCT Counts versus High Speed Interrupts
+
+The question included a list of EXCT counts, CPS I/O and number of users
+for a target node.  Question was for a recommendation if this node can
+safely be set to high speed interrupts.
+
+In response to your question concerning a loaded node being upgraded to
+high speed interrupts:  Any ISIS node with an EXEC count commonly below
+20 is operating at very close to maximum capacity.  High speed
+interrupts add significant load and no ISIS machine with common EXEC
+below 50 should be upgraded to high speed interrupts.
+
+Please note that the EXEC low water in the XRAY NS must be used with
+care.  The EXEC count which is most useful is gathered by doing the NS
+command at some regular interval (like every 10 minutes during periods
+of peak load) and noting the current EXEC count.  The low water EXEC
+count can be quite low even in lightly loaded machines since unusual
+events can cause a transitory heavy load which do not accurately reflect
+upon the machines true load.  Go_u
