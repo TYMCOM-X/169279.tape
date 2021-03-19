@@ -1,0 +1,1753 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TTTTTTTT   EEEEEE    CCCCCC    HHH   HHH   TTTTTTTT   IIII   PPPPP       SSSS
+TTTTTTTT   EEEEEE   CCC   CC   HHH   HHH   TTTTTTTT   IIII   PP   PP    SS  SS
+   TT      EE       CC         HHH   HHH      TT       II    PP    PP   SS
+   TT      EEEE     CC         HHHHHHHHH      TT       II    PPPPPPP     SSSS
+   TT      EE       CC         HHH   HHH      TT       II    PP             SS
+   TT      EEEEEE   CC    CC   HHH   HHH      TT      IIII   PP         SS  SS 
+   TT      EEEEEE    CCCCCC    HHH   HHH      TT      IIII   PP          SSSS 
+
+
+
+
+
+
+
+
+
+ 
+                             September 01, 1986
+
+
+
+                              TABLE OF CONTENTS
+                              -----------------
+
+
+
+DETECTING AND TROUBLESHOOTING PARITY ERRORS ON SEMI-CONDUCTOR MEMORY. . . . 01
+
+TRAINING AND EDUCATION 4TH QUARTER SCHEDULE '86. . . . . . . . . . . . . . .04
+
+TYMCOM V 2.06 TO BE UNSUPPORTED, 10/01/86. . . . . . . . . . . . . . . . . .06
+
+CONSAT V 4.02/5.00 TO BE UNSUPPORTED, 10/01/86 . . . . . . . . . . . . . . .07
+
+3270 PBT 6.00/6.03/6.04/6.05 TO BE UNSUPPORTED, 09/15/86 . . . . . . . . . .08
+
+3270 PBH 8.01/8.03/8.04 TO BE UNSUPPORTED, 09/15/86. . . . . . . . . . . . .09
+
+3270 CMT V 3.01 TO BE UNSUPPORTED, 09/01/86. . . . . . . . . . . . . . . . .10
+
+SIO QUESTIONS & ANSWERS. . . . . . . . . . . . . . . . . . . . . . . . . . .11
+
+SmarTym 3270 QUESTIONS & ANSWERS . . . . . . . . . . . . . . . . . . . . . .13
+
+DESCRIPTION OF HOW ISIS 5.08 & 7.00 AHNDLE "?WHO" IN DDT . . . . . . . . . .15
+
+PROCEDURE TO UPGRADE THE 10MB DISK TO 160 MB DISK AS NETVAL MUD. . . . . . .18
+
+CONSAT VERSION 6.00, MEMORY REQUIREMENTS . . . . . . . . . . . . . . . . . .22
+
+Tym/COMM 4.0 WITH X.PC . . . . . . . . . . . . . . . . . . . . . . . . . . .23
+
+TMCS,LOADII,NET MESSAGE FACILITY,NETWORK CONSOLE . . . . . . . . . . . . . .24
+
+NODE CODE 5.10 TO BE IN LIMITED RELEASE, 08/22/86. . . . . . . . . . . . . .25
+
+TMCS 10.20 COMPATIBILITY WITH SUP CODE & NODE CODE . . . . . . . . . . . . .26
+
+DEDICATED OUTDIAL DEMO SYSTEM. . . . . . . . . . . . . . . . . . . . . . . .28
+
+BETA TEST SITES AND LIMITED RELEASE SITES PROCEDURES . . . . . . . . . . . .29
+
+DNIC BASED ROUTING/TARGET PROFILES . . . . . . . . . . . . . . . . . . . . .31
+
+'TIGOUG' OPTION FOR SUP V 41.xx. . . . . . . . . . . . . . . . . . . . . . .36
+
+
+
+
+
+
+                                     01
+                                  --------
+
+
+     DETECTING AND TROUBLESHOOTING PARITY ERRORS ON SEMI-CONDUCTOR MEMORY
+     --------------------------------------------------------------------
+     --------------------------------------------------------------------
+
+
+Written by : Richard Ho, NTS 
+
+
+
+
+
+HARDWARE:  Semi-conductor Memory board / Engine.
+
+SUBJECT:  Single and double bit parity errors on Semi-conductor Memory board.
+
+
+
+When a parity error is detected on the Semi-conductor Memory board, one of
+the two small LED's on the front of the Memory board will be turned on. Red
+LED ON indicates that a double bit parity error has occured and Yellow LED ON
+indicates that a single bit parity error has occured (on ZITEL Memory board,
+a single bit parity error is corrected by the ECC logic and a double bit pa-
+rity error is not correctable).
+Bad Memory chip can be located by using DDT (on ISIS nodes) or XRAY (on SOLO 
+nodes).
+
+
+
+ISIS :
+_____
+
+Log into the Kernel host of the node (either through the TTY port on the
+M/F board or remotely via network). Go to slot FF by typing "!" (when the
+Kernel asks you which slot you want to go to), or by typing "^FF" CARRIAGE
+RETURN at the slot prompt ( * ). Once you are in slot FF, type "?MEM" CR.
+At this point DDT will respond as follow :
+
+  CURRENT SYSTEM TIME IS: X:XX:XX:XX
+
+X:XX:XX:XX AGO ON BOARD # X OCCURING X TIMES SINGLE BIT PARITY ERROR ON CHIP: X
+X:XX:XX:XX AGO ON BOARD # X OCCURING X TIMES DOUBLE BIT PARITY ERROR ON CHIP: X
+X:XX:XX:XX AGO ON BOARD # X OCCURING X TIMES SINGLE BIT PARITY ERROR ON ROW : X
+X:XX:XX:XX AGO ON BOARD # X OCCURING X TIMES DOUBLE BIT PARITY ERROR ON ROW : X
+
+
+The following actions should be taken when DDT reports any parity errors :
+
+  - Do Memory Mask to verify the parity errors:
+    (this should be done in slot FF)
+
+    For Full Meg of Memory :  
+
+    *M 1,400,FFFFE (CR) 
+    *X 0,2,2 (CR) 
+
+
+    For 1/2 Meg of Memory :
+
+    *M 1,400,7FFFE (CR)
+    *X 0,2,2 (CR)
+
+    Note : To find out the amount of Memory in an Engine :
+                             
+        - Type :                    *R 5A,6
+
+        - DDT will response with :  0005A 4300 400F FFFE  (Full Meg of Memory)
+                                                  ------
+                                 or 0005A 4300 4007 FFFE  (1/2 Meg of Memory)
+                                                  ------
+
+  - If the chip locations reported by DDT and Memory Mask are evenly divisible
+    by 22, check to see if the following ECO's are installed in the machine :
+
+        ECO 85-418 (MAC)
+        ECO 85-476 (Semi-Memory)
+        ECO 84-129 \
+        ECO 84-130  \ (Backplane noise)
+        ECO 84-131  /
+        ECO 84-132 /
+
+    DDT and Memory Mask may report false parity errors at chip locations that
+    are divisible by 22 if the above ECO's are not installed in the machine.
+    In this case, you could either have the above ECO's installed or run the
+    Memory Diagnostic to verify the parity errors. Replace the bad Memory
+    chips or the Memory board (if the bad Memory chips can not be located)
+    if Memory Diagnostic fails.
+
+  - If the chip locations reported by DDT and Memory Mask are not evenly divi-
+    sible by 22, replace the bad Memory chips and run Memory Diagnostic.
+
+
+SOLO :
+______
+
+Log into XRAY of the node (either through the TTY port on the M/F board or
+via network). At the XRAY prompt (>), type "QE" CARRIAGE RETURN to get the
+list of the parity errors.
+If any parity error is reported by XRAY, the following actions should be 
+taken :
+
+  - If the chip locations reported by XRAY are evenly divisible by 22, check
+    to see if the following ECO's are installed in the machine :
+
+        ECO 85-418 (MAC)
+        ECO 85-476 (Semi-Memory)
+        ECO 84-129\
+        ECO 84-130 \ (Backplane Noise)
+        ECO 84-131 /
+        ECO 84-132/    
+
+    XRAY may report false parity errors at chip locations that are divisible
+    by 22 if the above ECO's are not installed in the machine.
+    In this case, you could either have the above ECO's installed or run the
+    Memory Diagnostic to verify the parity errors. Replace the bad Memory chips
+    or the Memory board (if the bad Memory chips can not be located) if Memory
+    Diagnostic fails.
+
+  - If the chip locations reported by XRAY are not divisible by 22, replace
+    the bad Memory chips and run Memory Diagnostic.
+
+
+
+
+            ***************     IMPORTANT     ***************
+
+
+*** On version 5.XX series of ISIS Kernel code, DDT parity error message :
+
+    X TIMES DOUBLE (or SINGLE) BIT ERROR ON ROW: X
+                                            --- 
+    Should be read as:
+
+    X TIMES DOUBLE (or SINGLE) BIT ERROR ON CHIP: X
+                                            ----
+    In other words the "ROW" and "CHIP" are swapped. This problem is 
+    corrected in version 6.XX and above.
+
+*** When Engine voltages are below prescribed levels (+5.22 V,+/-16.50 V),
+    parity errors will occur. Voltages should be checked and adjusted
+    prior to replacing any Memory chip or Memory board. Since +5.22 V is
+    most critical, it should be measured at the slot that the Semi-Memory
+    board is in.
+
+*** Those readings which indicate "ROW" errors are due to multiple bad
+    Memory chips. A good way to correct this problem is to replace Memo-
+    ry chips in that particular Row until all the bad chips are located.
+
+*** ?MEM & QE commands will not work on MAC III or Static Ram Memory.
+
+*** QE command will not work on SOLO code versions below 5.00.
+
+
+
+If you have any questions or comments, please call NTS or ONTYME me at
+QSATS.R/HO.
+
+
+
+                                      04
+                                   --------
+
+
+                         TYMNET TRAINING AND EDUCATION
+                           4TH QUARTER SCHEDULE '86              
+                         -----------------------------
+                         -----------------------------
+
+
+Published on August 05, 1986
+
+
+
+
+
+Below is the schedule of TTE classes to be held at the Tymnet Training
+Center in San Jose during the 4th quarter 1986.
+
+Employees may enroll by accessing executive file-  :EXEC *** TTE.ENROLL
+To arrange for classes at your location or for customized classes contact
+Bob Grandey, OnTyme NETS.R/GRANDEY or call 408/942-5085.
+
+Please note the following new classes.
+
+     TTE 600 Basic Satellite Communication
+     TTE 610 TYMSTAR
+     TTE 465 Configuration Management Facility
+
+Descriptions of these and other courses are available  OnLine.
+Consult your Training and Education 1986 brochure pub# E-007 for complete
+details on TTE courses and services.
+
+We look forward to seeing you in class.
+
+
+
+
+COURSE                                       LENGTH (DAYS)        SCHEDULED
+
+TTE 510 - Network Systems Management             5           October 27-31
+TTE 440 - TYMNET Engine Programming              5           October 6-10
+TTE 442 - ISIS Slot Programming and Debugging    10          October 13-24
+TTE 445 - System Code Generation                 5           October 27-31
+TTE 110 - TYMNET Field Service Basics            5           October 20-24
+TTE 300 - Communication Line Operations          5           October 27-31
+TTE 340 - Hardware Troubleshooting               5           October 6-10
+TTE 225 - X.25/X.PC Protocols                    8           Oct. 27-Nov. 5
+TTE 230 - 3270/CMT Interfaces                    8           October 6-15
+TTE 240 - SNA/SDLC Interfaces                    8           Oct. 27-Nov. 5
+TTE BPS - Basic Products School                  4           October 20-23
+
+
+TTE 100 - Basic Data Communications              3           November 5-7
+TTE 501 - TYMNET Concepts (Private Network)      2           November 10-11
+TTE 502 - TYMNET Network Operations (Priv. Net.) 8           November 12-21
+TTE 520 - Network Design (TOPS)                  10          November 3-14
+TTE 530 - Network Performance Analysis (TOPS)    5           November 17-21
+TTE 450 - Network Troubleshooting                10          November 10-21
+TTE 460 - Menu/Network Service                   5           November 10-14
+TTE 330 - TYMNET Engine Maintenance              10          November 3-14
+TTE 340 - Hardware Troubleshooting               5           November 17-21
+
+
+TTE 101 - TYMNET Concepts                        2           December 8-9
+TTE 102 - TYMNET Network Operations              8           December 10-19
+TTE 503 - Network Control Center Operations      5           December 1-5
+TTE 600 - Basic Statellite Communications        5           December 8-12
+TTE 610 - TYMSTAR                                5           December 15-19
+TTE 540 - Network Project Management             10          December 1-12
+TTE 455 - Utilities Code Generation              5           December 8-12
+TTE 400 - Introduction to ISIS Software          5           December 1-5
+TTE 465 - Configuration Management Facility      5           December 8-12
+TTE 345 - Tape and Disk Maintenance              5           December 1-5
+TTE 240 - SNA/SDLC Interfaces                    8           December 8-17
+TTE 245 - 2780/3780/HASP Interfaces              5           December 1-5
+
+
+
+
+
+                                     06
+                                  --------
+
+
+        TYMCOM VERSION 2.06 TO BE UNSUPPORTED, EFFECTIVE 1 OCT 86
+        ---------------------------------------------------------
+        ---------------------------------------------------------
+
+
+Written by : John Gomes, Mgr. Q.A. 
+      Date : August 05, 1986
+
+
+
+
+
+Tymcom  version  2.06  (Beta Test) will no longer  be  supported, effective  
+1  October  1986.   All existing customers  must  make arrangements to upgrade
+to version 3.00 as soon as possible.  All new  requests  must be approved by 
+Quality Assurance and a beta test agreement signed.
+
+If  you have any questions or concerns,  please send me an Ontyme or call me 
+at 408-942-5142.
+
+
+
+
+                                      07
+                                   --------
+
+
+      CONSAT VERSIONS 4.02/5.00 TO BE UNSUPPORTED, EFFECTIVE 1 OCT 86    
+      ---------------------------------------------------------------
+      ---------------------------------------------------------------
+
+
+Written by : John Gomes, Mgr. Q.A.
+      Date : August 05, 1986
+
+
+
+
+
+CONSAT  versions  4.02  and 5.00 (Beta Test) will  no  longer  be supported, 
+effective 1 October 1986.  All existing customers must make arrangements to 
+upgrade to version 6.00 as soon as possible.  All new requests must be 
+approved by Quality Assurance and a beta test agreement signed.
+
+If  you have any questions or concerns,  please send me an Ontyme or call me 
+at 408-942-5142.
+
+
+
+
+                                      08
+                                   --------
+
+
+    3270 PBT 6.00/6.03/6.04/6.05 TO BE UNSUPPORTED, EFFECTIVE 15 SEP 86
+    -------------------------------------------------------------------
+    -------------------------------------------------------------------
+
+
+Written by : John Gomes, Mgr. Q.A.
+      Date : August 08, 1986
+
+
+
+
+
+The  following  3270  Polled  Bisync  Terminal  (PBT)  beta  test releases 
+will no longer be supported as of 15 September 1986:
+
+     6.00
+     6.03
+     6.04
+     6.05
+
+Existing  PBT beta test customers must upgrade to either version 6.01 or 9.00
+(PLEASE ONTYME QSATS.J/GOMES ON THE VERSION  NUMBER INSTALLED.  BETA TEST 
+AGREEMENT IS NOT  REQUIRED.)  All new beta test requests must be approved by 
+Quality Assurance and a beta test agreement signed.
+
+If  you have any questions or concerns,  please send me an Ontyme or call me 
+at 408-942-5142.
+
+
+
+
+                                      09
+                                   --------
+
+
+     3270 PBH 8.01/8.03/8.04 TO BE UNSUPPORTED, EFFECTIVE 15 SEP 86
+     --------------------------------------------------------------
+     --------------------------------------------------------------
+
+
+Written by : John Gomes, Mgr. Q.A.
+      Date : August 08, 1986
+
+
+
+
+
+The  following 3270 Polled Bisync Host (PBH) beta  test  releases will no 
+longer be supported as of 15 September 1986:
+
+     8.01
+     8.03
+     8.04
+
+Existing PBH beta test customers must upgrade to either version 8.02 or 10.00
+(PLEASE ONTYME QSATS.J/GOMES ON THE VERSION  NUMBER INSTALLED.  BETA TEST 
+AGREEMENT IS NOT REQUIRED.)  All new  beta test requests must be approved by 
+Quality Assurance and a beta test agreement signed.
+
+If  you have any questions or concerns,  please send me an Ontyme or call me 
+at 408-942-5142.
+
+
+
+                                      10
+                                   --------
+
+
+         3270 CMT VERSION 3.01 TO BE UNSUPPORTED, EFFECTIVE 1 SEP 86
+         -----------------------------------------------------------
+         -----------------------------------------------------------
+
+
+Written by : John Gomes, Mgr. Q.A.
+      Date : August 11, 1986
+
+
+
+
+
+The  3270 Character Mode Terminal (CMT) version 3.01 (Beta Test), will no 
+longer be supported as of 1 September 1986:
+
+Existing  CMT  3.01 beta test customers must upgrade  to  version 4.00 
+(BETA  TEST AGREEMENT IS NOT REQUIRED.)  All new beta test requests must be 
+approved by Quality Assurance and a beta test agreement signed.
+
+If  you have any questions or concerns,  please send me an Ontyme 
+or call me at 408-942-5142.
+
+Thank you for your continued support.
+
+
+
+
+                                      11
+                                   --------
+
+
+                            SIO QUESTIONS & ANSWERS
+                            -----------------------
+                            -----------------------
+
+
+Questions submitted by : Ken Haras, Communications Consultant
+           Response by : Ed Mooring, NTS
+
+
+
+
+
+Q1:  What causes an HDLC idle line?
+
+A1:  A line is considered to be idle when it is in marking state, that is,
+     only 1 bits are being transmitted.  This is different from the case
+     where the line is active, but no frames are currently being sent.  In
+     that case, HDLC flags are transmitted (01111110 binary 7E hex).  The
+     minimum number of consecutive 1 bits that constitute an idle line
+     condition is 15.
+     
+Q2:  What is an HDLC abort?
+     
+A2:  An HDLC abort is detected when seven or more consecutive 1 bits are
+     received.  If this occurs during receipt of a frame, the frame is
+     aborted and discarded, without need of trailing flags or a Frame
+     Check Sequence.  After an abort, the line may go to idle (continue
+     to marking state), or a new frame may be transmitted (line remains
+     active).
+
+Here, a short description of the way contiguous 1 bits are handled under
+HDLC is in order:
+
+An HDLC flag consists of six consecutive 1 bits, separated by zero bits
+on each end.  These flags are used to retain synchronization between frames,
+and to signal the end of a frame.  During transmission of a frame, no more
+than 5 consecutive 1 bits may be transmitted.  If the data to be transmitted
+contains more than 5 consecutive 1 bits, the transmitter must insert a zero
+bit following each 5 consecutive 1 bits, and the receiver must then delete it.
+When 6 consecutive 1 bits are received, it is considered to be an HDLC flag
+and the data received so far is considered to be a complete frame, which
+must then be verified and passed on the higher-level protocol handler.
+
+As mentioned above, an HDLC abort is 7 or more 1 bits, and an idle condition
+is 15 or more.  Thus, an abort may be part of the line going idle, or it may
+have been transmitted on wn.
+
+Q3:  What causes an HDLC abort?
+     
+A3:  Receipt of seven or more 1 bits in a row.  This may be either because
+     the other end of the circuit deliberately transmitted an abort, or 
+     because some kind of communication error occurred to cause the line
+     to send the 1 bits.  One common cause is loss of carrier on the line,
+     forcing it into marking state.  This will show as an abort, followed
+     by an idle condition.  Another cause is a failure of the RS232 
+     connection between the remote modem and the remote DTE.
+     
+Q4:  What is ABORT received?
+     
+A4:  The intent of this question is somewhat unclear.  There is a bit
+     in Read Register 0 of the Z80 SIO chip which indicates when an HDLC
+     abort is received.  There is also a PROBE message emitted by the 
+     XCOM indicating the number of HDLC aborts received.
+     
+     The Extended DDT SIO command in the XCOM will show "ABORT received"
+     if the bit in Read Register 0 is set.  This is NOT a reliable
+     indication.  The state of this bit is only valid during the ABORT
+     condition, at other times, it is usually set.  The SIO status that
+     the "SIO" command interprets is provided by the ISIS kernel anywhere
+     from 40 times a second to once a second, depending upon the number
+     of SIO logical units active, so the interpretation is hardly real
+     time.
+     
+Q5:  What may cause CRC errors?
+     
+A5:  CRC errors are the result of frames whose content was corrupted,
+     generally by bit errors on the line.
+     
+Q6:  When the IDLE, ABORT, and CRC counts are displayed, how are these
+     counts reset?  Does the node have to be reloaded, or the slot, or
+     is there a reset command.
+     
+A6:  These counters are stored in RAM on the SIO mother board.  They are
+     reset on power-up of the SIO card, or on receipt of a Board Reset
+     command on the Engine I/O Bus.  This Board Reset command is sent by
+     the ISIS Kernel on initialization.  There is no other way to reset
+     these counters.
+
+A brief note on the SIO status from the "SIO" command:
+
+As I said earlier, this status is updated periodically by the kernel.
+However, many of the bits in the Read Registers on the Z80 SIO chip
+are only valid for brief intervals during the appropriate conditions.
+Therefore, very little of the information at the top of the output
+from the "SIO" command is reliable.
+
+In general, the only information you can trust from that status is
+that describing the physical state of the communication line (Data Carrier
+Detect, Clear To Send, Transmit and Receive Clocks present), and the
+three counters (Aborts, CRC Errors, and Idle).  The Interrupt status is
+also reasonable reliable, although PROBE messages (for Receive Overruns)
+and E0 crashes (for the others) are much more reliable indicators.
+
+
+
+
+                                      13
+                                   --------
+
+
+                       SmarTym 3270 QUESTIONS & ANSWERS
+                       --------------------------------
+                       --------------------------------
+
+
+Written by : Connie Stallings
+      Date : August 04, 1986
+
+
+
+
+
+A SmarTym 3270 Question & Answer file is now available for your
+reference in ontyme file *** SMARTYM.QUESTIONS.  Please pull a copy
+and look it over.  If you have a question about the product which is
+not included, send it to NSMS.CONNIES.  I will get an answer to you as 
+soon as possible and your question will be added to the file.
+
+
+7/23/86
+
+
+SmarTym 3270 Questions & Answers
+-----------------------------------
+
+1.  Does it have 3101 or block mode support?
+
+    No.  SmarTym is a VT100-type terminal emulator and does not support block
+    mode operation.
+
+2.  Does it have windowing?
+
+    No.  SmarTym does not have windowing capability so it does not allow 
+    you to take advantage of the multiple channel capability of X.PC.
+    However, it does give you the advantage of X.PC error protection on 
+    single channel operation.
+
+3.  How many characters can be programmed into the softkeys?
+
+    The softkeys can be up to 50 characters long which may include control
+    characters.
+
+4.  Can it only be used with Tymnet? 
+
+    SmarTym 3270 can be used as a simple async terminal emulation package
+    either with Tymnet's Async or X.25 services or without going through
+    Tymnet at all.  BUT it is designed for use with Tymnet and is best
+    suited for use with our Async-to-3270 service.
+
+
+5.  Does it work with SNA?
+
+    Yes, it works with CMT and both the 3270 BSC and SNA/SDLC host
+    interfaces that support CMT.
+
+6.  Will it work with any version of CMT?
+
+    Yes, but some of the advanced features of SmarTym require later 
+    CMT versions as detailed below:
+
+          SMARTYM FEATURE           CMT VERSION
+          ---------------           -----------
+           Fast Display              4.0 or later
+
+           25th Status Line          3.0 or later
+
+           VT100 mode w/key          Earlier versions
+           mapping, printer 
+           support and X.PC.
+
+
+7.  What is the price?
+
+    See *** SMARTYM.ANNOUNCE
+
+8.  Are datasheets available?
+
+    Yes.  See *** SMARTYM.ANNOUNCE
+
+
+
+                                      15
+                                   --------
+
+
+          DESCRIPTION OF HOW ISIS 5.08 AND 7.00 HANDLE "?WHO" IN DDT
+          ----------------------------------------------------------
+          ----------------------------------------------------------
+
+
+Original Question by : D Pasquale
+         Response by : Amy Kwok, HQ Network Staff Consultant
+
+
+
+
+
+Original Question:
+
+ -- BACKGROUND --
+
+The Question mark who command indicates the usernames logged into DDT.  An 
+asterish supplies an indication of a username currently logged in, an @ sign 
+indicates yourself.
+
+QUESTION
+
+1.  Is this data stored in memory or registers?  
+2.  If memory:
+A.  What is the mnemonic locations and module for his information
+    (include byte counts if the mnemonic is not different for each slot).
+B.  Is the user logged in status a stored location or bit array?
+C.  If mnemonic:
+    What mnemonic and module is associated with the status that a user is
+    logged in?  (include byte count if a different mnemonic).
+D.  If bit array:
+A.  Where is the array located?
+B.  How is the array interrupted?
+3.  If register:
+A.  What register and set is information stored in?
+B.  Is the data to indicate if a user is logged in stored as a bit
+    array?
+4.  If array:
+A.  How is array interrupted?
+
+This information is being queried to ascertain if our crash analysis
+command files can be altered to provide new data.  The object is not
+to waste time analyzing data that is caused by human error.
+
+        *********************************************************
+
+Response:
+
+
+Description of how ISIS 5.08 and 7.00 handled "?WHO" in ddt:
+
+    Each slot has its ddt user block.  Part of the data in each user block
+are the pointers pointing to the current and previous user name logged into 
+that slot.  When "?WHO" is issued, ISIS will go thru each slot's ddt block
+to find out if the requestor is in the slot, if so, output a "*" indicating
+YOURSELF.  If the requestor is not in that slot, ISIS will find out if other
+is in that slot, if so, output a "@" indicating OTHER.  If no one is in that
+slot at the time, a " " is issued.  The next thing is to check the name of the
+current user or "*NO ONE*" if no one has log into the slot yet.  Then the name
+of the previous user if there is one.
+
+1.  Usernames logged into DDT is stored in memory:
+
+    In a user block, there is a half word of index for the current user "GGNDX"
+    and another half word for the previous user "OGGNDX".  The index is an 
+    offset to the good guy list table "GODGUY".  Each good guy list entry is 12
+    decimal bytes long, with the last 8 bytes storing the username.
+
+    Module:  QWHO is the main module.
+
+    Data table labels:GODGUY table, description starts from GGLIC.
+                      UBSYS, UBX1, ..., UBX# depends on slot #, are
+                      ddt user block addresses.  Description starts
+                      from LLINK.
+
+2.  User logged in status is stored as an address of a ddt user block in
+    register 8, also referred as "BASE" in the QWHO module.  To determine
+    if requestor is currently in which slot, contents of BASE is compared
+    against each slot's ddt user block address.  To find out if any one is
+    in the other slots, each slot's ddt user block address is compared
+    against the RUN list.
+
+
+    When ISIS crashed and you have a dump and you want to find out who is
+logged in ddt in each slot at the time of the crash, you can compare all the
+user block addresses in the RUN list with the ddt user block address of each
+slot.  If there is a match, there is someone in that slot at the time of the 
+crash.  From the username pointer in the ddt user block, you can find out who 
+}iwas in the slot.
+
+
+Example:  Assume you have a ND####.dmp file with symbol table appended.
+
+R NAD
+1.1
+%F   ND####.DMP
+
+%G
+;G
+
+DATA RANGES READ:
+#############some numbers here#############
+
+8%2
+NSLOT= 2            <-- there is 2 slots besides slot 0 and slot FF in this node
+UBSYS= 677C         <-- address of slot FF ddt user block
+UBX0= 69B0          <--       "         0      "
+UBX1= 6BE4          <--       "         1      "
+UBX2= 6E18          <--       "         2      "
+
+RUN,4[
+   0  69B0          <-- address of first user block in RUN list
+69B0,4[
+   0  677C          <--       "    2nd        "
+677C,4[
+   0  704C          <--       "    3rd        "
+704C,4[
+   0  7130          <--       "    4th        "
+7130,4[
+   0     0          <-- end of RUN list
+
+By comparing the addresses, slot FF and slot 0 has user logged in ddt when the 
+node crashed.  The following is how to find the usernames:
+
+UBSYS+GGNDX,2[
+  0C                    <-- ptr of current user in slot FF
+UBSYS+OGGNDX,2[
+  24                    <-- ptr of previous user in slot FF
+GODGUY+0C+GGNAME,8[
+C9D3 C9D3 D4C5 C3C8     <-- "isistech" is the current user in slot FF
+GODGUY+24+GGNAME,8[
+CED3 D3C3    0    0     <-- "nssc" is the previous user in slot FF
+
+UBX0+GGNDX,2[
+  18                    <-- ptr of current user in slot 0
+UBX0+OGGNDX,2[
+   0                    <-- there is no one in the slot previously
+GODGUY+18+GGNAME,8[
+CEC5 D4C3 CFCE    0     <-- "netcon" is the current user in slot 0
+
+
+
+
+
+                                      18
+                                   --------
+
+
+       PROCEDURE TO UPGRADE THE 10MB DISK TO 160 MB DISK AS NETVAL MUD
+       ---------------------------------------------------------------
+       ---------------------------------------------------------------
+
+
+Original Question by : Chris Chen
+         Response by : Jeff Liu, HQ Network Staff Consultant
+
+
+
+
+
+
+
+Original Question:
+
+  We are upgrading from 1.14 to 2.05 and upgrading disk from 10mb to 160 mb
+  disk.  For MUD, can we copy from 10mb to 160mb just by consistency command?
+  Is there anything we need to be aware of?
+
+  Would you come out with a procedure for this upgrade?
+
+
+
+Response:
+
+
+THE FOLLOWING IS THE PROCEDURE TO UPGRADE THE 10MB DISK TO 160MB DISK AS
+NETVAL MUD:
+
+1. Login to Netval 1.14.
+2. To make sure that all the CUD changes after the last scheduled
+   consistency are recorded in the MUDs, run the SUP command in Netval 1.14.
+   It will show the time when the mud is last updated in each supervisor.
+   If there is any change after the mud is last updated, do a manual
+   consistency with the CON command.
+3. Turn off all the scheduled updates to sups. Run SET command in Netval 1.14.
+   Enter carriage return for valid supervisor and for frequency of updates.
+4. Run TYPE ALL, LIST CLASS, LIST GROUP, LIST HOSTLIST, and LIST NODELIST
+   commands and get a hard copy of output for future reference.
+5. Run the RESET command in case error checksum exists.
+6. Run STORE command to save a copy of the CUD, class and group table.
+7. If your Netval doesn't reside with sup then your can change mud disk one
+   at a time (new config be genned and reloaded with the new environment) then
+   do the consistency through Netval command.
+8. If your Netval reside with a sup do the item 7 first then following:
+9. Halt the Netval.
+10. Use your procedure to prepare and change to 160mb disk as cud/mud.
+11. Keep one sup active all other sup freeze, thus you can login to Netval
+    through this active sup.
+12. Reload Netval node with new dsc file genned.
+13. Load the Netval 1.14.
+14. Login to NETVAL with programmer name.
+15. Turn off all the scheduled updates to sups. Run SET command in Netval 1.14.
+    Enter carriage return for valid supervisor and for frequency of updates.
+16. Run RESTORE command to restore the CUD.
+17. Perform consistency to the sup with Netval.
+18. Test until this mud is reliable.
+19. Perform manual consistency to each sup mud one by one.
+
+
+
+
+THE FOLLOWING IS THE PROCEDURE TO UPGRADE THE NETVAL 1.14 TO 2.05.
+
+I.  The following is the procedure to upgrade from Netval version 1 to
+    Netval version 2 for instance when Netval 1 currently resides in
+    a sup node and the upgrade will bring Netval 2 to a non-sup node.
+    For explanation of Netval commands refer to Netval 1 and Netval 2
+    reference manuals.
+
+    1.  Check hostlist and nodelist to see if there are any characters
+        other than "A to z" ,"0 to 9" or "_".  If so, change them to an
+        acceptable character for version 2.05 (alphanumeric and "_") in 
+        advance to avoid future modification through DDT.  This may be 
+        accomplished automatically by issuing the "convert" command in NVDM.
+
+    2.  To make sure that all the cud changes after the last scheduled
+        consistency are recorded in the muds, run the SUP command in
+        Netval 1.  It will show the time when the mud is last updated in
+        each supervisor.  If there is any change after the mud is last
+        updated, do a manual consistency with the CON command.
+
+    3.  Turn off all the scheduled updates to the sups.  Run the SET
+        command in Netval 1, enter carriage return for valid supervisor
+        and for frequency of updates.
+  
+    4.  Run the LIST CLASS, LIST GROUP, LIST HOSTLIST and LIST NODELIST
+        commands and get a hardcopy of the output.
+
+    5.  Run the RESET command.
+        Run the STORE command to save a copy of the cud, class and group
+        table, etc. on tape.
+
+    6.  Halt Netval 1.
+
+
+    Option A -- This method will only create the cud on the Netval 2 disk
+                after the upgrade.  The class, group, hostlist and nodelist
+                have to be typed in.  This method is recommended because it
+                is straight forward.
+
+
+              7.  Load the Disk Maintenance program to Netval 2 slot.
+                  Run the REGENERATE CUD command and then the REGENERATE
+                  PARAMETERS command. Use ddt ?HIST command to check if
+                  there is any range error in Netval 2 slot. If there is,
+                  report to QSATS. Otherwise, run the INITIALIZE CONFIG,
+                  INITIALIZE OPERLOG, INITIALIZE MUDUPDATE and INITIALIZE
+                  NODE commands to initialize necessary Netval 2 files.
+
+              8.  Run the CHECK command.  If there is any mismatch parameter,
+                  check the files that the parameter is defined or referenced.
+
+              9.  Load Netval 2, run the SELECT CONTROL NA command and then
+                  the DISPLAY DIRECTORY command.  Get a hardcopy of the output.
+                  If there is any format or checksum errors, report immediately
+                  to QSATS via ontymn name *** NETVAL or call Jeff Liu at
+                  (408)942-5264.
+
+              10. Enter the class, group, hostlist and nodelist with the
+                  data from step 4.
+
+              11. Upgrade is completed.  
+
+
+
+
+
+    Option B -- This method will create the cud, class, group, hostlist and
+                nodelist on the Netval 2 disk after the upgrade.
+
+
+              7.  Configure and gen Netval 1 to have consistent logical unit
+                  in slot tym file with dsc file as Netval 2. Load it into
+                  the Netval 2 slot.  Run the RESTORE command.  The reason
+                  is we have to use Netval 1 to restore the tape created by
+                  Netval 1.
+
+              8.  Load the Disk Maintenance program to Netval 2 slot.  Run
+                  the CONVERT command to convert the cud from Netval 1 to
+                  Netval 2. Use ddt ?HIST command to check if there is any 
+                  range error in the Netval 2 slot. If there is, report to
+                  QSATS.
+
+              9.  Run the CHECK command.  If there is any mismatch parameter,
+                  check the files that the parameter is defined or referenced.
+
+             10.  Load Netval 2, run the SELECT CONTROL NA command and then
+                  the DISPLAY DIRECTORY command.  Get a hardcopy of the output.
+                  If there is any format or checksum errors, report immediately
+                  to QSATS via ontymn name *** NETVAL or call Jeff Liu at
+                  (408)942-5264.
+
+              11. Run the DISPLAY CLASS, DISPLAY GROUP, DISPLAY HOSTLIST and
+                  DISPLAY NODELIST commands.  Compare with the class, group,
+                  host and node lists from step 4.  If there is any mismatch,
+                  report to QSATS.
+
+              12. Upgrade is completed.
+
+
+
+
+
+II. The following is the procedure to upgrade from Netval version 1 to
+    Netval version 2 for instance when Netval 1 currently resides in
+    a sup node and the upgrade Netval 2 also resides in a sup node.
+    For explanation of Netval commands refer to Netval 1 and Netval 2
+    reference manuals.
+
+    Continue from above item 6.
+
+                This method will create the cud, class, group, hostlist and
+                nodelist on the Netval 2 disk after the upgrade.
+
+
+              7.  Load the Disk Maintenance program to Netval 2 slot.  Run
+                  the CONVERT command to convert the cud from Netval 1 to
+                  Netval 2. Use ddt ? HIST command to check if there is any
+                  range error in Netval 2 slot. If there is, report to QSATS.
+
+              8.  Run the CHECK command.  If there is any mismatch parameter,
+                  check the files that the parameter is defined or referenced.
+
+              9.  Load Netval 2, run the SELECT CONTROL NA command and then
+                  the DISPLAY DIRECTORY command.  Get a hardcopy of the output.
+                  If there is any format or checksum errors, report immediately
+                  to QSATS via ontymn name *** NETVAL or call Jeff Liu at
+                  (408)942-5264.
+
+              10. Run the DISPLAY CLASS, DISPLAY GROUP, DISPLAY HOSTLIST and
+                  DISPLAY NODELIST commands.  Compare with the class, group,
+                  host and node lists from step 4.  If there is any mismatch,
+                  report to QSATS.
+
+              11. Upgrade is completed.
+
+
+
+
+                                     22
+                                  --------
+
+
+                  CONSAT, VERSION 6.00, MEMORY REQUIREMENTS
+                  ------------------------------------------
+                  ------------------------------------------
+   
+
+Written by : Bryan Wing, HQ Network Staff Consultant
+
+
+
+ Due to enhancements made to Consat verson 4.02, version 6.00 will need
+ a minimum of 50k bytes of memory.  If you intend to upgrade a slot, I
+ strongly advise checking the slot's memory allocation and making any
+ necessary adjustments at the earliest.  Documentation on the new features
+ can be found in (dndspec:33)cs600.ers.  
+
+
+
+
+                                     23
+                                  --------
+
+
+                           Tym/COMM 4.0 with X.PC
+                           ----------------------
+                           ----------------------
+
+
+Written by : Rose Hayden, Applied Communications Systems Company
+      Date : August 11, 1986
+
+     
+
+     Tym/COMM 4.0 is now available!  Tym/COMM 4.0 provides multiple channel
+     X.PC support, which enables users to connect to 15 different hosts or
+     network services simultaneously.  Tym/COMM 4.0 also contains TYMGEN ,
+     a menu-driven program that makes it easy to set operating parameters,
+     even for novice users.
+     
+     Other enhancements include approximately 20 new procedure statements,
+     variable support, and expanded appendices in the user's manual.
+     
+         1.   Internal users may order Tym/COMM either of two ways:
+     
+              A. Sending a requisition or Sales Order Form to:
+     
+                         McDonnell Douglas ACS
+                         20605 Valley Green Drive
+                         Cupertino, CA  95014
+                         Attn:  SMD Order Administration VG3-05
+     
+              B. Sending an OnTyme to ACS.SOFTORDER
+     
+              Each requisition or OnTyme should contain the following       
+              information:
+     
+                         - name
+                         - quantity desired
+                         - shipping address
+                         - phone number
+                         - requested arrival date
+                         - cost code and/or department number
+                         - general ledger account number
+     
+     Orders are generally processed the day they are received, and are
+     shipped UPS.  Customers can usually expect to receive the product
+     within 5 to 7 working days.  Incomplete information may delay orders.
+     
+     For Tym/COMM technical support, please call the ACS Customer Service
+     Center at 800 435-8880.  The ACS Customer Service Center operates
+     Monday through Friday, between the hours of 6:00 a.m. - 6:00 p.m.
+     Pacific Time.
+ 
+     The internal transfer price will remain the same $114.75 per unit,
+     upgrades for versions 3.0 of Tym/COMM are available for a cost of
+     $20.00, plus the return of the system diskette.  To order an upgrade,
+     follow the instructions detailed above.  Don't forget to return your
+     diskette!
+
+
+
+                                      24
+                                   --------
+
+
+              TMCS,LOADII,NET MESSAGE FACILITY,NETWORK CONSOLE
+              ------------------------------------------------
+              ------------------------------------------------
+
+
+Written by : Vida Stafford, Tymnet Validations Department
+      Date : August 15, 1986
+
+
+
+
+
+At the request of Don Murtaugh, and effective immediately, the Tymnet
+Validations Department has assumed the Network and Internal host 
+validations for the following:
+
+         TMCS
+         LOADII
+         NET MESSAGE FACILITY
+         NETWORK CONSOLE
+
+As in the past, orders will be required for NET MESSAGE FACILITY and
+NETWORK CONSOLE.
+
+TMCS and LOADII requests will continue to be handled via ontyme. This
+can be done by using the :exec *** forms.valmenu  procedure until an
+exec is in place for TMCS and LOADII requests only.
+
+
+
+
+
+                                      25
+                                   --------
+
+
+       NODE CODE 5.10 TO BE IN LIMITED RELEASE, EFFECTIVE 22 AUG, 1986
+       ---------------------------------------------------------------
+       ---------------------------------------------------------------
+
+
+Written by : John Gomes, Mgr. Q.A.
+      Date : August 18, 1986
+
+
+
+
+
+     Effective  22  August  1986,  Node Code version 5.10 will  be  in 
+     LIMITED  RELEASE.   All  requests for the  installation  of  this 
+     product should be sent using  Ontyme (Please use Exec file  - *** 
+     limited.request).  BETA TEST AGREEMENT IS NOT REQUIRED.  
+     
+     If  you have any questions or concerns,  please send me an Ontyme 
+     or call me at 408-942-5142.
+     
+
+
+
+                                      26
+                                   --------
+
+
+             TMCS 10.20 COMPATIBILITY WITH SUP CODE & NODE CODE
+             --------------------------------------------------
+             --------------------------------------------------
+
+
+Written by : Shiao-Ming Tsui, HQ Network Staff Consultant
+      Date : August 18, 1986
+
+
+
+
+
+A.  NEW LOG MESSAGES
+
+    New log messages have been added to TMCS 10.10 & 10.20 after TMCS 
+    10.00.  TMCS 10.00 interprets these new messages as unknown messages 
+    or displays a general format message instead of a detailed message.
+    The general format in TMCS 10.00 is as follows:
+      NODE REPORT node# FROM SLOT # product id, message.
+
+    1.  TMCS 10.10 LOGS
+    
+    New log messages for OnTyme:  ISIS event: 10, 11, 13, 14
+    New log messages for RAM:     ISIS event: 22, 23, 24, 25, 27, 28,
+                                              29, 2A
+    New log messages for Kernel:  ISIS event: 2, 3
+    New log messages for NETVAL:  ISIS event: 10
+    New log messages for TMCS:    ISIS event: 10
+    New log messages for XCOM:    ISIS event: 10, 11, 12, 13, 14, 15, 16, 17,
+                                              18, 19, 1A, 1B, 1C, 1D, 1E, 1F,
+                                              20, 21, 22, 23, 24, 25, 26, 27,
+                                              28, 29, 2A, 2B, 2C, 2D, 2E, 2F,
+                                              30, 31, 32, 33, 34, 35, 36, 37,
+                                              38, 39, 80, 81, 82, 83, 84, 85,
+                                              86, 87, 88, 89, 8A, 8B, 8C, 8D, 
+                                              8E, 8F, 90, 91, 92, 93, 94, 95,
+                                              96, 97, 98, 99, 9A, 9B, 9C, 9D,
+                                              9E, 9F, A0, A1, A2, A3, A4, A5,
+                                              A6, A7, A8, A9, AA
+    New log messages for MXP:     8.32
+    Corrective log messages:      90, 12.16
+
+    Please refer to (BASELINE)TMCS10.Z10 section A for details on the above
+    messages and events.
+
+    2.  TMCS 10.20 LOGS
+    
+    New log messages:             4.24, 99, 100, 101, 105, 106, 107, 108, 109,
+                                  111, 112, 113
+    Corrective log messages:      ISIS event: 8D, 8E for XCOM
+
+    Please refer to (BETATEST)TMCS10.Z20 for details on the above messages
+    and events.
+
+
+B.  APPLICABILITY WITH OTHER PRODUCTS
+
+                      SUP     NODE CODE              TMCS
+                     41.04      5.10         10.00   10.10   10.20
+    support
+    Tymnet I          yes       yes           yes     yes     no
+
+    work with
+    ISIS 7.0          yes       yes           yes     yes     yes
+ 
+    support
+    MXP               yes       yes **        yes     yes     yes
+
+    ** Note:  When using the feature of expanded needle format for MXP,
+              NODE CODE 5.10 must configure with ISIS 7.0, SUP 41.04
+              and CONSAT PAD 4.0.
+
+
+C.  UPGRADE
+
+    The following lists the upgrading procedures and corresponding versions to
+    upgrade TMCS from 10.00 to 10.20 and to save disk data.  The following
+    can be ignored if TMCS disk data is not desired to be saved when upgrading
+    to 10.20.
+
+     TMCS SLOT               PROCEDURES
+     ---------               ----------
+
+     Step 1: (TMDM 1.03)     (Must have been loaded to configure the disk
+                              before TMCS 10.00 was brought up in the same
+                              slot.)
+              TMCS 10.00      Slot is up and running.
+
+     Step 2:  TMDM 2.01       Load and use "RECONFIGURE" to save current disk 
+                              data to another area on disk and set disk
+                              incarnation number.
+             (TMCS 10.10) **  Load TMCS 10.10 if target version is 10.10.
+                              Otherwise, if target is 10.20, bypass this 
+                              loading, go to next step.
+                             
+     Step 3:  TMDM 10.20      Load and use "RECONFIGURE" to save disk data 
+                              and set disk incarnation number again.
+              TMCS 10.20      Load the code to slot and slot is ready.
+    
+    ** Note:  TMCS 10.10 is not recommended to use due to a bug in
+              Host Location command which cannot set and clear host
+              location correctly.
+
+
+D.  SHUT LINK TABLE MAINTENANCE FACILITY
+
+    SHUT LINK TABLE MAINTENANCE facility is available in TMCS 10.10
+    and up which copies the Shut Link Table from the active Supervisor
+    to the inactive Supervisors.  The Shut Link Tables on the inactive
+    Supervisors are updated every 30 minutes by the active TMCS SHUT
+    LINK TABLE MAINTENANCE facility.  This facility has no user interface.
+    Without this facility available in TMCS, the network operators need
+    to manually update the Shut Link Table from Probe when Supervisors change.
+    Please refer to (BASELINE)TMCS10.Z10 for details on TMCS Shut Link Table
+    maintenance option and TMCS ISIS event 10 log message on the table
+    updating information.
+
+
+Please OnTyme *** TMCS/NEM if you have any questions or concerns on TMCS
+10.20. 
+
+
+
+                                      28
+                                   --------
+
+
+                         DEDICATED OUTDIAL DEMO SYSTEM
+                         -----------------------------
+                         -----------------------------
+
+
+Written by : Gordon Smith, Product Marketing
+      Date : August 19, 1986
+
+
+
+
+
+As some of you are aware, we've been having some problems with the Dedicated
+Outdial Demo System.  These problems are now largely resolved, i.e., the
+system is usable.  The one remaining problem occurs at login time.  When
+you reach the Outdial port you will receive the following invalid messages
+after the normal greeting:
+
+  Modem NOT configured
+  Configure now? (Y/N)
+
+These messages can be ignored, i.e., you can go ahead and give it dial 
+commands, etc. We hope to eliminate these invalid messages soon.
+
+
+
+                                      29
+                                   --------
+
+
+             BETA TEST SITES AND LIMITED RELEASE SITES PROCEDURES
+             ----------------------------------------------------
+             ----------------------------------------------------
+
+
+Written by : Diana Fowler, Beta Test Coordinator
+      Date : August 22, 1986
+
+
+
+
+
+New procedures are in place regarding BETA TEST and LIMITED  
+RELEASE SITES.  Hopefully they will make things easier for all of 
+us.  Please use the following outline to enter your requests.
+
+
+
+I.   To REQUEST a BETA TEST SITE:
+
+     a.  Log onto ONTYME
+     b.  Type the following:
+         :EXEC *** BETA.REQUEST
+     c.  Answer the questions to the best of your knowledge.
+     d.  The request form will automatically be sent to 
+         headquarters for review.
+     e.  If you have additional information or questions, 
+         please send an ontyme to QSATS.D/FOWLER or call
+         408-942-5363.
+     f.  Your request will be reviewed.  Either an approval
+         or denial of the request will be sent within 48 hours.
+     g.  If APPROVED, it is required that a Beta Test Agreement
+         be pulled off of Ontyme.  The Agreement may be obtained
+         by typing the following:
+         :TYP *** BETA.AGREE
+         The Beta Test Agreement must be completed, then signed 
+         by the customer.  Don't forget to fill in the 
+         installation and completion dates (normal betatests
+         run 3 mos.).  Please keep a copy for your files
+         and send the original to:
+               TYMNET
+               2710 Orchard Parkway
+               San Jose, California  95134
+               Atten:  Diana Fowler
+     h.  If DENIED, an explanation for the denial will be 
+         included.
+
+
+
+
+II.  To REQUEST a LIMITED RELEASE SITE:
+
+     a.  Log onto ONTYME
+     b.  Type the following:
+         :EXEC *** LIMITED REQUEST
+     c.  Answer the questions to the best of your knowledge.
+     d.  The request form will automatically be sent to
+         headquarters for review.
+     e.  If you have additional information or questions,
+         please send an ontyme to QSATS.D/FOWLER or call
+         408-942-5363.
+     f.  Your request will be reviewed.  Either an approval
+         or denial of the request will be sent within 48 hours.
+  
+
+
+
+                                      31
+                                   --------
+
+
+                      DNIC Based Routing/Target Profiles
+                      ----------------------------------
+                      ----------------------------------
+
+
+Written by : Jeff Oliveto, ExNet
+      Date : August 22, 1986
+
+
+
+
+
+   Below  is a technical   document  describing a new feature on Public
+TYMNET's   Supervisors, DNIC based  routing. Please review. Address all
+questions to  ExNet Tech  Spt  at  either    703/356-6995 or via Ontyme
+ENS.EXNETOPS.
+
+
+
+
+(INTLTECH:28,56)TPTECH.DOC                           DATE:  19 Aug 86
+
+
+       TECHNICAL DESCRIPTION - DNIC BASED ROUTING ON PUBLIC TYMNET
+       -----------------------------------------------------------
+
+A.  Without  an addressing  standard,  no two  packet networks would be
+able  to establish a  session. CCITT X.121 defines a 14 digit numbering
+standard where  the first  4   digits  are  known  as the  Data Network
+Identifer Code  (DNIC),  and  the  next  1-10  digits  are known as the
+Network Terminal  Number   (NTN). Each  network  is free to develop its
+own NTN  plan. I am not  going to review Public TYMNET's NTN plan here.
+But if you wish a review see reference (4).
+
+
+    Each foreign  data   network (FDN)  is  addressable by its assigned
+DNIC. Public   Tymnet's DNIC is 3106,  Telenet's is 3110, etc. All that
+is necessary  to route  a  session to a  Foreign  Data Network (FDN) is
+recognize  their DNIC  and know which  gateway to send that call. Until
+recently,  on Tymnet  technology  networks, there were only two ways to
+route  calls to multiple   FDN's. Either  have a different username for
+each network,  or  use the  colon  option.  The  problem with the colon
+option  is that a table  is required by the subscriber to map DNIC's of
+specific FDN's  to host   numbers.  Not  very  user   friendly. A third
+option now exists, it is known as Target Profiles.
+
+
+B.  Target  Profiles  (TP) are  a table on  the Supervisor's disk which
+is loaded into  memory  at Sup     initialization  time.  This table is
+indexed  by closed  subnet    number.   Currently  there  are no closed
+subnet's on  Public TYMNET   and so no  indexing.  The table is further
+broken  down into  labels  and  DNIC's.  Each DNIC  maps to a label and
+each label  has a  host profile  associated with it. Also a part of the
+DNIC  table are Transit   Network  Identifier Codes (TNIC) that service
+that DNIC.  The  TP table  is  maintained  by  External Network (ExNet)
+tech spt.
+
+      To access TP  logic a  string must be  entered after the colon at
+login.  The format is:
+
+     please log in:  UserName:GnnnnTnnnn;;X121 address
+
+where the  letter G  after the colon  signals a DNIC or "Gateway" and T
+signals  the optional  TNIC. All  DNIC/TNIC entries are right justified
+and only  the last  4  numeric   digits  are   considered  as an entry.
+UserName does  NOT require   the colon  option  but MUST have access to
+group 37 (the universal TP group) in its first access position.
+
+Example 1 - login string  UserName:G2342;password
+
+  if  UserName passes  the  validation  check this call will route to a
+set of designated gateway hosts for DNIC 2342 (UK PSS).
+
+Example 2 - login string  UserName:G2080T3124;password
+
+  this  call will go  to DNIC  2080 (France  Transpac) but ONLY through
+TNIC  3124 (FTCC).  If FTCC's  gateway is  down then the call would not
+complete.
+
+Example 3 - login string  UserName:G12342080T233124;password
+
+  this call would route exactly as in example 2.
+
+Example 4 - login string  UserName:G2080T9999;password
+
+  this call  would get  the  error  message "bad  host number" as there
+isn't a valid TNIC of 9999.
+
+Table A lists  DNIC's  while  Table B  lists  TNIC's that are currently
+loaded on the Public TYMNET Sup's.
+
+
+C.  Async  international   outbound  customers  aren't the only ones to
+benefit from  TP's. X.25  hosts   that   originate  international calls
+can now use X.25  RPOA  facility   not  to  mention  the  simplicity of
+access to 98 DNIC's with only one username.
+
+    The steps for setting up an X.25 host for TP access are:
+
+   1)  If not already  on  file,  get an  order  letter for caller paid
+international  services.  This   letter  should  state  the customer is
+aware of all international charges.
+
+   2) Request   validations  enter/modify an X.25 netusernameprefix for
+the interface. The request should be for:
+
+   Username = X25hhhhh   where hhhhh is the 5 digit host number
+   Null password         Null meaning carriage return
+   Colon option
+   1st access position
+     User defined class to originate from host hhhhh
+     Targeted to Group 37 (Universal TP access group)
+   2nd access position
+     What ever is required by host
+
+NOTE:  For TP access, group 37 MUST be in the first access position.
+
+   3) Once   netusernameprefix  validation is complete, reload the X.25
+interface  with XCOM 3.01  or greater and set the PKTOPT macro operator
+TRGPF to plus (see  reference   5  for  a  complete   description). The
+GATEWAY macros  don't  HAVE to  be  removed,  but  should  to take full
+advantage of the TP table.
+
+Thats   all there is  to it! The host  not only has access to all DNICs
+but can use  the RPOA   facility to  select their  International Record
+Carrier  if they desire.  Here  is a  scenario of events for a possible
+international call:
+
+   1)  Host initates a call request destined for the U.K. (DNIC 2342)
+
+   2)  XCOM interface  checks called address DNIC against DNIC's in the
+ODNIC macro (which by default is 3106).  
+
+   3) On  a no match  XCOM will  search for a matching GATEWAY macro of
+2342. On  a GATEWAY  match XCOM will  build a call with the username in
+the GATEWAY  macro. If  an  RPOA  facility exists  in the call request,
+there must also be a matching RPOAGATEWAY macro.
+
+   4) If there  is no   matching   GATEWAY/RPOAGATEWAY macro AND PKTOPT
+equals  (+TRGPF) then  XCOM  builds a call  with the netusernameprefix.
+The request from host 1200 would look: X2501200:G2342;;
+
+   5)  If the host had  included an RPOA facility requesting their call
+transit via ITT (DNIC 3103) the login request would have been:
+X2501200:G2342T3103;;
+
+A note  about testing.  All  calls to  international hosts that are not
+on Public  TYMNET or  Canada's  DATAPAC go caller paid. That is, Public
+TYMNET  is liable  for payment   to the  U.S. IRC  for all traffic that
+transits their  network.  If   TYMNET  does  not  have a  subscriber to
+collect session  charges,   (e.g.   use  of   internal   usernames like
+ISISTECH:G2342;) then TYMNET will be paying for that session.
+
+   If  you have any  questions about TP's, how they work, advantages to
+the customer,  or conversion    problems  please  check  the references
+below.  For additional  help contact External Network Technical Support
+in Vienna Va at 703/356-6995 or via Ontyme ENS.EXNETOPS.
+
+REFERENCES:
+
+1) (INTLTECH:28,56)TPTECH.DOC, dtd 20 Aug 86, this document.
+
+2) (INTLTECH:28,56)TPUSER.DOC dtd 19 Aug 86, International NUI Users
+Guide.
+
+3) (INTLTECH:28,56)TPMKTG.DOC, dtd 04 Jun 86, Sales oriented
+description of the benefits of Target Profiles.
+
+4) (INTLTECH:28,56)X121.TYM, dtd 25 Jul 86, Public TYMNET's Internal
+Numbering plan.
+
+5) (X25DOC:39)XCOM03.D01, Description of X.25 PKTOPT(+TRGPF) macro.
+
+
+
+              TABLE A - NETWORKS SORTED BY COUNTRY
+              ------------------------------------
+
+                    DNIC  Country/Network
+
+                    3135  Alaska  (Alascom)
+                    3443  Antigua
+                    7220  Argentina  (ARPAC)
+                    7222  Argentina  (ARPAC)
+                    5052  Australia  (AUSPAC)
+                    5053  Australia  (MIDAS)
+                    2320  Austria
+                    2322  Austria  (Datex-P)
+                    2329  Austria  (Radio Austria)
+                    3640  Bahamas
+                    4263  Bahrain  (BAHNET)
+                    3423  Barbados
+                    2062  Belgium  (DCS)
+                    3503  Bermuda
+                    7240  Brazil  (Interdata)
+                    3029  Canada  (CNCP Infoswitch)
+                    3028  Canada  (CNCP Packet Network)
+                    3020  Canada  (DATAPAC)
+                    3025  Canada  (Teleglobe Globedat)
+                    3463  Cayman Islands
+                    7300  Chile  (RNTD)
+                    7320  Columbia  (DAPAQ)
+                    3140  ConnNet  (SNET)
+                    7120  Costa Rica
+                    2382  Denmark  (Datapak)
+                    6020  Egypt
+                    3124  FTCC McDonnell Douglas International
+                    2442  Finland  (Datapak)
+                    2081  France  (NTI)
+                    2080  France  (Transpac)
+                    3400  French Antilles
+                    7420  French Guiana  (Dompac)
+                    5470  French Polynesia  (Tompac)
+                    6282  Gabon  (Gabonpac)
+                    2624  Germany  (Datex-P)
+                    2022  Greece   (Helpak)
+                    3440  Guadeloupe
+                    7080  Honduras
+                    4545  Hong Kong  (Datapak)
+                    4542  Hong Kong  (Intelpak)
+                    2160  Hungary  (NEDX)
+                    3108  ITT
+                    3107  ITT  (UDTS-I)
+                    3103  ITT  (UDTS-II)
+                    8418  ITT Telex (Infotex)
+                    2740  Iceland  (ICEPAK)
+                    5101  Indonesia  (SKDP)
+                    2724  Ireland  (Eirepac)
+                    4251  Israel   (Isranet)
+                    2220  Italy
+                    2222  Italy  (Dardo-Italcable)
+                    2227  Italy  (ITAPAC)
+
+
+                    NETWORKS SORTED BY COUNTRY
+                    --------------------------
+
+                    DNIC  Country/Network
+
+                    6122  Ivory Coast  (Sytranpac)
+                    3380  Jamaica
+                    4408  Japan  (KDD VENUS-P)
+                    4401  Japan  (NTT DDX)
+                    4501  Korea  (Dacom-Net)
+                    2703  Luxembourg  (LUXPAC)
+                    2709  Luxembourg  (LUXPAC-Pad)
+                    2704  Luxembourg  (LUXPAC-X.25)
+                    3104  MCII (IMPACS)
+                    5021  Malaysia
+                    3340  Mexico  (Telepac)
+                    3620  Netherlands Antilles
+                    2044  Netherlands  (DABAS)
+                    2041  Netherlands  (Datanet 1)
+                    5460  New Caledonia  (Tompac)
+                    5301  New Zealand  (Pacnet)
+                    2422  Norway  (Datapak)
+                    7141  Panama
+                    5156  Philippines  (ETPI)
+                    5154  Philippines  (GMCR)
+                    5152  Philippines  (Philcom)
+                    2682  Portugal  (CPRM)
+                    2680  Portugal  (Telepak)
+                    3300  Puerto Rico  (Worldcom Sub-net)
+                    3113  RCA Global
+                    6470  Reunion Island  (Dompac)
+                    5252  Singapore  (Telepac)
+                    6550  South Africa  (Saponet)
+                    2145  Spain  (IBERPAC)
+                    2141  Spain  (TIDA)
+                    2401  Sweden  (Datapak)
+                    2402  Sweden  (Datapak)
+                    2405  Sweden  (Datapak)
+                    2283  Switzerland
+                    2284  Switzerland  (TELEPAC)
+                    8232  TRT  International Message Switch
+                    8231  TRT Real Time Telex
+                    3119  TRT Telecommunications
+                    4877  Taiwan  (ITA)
+                    4872  Taiwan  (PACNET)
+                    3745  Trinidad  (Datanet)
+                    3740  Trinidad  (Textel)
+                    4243  United Arab Emirates
+                    2341  United Kingdom  (IPSS)
+                    2350  United Kingdom  (Mercury)
+                    2342  United Kingdom  (Packet Switch Stream)
+
+
+
+
+           TABLE B.  RECOGNIZED PRIVATE OPERATING AGENCIES (RPOA'S)
+                             AVAILABLE via TYMNET
+
+                    DNIC  International Record Carrier/IRC
+                    --------------------------------------
+
+                    3103  ITT Worldcom  (UDTS-II)
+                    3104  MCI International  (IMPACS)
+                    3110  US Telenet
+                    3113  RCA Global Communications  (LSDS)
+                    3119  TRT Telecommunications
+                    3124  FTC McDonnell Douglas International
+
+
+
+                                     36
+                                  --------
+
+
+                  'TIGOUG' OPTION, FOR SUPERVISOR V 41.xx
+                  ---------------------------------------
+                  ---------------------------------------
+
+
+Written by : Gail Bubsey, HQ Network Staff Consultant
+
+
+
+
+
+For Supervisor versions 41.xx:  The option TIGOUG must be included in
+the OPTION statement of the .SUP file if you have any Tymnet I nodes,
+including gateways.
+
+If this is not done and a 300 baud terminal originates on a Tymnet I
+node, such as a gateway, the Supervisor will CRASH.  When in any doubt,
+always include this parameter.
+
+In future versions, i.e. 42 and above, Tymnet I is not supported and
+this Tech Alert may be considered obsolete.
+
+If there are any questions, please contact Gail Bubsey at Software
+Technical Services, ontyme name - QSATS.G/Bubsey, phone - 408/942-5217.
+
+ l@
+Š
