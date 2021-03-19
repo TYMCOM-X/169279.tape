@@ -1,0 +1,4034 @@
+:CHANGED "MUDSEC EQ BZ 8" TO "MUDSEC EQ BZ 10" FOR SWBNET
+
+
+	LIST	-L,-X,-F,-R
+	NOLIST
+: %&%& TITLE INSERT FOR AUTOMATED RELEASE JOBS %&%& :
+	TITLE	SUPERVISOR INITIALIZATION V43.R03
+
+:
+:********************************************************************
+:***                  PROPRIETARY INFORMATION                     ***
+:***                                                              ***
+:***  This  source code listing constitutes the proprietary pro-  ***
+:***  perty of Tymnet, Incorporated. The recipient, by receiving  ***
+:***  this program listing, agrees that neither this listing nor  ***
+:***  the   information  disclosed herein nor any  part  thereof  ***
+:***  shall be  reproduced or transferred to other documents  or  ***
+:***  used  or  disclosed to others for manufacturing or for any  ***
+:***  other   purpose except as specifically authorized in  wri-  ***
+:***  ting by  Tymnet, Incorporated.                              ***
+:********************************************************************
+:*
+	SUBTTL	DESCRIPTION & ERROR-MACRO DEFINITIONS
+
+
+
+
+:   **** *   * ****  ***** ****  *   * *****  ****  ***  ****
+:  *     *   * *   * *     *   * *   *   *   *     *   * *   *
+:   ***  *   * ****  ****  ****  *   *   *    ***  *   * ****
+:      * *   * *     *     *  *   * *    *       * *   * *  *
+:  ****   ***  *     ***** *   *   *   ***** ****   ***  *   *
+
+
+:  ***** *   * ***** ***** *****   *   *     ***** *****   *  ***** *****  ***  *   *
+:    *   **  *   *     *     *    * *  *       *      *   * *   *     *   *   * **  *
+:    *   * * *   *     *     *   ***** *       *     *   *****  *     *   *   * * * *
+:    *   *  **   *     *     *   *   * *       *    *    *   *  *     *   *   * *  **
+:  ***** *   * *****   *   ***** *   * ***** ***** ***** *   *  *   *****  ***  *   *
+
+
+
+:	=================================================================
+:	|	This code is the sole property and confidential		|
+:	|	information of TYMSHARE,  INC.,  and may not be		|
+:	|	copied in whole or  in part or disclosed to any		|
+:	|	third party without  the  prior written consent		|
+:	|	of TYMSHARE.						|
+:	=================================================================
+
+
+
+:	SYSGEN CONVENTIONS.
+
+:!!		All numeric option values are decimal unless otherwise stated.
+
+:	MACRO NAMING CONVENTIONS.
+
+:		All macros that start "." are intended for internal use.
+
+
+:	Tymnet-II compatability items -
+:	 . set Radix to hex
+:	 . Kill all the labels which will be used to name macros.
+:	   (Prevents label collision errors.)
+
+	RA	0
+	KILL	ERROR,SERROR,ERRLIN,ERRFIN,WARNING,WARLIN,WAREND,MSC
+	KILL	DEFMUD,DEFACT,DEFERR,CACHE,.NOD,DEFNOD,OPTION,.OPT
+	KILL	ACTOPT,.ACOPT,DEFINE,DEFALT,DEFIRC,DEFSAV,.ISIT1,TYMSTR
+	KILL	TYMSUP,DEFNSP,PRBNAM,DEFTIM,DEFHST,SUPPRM,PRBPRM
+	KILL	ERRPRM,ACCPRM,SYSPRM,UN2PRM,UTLPRM,FENCE,NDASIZ
+	KILL	SUPCOD,SUPCOM,SUPDAT,BUFLET,HISTRY,NIDUMP,SSLEEP
+	KILL	TARGET,MBHOST,DEFSNT,DEFTPF,DEFDNC,TYMEND
+	KILL	LOGOPT,LOGSYN,LOGPRM,SYSPAG,PWDHST
+
+:	 . Kill all labels which will be used as flags or work cells.
+
+	KILL	.DFMUD,.DFACT,.DFERR,.DFNOD,.NU1,.NU2,.DFIRC,.DFSAV
+	KILL	.TYM1,.MSK,.TYM2,.DFNSP,.DFNAM,.DFTIM,.HOST,.SUPPR
+	KILL	.PRBPR,.ERRPR,.ACCPR,.SYSPR,.UN2PR,.UTLPR,.FENCE
+	KILL	.NDASIZ,.SCODE,.SCOM,.SDAT,.BLET,.HSTRY,.NDMP,.SYSPG
+	KILL	.TAR,.MBH,.DFSNT,.DFTPF,.DFDNIC,.TYM3,GLOBAL,.PHST
+
+
+
+
+:**************************************************
+:
+:	MACRO TO DEFINE DEFAULT VALUES FOR SYMBOLS
+:
+:DEFAULT MACRO(ID,V)[
+:	IF	1-\ID
+:ID	EQ	V
+:	EI
+:]
+
+:**************************************************
+:
+:	MACRO TO DEFINE DEFAULT VALUES FOR GLOBAL SYMBOLS
+:
+GLOBAL	MACRO(ID,V)[
+	GL	ID
+	IF	1-\ID
+ID	EQ	V
+	EI
+]
+
+:***********************************************:
+:						:
+:		ERROR HANDLING MACROS		:
+:						:
+:***********************************************:
+:"ERRORS" ARE FATAL, "WARNINGS" ARE NOT.	:
+:***********************************************:
+
+
+: **	ERROR(text,cont)	Output configuration error to local TTY
+: **	SERROR(text,cont)	Like ERROR, but specify source line number
+: **	ERRLIN(text,cont)	Continue an error message on a new line
+: **	ERRFIN(text)		End an error message
+
+:	If text > 51 characters, it should be broken at a convenient place
+:	and continued with the ERRLIN macro.
+
+:	Format will be:
+:	ERROR:	[CR:LF]!!!! **** text ****[CR:LF]
+:	SERROR:	[CR:LF]!!!! ERROR at line nnn:
+:		[CR:LF]	**** text ****[CR:LF]
+
+:	If cont>0 then message will end with text without a CR:LF, and then
+:	numbers or other special things can be added.
+
+:	ERRLIN(text) will print "..." at the end of the current line, then:
+:	[CR:LF]!!!!            text ****[CR:LF]
+:	and can be used for continuation lines when cont>0
+
+:	ERRFIN(text) will add ****[CR:LF] on the current line
+
+	GL	ERRCNT
+ERRCNT	EQ	0			:Number of errors so far
+
+
+	:*******************************:
+	:			INTERNAL:
+	:	ERROR MACRO		:
+	:				:
+	:*******************************:
+
+	:OUTPUT CONFIGURATION ERROR TO TTY
+	:BUMP ERROR COUNTER - USED FOR ABORTS
+ERROR	MACRO(txt,cont)[
+ERRCNT	EQ	ERRCNT+1
+	REMARK	%!!!! ERROR **** txt
+	IF	cont 0
+	ELSE
+	 ERRFIN
+	EI
+]
+
+
+	:*******************************:
+	:			INTERNAL:
+	:	SERROR MACRO		:
+	:				:
+	:*******************************:
+
+	:OUTPUT CONFIGURATION ERROR TO TTY WITH SOURCE LINE #
+	:BUMP ERROR COUNTER - USED FOR ABORTS
+SERROR	MACRO(txt,cont)[
+ERRCNT	EQ	ERRCNT+1
+	REMARK	%!!!! ERROR at line 
+QE	LINENO
+	NUMBER	$A QE
+	KILL	QE
+	ERRLIN(txt,cont)
+]
+
+
+	:*******************************:
+	:			INTERNAL:
+	:	ERRLIN MACRO		:
+	:				:
+	:*******************************:
+
+	:CONTINUE AN ERROR MESSAGE
+ERRLIN	MACRO(txt,cont)[
+	REMARK	 ...%!!!!            txt
+	IF	cont 0
+	ELSE
+	 ERRFIN
+	EI
+]
+
+
+	:*******************************:
+	:			INTERNAL:
+	:	ERRFIN MACRO		:
+	:				:
+	:*******************************:
+
+
+	:COMPLETE AN ERROR MESSAGE
+	:UTILITY MACRO
+ERRFIN	MACRO(txt)[
+	REMARK	txt ****%
+]
+	SUBTTL	WARNINGS...non-fatal diagnotics
+
+
+: **	WARNING(text,cont)	Output configuration warning to local TTY
+: **	WARLIN(text,cont)	Continue a warning message on a new line
+: **	WAREND(text)		End a warning message
+
+:	If text > 51 characters, it should be broken at a convenient place
+:	and continued with the WARLIN macro.
+
+:	Format will be:
+:	[CR:LF]>>>> WARNING **** text ****[CR:LF]
+
+:	If cont>0 then message will end with text without a CR:LF,and then
+:	numbers or other special things can be added.
+
+:	WARLIN(text) will print "..." at the end of the current line, then:
+:	[CR:LF]>>>>            text ****[CR:LF]
+:	and can be used for continuation lines when cont>0
+
+:	WAREND(text) will add ****[CR:LF] on the current line
+
+	GL	WARCNT
+WARCNT	EQ	0			:Number of warnings so far
+
+
+	:*******************************:
+	:			INTERNAL:
+	:	WARNING MACRO		:
+	:				:
+	:*******************************:
+
+	:ISSUE A WARNING
+WARNING	MACRO(txt,cont)[
+WARCNT	EQ	WARCNT+1
+	REMARK	%>>>> WARNING ** txt
+	IF	cont 0
+	ELSE
+	 WAREND
+	EI
+]
+
+
+	:*******************************:
+	:			INTERNAL:
+	:	WARLIN MACRO		:
+	:				:
+	:*******************************:
+
+	:CONTINUE A WARNING ONTO NEXT LINE
+WARLIN	MACRO(txt,cont)[
+	REMARK	 ...%>>>>            txt
+	IF	cont 0
+	ELSE
+	 WAREND
+	EI
+]
+
+
+	:*******************************:
+	:			INTERNAL:
+	:	WAREND MACRO		:
+	:				:
+	:*******************************:
+
+	:END A WARNING MSG - UTILITY MACRO
+WAREND	MACRO(txt)[
+	REMARK	txt ****%
+]
+
+
+
+	:*******************************:
+	:			INTERNAL:
+	:	.ABORT MACRO		:
+	:				:
+	:*******************************:
+
+
+: **	.ABORT		Finally (unconditionally), generate warning
+:				about warnings and errors...
+.ABORT	MACRO[
+	IF	WARCNT+ERRCNT		:if any conditions
+	 REMARK	%**********************************************************
+	 REMARK	%**********************************************************
+	 IF	WARCNT
+	  REMARK %****	
+	  NUMBER $A WARCNT
+	  REMARK  NON-FATAL WARNINGS encountered during assembly
+	 EI	:WARCNT
+
+	 IF	ERRCNT
+	  REMARK %****	
+	  NUMBER $A ERRCNT
+	  REMARK  FATAL ERRORS encountered during assembly
+	 EI	:ERRCNT
+	 REMARK	%**********************************************************
+	 REMARK	%**********************************************************
+	 IF	ERRCNT
+	 QUIT
+	 EI
+	EI	:WARCNT+ERRCNT ]
+
+	SUBTTL	MISC SYSGEN MACROS
+
+
+
+	:MACRO BID TYPE ROUTINE
+
+	:UTILITY FOR EXP MACRO
+T1EXP	MACRO	(A,B)[
+A	EQ	A^-1
+	IF	A
+B	EQ	B+1
+	T1EXP(A,B)
+	EI ]
+
+	:DEFINE B TO BE THE POSITION OF THE LEFTMOST BIT IN A
+	:COUNTING FROM THE RIGHT
+EXP	MACRO	(A,B)[
+	NOLIST
+B	EQ	0
+TEXP	EQ	A
+	T1EXP(TEXP,B)
+	LIST ]
+
+	SUBTTL  1ST SECTION INITIALIZATION
+:***************************************************************:
+:								:
+:	    DEFINE MACROS RELATED TO INITIALIZATION		:
+:								:
+:***************************************************************:
+:NOTE - THE PDP10 ASSEMBLER HAS A 36 BIT WORD, AND THIS IS USED	:
+:TO PROVIDE PARAMETER TESTS SINCE PARAMETERS CAN'T BE GREATER	:
+:THAN 32 BITS.  THIS IS THE REASON THAT KEYWORDS ARE INITIALIZED:
+:TO VALUES NEAR 4000000000+N, N SMALL.  THE NUMBER N DETERMINES	:
+:THE KIND OF PARAMETER WE ARE DEALING WITH.  THE VALUES ARE -	:
+:N = 0 IF THE PARAMETER IS VALID IN THE OPTION MACRO		:
+:N = 1 IF THE PARAMETER IS VALID IN THE DEFINE MACRO		:
+:N = 2 IF THE PARAMETER IS VALID ONLY IN A SPECIFIC MACRO	:
+:***************************************************************:
+
+
+
+
+	:***************************************:
+	:			USER REQUIRED	:
+	:					:
+	:	INITIALIZATION MACRO		:
+	:					:
+	:***************************************:
+	:STRT - SUP NUMBER (1-7)		:
+	:.NETID - NETWORD NUMBER (HALF WORD)DEC	:
+	:.NDSK - (NTD) KEYWORD - NODISK/DISK	:
+	:.PUB - (NTD) KEYWORD - PUB/LAB		:
+	:.SPSLV - SPROUT MASTER/SLAVE/MTSCHK	:
+	:.SPPRO - # OF SUPSPROUT SLAVE PATHS TO BUILD FOR EVERY MASTER PATH. 
+	: HEXADECIMAL, IF 0 ALL PATHES BUILT ON MASTER, IF -1, ALL PATHES
+	: BUILT ON SLAVE.  DEFAULTS TO 4.
+	:.SPSMP - SUPSPROUT MASTER QMSTATS SAMPLING INTERVAL, IN SECONDS
+	: DECIMAL.  DEFAULTS TO 3600.
+	:***************************************:
+
+TYMSTR	MACRO(STRT,.NETID,.NDSK,.PUB,.SPSLV,.SPPRO,.SPSMP)[
+
+	IF	\.TYM1
+	SERROR(TYMSTR MACRO PREVIOUSLY DEFINED,1)
+	ERRLIN(ASSEMBLY CANCELLED,0)
+	QUIT
+	EI
+
+	GL	.TYM1,.MSK,ISIT,PUB
+
+.TYM1	EQ	1
+.MSK	EQ	400000001
+
+	:DEFINE ISIT TO INDICATE WHETHER CONTEXT IS A SUP OR SLAVE (0)
+	:IS WITHIN A NODE CODE OR KERNEL ASSEMBLY WITH SUP=0 (1)
+	:OR IS WITHIN A NODE CODE OR KERNEL ASSEMBLY WITH SUP=1 (2)
+	:THIS IS USED TO DEFINE THE MODULES INVOLVED
+	IF	1-\SUP
+ISIT	EQ	0
+	ELSE
+ISIT	EQ	SUP+1		:THIS SYMBOL IS DEFINED IN ISIS NODE/KERNEL
+	EI			:ASSEMBLY CONTEXT.  SUP SHOULD BE 1.
+
+	 :CONFIGURATION CONSTANTS
+	 GL	.STRT
+.STRT	 EQ	STRT 0		:SUP NUMBER
+
+	  IF	(1-.STRT)*(7-.STRT)
+	  SERROR(SUPERVISOR (STRT) INVALID IN TYMSTR MACRO,0)
+.STRT	  EQ	0
+	  EI
+
+.ID1	EQ	.NETID 0
+.ID2	EQ	.NETID 1
+.ID	EQ	.ID2-.ID1
+	IF	.ID			:IF SUP NETID NOT DEFINED
+	SERROR(NET ID NOT DEFINED IN TYMSTR (1=PUBNET, 2=BUBBNET),0)
+	ELSE
+.NID	EQ	$A .NETID
+		IF \NETID		:IF NODE CODE DEFINED		
+			IF NETID-.NID		
+			SERROR(TYMSTR NETID DOES NOT MATCH NODE CODE NETID,0)
+			ELSE
+			IF .NID-NETID		
+			SERROR(TYMSTR NETID DOES NOT MATCH NODE CODE NETID,0)
+			EI
+			EI
+		ELSE
+NETID	EQ	.NID		:IF NODE CODE NETID NOT DEFINED
+		EI
+	EI
+	
+	 MO	.STRT,SUPER
+DISK	 EQ	.MSK
+NODISK	 EQ	.MSK+1
+PUB	 EQ	.MSK
+LAB	 EQ	.MSK+1
+MASTER	EQ	.MSK
+SLAVE	EQ	.MSK+1
+MTSCHK	EQ	.MSK+2
+	 OPTL1
+	 ACOPL1
+SUPERN	 EQ	.STRT			:SUPERN = SUP NUMBER
+	  IF	.NDSK
+	   IF	(.NDSK+1)-NODISK
+DISK	   EQ	0
+	   EI
+	  EI
+
+	IF	.SPSLV
+	IF	(.SPSLV+1)-MTSCHK
+SLFCHK	EQ	1
+MTSSUP	EQ	1
+	ELSE	(.SPSLV+1)-SLAVE
+SVLSUP	EQ	1
+	ELSE	(.SPSLV+1)-MASTER
+MTSSUP	EQ	1
+	EI
+	EI
+
+MTSDIV	EQ	.SPPRO 4	:DEFAULT TO 4/1 SLAVE/MASTER PATHFINDS
+QMPRDI	EQ	$A .SPSMP 3600	:DEFAULT TO SAMPLE QMSTATS EVERY 3600 SECONDS
+
+	  IF	.PUB
+	   IF	(.PUB+1)-LAB
+PUB	   EQ	1
+LAB	   EQ	1
+	   ELSE	(.PUB+1)-PUB
+PUB	   EQ	1
+LAB	   EQ	0
+	   EI
+	  EI
+	DEFALT(DISK,1)
+	DEFALT(PUB)
+	DEFALT(LAB)
+	KILL	.STRT,NODISK,.ID,.ID1,.ID2 ]
+
+
+
+	:***************************************:
+	:				INTERNAL:
+	:	  UTILITY MACRO TO		:
+	:	SPECIFY VALID OPTIONS		:
+	:					:
+	:***************************************:
+
+
+: In order to define a new parameter name as a valid option in the parameter
+: list for the OPTION macro,
+: 1) define the parameter name with the value .MSK-1 in the OPTL1 macro.
+:    The value .MSK-1 indicates a valid parameter in the OPTION macro and
+:    LOGOPT macro.
+:    If the parameter name is for the DEFINE macro, then use value ".MSK".
+: 2) define the default for the parameter via the DEFALT macro inside the
+:    DEFL1 macro (which is defined in the .MTST macro).  The default should
+:    be zero because the OPTION macro is used to set the parameter with 1.
+:DLC
+
+
+OPTL1	MACRO[
+MSC	EQ	.MSK-1
+OMONON	EQ	.MSK-1
+RGN001	EQ	.MSK-1
+SDDISK	EQ	.MSK-1
+NORATE	EQ	.MSK-1
+NOSPAS	EQ	.MSK-1
+PERF	EQ	.MSK-1
+NOPERF	EQ	.MSK-1
+DEBMON	EQ	.MSK-1
+SPLIT	EQ	.MSK-1
+ISIS	EQ	.MSK-1
+NOISIS	EQ	.MSK-1
+OPCIPH	EQ	.MSK-1
+DIRT	EQ	.MSK-1		:DIRECT ROUTINE
+SUPCST	EQ	.MSK-1		:ASSIGN 1 TO ALL LINKS FOR BUILDING CMD CIRCUIT
+LLEVEL  EQ      .MSK-1          :LOAD LEVEL PATHS WITH SAME COSTS
+DRP2B0	EQ	.MSK-1
+	:LOGII OPTIONS
+A2XPRE	EQ	.MSK-1		:STANDARD LOGII LOGIN SYNTAX PREFIX, "-"
+PHST	EQ	.MSK-1		:15-BIT HOST NUMBERS - PSEUDO HOSTS
+NOPHST	EQ	.MSK-1		:NO SPECIAL INTERPRETATION OF HOST NUMBERS
+LOG2	EQ	.MSK-1		:FOR LOGII MSG AND ADRII LOGIN STRING SYNTAX
+NOLOG2	EQ	.MSK-1		:NO LOGII AND ADRII, USE MUDI FORMAT
+LOG1	EQ	.MSK-1		:ONLY LOGI MSG FORMATS
+NOLOG1	EQ	.MSK-1		:NO LOG1, NOLOG1 & NOLOG2 CANNOT USE TOGETHER
+T121	EQ	.MSK-1		:ENABLE TYMNET X.121
+NOT121	EQ	.MSK-1		:NO TYMNET X.121
+LNTN	EQ	.MSK-1		:ENABLE LOACL NTNs
+NOLNTN	EQ	.MSK-1		:DISABLE LOACAL NTNs
+HLST	EQ	.MSK-1		:ENABLE HOST LISTS- 1 OR MORE HOST NUMBERS
+NOHLST	EQ	.MSK-1		:NO HOST LISTS - USE X.121,HOSTNAMES ETC.
+TNDL	EQ	.MSK-1		:ENABLE TRANSIT NETWORK DOUBLE-LOOKUP
+NOTNDL	EQ	.MSK-1		:DISABLE DOUBLE-LOOKUP, NO 2nd MUD LOOKUP
+
+AUXMAX	EQ	.MSK
+SHTSEC	EQ	.MSK
+SUPMIC	EQ	.MSK
+NDTIMC	EQ	.MSK ]
+
+
+ACOPL1	MACRO[
+ACT14B  EQ      .MSK+3          :USE TYPE 4 TO SEND NODE # FOR ACCT.
+LOGGSN	EQ	.MSK+3		:LOG GLOBAL SLOT NUMBER
+REBIND	EQ	.MSK+3		:REBUILD INDICATOR
+LOGNOD	EQ	.MSK+3		:LOG INTERMEDIATE NODES
+ENACCT	EQ	.MSK+3		:ENHANCED ACCOUNTING
+FWBLKN	EQ	.MSK+3	]	:FULLWORD BLOCK NUMBER IN ACCOUNT/RAM PRO.
+
+	:***************************************:
+	:					:
+	:	UTILITY MACRO TO SET DEFAULTS	:
+	:					:
+	:***************************************:
+	:DEFAULT SYMBOL FF OR KILL IF UNDEFINED	:
+	:Z - FLAG TO KILL UNDEFINED SYMBOL	:
+	:	(IT COULD BE A KEYWORD)		:
+	:V - DEFAULT VALUE IF NO KILL REQUESTED	:
+	:***************************************:
+DEFALT	MACRO(FF,V,Z)[
+	IF	\(FF+0)
+.NU1	EQ	FF 0
+.NU2	EQ	FF 1
+	 IF	.NU2-.NU1
+	 SERROR(PARAMETER (FF) INVALID IN CURRENT SECTION,0)
+	 ELSE
+	  IF	1-FF
+	  ELSE
+	   IF	FF-(.MSK-2)
+	    IF	Z
+	    KILL	FF
+	    ELSE
+FF	    EQ	V 0
+	    EI
+	   EI
+	  EI
+	 EI
+	ELSE
+	 IF	Z
+	 ELSE
+FF	 EQ	V 0
+	 EI
+	EI ]
+
+
+
+	:***************************************:
+	:				INTERNAL:
+	:    UTILITY MACRO TO TEST FOR TYMSTR	:
+	:					:
+	:***************************************:
+	:TEST MACRO TO ABORT IF TYMSTR MACRO	:
+	:IS ABSENT.  USED BY OTHER MACROS.	:
+	:***************************************:
+
+.ISIT1	MACRO[
+	IF	1-\.TYM1
+	SERROR(TYMSTR MACRO NOT DEFINED,1)
+	ERRLIN(ASSEMBLY CANCELLED,0)
+	QUIT
+	EI ]
+
+
+
+	:*******************************************************:
+	: OPTIONS FOR THE OPTION MACRO IN LOGII:		:
+	:							:
+	: DEFAULT SETTINGS FOR LOGOPT ARE:			:
+	: OPTION( PHST )					:
+	: 	OR						:
+	: OPTION( )						:
+	:							:		
+	: PHST -15-bit hgost numbers are interpreted as "pseudo :
+	:	hosts" or known as "accounting hosts". Hosts	:
+	:	which have 15-bit host numbers do not report 	:
+	:	their status to the Sup, but neverless allowed	:
+	:	to send login requests. (That is, they are	:
+	:	originate-only hosts.) Default setting.	When	:
+	:	PHST is set, PDOHST eq 1.			:
+	: NOPHST - 15-bit host numbers are not given any special:
+	:	interpretation. That is, hosts which have 15-bit:
+	:	host numbers must report their status to the	:
+	:	Sup just as nay other host - otherwise, the Sup	:
+	:	rejects login requests from them. When NOPHST	:
+	:	is true, PDOHST eq 0.				:
+	:*******************************************************:
+OPTION	MACRO(F0,F1,F2,F3,F4,F5,F6,F7,F8,F9,FA,FB,FC,FD,FE,FF)[
+	.ISIT1
+	.OPT(F0,1)
+	.OPT(F1,1)
+	.OPT(F2,1)
+	.OPT(F3,1)
+	.OPT(F4,1)
+	.OPT(F5,1)
+	.OPT(F6,1)
+	.OPT(F7,1)
+        .OPT(F8,1)
+        .OPT(F9,1)
+        .OPT(FA,1)
+        .OPT(FB,1)
+        .OPT(FC,1)
+        .OPT(FD,1)
+        .OPT(FE,1)
+        .OPT(FF,1)  ]
+
+	:*******************************************************:
+	: OPTIONS FOR THE LOGOPT MACRO IN LOGII:		:
+	: Default settings are:					:
+	: LOGOPT( LOG2,LOG1,NOT121,NOLNTN,HLST,TNDL )		:
+	:	OR						:
+	: LOGOPT( )						:
+	:							:
+	: No order is required.  If an option and its "opposite":
+	: both appear, then an error message will be given.	:
+	:							:
+	: LOG2 - If LOG2 is set, LOGII, MUDII and ADRII eq 1.	:
+	:	LOGII msg formats and ADRII login string syntax	:
+	:	are supported.					:
+	: NOLOG2 - If NOLOG2 is set, then LOGII, MUDII and ADRII:
+	:	eq 0. LOGII and ADRII are not supported and	:
+	:	must be in the MUDI format. NOLOG2 and NOLOG1	:
+	:	are not aloowed to use at the same time.	:
+	: LOG1 - LOGI msg formats are supported. LOGI eq 1.	:
+	: NOLOG1 - LOGI formats are not supported. LOGI eq 0.	:
+	: T121 - Enable the Tymnet X.121 numbering plan.  That	:
+	:	is, certain types of X.121 destination address 	:
+	:	are treated in a special manner. A2OPTY eq 1.	:
+	: NOT121 - Disable X.121 numbering plan. A2OPTY eq 0.	:
+	: LNTN - Local NTNs are permitted. That is, an X.121	:
+	:	destination address may contain only the NTN 	:
+	:	digits without being preceded by the prefix	:
+	:	char and DNIC.	A2OPLN eq 1.			:
+	: NOLNTN - Disable local NTNs. That is, an X.121	:
+	:	destination address must always contain a	:
+	:	prefix char (usually "-") and DNIC. A2OPLN eq 0.:
+	: HLST - Host lists are permitted. Tha one or more	:
+	:	host #s may be given in the destination list.	:
+	:	A2OPHL eq 1.					:
+	: NOHLST - Host lists are not permitted. X.121 addrs,	:
+	:	hostnames or some other method of specifiying	:
+	:	destinations must be used. This option is used	:
+	:	primarily in the networks where local NTNs are	:
+	:	permitted.  A2OPHL eq 0.			:
+	: TNDL -  Transit network double-lookup is enabled. This:
+	:	option is best explained with an example. If the:
+	:	specified destination list of a login string is	:
+	:	say :-3106:-310712345", the MUD entry 		:
+	:	"-3106-3107" is used as the destination MUD	:
+	:	entry. However, if no such entry exists, the MUD:
+	:	entry "-3106" is used as the destination entry	:
+	:	(if it exists). In short, two MUD look ups may	:
+	:	be required whenever transit networks are	:
+	:	specified.  A2OPRP eq 1.			:
+	: NOTNDL - Transit nework double-lookup is disabled. In	:
+	:	the above example, the second MUD look up is 	:
+	:	not performed. A2OPRP eq 0.			:
+	:*******************************************************:
+LOGOPT	MACRO(F0,F1,F2,F3,F4,F5,F6,F7,F8,F9,FA,FB,FC,FD,FE,FF)[
+	.OPT(F0,1)
+	.OPT(F1,1)
+	.OPT(F2,1)
+	.OPT(F3,1)
+	.OPT(F4,1)
+	.OPT(F5,1)
+	.OPT(F6,1)
+	.OPT(F7,1)
+        .OPT(F8,1)
+        .OPT(F9,1)
+        .OPT(FA,1)
+        .OPT(FB,1)
+        .OPT(FC,1)
+        .OPT(FD,1)
+        .OPT(FE,1)
+        .OPT(FF,1)  ]
+
+	:***************************************:
+	:					:
+	:	UTILITY MACROS FOR OPTIONS	:
+	:					:
+	:***************************************:
+
+.OPT	MACRO(FFF,V)[
+	IF	\(FFF+0)
+.NU1	EQ	FFF 0
+.NU2	EQ	FFF 1
+	 IF	.NU2-.NU1
+	 ELSE
+	  IF	1-FFF
+	  WARNING(PARAMETER (FFF) PREVIOUSLY DEFINED - IGNORED,0)	
+	  ELSE
+	   IF	FFF-(.MSK-1)
+	   SERROR(PARAMETER (FFF) NOT VALID IN OPTION MACRO,0)
+	   ELSE
+	    IF	FFF%(.MSK-1)
+	    WARNING(PARAMETER (FFF) PREVIOUSLY DEFINED - IGNORED,0)	
+	    ELSE
+FFF	    EQ	V
+	    EI
+	   EI
+	  EI
+	 EI
+	ELSE
+	SERROR(PARAMETER (FFF) INVALID IN CURRENT SECTION,0)
+	EI ]
+
+	:*******************************************************:
+	:							:
+	:             ACCOUNTING OPTIONS MACRO			:
+	:							:
+	:*******************************************************:
+
+ACTOPT	MACRO(A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,AA,AB,AC,AD,AE,AF)[
+	.ISIT1
+	.ACOPT(A0,1)
+	.ACOPT(A1,1)
+	.ACOPT(A2,1)
+	.ACOPT(A3,1)
+	.ACOPT(A4,1)
+	.ACOPT(A5,1)
+	.ACOPT(A6,1)
+	.ACOPT(A7,1)
+	.ACOPT(A8,1)
+	.ACOPT(A9,1)
+	.ACOPT(AA,1)
+	.ACOPT(AB,1)
+	.ACOPT(AC,1)
+	.ACOPT(AD,1)
+	.ACOPT(AE,1)
+	.ACOPT(AF,1)	]
+
+
+	:*******************************************************:
+	:							:
+	:	   UTILITY MACROS FOR ACCOUNTING OPTIONS	:
+	:							:
+	:*******************************************************:
+
+.ACOPT	MACRO(ACOP,V)[
+	IF	\(ACOP+0)
+.NU1	EQ	ACOP 0
+.NU2	EQ	ACOP 1
+	 IF	.NU2-.NU1
+	 ELSE
+	  IF	1-ACOP
+	  WARNING(PARAMETER (ACOP) PREVIOUSLY DEFINED - IGNORED,0)
+	  ELSE
+	   IF	ACOP-(.MSK+3)
+	   SERROR(PARAMETER (ACOP) NOT VALID IN ACCOUNTING-OPTIONS MACRO,0)
+	   ELSE
+	    IF	ACOP%(.MSK+3)
+	    WARNING(PARAMETER (ACOP) PREVIOUSLY DEFINED - IGNORED,0)
+	    ELSE
+ACOP	    EQ	V
+	    EI
+	   EI
+	  EI
+	 EI
+	ELSE
+	SERROR(PARAMETER (ACOP) INVALID IN CURRENT SECTION,0)
+	EI ]
+
+	:*******************************************************:
+	:							:
+	:              LOGIN SYNTAX PARAMETER			:
+	:							:
+	: The argument PFX is the hex value of an ASCII char to	:
+	: be used as a additional x-121 prefix char.  The	:
+	: standard prefix char, "-", remains valid regardless	:
+	: whether or not an additional one is provided. For	:
+	: example, if 31 is specified, "1" is permitted as a	:
+	: prefix char along with "-".  In this case,"-01234567" :
+	: is same as "101234567".				:
+	: Special care must be taken when choosingg a prefix	:
+	: char since there might be a conflict with other login :
+	: string delimiters.  The macro displays a warning msg	:
+	: if any of the following char are specified.  However,	:
+	: since even these chars can be save in some circum-	:
+	: stances, they are not prohibited.			:
+	: (:) - 3A hex. The colon is used to mark the beginning	:
+	: 	of the SDL (specified destination list). It can	:
+	:	be safely used as an X.121 prefix char only when:
+	:	the SDL is sent in a parsed SDL MO. However,	:
+	:	many LOGII interfaces do not send SDLs in parsed:
+	:	SDL MO. (See LOGII GED for a description of	:
+	:	parsed and unparsed MOs.)			:
+	: (.) - 2E hex. The period is used to mark the beginning:
+	:	of a subhost number and may be specified without:
+	:	any preceding host number. The period can be	:
+	:	safely used as an x.121 prefix char only if host:
+	:	lists are disabled via the NOHLST option in the	:
+	:	LOGOPT macro. Otherwise, subhosts (with no pre-	:
+	:	ceding host #) may be interpreted as X.121 addr.:
+	: (%) - 25 hex. The percent sign is used to designate a	:
+	:	kernel host. If it is used as an X.121 prefix	:
+	:	char, all kernel host designations are interpre-:
+	:	ted as X.121 addr.				:
+	: (digit) - 30 to 39 hex. If prefix is a decimal digit	:
+	:	then 5-digit host #s are interpreted as an X.121:
+	:	address. This is acceptable if the network has	:
+	:	no 5-diggit host #s, or if host lists are dis-	:
+	:	abled entirely via the NOHLST option in the	:
+	:	LOGOPT macro. Also if the prefix > 1, some	:
+	:	"local NTNs" may be interpreted as full X.121	:
+	:	addr. This is a problem, of cource, if local	:
+	:	NTNs are disabled via the LOGOPT macro.		:
+	: (letter) - 41 to 5A and 61 to 7A hex. If the prefix	:
+	:	is a letter, then any hostname which consists of:
+	:	this letter followed by 4 to 14 decimal digits	:
+	:	is interpreted as an X.121 addr. This is accept-:
+	:	able if such hostnames are prohibited.		:
+	: (non-printable) - 0 to 1F and 7F hex. Some control	:
+	:	chars are ignored in login strings, and others 	:
+	:	have special effects, such as erasing a field.	:
+	:	In general, using a non-printable char as an 	:
+	:	X.121 prefix char is not recommended.		:
+	:*******************************************************:
+LOGSYN MACRO(PFX)[
+	.ISIT1
+.ERSAV	EQ	ERRCNT		:SAVE CURRENT MACRO ERROR COUNT
+.PFX1	EQ	PFX 0
+.PFX2	EQ	PFX 1
+.F1	EQ	.PFX2-.PFX1
+	IF	.F1
+.F1		EQ	A2XPRE	:ASSIGN THE PRE-DEFINED X.121 PREFIX
+	ELSE
+.WARN	EQ	1		:ASSUME WARNING IS NEEDED
+.F1	EQ	PFX
+	IF   .F1+1		:NEGATIVE ARGUMENT?
+	IF   .F1-1F		:NO,  IT IS BETWEEN 0 AND 2F
+	   IF   30-.F1
+	      IF   .F1%25	:25, WARNING
+		 IF   .F1%2E	:2E, WARNING
+.WARN		    EQ	0
+      		 EI
+	      EI
+	   ELSE			:NO WARNING IF IT IS BETWEEN 3B AND 40
+	      IF   .F1-3A	:>3A
+		 IF   41-.F1	:<41
+.WARN		    EQ	0
+		 ELSE
+		    IF   .F1-5A		:NO WARNING IF BETWEEN 5B AND 60
+		       IF   61-.F1	:>5A AND <61
+.WARN			  EQ	0
+		       ELSE
+			  IF   .F1-7A	:NO WARNING IF BETWEEN 7B AND 7E
+			     IF   80-.F1	:> 7F, THEN ERROR
+				IF   .F1%7F	:7F, WARNING
+.WARN				   EQ  0	:> 7A AND < 7F, NO WARNING
+				EI
+			     ELSE
+				SERROR(MAX IS 7E IN LOGSYN MACRO,0)
+.WARN				EQ  0	:NO NEED TO DISPLAY THE WARNING.
+			     EI
+			  EI
+		       EI
+		    EI
+		 EI
+	      EI
+	   EI
+	EI				:0 TO 7F
+	ELSE				:IT IS NEGATIVE
+	   SERROR(MIN IS 0 IN LOGSYN MACRO,0)
+.WARN	   EQ	0			:NO NEED TO DISPLAY THE WARNING MSG.
+	EI
+	IF	.WARN
+	   WARNING(X121 PREFIX IN "LOGSYN" MAY CONFLICT WITH LOGIN SYNTAX,0)
+	EI
+	EI
+
+	IF (.ERSAV+1)-ERRCNT		:IF NO MACRO ERROR
+A2XPRE	EQ	.F1
+	EI
+	KILL	.PFX1,.PFX2,.WARN,.F1]
+
+	:*******************************************************:
+	:							:
+	:              LOGIN PARAMETER				:
+	:							:
+	: PTHFNDS is the max # of times the pathfinding algor-	:
+	: ithm can be performed for a given login string. For	:
+	: example, the login string "JSMITH:1,2,3,4,5,6,7,8"	:
+	: specifies 8 destination hosts. However, the multi-	:
+	: target limit is 6 (unless changed by the TARGET),	:
+	: meaning that the pathfing algorithm is run for only	:
+	: the first 6 hosts.  If no path is found to any of	:
+	: these, the Sup can run the algorithm again for hosts	:
+	: 7 and 8. the PTHFNDS parameter specifies the max # of	:
+	: times this process can be repeated before the user is	:
+	: prompted for another login string (or else, before	:
+	: the session is terminated).  The value of the PTHFNDS	:
+	: is between 1 and 10 (dec) and the default is 1.	:
+	:*******************************************************:
+LOGPRM MACRO(PTHFND)[
+	.ISIT1
+.ERSAV	EQ	ERRCNT		:SAVE CURRENT MACRO ERROR COUNT
+.F1	EQ	$A PTHFND 1	:DEFAULT 1
+	IF	1-.F1
+	   SERROR(MIN PATHFINDING PARM IN LOGPRM MACRO IS 1,0)
+	ELSE
+	   IF	.F1-$A10
+	      SERROR(MAX PATHFINDING PARM IN LOGPRM MACRO IS $a10,0)
+	   EI
+	EI
+	IF (.ERSAV+1)-ERRCNT	:IF NO MACRO ERROR
+A2PFMX	EQ	.F1		:ASSIGN PTHFNDS TO A2PFMX
+	EI
+	KILL	.F1]
+
+	:***************************************:
+	:					:
+	:	DEFINE MACRO - UNDOCUMENTED	:
+	:					:
+	:***************************************:
+	:USED DURING DEBUGGING TO ASSIGN VALUES	:
+	:TO ASSEMBLY SYMBOLS OR TO SETUP OPTIONS:
+	:WHICH ARE UNDOCUMENTED.		:
+	:***************************************:
+
+DEFINE	MACRO(FF,V)[
+	IF	\(FF+0)
+.NU1	EQ	FF 0
+.NU2	EQ	FF 1
+	 IF	.NU2-.NU1
+	 SERROR(PARAMETER (FF) INVALID IN CURRENT SECTION,0)
+	 ELSE
+	  IF	1-FF
+	  WARNING(PARAMETER (FF) PREVIOUSLY DEFINED - IGNORED,0)	
+	  ELSE
+	   IF	FF-(.MSK-2)
+	    IF	FF-(.MSK-1)
+FF	    EQ	V
+	    ELSE
+	    SERROR(PARAMETER (FF) INVALID IN DEFINE MACRO,0)
+	    EI
+	   ELSE
+	   WARNING(PARAMETER (FF) PREVIOUSLY DEFINED - IGNORED,0)	
+	   EI
+	  EI
+	 EI
+	ELSE
+	SERROR(PARAMETER (FF) INVALID IN CURRENT SECTION,0)
+	EI ]
+
+
+
+:***************************************************************:
+:								:
+:	DEFINE BASIC SUPERVISOR CONFIGURATION PARAMETERS	:
+:								:
+:***************************************************************:
+
+
+	:***************************************:
+	:					:
+	:	USER MACRO TO DEFINE TIME	:
+	:		PARAMETERS		:
+	:					:
+	:***************************************:
+	:SF - SLEEP FACTOR (MIN 15, DEFAULT 60)	:
+	:NS - NORMAL SLEEP (MIN 15, DEFAULT 60)	:
+	:AS - ADD'L SLEEP (MIN 35, DEFAULT 60)	:
+	:LL - LOGIN LIMIT (MIN 60, DEFAULT 90)	:
+	:SC - SUPER CLOCK KEYWORD		:
+	:***************************************:
+
+
+DEFTIM	MACRO(SF,NS,AS,LL,SC)[
+	.ISIT1
+	IF	\.DFTIM
+	WARNING(WAIT TIMES PREVIOUSLY DEFINED - IGNORED,0)
+	ELSE
+.DFTIM	EQ	1
+.ERSAV	EQ	ERRCNT
+CLOCK	EQ	2
+NOCLOCK	EQ	1
+.SF	EQ	$A SF 40
+.NS	EQ	$A NS 40
+.AS	EQ	$A AS 90
+.LL	EQ	$A LL 90
+.SC	EQ	$A SC 2
+	 IF	0-(.SF-0F)
+	 SERROR(SUPERVISOR FACTOR (SF) INVALID IN DEFTIM MACRO,0)
+	 EI
+	 IF	0-(.NS-0F)
+	 SERROR(NORMAL SLEEP (NS) INVALID IN DEFTIM MACRO,0)
+	 EI
+	 IF	0-(.AS-23)
+	 SERROR(ADDITIONAL SLEEP (AS) INVALID IN DEFTIM MACRO,0)
+	 EI
+	 IF	0-(.LL-3C)
+	 SERROR(LOGIN TIMEOUT (LL) INVALID IN DEFTIM MACRO,0)
+	 EI
+	 IF	.SC-CLOCK
+	 SERROR(SUPER CLOCK (SC) INVALID IN DEFTIM MACRO,0)
+	 EI
+	 IF	0-(.SC-NOCLOCK)
+	 SERROR(SUPER CLOCK (SC) INVALID IN DEFTIM MACRO,0)
+	 EI
+	 IF	(.ERSAV+1)-ERRCNT
+NSLEEP	 EQ	.NS+.SF*SUPERN
+ADTIME	 EQ	.AS
+LOGTIM	 EQ	.LL
+SCLOCK	 EQ	.SC-1
+	 EI
+	KILL	CLOCK,NOCLOCK,.SC,.NS,.SF,.AS,.LL
+	EI	:\.DFTIM ]
+
+
+
+
+
+	:***************************************:
+	:					:
+	:    USER MACRO TO DEFINE HOST RANGE	:
+	:					:
+	:***************************************:
+	:F1 - MAX (NORMAL) HOST NUMBER		:
+	:F2 - MAX HOST NUMBER FOR 1DOWN MSG	:
+	:	THE KEYWORD "ALL" CAN BE USED	:
+	:F3 - IF 1 DOWN, SECTOR DISK OFFSET FOR	:
+	:	1DOWN MESSGE FILE, DEFAULT 3	:
+	:	NOTE - 1ST SECTOR UNUSED (HST 0):
+	:F4 -  MAX NUMBER OF HOSTS PER NODE	:
+	:	DEFAULT IS 127d			:
+	:***************************************:
+
+
+DEFHST	MACRO(F1,F2,F3,F4)[
+	.ISIT1
+	IF	\.HOST
+	WARNING(HOSTS PREVIOUSLY DEFINED - IGNORED,0)
+	ELSE
+.HOST	EQ	1
+.ERSAV	EQ	ERRCNT
+.F1	EQ	$A F1
+.F3	 EQ	$0 F3 3			:DEFAULT
+.F4	EQ	$A F4 127
+
+	 IF	0-(.F1-1)
+	 SERROR(MAX HOSTS (F1) INVALID IN DEFHST MACRO,0)
+	 EI
+	IF	4-(.F4-1)
+	SERROR(MAX HOSTS PER NODE INVALID IN DEFHST MACRO,0)
+	EI
+
+ALL	EQ	.MSK+1	:FLAG FOR ALL MESSAGES ALLOWED
+	 IF	\(F2+0)
+.NU1	 EQ	F2 0
+.NU2	 EQ	F2 1
+	  IF	.NU2-.NU1
+.F2	  EQ	0		:DEFAULT TO 0
+	  ELSE
+	   IF	F2 - (.MSK-2)	:KEYWORD?
+	    IF	F2%(ALL)	:WITHIN MACRO KEYWORD?
+	    SERROR(PARAMETER (F2) INVALID IN DEFHST MACRO,0)
+	    ELSE
+.F2	    EQ	.F1
+	    EI
+	   ELSE
+Q	   EQ	0		:SET ERROR FLAG TO 0
+
+.F2	   EQ	$A F2 0	:DEFAULT TO 0
+
+	    IF	-.F2
+Q	    EQ	1
+	    EI
+
+	    IF	 (.F2)-(.F1)
+Q	    EQ	1
+	    EI
+
+	    IF	Q
+	    SERROR(MAX HOST NUMBER FOR DISK MESSAGE (F2) ,1)
+	    ERRLIN(INVALID IN DEFHST MACRO,0)
+	    EI
+	   EI
+	  EI
+	 ELSE
+	 SERROR(PARAMETER (F2) INVALID IN DEFHST MACRO,0)
+	 EI
+
+	 IF	.F2
+	  IF	1-DISK
+	  SERROR(DISKLESS SYSTEM CAN'T SUPPORT 1DOWN MESSAGES,0)
+	  EI
+	 EI
+
+	 IF	(.ERSAV+1)-ERRCNT	
+MXHOST	 EQ	.F1+1	:!!
+HDSMAX	 EQ	.F2
+T2MHST	 EQ	.F4
+	  IF	.F2
+	   IF	.F3
+HSTSLU	   EQ	6		:SUPERVISOR LU FOR HOST MESSAGES
+HSTSTA	   EQ	.F3
+	   EI
+	  EI
+	 EI
+	KILL	.F1,.F2,ALL,.F3,.F4
+	EI ]
+
+
+
+	:***************************************:
+	:					:
+	:     USER SUPPLEMENTARY HOST MACRO	:
+	:     TO DEFINE NUMBER OF EXTRA BASES	:
+	:					:
+	:***************************************:
+
+
+MBHOST	MACRO(F1)[
+	.ISIT1
+	IF	\.TYM2
+	WARNING(MBHOST MACRO MISPLACED - IGNORED,0)
+	ELSE
+	 IF	\.MBH
+	 WARNING(MBHOST MACRO PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.MBH	 EQ	1
+.ERSAV	 EQ	ERRCNT
+.F1	 EQ	$A F1 32
+	  IF	0-.F1
+	  SERROR(NUMBER OF TARGETS (F1) INVALID,0)
+	  EI
+	  IF	(.ERSAV+1)-ERRCNT
+MAXEXB	  EQ	.F1
+	  EI	:ERRORS
+	 EI	:REPEAT
+	EI	:MISPLACED ]
+
+ 
+ 
+	:***************************************:
+	:					:
+	:	USER SUPPLEMENTARY HOST MACRO	:
+	:	TO DEFINE NUMBER OF ADDITIONAL	:
+	:	HOST NUMBERS (32 BIT)		:
+	:					:
+	:***************************************:
+	:!!IN PRE-RELEASE DEBUGGING MODE	:
+	:***************************************:
+
+MAHOST	MACRO(F1,F2)[
+	.ISIT1
+	IF	\.TYM2
+	WARNING(MAHOST MACRO MISPLACED - IGNORED,0)
+	ELSE
+	 IF	\.MAH
+	 WARNING(MAHOST MACRO PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.MAH	 EQ	1
+.ERSAV	 EQ	ERRCNT
+.F1	 EQ	$A F1 256
+.W1	 EQ	1
+	  IF	.F1
+.W2	  EQ	(.F1^-2)+(.F1^-3)
+	  EXP(.W2,.W1)
+	  NOLIST
+.W1	  EQ	1^.W1
+	  ELSE
+	  SERROR(NUMBER OF TARGETS (F1) INVALID,0)
+	  EI
+.F2	 EQ	$A F2 $0 .W1
+	  IF	.F2
+	   IF	.F2&(.F2-1)
+	   SERROR(NUMBER OF INDEX POINTERS (F2) INVALID,1)
+	   ERRLIN(MUST BE A POWER OF TWO,0)
+	   EI
+	  ELSE
+	  SERROR(NUMBER OF INDEX POINTERS (F2) INVALID,0)
+	  EI
+	  IF	(.ERSAV+1)-ERRCNT
+MAXEXA	  EQ	.F1
+MAXEXI	  EQ	.F2
+	  EI	:ERRORS
+	 EI	:REPEAT
+	EI	:MISPLACED ]
+
+
+
+
+
+
+	:***************************************:
+	:					:
+	:	USER MACRO TO DEFINE NODE	:
+	:		PARAMETERS		:
+	:					:
+	:***************************************:
+        : The new DEFNOD macro disallows T-I node definition. :
+        : It has only two parameters,                         :
+        :       1. OCT - maximum T-II node number in octal    :
+        :                (optional)                           :
+        :       2. NUM - maximum # of nodes in decimal        :
+        :                (optional)                           :
+        : DLC 7/17/86                                         :
+        :*****************************************************:
+	:::EACH FIELD IS A 3 PART FIELD IN THE	:::
+	:::FORMAT (NTYP,ADR,NUM), WHERE		:::
+	:::NTYPE IS KEYWORD FOR NODE TYPE -	:::  ":::" indicates old
+	:::	BASE, REMOTE OR TII		:::  DEFNOD to be deleted!!!
+	:::ADR - MAX NODE # (OPTIONAL)		:::
+	:::NUM - MAX NODE COUNT (OPTIONAL)	:::
+	:::***************************************:::
+
+
+DEFNOD	MACRO(OCT,NUM)[
+	.ISIT1
+	IF	\.DFNOD
+	WARNING(NODES PREVIOUSLY DEFINED - IGNORED,0)
+	ELSE
+.DFNOD	EQ	1
+RMBN	EQ	200
+T2BN	EQ	400
+.LIM1	EQ	RMBN-1
+.LIM2	EQ	T2BN-RMBN
+.LIM3	EQ	3C00
+.RNG0	EQ	1
+.RNG1	EQ	RMBN
+.RNG2	EQ	T2BN
+.RNG3	EQ	T2BN+.LIM3
+.ERSAV	EQ	ERRCNT
+:::     .NOD`FLD1
+:::	.NOD`FLD2
+:::	.NOD`FLD3
+        .NOD(TII,OCT,NUM)
+	 IF	(.ERSAV+1)-ERRCNT
+Q	 EQ	1
+	  RE	3
+	   IF	1-\.O|Q|
+.O|Q|	   EQ	0
+.N|Q|	   EQ	0
+.T|Q|	   EQ	0
+Q	   EQ	Q+1
+	   EI
+	  ER
+
+	  :SETUP RECOMMEDED/MINIMUM SUP PORT REQUIREMENTS
+	  :NOTE THAT T-I & T-II PORTS EACH ALLOCATED IN BLOCKS OF 32
+	  GL	QID,QIM,QIR,QII,MXT2ND,NOTI
+
+QII	  EQ	(.T3+21)&-20		:REQUIRED T-II PORTS
+
+	  IF	.T1+.T2
+	  :THERE IS T-I
+QIM	  EQ	(((.N1+.N2)/8)+2F)&-20	:ABSOLUTE MINIMUM T-I PORTS
+QIR	  EQ	(((.N1+.N2)/2)+2F)&-20	:RECOMMENDED MINIMUM
+QID	  EQ	(.N1+.N2+3F+QII)&-20	:SAFE DEFAULT
+	  ELSE
+QIM	  EQ	0			:NO T-I PORTS REQUIRED
+QIR	  EQ	0			:DITTO
+QID	  EQ	QII			:ONLY NEED NECESSARY PORTS
+	  EI
+
+	  IF	.T1+.T2+.T3
+	   IF	.T1
+	    IF	.T2
+	    ELSE
+	    SERROR(MUST SPECIFY REMOTE IF BASE IS GIVEN,0)
+	    EI
+	   ELSE	.T2
+	   SERROR(MUST SPECIFY BASE IF REMOTE IS GIVEN,0)
+	   EI
+	  ELSE
+	  SERROR(NO NODE TYPES DEFINED IN DEFNOD MACRO,0)
+	  EI
+
+	  IF	(.ERSAV+1)-ERRCNT
+MXNODE	  EQ	0
+MXT2ND	  EQ	0
+MXBASE	  EQ	.T1
+	   IF	.O1
+NOTI	   EQ	0
+MXNODE	   EQ	MXNODE+MXBASE+1
+	   EI
+MXREM	  EQ	.O2
+	   IF	.O2
+NOTI	   EQ	0
+MXNODE	   EQ	MXNODE+.T2
+	   EI
+	   IF	.O3
+MXT2ND	   EQ	.T3
+MXNODE	   EQ	MXNODE+MXT2ND
+	   EI
+	   IF	1-\NOTI
+NOTI	   EQ	1
+FULLTI	   EQ	1
+BRGAP	   EQ	0
+RIIGAP	   EQ	0
+MXNODE  EQ      T2BN+MXT2ND-1
+MSKNOD  EQ      3FFF
+	   ELSE
+BRGAP	   EQ	RMBN-MXBASE-1
+RIIGAP	   EQ	T2BN-MXREM-1
+MSKNOD  EQ      0FFF
+	    IF	BRGAP+RIIGAP
+FULLTI	    EQ	0
+	    ELSE
+FULLTI	    EQ	1
+	    EI
+	   EI	:1-\NOTI
+	  EI	:ERRORS IN NSP PARM
+	 EI	:ERRORS IN .NOD MACRO
+	KILL	.O1,.O2,.O3,.T1,.T2,.T3
+	KILL	.LIM1,.LIM2,.LIM3,.RNG0,.RNG1,.RNG2,.RNG3
+	EI	:\RMBN ]
+
+
+
+
+
+	:***************************************:
+	:					:
+	:	UTILITY MACRO FOR NODE DEFS	:
+	:					:
+	:***************************************:
+
+.NOD	MACRO(NTYP,OCT,NUM)[
+	.ISIT1
+BASE	EQ	1
+REMOTE	EQ	2
+TII	EQ	3
+.NU1	EQ	NTYP 0
+.NU2	EQ	NTYP 1
+	IF	1-(.NU2-.NU1)
+	 IF	\.LIM|NTYP|
+	  IF	1-\.O|NTYP|
+.O|NTYP| EQ	$8 OCT $0 .RNG|NTYP|-1
+.T|NTYP| EQ	(.O|NTYP|-.RNG|NTYP-1|)+1
+.N|NTYP| EQ	$A NUM $0 .T|NTYP|
+         REMARK %NTYP NODE COUNT (DECIMAL)......
+         NUMBER $A .N|NTYP|
+         REMARK %
+	   IF	.O|NTYP|-(.RNG|NTYP-1|-1)
+	    IF	.RNG|NTYP|-.O|NTYP|
+	     IF	.N|NTYP|-((.O|NTYP|-.RNG|NTYP-1|)+1)
+	     SERROR(NODE COUNT (NUM) IS TOO LARGE FOR NTYP NODE,1)
+	     REMARK  ...%!!!!            MAXIMUM COUNT IS 
+	     NUMBER $A (.O|NTYP|-.RNG|NTYP-1|)+1; ERRFIN
+	     EI
+	    ELSE
+	    SERROR(ADDRESS (OCT) INVALID FOR NTYP NODE,1)
+	    REMARK  ...%!!!!            VALID RANGE IS 
+	    NUMBER $8 .RNG|NTYP-1|; REMARK  TO 
+	    NUMBER $8 .RNG|NTYP|-1; ERRFIN
+	    EI
+	   ELSE
+	   SERROR(ADDRESS (OCT) INVALID FOR NTYP NODE,1)
+	   REMARK  ...%!!!!            VALID RANGE IS 
+	   NUMBER $8 .RNG|NTYP-1|; REMARK  TO 
+	   NUMBER $8 .RNG|NTYP|-1; ERRFIN
+	   EI
+	  ELSE
+	  SERROR(KEYWORD (NTYP) PREVIOUSLY USED IN DEFNOD MACRO,0)
+	  EI
+	 ELSE
+	 SERROR(NODE TYPE (NTYP) INVALID IN DEFNOD MACRO,0)
+	 EI
+	EI
+	KILL	BASE,REMOTE,TII ]
+
+
+
+	:***************************************:
+	:					:
+	:	USER MACRO TO DEFINE NODE	:
+	:	DESCRIPTOR SPACE SIZE		:		
+	:					:
+	:***************************************:
+	:F1 - EST TOTAL LINKS			:
+	:F3 - BYTE SIZE (OPTIONAL)		:
+	:***************************************:
+
+
+NDASIZ	MACRO(F1,F3)[
+	.ISIT1
+	IF	\.TYM2
+	WARNING(NDASIZ MACRO MISPLACED - IGNORED,0)
+	ELSE
+	 IF	\.NDASIZ
+	 WARNING(NDASIZ MACRO PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.NDASIZ	 EQ	1
+	  IF	\.DFNOD
+.ERSAV	  EQ	ERRCNT
+	   IF	0-(F1-1)
+	   SERROR(NUMBER OF LINKS (F1) INVALID IN NDASIZ MACRO,0)
+	   EI
+	   IF	(.ERSAV+1)-ERRCNT
+:ABSOLUTE MINIMUM SIZE: 28*T1NODES+18*T2NODES+72*BASES+12*LINKS
+:PRACTICAL MINIMUM SIZE: 1.05*(ABSOLUTE MINIMUM)+512
+:RECOMMENDED SIZE: 1.33*(ABSOLUTE MINIMUM)    [ALLOWS FOR NETWORK GROWTH]
+.F1	   EQ	$A F1
+.AMSIZ	   EQ	(1C*(.N1+.N2))+(12*.N3)+(48*.N1)+(0C*.F1)
+.PMSIZ	   EQ	.AMSIZ+(.AMSIZ/14)+200
+.RSIZ	   EQ	.AMSIZ+(.AMSIZ/3)
+           REMARK %MINIMUM REQUIRED NODE DESCRIPTOR SPACE (HEX BYTES)......
+           NUMBER  .PMSIZ
+           REMARK %
+Q	   EQ	1000-(800*NOTI)
+	    IF	Q-.RSIZ
+RDSCSZ	    EQ	Q
+	    ELSE
+RDSCSZ	    EQ	.RSIZ
+	    EI
+	    IF	1-ISIT
+	    EI
+.F3	   EQ	F3 RDSCSZ
+	    IF	.PMSIZ-.F3
+	    SERROR(DESCRIPTOR SPACE (F3) IS INSUFFICIENT,0)
+	    REMARK %RECOMMENDED NODE DESCRIPTOR SPACE (HEX BYTES)...... 
+	    NUMBER  RDSCSZ
+	    REMARK %
+	    ELSE
+DESCSZ	    EQ	.F3
+	     IF	1-ISIT
+	      IF	RDSCSZ-.F3
+	      WARNING(DESCRIPTOR SPACE (F3) MAY BE INSUFFICIENT,0)
+	      REMARK %RECOMMENDED NODE DESCRIPTOR SPACE (HEX BYTES)...... 
+	      NUMBER  RDSCSZ
+	      REMARK %
+	      EI
+	     EI
+	    EI
+	   EI
+	  ELSE
+	  SERROR(DEFNOD MACRO MUST PRECEED NDASIZ MACRO,0)
+	  EI
+	 EI	:REPEAT
+	EI	:MISPLACED
+	KILL	.AMSIZ,.PMSIZ,.RSIZ,.F1 ]
+
+
+	:***************************************:
+	:					:
+	:	          NDLOG			:
+	:   SPECIFY HOW OFTEN NODE DESCRIPTOR	:
+	:   STATISTICS ARE PUT IN THE ERROR LOG	:
+	:   (MSG # 390)				:
+	:***************************************:
+	: F1 - MINUTES BETWEEN LOG ENTRIES.	:
+	:      DEFAULT IS 30. IF 0 IS SPECIFIED,:
+	:      NO LOG ENTRIES WILL BE MADE FOR	:
+	:      MSG #390.			:
+	:***************************************:
+
+NDLOG	MACRO(F1)[
+	.ISIT1
+	IF	\.TYM2
+	WARNING(NDLOG MACRO DISPLACED - IGNORED,0)
+	ELSE
+	  IF	\NDSTAT
+	  WARNING(NDLOG MACRO PREVIOUSLY DEFINED - IGNORED,0)
+	  ELSE
+NDSTAT	EQ	$A F1 30
+	GL	NDSTAT
+	  EI	:REPEAT
+	EI	:MISPLACED
+	]
+
+
+
+	SUBTTL  MACROS RELATED TO DISK FILES
+:***************************************************************:
+:								:
+:		DEFINE DISK FILE PARAMETERS			:
+:								:
+:***************************************************************:
+
+
+	:***************************************:
+	:					:
+	:    INITIAL SETUPS & UTILITY MACROS	:
+	:					:
+	:***************************************:
+
+
+	GL	DFMUD,DFACT,DFSAV,DFCLS,DFSDD,DFERR,NIDLE
+	GL	DFHST,DFHBD,DFINT,DFRGN,DFCLO,.DFRGN,DFMXLU,MAXSLU
+
+	:ASSOCIATE A UNIQUE FILE NUMBER TO EACH FILE NAME
+	:THERE IS NO NECESSARY INTRINSIC MEANING TO THE NUMBERS
+DFMUD	EQ	0		:MUD FILE
+DFACT	EQ	1		:ACT FILE
+DFSAV	EQ	2		:SAVE AREA FOR CODE ET AL
+DFCLS	EQ	3		:CLASS/GROUP FILE
+DFSDD	EQ	4		:SOURCE DESTINATION FILE
+DFERR	EQ	5		:ERROR LOG FILE
+DFHST	EQ	6		:HOST FILE
+DFHBD	EQ	7		:HISTORY FILE
+DFINT	EQ	8		:???INTERFACE AREA
+DFRGN	EQ	9		:REGION STORAGE AREA
+DFCLO	EQ	0A		:REGION - WORK DATA FILE
+DFSNT	EQ	0B		:SUBNET TABLE
+DFTPF	EQ	0C		:TARGET PROFILES, NOT USED IN 43 & ABOVE
+DFDNC	EQ	0C		:DNIC TABLE
+DFEVF	EQ	0D		:EVENT FILE
+DFIRC	EQ	0E		:IRC ROTATION TABLE
+NIDLE	EQ	0F		:NEEDLE DUMP
+.DFRGN	EQ	10		:RANGE = LAST+1
+
+	:ASSOCIATE AN LU WITH EACH FILE
+	:GL NEEDED DUE TO ASSEMBLER
+.F1	EQ	.DFRGN
+	RE
+.F1	EQ	.F1-1
+	GL	DFLU|.F1|
+	ER	.F1
+
+DFLU|DFMUD|	EQ	0		:MUD FILE
+DFLU|DFACT|	EQ	1		:ACCOUNTING FILE
+DFLU|DFSAV|	EQ	2		:SAVE AREA FOR CODE ET AL
+DFLU|DFCLS|	EQ	3		:CLASS/GROUP FILE
+DFLU|DFSDD|	EQ	4		:SOURCE DESTINATION FILE
+DFLU|DFERR|	EQ	5		:ERROR LOG FILE
+DFLU|DFHST|	EQ	6		:HOST FILE
+DFLU|DFHBD|	EQ	7		:HISTORY FILE
+DFLU|NIDLE|	EQ	7		:NEEDLE DUMP
+DFLU|DFINT|	EQ	8		:??INTERFACE AREA
+DFLU|DFRGN|	EQ	9		:REGION STORAGE AREA
+DFLU|DFCLO|	EQ	0A		:REGION - WORK DATA FILE
+DFLU|DFSNT|	EQ	3		:SUBNET TABLE
+DFLU|DFTPF|	EQ	3		:TARGET PROFILES
+DFLU|DFDNC|	EQ	3		:DNIC TABLE
+DFLU|DFEVF|	EQ	0B		:EVENT FILE
+DFLU|DFIRC|	EQ	6		:IRC ROTATION TABLE
+
+	:DEFINE THE MAXIMUM LU USED
+DFMXLU	EQ	0
+.F1	EQ	.DFRGN
+	RE
+.F1	EQ	.F1-1
+	IF	DFLU|.F1|-DFMXLU
+DFMXLU	EQ	DFLU|.F1|
+	EI
+	ER	.F1
+
+
+	:!!MORE WORK NEEDS TO SEPARATE FILE NUMBERS FROM LOGICAL UNITS!!
+MAXSLU	EQ	DFMXLU		:TEMP COINCIDENCE
+
+
+	:KEEP TRACK OF MAXIMUM SECTOR ALLOCATION WITHIN A LOGICAL UNIT
+	:RECALL - A SINGLE UNIT MAY CONTAIN MULTIPLE FILES
+.F1	EQ	DFMXLU+1
+	RE
+.F1	EQ	.F1-1
+	GL	MXLU|.F1|
+MXLU|.F1|	EQ	0
+	ER	.F1
+
+
+
+
+
+	:***************************************:
+	:					:
+	:	UTILITY MACRO TO DEFINE		:
+	:	FILE PARAMETERS			:
+	:					:
+	:***************************************:
+	:STATUS HAS THE FOLLOWING MEANING-	:
+	:-1 - NO SPECIAL TREATMENT		:
+	:0  - CHECK FOR AVAILABILITY AND	:
+	:     MONITOR FOR RETURN (RESTART)	:
+	:1  - GO TO SLEEP IF NOT AVAILABLE	:
+	:***************************************:
+
+	GL	.DFTMP
+.DFFIL	MACRO	(FF,STRT,SIZE,STAT)[
+	.ISIT1
+.ESAV	EQ	ERRCNT+WARCNT	:REMEMBER CURRENT ERROR COUNT
+.NU1	EQ	FF 1		:EQUATE TO ONE IF NULL
+.NU2	EQ	FF 0		:EQUATE TO ZERO IF NULL
+	IF	.NU1-.NU2	:TRUE IF .FF. WAS NULL
+	SERROR(NO FILE NAME GIVEN TO .DFFIL MACRO,0)
+	ELSE
+
+	 IF	0-FF		:NEGATIVE IS NOT ALLOWED
+	 SERROR(FILE (FF) INVALID IN .DFFIL MACRO,0)
+	 ELSE	0-(.DFRGN-FF)	:FILE MUST BE A VALID NUMBER
+	 SERROR(FILE (FF) INVALID IN .DFFIL MACRO,0)
+	 EI
+
+	 IF	\SPU1|FF|
+	 WARNING(FILE (FF) PREVIOUSLY DEFINED - IGNORED,0) 
+	 ELSE
+
+	  IF	0-(STRT+0)	:NEGATIVE START IS NOT ALLOWED
+	  SERROR(STARTING SECTOR (STRT) INVALID IN FILE (FF),0)
+	  EI
+
+	  IF	0-(SIZE+0)	:NEGATIVE SECTORS NOT ALLOWED
+	  SERROR(SECTOR SIZE INVALID IN FILE (FF),0)
+	  ELSE	1-(SIZE+0)	:TRUE IF NULL OR ZERO
+	  SERROR(ZERO SIZE INVALID IN FILE (FF),0)
+	  EI
+
+	 EI			:SPU1
+
+	EI			:.FF. NULL
+
+	IF	(.ESAV+1)-(ERRCNT+WARCNT)
+Q	EQ	FF
+	GL	SPU1|Q|,SPU2|Q|,SPU3|Q|,SPU4|Q|
+SPU1|Q|	EQ	DFLU|Q|	:SET LOCAL UNIT NUMBER
+SPU2|Q|	EQ	STRT		:OFFSET TO START
+SPU3|Q|	EQ	SIZE		:FILE LENGTH IN SECTORS
+SPU4|Q|	EQ	STAT		:STATUS CONTROL FLAG
+.DFTMP	EQ	DFLU|Q|		:GET UNIT NUMBER
+	IF	SIZE-MXLU|.DFTMP|
+MXLU|.DFTMP|	EQ	SIZE		:KEEP TRACK OF MAX SIZE
+	EI
+	EI ]
+
+
+
+	:***********************************************:
+	:						:
+	:	USER FILE DEFINITION MACROS		:
+	:						:
+	:***********************************************:
+	:THE CONVENTION IS THAT FILE ATTRIBUTES HAVE A 3:
+	:CHARACTER NAME AND A 3 CHARACTER EXTENSION	:
+	:TO DEFINE THE FILE ATTRIBUTE.  THE ONLY FILES	:
+	:USED ARE THOSE PRE-DEFINED ABOVE IN THE FORM OF:
+	:DFXYZ, WHERE XYZ IS THE FILE.  ALL OFFSETS AND	:
+	:SIZES ARE IN SECTORS.  DEFINITION MACROS ALSO	:
+	:ONLY USE SECTORS.  NOTE THAT THERE MAY BE	:
+	:MULTIPLE FILES WITHIN THE SAME LOGICAL UNIT.	:
+	:						:
+	:THE ATTRIBUTES FOLLOW -			:
+	:	XYZPLU  - LOGICAL UNIT FOR FILE, WHERE P:
+	:		IS THE PROCESS AS FOLLOWS-	:
+	:		S = SUP, P = PROBE, U = UN2	:
+	:		M = SYSMSG, E = ERRLOG, T=TASC	:
+	:		A = ACCOUNT, G = UTILITY	:
+	:	XYZSTA - START OFFSET TO FILE BEGINNING	:
+	:	XYZSIZ - SIZE OF FILE IN SECTORS	:
+	:	XYZSEC - FOR BLOCK STRUCTURED FILES,	:
+	:		 SECTORS PER BLOCK.		:
+	:	XYZBKS - FOR BLOCK STRUCTURED FILES,	:
+	:		 NUMBER OF BLOCKS IN FILE.	:
+	:	XYZLEN - FOR BLOCK STRUCTURED FILES,	:
+	:		SIZE OF BLOCK IN BYTES.		:
+	:	XYZEND - OFFSET TO END OF DATA PORTION	:
+	:		 OF FILE (CONTROL DATA MAY	:
+	:		 FOLLOW).  NOT ALWAYS DEFINED.	:
+	:						:
+	:	THERE ARE ALSO SOME IDEOSYNCRATIC DEFS.	:
+	:***********************************************:
+
+
+
+	:***************************************:
+	:				OPTIONAL:
+	: MACRO TO DEFINE THE NUMBER OF SECTORS :
+	: IN A MEMORY ACCESS CONTROLLER (MAC)	:
+	: PAGE FOR THE SYSTEM UNDER WHICH THE	:
+	: SUPERVISOR IS GENNED TO RUN.		:
+	: THIS MACRO IS REQUIRED ONLY UNDER ISIS:
+	: AND ONLY IF ISIS USES A MAC PAGE SIZE	:
+	: OTHER THAN 1 SECTOR.			:
+	:					:
+	: F1 -  # OF SECTORS PER MAC PAGE	:
+	:	MUST BE 1 OR A MULTIPLE OF 4	:
+	:	DEFAULTS TO 1. EXAMPLE: IF THE	:
+	:	SUP IS CONFIGURED TO RUN ON TSI	:
+	:	CARD IN SPIRIT MACHINE, WHICH 	:
+	:	USES 1K PAGES, F1 SHOULD BE 4.	:
+	:***************************************:
+
+SYSPAG	MACRO(F1)[
+	.ISIT1
+	IF	\.TYM2
+	WARNING(SYSPAG MACRO MISPLACED - IGNORED,0)
+	ELSE
+	  IF	\.SYSPG
+	  WARNING(SYSPAG MACRO PREVIOUSLY DEFINED - IGNORED,0)
+	  ELSE
+.SYSPG	EQ	1
+.ERSAV	EQ	ERRCNT
+.F1	EQ	F1 1
+	    IF	1-.F1
+	    SERROR(SYSPAG PARAMETER INVALID,0)
+	    EI
+
+	    IF	.F1-1
+	    IF	(.F1-(.F1/4)*4)
+	    SERROR(SYSPAG PARAMETER MUST BE A MULTIPLE OF 4,0)
+	    EI
+	    EI
+
+	    IF	(.ERSAV+1)-ERRCNT
+SUPPAG	EQ	.F1
+	    EI
+
+	  EI
+	EI
+	KILL	.F1]
+
+
+:
+: Macro to specify NETVAL host number to the Supervisor.
+:
+	:***************************************:
+	:				OPTIONAL:
+	: THIS MACRO IS USED TO SPECIFY THE	:
+	: NETVAL HOST NUMBER TO THE SUPERVISOR.	:
+	: THIS HOST NUMBER WILL BE USED BY THE	:
+	: SUP TO REROUT USERS TO NETVAL ON	:
+	: DETECTION OF PASSWORD EXPIRATION.	:
+	: IF THIS MACRO IS NOT ISSUED, PSWHST	:
+	: IS DEFAULTED TO 0 IN DEFL1 MACRO. SUP	:
+	: WILL NOT CHECK FOR PASSWORD EXP. IN	:
+	: THIS CASE.				:
+	:					:
+	: F1 - DECIMAL HOST NUMBER OF NETVAL	:
+	:***************************************:
+
+PWDHST	MACRO(F1)[
+	.ISIT1
+	IF	\.TYM2
+	WARNING(PWDHST MACRO MISPLACED - IGNORED,0)
+	ELSE
+	  IF	\.PHST
+	  WARNING(PWDHST MACRO PREVIOUSLY DEFINED - IGNORED,0)
+	  ELSE
+.PHST	EQ	1
+.ERSAV	EQ	ERRCNT
+.F1	EQ	$A F1 0
+
+	    IF	1-.F1
+	    SERROR(INVALID PARAMETER  (.F1) IN PWDHST MACRO,0)
+	    EI
+
+	    IF	(.ERSAV+1)-ERRCNT
+PSWHST	EQ	.F1
+	    EI
+
+	  EI
+	EI
+	KILL	.F1]
+
+
+
+	:***************************************:
+	:					:
+	:	DEFINE MUD PARAMETERS		:
+	:					:
+	:***************************************:
+	:ST  - ERROR STATUS FLAG		:
+	:BZ  - BLOCK SIZE IN SECTORS		:
+	:FRM - IS FORMAT (DEFAULT THIS!)	:
+	:BKS - NUMBER OF MUD NORMAL BLOCKS (PRIMARY HASH DIVISOR)
+	:OBKS - NUMBER OF OVERFLOW BLOCKS (SECONDARY HASH DIVISOR)
+	:***************************************:
+
+
+DEFMUD	MACRO(ST,BZ,FRM,BKS,OBKS)[
+	.ISIT1
+NEW	EQ	2		:TO DEFINE NEW FORMAT
+OLD	EQ	1		:TO DEFINE OLD FORMAT
+NOMUD	EQ	0FE0000		:TO DEFINE NO MUD
+FRMT	EQ	FRM 1		:SET FORMAT DEFAULT TO OLD
+BLKS	EQ	$A BKS 2039	:CONVERT PRIMARY BLOCKS
+OBLKS	EQ	$A OBKS 199	:CONVERT OVER FLOW BLOCKS
+.ERSAV	EQ	ERRCNT		:SAVE CURRENT ERROR COUNT
+	IF	\.DFMUD
+	WARNING(DFMUD PREVIOUSLY DEFINED - IGNORED,0)
+	ELSE
+	GL	.DFMUD
+.DFMUD	EQ	1		:SET I'VE BEEN HERE FLAG
+MUD	EQ	-1
+CORMUD	EQ	0FF0000
+	 IF	0-(ST+1)
+	 SERROR(STATUS (ST) INVALID IN DEFMUD MACRO,0)
+	 ELSE
+	  IF	ST-1		:STATUS MAY NOT EXCEED A HALFWORD
+	   IF	ST%NOMUD	:NOMUD REQUEST
+	    IF	ST%CORMUD	:CORE MUD REQUEST
+	    SERROR(STATUS (ST) INVALID IN DEFMUD MACRO,0)
+	    ELSE
+:	    SERROR(.CORMUD. NOT IMPLEMENTED IN DEFMUD MACRO,0)
+MUD	    EQ	1		:SET MUD FLAG
+DSKMUD	    EQ	0		:NO DISK MUD
+CORMUD	    EQ	1		:IN CORE MUD ONLY
+	    EI	:ST%CORMUD
+	   ELSE
+MUD	   EQ	0		:SET NO MUD FLAG
+DSKMUD	   EQ	0		:NO DISK MUD
+CORMUD	   EQ	0		:NO CORE MUD EITHER
+	   EI	:ST%NOMUD
+	  ELSE
+	   IF	0-(BZ+0)
+	   SERROR(MUD BLKSIZ (BZ) INVALID IN DEFMUD MACRO,0)
+	   ELSE
+	    IF	BZ
+	     IF	BZ-10
+	     SERROR(MUD BLKSIZE MAY NOT EXCEED 10 SECTORS,0)
+	     EI
+	     IF	BZ-1
+	      IF BZ&(BZ-1)
+	      SERROR(MUD BLKSIZE MUST BE A POWER OF TWO,0)
+	      EI
+	     ELSE
+	     SERROR(MUD BLKSIZE MUST BE GREATER THAN ONE,0)
+	     EI
+	    EI	:BZ
+	   EI	:0-(BZ+1)
+	   IF	0-FRMT
+	   SERROR(MUD FORMAT INVALID - (FRM),0)
+	   ELSE	FRMT-2
+	   SERROR(MUD FORMAT INVALID - (FRM),0)
+	   EI
+
+	   IF	0-BLKS
+	   SERROR(MUD BLKSIZE INVALID - (BKS),0)
+	   ELSE
+	     IF	BLKS-0FFFF
+	     SERROR(MUD BLKSIZE INVALID - (BKS),0)
+	     EI
+ 	   EI
+
+:	   IF	0-OBLKS
+:	   SERROR(MUD OVERFLOW INVALID - (OBKS),0)
+:	   ELSE	:@@2
+:	     IF TUD	:@@3
+:	     IF BLKS/0B-OBLKS	:@@4
+:	     WARNING(MUD OVERFLOW AREA IS TOO SMALL,0)
+:	     EI	:@@4
+:	     ELSE	:@@3
+:	     IF	OBLKS%0D	:@@4
+:	     SERROR(MUD OVERFLOW INVALID - (OBKS),0)
+:	     EI	:@@4
+:	     EI	:TUD	:@@3
+:	   EI	:@@2
+
+	  IF	(.ERSAV+1)-ERRCNT :IF NO MACRO ERRORS - DEFINE PARAMETERS
+	   IF	DISK
+MUD	   EQ	1		:SET MUD FLAG
+DSKMUD	   EQ	1		:SET DISK MUD
+CORMUD	   EQ	0		:NO IN CORE MUD
+MUDNBK	   EQ	BLKS		:DEFINE MUD AREA
+MUDOBK	   EQ	OBLKS		:DEFINE OVERFLOW AREA
+MUDBKS	   EQ	MUDNBK+MUDOBK	:DEFINE TOTAL AREA
+MUDSEC	   EQ	BZ 10		:CHANGE BLKSIZE TO 16 FOR SWB
+MUDLEN	   EQ	MUDSEC*100	:LENGTH OF MUD BLOCK IN BYTES
+	    IF	FRMT
+NEWMUD	    EQ	FRMT-1		:DEFINE FORMAT
+	    ELSE
+NEWMUD	    EQ	0		:DEFAULT TO OLD FORMAT
+	    EI
+SIZE	   EQ	MUDBKS*MUDSEC
+	   .DFFIL(DFMUD,0,SIZE,ST)	:DEFINE STANDARD FILE MATRIX
+	   EXP(MUDSEC,MUDSFT)
+	   NOLIST
+MUDSLU	   EQ	SPU1|DFMUD|	:DEFINE LOGICAL SUP UNIT FOR MUD
+MUDULU	   EQ	SPU1|DFMUD|	:UN2 UNIT
+MUDSTA	   EQ	SPU2|DFMUD|	:AND START OFFSET
+MUDSIZ	   EQ	SPU3|DFMUD|	:AND SIZE
+	   ELSE
+	   SERROR(DISKLESS SYSTEM - SPECIFY 'NOMUD' OR 'CORMUD',0)
+	   EI	:DISK
+	  EI	:ERRORS
+	 EI	:ST-1000
+	EI	:0-(ST+0)
+	EI	:\.DFMUD
+	KILL	NEW,OLD,FRMT,BLKS,OBLKS,SIZE,NOMUD]
+
+
+
+
+	:***************************************:
+	:					:
+	:	DEFINE ACCOUNTING PARAMETERS	:
+	:					:
+	:***************************************:
+	:ST  - ERROR STATUS FLAG		:
+	:SIZE -TOTAL SECTORS IN A FILE		:
+	:F1  - TOTAL SECTORS IN A BLOCK		:
+	:F2  - ACCOUNTING FREEZE FACTOR -	:
+	:	DEFAULT TO BE 100 DECIMAL	:
+	:***************************************:
+
+
+
+DEFACT	MACRO(ST,SIZE,F1,F2)[
+	.ISIT1
+NOACT	EQ	0FE0000		:TO DEFINE NO ACCOUNTING
+.ERSAV	EQ	ERRCNT		:SAVE CURRENT ERROR COUNT
+	IF	\.DFACT
+	WARNING(DFACT PREVIOUSLY DEFINED - IGNORED,0)
+	ELSE
+	GL	.DFACT
+.DFACT	EQ	1
+.F1	EQ	F1 4
+.F2	EQ	$A F2 100	:DEFAULT ACTFZF = 100 DECIMAL
+.F3	EQ	.F2*.F1		:TOTAL SECTORS IN FREEZE FACTOR
+	 IF	.F1%4
+	 SERROR(ACCOUNTING BLOCK OTHER THAN 4 NOT YET SUPPORTED,0)
+	 EI
+	IF	0-.F2		:CHECK IF FREEZE FACTOR IS NEGATIVE
+	SERROR(MIN ACCOUNTING FREEZE FACTOR IS 0 IN DEFACT MACRO,0)
+	ELSE
+ACTFZF  EQ	.F2		:ACTFZF IS ZERO OR POSITIVE
+	EI
+	IF	SIZE-.F3
+	ELSE			:IF SIZE <= FREEZE FACTOR SECTORS, BAD!
+	SERROR(ACCOUNTING FREEZE FACTOR MUST BE < SIZE IN DEFACT MACRO,0)
+	EI
+ACTSEC	EQ	.F1
+ACTLEN	EQ	ACTSEC*100
+
+	 IF	0-(ST+1)
+	 SERROR(STATUS (ST) INVALID IN DEFACT MACRO,0)
+	 ELSE
+	  IF	ST-1		:STATUS MAY NOT EXCEED A HALFWORD
+	   IF	ST%NOACT	:NOACT REQUEST
+	   SERROR(STATUS (ST) INVALID IN DEFACT MACRO,0)
+	   ELSE
+ACCTNG	   EQ	0		:SET NO ACCOUNTING
+	   EI	:ST%NOACT
+	  ELSE
+	   IF	0-(SIZE+0)
+	   SERROR(SECTOR LENGTH (SIZE) INVALID IN DEFACT MACRO,0)
+	   ELSE
+.SIZE	   EQ	(SIZE/ACTSEC)*ACTSEC
+	    IF	.SIZE
+	     IF	(.ERSAV+1)-ERRCNT :IF NO MACRO ERRORS - DEFINE PARAMETERS
+	      IF	DISK
+	      .DFFIL(DFACT,0,.SIZE,ST)	:DEFINE STANDARD FILE MATRIX
+	       IF	(.ERSAV+1)-ERRCNT :IF NO MACRO ERRORS - DEFINE PARAMETERS
+ACCTNG	       EQ	1		:ACCOUNTING REQUESTED
+ACTSLU	       EQ	SPU1|DFACT|	:LOGICAL UNIT (SUP) FOR ACCOUNTING
+ACTPLU	       EQ	ACTSLU		:SAME FOR PROBE
+ACTALU	       EQ	ACTSLU		:SAME FOR ACCOUNTING
+ACTSTA	       EQ	SPU2|DFACT|	:START OFFSET FOR FILE
+ACTSIZ	       EQ	SPU3|DFACT|	:COMPLETE SIZE OF FILE IN SECTORS
+ACTEND	       EQ	ACTSTA+ACTSIZ-ACTSEC :OFFSET TO END OF DATA PORTION OF FILE
+	       			:(LAST BLOCK DEDICATED TO CONTROL)
+	       EI
+	      ELSE
+	      SERROR(DISKLESS SYSTEM - SPECIFY 'NOACT',0)
+	      EI	:DISK
+	     EI
+	    ELSE
+	    SERROR(SECTOR LENGTH ZERO INVALID IN DEFACT MACRO,0)
+	    EI	:SIZE
+	   EI	:0-(SIZE+0)
+	  EI	:ST-1000
+	 EI	:0-(ST+0)
+	EI	:\.DFACT
+	KILL	NOACT]
+
+
+	:***************************************:
+	:					:
+	:	DEFINE ERROR LOG PARAMETERS	:
+	:					:
+	:***************************************:
+
+DEFERR	MACRO(ST,SIZE,F1)[
+	.ISIT1
+NOERR	EQ	0FE0000
+.ERSAV	EQ	ERRCNT
+	IF	\.DFERR
+	WARNING(DFERR PREVIOUSLY DEFINED - IGNORED,0)
+	ELSE
+	GL	.DFERR
+.DFERR	EQ	1
+.F1	EQ	F1 4	:DEFAULT
+	 IF	.F1%4
+	 WARNING(ERROR LOG BLOCK SIZE OTHER THAN 4 NOT YET SUPPORTED,0)
+	 EI
+ERRSEC	EQ	.F1		:DEFINE BLOCK SIZE
+ERRLEN	EQ	ERRSEC*100	:IN BYTES
+
+	 IF	0-(ST+1)
+	 SERROR(STATUS (ST) INVALID IN DEFERR MACRO,0)
+	 ELSE
+	  IF	ST-1
+	   IF	ST%NOERR		:NOERR REQUEST
+	   SERROR(STATUS (ST) INVALID IN DEFERR MACRO,0)
+	   ELSE
+:	   SERROR(.NOERR. NOT IMPLEMENTED IN DEFERR MACRO,0)
+DSKLOG	   EQ	0
+	   EI	:ST%NOERR
+	  ELSE
+	   IF	0-(SIZE+0)
+	   SERROR(SECTOR LENGTH (SIZE) INVALID IN DEFERR MACRO,0)
+	   ELSE
+.SIZE	   EQ	(SIZE/ERRSEC)*ERRSEC	:ROUND DOWN
+
+	    IF	.SIZE
+	     IF	(.ERSAV+1)-ERRCNT :IF NO MACRO ERRORS - DEFINE PARAMETERS
+	      IF	DISK
+	      .DFFIL(DFERR,0,.SIZE,ST)  :DEFINE STANDARD FILE MATRIX
+	       IF	(.ERSAV+1)-ERRCNT :IF NO MACRO ERRORS - DEFINE PARAMETERS
+DSKLOG	       EQ	1
+ERRSLU	       EQ	SPU1|DFERR|	:SUP LOCAL UNIT
+ERRPLU	       EQ	ERRSLU		:SAME FOR PROBE
+ERRELU	       EQ	ERRSLU		:SAME FOR ERRLOG
+ERRSTA	       EQ	SPU2|DFERR|	:START OFFSET
+ERRSIZ	       EQ	SPU3|DFERR|	:SIZE IN SECTORS
+ERREND	       EQ	ERRSTA+ERRSIZ-ERRSEC :LAST BLOCK FOR CONTROL
+
+	       EI
+	      ELSE
+	      SERROR(DISKLESS SYSTEM - SPECIFY 'NOERR',0)
+	      EI	:DISK
+	     EI
+	    ELSE
+	    SERROR(SECTOR LENGTH ZERO INVALID IN DEFERR MACRO,0)
+	    EI	:SIZE
+	   EI	:0-(SIZE+0)
+	  EI	:ST-1000
+	 EI	:0-(ST+0)
+	EI	:\.DFERR
+	KILL	NOERR ]
+
+
+
+	:***************************************:
+	:					:
+	:	OPTIONAL SUBNET DEFINITION	:
+	:					:
+	:***************************************:
+	:F1 - NUMBER OF SUBNETS (127 MAX)	:
+	:F2 - DISK OFFSET TO BEGINNING	:
+	:	OF TABLE (DEFAULT 80, MIN 10)	:
+	:	EVENTUALLY, NOT DISK BASED!	:
+	:***************************************:
+
+
+DEFSNT	MACRO(F1,F2) [
+	.ISIT1
+.ERSAV	EQ	ERRCNT
+	IF	\.DFSNT
+	WARNING(DEFSNT MACRO PREVIOUSLY DEFINED - IGNORED,0)
+	ELSE
+	GL	.DFSNT
+.DFSNT	EQ	1		:FLAG MACRO USED
+.F1	EQ	$A F1 (0-1)
+.F2	EQ	$0 F2 80	:DEFAULT
+	 IF	-.F1		:VALID?
+	 SERROR(NUMBER OF SUBNETS (F1) INVALID IN DEFSNT MACRO,0)
+	 EI
+	 IF	.F1-127
+	 SERROR(TOO MANY SUBNETS (F1) IN DEFSNT MACRO,0)
+	 EI
+	 IF	10-.F2
+	 SERROR(SUBNET SAVE AREA (F2) INVALID IN SUBNET MACRO,0)
+	 EI
+	 IF	(.ERSAV+1)-ERRCNT	:ERRORS
+SNETS	 EQ	.F1	:DEFINE NUMBER OF SUBNETS
+SNTSLU	 EQ	3		:LOCAL UNIT IS 3
+SNTSTA	 EQ	.F2	:START OFFSET
+	 :NOTE, SNTSEC SIZE DEFINED IN TYMSUP MACRO - BASED ON MXNODE
+	 EI	:ERRORS
+	EI	:DEFINED
+	KILL	.F1,.F2 ]
+
+
+	:***************************************:
+	:					:
+	:	OPTIONAL TARGET PROFILE MACRO	:
+	:					:
+	:***************************************:
+	:F1 - NUMBER OF SECTORS IN PROFILE FILE	:
+	:F2 - OPTIONAL, UNIVERSAL ACCESS GROUP	:
+	:	NUMBER.  DEFAULT IS NONE (0).	:
+	:F3 - START OFFSET OF FILE (DEFAULT 0A0,:
+	:	MIN 18 HEX			:
+	:***************************************:
+DEFTPF	MACRO(F1,F2,F3) [
+	.ISIT1
+.ERSAV	EQ	ERRCNT
+	SERROR(DEFTPF MACRO ILLEGAL IN SUPERVISOR VERSION 43 AND ABOVE,0)
+	IF	\.DFTPF
+	WARNING(DEFTPF PREVIOUSLY DEFINED - IGNORED,0)
+	ELSE
+	GL	.DFTPF
+.DFTPF	EQ	1		:SHOW MACRO INVOKED
+.F1	EQ	$0 F1 0
+.F2	EQ	$A F2 0		:UNIVERSAL ACCESS GROUP NUMBER (DECIMAL)
+.F3	EQ	$0 F3 0A0
+	 IF	1-.F1
+	 SERROR(SECTOR SIZE (F1) IN DEFTPF MACRO INVALID,0)
+	 EI
+	 IF	18-.F3
+	 SERROR(TARGET PROFILE DISK START OFFSET (F3) TOO LOW,0)
+	 EI
+	 IF	(.ERSAV+1)-ERRCNT
+TPSEC	 EQ	.F1
+TPSTA	 EQ	.F3
+UIGRP	 EQ	.F2
+TPSLU	 EQ	3		:SUP LOGICAL UNIT
+	 EI	:ERRORS
+	EI	:DEFINED
+	KILL	.F1,.F2,.F3 ]
+
+
+
+	:***************************************:
+	:					:
+	:  USER MACRO TO DEFINE DNIC TABLE	:
+	:					:
+	:***************************************:
+	:					:
+	: F1 - DEFAULT NATIVE DNIC		:
+	: F2 - DNIC TABLE SIZE IN HEX SECTORS	:
+	:      DEFAULT 4 SECTORS		:
+	: F3 - START OFFSET INTO LU 3, MIN 18	:
+	:      DEFAULT 0A0 SECTORS		:
+	:					:
+	:***************************************:
+
+DEFDNC	MACRO(F1,F2,F3)[
+	.ISIT1
+.ERSAV	EQ	ERRCNT
+	IF	\.TYM2
+	WARNING(DEFDNC MACRO MISPLACED - IGNORED,0)
+	ELSE
+	   IF	\.DFDNIC
+	   WARNING(DEFDNC PREVIOUSLY DEFINED - IGNORED,0)
+	   ELSE
+	GL	.DFDNIC
+.DFDNIC	EQ	1
+.F1	EQ	$A F1
+.F2	EQ	$0 F2 4
+.F3	EQ	$0 F3 0A0	:DEFAULT OFFSET = 0A0
+
+	   IF	$A2000-.F1
+	   SERROR(INVALID NATIVE DEFAULT DNIC (F1) IN DEFDNC MACRO,0)
+	   EI
+
+	   IF	1-.F2
+	   SERROR(INVALID DNIC SECTOR SIZE (F2) IN DEFDNC MACRO,0)
+	   EI
+
+	   IF	18-.F3
+	   SERROR(DNIC TABLE DISK START OFFSET MUST BE > 18 IN DEFDNC,0)
+	   EI
+
+	   IF	(.ERSAV+1)-ERRCNT
+DNDNIC	EQ	.F1	:DEFAULT NATIVE DNIC
+DNCSEC	EQ	.F2	:# OF SECTORS IN DNIC TABLE
+DNCSTA	EQ	.F3	:DNIC TABLE OFFSET ON DISK LU 3
+DNCLEN	EQ	DNCSEC*100	:# OF BYTES IN DNIC TABLE
+DNCSLU	EQ	3	:SUP LOGICAL UNIT FOR DNIC TABLE
+	   EI
+
+	   EI	:\.DFDNIC
+
+	EI	:\.TYM2
+
+	KILL	.F1,.F2,.F3  ]
+
+
+
+	:***************************************:
+	:					:
+	:	DEFINE SAVE FILE PARAMETERS	:
+	:					:
+	:***************************************:
+	:F1 10 START CRASH SAVE OFFSET		:
+	:F2 - DATA AREA SAVE COUNT		:
+	:F3 - TOTAL AVAILABLE SAVE AREA SIZE	:
+	:NOTE - ADDITIONAL TESTING WILL BE DONE	:
+	:WHEN CODE AND AREA SIZES ARE KNOWN.	:
+	:***************************************:
+
+
+DEFSAV	MACRO(F1,F2,F3)[
+	.ISIT1
+	IF	\.DFSAV
+	WARNING(DEFSAV MACRO PREVIOUSLY DEFINED - IGNORED,0)
+	ELSE
+.DFSAV	EQ	1
+.ERSAV	EQ	ERRCNT
+.F1	EQ	F1 200
+.F2	EQ	F2 2
+.F3	EQ	F3 200+2*200
+	 IF	200-.F1
+	 SERROR(CRASH SAVE OFFSET MUST BE 200 MINIMUM,0)
+	 EI
+
+	 IF	-.F2
+	 SERROR(CRASH SAVE COUNT MUST BE FROM 1 TO 3,0)
+	 EI
+
+	 IF	.F2-3
+	 SERROR(CRASH SAVE COUNT MUST BE FROM 1 TO 3,0)
+	 EI
+
+	 IF	.F1-.F3
+	 SERROR(SAVE FILE SIZE INSUFFICIENT,0)
+	 EI
+
+	 IF	(.ERSAV+1)-ERRCNT :IF NO ERRORS, DEFINE PARAMETERS
+          IF	DISK
+SAVSEC	  EQ	.F3		:DEFINE ENTIRE AREA FOR SAVE LU
+.F3	  EQ	.F3-.F1		:THIS IS AREA AVAILABLE FOR SAVES
+	  :FILE IS NON-CRITICAL
+	  .DFFIL(DFSAV,.F1,.F3,-1)
+SAVSLU	  EQ	SPU1|DFSAV|	:SUP SAVE LU
+SAVSTA	  EQ	SPU2|DFSAV|	:START ADDRESS OF CRASH DATA SAVE AREA
+SAVCNT	  EQ	.F2		:NUMBER OF SAVES TO ACCOMODATE
+SAVSIZ	  EQ	SPU3|DFSAV|	:SIZE OF ENTIRE AREA
+	  ELSE
+	  SERROR(DISKLESS SYSTEM - DROP DEFSAV MACRO)
+	  EI
+	 EI
+	EI ]
+
+
+
+	:***************************************:
+	:					:
+	:	DEFINE HISTORY FILE SIZE	:
+	:					:
+	:***************************************:
+	:F1 - SIZE OF HISTORY FILE IN SECTORS	:
+	:F2 - BLOCK SIZE (DEFAULT THIS)		:
+	:***************************************:
+
+HISTRY	MACRO(F1,F2)[
+	.ISIT1
+      IF	\.TYM2
+      WARNING(HISTRY MACRO MISPLACED - IGNORED,0)
+      ELSE
+       IF	\.HSTRY
+       WARNING(HISTRY MACRO PREVIOUSLY DEFINED - IGNORED,0)
+       ELSE
+.HSTRY	 EQ	1
+.ERSAV	 EQ	ERRCNT
+.F1	 EQ	F1 0
+    IF   \.NDMP
+.F2	 EQ	F2 04
+    ELSE
+.F2	 EQ	F2 0C
+    EI    :.NDMP
+	  IF	.F1
+	   IF	0C-.F1
+	   SERROR(IF NON-ZERO, HISTORY SECTORS MUST BE AT LEAST 12,0)
+	   EI
+:	   IF	0C%.F2
+:	   SERROR(HISTORY BLOCK SIZE OTHER THAN 12 NOT YET SUPPORTED,0)
+:	   EI
+.F1	  EQ	(.F1/.F2)*.F2	:ROUND DOWN
+	  EI
+	  IF	1-DISK
+	   IF	.F1
+	   SERROR(DISKLESS SYSTEM - REMOVE HISTRY MACRO,0)
+	   EI
+	  EI
+
+	  IF	(.ERSAV+1)-ERRCNT
+	   IF	.F1
+	IF	\.NDMP
+	SERROR(ONLY ONE OF HISTRY AND NEEDLE-DUMP FILE CAN BE ASSIGNED,0)
+	ELSE
+	   .DFFIL(DFHBD,0,.F1,0)
+DSKHST	   EQ	1		:FLAG TO SHOW DISK HISTORY ON
+HBDSLU	   EQ	SPU1|DFHBD|	:SUP LOGICAL UNIT
+HBDSTA	   EQ	SPU2|DFHBD|	:START OFFSET
+HBDSIZ	   EQ	SPU3|DFHBD|	:SIZE OF ENTIRE FILE
+HBDEND	   EQ	HBDSIZ		:SECTOR PAST END OF HISTORY
+HBDSEC	   EQ	.F2		:BLOCK SIZE
+	EI	:.NDMP
+	   ELSE
+DSKHST	   EQ	0		:FLAG NO DISK HISTORY
+	   EI	:.F1
+	  EI	:ERRORS
+	 EI	:REPEAT
+	EI	:MISPLACED ]
+
+	:***************************************:
+	:				WTW	:
+	:	DEFINE NEEDLE FILE SIZE		:
+	:					:
+	:***************************************:
+	:F1 - SIZE OF NEEDLE FILE IN SECTORS	:
+	:F2 - SAMPLING VALUE (DEFAULT=0)	:
+	:F3 - START OFFSET IN SECTORS		:
+	:     DEFAULT IS 0			:
+	:F4 - BLOCK SIZE (DEFAULT=8 SECTORS)	:
+	:***************************************:
+NIDUMP	MACRO(F1,F2,F3,F4)[
+	.ISIT1
+     IF	\.TYM2
+     WARNING(NIDUMP MACRO MISPLACED - IGNORED,0)
+     ELSE
+      IF	\.NDMP
+      WARNING(NIDUMP MACRO PREVIOUSLY DEFINED - IGNORED,0)
+      ELSE
+	IF	\.HSTRY
+	SERROR(ONLY ONE OF HISTRY AND NEEDLE-DUMP FILE CAN BE ASSIGNED,0)
+	ELSE
+.NDMP	 EQ	1
+.ERSAV	 EQ	ERRCNT
+.F1	 EQ	F1 0
+.F2	 EQ	F2 0
+.F3	 EQ	F3 0
+.F4	 EQ	F4 8
+	EI	:.HSTRY
+	  IF	40-.F1
+	   SERROR(NEEDLE DUMP FILE MUST BE AT LEAST 40X SECTORS,0)
+	  EI
+	  IF	0-.F2
+	   SERROR(NEGATIVE NEEDLE SAMPLING IS ILLEGAL,0)
+	  EI
+	  IF	.F2&(.F2-1)
+	   SERROR(NEEDLE SAMPLING MUST BE POWER OF TWO,0)
+	  EI
+	  IF	.F4&3
+	   SERROR(BLOCK SIZE OF DUMP FILE HAS TO BE MULTIPLE OF 4 SECTORS,0)
+	  EI 
+	  IF	8-.F4
+	   WARNING(AT LEAST 8 SECTORS PER BLOCK IS RECOMMENDED,0)
+	  EI 
+	  IF	1-DISK
+	   SERROR(DISKLESS SYSTEM - REMOVE NIDUMP MACRO,0)
+	  EI
+.F1	  EQ	(.F1/.F4)*.F4	:ROUND DOWN
+.F3 	  EQ	(.F3+3)/4*4	:ROUND UP
+	  IF	(.ERSAV+1)-ERRCNT
+	   IF	.F1
+	   .DFFIL(NIDLE,.F3,.F1,-1)
+NDMPLU	EQ	7		:LU = 7
+NDMPST	EQ	.F3		:STARTING OFFSET IN THE DISK(IN SECTORS)
+NDSIZE	EQ	.F1-.F4		:TOTAL SIZE IN SECTORS
+NDCKPT	EQ	.F1-.F4		:SECTOR OFFSET OF CONTROL BLOCK
+NIDLES	EQ	.F2		:NEEDLE SAMPLING VALUE
+NDBKSZ	EQ	.F4		:BLOCK SIZE(IN SECTORS)
+HBDSEC	EQ	4		:BUFFER SIZE IN HISTRY FILE HAS TO BE REDUCED
+NEDLE	EQ	1		:ASSEMBLY SWITCH IS ON
+:	   ELSE
+:NEDLE	   EQ	0		:ASSEMBLY SWITCH IS OFF
+	   EI	:.F1
+	  EI	:ERRORS
+	 EI	:REPEAT
+	EI	:MISPLACED
+
+	IF	NEDLE&LOGNOD
+	 WARNING(NIDUMP & LOGNOD BOTH SELECTED -  MAY AFFECT PERFORMANCE!,0)
+	EI	:NEDLE&LOGNOD
+]
+
+
+	:************************************************
+	:					WTW	:
+	:	USER MACRO TO DEFINE TIME-SPAN BEFORE	:
+	:  SUP GOES TO SLEEP, AFTER SUP DETECTS 'SLOW	:
+	:  SLEEP' REQUEST FROM PROBE.			:
+	:************************************************
+
+SSLEEP	MACRO(F1)[
+	.ISIT1
+	IF	\.TYM2
+	WARNING(SLEEP-TIME MACRO MISPLACED - IGNORED,0)
+	ELSE
+	IF	\.SLT
+	WARNING(SLEEP-TIME MACRO PREVIOUSLY DEFINED - IGNORED,0)
+	ELSE
+.SLT	EQ	1
+.ERSAV	EQ	ERRCNT
+.F1	EQ	$A F1  40
+	 IF	0-.F1
+	 SERROR(INVALID TIME-SPAN (F1) BEFORE SLEEP,0)
+	 ELSE 	3-.F1
+	 SERROR(TIME-SPAN FOR SLOW SLEEP (F1) INSUFFICIENT,0)
+	 EI
+	 IF	(.ERSAV+1)-ERRCNT
+SLOTYM	 EQ	.F1
+	 EI	:ERRORS
+     	EI	:REPEAT
+	EI	:MISPLACED  ]
+
+
+
+	:***************************************:
+	:					:
+	:  USER MACRO TO DEFINE IRC PARAMETERS	:
+	:					:
+	:***************************************:
+	:IRC LOGIC IMPLIES A DISK FILE!		:
+	:F1 - NUMBER OF LINKS IN FILE (L1MAX/4)	:
+	:	DEFAULT - 0			:
+	:F2 - SIZE OF DATA AREA IN PAGES	:
+	:	(L3MAX/100) - DEFAULT 0		:
+	:F3 - KEYWORD = CORIRC OR DSKIRC	:
+	:	DEFAULT - DEPENDS ON DISK	:
+	:F4 - SECTOR OFFSET TO START OF FILE	:
+	:	(DEFAULT 1)			:
+	:***************************************:
+
+DEFIRC	MACRO(F1,F2,F3,F4)[
+	.ISIT1
+	IF	\.TYM2
+	WARNING(DEFIRC MACRO MISPLACED - IGNORED,0)
+	ELSE
+	 IF	\.DFIRC
+	 WARNING(DEFIRC MACRO PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.DFIRC	 EQ	1
+.ERSAV	 EQ	ERRCNT
+DSKIRC	 EQ	.MSK+1
+CORIRC	 EQ	.MSK+2
+.F1	 EQ	$A F1 0		:DEFAULT
+.F2	 EQ	$0 F2 0		:DEFAULT
+.F3	 EQ	F3 0
+.F4	 EQ	F4 1		:DEFAULT
+
+	  IF	.F3
+	   IF	.F3-.MSK
+	   ELSE
+	   SERROR(TYPE (F3) INVALID IN DEFIRC MACRO,0)
+	   EI
+	  EI
+
+	  IF	.F1		:ARE WE CLAIMING A TABLE?
+	   IF	1-.F2
+	   SERROR(IRC TABLE SIZE INVALID,0)
+	   EI
+	  EI
+
+
+	  IF	(.ERSAV+1)-ERRCNT
+L1MAX	  EQ	.F1*4		:CONVERT TO BYTE COUNT
+L3MAX	  EQ	.F2*100		:CONVERT TO BYTE COUNT
+	   IF	((L1MAX/4)*0E)-L3MAX
+	   WARNING(IRC TABLE SIZE INSUFFICIENT FOR MAX LINKS,0)
+	   EI
+IRC	  EQ	1
+
+	   IF	.F3
+	    IF	.F3%CORIRC
+	     IF	DISK
+DSKIRC	     EQ	1			:DISK IRC
+CORIRC	     EQ	0			:NOT CORE ONLY IRC
+	     ELSE
+	     SERROR(DISKLESS SYSTEM REQUEST CORIRC OR REMOVE DEFIRC MACRO,0)
+	     EI
+	    ELSE
+DSKIRC	    EQ	0			:NOT DISK IRC
+CORIRC	    EQ	1			:CORE ONLY IRC
+	    EI
+	   ELSE
+DSKIRC	   EQ	DISK
+CORIRC	   EQ	1-DSKIRC
+	   EI	:.F3
+	   IF	DSKIRC
+ROTSLU	   EQ	6		:LOCAL UNIT FOR SUP
+ROTSTA	   EQ	.F4		:START OFFSET
+ROTSEC	   EQ	.F2		:SIZE OF DATA AREA
+	   EI
+	  EI	:ERRORS
+	 EI	:REPEAT
+	EI	:MISPLACED
+	KILL	.F1,.F2,.F3,.F4 ]
+
+
+
+
+	:***************************************:
+	:					:
+	:	OPTIONAL MACRO TO DEFINE THE	:
+	:	CLASS AND GROUP TABLES		:
+	:					:
+	:***************************************:
+	:F1 - MAX CLASS NUMBER (DEFAULT 0)	:
+	:	MAX VALUE 1023			:
+	:F2 -SIZE OF CLASS TABLE (PAGES)	:
+	:	(DEFAULT 0, MAX 128)		:
+	:F3 - MAXIMUM GROUP NUMBER (DEFAULT 0)	:
+	:	MAX VALUE 1023			:
+	:F4 - SIZE OF GROUP TABLE (PAGES)	:
+	:	(DEFAULT 0, MAX 128)		:
+	:F5 - OPTIONAL KEYWORD TO INDICATE	:
+	:	DISK OR CORE RESIDENT (THIS IS	:
+	:	FOR FUTURE - IGNORE IT NOW)	:
+	:***************************************:
+
+FENCE	MACRO(F1,F2,F3,F4,F5)[
+	.ISIT1
+	IF	\.TYM2
+	WARNING(FENCE MACRO MISPLACED - IGNORED,0)
+	ELSE
+	 IF	\.FENCE
+	 WARNING(FENCE MACRO PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.FENCE	 EQ	1
+	  IF	\MUD
+	   IF	MUD
+.ERSAV	   EQ	ERRCNT
+DSKCG	   EQ	.MSK
+CORCG	   EQ	.MSK+1
+.F5	   EQ	F5 0
+.F1	   EQ	$A F1 70
+.F2	   EQ	$A F2 6
+.F3	   EQ	$A F3 25
+.F4	   EQ	$A F4 6
+	    IF	0-.F5
+	    SERROR(KEYWORD (F5) INVALID IN FENCE MACRO,0)
+	    ELSE	.F5
+	     IF	.MSK-.F5
+	     SERROR(KEYWORD (F5) INVALID IN FENCE MACRO,0)
+	     EI
+	    EI
+	    IF	0-.F1
+	    SERROR(MAX CLASSES (F1) OUT OF RANGE IN FENCE MACRO,0)
+	    ELSE .F1-3FF
+	    SERROR(MAX CLASSES (F1) OUT OF RANGE IN FENCE MACRO,0)
+	    EI
+	    IF	0-.F2
+	    SERROR(CLASS TABLE SIZE (F2) OUT OF RANGE IN FENCE MACRO,0)
+	    ELSE .F2-80
+	    SERROR(CLASS TABLE SIZE (F2) OUT OF RANGE IN FENCE MACRO,0)
+	    EI
+	    IF	0-.F3
+	    SERROR(MAX GROUPS (F3) OUT OF RANGE IN FENCE MACRO,0)
+	    ELSE .F3-3FF
+	    SERROR(MAX GROUPS (F3) OUT OF RANGE IN FENCE MACRO,0)
+	    EI
+	    IF	0-.F4
+	    SERROR(GROUP TABLE SIZE (F4) OUT OF RANGE IN FENCE MACRO,0)
+	    ELSE .F4-80
+	    SERROR(GROUP TABLE SIZE (F4) OUT OF RANGE IN FENCE MACRO,0)
+	    EI
+	    IF	(.F1*8)+4-(.F2*100)
+	    SERROR(CLASS TABLE SIZE IS INSUFFICIENT,0)
+	    EI
+	    IF	(.F3*8)+4-(.F4*100)
+	    SERROR(GROUP TABLE SIZE IS INSUFFICIENT,0)
+	    EI
+	    IF	(.ERSAV+1)-ERRCNT
+	     IF	.F1+.F3		:DO WE HAVE SOMETHING?
+MXCLASS	     EQ	.F1
+CLSSIZ	     EQ	.F2*100
+MXGROUP	     EQ	.F3
+GRPSIZ	     EQ	.F4*100
+CG	     EQ	1
+	      IF	.F5
+	       IF	F5%CORCG
+	        IF	DISK 
+DSKCG	        EQ	1
+CORCG	        EQ	0
+	        ELSE
+	        SERROR(DISKLESS SYSTEM REQUEST CORCG,0)
+	        EI
+	       ELSE
+DSKCG	       EQ	0
+CORCG	       EQ	1
+	       EI
+	      ELSE
+DSKCG	      EQ	DISK
+CORCG	      EQ	1-DSKCG
+	      EI	:.F5
+	      IF	DSKCG
+CLSSLU	      EQ	3		:SUP LOGICAL UNIT
+CLSSTA    	EQ	0		:START OFFSET FOR FILE
+CLSLEN	      EQ	(CLSSIZ+GRPSIZ+0FF)&-100 :SIZE IN BYTES (PAGES)
+CLSSEC	      EQ	CLSLEN/100	:SECTORS
+	      EI
+	     ELSE
+CG	     EQ	0
+DSKCG	     EQ	0
+CORCG	     EQ	0
+	     EI	:NON-ZERO CG DEFS
+	    EI	:ERRORS
+	   ELSE	0-MUD
+	   ELSE :MUD
+	   WARNING(MUDLESS SYSTEM - FENCE MACRO IGNORED,0)
+	   EI
+	  ELSE
+	  SERROR(DEFMUD MACRO MUST PRECEED FENCE MACRO,0)
+	  EI
+	 EI	:REPEAT
+	EI	:MISPLACED
+	KILL	.F1,.F2,.F3,.F4,.F5]
+
+
+
+
+	:***************************************:
+	:					:
+	:	USER OPTIONAL MACRO TO		:
+	:	DEFINE A MUD CACHE		:
+	:					:
+	:***************************************:
+	:BLKS - NUMBER OF 64 BYTE CACHE BLOCKS	:
+	:CH   - NUMBER OF CHAINS OF SEARCH	:
+	:       LISTS (PARTITIONS)		:
+	:***************************************:
+
+CACHE	MACRO(BLKS,CH)[
+	.ISIT1
+.ERSAV	EQ	ERRCNT
+B1	EQ	$A BLKS 64
+	IF	\CNINDX
+	WARNING(CACHE PREVIOUSLY DEFINED - IGNORED,0)
+	ELSE
+C2	EQ	1
+	 IF	B1
+B2	 EQ	(B1^-3)+(B1^-4)
+	 EXP(B2,C2)
+C2	 EQ	1^C2
+	 ELSE
+	 SERROR(NUMBER OF BLOCKS (BLKS) INVALID IN CACHE MACRO,0)
+	 EI
+C1	EQ	$A CH $0 C2
+	 IF	C1
+	  IF	C1&(C1-1)
+	  SERROR(NUMBER OF CHAINS (CH) INVALID IN CACHE MACRO,1)
+	  ERRLIN(MUST BE A POWER OF TWO,0)
+	  EI	  
+	 ELSE
+	 SERROR(NUMBER OF CHAINS (CH) INVALID IN CACHE MACRO,0)
+	 EI
+
+	 IF	(.ERSAV+1)-ERRCNT
+CNINDX	 EQ	C1
+CNCBLK	 EQ	B1
+	 EI
+	EI
+	KILL	B1,B2,C1,C2 ]
+
+
+
+	:***************************************:
+	:					:
+	:	USER MACRO TO DEFINE NUMBER	:
+	:	OF LIST BUFFERLETS		:
+	:					:
+	:***************************************:
+
+
+
+BUFLET	MACRO(F1)[
+	.ISIT1
+	IF	\.TYM2
+	WARNING(BUFLET MACRO MISPLACED - IGNORED,0)
+	ELSE
+	 IF	\.BLET
+	 WARNING(BUFLET MACRO PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.BLET	 EQ	1
+.ERSAV	 EQ	ERRCNT
+.F1	 EQ	$A F1 $0 400
+	  IF	0-.F1
+	  SERROR(NUMBER OF BUFLETS (F1) INVALID,0)
+	  ELSE	400-.F1
+	  SERROR(NUMBER OF BUFLETS (F1) INSUFFICIENT,0)
+	  EI
+	  IF	(.ERSAV+1)-ERRCNT
+BLETSIZ	  EQ	.F1
+	  EI	:ERRORS
+	 EI	:REPEAT
+	EI	:MISPLACED ]
+
+
+
+	:***************************************:
+	:					:
+	:	USER OPTIONAL MACRO TO	:
+	:	DEFINE MAX MULTIPLE TARGETS	:
+	:					:
+	:***************************************:
+
+TARGET	MACRO(F1,F2)[
+	.ISIT1
+	IF	\.TYM2
+	WARNING(TARGET MACRO MISPLACED - IGNORED,0)
+	ELSE
+	 IF	\.TAR
+	 WARNING(TARGET MACRO PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+	  IF	\MUD
+.TAR	  EQ	1
+.ERSAV	  EQ	ERRCNT
+.F1	  EQ	$A F1 6
+.F2	EQ	$A F2 6
+	   IF	0-.F1
+	   SERROR(NUMBER OF TARGETS (F1) INVALID,0)
+	   ELSE	6-.F1
+	   SERROR(NUMBER OF TARGETS MUST BE 6 OR GREATER,0)
+	   EI
+	   IF	0-.F2
+	   SERROR(NUMBER OF TARGET THRESHOLD (F2) INVALID,0)
+	   ELSE	2-.F2
+	   WARNING(NUMBER OF TARGET THRESHOLD IS TOO LOW,0)
+	   EI
+	   IF .F1-1E
+	   WARNING(NUMBER OF TARGETS GREATER THAN 30 MIGHT BE TOO HIGH,0)
+	   EI
+	   IF	.F2-.F1
+	   SERROR(DIAGNOSTIC TARGET THRESHOLD IS TOO BIG,0)
+	   EI
+	   IF	(1-DISK)*(1-CORMUD)
+	   SERROR(TARGET MACRO MEANINGLESS IN THIS CONFIGURATION,1)
+	   ERRLIN(PLEASE REMOVE,0)
+	   EI
+	   IF	(.ERSAV+1)-ERRCNT
+MAXDST	   EQ	.F1
+TGTCUT	   EQ	.F2
+	   EI	:ERRORS
+	  ELSE
+	  SERROR(DEFMUD MACRO MUST PRECEED TARGET MACRO,0)
+	  EI	:\MUD
+	 EI	:REPEAT
+	EI	:MISPLACED ]
+
+
+	:***************************************:
+	:					:
+	:	USER MACRO TO AVOID TAKEOVER	:
+	:	OF CERTAIN NODES		:
+	:					:
+	:***************************************:
+
+NOTAKE	MACRO(F1,F2,F3,F4,F5,F6,F7,F8)[
+	.ISIT1
+	IF	\.TYM2
+	WARNING(NOTAKE MACRO MISPLACED - IGNORED,0)
+	ELSE
+	 IF	\NOTAK1
+	 WARNING(NOTAKE MACRO PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+NOTAK1	 EQ	$8 F1 0
+	  IF	NOTAK1
+NOTAK2	  EQ	$8 F2 0
+NOTAK3	  EQ	$8 F3 0
+NOTAK4	  EQ	$8 F4 0
+NOTAK5	  EQ	$8 F5 0
+NOTAK6	  EQ	$8 F6 0
+NOTAK7	  EQ	$8 F7 0
+NOTAK8	  EQ	$8 F8 0
+NOTAK9	  EQ	0	:USED TO INSURE REPEAT LOOPS TERMINATE
+	  ELSE
+	  SERROR(NOTAK1 (F1) INVALID IN NOTAKE MACRO,0)
+	  EI
+	 EI
+	EI ]
+
+
+	:***************************************:
+	:					:
+	:	ADD DC USERNAME TO LIST		:
+	:					:
+	:***************************************:
+
+ADC	MACRO(P,W1,W2)[
+	.ISIT1
+	IF	P
+	 IF	10-P
+ADC1|P|	 EQ	$8 W1
+ADC2|P|	 EQ	$8 W2
+	 EI
+	EI ]
+
+
+
+
+	:***************************************:
+	:					:
+	:	USER MACRO TO ADD PROBE NAMES	:
+	:					:
+	:***************************************:
+
+
+PRBNAM	MACRO(F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13,F14,F15,F16)[
+	.ISIT1
+	IF	\.DFNAM
+	WARNING(PRBNAM MACRO PREVIOUSLY DEFINED - IGNORED,0)
+	ELSE
+.DFNAM	EQ	1
+.QQQQQ	MACRO(A1,A2,A3)[
+:	IF	1-\(A1+0)	:CHANGED 4/24/84 BY OMAR, OLD SCHEME
+:P	AC	'A1'		:FAILED IF NAME HAPPEND TO BE A DEFINED SYMBOL
+P	EQ	.
+	AC	/A1/		:CHECK TO SEE IF NAME IS PRESENT
+	IF	.-P		:ANY STRING? TRUE IS NON-ZERO
+	ORG	P+8		:LIMIT TO EIGHT CHARACTERS
+	HC	A2^-10,A2&0FFFF,(A3^$09)+8000
+	EI	]
+	:ANAME IS A MACRO DEFINED BY A MACRO
+ANAME	MACRO[
+	.QQQQQ`F1
+	.QQQQQ`F2
+	.QQQQQ`F3
+	.QQQQQ`F4
+	.QQQQQ`F5
+	.QQQQQ`F6
+	.QQQQQ`F7
+	.QQQQQ`F8
+	.QQQQQ`F9
+	.QQQQQ`F10
+	.QQQQQ`F11
+	.QQQQQ`F12
+	.QQQQQ`F13
+	.QQQQQ`F14
+	.QQQQQ`F15
+	.QQQQQ`F16
+]
+	EI ]
+
+
+
+
+:***************************************************************:
+:								:
+:	INITIALIZE MACROS FOR SECOND SECTION OF TYMFILE		:
+:								:
+:***************************************************************:
+
+
+	:***************************************:
+	:					:
+	:	UTILITY MACRO TO DETERMINE	:
+	:	IF A MACRO WAS ISSUE		:
+	:					:
+	:***************************************:
+	:F1 IS THE MACRO FLAG, F2 THE NAME	:
+	:***************************************:
+
+
+.MTST	MACRO(F1,F2)[
+	.TST(F1)
+	IF	1-.TRU
+	SERROR(REQUIRED MACRO (F2) IS UNDEFINED,0)
+	EI ]
+
+	:***************************************:
+	:					:
+	:	UTILITY MACRO TO DETERMINE IF	:
+	:	A SYMBOL HAS BEEN DEFINED	:
+	:					:
+	:***************************************:
+	:FF  - THE SYMBOL			:
+	:V - FLAG, IF GREATER THAN 0 IT IS A	:
+	:	FATAL ERROR IF UNDEFINED.	:
+	:	ERROR IF NOT DEFINED.		:
+	:NOTE - A SYMBOL IS DEFINED IF IT HAS A	:
+	:	DEFINED VALUE DIFFERENT FROM THE:
+	:	KEYWORD FLAG 400000000 (.MSK-1).:
+	:.TRU - RETURN FLAG FOR RESULT		:
+	:***************************************:
+
+.TST	MACRO(FF,V)[
+	IF	\(FF+0)
+.NU1	EQ	FF 0
+.NU2	EQ	FF 1
+	 IF	.NU2-.NU1
+	 SERROR(PARAMETER (FF) INVALID IN .TST MACRO,0)
+	 ELSE
+	  IF	1-FF
+.TRU	  EQ	1
+	  ELSE
+	   IF	FF%(.MSK-1)
+.TRU	   EQ	1
+	   ELSE
+.TRU	   EQ	0
+	    IF	V
+	    SERROR(REQUIRED PARAMETER (FF) IS UNDEFINED,0)
+	    EI
+	   EI
+	  EI
+	 EI
+	ELSE
+.TRU	EQ	0
+	 IF	V
+	 SERROR(REQUIRED PARAMETER (FF) IS UNDEFINED,0)
+	 EI
+	EI ]
+
+
+
+
+	:***************************************:
+	: DEFL1 IS CALLED IN THE TYMSTR MACRO.	:
+	: IT IS USED TO DEFINE THE VALUES OF THE:
+	: OPTION MARO AND THE LOGOPT MACRO.	:
+	:***************************************:
+DEFL1	MACRO[
+	DEFALT(SYSADR,0F0000)
+	DEFALT(NOISIS)
+	IF	NOISIS
+	.TST(ISIS)
+	 IF	.TRU
+	 SERROR(ISIS AND NOISIS ARE MUTUALLY EXCLUSIVE,0)
+	 ELSE
+ISIS	 EQ	0
+	 EI
+	EI
+	DEFALT(ISIS,1-PUB)
+	DEFALT(MSC,1)
+	DEFALT(HIST,ISIS)
+	DEFALT(AUXMAX,2)
+	IF	(2-AUXMAX)*(0C-AUXMAX)
+	SERROR(AUXMAX MUST BE FROM 2 TO 12 DECIMAL,0)
+	EI
+	DEFALT(NDTIMC,1)
+	IF	(1-NDTIMC)*(0F-NDTIMC)
+	SERROR(NDTIMC MUST BE FROM 1 TO 15 DECIMAL,0)
+	EI
+        DEFALT(ACT14B)		:ACCOUNTING-OPTIONS MACRO PARAMETERS 
+	DEFALT(LOGGSN)		:A
+	DEFALT(REBIND)		:A
+	DEFALT(LOGNOD)		:A
+	DEFALT(ENACCT)		:A
+	DEFALT(FWBLKN)		:A
+	DEFALT(OPCIPH)
+	DEFALT(DIRT)
+	DEFALT(SUPCST)
+        DEFALT(LLEVEL)
+	DEFALT(OMONON)
+	DEFALT(DRP2B0)
+	DEFALT(RGN001)
+	IF	RGN001
+SDDISK	EQ	1
+	EI
+	DEFALT(SDDISK)
+	DEFALT(NORATE)
+	DEFALT(PERF)
+	IF	PERF
+	.TST(NOPERF)
+	 IF	.TRU
+	 SERROR(PERF AND NOPERF ARE MUTUALLY EXCLUSIVE,0)
+	 ELSE
+NOPERF	 EQ	0
+	 EI
+	EI
+	DEFALT(NOPERF,NORATE)
+	DEFALT(NOSPAS)
+	DEFALT(CNINDX)
+	DEFALT(MAXEXI)
+	DEFALT(NOTAK1)
+	DEFALT(IRC)
+	DEFALT(SNETS)
+	DEFALT(TPSEC)
+	DEFALT(UIGRP)
+	DEFALT(SLOTYM,20)
+	DEFALT(DSKIRC)
+	DEFALT(CORIRC)
+	DEFALT(CG)
+	DEFALT(DSKCG)
+	DEFALT(CORCG)
+	DEFALT(DEBMON)
+	DEFALT(SUPMIC)
+	DEFALT(SPLIT)
+	DEFALT(MHOSTN)
+	DEFALT(LNTN)
+	DEFALT(ABSORB)
+	DEFALT(PUBLIK)
+	DEFALT(TRANSIT)
+	IF	DISK
+	DEFALT(DSKCSH,1)
+	DEFALT(DSKSHT,1)
+	 IF	SNETS
+	 DEFALT(SNTSEC,(MXNODE+100)/100)
+	 EI
+	ELSE
+	DEFALT(DSKSHT)
+	DEFALT(DSKCSH)
+	EI
+	IF	DSKSHT
+	DEFALT(SHTSEC,1)
+	EI
+	DEFALT(DSKHST)
+	DEFALT(NOERRS)
+	IF	NOERRS
+DEFLG	EQ	0
+	EI
+	DEFALT(DEFLG,DISK)
+	DEFALT(DEMAX,9)
+	DEFALT(MAXDST,6)
+MAXDST	EQ	2+4*((MAXDST+1)/4) :MAKE 2+4*N MULTI TARGET POSITIONS
+LLEXHB	EQ	(MAXDST-3)/4	:EXTRA B'LETS TO HANDLE >6 TARGET POOL
+	DEFALT(MAXEXB,20)
+	IF	1-DISK
+	 IF	RGN001
+	 SERROR(OPTION RGN001 MEANINGLESS WITH NO DISK - REMOVE IT,1)
+	 ERRLIN(              ALSO REMOVE SDDISK IF SELECTED,0)
+	 ELSE	SDDISK
+	 SERROR(OPTION SDDISK MEANINGLESS WITH NO DISK - REMOVE IT,0)
+	 EI
+	 IF	CNINDX
+	 SERROR(CACHE MACRO MEANINGLESS WITH NO DISK - REMOVE IT,0)
+	 EI
+	EI 
+	DEFALT(A2XPRE,2D)	:STANDARD LOGII LOGIN SYNTAX PREFIX,"-"
+
+	:*******************************************************:
+	: IF PHST OR NOTHING, THEN PDOHST = 1			:
+	: IF NOPHST, THEN PDOHST = 0				:
+	: IF PHST AND NOPHST, THEN ERROR MESSAGE.		:
+	:********************************************************
+	DEFALT(NOPHST)		:SETUP IN OPTL1
+	IF	NOPHST		:IF PHST (OR DEFAULT), PDOHST = 1
+	.TST(PHST)		:IF NOPHST, PDOHST = 0
+	   IF	.TRU		:IF PHST AND NOPHST IN OPTION, THEN ERROR
+	   SERROR(PHST AND NOPHST ARE MUTUALLY EXCLUSIVE,0)
+	   ELSE
+PDOHST	EQ	0
+	   EI
+	ELSE
+PDOHST	EQ	1
+	EI
+
+	:*******************************************************:
+	: IF NOLOG1 AND NOLOG2, THEN ERROR MESSAGE.		:
+	:*******************************************************:
+	GL	LOGII
+	DEFALT(NOLOG2)
+	DEFALT(NOLOG1)
+	IF	NOLOG2&NOLOG1
+	SERROR(NOLOG2 AND NOLOG1 ARE NOT ALLOWED TO USE TOGETHER,0)
+	EI
+
+	:*******************************************************:
+	: IF LOG2 OR NOTHING, THEN LOGII,MUDII,ADRII = 1	:
+	: IF NOLOG2, THEN LOGII,MUDII,ADRII = 0			:
+	: IF LOG2 AND NOLOG2, THEN ERROR MESSAGE.		:
+	:********************************************************
+	DEFALT(NOLOG2)		:SETUP IN OPTL1
+	IF	NOLOG2
+	.TST(LOG2)
+	   IF	.TRU
+	   SERROR(LOG2 AND NOLOG2 ARE MUTUALLY EXCLUSIVE,0)
+	   ELSE
+LOGII	EQ	0		:IF NOLOG2, THEN LOGII, MUDII, ADRII=0
+MUDII	EQ	0
+ADRII	EQ	0
+	   EI
+	ELSE
+LOGII	EQ	1		:IF LOG2, THEN LOGII,MUDII,ADRII = 1
+MUDII	EQ	1
+ADRII	EQ	1
+	EI
+	KILL	LOG2,NOLOG2
+
+	:*******************************************************:
+	: IF LOG1 OR NOTHING, THEN LOGI = 1			:
+	: IF NOLOG1, THEN LOGI = 0				:
+	: IF LOG1 AND NOLOG1, THEN ERROR MESSAGE.		:
+	: IF NOLOG1 AND NOLOG2, THEN ERROR MESSAGE.		:
+	:********************************************************
+	DEFALT(NOLOG1)		:SETUP IN OPTL1
+	IF	NOLOG1
+	.TST(LOG1)
+	   IF	.TRU
+	   SERROR(LOG1 AND NOLOG1 ARE MUTUALLY EXCLUSIVE,0)
+	   ELSE
+LOGI	EQ	0		:IF NOLOG1, THEN LOGI =0
+	   EI
+	ELSE
+LOGI	EQ	1		:IF LOG1, THEN LOGI = 1
+	EI
+	KILL	LOG1,NOLOG1
+		
+	:*******************************************************:
+	: IF T121, THEN A2OPTY = 1				:
+	: IF NOT121 OR NOTHING, THEN A2OPTY = 0			:
+	: IF T121 AND NOT121, THEN ERROR MESSAGE.		:
+	:********************************************************
+	DEFALT(T121)		:SETUP IN OPTL1
+	IF	T121
+	.TST(NOT121)
+	   IF	.TRU
+	   SERROR(T121 NAD NOT121 ARE MUTUALLY EXCLUSIVE,0)
+	   ELSE
+A2OPTY	EQ	1		:IF T121, THEN A2OPTY = 1
+	   EI
+	ELSE
+A2OPTY	EQ	0		:IF NOT121, THEN A2OPTY = 0
+	EI
+	KILL	T121,NOT121
+
+	:*******************************************************:
+	: IF LNTN, THEN A2OPLN = 1				:
+	: IF NOLNTN OR NOTHING, THEN A2OPLN = 0			:
+	: IF LNTN AND NOLNTN, THEN ERROR MESSAGE.		:
+	:********************************************************
+	DEFALT(LNTN)		:SETUP IN OPTL1
+	IF	LNTN
+	.TST(NOLNTN)
+	   IF	.TRU
+	   SERROR(LNTN NAD NOLNTN ARE MUTUALLY EXCLUSIVE,0)
+	   ELSE
+A2OPLN	EQ	1		:IF LNTN, THEN A2OPLN = 1
+	   EI
+	ELSE
+A2OPLN	EQ	0		:IF NOLNTN, THEN A2OPLN = 0
+	EI
+	KILL	LNTN,NOLNTN
+
+	:*******************************************************:
+	: IF HLST OR NOTHING, THEN A2OPHL = 1			:
+	: IF NOHLST, THEN A2OPHL = 0				:
+	: IF HLST AND NOHLST, THEN ERROR MESSAGE.		:
+	:********************************************************
+	DEFALT(NOHLST)		:SETUP IN OPTL1
+	IF	NOHLST
+	.TST(HLST)
+	   IF	.TRU
+	   SERROR(HLST AND NOHLST ARE MUTUALLY EXCLUSIVE,0)
+	   ELSE
+A2OPHL	EQ	0		:IF NOHLST, THEN A2OPHL = 0
+	   EI
+	ELSE
+A2OPHL	EQ	1		:IF HLST, THEN A2OPHL = 1
+	EI
+	KILL	HLST,NOHLST
+
+	:*******************************************************:
+	: IF TNDL OR NOTHING, THEN A2OPRP = 1			:
+	: IF NOTNDL, THEN A2OPRP = 0				:
+	: IF TNDL AND NOTNDL, THEN ERROR MESSAGE.		:
+	:********************************************************
+	DEFALT(NOTNDL)		:SETUP IN OPTL1
+	IF	NOTNDL
+	.TST(TNDL)
+	   IF	.TRU
+	   SERROR(TNDL AND NOTNDL ARE MUTUALLY EXCLUSIVE,0)
+	   ELSE
+A2OPRP	EQ	0		:IF NOTNDL, THEN A2OPRP = 0
+	   EI
+	ELSE
+A2OPRP	EQ	1		:IF TNDL, THEN A2OPRP = 1
+	EI
+	KILL	TNDL,NOTNDL
+
+	GLOBAL(SUPPAG,1)	:DEFAULT # OF SECTORS PER MAC PAGE
+	DEFALT(PSWHST,0)	:DEFAULT PASSWORD CHANGE UTILITY HOST #
+	]
+
+  	:***************************************:
+	:					:
+	:	DEFINE LOGIN ERRORS TRACKING	:
+	:					:
+	:***************************************:
+	:F1  - TIME INTERVAL (# OF HOURS)       :
+	:	DEFAULT TO BE 24 HOURS DECIMAL  :
+	:F2  - THRESHOLD OF LOGIN ERRORS WITHIN :
+	:	THE TIME INTERVAL.              :
+	:	DEFAULT TO BE 100 DECIMAL	:
+	:***************************************:
+
+
+
+SECURE	MACRO(F1,F2)[
+	IF	1-LOGII		:THIS MACRO IS INVALID IF LOG2
+	SERROR(REMOVE THE SECURE MACRO - IT ONLY WORKS WITH LOG2,0)
+	ERRLIN(ASSEMBLY CANCELLED,0)
+	QUIT
+	EI
+	.ISIT1
+.ERSAV	EQ	ERRCNT		:SAVE CURRENT ERROR COUNT
+.F1	EQ	$A F1 24	:DEFAULT TIME INTERVAL = 24 HOURS
+.F2	EQ	$A F2 100	:DEFAULT THRESHOLD = 100 DECIMAL
+.F3	EQ	$A 1		:LOWER BOUND OF TIMER
+.F4	EQ	$A 168	 	:UPPER BOUND OF TIMER (7 DAYS)
+.F5	EQ	$A 10		:LOWER BOUND OF THRESHOLD
+.F6	EQ	7FFF		:UPPER BOUND OF THRESHOLD
+
+	IF	.F3-.F1
+	SERROR(MIN TIME INTERVAL IS 1 HOUR IN SECURE MACRO,0)
+	EI
+	IF	.F1-.F4
+	SERROR(MAX TIME INTERVAL IS 168 HOURS IN SECURE MACRO,0)
+	EI
+	IF	.F5-.F2
+	SERROR(MIN THRESHOLD IS 10 IN SECURE MACRO,0)
+	EI
+	IF	.F2-.F6
+	SERROR(MAX THRESHOLD IS 32767 IN SECURE MACRO,0)
+	EI
+	IF (.ERSAV+1)-ERRCNT	:IF NO MACRO ERRORS - DEFINE PARAMETERS
+	GL	LER
+LER	EQ	1		:FUNCTION SWITCH
+LERSEC	EQ	.F1*$A3600	:CONVERT TIME INTERVAL INTO SECONDS
+LERTHS	EQ	.F2
+	EI
+	KILL	.F1,.F2,.F3,.F4,.F5,.F6]
+
+
+
+
+
+:***************************************************************:
+:								:
+:	MACROS RELATED TO SECOND SECTION OF TYMFILE		:
+:								:
+:***************************************************************:
+
+	:***************************************:
+	:				REQUIRED:
+	:					:
+	:	MACRO TO START 2ND SECTION	:
+	:					:
+	:***************************************:
+	:WHILE THE FIRST SECTION IS MODULE SUPER:
+	:THE SECOND MODULE IS EITHER SUPER FOR	:
+	:SUP OR SLAVE ASSEMBLY OR IS SDEF FOR	:
+	:ISIS KERNEL OR NODE CODE ASSEMBLY.	:
+	:***************************************:
+
+TYMSUP	MACRO[
+	.ISIT1
+	IF	\.TYM2
+	SERROR(TYMSUP MACRO PREVIOUSLY DEFINED,1)
+	ERRLIN(ASSEMBLY CANCELLED,0)
+	QUIT
+	EI
+	GL	.TYM2
+.TYM2	EQ	1
+.ERSAV	EQ	ERRCNT
+	.MTST(.DFTIM,DEFTIM)
+	.MTST(.DFNOD,DEFNOD)
+	.MTST(.HOST,DEFHST)
+	IF	DISK
+	.MTST(.DFSAV,DEFSAV)
+	EI	:DISK
+	.MTST(.DFMUD,DEFMUD)
+	.MTST(.DFACT,DEFACT)
+	.MTST(.DFERR,DEFERR)
+	.MTST(.DFNAM,PRBNAM)
+	.MTST(.NDASIZ,NDASIZ)
+	.MTST(.BLET,BUFLET)
+	IF	(.ERSAV+1)-ERRCNT
+	DEFL1
+	GL	.ISIS
+.ISIS	EQ	ISIS
+	ELSE
+	QUIT
+	EI	:ERRORS
+	EM		:END FIRST MODULE
+
+	:START SECOND SECTION
+	IF	ISIT
+	GL	NCSS,SCSIZ,NSP,SRING,SUPNKU
+	MO	.,SUPDEF	:ISIS ASSEMBLY MODULE
+ERRCNT	EQ	0		:RE-INIT ERROR COUNTER FOR 2ND SECTION
+SRING	EQ	1		:THIS WILL GO AWAY - FOR NODE CODE
+	ELSE
+	MO	.,SUPER		:SUPERVISOR OR SLAVE MODULE
+	EI
+]
+
+
+	:***************************************:
+	:				REQUIRED:
+	:					:
+	:	USER MACRO TO DEFINE NSP	:
+	:					:
+	:***************************************:
+	:F1 - NUMBER OF SUP PORTS (MULTIPLE OF	:
+	:	32 DECIMAL).  CAN BE DEFAULTED -:
+	:	AND CALCULATED.  3 THRESHOLDS	:
+	:	ARE AVAILABLE - ABSOLUTE MIN,	:
+	:	RECOMMENDED MINIMUM AND SAFE.	:
+	:	THE SAFE LEVEL IS THE DEFAULT.	:
+	:***************************************:
+
+DEFNSP	MACRO(F1)[
+	.ISIT1
+	IF	\.TYM2
+	 IF	\.DFNSP
+	 WARNING(SUP PORTS PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.DFNSP	 EQ	1
+.ERSAV	 EQ	ERRCNT
+	  IF	\QID
+.F1	 EQ	$A F1 $0 QID
+	  ELSE
+.F1	 EQ	$A F1 0
+	  EI
+	  IF	.F1
+	   IF	.F1&1F
+	   SERROR(SUP PORTS (F1) NOT MULTIPLE OF 32 DECIMAL,0)
+	   EI
+	   IF	QII+QIM-.F1
+	   SERROR(SUP PORTS (.NSP) INSUFFICIENT,1)
+	   ERRLIN(MUST BE AT LEAST ,1)
+	   NUMBER QII+QIM$A
+	   ERRLIN(RECOMMENDED MINIMUM PORTS IS ,1)
+	   NUMBER QII+QIR$A
+	   ERRLIN(THE DEFAULT SAFE ALLOCATION IS ,1)
+	   NUMBER QID$A
+	   ERRFIN
+	   ELSE QII+QIR-.F1
+	   WARNING(SUP PORTS (.NSP) MAY BE INSUFFICIENT,1)
+	   WARLIN(RECOMMENDED MINIMUM PORTS IS ,1)
+	   NUMBER  QII+QIR$A
+	   WARLIN(THE DEFAULT SAFE ALLOCATION IS ,1)
+	   NUMBER QID$A
+	   ERRFIN
+	   EI
+	  ELSE
+	  SERROR(SUP PORTS (.NSP) INVALID IN DEFNOD MACRO,0)
+	  EI
+	 IF	(.ERSAV+1)-ERRCNT
+NSP	 EQ	.F1
+	 IF	NOTI
+T2PRTS	 EQ	NSP/8
+	 ELSE
+T2PRTS	 EQ	((MXT2ND+21)^-5)^2
+T1PRTS	 EQ	NSP/8-T2PRTS
+	 EI
+	 KILL	QID,QIM,QIR,QII
+	 EI	:ERRORS IN NSP PARM
+	EI	:\.DFNSP
+	ELSE	:\.TYM2
+	WARNING(DEFNSP MACRO MISPLACED - IGNORED,0)
+	EI ]
+
+	:***************************************:
+	:				REQUIRED:
+	:					:
+	:	USER MACRO TO DEFINE SUP	:
+	:		CODE AREA		:
+	:					:
+	:***************************************:
+	:F1 - SIZE (PAGES), DEFAULT = 140	:
+	:F2 - START SEGMENT, ISIS DEFAULT IS 8	:
+	:	NON-ISIS IS 0D			:
+	:F3 - FOR NON-ISIS, OPTIONAL REAL START	:
+	:	ADDRESS OF CODE (RSUP/100).	:
+	:***************************************:
+
+SUPCOD	MACRO(F1,F2,F3)[
+	.ISIT1
+	IF	\.TYM2
+	 IF	\.SCODE
+	 WARNING(SUP CODE AREA PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.SCODE	 EQ	1
+.ERSAV	 EQ	ERRCNT
+
+.NU1	 EQ	F1 0
+.NU2	 EQ	F1 1
+	 IF	.NU2-.NU1
+.F1	 EQ	140		:DEFAULT CODE AREA SIZE IN SECTORS
+	 ELSE
+.F1	 EQ	(F1+SUPPAG-1)/SUPPAG*SUPPAG	:CODE AREA SIZE IN PAGES
+	 EI
+
+	  IF	.ISIS
+.F2	  EQ	F2 8
+	  ELSE
+.F2	  EQ	F2 0D
+.F3	  EQ	F3 0
+	   IF	.F3
+	    IF	.F3-100000
+	    SERROR(CODE REAL ADDRESS GREATER THAN 1 MEG,0)
+	    EI
+	   EI
+	  EI
+
+	  IF	1-.F1
+	  SERROR(CODE AREA SIZE INVALID IN SUPCOD MACRO,0)
+	  EI
+
+	  IF	2-.F2		:CODE SEGMENT LOW?
+	  SERROR(CODE SEGMENT (F2) INVALID IN SUPCOD MACRO,0)
+	  ELSE	.F2-0E		:SEGMENT TOO HIGH?
+	  SERROR(CODE SEGMENT (F2) INVALID IN SUPCOD MACRO,0)
+	  ELSE
+
+	   IF	.ISIS
+	    IF	.F2%8
+	    SERROR(CODE SEGMENTS MUST START AT 8 FOR ISIS,0)
+	    EI
+	   EI
+	  EI
+
+	  IF	(.ERSAV+1)-ERRCNT
+SUPESZ	  EQ	.F1
+SUPEST	  EQ	.F2*100
+	  IF	1-.ISIS
+	   IF	.F3
+	   GL	RSUP
+RSUP	   EQ	.F3*100
+	   EI
+	  EI
+	  EI	:ERRORS
+	 EI	:REPEAT
+	ELSE
+	WARNING(SUPCOD MACRO MISPLACED - IGNORED,0)
+	EI
+	KILL	.F1,.F2,.F3,.NU1,.NU2 ]
+
+
+	:***************************************:
+	:				REQUIRED:
+	:					:
+	:     USER MACRO TO DEFINE SUP/NODE	:
+	:	COMMUNICATION AREA		:
+	:					:
+	:***************************************:
+	:F1 - SIZE IN PAGES, CAN BE DEFAULTED	:
+	:	AND CALCULATED FROM NSP.  THIS	:
+	:	HAS A CEILING OF 51 PAGES, DUE	:
+	:	TO RING COPY LIMIT OF 1FFE BYTES:
+	:	PER RING.			:
+	:F2 - START SEGMENT, DEFAULTS TO 7	:
+	:	FOR ISIS, ELSE 0C		:
+	:***************************************:
+
+SUPCOM	MACRO(F1,F2)[
+	.ISIT1
+	IF	\.TYM2
+	 IF	\.SCOM
+	 WARNING(COMMUNICATION AREA PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.SCOM	 EQ	1
+.ERSAV	 EQ	ERRCNT
+.F0	 EQ	((NSP*8)+1040+0FF)/100	:REQUIRED PAGES OF COM AREA
+	 IF	.F0-51
+.F0	 EQ	51		:THRESHOLD AT 51 PAGES
+	 EI
+
+.NU1	 EQ	F1 0
+.NU2	 EQ	F1 1
+	 IF	.NU2-.NU1
+.F1	 EQ	(.F0+SUPPAG-1)/SUPPAG*SUPPAG	:DEFAULT COM AREA SIZE SECTORS
+	 ELSE
+.F1	 EQ	(F1+SUPPAG-1)/SUPPAG*SUPPAG	:COM AREA SIZE IN SECTORS
+	 EI
+
+	  IF	.ISIS
+.F2	  EQ	F2 7
+	  ELSE
+.F2	  EQ	F2 0C
+	  EI
+	  IF	.F0-.F1
+	  SERROR(COMMUNICATION AREA SIZE (F1) TOO SMALL,1)
+	  ERRLIN(HEX SIZE MUST BE AT LEAST ,1)
+	  NUMBER .F0
+	  ERRFIN
+	  EI
+	  IF	0-.F2
+	  SERROR(COMMUNICATION START (F2) INVALID,0)
+	  ELSE	.F2-0D		:TOO LARGE?
+	  SERROR(COMMUNICATION START SEGMENT (F2) INVALID,0)
+	  ELSE
+
+	   IF	.ISIS
+	    IF	.F2%7
+	    SERROR(COMMUNICATION AREA MUST START AT 700 FOR ISIS,0)
+	    EI
+	   EI
+	  EI
+	  IF	(.ERSAV+1)-ERRCNT
+SUPCSZ	  EQ	.F1*100
+SCBASE	  EQ	.F2*10000
+	  EI	:ERRORS
+	 EI	:REPEAT
+	ELSE
+	WARNING(SUPCOM MACRO MISPLACED - IGNORED,0)
+	EI
+	KILL	.F0,.F1,.F2,.NU1,.NU2 ]
+
+
+	:***************************************:
+	:				REQUIRED:
+	:					:
+	:	USER MACRO TO DEFINE SUP	:
+	:		DATA AREA		:
+	:					:
+	:***************************************:
+	:F1 - TOTAL SIZE, DEFAULT 600 PAGES	:
+	:F2 - PAGE OFFSET TO RWAREA, DEFAULT 140:
+	:F3 - SIZE OF RONLY AREA (OPTIONAL)	:
+	:***************************************:
+
+SUPDAT	MACRO(F1,F2,F3)[
+	.ISIT1
+	IF	\.TYM2
+	 IF	\.SDAT
+	 WARNING(SUP DATA AREA PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.SDAT	 EQ	1
+.ERSAV	 EQ	ERRCNT
+
+.NU1	 EQ	F1 0
+.NU2	 EQ	F1 1
+	 IF	.NU2-.NU1
+.F1	 EQ	600		:DEFAULT # OF SECTORS IN DATA AREA
+	 ELSE
+.F1	 EQ	((F1+SUPPAG-1)/SUPPAG)*SUPPAG	:DATA AREA SIZE IN SECTORS
+	 EI
+
+.NU1	 EQ	F2 0
+.NU2	 EQ	F2 1
+	 IF	.NU2-.NU1
+.F2	 EQ	140		:DEFAULT SECTOR OFFSET TO R/W AREA
+	 ELSE
+.F2	 EQ	((F2+SUPPAG-1)/SUPPAG)*SUPPAG	:SECTOR OFF TO R/W AREA
+	 EI
+
+.NU1	 EQ	F3 0
+.NU2	 EQ	F3 1
+	 IF	.NU2-.NU1
+.F3	 EQ	(.F1-.F2-SUPPAG)	:DEFAULT R/O AREA SIZE IN SECTORS
+	 ELSE
+.F3	 EQ	((F3+SUPPAG-1)/SUPPAG)*SUPPAG	:R/O AREA SIZE IN SECTORS
+	 EI
+
+	  IF	1-.F1
+	  SERROR(SUP DATA AREA SIZE (F1) INVALID,0)
+	  EI
+	  IF	1-.F2
+	  SERROR(READ/WRITE AREA START (F2) INVALID,0)
+	  EI
+	  IF	1-.F3
+	  SERROR(READ ONLY AREA SIZE (F3) INVALID,0)
+	  EI
+	  IF	(.ERSAV+1)-ERRCNT
+SUPDSZ	  EQ	.F1
+RWAREA	  EQ	.F2*100
+ROSIZE	  EQ	.F3
+	  EI	:ERRORS
+	 EI	:REPEAT
+	 ELSE
+	 WARNING(SUPDAT MACRO MISPLACED - IGNORED,0)
+	EI
+	KILL	.F1,.F2,.F3,.NU1,.NU2 ]
+
+	:***************************************:
+	:				INTERNAL:
+	:					:
+	:	UTILITY MACRO TO SET SUP	:
+	:	AREA DEFINITIONS		:
+	:					:
+	:***************************************:
+
+SUPPRM	MACRO[
+	.ISIT1
+	IF	\.TYM2
+	 IF	\.SUPPR
+	 WARNING(SUP PARMS PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.SUPPR	 EQ	1
+.ERSAV	 EQ	ERRCNT
+	 .TST(.SDAT)
+	  IF	1-.TRU
+	  SERROR(SUPDAT MACRO MUST PRECEED SUPPRM MACRO,0)
+	  EI
+	  .TST(.SCOM)
+	  IF	1-.TRU
+	  SERROR(SUPCOM MACRO MUST PRECEED SUPPRM MACRO,0)
+	  EI
+	  .TST(.SCODE)
+	  IF	1-.TRU
+	  SERROR(SUPCOD MACRO MUST PRECEED SUPPRM MACRO,0)
+	  EI
+	  IF	(.ERSAV+1)-ERRCNT
+SUPA0B	  EQ	0		:SUP CORE ALLOCATION AREA 0 BASE (PAGES)
+SUPA0	  EQ	SUPDSZ/SUPPAG	:SUP CORE ALLOCATION AREA 0 LENGTH (PAGES)
+SCA1O	  EQ	(RWAREA^-8)/SUPPAG	:SUPERVISOR COMMON AREA 1 OFFSET
+SCA1S	  EQ	1		:SUPERVISOR COMMON AREA 1 SIZE
+SCA2O	  EQ	SCA1O+SCA1S	:SUPERVISOR COMMON AREA 2 OFFSET
+SCA2S	  EQ	ROSIZE/SUPPAG	:SUPERVISOR COMMON AREA 2 SIZE
+SUPA1B	  EQ	(SCBASE^-8)/SUPPAG  :SUP CORE ALLOCATION AREA 1 BASE (PAGES)
+SCSIZ	  EQ	SUPCSZ		:SUP CORE ALLOCATION AREA 1 SIZE (BYTES)
+SUPA2B	  EQ	SUPEST/SUPPAG	:SUPERVISOR AREA 2 (CODE) BASE (PAGES)
+SUPST	  EQ	SUPEST^8	:STARTING ADDRESS FOR SUP
+SUPA2	  EQ	SUPESZ/SUPPAG	:SUP CORE ALLOCATION AREA 2 BASE [EXECUTABLE] (PAGES) 
+	  EI
+	 EI
+	ELSE
+	WARNING(SUPPRM MACRO MISPLACED - IGNORED,0)
+	EI
+]
+
+
+
+	:***************************************:
+	:				REQUIRED:
+	:					:
+	:	USER MACRO TO DEFINE		:
+	:	    PROBE PARAMETERS		:
+	:					:
+	:***************************************:
+	:F4 - DEFAULT CIPHER, NO DEFAULT	:
+	:F1 - # USERS, DEFAULT 10		:
+	:F2 - PROBE TIME LIMIT, DEFAULT 60 MIN	:
+	:F3 - DISK BUFFERS, DEFAULT 4		:
+	:F5 - CODE SIZE IN PAGES, DEFAULT 0E8	:
+	:F6 - START DISK SAVE OFFSET, DEFAULT	:
+	:	4*4 SECTORS			:
+	:F7 - SAVE SIZE, DEFAULT 0E8 SECTORS	:
+	:F8 - IF PUB, REAL START ADDRESS,	:
+	:	 DEFAULT 0EB700			:
+	:***************************************:
+PRBPRM	MACRO(F4,F1,F2,F3,F5,F6,F7,F8)[
+	.ISIT1
+	IF	\.TYM2
+	 IF	\.PRBPR
+	 WARNING(PROBE PARAMETERS PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.PRBPR	 EQ	1
+.ERSAV	 EQ	ERRCNT
+.F1	 EQ	$A F1 10	:DEFAULT NUMBER OF USERS
+.F2	 EQ	$A F2 10	:DEFAULT TIMEOUT IN MINUTES
+.F3	 EQ	$A F3 4		:DEFAULT DISK BUFFERS
+.F4	 EQ	$0 F4 0		:SHOULD BE NON-ZERO
+.F5	 EQ	$0 F5 0E8	:DEFAULT CORE ALLOCATION FOR PROBE
+.F6	 EQ	$0 F6 4*4	:DEFAULT START SAVE OFFSET FOR PROBE
+.F7	 EQ	$0 F7 0E8	:NUMBER OF SECTORS TO SAVE
+.F8	 EQ	$0 F8 0EB700	:DEFAULT REAL ADDRESS
+
+	  IF	4-.F1
+	  SERROR(NUMBER OF USERS (F1) TOO SMALL IN PRBPRM MACRO,0)
+	  EI
+
+	  IF	$A .F1-64
+	  SERROR(NUMBER OF USERS (F1) TOO LARGE IN PRBPRM MACRO,0)
+	  EI
+
+	  IF	-.F2
+	  SERROR(TIME LIMIT (F2) INVALID IN PRBPRM MACRO,0)
+	  EI
+
+	  IF	2-.F3
+	  SERROR(NUMBER OF BUFFERS (F3) TOO SMALL IN PRBPRM MACRO,0)
+	  EI
+
+	  IF	.F3-10
+	  SERROR(NUMBER OF BUFFERS (F3) TOO LARGE IN PRBPRM MACRO,0)
+	  EI
+
+	  IF	.F4
+	  ELSE	-.F4
+	  ELSE			:CIPHER WAS ZERO OR NULL
+	  SERROR(CIPHER (F4) INVALID IN PRBPRM MACRO,0)
+	  EI
+
+	  IF	.F7-.F5		:CHECK THAT SAVE SIZE VALID
+	  SERROR(PROBE SAVE SIZE EXCEEDS CORE ALLOCATION,0)
+	  EI
+
+	  IF	(.ERSAV+1)-ERRCNT
+NUMUSE	  EQ	.F1		:PROBE USERS
+SUPNP	  EQ	NUMUSE-1	:SIMULTANEOUS PORTS
+PROSA	  EQ	10+SUPNP*2	:START ADDRESS
+PROSAI	  EQ	-2		:START ADDRESS INCREMENT
+PRBA0	  EQ	.F5		:CORE ALLOCATION (SECTORS)
+PROA0	  EQ	(.F5+SUPPAG-1)/SUPPAG	:CORE ALLOCATION (PAGES)
+DPROBE	  EQ	8000+(.F6)/4	:SAVE AREA
+NPROBE	  EQ	(.F7)/4		:SAVE SIZE IN BLOCKS
+	   IF	1-ISIT
+TIMLIM	   EQ	.F2		:TIME LIMIT FOR RESTRICTED USERS
+NDBUF	   EQ	.F3		:NUMBER OF USER BUFFERS
+DFLPSW	   EQ	.F4
+	    IF	PUB
+	     IF	.F8
+RPROBE	     EQ	.F8
+	     EI
+	    EI
+	   EI
+	  EI
+	 EI
+	ELSE
+	WARNING(PRBPRM MACRO MISPLACED - IGNORED,0)
+	EI
+	KILL .F1,.F2,.F3,.F4,.F5,.F6,.F7,.F8 ]
+
+
+
+	:***************************************:
+	:				REQUIRED:
+	:					:
+	:	USER MACRO TO DEFINE		:
+	:	ERROR LOG PARAMETERS		:
+	:					:
+	:***************************************:
+	:F1 - SIZE OF CODE IN PAGES, DEFAULT 20	:
+	:F2 - SAVE AREA PAGE OFFSET, DEFAULT 44*4:
+	:F3 - SAVE SIZE IN PAGES, DEFAULT 8*4	:
+	:F4 - IF PUB, REAL START ADDRESS.	:
+	:	DEFAULT 0FB700			:
+	:***************************************:
+
+ERRPRM	MACRO(F1,F2,F3,F4)[
+	.ISIT1
+	IF	\.TYM2
+	 IF	\.ERRPR
+	 WARNING(ERRLOG PARMS PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.ERRPR	 EQ	1
+.ERSAV	 EQ	ERRCNT
+.F1	 EQ	$0 F1 20	:DEFAULT CORE ALLOCATION SIZE
+.F2	 EQ	$0 F2 44*4	:DEFAULT START SAVE OFFSET
+.F3	 EQ	$0 F3 8*4	:DEFAULT SAVE SIZE
+.F4	 EQ	$0 F4 0FB700	:DEFAULT REAL START ADDRESS
+
+	  IF	.F3-.F1	:SAVE SIZE TOO LARGE FOR CORE ALLOCATION
+	  SERROR(ERRLOG SAVE SIZE EXCEEDS CORE ALLOCATION,0)
+	  EI
+
+	  IF	(.ERSAV+1)-ERRCNT
+SUPNER	  EQ	2		:SIMULTANEOUS PORTS
+ERRSA	  EQ	10+SUPNER*2	:START ADDRESS
+ERRSAI	  EQ	-2		:START ADDRESS INCREMENT
+ERLA0	  EQ	.F1		:CORE ALLOCATION (SECTORS)
+ERRA0	  EQ	(.F1+SUPPAG-1)/SUPPAG	:CORE ALLOCATION (PAGES)
+DERLOG	  EQ	8000+(.F2/4)	:SAVE AREA
+NERLOG	  EQ	.F3/4		:SAVE SIZE IN BLOCKS
+	   IF	PUB
+	    IF	.F4
+RERLOG	    EQ	.F4
+	    EI
+	   EI
+	  EI
+	 EI
+	ELSE
+	WARNING(ERRPRM MACRO MISPLACED - IGNORED,0)
+	EI
+	KILL .F1,.F2,.F3,.F4 ]
+
+
+
+	:***************************************:
+	:				REQUIRED:
+	:	USER MACRO TO DEFINE		:
+	:	ACCOUNTING SLAVE SIZE		:
+	:					:
+	:***************************************:
+	:F1 - TOTAL SIZE IN PAGES, DEFAULT 0C	:
+	:F2 - START SAVE OFFSET, DEFAULT 4C*4	:
+	:F3 - SAVE SIZE IN SECTORS, DEFAULT 3*4	:
+	:F4 - IF PUB, REAL START ADDR ACCNT 1	:
+	:	DEFAULT 0FD700			:
+	:F5 - IF PUB, REAL START ADDR ACCNT 2	:
+	:	DEFAULT 0FE300			:
+	:F6 - IF PUB, SECTOR OFFSET TO 2ND SAVE	:
+	:	AREA, DEFAULT 4F*4		:
+	:***************************************:
+
+
+ACCPRM	MACRO(F1,F2,F3,F4,F5,F6)[
+	.ISIT1
+	IF	\.TYM2
+	 IF	\.ACCPR
+	 WARNING(ACCOUNT PARMS PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.ACCPR	 EQ	1
+.ERSAV	 EQ	ERRCNT
+.F1	 EQ	$0 F1 0C	:DEFAULT CORE ALLOCATION IN PAGES
+.F2	 EQ	$0 F2 4C*4	:DEFAULT START SAVE OFFSET
+.F3	 EQ	$0 F3 3*4	:DEFAULT SAVE SIZE
+.F4	 EQ	$0 F4 0FD700	:DEFAULT REAL START ADDR ACCNT 1
+.F5	 EQ	$0 F5 0FE300	:DEFAULT REAL START ADDR ACCNT 2
+.F6	 EQ	$0 F6 4F*4	:DEFAULT SECTOR OFFSET TO 2ND SAVE AREA
+
+
+	  IF	.F3-.F1		:DOES SAVE SIZE EXCEED CORE?
+	  SERROR(ACCOUNTING SAVE SIZE EXCEEDS CORE ALLOCATION,0)
+	  EI
+
+	  IF	(.ERSAV+1)-ERRCNT
+SUPNAC	  EQ	1		:SIMULTANEOUS PORTS
+ACCSA	  EQ	10+SUPNAC*2	:START ADDRESS
+ACCSAI	  EQ	-2		:START ADDRESS INCREMENT
+ACTA0	  EQ	.F1		:CORE ALLOCATION (SECTORS)
+ACCA0	  EQ	(.F1+SUPPAG-1)/SUPPAG	:CORE ALLOCATION (PAGES)
+DACCOUNT  EQ	 8000+.F2/4	:SAVE AREA
+NACCOUNT  EQ	.F3/4		:SAVE SIZE
+	   IF	PUB
+	    IF	.F4
+RACCOUNT    EQ	.F4
+	    EI
+	    IF	.F5
+R2ACCT	    EQ	.F5
+	    EI
+	    IF	.F6
+D2ACCT	    EQ	8000+.F6/4
+	    EI
+	   EI
+	  EI
+	 EI
+	ELSE
+	WARNING(ACCPRM MACRO MISPLACED - IGNORED,0)
+	EI
+	KILL .F1,.F2,.F3,.F4,.F5,.F6 ]
+
+
+
+	:***************************************:
+	:				REQUIRED:
+	:					:
+	:	USER MACRO TO DEFINE		:
+	:	SYSMSG SIZE IN PAGES		:
+	:					:
+	:***************************************:
+	:F1 - CORE SIZE IN PAGES, DEFAULT 10	:
+	:F2 - START SAVE OFFSET, DEFAULT 3C*4	:
+	:F3 - SAVE SIZE IN PAGES, DEFAULT 4*4	:
+	:F4 - IF PUB, REAL START ADDRESS	:
+	:	 DEFAULT 0F9700			:
+	:***************************************:
+
+SYSPRM	MACRO(F1,F2,F3,F4)[
+	.ISIT1
+	IF	\.TYM2
+	 IF	\.SYSPR
+	 WARNING(SYSMSG1 PARMS PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.SYSPR	 EQ	1
+.ERSAV	 EQ	ERRCNT
+.F1	 EQ	$0 F1 10	:DEFAULT CORE ALLOCATION
+.F2	 EQ	$0 F2 3C*4	:DEFAULT SAVE OFFSET
+.F3	 EQ	$0 F3 4*4	:DEFAULT SAVE SIZE
+.F4	 EQ	$0 F4 0F9700	:DEFAULT REAL ADDRESS
+
+	  IF	.F3-.F1		:CHECKFOR SAVE SIZE OVERRUN
+	  SERROR(SYSMSG1 SAVE SIZE EXCEEDS CORE ALLOCATION,0)
+	  EI
+
+	  IF	(.ERSAV+1)-ERRCNT
+SUPNSY	  EQ	1		:SIMULTANEOUS PORTS
+SYSSA	  EQ	10+SUPNSY*2	:START ADDRESS
+SYSSAI	  EQ	-2		:START ADDRESS INCREMENT
+SYSMA0	  EQ	.F1		:CORE ALLOCATION (SECTORS)
+SYSA0	  EQ	(.F1+SUPPAG-1)/SUPPAG	:CORE ALLOCATION (PAGES)
+DSYSMSG1  EQ	 8000+.F2/4	:SAVE AREA
+NSYSMSG	  EQ	.F3/4		:SAVE SIZE
+	   IF	PUB
+	    IF	.F4
+RSYSMSG	    EQ	.F4
+	    EI
+	   EI
+	  EI
+	 EI
+	ELSE
+	WARNING(SYSPRM MACRO MISPLACED - IGNORED,0)
+	EI
+	KILL .F1,.F2,.F3,.F4 ]
+
+
+
+	:***************************************:
+	:				REQUIRED:
+	:					:
+	:	USER MACRO TO DEFINE		:
+	:	UN2 SIZE IN PAGES		:
+	:					:
+	:***************************************:
+	:F1 - CORE SIZE INPAGES, DEFAULT 10	:
+	:F2 - START SAVE OFFSET, DEFAULT 40*4	:
+	:F3 - SAVE SIZE IN PAGES, DEFAULT 4*4	:
+	:F4 - IF PUB,  REAL START ADDRESS	:
+	:	DEFAULT 0FA700			:
+	:***************************************:
+
+UN2PRM	MACRO(F1,F2,F3,F4)[
+	.ISIT1
+	IF	\.TYM2
+	 IF	\.UN2PR
+	 WARNING(UN2 PARMS PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.UN2PR	 EQ	1
+.ERSAV	 EQ	ERRCNT
+.F1	 EQ	$0 F1 10	:DEFAULT CORE ALLOCATION
+.F2	 EQ	$0 F2 40*4	:DEFAULT START SAVE OFFSET
+.F3	 EQ	$0 F3 4*4		:DEFAULT SAVE SIZE
+.F4	 EQ	$0 F4 0FA700	:DEFAULT REAL START ADDRESS
+
+	  IF	.F3-.F1		:CHECK FOR SAVE OVERRUN
+	  SERROR(UN2 SAVE SIZE EXCEEDS CORE ALLOCATION,0)
+	  EI
+
+	  IF	(.ERSAV+1)-ERRCNT
+SUPNUN	  EQ	1		:SIMULTANEOUS PORTS
+UN2SA	  EQ	10+SUPNUN*2	:START ADDRESS
+UN2SAI	  EQ	-2		:START ADDRESS INCREMENT
+UN2SA0	  EQ	.F1		:CORE ALLOCATION (SECTORS)
+UN2A0	  EQ	(.F1+SUPPAG-1)/SUPPAG	:CORE ALLOCATION (PAGES)
+DUN2	  EQ	8000+(.F2/4)	:SAVE AREA
+NUN2	  EQ	.F3/4		:SAVE SIZE
+	   IF	PUB
+	    IF	.F4
+RUN2	    EQ	.F4
+	    EI
+	   EI
+	  EI
+	 EI
+	ELSE
+	WARNING(UN2PRM MACRO MISPLACED - IGNORED,0)
+	EI
+	KILL	.F1,.F2,.F3 ]
+
+
+
+	:***************************************:
+	:			   ISIS REQUIRED:
+	:					:
+	:	USER MACRO TO DEFINE		:
+	:	UTILITY SLOT PARAMETERS		:
+	:					:
+	:***************************************:
+	:F1 - SEG. 0 SIZE IN PAGES, DEFAULT 38	:
+	:F2 - SEG. 1 SIZE IN PAGES, DEFAULT 1B	:
+	:***************************************:
+
+UTLPRM	MACRO(F1,F2)[
+	.ISIT1
+	IF	\.TYM2
+	 IF	\.UTLPR
+	 WARNING(UTILITY PARMS PREVIOUSLY DEFINED - IGNORED,0)
+	 ELSE
+.UTLPR	 EQ	1
+.ERSAV	 EQ	ERRCNT
+	:by W. WANG  July-11-84
+.F1	 EQ	$0 F1 38	:DEFAULT SEG 0 SIZE
+.F2	 EQ	$0 F2 1B	:DEFAULT SEG 1 SIZE
+
+	  IF	38-.F1
+	WARNING(UTILITY PARAMETER (F1) IS TOO SMALL,0)
+	  EI
+	  IF	1B-.F2
+	WARNING(UTILITY PARAMETER (F2) IS TOO SMALL,0)
+	  EI
+
+	  IF	(.ERSAV+1)-ERRCNT
+UTLA0	  EQ	.F1		:SEG 0 ALLOCATION (SECTORS)
+UTILA0	  EQ	(.F1+SUPPAG-1)/SUPPAG	:SEG 0 ALLOCATION (PAGES)
+UTLA1	  EQ	.F2		:SEG 1 ALLOCATION (SECTORS)
+UTILA1	  EQ	(.F2+SUPPAG-1)/SUPPAG	:SEG 1 ALLOCATION (PAGES)
+	  EI
+	 EI
+	ELSE
+	WARNING(UTLPRM MACRO MISPLACED - IGNORED,0)
+	EI
+	KILL .F1,.F2 ]
+
+
+:***************************************************************:
+:								:
+:		SUP END OF TYMFILE MACRO			:
+:								:
+:***************************************************************:
+TYMEND	MACRO[
+	.ISIT1
+	IF	\.TYM3
+	SERROR(TYMEND MACRO PREVIOUSLY DEFINED,1)
+	ERRLIN(ASSEMBLY CANCELLED,0)
+	QUIT
+	EI
+	SUPPRM			:COMPLETE SUP PARAMETERS
+	GL	.TYM3
+.TYM3	EQ	1
+	.MTST(.SUPPR,SUPPRM)
+	.MTST(.PRBPR,PRBPRM)
+	.MTST(.ERRPR,ERRPRM)
+	.MTST(.ACCPR,ACCPRM)
+	.MTST(.SYSPR,SYSPRM)
+	.MTST(.UN2PR,UN2PRM)
+	IF	.ISIS
+	.MTST(.UTLPR,UTLPRM)
+	EI
+	.MTST(.DFNSP,DEFNSP)
+	DEFALT(NCSS,7)
+	.ABORT
+SUPNKU	EQ	SUPNP+SUPNER+SUPNAC+SUPNSY+SUPNUN+NCSS
+	KILL	ERROR,SERROR,ERRLIN,ERRFIN,WARNING,WARLIN,WAREND
+	KILL	DEFMUD,DEFACT,DEFERR,CACHE,.NOD,DEFNOD,OPTION
+	KILL	.OPT,DEFINE,DEFALT,DEFIRC,DEFSAV,.ISIT1,TYMSTR
+	KILL	TYMSUP,DEFNSP,PRBNAM,DEFTIM,DEFHST,SUPPRM,PRBPRM
+	KILL	ERRPRM,ACCPRM,SYSPRM,UN2PRM,UTLPRM,FENCE,NDASIZ
+	KILL	SUPCOD,SUPCOM,SUPDAT,BUFLET,HISTRY
+	KILL	TARGET,MBHOST,DEFSNT,DEFTPF,DEFDNC
+
+:	 . Kill all labels used as flags or work cells.
+
+	KILL	.DFMUD,.DFACT,.DFERR,.DFNOD,.NU1,.NU2,.DFIRC,.DFSAV
+	KILL	.TYM1,.LOG2,.MSK,.TYM2,.DFNSP,.DFNAM,.DFTIM,.HOST,.SUPPR
+	KILL	.PRBPR,.ERRPR,.ACCPR,.SYSPR,.UN2PR,.UTLPR,.FENCE
+	KILL	.NDASIZ,.SCODE,.SCOM,.SDAT,.BLET,.HSTRY
+	KILL	.TAR,.MBH,.MAH,.DFSNT,.DFTPF,.DFDNC,.DFTMP
+
+	IF	ISIT
+	:KILL SYMBOLS FOR NON-SUP/SLAVE ASSEMBLY
+	KILL	MXT2ND,NOTI,PUB,ADC,ANAME
+	ELSE
+	:DISPLAY UNDEFINED SYMBOLS
+	:- SHOULDN'T OCCUR WITHIN SUP/SLAVE ASSEMBLY
+	UN
+	EI
+	KILL	ISIT
+	EM
+
+]
+
+
+
+	LIST
+
+
+  @Oá
