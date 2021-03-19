@@ -1,0 +1,930 @@
+
+
+
+
+
+
+
+     **************************************************************************
+     **************************************************************************
+     **************************************************************************
+
+     TTTTTTTT   EEEEE    CCCCCC    HH   HH   TTTTTTTT   II    PPPPPPP    SSSSSS
+        TT      E        CC        HH   HH      TT      II    PP   PP    S
+        TT      EEEEE    CC        HHHHHHH      TT      II    PPPPPPP    SSSSSS
+        TT      E        CC        HH   HH      TT      II    PP              S
+        TT      EEEEE    CCCCCC    HH   HH      TT      II    PP         SSSSSS
+     ***************************************************************************
+     ***************************************************************************
+     **************************************************************************
+
+                                    December 1987
+
+                                                                   PAGES
+
+     1.   SIO Line Problems                                         2
+
+     2.   X.PC Packet Trace                                         3-4
+
+     3.   Number of Nodes, Hosts and Usernames in a Network         5
+
+     4.   Procedure to Bring Up A Network with an Empty CUD and MUD 6
+
+     5.   Black Box Trouble Makers                                  7
+
+     6.   Probe `AD' Command                                        8
+
+     7.   KERMIT via the X.75 Gateway                               9-10
+
+     8.   "CANNOT FIND AN AVAILABLE DEVICE" in Bisynchronous Mode  11-12
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     **************************************************************************
+     *                            T     I     P                               *
+     **************************************************************************
+
+                                  SIO LINE PROBLEMS
+                                  _________________
+
+     The following documents three main SIO identified line problems:
+
+     1.   When an SIO motherboard is installed, the engine boot program (LBOOT)
+          microcode) will see it is present and expect to get a status back from
+          daughter board port 0.  If the engine boot program fails to receive a
+          proper response from port 0, it will never scan any additional ports
+          (either sync or SIO) for a downline load sequence.  This is due to a
+          bug in the engine boot program and will be fixed a future version.
+          This condition can be caused by many different components, including
+          the SIO motherboard, SIO daughter card, PSM Control card (if a PSM
+          bucket is being used) or the ribbon cable.
+
+     2.   At the present time it is still not possible for a target machine to
+          RECEIVE a downline load through any motherboard other than one
+          addressed as 80 hex.  It is possible to SEND a downline load through
+          motherboards addressed above 80 hex.  There is no corrective action
+          for this condition, although LBOOT version 9, when released, will
+          correct this problem.
+
+     3.   Another problem we have found is downline loads failing when SIO V.24
+          lines are connected at speeds of less than 9600 baud and high speed
+          interrupts are enabled (N/T jumper in the T position).  This is a
+          result of the engine boot program failing to see the sync characters
+          in the framed data.  This situation can occur when the sync speed is
+          less than 9600 and the high speed interrupts are enabled.  We have
+          seen it most commonly when the high speed interrupts are enabled and a
+          hard-wires link is connected utilizing the on-board clock of the V.24
+          daughter board.  There is no corrective action for this condition,
+          short of disabling the high speed interrupts or changing the actual
+          link speed to 9600 baud or higher.  This problem should be fixed when
+          LBOOT version 9 is released.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     **************************************************************************
+     *                            T     I     P                               *
+     **************************************************************************
+
+
+
+                                  X.PC PACKET TRACE
+
+     A program for X.PC packet trace with time stamp in each packet has been
+     completed.  This program is beneficial when real time packet tracing cannot
+     be performed.  The program is located on (Techserv:25,33)XPCTRC.*
+
+     The following procedures are to be used:
+
+     1.   St the following parameters in slot tymfile:
+
+          OPTION(PTF,YES)
+          OPTION(PTFSIZ,512)   :  or any size you feel necessary
+          OPTION(PTFSCT,YES)
+
+     2.   Use auxio on PDP-10 or PC to catch the following data      through DDT
+     in xpc slot.  Assume the data is caught in      file "INFILE.XPC".
+
+          :R PTFBUF,PTFSIZ*10
+              40068 0100 3E01 0617 A692 0021 100A 0000 0000
+              40078 013C 3E01 0617 A8F7 0021 1102 0000 0000
+              40088 0148 3E01 0617 A913 0101 120D 0000 0000
+              40098 015C 3E01 0617 A935 0021 1301 0000 0000
+              40008 FO51 3E00 0617 8278 0280 00FB 0000 0000
+              40018 0074 3E01 0617 8291 0080 10FF 0000 0000
+              ....
+              ....
+              40028 F069 3E00 0617 8465 0080 1001 0000 0000
+
+     3.   Sort the above file by using the PDP-10 "ISORT" program.
+
+          -R ISORT
+          ISORT.......VERSION 1.1.......
+
+          ENTER COMMAND:  RUN
+
+          ENTER INPUT FILE NAME:  ? INFILE.XPC
+          ENTER OUTPUT FILE NAME  ? OUTFIL.XPC
+          ENTER NUMBER OF SORT KEYS  ?  1
+
+                                        KEY  1
+          ALPHABETIC (A) OR NUMERIC (N):? a
+          STARTING CHARACTER POSITION ? 20
+          LENGTH OF KEY ? 10
+          ASCENDING (A) OR DESCENDING (D)  ? A
+
+          SORT STRING
+          /KSXA20.10
+
+
+
+
+
+
+
+
+
+
+
+
+          104 RECORDS SORTED
+
+     4.   Run the XPCTRC program on (TECHSERV:25 OR 33)
+
+          -RUN (TECHSERV)XPCTRC
+           X.PC NETWORK SERVER
+
+
+
+          PACKET TRACE FACILITY
+          =====================
+          Please enter trace input file name :
+          ? OUTFIL.XPC
+          Enter the output file name :
+          ? RESULT.XPC
+          RESULT.XPC: New file, OK? Y
+          CHOOSE DPORT (1)SINGLE DPORT or/ (2) ALL DPORTS :
+          INPUT NUMBER 1 OR 2 >>>
+          ? 2
+
+                    RING         LEN   GFI/ P(r)  PKT
+            FASTC   ADDR DPORT   GTH   LCI  P(s)  TYPE      FUNCTION
+            _____   ____ _____   ___   ___  ____  ____      ________
+
+          06178278  F051   3E     02    80   00    FB       Restar Req=> XNI
+          06178291  0074   3E     00    80   10    FF  PC <=Resta Conf
+          06178465  F069   3E     00    80   10    01       Rec Ready=>  XNI
+          0617847D  0080   3E     00    80   10    01  PC <=REC Ready
+          0617A0B3  F0B4   3E     17    21   00    09       SESSION REQ=> XNI
+          0617A0CE  0098   3E     00    81   10    01  PC <=Rec Ready
+          0617A692  0100   3E     00    21   10    0A  PC <=SESSION ACC
+          0617A8F7  013C   3E     00    21   11    02  PC <=DSABL ECHO
+          0617A913  0148   3E     01    01   12    OD  PC <=DATA
+
+          .....
+          .....
+          .....
+
+          0617CAAB  F631   3E     01    21   3A    OB      SESSION CLR=> XNI
+          0617CAAC  0630   3D        ISIS MESSAGE: 9F      ZZZAAAPPPP
+          0617CAC8  0634   3E     00    81   B0    01  PC <=Rec Ready
+          0617CAE3  0640   3E     00    21   B4    0C  PC <=SES CLR AC
+          0617CB1F  F64A   3E     00    21   4B    0E       ORANGE BAL=> XNI
+          0617CB39  064C   3E     00    81   CO    01  PC <=Rec Ready
+          0617CE74  F65C   3E     00    80   10    01       Rec Ready=> XNI
+          0617CE8C  0658   3E     00    80   10    01  PC <=Rec Ready
+          061D4CA   F670   3E     02    80   00    FB       Restar Req=> XNI
+          0617D4CB  0664   3E         ISIS MESSAGE:9E       DDDDDETACH
+          DO YOU WANT TO CONTINUE Y/N?
+          ? N
+          End of X.PC Trace Program
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     **************************************************************************
+     *                            T     I     P                               *
+     **************************************************************************
+
+
+
+                  NUMBER OF NODES, HOSTS AND USERNAMES IN A NETWORK
+
+     The following paragraphs describe three common questions frequently asked
+     concerning network resources:
+
+     1.  MAXIMUM NUMBER OF NODES
+
+         The maximum number of nodes are defined in the SUP file under DEFNOD:
+
+         EXAMPLE:
+
+               DEFNOD  ((BASE<7,7),(REMOTE,1007,8),(TII,2375,1000))
+          value range     0 - 777    1000 - 1777        2000  --
+
+          This example illustrates 1000 TII nodes with the highest TII node
+          number as 2375 octal.
+
+          If you leave 1000 as a blank then the maximum node you can have is
+          (2375 - 2000)oct = 375 oct.
+
+          The MAXIMUM NODE value in the NETVAL . A vile should match the second
+          parameter of the third argument (ex: 2375) and be changed to decimal
+          (ex: 1227) in the Netval .A file.
+
+          *** Same nodes and hosts can be defined in different nodelists and
+              hostlists for reference to class/group tables.  The nodelists and
+              hostlists are not used in defining maximum nodes and hosts.
+
+     2.  MAXIMUM NUMBER OF HOSTS
+
+         The maximum number of hosts can be defined in the SUP file under DEFHST
+         (X) parameter.  The value of "x" is the maximum # of hosts.
+
+         The value of MAXIMUM HOST in NETVAL . A file should match with DEFHST
+         (x).
+
+     3.  MAXIMUM NUMBER OF USERNAMES
+
+         The maximum number of usernames defined in Netval depends on how large
+         each user profile is in the CUD.  Exact numbers cannot be defined.
+
+          If in a Netval .A file you have
+
+               MAXIMUM CUD BLOCK                            = 2039
+               MAXIMUM CUD BLOCK SIZE IN SECTORS            =    8
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+               Assuming each sector you can have averages 8 user profiles;  then
+               total users can be defined in this network as:
+
+                    2039 X 8 X 8  =  130,496 (approximately)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     **************************************************************************
+     *                            T     I     P                               *
+     **************************************************************************
+
+
+
+              PROCEDURE TO BRING UP A NETWORK WITH AN EMPTY CUD AND MUD
+
+     To bring up a new network, 2 names should exist in the MUD in order to
+     validate new users for the network.  These two users should be written on
+     the MUD disk to allow validator to login NETVAL system and perform the
+     consistency.
+
+     Procedure:
+
+          a)  Obtain the "NETPRIV" user profile in Hex form.
+               byte
+               0000 2C00 0000 4E45 5450 D249 5600 6756 31FE
+               0010 13BB FCE2 0000 0002 0000 0001 0002 0002
+               0020 0000 11B3 6000 4000 8075 FFFF 0000 0000
+               (This profile is from NETVAL 2.05 and can be used in the initial
+               stage.)
+
+          b)  Obtain the block number of "NETPRIV".
+               In NETVAL Version 2.05, the block number of NETPRIV  is always
+               1018 by hash function or find this block number from other
+               existing NETVAL systems.
+
+          c)  Find the sector number of "NETPRIV" by the block number.  Example:
+               if you MAXIMUM CUD BLOCK SIZE IN SECTOR = 8  then the sector
+               number is 1018 X 8 = 8144.
+
+          d)  Convert the sector number to hex number 8144 dec = 1FD0
+
+          e)  Login to DDT where the MUD resides.
+
+          f)  Find an empty sector.
+
+          g)  Write the hex value in item "a." to the empty sector.
+
+          h)  Using the logic unit number and sector number (1FD0), write the
+              NETPRIV user profile to the MUD disk.
+
+               Example:
+
+                    Use DDT command:  *ss 0,1FD0,10000,100
+
+          i)  Using the above method to write the UN2 user profile to the MUD
+              block 1679 X 8 sector = 3478 hex sector with the following UN2
+              user profile in hex.
+               byte
+               0000 2800 0000 D54E 3200 C5C8 C08A 132C 301D
+
+
+
+
+
+
+
+
+
+
+
+
+
+               0010 0000 0001 0000 0029 0002 0001 0000 0E8A
+               0020 6000 8079 007A FFFF 0000 0000 0000 0000
+
+          j)  You should be able to login to NVDM or NETVAL after the above
+              procedure.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     **************************************************************************
+     *                            T     I     P                               *
+     **************************************************************************
+
+
+
+                              BLACK BOX TROUBLE MAKERS
+
+     The RAD modem eliminators can cause ghost symptoms.
+
+     These little black boxes with two 25 pin D connectors on both ends can
+     cause major headaches.
+
+     The Cause?
+
+     They are known to have NO power supply cord, thus they pull their own power
+     from the stable signals like DTR and DCD.  With this voltage they create
+     their own internal clock speeds at 9.6 or 19.2.
+
+     This is one of the main sources of problems.
+
+     As the power they can consume is limited, they do not have enough drive to
+     make sharp edged clock signals.  Symptoms seen vary from occasional
+     error rates, to lines reporting at unreasonable speeds 28.8 reported though
+     real speed is 9.6.
+
+     In an SNA application we suffered from uncontrolled disconnects at high
+     volume transfers.  As the clusters controller lost sync with the clocks and
+     thus caused a disconnect.
+
+     RECOMMENDATION:
+
+     Do NOT use modem eliminators WITHOUT power supplies.
+
+     Only use baseband modems if the distance is larger than 15 meters and if
+     less, try to use the clocks provided by the engine.
+
+     The engine supplies clocks at 8064 Hz for SIO ports and 4.8, 9.6 or 19.2 on
+     sync ports.
+
+     The Micro-HDLC is even better equipped and delivers port speeds for both
+     sync and SIO at 1200, 2400, 4800. 9600 14400 and 19200 baud.
+
+     These clocks have sharp edges and have adequate drive.
+
+     For INTERNODALS, avoid SYNC or SIO lines.  The best solution is OCL links
+     even if you do not need the bandwidth.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     **************************************************************************
+     *                            T     I     P                               *
+     **************************************************************************
+
+
+
+                                 PROBE 'AD' COMMAND
+
+     The output of the PROBE 'AD' command is based on the following four
+     conditions:
+
+     1)  The node is reported down if the node has been taken over (as indicated
+         by a positive entry in the node descriptor pointer table) but none of
+         the already known nodes show it as a neighbor node (no entry for the
+         node in the link descriptors of other nodes).  This can happen if all
+         the links to a node go down and the Supervisor modifies the link
+         descriptors of the neighbor nodes, but does not modify the node
+         descriptor pointer table by  the time 'AD' command is issued.  A rare
+         but possible situation.
+
+     2)  The node is reported down if the node has not been taken over yet, but
+         has been reported as a neighbor node by some other known node (the node
+         appears in the neighbor node's link descriptor), or the node has been
+         lost but can be taken over.
+
+     3)  The node is not reported down if the node has been taken over and has
+         been reported as a neighbor by some other known node.
+
+     4)  The node is not reported down if the node has not been taken over and
+         no other known node in the network has reported it's a neighbor node.
+         For such a node, the node snap in PROBE would be 'NO SUCH NODE', but
+         the 'AD' command would not show it as down because the Supervisor never
+         knew about this node.  This is a little misleading, but is not a bug in
+         the code.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     **************************************************************************
+     *                            T     I     P                               *
+     **************************************************************************
+
+                             KERMIT via the X.75 GATEWAY
+
+     Recently a customer was complaining of a very slow file transfer using
+     KERMIT (13 characters per/second.
+
+     In the current versions, the WINDOW SIZE is 1.  Packet n+1 will be sent
+     only after receiving an ACK for packet n.
+
+     If a NAK was received for packet n, or a pre-set timeout expired without
+     receiving either ACK or NAK, the sending KERMIT will retransmit packet n.
+     Similarly, if the receiving KERMIT (the host in our case) has not received
+     the expected packet within the pre-set time, it re-ACKs the current one.
+
+     The current versions of KERMIT do NOT support "sliding window".
+
+     Upon initial connection, within the first packet, each side `INFORMS' the
+     other of its `TIMEOUT' value.
+
+ n testing, a connection to the network was made at 1200 baud and a file of
+     6000 characters produced the following results:
+
+     WITH KERMIT
+     ___________
+
+     - Using KERMIT, one could easily see the very high rate of retransmission.
+       Almost every second packet was re-sent to the remote system.
+
+     - Average throughput was 13 characters per second.
+
+     - Best results with KERMIT were when we changed default PAD setting with
+       the IPAD.  Setting par 1:0, 3:0 and 4:2 resulted in average throughput of
+       29 characters per second.  An increase of over 100%!!
+
+     NOT USING KERMIT
+     ________________
+
+     When uploading the same files, using Softterm's `character' file transfer
+     protocol:
+
+     - files were received by host uncorrupted.
+
+     - Average throughput was 80 characters per second.
+
+     Tymnet was able to prove and convince the customer that in their case
+     KERMIT is not an efficient protocol.  The main problem with KERMIT is the
+     fixed window size of 1.
+
+     The very first version of KERMIT used to have the `Sliding Window' feature
+     and they are considering implementing it again.  KERMIT will also have in
+     future versions a much larger packet size.
+
+
+
+
+
+
+
+
+
+
+
+
+
+     The tests and results above are not an attempt to pass judgement on KERMIT,
+     but are enough to point out the deficiencies.  We may have many outbound
+     users that are using KERMIT to transfer file and are happy, but if you come
+     across unhappy users - be aware of KERMIT's limitations.
+
+     Please note the following important points concerning current versions of
+     KERMIT:
+
+     - The maximum packet size is 096 characters
+
+     - The most important rule in the Kermit protocol is:
+
+          `Wait of a response before sending the next packet'.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     **************************************************************************
+     *                            T     I     P                               *
+     **************************************************************************
+
+                          "CANNOT FIND AN AVAILABLE DEVICE"
+                                IN BISYNCHRONOUS MODE
+
+     The following question was asked by a large private network customer:
+
+     "Is there any known explanation for the following phenomenon.  We have a
+     user connected to a 3270 terminal interface, with his username logged on at
+     the 3270 host interface.  Sometimes when he tries to log onto the host he
+     gets a "CANNOT FIND AN AVAILABLE DEVICE" message. On the terminal side the
+     username is defined with request mode 2 with the destination line, cluster
+     and port specified.  The application which he accesses is called SAP, an
+     accounting application which runs under CICS.  I have checked the TYMFILES
+     and no mapping errors have been found.  I've also checked NETVAL to see if
+     there is more than one username beginning with the same two characters
+     accessing this host, but in fact there is only one validated.  Most of the
+     time the user does not have this problem.  (In fact this is a general
+     problem which we experience from time to time with different users on
+     different interfaces.  A common factor is the usernames are logged and the
+     application is always running under CICS.)  The only way to clear the
+     problem is to reload the terminal and host interfaces concerned.
+
+     When this problem is reported by the user, a manual logon select request
+     mode 2 has been performed, specifying the destination line, cluster and
+     port.  That's when the message "CANNOT FIND AN AVAILABLE DEVICE" shows up.
+     But, if I select request mode 3 instead of 2, I arrive in the application.
+     You can also arrive in the application by selecting manual logon and
+     request mode 2 but not defining the destination line, cluster, port;
+     therefore, simply press enter after selecting request mode 2.
+
+     Other questions which need to be addressed are:
+
+          1.  When should we use request mode 3 and 2?
+
+          2.  When should we use the LUD Facility.
+
+          3.  If we use the LUD facility are we obliged to define the user logon
+              with request mode 2.
+
+                                  ================
+
+     TYMNET's RESPONSE
+     _________________
+
+     The message "CANNOT FIND AN AVAILABLE DEVICE" is caused by the destination
+     device already having a circuit assigned at the time that this logon is
+     taking place.  Using a CRM of 3 or a CRM of 2 without APP, CU, and DEV
+     defined allows the host interface to select from the available devices
+     which that username has been allowed to access as defined in the DEFLUD
+     macro.  We are not aware of any existing problems with the circuit
+     assignment process at the host interface so I think that the first goal is
+
+
+
+
+
+
+
+
+
+
+
+
+     to verify whether or not a circuit is already assigned to the device in
+     question.  You do this by checking the DEVICE TABLE in the host interface.
+     The DEVICE TABLE is a series of half word table entries; one half word for
+     each device starting with device 0.  A table entry of 0002 indicates no
+     circuit is currently assigned to the device.
+
+     First verify that the number of devices for which the DEVICE TABLE shows
+     that circuits are assigned is the same as the number of ports reported in
+     use through DDT; if they're not the same then we may have a problem.  If a
+     circuit already exists on that device you need to find out where it is
+     coming from.  Possibilities include another device with the same CRM 2
+     defined, a CRM 3 logon that found this destination address the next
+     available, another TIF that is mistakenly logging onto this HIF, or the HIF
+     being confused about whether or not the destination address is already
+     assigned.  Make sure that there is not another DEFLUD macro in your HIF
+     that you have missed and which would allow an unexpected logon to compete
+     for this device address.  One other method for trying to identify this
+     unplanned circuit is to systematically log off devices or kill unplanned
+     circuit is to systematically log off devices or kill circuits from the TIF
+     side and observe the DEVICE TABLE in the process.  As a circuit is killed
+     the value in the device table entry will return to 0002.
+
+     However, if the device table shows that no circuit is assigned to the
+     target device at the time of logon you will need to examine a ring trace of
+     the attempted logon to verify what is happening.
+
+     In answer to your specific questions:
+
+     1.  Use request mode 3 when the desired circuit assignment process is
+         completely virtual; first unassigned device in the list (starting from
+         the bottom) is where the circuit is assigned.  Use mode 2 when you want
+         to ensure that a single specific destination address will always be
+         assigned to a given specific user.
+
+     2.  The LUD facility allows configuration of access by the first two
+         characters of the username.  You use it if you wish to restrict access
+         to the interface (added security function) or restrict access to a
+         certain set of devices on that interface (targeting control).  An
+         example may be using a LUD entry to restrict access to a certain set of
+         CRM 3 logons to a given portion of the device range.  I've seen the LUD
+         most often used in the assignment of logons in virtual host mode.
+
+     3.  Use of the LUD facility does not obligate you to any particular CRM but
+         how you define the LUD can effect how the CRM is processed.  Think of
+         logons from PBT's and CMT's as occurring in two steps; network logon
+         and DSP logon.  The LUD checks the username that comes in the needle at
+         network logon to see if that username is allowed and what devices are
+         defined for it.  The DSP logon is where the CRM is processed and
+         devices are assigned.  It would be possible that a LUD could restrict
+         access to a range of devices which do not have a match for a specific
+         device request by way of a CRM 2 during the DSP logon portion.
+
+
+
+
+
+
+
+
+
+  @
