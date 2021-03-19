@@ -1,0 +1,97 @@
+
+::                                      Last updated by JWANG, 20-aug-84 
+
+:       *****************************************************
+:       *****    SPECIAL PATCH FILE FOR VERSION 2.01    *****
+:       *****      CREATED BY TYMNET INTERNATIONAL      *****
+:       *****           FILENAME : LOAD02.P01
+:       *****     TO BE ASSEMBLED AFTER PACX02.P01      *****
+:       *****************************************************
+
+PATCH(840719,1000,JWANG,PA0PTR,,NDGRPS*4+24)
+LOAD    HS      NDGRPS          :BIT ARRAY  A,SET IF THIS DPORT IS FOR LOADING
+SEND    HS      NDGRPS          :SET IF LOAD,RESET IF QBIT PKT HAS BEEN SENT
+GAT.F   WC      0               :VALUE SET TO FE00000000 IF SLOT LOADING
+DLO.F   WC      0               :VALUE SET TO F800000000 IF DOWNLINE LOADING
+GATE    BC      47,41,54,45,57,41,59        :GATEWAY
+        WC      0,0
+DLOD    BC      44,4C,4F,41,44              :DLOAD
+        WC      0,0
+CONPATCH(DDONE+0C,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,18)
+        RBT     R1,DBKPR,,
+        RBT     R1,LOAD,,               :CLEAN UP  FLAG
+        RBT     R1,SEND,,
+        J       DDONE+12,,
+CONPATCH(NDLST1+0A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,18)
+        RBT     R1,LOAD,,       :INITIALIZE LOAD FOR THE NEW DPORT
+        RBT     R1,SEND,,       :INITIALIZATION
+        SLLS    R1,2
+        AHI     R1,DIBIA
+        J       NDLST1+10,,
+CONPATCH(NST118-6,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,0E)
+        LHL     R9,LO7,,
+        LIS     R5,0            :COUNT USED BY COMPARE USERNAME  GATE/DLOD
+        J       NST118,,
+CONPATCH(NST122,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,30)
+        CLB     R0,GATE,R5,
+        JN      CKI
+        SBT     R5,GAT.F,,
+CKI     CLB     R0,DLOD,R5,
+        JN      NEX1
+        SBT     R5,DLO.F,,
+NEX1    AIS     R5,1
+        SIS     R9,1
+        JLE     NST150,,
+        J       NST122+6,,
+CONPATCH(NDL060+8,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,4E)
+        LHL     R1,DPORT,,
+        LHI     R0,0FE
+        CLB     R0,GAT.F,,              :USERNAME IS GATEWAY?
+        JN      CKII
+        SBT     R1,LOAD,,               :SET BIT IF THIS PORT IS FOR LOADING
+        SBT     R1,SEND,,
+CKII    LHI     R0,0F8
+        CLB     R0,DLO.F,,              :USERNAME IS DLOAD?
+        JN      NEX2
+        SBT     R1,LOAD,,               :SET BIT IF DPORT FOR LOADING
+        SBT     R1,SEND,,
+NEX2    LIS     R0,0
+        ST      R0,GAT.F,,              :REINITIALIZE TO ZERO
+        ST      R0,DLO.F,,
+        J       NDL060+0E,,
+CONPATCH(DAT090-8,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+        TBT     R4,LOAD,,       :LOADING?
+        JE      NEX3
+PADCHR  LHI     R7,0            :FORCE PADFORWARDING CHAR VALUE TO 0
+NEX3    LB      R9,IL.MT,R9,
+        J       DAT090-2,,
+CONPATCH(DAT120+10,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+        TBT     R4,LOAD,,       :LOADING?
+        JE      NEX4
+PADIDL  LHI     R0,2            :FORCE PADIDLETIMER VALUE TO 2
+NEX4    STB     R0,DATIME,R4,
+        J       DAT120+16,,
+ENDPATCH(MODIFY PAD FORWARD CHAR/TIDLETIMER TO 0/2 IF NEEDLE INDICATES LOADING)
+
+
+
+:********************************************************
+
+PATCHREPORT                     :REPORT BYTES OF PATCH AREAS USED
+FINPATCH                        :MAKE FINAL REPORT ON SEGMENT USAGE
+
+
