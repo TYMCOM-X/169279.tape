@@ -1,0 +1,2871 @@
+:DSYA06.R00
+:	NOLIST	
+	LIST	-L,-X
+: ******************************************************************
+: **                  PROPRIETARY INFORMATION                     **
+: **                                                              **
+: **  This  source code listing constitutes the proprietary pro-  **
+: **  perty of TYMNET, Incorporated. The recipient, by receiving  **
+: **  this program listing, agrees that neither this listing nor  **
+: **  the   information  disclosed herein nor any  part  thereof  **
+: **  shall be  reproduced or transferred to other documents  or  **
+: **  used  or  disclosed to others for manufacturing or for any  **
+: **  other   purpose except as specifically authorized in  wri-  **
+: **  ting by  TYMNET, Incorporated.                              **
+: ******************************************************************
+: **                   PROGRAM IDENTIFICATION                     **
+: **                                                              **
+: **  Version Number     :  x.00         Release Date :  x
+: **                                                              **
+: **  File Name          :  DSYA
+: **                                                              **
+: **  File Description   :  Engine MAC Diagnostic
+: **                                                              **
+: **  File Abstract      :                                        **
+: **                                                              **
+: ******************************************************************
+: **                CONFIGURATION SPECIFICATION                   **
+: **                                                              **
+: **  Core Memory Requirement:   128K
+: **                                                              **
+: **  Basic Code Size:                                            **
+: **                                                              **
+: **  Additional Code Size per Tymfile Parameter Unit:            **
+: **                                                              **
+: **  Estimated Code Growth for Next 12 Months:                   **
+: **                                                              **
+: **  Sample Configurations:  DMEM02.R00, DMAC05.R00
+: **                                                              **
+: **  Hardware/Firmware Requirements: None
+: **                                                              **
+: **  Other Software Requirements:  must be combined with 
+: **                                                              **
+: **  Slot Limitations:  None (standalone).
+: **                                                              **
+: ******************************************************************
+: **                   DOCUMENT SPECIFICATION                     **
+: **                                                              **
+: **  Software Requirements Specification Number:                 **
+: **                                                              **
+: **  Functional Specification Number           :                 **
+: **                                                              **
+: **  Test Suite Number                         :                 **
+: **                                                              **
+: ******************************************************************
+: **                      MAINTENANCE HISTORY                     **
+: **                                                              **
+: **  Ver   Date    By   PIR/NSR         Reason for Change        **
+: ** ----- -------- ---  -------- ------------------------------  **
+:
+:    4.00  11-85    jdavar	  remote capability
+:
+:    3.00  10-85    jdavar	  improvements
+: 
+
+
+:	DSYA06.R00
+
+:	VERSION	1.
+:
+:----------------------------------------------------------------------------:
+:									     :
+
+:     SYNCHRONOUS AND ASYNCHRONOUS I/O DIAGNOSTIC
+
+:     VERS. 2.0                    C. KAURANEN  7/20/76
+:     VERS. 3.0   ADAPTED FOR THE TYMNET ENGINE BY A.K.STRAIGHT 9/10/78
+:     VERS. 4.0  ADAPTED FOR ENHANCED ENGINES BY THOMAS GRANVOLD 6/3/80
+:     VERS. 5.00 adapted for the Micro-Engine by Thomas Granvold 10/13/83
+:     VERS. 5.01 Bug fix to correctly recognize larger configuration U-Eng.
+:					      by Thomas Granvold 8/15/84
+:
+:     FOR ANY PROBLEMS WITH THIS TEST SEE SOFTWARE TECH. SUPPORT
+:
+:     NOTES TO VERSION 3.0
+:
+:       1       **** THE STARTING ADDRESS IS NOW 0A00 ****
+:
+:       2       THE PRESENT VERSION (3.0) REMAINS COMPATIBLE WITH THE 
+:               INTERDATA 7/32 MINICOMPUTER.
+:
+:       3       IN THE CURRENT VERSION(3.0), INSTRUCTIONS INCOMPATIBLE WITH 
+:               THE TYMNET ENGINE HAVE BEEN RETAINED IN THE LISTING, BUT HAVE 
+:               BEEN MADE COMMENTS.
+:
+:       4       INSTRUCTIONS ADDED TO REPLACE THOSE INSTRUCTIONS DESCRIBED IN
+:               NOTE 3 HAVE AN "@" IN THE COMMENT FIELD FOR IDENTIFICATION.
+:
+:       5       LITTLE ATTEMPT HAS BEEN MADE TO OPTIMIZE THE PATCHES.  MOST
+:               OF THESE PATCHES ARE TERMINAL OUTPUT ROUTINES WHICH MUST WAIT
+:               FOR THE ASYNCHRONOUS INTERFACE ON THE MULTIFUNCTION CARD.
+:
+:       6       THE SECOND MOST SIGNIFICANT NYBBLE DISPLAYED ON THE CONSOLE,
+:               FORMERLY THE MOST SIGNIFICANT HALF OF THE VISUAL AID BYTE,
+:               NOW INDICATES THE TYPE OF MACHINE INHABITED BY THE PROGRAM:
+:                       7 INDICATES AN INTERDATA 7/32
+:                       E INDICATES A TYMNET ENGINE
+:
+:       7       THE INSTRUCTIONS ARE LOCATED ON FILE (STRAIGHTT:33)R732V3.INS
+:               AND ON FILE (STRAIGHTT:36)R732V3.INS.  THE INSTRUCTIONS HAVE
+:               BEEN DELETED FROM THE SOURCE CODE TO REDUCE ITS SIZE.
+:
+
+:	Version 5.00 changes:
+:
+:	1	All the old Interdata instruction that had been removed in
+:		version 3.0 by making them comments, have been removed
+:		completely.
+:
+:	2	All the comments that had been marked ':@', to indicate
+:		instructions added to the original Interdata version, have
+:		been changed to ':' only.
+:
+:	3	The 'PI' command has been removed since it is not documented
+:		and contains wrong information. The instructions are now
+:		included in the Diagnostic User's Guide.
+:
+:	4	Many comments, unreferenced labels and multiply defined
+:		labels have been cleaned up.
+:
+:	5	Code has been added to make the program compatible with the 
+:		Micro-Engine.
+:
+:	6	Don't look at this code for an example of good programming
+:		style.
+:
+:	7	Removed the 'C' and 'Break' commands.
+:
+:	8	This program how has two start address, A00 if a terminal
+:		is used, A04 if no terminal is used. Error messages go to
+:		both the terminal and display is started at A00.
+:
+:	9	The display error messages have been cleaned up so that
+:		they are not overwritten be the pass count.
+:
+:	10	Commands can now be entered in either lower or upper case,
+:		formally only upper case was recognized.
+:
+:	11	Modified to run with the 14,400 clocks from the multifunction
+:		board.
+:
+:
+:	Version  6.00 changes:
+:
+:	1	Added capability to slect SP-SE and AP-AE combinations.
+:
+:	2	Added help menu
+:
+:	3	Added capability to detect PXL and PXL-II.
+:
+:	4	Added capability to also check Async C5, C6, C7
+:
+:____________________________________________________________________________:
+	
+	SUBTTL	DSYA FILE 1. MACROS, COMMON DATA AREA, ENTRY POINT.
+
+
+
+:::::::::	Print a message.
+
+PRINT	MACRO(A,B,C,D,E,F,G,H)
+				: A,B,C,H = registers to use for this macro
+				: D = address of where the message is located
+				: E,F = labels to use in this macro
+				: G = address of the end of the message
+
+	[
+
+:		Set up to print.
+
+	LIS	H,2
+	OC	H,TTYOUT
+	LIS	A,0
+
+:		The print loop.
+
+E	LB	B,D,A
+	WDR	H,B		: Output a character
+	AIS	A,1
+F	SSR	H,C		: Wait for TTY not busy
+	JTBS	8,F
+	CLHI	A,G-D
+	JLE	E		: Repeat if not done]
+
+
+
+:::::::::	Set up for the top of a FOR NEXT type of loop.
+
+LOPTOP	MACRO(B,C,D,E,F,G)
+				:B = the register to use for the loop count
+				:C = the initial value for the loop count, hex
+				:D = register number of a value to be set up
+				:E = the initial value for register D
+				:F = register number of a value to be set up
+				:G = the initial value for register F
+				:
+				:All of the register numbers must be a decimal
+				:number from 0 to 15 without an "R" in front
+				:of them.
+				:
+				:The arguments D,E,F and G are optional for
+				:this macro. If there are not there then no 
+				:code will be generated for them. See the 
+				:comments for the ERCALL macro for how the
+				:presence of arguments are checked.
+
+	[
+	LI	B,C		:Set up the loop count
+
+Z.A	EQ	D 1		:See if macro arguments D and E exits.
+Z.B	EQ	D 2
+	IF	Z.B-Z.A
+
+	ELSE			:If D & E do not exist then do nothing.
+
+				:Otherwise set them up.
+	LI	D,E
+
+	EI
+
+Z.A	EQ	F 1		:See if macro arguments F and G exist.
+Z.B	EQ	F 2
+	IF	Z.B-Z.A
+
+	ELSE			:If F and G exist then do nothing.
+
+				:Otherwise set them up.
+	LI	F,G
+
+	EI]
+
+
+
+::::::::	Handle the bottom of a FOR NEXT type loop.
+
+LOPBOT	MACRO(A,B,C,H,D,E,F,G)
+				:A = the label used to at the top of the loop
+				:B = the register number of the loop counter
+				:C = the increment value for the loop counter
+				:H = the ending value for the loop counter
+				: where this value is not (!) used in the loop
+				:D = a register number for a value to be
+				:    incremented
+				:E = the increment value for the value in D
+				:F = a register number for a value to be
+				:    incremented
+				:G = the increment value for the value in F
+				:
+				:The register numbers in B, D and F arguments
+				:must be a decimal number between 0 and 15
+				:without an "R" in front of them.
+				:
+				:The D, E, F and G arguments for this macro
+				:are optional. This macro tests for them
+				:(see the ERCALL marco for an explaintion
+				:on how this in done) and does not create
+				:any code if they do not exist.
+				:
+				:This macro has the loop set up so that is
+				:repeats until the loop counter is greater
+				:then or equal to the loop ending value.
+				:It increments the count first then does the
+				:comparision, jumping back if the incremented
+				:count is less than the final value.
+
+	[
+Z.A	EQ	D 1		:See if macro arguments D and E exist.
+Z.B	EQ	D 2
+	IF	Z.B-Z.A
+
+	ELSE			:If they do not exist then do nothing.
+
+				:Otherwise increment that value.
+	AI	D,E	
+
+	EI
+
+Z.A	EQ	F 1		:See if macro arguments F and G exist.
+Z.B	EQ	F 2
+	IF	Z.B-Z.A
+
+	ELSE			:If they do not exist then do nothing.
+
+				:Otherwise increment that value.
+	AI	F,G
+
+	EI
+
+:		Increment and test the loop counter and return to the top
+:		of the loop if needed.
+
+	AI	B,C
+	CI	B,H
+	JL	A]
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:                	  EQUATE DEFINITIONS				     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+        ORG 30
+BTEST   EQ      .
+
+PSW30   WC 	00008000        : ILLEGAL INSTRUCTION PSW. HALTS PROCESSOR
+				: WITH ADDRESS OF ILLEGAL INSTR. IN REG. F.
+        WC	00000030
+
+PSW38   WC	00008000        : MACHINE MALFUNCTION PSW
+        WC	00000038
+
+        ORG	48
+PSW48   WC	00008000        : ARITHMETIC FAULT PSW
+        WC	00000048
+
+        ORG	084
+PSW84   HC	3000            : MACH. MALF. PSW SAVE POINTER
+        HC	3020            : MACH. MALF. REG. SAVE POINTER
+
+	ORG	090
+PSW98   WC	00008000        : MAC INTERRUPT PSW
+        WC	00000098
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	The program starts here. THis is the program Mainline. Both 
+:	J and JAL calls to TESTGO because TESTGO does not return. There
+:	is a J to GETCMD because GETCMD either calls "Cmd" subroutines
+:	or TESTGO.
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+        ORG	0A00
+	LIS	0,1		: Indicate the terminal is available
+	JFS	START
+
+	ORG	0A04
+	LIS	0,0		: Indicate the terminal is not available
+START	STH	0,TTYAVL
+
+	JAL	0F,STARTA,0,0
+
+	JAL	0F,GETENG,0,0
+
+START1	JAL	0F,SCAN,0,0
+
+        LHI	3,0                : RESET ROLL FLAG
+        STH	3,ROLL
+        LH	3,TTYAVL
+        JF	3,TESTGO           : JUMP IF NO TTY TO START TESTING
+
+	J	GETCMD
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:		Command table.
+:
+:	Each command entry consists of two halfwords, the first contains 
+:	the ASCII code for that command (parity bit set to 1), the second 
+:	is the address of the routine that handles that command.
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+CHECK   AC/DX/               : DX - Data Pattern - changes the data pattern
+        HC DX
+        AC/CX/               : CX - Constant - changes the data increment
+        HC CX
+        AC/UI/               : UI - Inhibit - removes lines from testing
+        HC UI
+        AC/UC/               : UC - Cancel Inhibit - adds lines to testing
+        HC UC
+        AC/ID/               : ID - Inhibit Data - disables data errors
+        HC ID
+        AC/CD/               : CD - Continue Data - enables data errors
+        HC CD
+        AC/II/               : II - Inhibit Idle Sync - disables idle sync
+        HC II		     :                          line errors
+        AC/CI/               : CI - Continue Idle Sync - enables idle sync
+        HC CI		     :                           line errors
+        AC/IA/               : IA - Inhibit Error - disables all errors
+        HC IA
+        AC/CS/               : CS - Continue Sync - enable sync data errors
+        HC CS
+        AC/IS/               : IS - Inhibit Sync - disable sync data errors
+        HC IS
+        AC/CA/               : CA - Continue Error - enable all errors
+        HC CA
+        AC/IT/               : IT - Inhibit Terminal - disable output to the
+        HC IT		     :                         terminal
+        AC/DR/               : DR - Device Respond - list devices present
+        HC DR
+        AC/SP/               : SP - SP Sync board present (no SE board)
+        HC SYNCSP 
+        AC/SE/               : SE - SE Sync board not present
+        HC SYNCSE 
+        AC/A0/               : A0 - AE0 Async board not present
+        HC AE0   
+        AC/A1/               : A1 - AP1 Async board not present
+        HC AP1   
+        AC/A2/               : A2 - AE1 Async board not present
+        HC AE1   
+        AC/A3/               : A3 - AP0 and AP1 Async board not present
+        HC AP0AE1   
+        AC/HE/               : HE - Help - Display Command Menu
+        HC HELP   
+CHECKE  AC/GO/               : GO - Begin Testing - start the tests
+        HC TESTGO
+
+:		Register save area.
+
+REGSAV	WS	10
+SYNSAV	WS	10
+CMDSAV	WS	10
+ERRSAV	WS	10
+PRISAV	WS	10
+IDLSAV	WS	10
+SRRSAV	WS	10
+
+:		Flag that indicates the type Engine program is running in.
+
+TYPENG	BS	1		: 0 = unknown type, 1 = regular, 2 = micro
+				: 8 = pxl, 9 = pxl-II
+MEMORY	BS	1		: 0 = smaller Micro-Engine, 1 = larger
+
+:		Message text.
+
+ERMSGS  AC /WHAT ?"0A/
+ERMSGE  HC 0D00
+
+MSG3S   AC /"0D"0A ILLEGAL OPTION"0A/
+MSG3E   HC 0D00
+
+MSG5S   AC /ILLEGAL INTERRUPT FROM DEVICE NO. /
+MSG5E   AC /  /
+
+MSG6S   AC /CONSTANT = /
+MSG6E   AC /  /
+
+MSG7S   AC /DATA = /
+MSG7E   AC /  /
+
+MSG8S   AC /UNIT = /
+MSG8E   AC /  /
+
+MSG9S   AC /IDLE UNIT = /
+MSG9E   AC /  /
+
+MSG10S  AC /NO SYNC ON UNIT /
+MSG10E  AC /  /
+
+MSG11S  AC /INVALD UNIT NUMBER, RESTART"0A/
+MSG11E  HC 0D00
+
+MSG12S  AC /"0D"0A SYNC"AFASYNC DIAGNOSTIC    VERS. 6.00"0A"0D/
+MSG12E  HC 0D00
+
+MSG14S  AC /"8A"8D NO ERRORS."0A/
+MSG14E  HC 0D00
+
+MSG15S  AC /"0D"0A TOTAL DATA ERRORS = /
+MSG15E  AC /  /
+
+MSG16S  AC /"0D"0A TOTAL IDLE UNIT ERRORS = /
+MSG16E  AC /  /
+
+MSG17S  AC /"0D"0A TOTAL SYNC ERRORS = /
+MSG17E  AC /  /
+
+MSG18S  AC /"0D"0A TOTAL ILLEGAL INTERRUPTS = /
+MSG18E  AC /  /
+
+MESG69	AC/"8D"8ASYSTEM TYPE FOUND = NORMAL ENGINE"8D"8A/
+MSG69E	AC /  /
+
+MESG70  AC/"8D"8ASYSTEM TYPE FOUND = MICRO-ENGINE"8D"8A/
+MSG70E	AC/  /
+
+MESG71	AC/"8D"8ASYSTEM TYPE FOUND = PXL ENGINE"8D"8A/
+MSG71E	AC/  /
+
+MESG72	AC/"8D"8ASYSTEM TYPE FOUND = UNKNOWN!!!"8D"8A/
+MSG72E	AC/  /
+
+MESG73	AC/"8D"8ASYSTEM TYPE FOUND = AXL ENGINE"8D"8A/
+MSG73E	AC/  /
+
+MESG74	AC/"8D"8A NEW CMDS (HE, SE, A0, A1, A2, A3)  "8D"8A"8D"8A/
+MSG74E	AC/  /
+
+MESG75	AC/"8D"8A  ENTER SP IF ONLY SP BOARD PRESENT (NO SE BOARD)/
+	AC/"8D"8A  ENTER SE IF SE BOARD PRESENT (OR RE-ENABLE BOARD)/
+	AC/"8D"8A  DEFAULT - ONE SP-SE BOARD SET"8D"8A/
+MSG75E	AC/  /
+
+MESG76	AC/"8D"8A /
+MSG76E	AC/  /
+
+MESG77	AC/"8D"8A  ENTER A0, A1, A2 IF ONLY ONE AP BOARD /
+	AC/"8D"8A  ENTER A1, A2 IF ONLY ONE AP-AE BOARD SET /
+	AC/"8D"8A  ENTER A2 IF ONE AP-AE BOARD SET & ONE AP BOARD/
+	AC/"8D"8A  ENTER A3 IF TWO AP-AE BOARD SETS/
+	AC/"8D"8A  DEFAULT - TWO AP-AE BOARD SETS"8D"8A"8D"8A/ 
+MSG77E	AC/  /
+
+MESG78	AC/"8D"8A  : DX - Data Pattern - changes the data pattern/
+	AC/"8D"8A  : CX - Constant - changes the data increment/
+	AC/"8D"8A  : UI - Inhibit - removes lines from testing/
+	AC/"8D"8A  : UC - Cancel Inhibit - adds lines to testing/
+	AC/"8D"8A  : ID - Inhibit Data - disables data errors/
+	AC/"8D"8A  : CD - Continue Data - enables data errors/
+	AC/"8D"8A  : II - Inhibit Idle Sync - disables idle sync/
+	AC/"8D"8A  : CI - Continue Idle Sync - enables idle sync/
+	AC/"8D"8A  : IA - Inhibit Error - disables all errors/
+	AC/"8D"8A  : CS - Continue Sync - enable sync data errors/
+	AC/"8D"8A  : IS - Inhibit Sync - disable sync data errors/
+	AC/"8D"8A  : CA - Continue Error - enable all errors/
+	AC/"8D"8A  : IT - Inhibit Terminal - disable output to the/
+	D"8A  : DR - Device Respond - list devices present/
+	AC/"8D"8A  : SP - SP Sync board present (no SE board)/
+	AC/"8D"8A  : SE - SE Sync board present (or re-enable board)/
+	AC/"8D"8A  : A0 - AE0 Async board not present/
+	AC/"8D"8A  : A1 - AP1 Async board not present/
+	AC/"8D"8A  : A2 - AE1 Async board not present/
+	AC/"8D"8A  : A3 - Two AP-AE Async board sets present/
+	AC/"8D"8A  : HE - Help - Display Command Menu/
+	AC/"8D"8A  : GO - Begin Testing - start the tests/
+	AC/"8D"8A  /
+MSG78E	AC/  /
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	Constant definitions and variable storage.			     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+TTYADR  BC	02
+TTYIN   BC	0A4
+TTYOUT  BC	098
+TTYAVL  HC	0000		: Terminal available flag, 1 = available
+TTYBAN	HC	0000		: Terminal SYNC/ASYNC Banner (1=displayed)
+
+OPTION  HC	0000
+OPTNUM  HC	0000
+
+CONST   HC 	0001
+
+DERRS   HC	0000            : TOTAL DATA ERRORS
+IERRS   HC	0000            : TOTAL IDLE UNIT ERRORS 
+SERRS   HC	0000            : TOTAL SYNC ERRORS
+ILERRS  HC	0000            : TOTAL ILLEGAL INTERRUPTS
+SESYNC  HC	0000            : SYNC SE BOARD PRESENT (1=YES, 0=NO)
+SPSYNC	HC	0000		: SYNC SP BOARD (0=NO SP, 1=20-3F, 2=40-5F)
+CASYNC	HC	0000		: C1-7 AP BOARD PRESENT (1=YES, 0=NO)
+F.MASK	HC	0FFFF		: Mask BF & FF bits (SE presence)
+C.MASK	HC	0FFFF		: Mask AP-AE bits (0=NO AP, 0FFFF=AP)
+SAMASK	HC	0000		: Sync/Async mask loaded from F.MASK/C.MASK and
+				: combinations present (see A0, A1, A2 cmds)
+				: used by PRIERR
+GOT     HC	0000
+UNIT    HC	0000		: Unit device adrs for illegal interrupt
+EXPECT  HC	0000
+
+USETBL  HS	60              : Table for Async units to be tested
+USETBE  HC	0000
+
+NOCK    HC	0000 		: 1 = lines in test, 0 = no lines in test
+INHBIT  BS	100             : Table, indicates if a device is available for
+				: testing (0=no, 1=yes). There is one byte for
+				: each device. The device address is the index 
+				: into this table
+
+IDERR   HC	0001            : IF A 1, DO NOT INHIBIT DATA ERRORS.
+				: IF A 0, INHIBIT DATA ERRORS.
+ISYNER  HC	0001
+NOSYNC	HC	0000
+SYNCNT	HC	0000
+
+INIDLE  HC	0001            : INHIBIT IDLE UNIT ERRORS IF A ZERO
+
+GARB    WC	00000000        : THIS WC DIRECTIVE PLACED HERE TO ALIGN ERNUMB 
+				: FOLLOWING WITH THE NEXT HALFWORD BOUNDARY.
+                                : ALSO USED FOR DUMMY WRITE?READ LOCATIONS.
+ERNUMB  HC	0000            : PLACED HERE TO BECOME PART OF WORD LOADED
+				: WITH PANOUT
+PANOUT  HC	0000            : FIRST HALF OF PANEL OUTPUT WORD
+        HC	0000            : REST OF PANEL OUTPUT WORD
+RUN     BC	00
+SYNCHK  BS	60              : USED TO CHECK FOR AN INITIAL SYNC WORD
+				: WITHIN 3 INTERRUPTS (indexed by device adrs)
+				: 1 = OK. 0 = NOT_OK.
+IDLE    BS	60		: Idle sync line table, where the index
+				: into this table is the device address
+DINIT   WC 	0000000
+ADATA   WC 	0000000		: Async Data Cell
+XDAT0   HC	0001
+XDAT1   HS	100		: Transmit data table for sync tests, where the 
+				: index into this table is the device address
+				: Pattern += CONST
+SAV0    WS	100             : working memory for sync recv. words, where
+				: in the index into this table is twice the
+				: device address (current data read from RECV0)
+GDAT0   HS	100             : expected receive data table, where the 
+				: index into this table is twice the device
+				: address
+SHFT0   BS	60              : shift count storage table, where the index
+				: into this table is the device address.
+				: Count in each cell is leading zeroes.
+DATA    HC	0000            : INITIAL DATA
+KLUGE   WS	2		: Save registers
+ROLL    HC	0               :  ROLL = 1 FOR PRINTOUT OF DEVICES RESPONDING
+
+:	Table of device addresses for sync lines.
+
+DVTBLS  BC	20
+        BC	21
+        BC	22
+        BC	23
+        BC	24
+        BC	25
+        BC	26
+        BC	27
+        BC	28
+        BC	29
+        BC	2A
+        BC	2B
+        BC	2C
+        BC	2D
+        BC	2E
+        BC	2F
+        BC	30
+        BC	31
+        BC	32
+        BC	33
+        BC	34
+        BC	35
+        BC	36
+        BC	37
+        BC	38
+        BC	39
+        BC	3A
+        BC	3B
+        BC	3C
+        BC	3D
+        BC	3E
+        BC 	3F
+        BC	40
+        BC	41
+        BC	42
+        BC	43
+        BC	44
+        BC	45
+        BC	46
+        BC	47
+        BC	48
+        BC	49
+        BC	4A
+        BC	4B
+        BC	4C
+        BC	4D
+        BC	4E
+        BC	4F
+        BC	50
+        BC	51
+        BC	52
+        BC	53
+        BC	54
+        BC	55
+        BC	56
+        BC	57
+        BC	58
+        BC	59
+        BC	5A
+        BC	5B
+        BC	5C
+        BC	5D
+        BC	5E
+        BC	5F
+
+:		Table of device addresses for async lines.
+
+        BC	91
+        BC	92
+        BC	93
+        BC	95
+        BC	96
+        BC	97
+        BC	99
+        BC	9A
+        BC	9B
+        BC	9D
+        BC	9E
+        BC	9F
+        BC	0A1
+        BC	0A2
+        BC	0A3
+        BC	0A5
+        BC	0A6
+        BC	0A7
+        BC 	0A9
+        BC	0AA
+        BC	0AB
+        BC	0AD
+        BC	0AE
+        BC	0AF
+        BC	0C1
+        BC	0C2
+        BC	0C3
+        BC	0C5
+        BC	0C6
+        BC	0C7
+        BC	0C9
+        BC	0CA
+        BC	0CB
+        BC	0CD
+        BC	0CE
+        BC	0CF
+        BC	0D1
+        BC	0D2
+        BC	0D3
+        BC	0D5
+        BC	0D6
+        BC	0D7
+        BC	0D9
+        BC	0DA
+        BC	0DB
+        BC	0DD
+        BC	0DE
+        BC	0DF
+        BC	0E1
+        BC	0E2
+        BC	0E3
+        BC	0E5
+        BC	0E6
+        BC	0E7
+        BC	0E9
+        BC	0EA
+        BC	0EB
+        BC	0ED
+        BC	0EE
+        BC	0EF
+        BC	0F1
+        BC	0F2
+        BC	0F3
+        BC	0F5
+        BC	0F6
+        BC	0F7
+        BC	0F9
+        BC	0FA
+        BC	0FB
+        BC	0FD
+        BC	0FE
+
+:		Device addresses for the sync status signal lines. The sync
+:		status line at address FF is not tested due to an address 
+:		conflict with an async line address.
+
+DVTBLE  BC	0BF
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	Set up to keep the enhanched async interrupts happy. 	             :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+ENHINT  ST      3,KLUGE         : SAVE REGISTER 3 AND 4
+        ST      4,KLUGE+4
+        LHI     3,0D0           : ENABLE REGISTER SET D
+        EPSR    4,3
+        LI      0E,7FFFFFFF     : SET UP REG. E TO KEEP ASYNC ENHANCED HAPPY
+        LIS     4,0
+        EPSR    3,4             : RESTORE THE PSW
+        L       3,KLUGE         : RESTORE REGISTERS 3 AND 4
+        L       4,KLUGE+4
+        LPSWR   1,0             : RETURN
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	Sync recieve interrupt routine that ignores the data.		     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+RECVNO                          : RD 2,GARB - READ DATA
+        ST	3,KLUGE
+        RDR	2,3
+        ST	3,GARB
+        L	3,KLUGE
+        LPSWR	1,0
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	Sync transmit interrupt that sends out any old data.		     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+XMITNO  WD	2,GARB
+        LPSWR	1,0
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	Illegal I/O interrupt subroutine.				     :
+:                                                                            :
+:	INPUT PARAM: Reg 2 = Device Ch#					     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+ILLINT  STH	2,UNIT               : save the interrupting device address
+        LIS	5,1
+        AHM	5,ILERRS
+        LH	5,TTYAVL             : CHECK IF TTY AVAILABLE
+	CLHI	5,1
+        JN	ILLINC               : JUMP IF NOT AVAIL.
+
+:		If the TTY is available, print an error message.
+        LB	5,TTYADR
+        OC	5,TTYOUT
+        LIS	7,0                  : CLEAR INDEX
+L37     LB	6,MSG5S,7      	     : LOAD NEXT CHAR
+        WDR	5,6           	     : PRINT
+        AIS	7,1            	     : POINT TO NEXT CHAR
+L01     SSR	5,6                  : SENSE TERMINAL STATUS
+        JTBS	8,L01                : WAIT TILL TERMINAL READY
+        CLHI	7,MSG5E-MSG5S  	     : SEE IF MSG PRINTED
+        JLE	L37		     : REPEAT IF NOT
+
+:		Print the (device # for illegal int) error message.
+        LR	9,2                  : COPY REG. 2 TO 9
+        SRLS 	9,4                  : GET FIRST DIGIT
+        OHI	9,30                 : CONVERT TO ASCII CHAR.
+        CLHI	9,3A                 : IS CHAR A NUMB.
+        JL	ILLPRT               : JUMP IF IT IS
+        AHI	9,7                  : CONVERT TO A LETTER
+ILLPRT  WDR	5,09                 : OUTPUT CHAR.
+L02     SSR	5,0C
+        JTBS	8,L02
+        LR	9,2
+        NHI	9,0F                 : SET UP SECOND DIGIT
+        OHI 	9,30
+        CLHI	9,3A
+        JL	ILLPR1
+        AHI	9,7
+ILLPR1  WDR	5,09
+L03     SSR	5,0C
+        JTBS	8,L03
+
+:		Output a C/R and L/F.
+        LHI	9,0D
+        WDR	5,09               : OUTPUT CARR. RET.
+L04     SSR	5,0C
+        JTBS	8,L04
+        LHI	9,0A
+        WDR	5,09               : OUTPUT LINE FEED
+L05     SSR	5,0C
+        JTBS	8,L05
+
+:		Display the error on the display console.
+ILLINC  LIS	5,4                : LOAD ERROR NUMBER
+        STB	5,ERNUMB+1
+	LIS	5,0
+        STH	5,GOT
+        J	PANERR
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	TTY I/O interrupt routine.					     :
+:                                                                            :
+:	INPUT PARAM: Reg 2 = Device Ch#					     :
+:                                                                            :
+:	A. Check for break. If "S", stop testing			     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+TTYINT  RDR	2,5
+        SSR	2,3                 : ENGINE DOES NOT PUT STATUS IN REG 3 ON
+				    : INTERRUPT
+        NHI	3,24                : CHECK FOR BREAK KEY STATUS
+        CLHI	3,24
+        JE	TTYINZ
+        NHI	5,7F                : STRIP OFF PARITY
+	CLHI	5,61		    : Convert to upper case if lower case
+	JL	Z3
+	SHI	5,20
+Z3      CLHI	5,53                : CHECK FOR A CHAR. OF "S"
+        JE	TTYIN1              : JUMP IF IT IS
+        LPSWR	1,0                 : NOT A STOP CHAR SO CONTINUE TESTING
+
+:		Wait till the break status goes away.
+TTYINZ  SSR	2,3                 : WAIT FOR BREAK SATAUS TO GO AWAY
+        JTBS	4,TTYINZ
+
+:		A stop testing command, 'S', entered so make terminal
+:		available.
+
+TTYIN1	LIS	4,1
+	STH	4,TTYAVL
+
+:		THE FOLLOWING WILL PRINT TOTAL ERRORS
+        OC	2,TTYOUT
+        LH	3,DERRS              : ANY DATA ERRORS
+        JN	ERRTA                : JUMP IF SOME
+        LH	3,IERRS              : ANY IDLE UNIT ERRORS
+        JN	ERRTA
+        LH	3,SERRS              : ANY SYNC ERRORS
+        JN	ERRTA
+        LH	3,ILERRS             : ANY ILLEGAL INTERRUPTS
+        JN	ERRTA
+
+:		Print the "no error" message.
+        LIS	6,0                  : CLEAR INDEX
+L38     LB	5,MSG14S,6     	     : LOAD NEXT CHAR
+        WDR	2,5           	     : PRINT
+        AIS	6,1                  : POINT TO NEXT CHAR
+L06     SSR	2,5           	     : SENSE TERMINAL STATUS
+        JTBS	8,L06                : WAIT TILL TERMINAL READY
+        CLHI	6,MSG14E-MSG14S      : SEE IF MSG PRINTED
+        JLE	L38                  : REPEAT IF NOT
+        J	ERRT4
+
+:		Print the error messages by type of error.
+
+:		Data errors.
+ERRTA   LH	3,DERRS
+        JF	3,ERRT1              : NO DATA ERRORS JUMP
+        LIS	6,0                  : CLEAR INDEX
+L39     LB	5,MSG15S,6     	     : LOAD NEXT CHAR
+        WDR	2,5           	     : PRINT
+        AIS	6,1                  : POINT TO NEXT CHAR
+L07     SSR	2,5           	     : SENSE TERMINAL STATUS
+        JTBS	8,L07                : WAIT TILL TERMINAL READY
+        CLHI	6,MSG15E-MSG15S      : SEE IF MSG PRINTED
+        JLE	L39                  : REPEAT IF NOT
+        JAL	0E,OUTCON            : JUMP TO OUTPUT ERROR TOTAL
+        JAL	0E,ERRTZ             : JUMP TO OUTPUT C.R. AND L.F.
+
+:		Idle errors.
+ERRT1   LH	3,IERRS              : ANY IDLE ERRORS
+        JF	3,ERRT2
+        LIS	6,0                  : CLEAR INDEX
+L40     LB	5,MSG16S,6     	     : LOAD NEXT CHAR
+        WDR	2,5           	     : PRINT
+        AIS	6,1                  : POINT TO NEXT CHAR
+L08     SSR	2,5           	     : SENSE TERMINAL STATUS
+        JTBS	8,L08                : WAIT TILL TERMINAL READY
+        CLHI	6,MSG16E-MSG16S      : SEE IF MSG PRINTED
+        JLE	L40                  : REPEAT IF NOT
+        JAL	0E,OUTCON
+        JAL	0E,ERRTZ
+
+:		Sync data errors.
+ERRT2   LH	3,SERRS
+        JF	3,ERRT3              : JUMP IF NO SYNC ERRORS
+        LIS	6,0                  : CLEAR INDEX
+L41     LB	5,MSG17S,6     	     : LOAD NEXT CHAR
+        WDR	2,5           	     : PRINT
+        AIS	6,1                  : POINT TO NEXT CHAR
+L09     SSR	2,5           	     : SENSE TERMINAL STATUS
+        JTBS	8,L09                : WAIT TILL TERMINAL READY
+        CLHI	6,MSG17E-MSG17S      : SEE IF MSG PRINTED
+        JLE	L41                  : REPEAT IF NOT
+        JAL	0E,OUTCON
+        JAL	0E,ERRTZ
+
+:		Unexpected I/O interrupt errors.
+ERRT3   LH	3,ILERRS
+        JF	3,ERRT4              : JUMP IF NO ILLEGAL INT.
+        LIS	6,0                  : CLEAR INDEX
+L42     LB	5,MSG18S,6     	     : LOAD NEXT CHAR
+        WDR	2,5           	     : PRINT
+        AIS	6,1                  : POINT TO NEXT CHAR
+L10     SSR	2,5           	     : SENSE TERMINAL STATUS
+        JTBS	8,L10                : WAIT TILL TERMINAL READY
+        CLHI	6,MSG18E-MSG18S      : SEE IF MSG PRINTED
+        JLE	L42                  : REPEAT IF NOT
+        JAL	0E,OUTCON
+        JAL	0E,ERRTZ
+
+:		Zero out the error counts.
+ERRT4   LIS	3,0
+        STH	3,DERRS
+        STH	3,IERRS
+        STH	3,SERRS
+        STH	3,ILERRS
+        J	GETCMD                : JUMP TO TTY HANDLER
+
+:		Print C/R and L/F.
+ERRTZ   LHI	3,0D
+        WDR	2,3                 : OUTPUT C.R.
+L11     SSR	2,0C
+        JTBS	8,L11
+        LHI	3,0A
+        WDR	2,3                 : OUTPUT LINE FEED
+L12     SSR	2,0C
+        JTBS	8,L12
+        JR	0E		    : Return
+
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+: Following interrupt routine is used to get in sync with the xmit data.     :
+: After the routine detects the first xmit word of "0001", it calculates     :
+: the shift count factor and relabels the ISP pointer for this unit.         :
+: The routine also checks if this word is detected within 3 interrupts.      :
+: If not detected within 3 interrupts, then an error message is printed.     :
+:                                                                            :
+:	INPUT PARAM: Reg 2 = Device Ch#					     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+RECV0   RDR	2,0A
+        STB	2,IDLE,2            : UPDATE IDLE TABLE WITH THE DEVICE ADDR.
+        LR	7,2                 : SAVE REG. 2 IN REG. 7
+        LR	3,0A                : IS DATA READ IDLE BITS ?
+        JF	3,R0X               : JUMP IF IT IS
+	LIS	4,0
+        AR	2,2                 : MAKE REG. 2 EQUAL TO FULLWORD BOUNDARY
+        STH	3,SAV0,2            : SAVE DATA READ
+
+:		If the data read <> 0, shift the data until the 1 bit is
+:		found. Counting the number of shifts needed.
+R0A     SRHLS	3,1
+        JF	3,R0B
+        AIS	4,1
+        J	R0A
+
+:		Store shift count and set up new interrupt routine.
+R0B     STB	4,SHFT0,7
+        LA	6,RECV1
+        LHI	5,0D0		    : 0D0 + 2*R2 = 110 + CH
+        AR	2,5
+        STH	6,0,2               : STORE NEW INT. ADDRESS IN ISP TABLE
+	LPSWR	1,0		    : Return
+
+:		If the data read = 0, see if too many interrupts have occured.
+R0X     LB	8,SYNCHK,7          : load count, the count was 3 originally
+        SIS	8,1		    : decrement count
+        JF	3,SYNCER            : JUMP TO ERROR IF INTERRUPT COUNT IS ZERO
+        STB	8,SYNCHK,7
+        LPSWR	1,0		    : Return
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	Routine used for sync errors during initialization		     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+SYNCER  LIS	0C,1
+        AHM	0C,SERRS
+        LH	0C,ISYNER           : LOAD INHIBIT SYNC ERROR CELL
+        JF	3,SYNCE1            : JUMP IF IT IS
+        LIS	0C,3
+        STB	0C,ERNUMB+1         : STORE ERROR NUMBER
+        STH	7,UNIT              : SAVE UNIT NUMBER
+	LIS	0C,0
+        STH	0C,GOT
+	JAL	0E,CIOERR	    : Send error to display console
+        LH	0B,TTYAVL
+        JF	3,TESTGO	    : !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        LB	2,TTYADR
+        OC	2,TTYOUT
+        LIS	6,0                  : CLEAR INDEX
+L54     LB	5,MSG10S,6     	     : LOAD NEXT CHAR
+        WDR	2,5           	     : PRINT
+        AIS	6,1                  : POINT TO NEXT CHAR
+
+L36     SSR	2,5           	     : SENSE TERMINAL STATUS
+        JTBS	8,L36                : WAIT TILL TERMINAL READY
+        CLHI	6,MSG10E-MSG10S      : SEE IF MSG PRINTED
+        JLE	L54                  : REPEAT IF NOT
+
+        LIS	6,4                  : LOAD SHIFT FACTOR
+        LH	3,UNIT
+        JAL	0E,OUTCO1
+        LH	0B,TTYAVL
+        JF	3,SYNCE1
+        LB	2,TTYADR
+        OC	2,TTYOUT
+
+	LHI	5,0D
+        WDR	2,5
+LSYN34  SSR	2,0C		     : OUTPUT CR
+        JTBS	8,LSYN34
+
+        LHI	5,0A
+        WDR 	2,5
+LSYN35  SSR	2,0C		     : OUTPUT LF
+        JTBS	8,LSYN35
+
+SYNCE1  LIS	0C,3
+        STB	0C,SYNCHK,7          : RESET SYNC CHECK CELL
+        LPSWR	1,0
+
+: ***NOTE** Above routine may be meaningless because the xmit unit
+: will be sending different data each time so if errors are inhibited
+: this routine being bypassed will not help unless data=0001 and const.
+: =0000
+     
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	Normal sync recieve line interrupt during testing. Setup by RECV0    :
+:       when three interrupts are detected.				     :
+:                                                                            :
+:	INPUT PARAM: Reg 2 = Device Ch#					     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+RECV1   RDR	2,4                 : READ DATA
+        STB	2,IDLE,2            : UPDATE IDLE CHANNEL
+
+:		Save and align the data read.
+        LR	5,2                 : PUT REG 2 INTO 5
+        AR	5,5                 : UPDATE TO FULLWORD BOUNDARY
+        STH	4,SAV0+2,5          : STORE CURRENT DATA READ
+        L	0A,SAV0,5           : LOAD CURRENT AND PREVIOUS DATA READ
+        LB	0C,SHFT0,2          : LOAD SHIFT COUNT
+        STH	0A,SAV0,5           : SAVE CURRENT WORD FOR NEXT INTERRUPT
+        SRL	0A,0,0C
+        CHVR	9,0A
+
+:		Check the data read.
+        CLH 	9,GDAT0,2	    : Expected data
+        JE	RCV0A
+        JAL	0F,SERROR           : JUMP TO ERROR
+
+:		Increment the data expected.
+RCV0A   LH	5,CONST
+        AHM	5,GDAT0,2           : Update expected data
+        LPSWR	1,0		    : Return
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	Routine is used by sync xmit units to output initial data pattern.   :
+:	Note, all 0's data was previously sent to all sync transmit lines.   :
+:                                                                            :
+:	INPUT PARAM: Reg 2 = Device Ch#					     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+XMIT0   WD	2,XDAT0+1           : OUTPUT 0001
+        STB	2,IDLE,2            : UPDATE IDLE CHANNEL CELL
+
+:		Set the normal transmit interrupt pointer in the interrupt
+:		pointer table.
+        LA	6,XMIT1
+        AR	2,2
+        LHI	5,0D0		    : 0D0 + 2*R2 = 110 + CH
+        AR	2,5
+        STH	6,0,2               : STORE NEW INT. ROUT. IN ISP TABLE
+        LPSWR	1,0
+
+:		Normal sync transmit interrupt routine during testing.
+
+XMIT1   WD	2,XDAT1,2
+
+:		Update the idle channel table.
+        LIS	5,1
+        STB	5,IDLE,2            : UPDATE IDLE CHANNEL TABLE
+
+:		Update the data to be transmitted.
+        SIS	2,1
+        LH	4,CONST
+        AHM	4,XDAT1,2           : UPDATE DATA
+        LPSWR	1,0
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	SIO interrupt routine						     :
+:									     :
+:	 adrs 1D0 = '80' and 1D1 = '81'					     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+SIO     LPSWR   1,0             : ACKNOWLEDGE INTERRUPT AND RETURN
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	Multi-Function board interrupts, ADDR. 70 - 77, 3600 BAUD	     :
+:	interrupter.							     :
+:									     :
+:		1B0-1BE = ADRS 70-77					     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+MULTI   ST      3,KLUGE         : SAVE REGISTERS 3 AND 4
+        ST      4,KLUGE+4
+        LHI     3,0D0           : ENABLE REGISTER SET D
+        EPSR    4,3
+        LI      0E,7FFFFFFF     : SET REG. E OF SET D TO MAX. POSITIVE VALUE
+                                : TO KEEP ASYNC ENHANCED HAPPY
+        LIS     4,0
+        EPSR    3,4             : GET OLD PSW BACK
+        L       3,KLUGE         : RESTORE REGISTERS 3 AND 4
+        L       4,KLUGE+4
+        LPSWR   1,0             : RETURN
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	The set up for the next 3 registers is to keep the async/sync	     :
+:	micro-code happy.						     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+STARTA  STM	0,REGSAV
+	LHI     0,0D0           : ENABLE REGISTER SET D
+        EPSR    1,0
+        LI      0E,7FFFFFFF     : SET REGISTER E TO MAXIMUN POSITIVE VALUE
+        LA      0F,ENHINT       : REF. F = ADDRESS OF INTERRUPT ROUTINE
+        LHI     0,010           : ENABLE REGISTER SET 1
+        EPSR    1,0
+        LI      0F,80000000	: SET REGISTER F TO INDICATE NO ASYNC CARDS
+                                : AS FAR AS THE MICRO-CODE IS CONCERNED
+        LHI     0,20F0
+        EPSR	1,0		: SET UP PSW TO REG. SET F
+
+:		Set up for misc. interrupts.
+	LIS	1,0
+        ST	1,PANOUT            : ZERO OUT PANEL OUTPUT WORD
+        STH	1,ERNUMB            : ZERO OUT ERROR NUMBER
+        STH	1,DERRS             : ZERO TOTAL DATA ERRORS
+        STH	1,IERRS             : ZERO TOTAL IDLE UNIT ERRORS
+        STH	1,SERRS             : ZERO TOTAL SYNC ERRORS
+        STH	1,ILERRS            : ZERO TOTAL ILLEGAL INTERRUPTS
+        STB	1,RUN		    : ZERO # OF PASSES THRU TEST LOOP COUNT
+        STH	1,OPTION            : ZERO OUT  CELL
+        STH	1,TTYBAN	    : TTY SYNC/ASYNC BANNER - OFF
+
+        STH	1,SPSYNC            : Indicate SP board is not present
+        STH	1,SESYNC            : Indicate SE board is not present
+        STH	1,CASYNC            : Indicate AP board is not present
+
+        LHI	1,3191
+        STH	1,CONST             : SET CONSTANT CELL UP
+
+        LIS	1,1
+        STH	1,DATA
+
+        LIS	4,0
+        LIS	5,2
+        LHI	6,0FF
+	LIS	1,0
+STRT1   STB	1,INHBIT,4          : SET UP INHIBIT TABLE
+        AR	4,5
+        CLR	4,6
+        JLE	STRT1
+:
+:				    : INITIALIZE COUNTERS
+        LIS	1,1
+        STH	1,IDERR             : ENABLE DATA ERRORS
+        STH	1,INIDLE            : ENABLE IDLE CHANNEL ERRORS
+        STH	1,ISYNER            : ENABLE SYNC ERRORS
+
+:		FOLLOWING ROUTINE SETS UP THE INTERRUPT POINTER TABLE.
+
+        LHI	5,0D0               : LOAD START OF TABLE
+        LIS	6,2
+        LHI	7,2FE
+        LA	8,ILLINT            : LOAD ADDRESS OF ILLEGAL INT. ROUTINE
+ISPIN1  STH	8,0,5
+        AR	5,6
+        CLR	5,7
+        JLE	ISPIN1
+
+        LHI	5,0D4
+        LA 	6,TTYINT            : LOAD ADDRESS OF TTY INT. SUBROUT.
+        STH	6,0,5
+
+        LHI	5,110
+        LIS	6,4
+        LHI	7,18C
+        LA	8,RECVNO            : LOAD ADDRESS OF RECV. INT. NO-OP ROUTINE
+				    : FOR SYNC LINES
+ISPIN2  STH	8,0,5
+        AR	5,6
+        CLR	5,7
+        JLE	ISPIN2
+
+        LHI	5,112
+        LIS	6,4
+        LHI	7,18E
+        LA	8,XMITNO	    : Do the same thing for sync transmit
+ISPIN3  STH 	8,0,5
+        AR	5,6
+        CLR	5,7
+        JLE	ISPIN3
+
+:		SET UP SIO INTERRUPT POINTERS
+
+        LA      8,SIO           : ASSUMES NO MORE THAN 2 SIO CARDS AT ADDRS.
+        STH     8,1D0           : 80 AND 81!!!
+        STH     8,1D1
+
+:		SETUP MULTIFUNCTION CARD INTERRUPT POINTERS
+
+        LHI	5,1B0
+        LIS	6,2
+        LHI	7,1BE
+        LA	8,MULTI
+MUL1    STH	8,0,5
+        AR	5,6
+        CLR	5,7
+        JLE	MUL1
+
+:		Send starting adrs (A00) to the display panel.
+
+        LI	0D,0A00
+        LIS	0E,0
+        CIO	0D,0D
+
+:		Print the diagnostic title.
+
+	LHL	2,TTYAVL
+	CLHI	2,1
+	JN	L29		     : Jump to skip the title if no TTY
+
+	LIS	2,2
+        OC	2,TTYOUT             : PRINT TITLE
+        LIS	0B,0                 : CLEAR INDEX
+L43     LB	0A,MSG12S,0B         : LOAD NEXT CHAR
+        WDR	2,0A           	     : PRINT
+        AIS	0B,1                 : POINT TO NEXT CHAR
+L60     SSR	2,0A           	     : SENSE TERMINAL STATUS
+        JTBS	8,L60                : WAIT TILL TERMINAL READY
+        CLHI	0B,MSG12E-MSG12S     : SEE IF MSG PRINTED
+        JLE	L43                  : REPEAT IF NOT
+L29	LM	0,REGSAV
+	JR	0F
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:		FIND THE TYPE OF SYSTEM THIS IS (TYPENG)		     :
+: Description:								     :
+:                                                                            :
+:	Save the registers.						     :
+:	Set the Successfull U-Engine Test Count to 0.			     :
+:	Set U-Engine Sync line Count = 0.				     :
+:	Set the Non-U-Engine Sync Line Count = 0.			     :
+:                                                                            :
+:	For I = the first sync line address to the last sync line address,   :
+:	Do,								     :
+:		Do a sense status instruction on sync line I.		     :
+:		If not a false sync status returned,			     :
+:			Then, If a valid U-Engine Sync line,		     :
+:			      Then, Increment by 1 the U-Engine Sync Line    :
+:				    Count.				     :
+:			      Else, Increment by 1 the Non-U-Engine Sync     :
+:				    Line Count.				     :
+:			      End If.					     :
+:		End If.							     :
+:	End For.							     :
+:                                                                            :
+:	If Non-U-Engine Sync Line Count = 0 and U-Engine Sync Line Count =   :
+:	16 (decimal),							     :
+:		Then, Increment by 1 the Successful U-Engine Test Count.     :
+:	End If.								     :
+:                                                                            :
+:	If a sense status operation on address 4 (A.C. voltage sensor) gives :
+:	a 'false sync' status,						     :
+:		Then, Increment by 1 the Successfull U-Engine Test Count.    :
+:	End If.								     :
+:                                                                            :
+:	If the Successfull U-Engine Test Count = 2,			     :
+:		Then, Flag the system type as a U-Engine.		     :
+:		Else, If U-Engine Test Count = 0,			     :
+:			If sync line cnt == 8 or 24, PXL engine		     :
+:			Then, Flag the system type as a normal engine.       :
+:			Else, Flag the system type as unknown.		     :
+:		End If.							     :
+:	End If.								     :
+:                                                                            :
+:	Output the type of system found.				     :
+:	Restore the registers.						     :
+:	Return.								     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+:		Save the registers.
+
+GETENG	STM	0,REGSAV
+
+:		Set the Successfull U-Engine Test Count to 0.
+
+	LIS	0,0		:R0 = Successfull U-Engine Test Count
+
+:		Set the U-Engine Sync Line Count = 0.
+
+	LIS	1,0		:R1 = U-Engine Sync Line Count
+
+:		Set the Non-U-Engine Sync Line Count = 0.
+
+	LIS	2,0		:R2 = Non-U-Engine Sync Line Count
+
+	LIS	5,0		:R5 = index into Sync Port table
+
+:		For I = the first sync line address to the last sync line 
+:		address, Do,
+
+	LOPTOP(3,20)
+
+:		So a sense status instruction on sync line I.
+
+ETP000	RDR	3,4
+
+	JT	4,ETP002	:Jump if a false sync status
+
+:		If not a false sync status returned,
+:		Then, If a valid U-Engine Sync line,
+
+	CLHI	3,24
+	JL	ETP02A		:Jump if not a valid U-Engine sync line
+
+	CLHI	3,27
+	JLE	ETP003		:Jump if a valid SP-board sync line
+
+	CLHI	3,2C
+	JL	ETP002		:Jump if not a valid U-Engine sync line
+
+	CLHI	3,2F
+	JLE	ETP003		:Jump if a valid SP-board sync line
+
+	CLHI	3,34
+	JL	ETP002		:Jump if not a valid U-Engine sync line
+
+	CLHI	3,37
+	JLE	ETP003		:Jump if a valid SE-board sync line
+
+	CLHI	3,3C
+	JL	ETP002		:Jump if not a valid U-Engine sync line
+
+	CLHI	3,3F
+	JLE   	ETP003		:Jump if a valid SE-board sync line
+
+	CLHI	3,44
+	JL	ETP02C		:Jump if not a valid U-Engine sync line
+
+	CLHI	3,47
+	JLE	ETP003		:Jump if a valid SP-board sync line
+
+	CLHI	3,4C
+	JL	ETP002		:Jump if not a valid U-Engine sync line
+
+	CLHI	3,4F
+	JLE	ETP003		:Jump if a valid SP-board sync line
+
+	CLHI	3,54
+	JL	ETP002		:Jump if not a valid U-Engine sync line
+
+	CLHI	3,57
+	JLE	ETP003		:Jump if a valid SE-board sync line
+
+	CLHI	3,5C
+	JL	ETP002		:Jump if not a valid U-Engine sync line
+
+	CLHI	3,5F
+	JG	ETP002		:Jump if not a valid Async line
+
+:		Then, Increment by 1 the U-Engine Sync Line Count.
+
+ETP003	AIS	1,1
+	J	ETP001
+
+:		Else,  Increment by 1 the Non-U-Engine Sync Line Count.
+
+ETP02A	LIS	0D,1		: SPSYNC (20-37)
+	J	ETP02C
+
+ETP02B	LIS	0D,2		: SPSYNC (40-57)
+
+ETP02C	STH	0D,SPSYNC
+	LIS	0D,1
+	STH	0D,SESYNC	: default to SE board present
+
+ETP002	AIS	2,1
+
+:		End If.
+
+:		End For.
+
+ETP001	LOPBOT(ETP000,3,1,60)
+
+:		If Non-U-Engine Sync Line Count = 0 and U-Engine Sync Line 
+:		Count = 16 (decimal),
+
+	CLHI	2,0
+	JN	ETP004		:Jump if Non-U-Engine Sync Line Count <> 0
+
+	CLHI	1,0
+	JN	ETP04B		:Jump if PXL-Engine Sync Line Count = 0
+
+	CLHI	1,10 
+	JN	ETP04A 		:Jump if U-Engine Sync Line Count <> 16
+
+:		Then, Increment by 1 the Successfull U-Engine Test Count.
+
+	AIS	0,1
+	J	ETP04A
+
+ETP004	CLHI	2,30
+	JN	ETP04A		: Jump if Non-U-Engine Sync Count <> 30
+
+:		If MAC TYPE = (MAV-V or MAC_GA II, Then, PXL-Engine
+	
+ETP04B	LIS	1,0		:Get MAX-ID 0 bit 
+	TBT	1,342		:Is this bit on ?
+	JN	ETP014		:Yes, either MAC-V or MAC-GA II 
+
+:		End If.							     :
+
+:		End If.
+
+:		If a sense status operation on address 4 (A.C. voltage
+:		sensor) gives a 'false sync' status,
+
+ETP04A	LIS	1,4
+	SSR	1,2 
+	CLHI	2,4
+	JN	ETP007		:Jump if not a false sync status
+
+:		Then, Increment by 1 the Successfull U-Engine Test Count.
+
+	AIS	0,1
+
+:		End If.
+
+:		If the Successfull U-Engine Test Count = 2,
+
+ETP007	CLHI	0,2
+	JN	ETP008		:Jump if test count <> 2
+
+:		Then, Flag the system type as a U-Engine.
+
+	LIS	1,2		:indicates a U-Engine
+	STB	1,TYPENG	:TYPENG = engine type flag
+	J	ETP009
+
+:		Else, If U-Engine Test Count = 0,
+
+ETP008	CLHI	0,0
+	JN	ETP010		:Jump if test count <> 0
+
+:		Then, Flag the system type as a normal engine.
+
+	LIS	1,1		:1 indicates a normal engine
+	STB	1,TYPENG	:TYPENG = system type flag
+	J	ETP009
+
+:		Else, Flag the system type as unknown.
+
+ETP010	LIS	1,0		:0 indicates an unknown Engine type
+	STB	1,TYPENG	:TYPENG = system type flag
+
+:		End If.
+
+:		End If.
+
+ETP009	LHL	6,TTYAVL
+	CLHI	6,1
+	JN	ETP012		: Jump to not print Engine type if no TTY
+
+	CLHI	1,1		:Is it a regular Engine?
+	JN	ETP011		:Jump if not
+	PRINT(6,7,8,MESG69,L70,L71,MSG69E,9)
+	J	ETP012
+
+ETP011	CLHI	1,2		:Is it a U-Engine?
+	JN	ETP013		:Jump if not
+	PRINT(6,7,8,MESG70,L72,L73,MSG70E,9)
+	J	ETP012
+
+ETP014	LIS	3,8		:8 indicates a PXL Engine Type
+	STB	3, TYPENG,,
+	PRINT(6,7,8,MESG71,L74,L75,MSG71E,9)
+	PRINT(6,7,8,MESG74,L82,L83,MSG74E,9)
+	J	ETP012
+
+ETP013	PRINT(6,7,8,MESG72,L76,L77,MSG72E,9)
+
+:		Restore the registers
+
+ETP012	LM	0,REGSAV
+	JR	0F
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	If a Micro-Engine, then determine type of Micro-Engine, small or     :
+:	or large. This can be done by looking at the amount of memory in     :
+:	the system (256K bytes for small or 512K bytes for large).	     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+SCAN	STM	0,REGSAV
+	LB	2,TYPENG
+	CLHI	2,2		: a 2 indicates a Micro-Engine
+	JN	SCAN0		: Does not matter if not a Micro-Engine
+
+	LI	2,5A5A		: See if memory is there by writting and
+				: reading a test pattern
+	STH	2,40000,0,0
+	LHL	2,40000,0,0
+	CLHI	2,5A5A
+	JE	M01		: Jump if a larger Micro-Engine
+
+:		If a smaller Micro-Engine,
+	LIS	2,0		: A 0 flags the smaller Micro-Engine
+	JFS	M02
+
+:	If a larger Micro-Engine,
+M01	LIS	2,1		: A 1 flag the larger Micro-Engine
+
+:		Save the flag.
+M02	STB	2,MEMORY
+
+:		Following routine scans devices established in device unit
+:		table and either prints out what devices are responding
+:		on the tty or to the front panel if the tty card does not
+:		respond.
+
+SCAN0   LB	2,TTYADR	: LOAD TTY ADDRESS
+	LHL	3,TTYAVL
+	CLHI	3,1
+        JE	SCAN1		: JUMP IF TTY CARD IS AVAILABLE
+        LA	4,NOTTY		: LOAD ADDRESS OF NO TTY SUB. ROUT.
+        J	SCAN2
+
+SCAN1   LA	4,YESTTY	: LOAD ADDRESS OF TTY SUB. ROUT.
+        OC	2,TTYOUT
+
+SCAN2   LIS 	5,0		: LOAD INDEX OF DEVICE UNITS TABLE
+SCAN2A  LB	8,DVTBLS,5	: LOAD TABLE ENTRY, DEVICE ADDRESS OR NOT AVAIL
+
+:		If a Micro-Engine, do not check lines which do not exist.
+
+SCAN2B	LB	3,TYPENG	: CHeck for Micro, PXL, or PXL-II
+	CLHI	3,2		: A 2 indicates a Micro-Engine
+	JE	SCAN2D		:   Jump if a Micro-Engine
+	CLHI	3,8		: A eight indicates a PXL-Engine
+	JE	SCAN2F		:  Jump if a PXL-Engine
+	CLHI	3,9		* A nine indicates a PXLII-Engine
+	JE	SCAN2F		:  Jump if a PXLII-Engine
+	J	M03		: Jump if not a PXLII-Engine
+
+SCAN2D	LB	3,MEMORY
+	CLHI	3,0		: If a Micro-Engine, which one?
+	JE	M04		: Jump if the smaller Micro-Engine
+
+:		Check for non-existent lines on the PXL or larger Micro-Engine.
+SCAN2F	CLHI	8,23		: 20 - 23
+	JLE	SCAN3B		: If not there skip it
+
+	CLHI	8,27		: 24 - 27
+	JLE	M03		: If a good line check it
+
+	CLHI	8,2B		: 28 - 2B
+	JLE	SCAN3B		: If not there skip it
+
+	CLHI	8,2F		: 2C - 2F
+	JLE	M03		: If a good line check it
+
+	CLHI	8,33		: 30 - 33
+	JLE	SCAN3B		: If not there skip it
+
+	CLHI	8,37		: 34 - 37
+	JLE	M03A		: If a good line check it
+
+	CLHI	8,3B		: 38 - 3B
+	JLE	SCAN3B		: If not there skip it
+
+	CLHI	8,3F		: 3C - 3F
+	JLE	M03A		: If a good line check it
+
+	CLHI	8,43		: 40 - 43
+	JLE	SCAN3		: If not there skip it
+
+	CLHI	8,47		: 44 - 47
+	JLE	M03		: If a good line check it
+
+	CLHI	8,4B		: 48 - 4B
+	JLE	SCAN3		: If not there skip it
+
+	CLHI	8,4F		: 4C - 4F
+	JLE	M03		: If a good line check it
+
+	CLHI	8,53		: 50 - 53
+	JLE	SCAN3B		: If not there skip it
+
+	CLHI	8,57		: 54 - 57
+	JLE	M03A		: If a good line check it
+
+	CLHI	8,5B		: 58 - 5B
+	JLE	SCAN3B		: If not there skip it
+
+	CLHI	8,5F		: 5C - 5F
+	JLE	M03A 		: If a good line check it
+
+	CLHI	8,0BE		: 60 - BE
+	JLE	SCAN3		: If not there skip it
+
+	CLHI	8,0C1		: BF - C1
+	JLE	M03		: If a good line check it
+
+	CLHI	8,0C2		: C2
+	JLE	M03		: If a good line check it
+
+	CLHI	8,0C3		: C3
+	JLE	M03		: If a good line check it
+
+	CLHI	8,0C4		: C4
+	JLE	SCAN3		:  Not present
+
+	CLHI	8,0C5		: C5
+	JLE	M03		: If a good line check it
+
+	CLHI	8,0C6		: C6
+	JLE	M03		: If a good line check it
+
+	CLHI	8,0C7		: C7
+	JLE	M03		: If a good line check it
+				: type of Micro-Engine so skip them
+	J	SCAN3		: The remaining address do not exist on this
+
+:		Check for non-existent lines on the smaller Micro-Engine.
+M04	CLHI	8,23		: 20 - 23
+	JLE	SCAN3		: If not there skip it
+
+	CLHI	8,27		: 24 - 27
+	JLE	M03		: If a good line check it
+
+	CLHI	8,2B		: 28 - 2B
+	JLE	SCAN3		: If not there skip it
+
+	CLHI	8,2F		: 2C - 2F
+	JLE	M03		: If a good line check it
+
+	CLHI	8,0BF		: 30 - BF
+	JL	SCAN3		: If not there skip it
+
+	CLHI	8,0C3		: C0 - C3
+	JLE	M03		: If a good line check it
+
+	CLHI	8,0C4		: C4
+	JLE	SCAN3		:  Not present
+
+	CLHI	8,0C7		: C5-C7
+	JLE	M03		: If a good line check it
+
+	J	SCAN3		: Remaining lines do not exist on this type
+				: of Micro-Engine so skip them
+:
+:		READ ADDRESSED UNIT TO CHECK FOR A RESPONSE.
+
+M03A	LB	0D,TYPENG
+	CLHI	0D,8		: PXL?
+	JE	M03B		:  YES
+	CLHI	0D,9		: PXL-II
+	JN	M03		:  NO - CHECK FOR RESPONSE
+
+M03B	LH	0D,SESYNC
+	CLHI	0D,0		: 
+	JE	SCAN3A		: Jump if PXL-Engine and SE not present
+
+M03     RDR	8,3
+        JT	4,SCAN3A	: JUMP IF DEVICE DID NOT RESPOND
+
+        CLHI    8,91		: CHECK TO SEE IF A SYNC CARD ADDRESS
+        JL      SCAN4		: IF YES JUMP TO SKIP THIS TEST
+
+        CLHI    8,0BF		: DO SAME FOR SYNC CONTROL ADDRESS
+        JE      SCAN4
+
+        CLHI    8,0FF
+        JE      SCAN4
+
+        SSR     8,3              : ASYNC CARDS GIVE FALSE SYNC ON SSR
+
+        JF      4,SCAN3A         : JUMP IF NOT AN ASYNC CARD
+
+	LIS	0E,1
+	STH	0E,CASYNC	 : ASYNC BOARD PRESENT INDICATOR
+
+SCAN4   LIS	0E,1     	 : MAKE DEV. AVAIL. BY STORING A 1 IN INHIBIT
+	STB	0E,INHBIT,08 	 : TABLE
+ 
+:		NOTE CHANGE NEXT INSTRUCTION TO A C830 0000  (LHI 3,0) TO
+:		DISABLE PRINTOUT OF DEVICES. TO ENABLE THE PRINTOUT AGAIN
+:		CHANGE THE INSTRUCTION BACK TO C830 0001.
+
+	LHI	3,1		   : Enable device printout
+	CLHI	3,0
+	JEFS	SCAN3		   : Jump to not output devices if not enabled
+
+        JALR	0F,4               : DO YESTTY/NOTTY ROUTINE IF DEVICE RESPONDED
+
+SCAN3   AIS	5,1		   : Next Entry in DVTBL
+        CLHI   	8,0BF		   : Table complete?
+        JN 	SCAN2A		   : No, CONTINUE SEARCH
+
+:		Done.
+
+	LHI	3,1		   : Enable device printout
+	CLHI	3,0
+	JE	SCAN5		   : Jump to not output devices if not enabled
+
+	JAL	0F,CR.TTY          : PRINT <CR>
+	J	SCAN5
+
+:		Come here if device is for a regular Engine or is not for a PXL.
+
+SCAN3B  LB	0D,TYPENG
+	CLHI	0D,8		   : PXL?
+	JE	SCAN3A		   :  YES
+	CLHI	0D,9		   : PXL-II
+	JN	SCAN3		   :  NO
+
+:		Come here if the device does not respond or is not selected.
+
+SCAN3A	LIS	0D,0
+	STB	0D,INHBIT,08       : INHIBIT DEVICE FROM BEING TESTED
+        J	SCAN3
+
+SCAN5	LB	0E,TYPENG
+	CLHI	0E,8		   : PXL?
+	JE	SCAN06		   :  YES - CK SP-SE BANNER
+	CLHI	0E,9		   : PXL-II
+	JN	SCAN10		   :  NO - SKIP SP-SE BANNER
+
+SCAN06	LHI	0E,1
+	CH	0E,TTYBAN	   : HAS SYNC/ASYNC BANNER BEEN DISPLAYED?
+	STH	0E,TTYBAN
+	JE	SCAN10		   :  YES
+	LH	0E,SPSYNC	   :  NO
+	CLHI	0E,0
+	JE	SCAN08		   : JUMP IF SP BOARD NOT PRESENT
+
+	PRINT(6,7,8,MESG75,L78,L79,MSG75E,9)
+
+SCAN08	LH	0E,CASYNC
+	CLHI	0E,0
+	JE	SCAN10		   : JUMP IF AP BOARD NOT PRESENT
+
+	LHI	0E,0FFFF
+	STH	0E,C.MASK	    : Enable AP and AE mask
+
+	PRINT(6,7,8,MESG77,L80,L81,MSG77E,9)
+
+SCAN10	LM	0,REGSAV,,
+	JR	0F
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	Come here if a TTY is available.				     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+YESTTY  LR	9,08               : COPY REG. 8 INTO REG. 9
+        SRLS	9,4                : GET FIRST DIGIT READY FOR CONVERSION
+        OHI	9,30               : CONVERT TO ASCII CHAR.
+        CLHI	9,3A               : IS CHAR. A NUMBER
+        JL	YESPRT             : JUMP IF IT IS
+
+        AHI	9,7                : CONVERT TO ASCII LETTER
+YESPRT  OC	2,TTYOUT
+        WDR	2,09               : OUTPUT DIGIT
+L13     SSR	2,0C
+        JTBS	8,L13
+
+        LR	9,08
+        NHI	9,0F               : SET UP SECOND DIGIT
+        OHI	9,30               : CONVERT TO ASCII CHAR.
+        CLHI	9,3A               : IS IT A NUMBER
+        JL 	YESPR1             : JUMP IF IT IS
+
+        AHI	9,7                : CONVERT TO ASCII LETTER
+YESPR1  WDR	2,09               : OUTPUT CHAR.
+L14     SSR	2,0C
+        JTBS	8,L14
+
+        LHI	9,020		    :
+        WDR	2,09                : OUTPUT SPACE
+L14A    SSR	2,0C
+        JTBS	8,L14A
+
+        JR	0F		    : Return
+
+CR.TTY	LH	2,TTYAVL
+        JF	3,CR.EXT
+CR.TTY	LB	2,TTYADR
+	OC	2,TTYOUT            : PUT TTY IN WRITE MODE
+        WDR	2,09                : OUTPUT DIGIT
+L13A    SSR	2,0C
+        JTBS	8,L13A
+
+	LHI	9,0D
+        WDR	2,09                : OUTPUT CARR. RET.
+L15     SSR	2,0C
+        JTBS	8,L15
+
+        LHI	9,0A
+        WDR	2,09                : OUTPUT LINE FEED
+L16     SSR	2,0C
+        JTBS	8,L16
+
+CR.EXT	JR	0F		    : Return
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	Come here if no terminal is available.				     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+NOTTY	LIS	9,0
+        CIO	8,9                 : OUTPUT UNIT ADDRESS TO ENGINE CONSOLE
+        LI	3,80000
+
+:		Timming loop.
+L44     SIS	3,1
+        JGBS	L44
+        JR	0F		    : Return
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	Print a prompt and wait for a command.				     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+GETCMD	LB	2,TTYADR            : LOAD TTY ADDRESS
+	LIS	4,0
+        ST	4,PANOUT
+        STH	4,ERNUMB	    : Number of errors
+        STH	4,OPTION            : ZERO OUT OPTION WORD
+SOPT  	LIS	5,0
+
+:		Print the prompt.
+        OC	2,TTYOUT            : PUT TTY IN WRITE MODE
+        LHI	6,0AA               : PRINT AN *
+        WDR	2,6             
+L17     SSR	2,6
+        JTBS	8,L17
+
+:		Read a command.
+        OC	2,TTYIN             : PUT TTY IN READ MODE
+SOPT1   SSR	2,6
+        JTBS	8,SOPT1
+        RDR	2,6                 : READ CHAR.
+        OHI	6,80                : SET PARITY BIT
+
+:		If a lower case character, convert to upper case.
+	CLHI	6,0FA
+	JG	Z4
+	CLHI	6,0E1
+	JL	Z4
+	SHI	6,20
+
+Z4      STB	6,OPTION,5          : STORE BYTE IN OPTION CELL
+
+:		See what the command is.
+        AIS	5,1                 : INCREMENT REG. 5
+        CLHI	6,0D5               : CHECK TO SEE IF FIRST CHARACTER IS A "U"
+				    : Note that only UI and UC commands have
+				    : parameters
+        JE	SOPT1B              : IF SO BRANCH TO A SPECIAL ROUTINE.
+        CLHI	5,2                 : CHECK TO SEE IF SECOND BYTE INPUTTED
+        JN	SOPT1               : JUMP BACK IF NOT
+SOPT1C  SSR	2,6
+        JTBS	8,SOPT1C
+        RDR	2,6                 : EXPECT CR. NOW
+        OHI	6,80
+        CLHI	6,8D                : CHECK FOR CR.
+        JN	SOPTE               : JUMP IF NOT A CARRIAGE RET.
+        OC	2,TTYOUT
+        LHI	6,8A                : LOAD LINE FEED
+        WDR	2,6                 : OUTPUT LF.
+L61     SSR	2,6
+        JTBS	8,L61
+        LHI	6,8D                : LOAD CR.
+        WDR	2,6
+L18     SSR	2,6		    : Wait for terminal ready
+        JTBS	8,L18
+        OC	2,TTYIN             : PUT TTY IN READ MODE
+
+:		Search routine checks for a legal option and causes a branch
+:		to the proper subroutine.
+
+        LH	4,OPTION             : LOAD OPTION WORD
+        LA	5,CHECK              : LOAD ADDRESS OF COMMAND TABLE
+        LIS	6,4                  : LOAD BXLE INCREMENT VALUE
+        LA	7,CHECKE             : LOAD END ADDRESS OF COMMAND TABLE
+SEAR1   CLH	4,0,5                : COMPARE WORD TO TABLE ENTRY
+        JE	MATCH                : JUMP IF EQUAL TO MATCH
+        AR	5,6
+        CLR	5,7
+        JLE	SEAR1
+        J	SOPTE                : JUMP TO ILLEAGAL OPTION ROUTINE
+MATCH   AIS	5,2                  : SET REG. 5 EQUAL TO SUB. ADDRESS
+        LH	6,0,5                : LOAD SUB ADDRESS INTO REG. 6
+        JALR	0F,6                 : JUMP AND LINK TO SUB.
+        J	SOPT                 : JUMP  BACK FOR MORE OPTIONS
+
+:		Option error routine entered because of an illegal option,
+:		or a carriage return did not follow two char. opt.
+
+:		Load start of error msg.
+
+SOPTE   OC	2,TTYOUT
+        LIS	7,0                   : CLEAR INDEX
+L45     LB	6,MSG3S,7      	      : LOAD NEXT CHAR
+        WDR	2,6           	      : PRINT
+        AIS	7,1                   : POINT TO NEXT CHAR
+L19     SSR	2,6           	      : SENSE TERMINAL STATUS
+        JTBS	8,L19                 : WAIT TILL TERMINAL READY
+        CLHI	7,MSG3E-MSG3S         : SEE IF MSG PRINTED
+        JLE	L45                   : REPEAT IF NOT
+        J	SOPT                  : RETURN TO GE OPTION
+
+:		Enter here if option command is a "ui" or "uc"
+
+SOPT1B  SSR	2,6
+        JTBS	8,SOPT1B
+        RDR	2,6
+        OHI	6,80                : SET PARITY BIT
+
+:		If a lower case character, convert to upper case.
+	CLHI	6,0E1
+	JL	Z5
+	SHI	6,20
+
+Z5      STB	6,OPTION,5          : STORE SECOND CHAR.
+        JAL	0F,RDNUM            : JUMP TO READ NUM. ROUT.
+        LR	5,6
+        SLLS	5,4                 : SHIFT NUMBER OVER 4 PLACES
+        JAL	0F,RDNUM
+        AR	5,6                 : MAKE UP VALID UNIT NUMBER
+        STH	5,OPTNUM            : STORE UNIT NUMBER
+        J	SOPT1C              : JUMP BACK AND LOOK FOR CARRIAGE RET.
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:	Enter here to convert ASCII chars. to valid hex numbers (0-9, A-F).
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+RDNUM   SSR	2,6
+        JTBS	8,RDNUM
+        RDR	2,6                 : READ NUMBER
+RDNUM1  OHI	6,80                : SET PARITY BIT
+        CLHI	6,0B0               : CHECK FOR VALID CHAR.
+        JL	SOPTE               : JUMP IF ILLEGAL!!!!!!!!!!!!!!!!!!!!!!!!!
+        CLHI	6,0BA               : CHECK FOR A NUMBER
+        JL	NUMBER              : JUMP IF IT IS
+        CLHI	6,0C1               : CHECK FOR LETTER
+        JL	SOPTE               : JUMP IF NOT
+        CLHI	6,0C7               : IS IT A VALID LETTER (A-F)
+        JGE	SOPTE               : JUMP IF NOT
+        SHI	6,0B7               : MAKE IT A HEX NUMBER
+        JR	0F                  : JUMP BACK
+NUMBER  SHI	6,0B0               : CONVERT TO A HEX CHAR.
+        JR	0F                  : Return
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	Begin testing. (Go command subroutine)				     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+:		Zero out the idle channel table.
+TESTGO  LHI	5,20		    : R5 = pointer into idle channel table
+	LIS	8,0
+TESTA   STB	8,IDLE,5
+        AIS	5,1		    : Check for the last table entry
+	CLHI	5,5F
+        JLE	TESTA		    : If not go back to do next entry
+
+:		Set up the async test data.
+        LH	3,DATA              : LOAD DATA CONST.
+        STH	3,ADATA             : SET UP ASYNC DATA CELL
+
+:		Set up sync test data and initialize the sync tables.
+        LH	4,CONST
+        AR	3,4                 : FORM FIRST RECV. EXPECTED DATA FOR SYNC
+			 	    : CARD
+        LIS	9,5		    : R9 = data for sync check table
+        LHI	5,20		    : R5 = index into sync tables
+TESTA1  STH	3,GDAT0,5           : SET UP RECV. UNIT EXPECTED DATA TABLE FOR
+				    : SYNC CARD
+        STB 	8,SHFT0,5           : ZERO OUT SHIFT COUNT
+        STH	3,XDAT1,5           : SET UP INITAL XMIT DATA
+        STB	9,SYNCHK,5          : SET UP SYNC CHECK TABLE
+	AIS	5,2
+	CLHI	5,5E
+        JLE	TESTA1
+
+:		Setup Rec interrupt pointers for those sync lines in test.
+        LHI	4,110		    : ptr into interrupt pointer table (ISP)
+        LHI	7,20		    : index into inhibit table
+
+TESTA2  LA	3,RECVNO            : LOAD RCV. NO-OP ROUTINE ADDRESS
+
+	LIS	8,0
+        STB	8,IDLE,7            : CLEAR INTERRUPT INDICATOR ON THIS UNIT
+
+	LB	8,INHBIT,7          : CHECK TO SEE IF UNIT IS INHIBITED
+        LR	8,08                : FIX CONDITION CODE
+
+        JF	3,TESTA3	    : Jump if line is inhibited
+        LA	3,RECV0             : LOAD ADRS OF RECV. SYNC INTERRUPT ROUTINE
+
+TESTA3	STH	3,0,4               : STORE RECVNO/RECV0 ADRS INTO ISP TABLE
+	AIS	7,2
+	AIS	4,4
+	CLHI	4,18C
+        JLE	TESTA2
+
+:		Now setup Xmit int's for sync transmit lines.
+        LA	3,XMIT0             : LOAD ADDRESS OF XMIT INTERRUPT ROUTINES
+        LHI	4,112		    : R4 = pointer into inerrupt pointer table
+				    :      (ISP)
+        LHI	7,21		    : R7 = pointer into unit inhibit table
+TESTA4  LB	8,INHBIT,7          : SEE IF UNIT INHIBITED
+        LR	8,08                : FIX CONDITION CODE
+        JF	3,TESTA5            : JUMP IF IT IS
+
+        STH	3,0,4               : STORE ADDRESS IN ISP TABLE
+TESTA5  AIS	7,2
+	AIS	4,4
+	CLHI	4,18E
+        JLE	TESTA4
+
+:		Output zero's to all sync transmit lines.
+	LIS	0A,0
+        LHI	4,21		     : R4 = sync transmit device address
+TESTG1  WD	4,DINIT+1            : OUTPUT ZEROES TO ALL SYNC ADDRESSES
+	AIS	4,2
+	CLHI	4,5F
+        JLE	TESTG1
+
+:		Wait for the zero's to get through the lines.
+        LHI	4,$A4300             : LOAD DELAY FACTOR TO WAIT FOR XMIT 0's
+				     : TO GET TO RECV.
+L46     SIS	4,1    
+        JGBS	L46		     : Wait
+
+:		Now for those async lines available for testing, save
+:		device address in USETBL.
+        LHI	5,91
+	LIS	8,0		    : R8 = (count of async lines available) *2
+X1      LB	9,INHBIT,5
+        LR	9,09                : USED TO FIX CONDITION CODE
+        JF	3,X2
+
+        STH	5,USETBL,08         : STORE UNIT NUMBER IN TABLE
+        AIS	8,2
+X2  	AIS	5,1
+	CLHI	5,0AF
+        JLE	X1
+
+:		Now for async address C1 to FE.
+        LHI	5,0C1
+        LHI	7,0FE
+Z1      LB	9,INHBIT,5
+        LR      9,9             : USED TO FIX CONDITION CODE
+        JF      3,Z2
+
+        STH     5,USETBL,8      : STORE UNIT NUMBER IN TABLE
+        AIS     8,2
+Z2  	AIS	5,1
+	CLHI	5,0FE		: FF not ck'd since it might be a sync cntl line
+        JLE     Z1
+
+        LR	8,08
+        JF	3,XA                 : JUMP IF NO ENTRYS MADE
+
+:		Calculate the end of USETBL that is being used.
+        SIS	8,2                  : FIX COUNT TO REAL ENDING ADDRESS
+        LA	5,USETBL
+        AR	5,08                 : FORM END ADDRESS OF TABLE
+        STH	5,USETBE
+
+:		Set the flag (NOCK) to indicate if there are async lines
+:		in test or not.  1 = lines in test, 0 = no lines in test
+        LIS	5,1
+        STH	5,NOCK               : MAKE NOCK NOT ZERO
+        J	TSTBGN
+
+XA      STH	8,NOCK               : MAKE NOCK EQUAL ZERO
+
+:		Enable interrups and set the TTY for the actual testing.
+TSTBGN  LHI	0,60F0
+        EPSR	1,0
+        LB	2,TTYADR
+        LHI	3,64                 : LOAD TTY COMMAND OF READ,UNBLOCK AND
+				     : ENABLE INTERRUPTS
+        OCR	2,3                  : OUTPUT COMMAND TO TTY
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:		Top of the test loop!
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+WAIT    LHI	0C,0B0               : DELAY FACTOR FOR CHECKING IDLE CHANNELS
+
+:		Return here if idle sync channels have not been checked.
+
+WAITA   LH	3,ADATA              : LOAD INITIAL DATA CELL
+        LH	4,CONST
+        NI	3,0FFFF              : MASK OFF UPPER 16 BITS
+        STH	3,ADATA
+
+        LH	5,NOCK		     : Any async lines in test?
+        JF	3,W2                 : JUMP IF NO ASYNC UNITS IN TEST
+
+:		Write the test data to the async lines.
+        LA	5,USETBL
+W1      LH	0A,0,5               : WRITE DATA TO ALL ASYNC UNITS
+        WD	0A,ADATA+1
+	AIS	5,2
+	LHL	0A,USETBE
+	CR	5,0A
+        JLE	W1
+
+:		Write test data to device address BF if in test.
+W2      LHI	5,0BF
+        LB	0A,INHBIT,5
+        LR	0A,0A
+        JF	3,W3		     : Jump if address BF is not in test
+
+        WD	5,ADATA+1
+
+:		Write test data to sync address FF.
+W3      LHI     5,0FF
+        LB      0A,INHBIT,5
+        LR      0A,0A
+        JF      3,W4		     : Jump if address FF is not in test
+
+        WD      5,ADATA+1
+
+:		Wait to give the async lines enough time to send and recieve
+:		the test data.
+W4      LHI	5,200                : DELAY FACTOR FOR ASYNC, UP FROM 2
+L47     SIS	5,1
+        JGBS	L47
+
+:		Now read data that was outputted to the async lines.
+        LH	5,NOCK		     : Any async lines in test?
+        JF	3,W6                 : Jump if not
+
+:		Check the data for each async line in test.
+	LH	5,C.MASK	     : MASK NON-EXISTENT BITS
+	STH	5,SAMASK	     : 
+        LA	5,USETBL    	     : R5 = index into async device address
+W5      LH	0A,0,5
+        RDR	0A,1
+        CR	3,1                  : check for good data, R3 = test data sent
+        JE	W5A		     :
+
+        JAL	0F,ABFERR	     : Jump to error on bad data recieved
+
+W5A 	AIS	5,2
+	LHL	0A,USETBE
+	CR	5,0A
+        JLE	W5
+
+:		Check the data recieved on sync status line BF.
+W6	LH	5,F.MASK	     : MASK NON-EXISTENT BITS
+	STH	5,SAMASK	     : 
+        LHI	5,0BF
+        LB	0A,INHBIT,5
+        LR	0A,0A
+        JF	3,W7
+
+        RDR	5,1
+        CR	3,1
+        JE	W7
+
+        LR	0A,5
+
+        JAL	0F,ABFERR	     : Jump to error on bad data recieved
+
+:		Check the data recieved on sync status line FF.
+W7	LH	5,F.MASK	     : MASK NON-EXISTENT BITS
+	STH	5,SAMASK	     : 
+        LHI     5,0FF
+        LB      0A,INHBIT,5
+        LR      0A,0A
+        JF      3,W8
+
+        RDR     5,1
+        CR      3,1
+        JE      W8
+
+        LR      0A,5
+
+        JAL     0F,ABFERR	     : Jump to error on bad data
+
+:		Update the data pattern.
+W8      AR	3,4		     : R4 = data pattern increment value
+        STH	3,ADATA		     : R3 = the test data pattern
+
+:		Inc the count of the number of passes through the test loop.
+        LB	7,RUN
+        AIS	7,1
+        STB	7,RUN 
+
+:		Update the display console.
+        LH	5,PANOUT+2           : GET ERROR DATA
+        L	6,ERNUMB             : GET ERROR NUMBER, MACHINE TYPE, VISUAL
+			             : AID AND DEVICE ADDRESS
+        CIO	5,5                  : DISPLAY INFORMATION
+        STB	7,PANOUT             : TELL THE CONSOLE
+        SIS	0C,1                 : CHECK FOR IDLE CHANNEL DELAY LOOP
+        JG	WAITA		     : If not time to check for idle sync 
+				     : lines, go back to test some more
+
+:		Periodical check for idle sync channels.
+
+	LIS	0B,0
+        LHI	5,20		     : R5 = pointer in to INHBIT and IDLE
+				     :      tables
+W9      LB	0A,INHBIT,5	     : Is this sync line in test?
+        LR	0A,0A
+        JF	3,W10
+
+:		If this sync line is in test, is it idle?
+        LB	0A,IDLE,5            : CHECK FOR AN INTERRUPT ON THIS UNIT
+        LR	0A,0A                : FIX CONDITION CODE
+        JF	3,IDLERR             : JUMP IF ZERO TO ERROR (I.E. IF THAT
+				     : SYNC LINE HAS HAD NO ACTIVITY
+W9A     STB	0B,IDLE,5            : RESET TABLE ENTRY TO ZERO
+W10 	AIS	5,1
+	CLHI	5,5F
+        JLE	W9
+        J	WAIT		     : Return to the top of the test loop
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:	Idle unit error routine
+:	Reg 2 = ch #
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+IDLERR  STM	0, IDLSAV	     : SAVE REGISTERS
+	:LHI	0,20F0               : DISABLE INTERRUPTS
+        :EPSR	1,0
+        LIS	0B,1
+        AHM	0B,IERRS             : UPDATE ERROR TOTAL
+        LH	0B,INIDLE            : ARE ERRORS INHIBITED
+        JF	3,IDLER1
+        LIS	0B,2
+        STB	0B,ERNUMB+1          : STORE ERROR NUMBER
+        STH	5,UNIT
+	LIS	6,0
+        STH	6,GOT                : ZERO OUT GOT WORD FOR PANEL OUTPUT
+	JAL	0E,CIOERR	     : Send the error to the display console
+        LH	0B,TTYAVL
+        JF	3,IDLER1
+        LB	2,TTYADR
+        OC	2,TTYOUT
+        LIS	6,0            	     : CLEAR INDEX
+L53     LB	5,MSG9S,6      	     : LOAD NEXT CHAR
+        WDR	2,5           	     : PRINT
+        AIS	6,1                  : POINT TO NEXT CHAR
+
+L33     SSR	2,5           	     : SENSE TERMINAL STATUS
+        JTBS	8,L33                : WAIT TILL TERMINAL READY
+        CLHI	6,MSG9E-MSG9S        : SEE IF MSG PRINTED
+        JLE	L53                  : REPEAT IF NOT
+
+        LIS	6,4                  : LOAD SHIFT FACTOR
+        LH	3,UNIT
+        JAL	0E,OUTCO1
+
+	LHI	5,0D
+        WDR	2,5
+L34     SSR	2,0C		     : OUTPUT CR
+        JTBS	8,L34
+
+        LHI	5,0A
+        WDR 	2,5
+L35     SSR	2,0C
+        JTBS	8,L35
+IDLER1  EQ	.
+	:LHI	0,60F0              : RE-ENABLE INTERRUPTS
+        :EPSR	1,0
+	LM	0,IDLSAV	    : RESTORE REGISTERS
+        J	W9A
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	Option command subroutines				             :	
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+:		SYNC SE board is present
+
+SYNCSE 	LIS	7,1
+        STH	7,SESYNC            : Indicate SE board is present
+	LHI	7,0FFFF
+	STH	7,F.MASK	    : Test all BF bits
+	STM	0,CMDSAV
+	JAL	0F,SCAN,0,0
+	LM	0,CMDSAV
+        JR	0F
+
+SYNCSP 	LIS	7,0
+        STH	7,SESYNC            : Indicate SE board is not present
+	LHI	7,0F0F0
+	STH	7,F.MASK	    : Test half of BF bits
+	STM	0,CMDSAV
+	JAL	0F,SCAN,0,0
+	LM	0,CMDSAV
+        JR	0F
+AE0 	LH	7,C.MASK
+	NI	7,0F0FF
+	STH	7,C.MASK
+        JR	0F
+
+AP1 	LH	7,C.MASK
+	NI	7,0FF0F
+	STH	7,C.MASK
+        JR	0F
+
+AE1 	LH	7,C.MASK
+	NI	7,0FFF0
+	STH	7,C.MASK
+        JR	0F
+
+AP0AE1 	LH	7,C.MASK
+	OI	7,0FFFF
+	STH	7,C.MASK
+        JR	0F
+
+:		Inhibit data errors routine
+
+ID      LIS	7,0
+        STH	7,IDERR             : STORE ZERO IN CELL
+        JR	0F
+
+:		Routine to continue data errors
+
+CD      LIS	7,1
+        STH	7,IDERR
+        JR	0F
+
+:		Routine to inhibit idle channel errors
+
+II      LIS	7,0
+        STH	7,INIDLE
+        JR	0F
+
+:		Routine to continue idle channel errors
+
+CI      LIS	7,7
+        STH 	7,INIDLE
+        JR	0F
+
+:		Routine inhibits data and idle channel errors
+
+IA     	LIS	7,0
+        STH	7,IDERR
+        STH	7,INIDLE
+        JR	0F
+
+:		Routine inhibits reporting of sync errors
+
+IS      LIS	7,0
+        STH	7,ISYNER
+        JR	0F
+
+:		Routine continues reporting of sync errors
+
+CS      LIS	7,1
+        STH	7,ISYNER
+        JR	0F
+
+:		Routine for continuing all error reporting
+
+CA      LIS	7,1
+        STH	7,IDERR
+        STH	7,INIDLE
+        STH	7,ISYNER
+        JR	0F
+
+:		Routine for devices responding
+
+DR      LIS	7,1                 : SET ROLL FLAG
+        STH	7,ROLL  
+	STM	0,CMDSAV
+	JAL	0F,SCAN,0,0
+	LM	0,CMDSAV
+        JR	0F
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:	Routine entered to inhibit (or continue) devices from being tested.
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+UI      LIS	0D,0
+        JFS	L55
+UC      LIS	0D,1
+L55     LH	4,OPTNUM
+
+:		Now check to see if sync or async
+ 
+       CLHI	4,00                : SEE IF ALL UNITS TO BE INHIBITED
+       JE 	UIALLZ              : JUMP TO CHECK IF TO INHIBIT ALL OR
+				   : CONTINUE ALL
+        CLHI	4,20               : CHECK TO SEE IF UNIT NUM. TOO LOW
+        JL	INVALD             : JUMP IF IT IS
+        CLHI	4,60               : CHECK TO SEE IF SYNC ADDRESS
+        JL	UISYNC             : JUMP IF IT IS
+        CLHI	4,091              : CHECK TO SEE IF NOT AN ASYNC
+        JL	INVALD             : JUMP IF INVALD
+        CLHI	4,0B0              : CHECK IF ASYNC
+        JL	UIASYN             : JUMP IF IT IS
+        CLHI	4,0BF              : CHECK TO SEE IF STATUS ADDR. OF SYNC CARD
+        JE	UIASYN             : JUMP IF IT IS
+        CLHI	4,0FF              : CHECK TO SEE IF STATUS ADD. OF SYNC CARD
+        JE	UIASYN             : JUMP IF IT IS
+        CLHI	4,0C0              : CHECK TO SEE IF ENHANCED ASYNC CARD ADDR
+        JG	UIASYN             : JUMP IF IT IS
+
+:		Output invalid address msg.
+
+INVALD  OC	2,TTYOUT
+        LIS 	7,0                 : CLEAR INDEX
+L48     LB	6,MSG11S,7     	    : LOAD NEXT CHAR
+        WDR	2,6           	    : PRINT
+        AIS	7,1                 : POINT TO NEXT CHAR
+L20     SSR	2,6           	    : SENSE TERMINAL STATUS
+        JTBS	8,L20		    : WAIT TILL TERMINAL READY
+        CLHI	7,MSG11E-MSG11S     : SEE IF MSG PRINTED
+        JLE	L48                 : REPEAT IF NOT
+        JR	0F		    :JUMP BACK TO GET CORRECTED INPUT
+
+:	Routine changes interrupt pointer on recv. channel to a
+:	non-checking routine and also disables (or enables) checking
+: 	for idle channels on both the xmit and recv. sides of the line.
+:
+:	Reg 4 = channel number
+
+UISYNC  NHI	4,0FE               : MAKE ADDRESS EQUAL TO RECV. UNIT
+        LR	7,4                 : COPY REG. 4 INTO REG. 7
+        LA	5,RECVNO            : LOAD RCV. NO-OP ROUTINE ADDRESS
+        LHI	6,0D0               : LOAD ISP TABLE ADDRESS
+        AR	4,4
+        AR	4,6		    : 0D0 + 2*R2 = 110 + CH
+        STH	5,0,4               : STORE ENTRY INTO ISP TABLE
+        STB	0D,INHBIT,7         : STORE A ZERO (OR 1) IN TABLE TO INHIBIT
+				    : (OR ENABLES) TESTING
+        AIS	7,1                 : UPDATE INDEX TO XMIT SIDE
+        STB	0D,INHBIT,7
+        JR	0F                  : RETURN
+
+:		Routine to stop (or continue) testing of async units
+
+:		Some unused entrys due to not all addrs. used by async card.
+
+UIASYN  STB	0D,INHBIT,4         : STORE ZERO INTO INHIBIT TABLE
+        JR	0F                  : RETURN
+
+UIALLZ  LR	0D,0D               : CHECK FOR REG. D=0 OR 1
+        JF	3,UIALL             : JUMP IF ZERO TO INHIBIT ALL
+	STM	0,CMDSAV
+	JAL	0F,SCAN,0,0         : JUMP TO RE-ESTABLISH DEVICE ADDRS.
+	LM	0,CMDSAV 	    : RESPONDING TABLE
+        JR      0F
+
+:		Following routine inhibits all units
+
+UIALL   LHI	4,20
+        LIS	5,1
+        LHI	6,0FF
+	LIS	7,0
+UIALL1  STB	7,INHBIT,4          : SET UP INHIBIT TABLE
+        AR	4,5
+        CLR	4,6
+        JLE	UIALL1
+
+        LHI	4,110               : LOAD FIRST RECV. UNIT ISP TABLE ENTRY
+        LIS	5,4
+        LHI	6,18C
+        LA	7,RECVNO            : LOAD ADDRESS OF RECV. NO-OP ROUT.
+UIALL2  STH	7,0,4
+        AR	4,5
+        CLR	4,6
+        JLE	UIALL2
+
+	JR	0F
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:	Routine entered to display the Help Menu
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+HELP	PRINT(6,7,8,MESG78,L82,L83,MSG78E,9)
+
+	JR	0F
+
+:		Routine to examine and change initial data pattern.
+
+DX      LR	0D,0F               : SAVE RETURN
+        OC	2,TTYOUT            : PUT TTY IN WRITE MODE
+        LIS	9,0                 : CLEAR INDEX
+L49     LB	8,MSG7S,9           : LOAD NEXT CHAR
+        WDR	2,8           	    : PRINT
+        AIS	9,1                 : POINT TO NEXT CHAR
+L21     SSR	2,8           	    : SENSE TERMINAL STATUS
+        JTBS	8,L21               : WAIT TILL TERMINAL READY
+        CLHI	9,MSG7E-MSG7S       : SEE IF MSG PRINTED
+        JLE	L49                 : REPEAT IF NOT
+        LH	3,DATA              : LOAD INITIAL DATA VALUE
+        LA	1,DATA              : LOAD ADDRESS OF DATA CELL
+        JAL	0E,OUTCON           : JUMP TO OUTPUT CONVERT
+        JAL	0E,INCON            : JUMP TO INPUT CONVERT
+        LR	0F,0D
+        JR	0F
+
+:		Routine to examine and change constant cell.
+
+CX      LR	0D,0F               : SAVE RETURN ADDRESS
+        OC	2,TTYOUT            : PUT TTY IN WRITE MODE
+        LIS	6,0                 : CLEAR INDEX
+L50     LB	5,MSG6S,6      	    : LOAD NEXT CHAR
+        WDR	2,5           	    : PRINT
+        AIS	6,1                 : POINT TO NEXT CHAR
+L22     SSR	2,5           	    : SENSE TERMINAL STATUS
+        JTBS	8,L22               : WAIT TILL TERMINAL READY
+        CLHI	6,MSG6E-MSG6S       : SEE IF MSG PRINTED
+        JLE	L50                 : REPEAT IF NOT
+        LH	3,CONST             : LOAD CONST CELL
+        LA	1,CONST             : PUT CONSTANT CELL ADDRESS IN REG. 1
+        JAL	0E,OUTCON           : JUMP TO OUTPUT CONVERSION
+        JAL	0E,INCON            : JUMP TO INPUT CONVERSION
+        LR	0F,0D               : RE-ESTABLISH RETURN
+        JR	0F
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:		Routine inputs 4 digits and converts ascii to hex.
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+INCON   OC	2,TTYIN
+L23     SSR	2,0C
+        JTBS	8,L23
+        RDR	2,6
+        NHI	6,7F               : STRIP OFF PARITY
+        CLHI	6,0D               : CHECK FOR FIRST CHAR. BEING A CARR. RET.
+				   : IF SO CLOSE CELL
+        JE	INCON0
+	LIS	5,0
+        JAL	0F,RDNUM1           : GO AND CONVERT CHAR.
+        AR	5,6                 : PUT DIGIT INTO REG. 5
+        SLLS	5,4                 : MOVE DIGIT OVER
+        JAL	0F,RDNUM            : GET NEXT DIGIT
+        AR	5,6
+        SLLS	5,4
+        JAL	0F,RDNUM
+        AR	5,6
+        SLLS	5,4
+        JAL	0F,RDNUM
+        AR	5,6
+L24     SSR	2,0C
+        JTBS	8,L24
+        RDR	2,6                 : EXPECT CARR. RET. NOW
+        NHI	6,7F                : STRIP OFF PARITY BIT
+        CLHI	6,0D                : SEE IF IT IS
+        JE	INCONA
+        J	SOPTE               : JUMP IF NOT TO ERROR MSG. !!!!!!!!!!!!!!
+
+INCONA  STH	5,0,1               : STORE NEW DATA IN DATA OR CONSTANT CELL
+INCON0  OC	2,TTYOUT
+        LHI	6,0A
+        WDR	2,6                 : OUTPUT A LINE FEED
+L28     SSR	2,0C
+        JTBS	8,L28
+        JR	0E
+
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:		Routine used to convert chars. for output
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+OUTCON  LIS	6,0C                : LOAD SHIFT FACTOR
+OUTCO1  LR	4,3                 : PUT REG. 3 INTO REG. 4
+        SRL	4,0,6               : SHIFT FIRST DIGIT INTO PLACE
+        NHI	4,0F                : GET LEAST SIG. DIGIT
+        OHI	4,30                : CONVERT TO ASCII CHAR.
+        CLHI	4,3A                : IS CHAR. A NUMBER
+        JL	OUTCPT              : JUMP IF IT IS
+        AHI	4,7                 : CONVERT TO A LETTER
+OUTCPT  WDR	2,4
+L25     SSR	2,0C
+        JTBS	8,L25
+        SIS	6,4
+        JGE	OUTCO1
+
+OUTC2   LHI	0A,20               : LOAD A SPACE CHAR.
+        WDR	2,0A
+L26     SSR	2,0C
+        JTBS	8,L26
+        WDR	2,0A
+L27     SSR	2,0C
+        JTBS	8,L27
+
+        JR	0E
+:		Routine inhibits TTY by setting TTYAVL equal to zero
+
+IT      LIS	5,0
+        STH	5,TTYAVL
+        JR	0F
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:	Sync data error routine. reg 2=unit #, got=recv data,
+:		expect=expected
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+SERROR  STM	0,SRRSAV
+	LIS	0B,1
+        AHM	0B,DERRS            : INCREMENT ERROR TOTAL
+        LH	0B,IDERR            : ARE DATA ERRORS INHIBITED
+        JF	3,SERRA             : JUMP IF THEY ARE
+        LIS	0B,1                : LOAD ERROR NUMBER SAYING DATA ERROR
+        STB	0B,ERNUMB+1         : STORE IN ERROR NUMBER CELL
+        STH	2,UNIT              : SAVE UNIT NUMB.
+        STH	9,GOT               : STORE RECIVE WORD
+        LH	9,GDAT0,2	    : EXPECTED DATA
+        STH	9,EXPECT            : SAVE EXPECTED DATA
+        JAL	0E,CIOERR           : JUMP TO PANEL ERROR ROUT.
+        LH	0B,TTYAVL           : IS A TTY AVAILABLE
+	JF	3,SERRA
+        JAL	0F,PRIERR              : PRINT ERROR
+SERRA   LM	0,SRRSAV
+	JR	0F
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:		If a is terminal available print the error message.
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+PRIERR  STM	0,PRISAV
+	LA	5,MSG8S
+        LB	2,TTYADR
+        OC	2,TTYOUT
+
+:		Output message.
+
+        LIS	6,0                  : CLEAR INDEX
+L51     LB	5,MSG8S,6      	     : LOAD NEXT CHAR
+        WDR	2,5           	     : PRINT
+        AIS	6,1                  : POINT TO NEXT CHAR
+L30     SSR	2,5           	     : SENSE TERMINAL STATUS
+        JTBS	8,L30                : WAIT TILL TERMINAL READY
+        CLHI	6,MSG8E-MSG8S        : SEE IF MSG PRINTED
+        JLE	L51                  : REPEAT IF NOT
+        LIS	6,4                  : LOAD SHIFT FACTOR
+        LH	3,UNIT
+        JAL	0E,OUTCO1            : JUMP TO OUTPUT UNIT NUMB.
+        LH	3,EXPECT
+        JAL	0E,OUTCON            : OUTPUT EXPECTED DATA
+        LH	3,GOT
+        JAL	0E,OUTCON
+        LHI	5,0D
+        WDR	2,5                  : OUTPUT CARR. RET.
+L31     SSR	2,0C
+        JTBS	8,L31
+        LHI	5,0A
+        WDR	2,5
+L32     SSR	2,0C
+        JTBS	8,L32
+	LM	0,PRISAV
+        :JR	0F		      : RETURN TO CONTINUE TESTING
+	J	TESTGO
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:	Async, BF, & FF data error routine. r1=recv data, r3=expected, r10=unit
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+ABFERR   STM	0,ERRSAV
+	STH	1,GOT
+        STH	3,EXPECT
+        STH	0A,UNIT
+        LHI	0,20F0                : DISABLE INTERRUPTS
+        EPSR	1,0
+        LH	0B,IDERR
+        JF	3,ERRORA              : JUMP IF DATA ERRORS INHIBITED
+	LH	1,GOT
+	NH	1,SAMASK	      : MASK NON-EXISTENT BITS
+	NI	1,0FFFF		      : MASK OFF SIGN EXTENSION
+	NH	3,SAMASK	      : MASK NON-EXISTENT BITS
+	NI	3,0FFFF		      : MASK OFF SIGN EXTENSION
+	CR	1,3
+        JE	ERRORA                : JUMP IF MASKED DATA COMPARES
+        LIS	0B,1
+        AHM	0B,DERRS
+        LIS	0B,1                  : LOAD DATA ERROR NUMBER
+        STB	0B,ERNUMB+1           : STORE ERROR NUMBER
+	JAL	0E,CIOERR	      : Send the error to the display console
+        LH	0B,TTYAVL             : IS TTY AVAIL.
+        JF	3,TESTGO
+        JAL	0F,PRIERR
+ERRORA  LHI	0,60F0
+        EPSR	1,0                   : RE-ENABLE INTERRUPTS
+	LM	0,ERRSAV
+        JR	0F
+
+:                                                                            :
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                                            :
+:	Front PANel ERRor						     :
+:                                                                            :
+:	Following two routines used to output errors to front panel	     :
+:	for data errors display d3=unit and d1+d2=recv. data		     :
+:	for idle channels d1=unit, d2+d3+d4=00				     :
+:                                                                            :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+PANERR  LH	3,GOT
+        STH	3,PANOUT+2          : STORE RECV. DATA IN OUTPUT CELL
+        LH	3,UNIT
+        STB	3,PANOUT+1
+        LH	1,PANOUT+2          :  GET ERROR DATA
+        L	2,ERNUMB            :  GET ERROR NUMBER, MACHINE TYPE, VIS
+				    : VIS UNIT NO.
+        CIO	1,1                 : DISPLAY ON CONSOLE
+
+:		Wait a while to allow an TTY interrupt if any.
+        LHI	4,5FFF
+L52     SIS	4,1
+        JGBS	L52
+        J	TESTGO		: After error start test over!!!!!!!!!!!!!!!!
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:	The second of the two display console error routines.
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+CIOERR  LH	3,GOT
+        STH	3,PANOUT+2          : STORE RECV. DATA IN OUTPUT CELL
+        LH	3,UNIT
+        STB	3,PANOUT+1
+        LH	1,PANOUT+2          :  GET ERROR DATA
+        L	2,ERNUMB            :  GET ERROR NUMBER, MACHINE TYPE, VIS
+				    : VIS UNIT NO.
+        CIO	1,1                 : DISPLAY ON CONSOLE
+
+:		Wait a while to allow an TTY interrupt if any.
+        LHI	4,5FFF
+L56     SIS	4,1
+        JGBS	L56
+        JR	0E		     : Return
+
+DEND    END
+   O."J
