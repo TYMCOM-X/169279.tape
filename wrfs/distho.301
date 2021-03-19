@@ -1,0 +1,113 @@
+PATCH(870908,1600,JL,PA0PTR,,54)
+MLTLNK   BS        4        :FLAGS FOR HOST IF ON MULTIPLE LINKS
+LSTATS   BS        4        :FLAGS FOR LINKS BEING UP OR DOWN
+TMPSET   BS        4        :SET OF LINKS CURRENTLY UP WITH HOST UP
+HLINKS   BS       20        :NUMBER OF LINKS CONFIGURED FOR EACH HOST
+UPLNKS   BS       20        :NUMBER OF LINKS THAT ARE UP FOR EACH HOST
+TEMPR4   BS        4        :REGISTER SAVE AREA
+TEMPR8   BS        4        :          "
+CONPATCH(INI015,,6)
+         J         INI016,,
+CONPATCH(CHSTAT+2,,6)
+         J         CHS020,,
+CONPATCH(NST160+5A,,6)
+         J         NST153,,
+CONPATCH(HST014,,6)
+         J         HST015,,
+CONPATCH(HCOST0+1C,,6)
+         J         ANCAJ1,,
+CONPATCH(PA1PTR,,168)
+INI016   LHI       R5,1F              :BEGIN SEARCH THROUGH LINK-HOST TABLE
+         LIS       R4,0               : ... TO INITIALIZE MLTLNK FLAGS
+         LR        R8,R6              :RELATIVE HOST IN R8
+         SLLS      R8,2               :ALLOW FOR 4 BYTES PER ENTRY IN TABLE
+INI017   TBT       R5,LHST.F,R8,      :IS THE LINK ALLOWED ON THIS HOST?
+         JE        INI018             :NO, CHECK THE NEXT LINK
+         AIS       R4,1               :INCREMENT NUMBER OF LINKS USED BY HOST
+INI018   SIS       R5,1               :GO LOOK AT NEXT LINK
+         JGE       INI017             :YES, STILL MORE OF THEM TO CHECK
+         CLHI      R4,1               :ALL DONE, HOW MANY DID WE FIND FOR HOST?
+         JLE       INI019             :NO MORE THAN 1
+         SBT       R6,MLTLNK,,        :FLAG A POSSIBLE DISTRIBUTION HOST
+INI019   STH       R0,ANC.HT,R6,R6
+         STB       R4,HLINKS,R6,      :SAVE NO. OF CONFIGURED LINKS
+         J         INI015+6,,         :CONTINUE WITH INITIALIZATION
+                                      :
+CHS020   STB       R1,NMHNAS,R6,
+         TBT       R6,MLTLNK,,        :IS THIS A MULTI-LINK HOST?
+         JN        CHSTAT+8,,         :YES, DON'T FOOL WITH LINK STATUS
+         LR        R2,R6              :RELATIVE HOST NO. IN R6
+         SLLS      R2,2               :4 BYTES PER HOST IN THE TABLE
+         L         R1,LHST.F,R2,      :FIND THE LINK FOR THAT HOST
+         JFFO      R1,CHS022          :R2 WILL HAVE THE LINK NUMBER
+CHS022   LR        R12,R12            :ARE WE BRINGING THE HOST ANSWERED?
+         JN        CHS024             :NO, TURN LINK STATUS TO DOWN
+         TBT       R6,HPA.FC,,        :HOST ANSWERED BUT OUT OF PORTS?
+         JE        CHS024             :YES, SET LINK STATUS TO DOWN
+         SBT       R2,LSTATS,,        :ANSWERED, ENOUGH PORTS, LINK IS UP
+         J         CHSTAT+8,,
+CHS024   RBT       R2,LSTATS,,        :HOST NOT ANSWERED OR OUT OF PORTS,
+         J         CHSTAT+8,,         : ... LINK IS DOWN
+                                      :
+NST153   L         R0,LHST.F,R1,      :SET OF ALLOWABLE LINKS FOR HOST
+         N         R0,PACKUP,,        :INCLUDE ONLY IF PACKET LEVEL UP
+         N         R0,LSTATS,,        :AND LINK STATUS OF UP
+         J         NST160+64,,
+HST015   TBT       R6,MLTLNK,,        :IS THIS A DISTRIBUTION HOST?
+         JE        HST019             :NO, TREAT IN NORMAL FASHION
+         N         R2,PACKUP,,        :GET LINKS WITH PKT. LEVEL UP
+         N         R2,LSTATS,,        :AND POSITIVE LINK STATUS
+         LR        R2,R2              :ARE THERE ANY ELIGIBLE LINKS?
+         JE        HST018             :NO, SHUT THE HOST IF NOT ALREADY
+         ST        R2,TMPSET,,        :SAVE THE SET OF ELIGIBLE LINKS
+         LIS       R8,0
+         LIS       R9,0               :NOW CHECK ALL LINKS OWNED BY HOST
+         LHI       R4,1F
+HST016   TBT       R4,TMPSET,,        :IS THIS LINK OWNED BY THE HOST?
+         JE        HST017             :NO, GO TRY THE NEXT LINK
+         AIS       R8,1
+         LH        R5,HTC.LT,R4,R4    :FOUND ONE INCREMENT AVAILABLE CHANNELS
+         AR        R9,R5              :THAT CAN BE USED BY THE HOST
+         LH        R5,LTC.LT,R4,R4    :BY ADDING HTC.LT AND SUBTRACTING
+         SR        R9,R5              : ... LTC.LT, RESULT IN R9
+         AIS       R9,1
+HST017   SIS       R4,1               :GO CHECK NEXT LINK NUMBER
+         JGE       HST016             :ASSUMING MORE TO CHECK
+         STH       R9,TNC.HT,R6,R6    :ALL DONE, STORE TOTAL AVAILABLE
+         STB       R8,UPLNKS,R6,      :SAVE NUMBER OF UP-LINKS FOR HOST
+         J         HST014+8,,
+HST018   CLHI      R3,08000           :IF ALREADY SHUT IT, DON'T SHUT AGAIN
+         JE        HST030,,           :YES, DON'T BOTHER TO GO THROUGH THIS
+         LIS       R12,2              :OTHERWISE SEND IT SHUT
+         J         HST020,,
+HST019   N         R2,PACKUP,,
+         JE        HST040,,
+         J         HST014+8,,
+                                      :
+ANCAJ1   ST        R4,TEMPR4,,
+         ST        R8,TEMPR8,,
+         LB        R7,HLINKS,R6,
+         LH        R4,ANC.HT,R6,R6
+         JE        ANCAJ2             :IF NO PORTS IN USE, SKIP CALCULATION
+         LB        R5,UPLNKS,R6,
+         JE        ANCAJ4             :IF NO LINKS ARE UP FOR HOST, MAX COST
+         MHR       R7,R4
+         DHR       R7,R5
+         J         ANCAJ3
+ANCAJ2   LIS       R8,0
+ANCAJ3   SR        R2,R8              :NO. AVAILABLE - NO. IN USE
+         J         ANCAJ5
+ANCAJ4   LIS       R2,0               :MAX HOST COST IF NO UP LINKS
+ANCAJ5   L         R8,TEMPR8,,        :...HAVE SAME NUMBER OF TCNL'S 
+         L         R4,TEMPR4,,        :...CONFIGURED.
+         J         HCOST0+22,,
+     IF HCO.MX
+CONPATCH(T15S05+6,,6)
+         J         PA1PTR,,
+CONPATCH(PA1PTR,,18)
+         LB        R5,MAXCST,R6,      :IS HOSTCOST DEFINED FOR THIS HOST?
+         JE        T15S10,,
+         LB        R5,CSC.HT,R6,      :YES, SEND HOSTCOST OUT EVERY 15 SECS.
+         J         T15S10-0C,,
+     EI
+ENDPATCH(SUPPORTS DISTRIBUTION HOST LOGIC)
