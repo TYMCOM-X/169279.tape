@@ -1,0 +1,52 @@
+
+
+To  :  Raymond Wong
+ 
+Copy:  Steve Wong
+
+Fr  :  James Wang
+
+Sub :  Hitachi 3780 testing
+ 
+======================================================
+
+Raymond,
+
+     The patches have been written to fix the 'IUS' and double echo
+problem.
+
+     (1). For IUS problem:
+
+          a. Add two lines ';x(jwang)module.cmd' and ';@(jwang)EOB05.p01'
+             right after ';@(cwhknet)bbxs05.p01' in the command file.
+          b. The patch EOB05.p01 has an ius/irs/igs switch.
+              If you want to use 'IRS', set '1[UIRS:' in the command file
+              just right before ';@(source)bbxs05.i01'
+              If you want to use 'IUS' or 'IGS', set '1[UIUS:' or '1[UIGS:'
+              in the command file instead of '1[UIRS:'.
+              The default value for 2780/3780 is 'IUS'.
+              (hex values for IUS,IRS,IGS are '1F','1E','1D')
+
+            (for item a and b, please take a look at sample command file
+             CWHKNET:37:sampl.c04)
+
+          c. Since we don't have 3780 host, please take away all the statements
+             for host interface part. (i.e., the last 2 lines in the CWHKNET:
+             37:JW2010.t04). Otherwise, it will cause some other problem
+             when we try to signon.
+
+     (2). For double echo problem:
+          This is a X.75 bug. Two patches have been written to fix this 
+          problem. These two patches have been put into (pactech:37:pacx02.p02).
+          please put '1[IBM2780:' and '1[DEM:' in the X.75 command file to
+          enable these two patches in the pacx02.p02.
+
+
+Please test both 3780 terminal interface and X.75 interface. let me know
+how it goes. Thanks,
+
+
+regards,
+james Wang
+
+
