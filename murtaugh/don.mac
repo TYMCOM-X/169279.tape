@@ -1,0 +1,38 @@
+;
+;
+;       LITTLE ROUTINE TO SEE WHO IS RUNNING WHAT
+;       
+        ENTRY WHOYOU
+WHOYOU: 0
+        MOVE    5,[36,,-1]
+        FRMOP   5,LO1
+        JUMPA   YOUNOT          ;ERROR
+;
+        MOVE    5,LO2
+        TDON    5,[1700,,0]     ;CHECK ON TERMINAL ID
+        JUMPA   YOUNOT          ;NO GOOD
+        SETZM   5,              ;CLEAR OUR ACC 5
+        MOVE    5,[-25]         ;LOOKING FOR A PPN...
+        GETTAB  5,              ;GO GET IT
+        JFCL    0               ;INCASE WE GET A SKIP RETURN
+        CAME    5,[1,,4];ARE WE LOCATED IN SYS??
+        JRST    YOU2            ;NOPE...HOW ABOUT CES
+        JRA     16,1(16)
+YOU2:   CAME    5,[11334,,201464];ARE WE ISIS
+        JRST    YOU3
+        JRA     16,1(16)
+YOUNOT: MOVE    5,[-1]
+        MOVEM   5,@0(16)        ;RETURN THE -1
+        JRA     16,1(16)
+
+YOU3:   CAME    5,[11334,,267137]
+        JRST    YOU4
+        JRA     16,1(16)
+YOU4:   CAME    5,[42133,,136373]       ;ARE WE LOADII
+        JRST    YOUNOT
+        JRA     16,1(16)
+
+LO1:    1,,LO2
+LO2:    0
+;
+;
