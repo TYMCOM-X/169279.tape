@@ -1,0 +1,1054 @@
+:*********************************************************************
+:(NSCNET)MSVKNJ.303
+:---------------------------------------------------------------------
+:       (1). This patch apply to version 3.03 menu server.
+:
+:       (2). This patch enable to support Shift-JIS to JIS or JIS to Shift-
+:            JIS by specifying Term.kanji and C.kanji macro.
+:
+:       Following is the kanji convert process table.
+:
+:
+:       << Convert from JIS code to SFTJIS code >>
+:
+:       +----------------+-------------+---------+--------+--------------+
+:       | Current status | Receive     | Process | Output | Next process |
+:       | table          | code        | routine | byte   | table        |
+:       +----------------+-------------+---------+--------+--------------+
+:       |                | 0E          | JSSB01  | 0      | JSHANK       |
+:       | JSHANK         +-------------+---------+--------+--------------+
+:       |                | 0F          | JSSB02  | 0      | JSHANK       |
+:       |                +-------------+---------+--------+--------------+
+:       |                | 1B          | JSSB11  | 0      | ESC241       |
+:       |                +-------------+---------+--------+--------------+
+:       |                | 00-0D,10-1A | JSSB03  | 1      | JSHANK       |
+:       |                | 1C-1F,60-7F |         |        |              |
+:       |                +-------------+---------+--------+--------------+
+:       |                | 20-5F       | JSSB04  | 1      | JSHANK       |
+:       +----------------+-------------+---------+--------+--------------+
+:       |                | 0E          | JSSB10  | 0      | JSHANK       |
+:       |                +-------------+---------+--------+--------------+
+:       |                | 0F          | JSSB11  | 0      | ESC241       |
+:       |                +-------------+---------+--------+--------------+
+:       |                | 1B          | JSSB14  | 1      | ESC241       |
+:       | ESC241         +-------------+---------+--------+--------------+
+:       |                | 24          | JSSB12  | 0      | ESC242       |
+:       |                +-------------+---------+--------+--------------+
+:       |                | 00-0D,10-1A | JSSB13  | 2      | JSHANK       |
+:       |                | 1C-23,25-7F |         |        |              |
+:       +----------------+-------------+---------+--------+--------------+
+:       |                | 40,42       | JSSB20  | 0      | JSZEN1       |
+:       | ESC242         +-------------+---------+--------+--------------+
+:       |                | 00-39,41    | JSSB21  | 3      | JSHANK       |
+:       |                | 43-7F       |         |        |              |
+:       +----------------+-------------+---------+--------+--------------+
+:       |                | 0E,0F       | JSSB30  | 0      | JSHANK       |
+:       | JSZEN1         +-------------+---------+--------+--------------+
+:       |                | 00-0D,10-1A | JSSB31  | 1      | JSZEN1       |
+:       |                | 1C-20       |         |        |              |
+:       |                +-------------+---------+--------+--------------+
+:       |                | 1B          | JSSB40  | 0      | ESC281       |
+:       |                +-------------+---------+--------+--------------+
+:       |                | 21-7F       | JSSB50  | 0      | JSZEN2       |
+:       +----------------+-------------+---------+--------+--------------+
+:       |                | 1B          | JSSB41  | 0      | ESC281       |
+:       | ESC281         +-------------+---------+--------+--------------+
+:       |                | 28          | JSSB42  | 0      | ESC282       |
+:       |                +-------------+---------+--------+--------------+
+:       |                | 24          | JSSB43  | 0      | ESC243       |
+:       |                |-------------+---------+--------+--------------+
+:       |                | 00-1A,1C-23 | JSSB44  | 2      | JSZEN1       |
+:       |                | 25-27,29-7F |         |        |              |
+:       +----------------+-------------+---------+--------+--------------+
+:       |                | 48,4A       | JSSB45  | 0      | JSHANK       |
+:       | ESC282         +-------------+---------+--------+--------------+
+:       |                | 00-47,49    | JSSB46  | 3      | JSZEN1       |
+:       |                | 4B-7F       |         |        |              |
+:       +----------------+-------------+---------+--------+--------------+
+:       |                | 40,42       | JSSB47  | 0      | JSZEN1       |
+:       | ESC243         +-------------+---------+--------+--------------+
+:       |                | 00-39,41    | JSSB48  | 3      | JSZEN1       |
+:       |                | 43-7F       |         |        |              |
+:       +----------------+-------------+---------+--------+--------------+
+:       |                | 21-7F       | JSSB51  | 2      | JSZEN1       |
+:       | JSZEN2         +-------------+---------+--------+--------------+
+:       |                | 00-20       | JSSB52  | 2      | JSZEN1       |
+:       +----------------+-------------+---------+--------+--------------+
+:
+:
+:       << Convert from SFTJIS code to JIS code >>
+:
+:       |----------------+-------------+---------+--------+--------------+
+:       | Current status | Receive     | Process | Output | Next process |
+:       | table          | code        | routine | byte   | table        |
+:       +----------------+-------------+---------+--------+--------------+
+:       |                | 00-1F       | SJSB01  | 1      | SJHANK       |
+:       | SJHANK         +-------------+---------+--------+--------------+
+:       |                | 20-7F       | SJSB02  | 1 or 2 | SJHANK       |
+:       |                +-------------+---------+--------+--------------+
+:       |                | 80-9F,E0-EF | SJSB03  | 4      | SJZEN2       |
+:       |                +-------------+---------+--------+--------------+
+:       |                | A0-DF       | SJSB04  | 1 or 2 | SJHANK       |
+:       |                +-------------+---------+--------+--------------+
+:       |                | F0-FF       | SJSB05  | 2      | SJHANK       |
+:       +----------------+-------------+---------+--------+--------------+
+:       |                | 00-1F,80    | SJSB10  | 1      | SJZEN1       |
+:       | SJZEN1         +-------------+---------+--------+--------------+
+:       |                | 20-7F       | SJSB11  | 3      | SJHANK       |
+:       |                +-------------+---------+--------+--------------+
+:       |                | 81-9F,E0-EF | SJSB12  | 0      | SJZEN2       |
+:       |                +-------------+---------+--------+--------------+
+:       |                | A0-DF       | SJSB13  | 3      | SJHANK       |
+:       |                +-------------+---------+--------+--------------+
+:       |                | F0-FF       | SJSB14  | 2      | SJZEN1       |
+:       +----------------+-------------+---------+--------+--------------+
+:       |                | 00-3F,7F    | SJSB20  | 2      | SJZEN1       |
+:       | SJZEN2         | FD-FF       |         |        |              |
+:       |                +-------------+---------+--------+--------------+
+:       |                | 40-7E,80-FC | SJSB22  | 2      | SJZEN1       |
+:       +----------------+-------------+---------+--------+--------------+
+:
+:************************************************************************
+ 
+PATCH(900601,1130,NIS.KANETA,PA0PTR,,2B+9*NPORT+0E*NGRP)
+        GL      JSHANK,JSZEN1,JSZEN2,SJHANK,SJZEN1,SJZEN2,ESC241
+        GL      ESC242,ESC243,ESC281,ESC282,JTOSJ,SJTOJ,TB7S7E
+ 
+ 
+INVALID EQ     $04040
+INVNEW  EQ     $04040
+INVOLD  EQ     $04040
+ 
+ 
+        BS      0
+SAVCMD  BS      NPORT           : Select command number save area
+COUNTX  BS      NPORT           : Transmit counter
+KMODE   BS      NPORT           : Kanji mode table for Tsatside
+        HS      0
+KJCONV  HS      NGRP            : KANJI convert flag
+JISSFT  HS      NGRP            : Convert JIS to SFTJIS flag
+JISOLD  HS      NGRP            : Support OLD JIS flag
+ETMSND  HS      NGRP            : ETM send flag
+NOSEND  HS      NGRP            : Inhibit send ETM and LTM from host
+ 
+AKSFT   HS      NGRP            : Hankau alpabet/katakana shift flag
+                                : 0 : SI (shift in.  alpahbet&numeric)
+                                : 1 : SO (shift out.  katakana)
+ 
+KJSFT   HS      NGRP            : Kanji shift flag
+                                : 0 : KOUT (ANK mode)
+                                : 1 : KIN  (kanji mode)
+ 
+PROCESS HS      2*NPORT         : Kanji convert process table
+DTSAVE  HS      NPORT           : Kanji data save area
+ 
+ 
+        WS      0
+TMPSAV  WS      1               : Temporary BIT check area
+TMPRG0  WS      1               : R2 resistor temporary save area
+TMPRG1  WS      1               : R1 resistor temporary save area
+TMPRG2  WS      1               : R2 resistor temporary save area
+TMPRG3  WS      1               : R3 resistor temporary save area
+TMPRG4  WS      1               : R4 resistor temporary save area
+TMPRG5  WS      1               : R5 resistor temporary save area
+TMPRG6  WS      1               : R6 resistor temporary save area
+RETADR  WS      1               : Return address save area
+ 
+ 
+ 
+: (0) KMODE table initialize process
+ 
+CONPATCH(ST1+1E,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,3E)
+RSETKM  ST      R1,TMPRG1,,             : Save R1 resistor
+        ST      R2,TMPRG2,,             : Save R2 resistor
+        LHI     R1,NPORT                : Get nport value
+        LHI     R2,0FF                  : Set FF
+RSETK1  STB     R2,KMODE,R1,,           : Set FF to KMODE table
+        SIS     R1,1                    : R1 = R1 -1
+        CLHI    R1,0                    : Loop until 0
+        JGE     RSETK1                  :
+        L       R1,TMPRG1,,             : Recover R1 resistor
+        L       R2,TMPRG2,,             : Recover R2 resistor
+        LHL     R9,(HOSTX),,            : From source
+        LIS     R10,(4)                 :  "    "
+        J       ST1+24,,                : Return to source
+ 
+ 
+: (1) Kanji mode set for Tsatside
+:--------------------------------------
+:       R1 = Port #
+:       R6 = RHN( RELATIVE HOST NUMBER)
+ 
+CONPATCH(NE4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,20)
+NE41    LB      R0,TKNJ,R6,,            : Get Terminal side Kanji code
+        STB     R0,KMODE,R1,,           : Set Kanji code for Tsatside
+        LHL     R8,(UCBINUSE),R7,,      : From source
+        JFFOH   R8,NE42                 :
+        J       NE4+6,,                 : Return to source
+NE42    J       NE5,,
+ 
+ 
+ 
+: (2) Caluculate relative number of object host , from
+:     select command.
+:-----------------------------------------------------
+ 
+CONPATCH(CMO5+0E,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,48)
+CMO51   ST      R4,TMPRG4,,             : Save R4 resistor
+        ST      R5,TMPRG5,,             : Save R5 resistor
+        ST      R6,TMPRG6,,             : Save R6 resistor
+        LB      R5,(relativeHost),rUCB,,: Get relative host number
+        SLLS    R5,3                    : Mult X 8
+        L       R4,(CT),R5,,            : Get beginnig of the command tble
+        SR      R6,R4                   : Caluculate pointer
+        SRLS    R6,4                    :  "          "
+        STB     R6,SAVCMD,R10,,         : Save relative command number
+        L       R4,TMPRG4,,             : Recover R4 resistor
+        L       R5,TMPRG5,,             : Recover R4 resistor
+        L       R6,TMPRG6,,             : Recover R4 resistor
+        ST      R5,UCMPTR,rUCB,,        : From source
+        JR      R5                      :  "    "
+ 
+ 
+ 
+: (3) For host circuit b6 sucessful logon (HOTTBL table)
+:
+:  1. Check kanji code for terminal-side and for host-side
+:     and if need to convert kanji code, then set KJCONV
+:     flag on and set kanji process-table. And reset AKSFT
+:     KJSFT flag.
+:  2. If terminal type is 7bit and host type is 8bit then
+:     set NOSEND flag. This flag used for to flush ETM,LTM
+:     message from host.
+:  3. If terminal type is 8bit and host type is 7bit, then set
+:     ETMSND flag. This flag used for to send ETM message when
+:     successed log on object host.
+:
+:  4. Following is the transaction of this routine
+:
+:     +------------------+-----------+-----------+-----------+
+:     | Terminal \ Host  | SJIS code | OJIS code | NJIS code |
+:     | sie       \ side | (SLO20)   | (SLO30)   | (SLO40)   |
+:     +------------------+-----------+-----------+-----------+
+:     | SJIS code        | SLO62     | SLO55     | SLO56     |
+:     +------------------+-----------+-----------+-----------+
+:     | OJIS code        | SLO51     | SLO63     | SLO63     |
+:     +------------------+-----------+-----------+-----------+
+:     | NJIS code        | SLO52     | SLO63     | SLO63     |
+:     +------------------+-----------+-----------+-----------+
+:
+:-------------------------------------------------------------
+:       R1 = PORT # (Hostside)
+:      R10 = PORT # (Tsatside)
+ 
+CONPATCH(SLOIN,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,18C)
+SLOIN1  ST      R2,TMPRG2,,             : Save R2 resistor TMPRG2
+        ST      R3,TMPRG3,,             : Save R3 resistor TMPRG3
+        LB      R4,(RELATIVEHOST),RUCB,,: 0,1,2 etc. Relative host number
+        LB      R2,SAVCMD,R10,,         : Get select number
+        SLLS    R4,2                    : Relative host number X 4
+        L       R3,ADRTBL,R4,,          : Get host side address table
+        LB      R0,0,R3,R2              : Get host side information
+        SRLS    R4,2                    : Relative host number
+        LB      R4,KMODE,R10,,          : Get Tsatside kanji code
+        CI      R0,1                    : Is this code SJIS ?
+        JEFS    SLO20                   : Yes , goto SLO20
+        CI      R0,8                    : Is this code OJIS ?
+        JE      SLO30                   : Yes , goto SLO30
+        CI      R0,9                    : Is this code NJIS ?
+        JE      SLO40                   : Yes , goto SLO40
+        J       SLO62                   : Unknown code. No change
+ 
+SLO20   CI      R4,1                    : Is this code SJIS ?
+        JE      SLO62                   : Yes , no change. SJIS = SJIS
+        CI      R4,8                    : Is this code OJIS ?
+        JE      SLO51                   : Yes , goto SLO51. SJIS -> OJIS
+        CI      R4,9                    : Is this code NJIS ?
+        JE      SLO52                   : Yes , goto SLO51. SJIS -> NJIS
+        J       SLO62                   : Unknown code. No change
+ 
+SLO30   CI      R4,1                    : Is this code SJIS ?
+        JE      SLO55                   : Yes , goto SLO55. OJIS -> SJIS
+        J       SLO63                   : No change
+ 
+SLO40   CI      R4,1                    : Is this code SJIS ?
+        JE      SLO56                   : Yes , goto SLO56. NJIS -> SJIS
+        J       SLO63                   : No change
+ 
+SLO51   RBT     R1,JISOLD,,             : Reset JISOLD flag
+        SBT     R10,JISOLD,,            : Set JISOLD flag
+        J       SLO53                   : Go to SLO53
+SLO52   RBT     R1,JISOLD,,             : Reset JISOLD flag
+        RBT     R10,JISOLD,,            : Reset JISOLD flag
+SLO53   SBT     R1,JISSFT,,             : Set JISSFFT flag
+        RBT     R10,JISSFT,,            : Reset JISSFT flag
+        LA      R4,JSHANK-CMDBAS,,      : Set SJIS/JIS process adress
+        STH     R4,PROCESS,R1,R1        : Save to process table
+        LA      R4,SJHANK-CMDBAS,,      : Get JIS/SJIS process adress
+        STH     R4,PROCESS,R10,R10      : Save to process table
+        SBT     R1,NOSEND,,             : Set NOSEND flag
+        J       SLO61                   : Goto SLO61
+ 
+SLO55   SBT     R1,JISOLD,,             : Set JISOLD flag
+        RBT     R10,JISOLD,,            : Reset JISOLD flag
+        J       SLO57                   : Go to SLO57
+SLO56   RBT     R1,JISOLD,,             : Reset JISOLD flag
+        RBT     R10,JISOLD,,            : Reset JISOLD flag
+SLO57   SBT     R10,JISSFT,,            : Set JISSFT flag
+        RBT     R1,JISSFT,,             : Reset JISSFT flag
+        LA      R4,SJHANK-CMDBAS,,      : Set JIS/SJIS process adress
+        STH     R4,PROCESS,R1,R1        : Save to process table
+        LA      R4,JSHANK-CMDBAS,,      : Get SJIS/JIS process adress
+        STH     R4,PROCESS,R10,R10      : Save to process table
+        J       SLO60                   : Goto SLO60
+ 
+SLO60   SBT     R10,ETMSND,,            : Set ETMSND flag
+SLO61   RBT     R1,AKSFT,,              : Rest AKSFT flag (Hostside)
+        RBT     R10,AKSFT,,             :  "   AKSFT  "   (Tsatside)
+        RBT     R1,KJSFT,,              :  "   KJSFT  "   (Hostside)
+        RBT     R10,KJSFT,,             :  "   KJSFT  "   (Tsatside)
+        SBT     R1,KJCONV,,             : Set KJCONV flag for Hostside
+        SBT     R10,KJCONV,,            : Set KJCONV flag for Tsatside
+        J       SLO64                   : Skip to SLO64
+SLO62   RBT     R1,KJCONV,,             : Reset KJCONV flag
+        RBT     R10,KJCONV,,            : Reset KJCONV flag
+        RBT     R1,NOSEND,,             :  "    NOSEND flag
+        SBT     R10,ETMSND,,            : Set ETMSND flag
+        J       SLO64                   : Skip to SLO64
+SLO63   RBT     R1,KJCONV,,             : Reset KJCONV flag
+        RBT     R10,KJCONV,,            : Reset KJCONV flag
+        RBT     R1,NOSEND,,             : Reset NOSEND flag
+        RBT     R10,ETMSND,,            : Reset ETMSND flag
+SLO64   L       R2,TMPRG2,,             : Recover R2 resistor
+        L       R3,TMPRG3,,             : Recover R3 resistor
+        LIS     R0,(8)                  : From source
+        JAL     R4,FLUSH,,              :  "    "
+        J       SLOIN+6,,               : Return to source
+ 
+ 
+: (4) In case of ETMSND flag in on with Host side port,
+ we send ETM to consat.
+:------------------------------------------------------
+:       R2 = PORT # (Tsatside/Hostside)
+ 
+CONPATCH(HACCNT+18,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,2A)
+HACCN1  JAL     R5,OCM,,                : From source
+        LHL     R2,TSATSIDER,RUCB,,     : Get Tsatside port #
+        TBT     R2,ETMSND,,             : Set ETMSND flag ?
+        JNFS    HACCN2                  : Yes , skip to HACCN2
+        JR      R8                      : Return to source
+HACCN2  SBT     R2,ETMOUT,,             : Set ETMOUT flag
+        LA      R3,ETMBUF,,             : Set isis ETM message
+        JAL     R5,OCM,,                : Send message
+        JR      R8                      : Return to source
+ 
+ 
+: (5) In case of NOSEND flag is on , we should flush
+:     ETM and LTM message from host.
+:---------------------------------------------------
+:       R1 = PORT # (Hostside)
+ 
+CONPATCH(SNDETM,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1C)
+SNDET2  TBT     R1,NOSEND,,             : Set NOSEND flag ?
+        JNFS    SNDET3                  : Skip to SNDET3
+        CR      RINCOMINGR1,RTSATSIDER10: From source
+        JE      SNDET1,,                : Return to source
+        J       SNDETM+6,,              :  "     "   "
+SNDET3  J       CONSUME,,               : Message flush
+ 
+CONPATCH(SNDLTM,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+SNDLT2  TBT     R1,NOSEND,,             : Set NOSEND flag ?
+        JN      CONSUME,,               : Message flush
+        CR      RINCOMINGR1,RTSATSIDER10: From source
+        JE      SNDLT1,,                : Return to source
+        J       SNDLTM+6,,              :  "     "   "
+ 
+ 
+: (6) zap/disconnecting handling.
+:--------------------------------------
+:       R1 = PORT # (Tsatside/Hostside)
+ 
+CONPATCH(AG1+20,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,66)
+AG5     LHL     R1,(HOSTSIDE),RUCB,,    : Get Hostside port #
+        STH     R0,PROCESS,R1,R1        : Clear process table for Hostside
+        RBT     R1,JISSFT,,             : Reset JISSFT flag
+        RBT     R1,JISOLD,,             :  "    JISOLD  "
+        RBT     R1,ETMSND,,             :  "    ETMSND  "
+        RBT     R1,NOSEND,,             :  "    NOSEND  "
+        LHL     R1,(TSATSIDE),RUCB,,    : Get Tsatside port #
+AG6     STH     R0,PROCESS,R1,R1        : Clear process table for Tsatside
+        STB     R0,SAVCMD,R1,,          : Clear relative command number table
+        RBT     R1,JISSFT,,             : Reset JISSFT flag (Tsatside)
+        RBT     R1,JISOLD,,             :  "    JISOLD  "
+        RBT     R1,ETMSND,,             :  "    ETMSND  "
+        RBT     R1,NOSEND,,             :  "    NOSEND  "
+        LHI     R0,0FF
+        STB     R0,KMODE,R1,,
+        LIS     R0,0
+        STH     R0,(PORTTOUCBMAP),R1,R1
+        J       AG1+26,,
+ 
+ 
+: (7) Object host circuit was zapped. If ETMSND flag is on
+:     then send LTM message to terminal side.
+ 
+ 
+CONPATCH(ZAPIN+0A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,30)
+ZAPIN1  LHL     R1,(TSATSIDE),RUCB,,    : Get Tsatside port #
+        TBT     R1,ETMSND,,             : Is this port send ETM ?
+        JE      ZAPIN2                  : No, goto AG1
+        LR      R2,R1
+        RBT     R1,ETMOUT,,             : Reset ETMOUT flag
+        LA      R3,LTMBUF,,             : Set isis LTM message
+        JAL     R5,OCM,,                : Send message
+ZAPIN2  JAL     R9,FOGHOS,,
+        J       IDLE,,
+ 
+ 
+: (8) Check transmit counter(COUNTX), and if over 9D then
+:     issue ELODR and start SLOR in order to over trans
+:     limit.
+ 
+ 
+CONPATCH(PA1PTR,,64)
+ 
+PUTONE  ST      R0,TMPRG0,,             : Save R0 resistor
+        ST      R1,TMPRG1,,             : Save R1 resistor
+        ST      R3,TMPRG3,,             : Save R3 resistor
+        ST      R4,TMPRG4,,             : Save R4 resistor
+        LB      R3,COUNTX,R1,           : Get transmit count value
+        SIS     R3,1                    : R3 = R3 - 1
+        JLFS    PUTON1                  : If more than 9D , goto PUTON1
+        J       PUTON2                  : Skip to PUTON2
+PUTON1  JAL     R4,ELODR,,              : End logical output data record
+        L       R1,TMPRG1,,             : Get TMPRG1 value
+        LHI     R0,09D                  : Set 9D
+        STB     R0,COUNTX,R1,,          : Set transmit value
+        JAL     R4,SLOR,,               : Start logical output record
+        LHI     R3,09D                  : Set 9D
+PUTON2  STB     R3,COUNTX,R1,,          : Save transmit value
+        L       R0,TMPRG0,,             : Recover R0 resistor
+        JAL     R4,PUTCH,,              : Send a character
+        L       R3,TMPRG3,,             : Recover R3 resistor
+        L       R4,TMPRG4,,             : Recover R4 resistor
+        JR      R4                      : Return
+ 
+ 
+: (9) Change character from host to terminal
+:-------------------------------------------
+: IN - R0       the input character
+:      R12      the input count
+:      R10=R1   the Tsat port number
+: LINK R11
+:
+ 
+CONPATCH(HOSTTO+8,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,26)
+HOSTT2  LHI     R0,09D                  : Set 9D
+        STB     R0,COUNTX,R1,,          : COUNTX = 9D
+        JAL     R4,SLOR,,               : From source
+        LR      R0,R8                   :  "    "
+        JAL     R4,CKMODE,,             : Check wethere we shoud convert or not
+        JAL     R4,PUTCH,,              : From source
+        SIS     R12,1                   :  "    "
+        J       HOSTTO+14,,             : Return to source
+ 
+CONPATCH(HOSTTO+1A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,14)
+HOSTT3  JAL     R4,CKMODE,,             : Check wethere we should convert or not
+        JAL     R4,PUTCH,,              : From source
+        SIS     R12,1                   :  "    "
+        J       HOSTTO+20,,             : Return to source
+ 
+ 
+: (10) Change character from terminal to host
+:--------------------------------------------
+: IN - R0       the input character
+:      R6=R1    the Host port
+:      R12      the input count
+: LINK R11
+:
+ 
+CONPATCH(SEND2H+8,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,26)
+SEND22  LHI     R0,09D                  : Set 9D
+        STB     R0,COUNTX,R1            : COUNTX = 9D
+        JAL     R4,SLOR,,               : From source
+        LR      R0,R8                   :  "    "
+        JAL     R4,CKMODE,,             : Check wethere we should convert or not
+        JAL     R4,PUTCH,,              : From source
+        SIS     R12,1                   :  "    "
+        J       SEND2H+14,,             : Return to source
+CONPATCH(SEND2H+1A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,14)
+SEND23  JAL     R4,CKMODE,,             : Check wethere we should convert or not
+        JAL     R4,PUTCH,,              : From source
+        SIS     R12,1                   :  "    "
+        J       SEND2H+20,,             : Return to source
+ 
+ 
+: (11) Check KJCONV flag , and if on then convert code else return
+ 
+CONPATCH(PA1PTR,,32)
+CKMODE  TBT     R1,KJCONV,,             : Is this port need to convert ?
+        JNFS    CKMOD1                  : Yes, skip to CKMOD1
+        JR      R4                      : Return (no convert)
+CKMOD1  TBT     R1,JISSFT,,             : Is this port convert JIS>SFT ?
+        JEFS    CKMOD2                  : No, skip to CKMOD2
+        NHI     R0,07F                  : High bit off
+CKMOD2  LH      R3,PROCESS,R1,R1        : Process table get
+        ST      R4,RETADR,,             : Save return address
+        LR      R4,R0                   : R4 = R0
+        SLLS    R4,1                    : R4 X 2
+        LHL     R3,CMDBAS,R3,R4         : Get process adress
+        J       CMDBAS,R3,,             : Jump process routine
+ 
+ 
+: (12) <<<   JIS/SFTJIS convert process at HANKAKU mode   >>>
+:
+ 
+CONPATCH(PA1PTR,,6E)
+ 
+: Receive code = 0E                     Transaction : AKSFT flag on
+: Next process table = JSHANK
+:------------------------------------------------------------------
+JSSB01  SBT     R1,AKSFT,,              : Reset AKSFT flag
+        JFS     JSSBX2                  : No send char
+ 
+: Receive code = 0F                     Transaction : AKSFT flag off
+: Next process table = JSHANK
+:-------------------------------------------------------------------
+JSSB02  RBT     R1,AKSFT,,              : Set AKSFT flag
+JSSBX2  LA      R3,JSHANK-CMDBAS,,      : Set next process table
+        STH     R3,PROCESS,R1,R1        : 
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send char)
+ 
+: Receive code = 00-0D,10-1F,60-7F
+: Next process table = JSHANK
+:---------------------------------
+JSSB03  LA      R3,JSHANK-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        L       R4,RETADR,,             : Return address set
+        JR      R4                      : Return (send char)
+ 
+: Receive code = 20-5F                  Transaction : If AKSFT flag on
+: Next process table = JSHANK                       : then High bit on
+:---------------------------------------------------------------------
+JSSB04  TBT     R1,AKSFT,,              : Is this port set AKSFT flag ?
+        JEFS    JSSBX4                  : No, goto JSSBX4
+        OHI     R0,080                  : High bit ON
+JSSBX4  J       JSSB03                  : Send char
+ 
+: Receive code = 0E     , Next process table = JSHANK
+:----------------------------------------------------
+JSSB10  LA      R3,JSHANK-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send char)
+ 
+: (13) <<<   JIS/SFTJIS convert process at HANKAKU escape mode   >>>
+ 
+CONPATCH(PA1PTR,,7A)
+ 
+: Receive code = 0F     , Next process table = ESC241
+:----------------------------------------------------
+JSSB11  LA      R3,ESC241-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send char)
+ 
+: Receive code = 24     , Next process table = ESC242
+:----------------------------------------------------
+JSSB12  LA      R3,ESC242-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send char)
+ 
+: Receive code = 00-1A,1C-23,25-7F
+: Next process table = JSHANK
+:---------------------------------
+JSSB13  ST      R0,TMPSAV,,             : Save R0 resistor
+        LHI     R0,01B                  : Send 1B
+        JAL     R4,PUTCH,,              :
+        L       R0,TMPSAV,,             : Recover R0 resistor
+        J       JSSB03                  : Return (send char)
+ 
+: Receive code = 1B     , Next process table = ESC241
+:----------------------------------------------------
+JSSB14  LA      R3,ESC241-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        L       R4,RETADR,,             : Recover return address
+        JR      R4                      : Send char
+ 
+: Receive code = 42     , Next process table = JSZEN1
+:----------------------------------------------------
+JSSB20  SBT     R1,KJSFT,,              : Set KJSFT flag
+        LA      R3,JSZEN1-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        : 
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send char)
+ 
+: Receive code = 00-41,43-47,49-7F
+: Next process table = JSHANK
+:---------------------------------
+JSSB21  ST      R0,TMPSAV,,             : Save R0 resistor
+        LHL     R0,01B24                : Send 1B,24
+        JAL     R4,PUTH,,               :
+        L       R0,TMPSAV,,             : Recover R0 resistor
+        J       JSSB03                  : Return (send char)
+ 
+ 
+: (14) <<<   JIS/SJHANK convert process at JSZENKAU1 mode   >>>
+ 
+CONPATCH(PA1PTR,,4C)
+ 
+: Receive code = 0E     , Next process table = JSHANK
+:----------------------------------------------------
+JSSB30  RBT     R1,KJSFT,,              : Set KJSFT flag
+        J       JSSBX2                  : Skip return (no send char)
+ 
+: Receive code = 00-0D,10-1A,1C-20
+:---------------------------------
+JSSB31  LA      R3,JSZEN1-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        L       R4,RETADR,,             : Recover return address
+        JR      R4                      : Return (send char)
+ 
+: Receive code = 1B     , Next process table = ESC281
+:----------------------------------------------------
+JSSB40  LA      R3,ESC281-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        : 
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send char)
+ 
+: Receive code = 21-7F  , Next process table = JSZEN2
+:----------------------------------------------------
+JSSB50  STB     R0,DTSAVE,R1,R1         : Save kanji 1st byte
+        LA      R3,JSZEN2-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send char)
+ 
+ 
+: (15) <<<   JIS/SFTJIS convert process at JISZENKAKU1 escape mode   >>>
+ 
+CONPATCH(PA1PTR,,0A2)
+ 
+: Receive code = 1B     , Next process table = ESC281
+:----------------------------------------------------
+JSSB41  JR      R4                      : Return (send char)
+ 
+: Receive code = 28     , Next process table = ESC282
+:----------------------------------------------------
+JSSB42  LA      R3,ESC282-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send char)
+ 
+: Receive code = 24     , Next process table = ESC243
+:----------------------------------------------------
+JSSB43  LA      R3,ESC243-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send char)
+ 
+: Receive code = 00-23,25-27,29-7F
+: Next process table = JSZEN1
+:---------------------------------
+JSSB44  ST      R0,TMPSAV,,             : Save R0 resistor
+        LHI     R0,01B                  : Send 1B
+        JAL     R4,PUTCH,,              :
+        L       R0,TMPSAV,,             : Recover R0 resistor
+        J       JSSB31                  : Return (send char)
+ 
+: Receive code = 48,4A  , Next process table = JSHANK
+:----------------------------------------------------
+JSSB45  RBT     R1,KJSFT,,              : Reset KJSFT flag
+        LA      R3,JSHANK-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        J       JSSBX2                  : Skip return (no send char)
+ 
+: Receive code = 00-47,49,4B-7F
+: Next process table = JSZEN1
+:------------------------------
+JSSB46  ST      R0,TMPSAV,,             : Save R0 resistor
+        LHL     R0,01B28                : Send 1B,28
+        JAL     R4,PUTH,,               :
+        L       R0,TMPSAV,,             : Recover R0 resistor
+        J       JSSB31                  : Return (send char)
+ 
+: Receive code = 40,42  , Next process table = JSZEN1
+:----------------------------------------------------
+JSSB47  LA      R3,JSZEN1-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send char)
+ 
+: Receive code = 00-39,41,43-4F
+: Next process table = JSZEN1
+:------------------------------
+JSSB48  ST      R0,TMPSAV,,             : Save R0 resistor
+        LHL     R0,01B24                : Send 1B,24
+        JAL     R4,PUTH,,               :
+        L       R0,TMPSAV,,             : Recover R0 resistor
+        J       JSSB31                  : Return (send char)
+ 
+ 
+: (16) <<<   JIS/SFTJIS convert process at ZENKAKU2 mode   >>>
+ 
+CONPATCH(PA1PTR,,5C)
+ 
+: Receive code = 21-7F  , Next process table = JSZEN1
+:----------------------------------------------------
+JSSB51  ST      R4,TMPRG4,,             : Save R4 resistor
+        ST      R5,TMPRG5,,             : Save R5 resistor
+        LHL     R3,DTSAVE,R1,R1         : Get Kanji 1st byte
+        OR      R0,R3                   : Make Kanji code
+        JAL     R5,JTOSJ,,              : Change code JIS>SFT
+        L       R5,TMPRG5,,             : Recover R5 resistor
+        J       JSSB53                  : Send 2 byte
+ 
+: Receive code = 00-20  , Next process table = JSZEN1
+:----------------------------------------------------
+JSSB52  LIS     R0,0                    : Set 0
+        STH     R0,DTSAVE,R1,R1         : Clear DTSAVE area
+        LHL     R0,INVALID,,            : Invalid code set
+JSSB53  LR      R3,R0                   : R3 = R0
+        SRLS    R0,8                    : Set kanji 1st byte
+        JAL     R4,PUTCH,,              : Send kanji 1st byte
+        LR      R0,R3                   : R0 = R3
+        NHI     R0,0FF                  : Mask off kanji 1st byte
+        JAL     R4,PUTCH,,              : Send kanji 2nd byte
+        LA      R3,JSZEN1-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        : 
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send char)
+ 
+ 
+ 
+ 
+: (17) <<<   SFTJIS/JIS convert process at HANKAKU mode   >>>
+ 
+CONPATCH(PA1PTR,,0F2)
+ 
+: Receive code = 00-1F                  Transaction : High bit off
+: Next process table = SJHANK
+:-----------------------------------------------------------------
+SJSB01  LR      R3,R0                   : R3 = R0
+        NHI     R3,07F                  : High bit off
+        LB      R0,TB7S7E,R3,,          : Convert 7S to 7E
+        LA      R3,SJHANK-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        JAL     R4,PUTONE,,             : Send a character
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send a char)
+ 
+: Receive code = 20-7F                  Output : SI
+: Next process table = SJHANK
+:--------------------------------------------------
+SJSB02  RBT     R1,AKSFT,,              : Reset AKSFT flag
+        JE      SJSB01                  : Old state is ON. Skip to SJSBX2
+SJSBX2  ST      R0,TMPSAV,,             : Save R0 resistor
+        LHI     R0,0F                   : Send 0F (shift in)
+SJSBY2  JAL     R4,PUTONE,,             :
+        L       R0,TMPSAV,,             : Recover R0 resistor
+        J       SJSB01                  : Return (send char)
+ 
+: Receive code = 80-9F,E0-EF            Output : SI and KIN
+: Next process table = SJZEN2
+:----------------------------------------------------------
+SJSB03  ST      R0,TMPSAV,,             : Save R0 resistor
+        LHI     R0,0F                   : Send 0F
+        JAL     R4,PUTONE,,             :
+        LHI     R0,01B                  : Send 1B
+        JAL     R4,PUTONE,,             :
+        TBT     R1,JISOLD,,             : Support OLDJIS code ?
+        JN      SJSBX3                  : Yes, skip to SJSBX3
+        LHI     R0,024                  : Send 24
+        JAL     R4,PUTONE,,             :
+        LHI     R0,042                  : Send 42
+        JAL     R4,PUTONE,,             :
+        J       SJSBY3                  : Skip to SJSBY3
+SJSBX3  LHI     R0,024                  : Send 24
+        JAL     R4,PUTONE,,             :
+        LHI     R0,0C0                  : Send C0
+        JAL     R4,PUTONE,,             :
+SJSBY3  L       R0,TMPSAV,,             : Recover R0 resistor
+        L       R4,RETADR,,             : Recover return address
+        SBT     R1,KJSFT,,              : Set KJSFT flag
+        J       SJSB12                  : R0 --> DTSAVE
+                                        : Skip return (no send char)
+ 
+: Receive code = A0-DF                  Output : SO
+: Next process table = SJHANK
+:--------------------------------------------------
+SJSB04  SBT     R1,AKSFT,,              : Set AKSFT flag
+        JN      SJSB01                  : Skip to SJSBX4
+SJSBX4  ST      R0,TMPSAV,,             : Save R0 resistor
+        LHI     R0,08E                  : Send 8E (shift out)
+        J       SJSBY2                  : Return (send char)
+ 
+: Receive code = F0-FF                  Output : Invalide code
+: Next process table = SJHANK
+:-------------------------------------------------------------
+SJSB05  TBT     R1,JISOLD,,             : Support OLDJIS code ?
+        JNFS    SJSBX5                  : Yes, skip to SJSBX5
+        LHL     R0,INVNEW,,             : NEWJIS Invalid code send
+        JFS     SJSBY5                  : Skip to SJSBY5
+SJSBX5  LHL     R0,INVOLD,,             : OLDJIS Invalid code send
+SJSBY5  LR      R3,R0                   : R3 = R0
+        SRLS    R0,8                    : 8 bit right shift
+        JAL     R4,PUTONE,,             : Send a character
+        LR      R0,R3                   : R0 = R3
+        NHI     R0,0FF                  : Make off bit left 8 bit
+        JAL     R4,PUTONE,,             : Send a character
+        L       R4,RETADR,,             : Recover R4 resistor
+        J       6,R4                    : Skip return (no send char)
+ 
+ 
+: (18) <<<   SFTJIS/JIS convert process at ZENKAKU1 mode   >>>
+ 
+CONPATCH(PA1PTR,,108)
+ 
+: Receive code = 00-1F,80               Transaction : High bit off
+: Next process table = SJZEN1                       : Convert 7S to 7E
+:---------------------------------------------------------------------
+SJSB10  ST      R3,TMPRG3,,             :
+        LR      R3,R0                   : R3 = R0
+        NHI     R3,07F                  : High bit off
+        LB      R0,TB7S7E,R3,,          : Convert 7S to 7E
+        LA      R3,SJZEN1-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        JAL     R4,PUTONE,,             : Send a character
+        L       R3,TMPRG3,,             :
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send a character)
+ 
+: Receive code = 20-7F                  Output : KOUT
+: Next process table = SJHANK
+:----------------------------------------------------
+SJSB11  RBT     R1,KJSFT,,              : Reset KJSFT flag
+SJSB1X  ST      R0,TMPSAV,,             : Save R0 resistor
+        LHI     R0,01B                  : Send 1B
+        JAL     R4,PUTONE,,             :
+        TBT     R1,JISOLD,,             : Support OLDJIS code ?
+        JN      SJSB1Y                  : Yes, skip to SJSB1Y
+        LHI     R0,028                  : Send 28
+        JAL     R4,PUTONE,,             :
+        LHI     R0,0CA                  : Send 2A
+        JAL     R4,PUTONE,,             :
+        L       R0,TMPSAV,,             : Recover R0 resistor
+        CLHI    R0,080                  : Recieve code is great than 80hex ?
+        JGE     SJSB04                  : Yes, goto SJSB04
+        J       SJSB02                  : Goto SJSB02
+SJSB1Y  LHI     R0,028                  : Send 28
+        JAL     R4,PUTONE,,             :
+        LHI     R0,048                  : Send 48
+        JAL     R4,PUTONE,,             :
+        L       R0,TMPSAV,,             : Recover R0 resistor
+        CLHI    R0,080                  : Recieve code is great than 80hex ?
+        JGE     SJSB04                  : Yes, goto SJSB04
+        J       SJSB02                  : Goto SJSB02
+ 
+: Receive code = 81-9F,E0-EF            Transaction : Save kanji 1st byte
+: Next process table = SJZEN2
+:------------------------------------------------------------------------
+SJSB12  STB     R0,DTSAVE,R1,R1         : Save kanji 1st byte
+        LA      R3,SJZEN2-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send char)
+ 
+: Receive code = A0-DF                  Transaction : KJSFT flag on
+: Next process table = SJHANK
+:------------------------------------------------------------------
+SJSB13  SBT     R1,KJSFT,,              : Set KJSFT flag
+        J       SJSB1X                  : Send KOU code
+                                        : and return (send char)
+ 
+: Receive code = F0-FF                  Output : Invalide code
+: Next process table = SJHANK
+:-------------------------------------------------------------
+SJSB14  TBT     R1,JISOLD,,             : Support OLDJIS code ?
+        JNFS    SJSBV4                  : Yes, skip to SJSBV4
+        LHL     R0,INVNEW,,             : Send NEWJIS invalid code
+        JFS     SJSBW4                  : Next process table set
+SJSBV4  LHL     R0,INVOLD,,             : Send NEWJIS invalid code
+SJSBW4  LR      R3,R0                   : R3 = R0
+        SRLS    R0,8                    : 8 bit right shift
+        JAL     R4,PUTONE,,             : Send a character
+        LR      R0,R3                   : R0 = R3
+        NHI     R0,0FF                  : Make off bit left 8 bit
+        JAL     R4,PUTONE,,             : Send a character
+        LA      R3,SJHANK-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send char)
+ 
+ 
+: (19) <<<   SFTJIS/JIS convert process at ZENKAKU2 mode   >>>
+ 
+CONPATCH(PA1PTR,,92)
+ 
+: Receive code = 00-3F,7F,FD-FF         Output : Invalide code
+: Next process table = SJZEN1           Transaction : 8 bit off
+:--------------------------------------------------------------
+SJSB20  TBT     R1,JISOLD,,             : Support OLDJIS code ?
+        JNFS    SJSB2X                  : Yes, skip to SJSB2X
+        LHL     R0,INVNEW,,             : Send NEWJIS invalid code
+        JFS     SJSB2Y                  : Skip to SJSB2Y
+SJSB2X  LHL     R0,INVOLD,,             : Send OLDJIS invalid code
+SJSB2Y  LR      R3,R0                   : R3 = R0
+        SRLS    R0,8                    : 8 bit right shift
+        JAL     R4,PUTONE,,             : Send a character
+        LR      R0,R3                   : R0 = R3
+        NHI     R0,0FF                  : Make off bit left 8 bit
+        JAL     R4,PUTONE,,             : Send a character
+SJSB2Z  LA      R3,SJZEN1-CMDBAS,,      : Next process table set
+        STH     R3,PROCESS,R1,R1        :
+        L       R4,RETADR,,             : Recover return address
+        J       6,R4                    : Skip return (no send char)
+ 
+: Receive code = 40-7E,80-FC            Transaction : Convert kanji code
+: Next process table = SJZEN1                       : SFTJIS -> JIS and
+:                                                   : Convert 7S to 7E
+:                                       Output : Kanji code
+:-----------------------------------------------------------------------
+SJSB22  LHL     R3,DTSAVE,R1,R1         : Get kanji 1st byte
+        ST      R1,TMPRG1,,
+        ST      R5,TMPRG5,,
+        OR      R0,R3                   : Make kanji 2 byte code
+        JAL     R5,SJTOJ,,              : Convert kanji code SFTJIS>JIS
+        LR      R3,R0                   : R3 = R0
+        SRLS    R0,8                    : Get kanji 1st byte
+        LR      R5,R0                   : R5 = R0
+        LB      R0,TB7S7E,R5,,          : Convert 7S to 7E
+        JAL     R4,PUTONE,,             : Send char
+        NHI     R3,07F                  : Get kanji 2nd byte
+        LB      R0,TB7S7E,R3,,          : Convert 7S to 7E
+        JAL     R4,PUTONE,,             : Send char
+        L       R1,TMPRG1,,
+        L       R5,TMPRG5,,
+        J       SJSB2Z                  : Return (no send char)
+ 
+:--------------------------------------------------------------
+:       library for Shift Jis and Jis Kanji convert sub
+:       R0 - source and output Kanji code, 2byte long
+:       R5 - Link
+:       destroy - nothing
+:
+:       1) Jis to Shiftjis. Can use high-bit-on Jis code
+:               JAL     R5,JTOSJ
+:       2) Shiftjis to Jis(Hi-bit-oFF)
+:               JAL     R5,SJTOJ
+:       3) Shiftjis to Jis(Hi-bit-On)
+:               JAL     R5,SJTOJH
+:
+:       1989.12 by Y.Furuta
+:--------------------------------------------------------------
+CONPATCH(PA0PTR,,0C)
+SVR1    WS      1
+SVR2    WS      1
+SVR5    WS      1
+ 
+CONPATCH(PA1PTR,,0C0)
+KJSAV   ST      R1,SVR1                 :REG SAVE AND SEPARATE 2 BYTE
+        ST      R2,SVR2
+        LR      R1,R0                   :COPY SOURCE
+        SRLS    R1,8                    :GOT 1ST KANJI CODE
+        LR      R2,R1                   :COPY IT
+        NHI     R0,0FF                  :GOT 2ND BYTE
+        JR      R5
+ 
+KJRET   L       R1,SVR1         :RETURN TO CALLER
+        L       R2,SVR2
+        L       R5,SVR5
+        JR      R5
+ 
+:
+:------ JIS TO SHIFT JIS
+:
+JTOSJ   ST      R5,SVR5                 :JIS TO SHIFT JIS ROUTINE
+        NHI     R0,$0 7F7F              :MASK HIGH BIT
+        JAL     R5,KJSAV                :SEPARATE SOURCE TO R1,R0
+        LR      R5,R1                   :COPY 1ST BYTE TO R5
+        NHI     R5,1                    :CHECK 1ST BYTE, EVEN OR ODD ?
+        JEFS    JTOSJ1                  :EVEN
+        AHI     R0,$0 40-21             :SHIFT 2ND BYTE (1)
+        JFS     JTOSJ2
+JTOSJ1  AHI     R0,$0 9E-21             :SHIFT 2ND BYTE (2)
+JTOSJ2  CHI     R0,7F                   :LESS THAN 7F ?
+        JLFS    JTOSJ3                  :YES, SKIP
+        AHI     R0,1                    :INCREMENT
+JTOSJ3  SHI     R1,$0 21                :R1=R1-21
+        SRLS    R1,1                    :R1/2
+        AHI     R1,$0 81                :+81
+        CHI     R1,$0 0A0
+        JLFS    JTOSJ4
+        AHI     R1,$0 40
+JTOSJ4
+        SLLS    R1,8                    :MAKING 2BYTE SHIFT JIS
+        OR      R0,R1
+        J       KJRET                   :RETURN
+ 
+:
+:------ SHIFT JIS TO JIS
+:
+SJTOJ   ST      R5,SVR5
+        JAL     R5,KJSAV                :SEPARATE SOURCE TO R1,R0
+        LHI     R2,0                    :MAKE R2 ZERO
+        JFS     SJTOJ0
+ 
+SJTOJH  ST      R5,SVR5
+        JAL     R5,KJSAV                :SEPARATE SFCODE TO R1,R0
+        LHI     R2,$0 8080              :SET HIGH BIT FOR RETURN
+ 
+SJTOJ0  HS      0                       :START CONVERSION
+        CHI     R1,0E0                  :R1>=0E0 ?
+        JLFS    SJTOJ1                  :NO SKIP
+        SHI     R1,$0 40                :R1-40
+SJTOJ1  SHI     R1,$0 81                :R1-81
+        SLLS    R1,1                    :R1*2
+        AHI     R1,$0 21                :R1+21
+ 
+        CHI     R0,$0 7F                :GREATER THAN 7F ?
+        JLEFS   SJTOJ2                  :NO
+        SHI     R0,1                    :R0-1
+SJTOJ2  CHI     R0,$0 9D                :NEXT, R0>9D ?
+        JLEFS   SJTOJ3                  :NO
+        AHI     R1,1                    :SHIFT EVEN 1ST BYTE
+        SHI     R0,$0 9E-21             :R0-9E+21
+        JFS     SJTOJ4
+SJTOJ3  SHI     R0,$0 40-21             :R0-40+21
+SJTOJ4  SLLS    R1,8                    :MAKING 2BYTE CODE
+        OR      R0,R1                   :DONE
+        OR      R0,R2                   :+0000 OR 8080
+        J       KJRET                   :RETURN
+ 
+ 
+ 
+ENDPATCH(Support convert SJIS<->JIS kanji menu server)
+>(
