@@ -1,0 +1,863 @@
+1 B  166 
+ST JOSEPH  5854 3285                    PQ  499    6    1 B  499 
+BENTON HBR 5850 3281                    PQ  648    8    1 B  113 
+INDIANAPLS 6272 2992                    PQ   60    3    1 A   60 
+EVANSVILLE 6729 3019                    PQ   45    4    1 A   43 
+NASHVILLE  7010 2710                    PQ  129    3    1 A  126 
+BACKBONE NODE IS **  LANGHORNE                               
+LANGHORNE  5188 1455                    PQ 2570   50    2 B  631 
+FLORENCE   5187 1434                    PQ  136    3    1 B  127 
+EDDINGTON  5209 1447                    PQ   68    1    1 B    4 
+PHILA      5251 1458          _____
+
+               Equipment or software which is added to  the  Network  after
+          its acceptance, shall be tested until the performance standard is
+          met for a total of fifteen (15) calendar days.  The effectiveness
+          level  must meet the performance standards defined in section 6.2
+          and is computed by dividing the new equipment operation time  (in
+          hours) by the sum of that time plus new equipment down time.  
+
+
+          SECTION 7.0 CHECKOFF LISTS          _______ ___ ________ _____
+
+               This section contains a checkoff list which has an entry for
+          each  test  to  be performed on the network.  Upon the successful
+          completion  of  each  phase  of  testing,  the  customer  Project
+          Manager,  or  his  designated representative, must sign, and date
+          the appropriate check-off sheet(s).   Acceptance  is  constituted
+          when all sheets have been signed off.
+                                                                         Page 12
+
+
+          Node:  Sample Engine  1                                          
+                 
+                  FUNCTION                SECTION         DATE    INITAL
+
+                  Async Tymsat            5.2             ___      ___
+
+                  2780/3780/HASP          5.12/5.13       ___      ___
+
+                      Terminal  Host                               _
+
+                  Supervisor
+
+                     Supervisor function  5.4             ___      ___
+
+                     PROBE                5.6             ___      ___
+
+                  3270 Terminal           5.11            ___      ___
+
+
+
+
+
+
+
+          Node:   Sample Engine  2
+
+                  FUNCTION                SECTION         DATE    INITAL
+
+                  Supervisor
+
+                     Supervisor function  5.4             ___      _
+
+       Syntax:  DMSRCV(Ascii data string)
+                Ascii data string = WCC + orders and text
+
+       Each character defined in DMSRCV will be compared to the character
+       of the local data string received by host interface.   If there
+       is any difference detected, function of disconnect message sequence 
+       will be terminated and circuit will be zapped.  
+
+2.2.3  Define special devices:
+
+       Syntax:  DMSDEV(DMS,device list)
+
+       This macro is similar to MSGUSE.  It defines the usage of the
+       previously defined messages.  This macro is used for the disconnect
+       message sequence only.   The "DMS" must be used to turn on the switch
+       for this special function.
+
+       DMSSND and DMSRCV can be defined several times for customer's
+       convenience. however, these two macros must be defined in order and
+       alternatively.   Ascii data string must be used to define these dis-
+       connect messages.   Table 1 is the EBCDIC-ASCII translation table
+       for the orders which might be included in the disconnect messages.
+
+
+
+
+                      Table 1.  Translation table for orders*
+
+            Order                                 EBCDIC       ASCII
+
+       Start Field (SF)                            X'1D'       X'1D'
+       Start Field Extended (SFE)                  X'29'       X'29'
+       Set Buffer Address (SBA)                    X'11'       X'11'
+       Set Attribute (SA)                          X'28'       X'28'
+       Modify Field (MF)                           X'2C'       X'2C'
+       Insert Cursor (IC)                          X'13'       X'13'
+       Program Tab (PT)                            X'05'       X'09'
+       Repeat to Address (RA)                      X'3C'       X'14'
+       Erase Unprotected to address (EUA)          X'12'       X'12'
+       Graphic Escape (GE)                         X'08'       X'08'
+
+
+       *Note: Please refer to IBM 3270 Information Display System Data 
+              Stream Programmer's Reference (GA23-0059-0) for the
+              restriction on ASCII code orders.
+
+
+
+
+       Example:
+
+            DMSSND("5F)                      :clear key
+            DMSRCV("0C3"91"20"2ELOGOFF?)     :WCC + orders(SBA,cur pos,cur pos)
+                                             :+ TEXT
+            DMSSND("27"20"2EYES)             :AID + Cu. Pos. + text
+            DMSRCV("0C2)                     :Unlock keyboard
+            DMSSND("27"20"2EBYE BYE)         :AID + Cu. Pos. + text
+            DMSDEV(DMS,0,5,7-9)              :Turn on DMS switch and messages
+                                             :will be handled for devices 0,5,7
+                                             :8 and 9.
+
+            Following handshaking sequence will be done whenever a
+            circuit is zapped on device 0,5,7,8 and 9:
+
+                     Host                 Host Interface
+
+                            <-------------   Clear key
+                   "Logoff?" ------------->
+                            <-------------   "Yes"
+                   Unlock keyboard ------->
+                            <-------------   "Bye Bye"
+
+
+2.3 Second greeting message
+
+    This function is an option for the user to send second greeting message
+    to host if one  greeting message is not enough to build a session
+    whenever a circuit is connected.
+
+    Macros required to perform this function are the same as those for
+    GRT, DSC and ZAP.   These macros are: STMSG, MSGTEX, ENDMSG and MSGUSE.
+    Parameter "GR1" must be used in the position of "fcn" in MSGUSE macros.
+    First greeting message (parameter GRT) should be defined before
+    second greeting message (parameter GR1) is used.  No greeting message
+    will be sent if first greeting message (GRT) is undefined.   After
+    receiving first greeting message, host should response with an unlock
+    keyboard message to host interface.   Host interface will detect the
+    response message.  If it is an unlock keyboard, host interface will
+    send second greeting message.  If it is not or the response message 
+    is missing,  circuit will be zapped and logon will be rejected.
+
+    Example:
+         
+         STMSG
+           MSGTEX(AIDCLR)
+         ENDMSG
+         MSGUSE(GRT,0-6)         :first greeting message is "clear" key
+         STMSG
+           MSGTEX(AIDENT,SP.,SP.,L.,O.,G.,SP.,O.,N.)
+         ENDMSG
+         MSGUSE(GR1,0-6)         :second greeting message is AID+Cursor 
+                                 :Position+ Text
+
+         Following handshaking sequence will be done whenever a circuit
+         is connected on device 0 to 6.
+
+                     Host                    Host Interface
+
+                             <--------------  Clear key
+                   Unlock keyboard --------->
+                             <--------------  "Log on"
+
+
+2.4 Test Request Message
+
+    Syntax: TRQUSE(TRQ,DEV)
+
+    This macro is similar to MSGUSE.  Parameter TRQ is used to turn on the
+    Test Request Message switch.   Parameter DEV represents a list of devices
+    or device ranges which is described exactly as in MSGUSE macro.  If this
+    macro is defined, a test request message will be sent to host whenever a
+    circuit  is disconnected.   Following is the exactly data format which is
+    sent to host:
+
+            SOH % / STX DEV# DEV# ETX
+
+      This is a standard test request message format where DEV# is the device
+      number of the device which sends this message.
+
+      EXAMPLE:
+
+      TRQUSE(TRQ,0,2-6)
+
+      Device 0 and 2 to 6 will send a test request message to host whenever its
+      circuit is zapped.
+    
+2.5 3101 24 PF keys support
+
+    This function is implemented to support emulators of 3101 which
+    have 24 PF keys.   The parameters in table 2 define the defaults
+    for those keys.
+
+                          
+                         Table 2. PF key defaults
+
+                                                         IBM 3270 key
+    3101 PF key         Symbol        Default            Equivalent
+
+       PF-1             IBMPF1          0F1                  PF-1
+       PF-2             IBMPF2          0F2                  PF-2
+       PF-3             IBMPF3          0F3                  PF-3
+       PF-4             IBMPF4          0F4                  PF-4
+       PF-5             IBMPF5          000                  Network Disconnect
+       PF-6             IBMPF6          06C                  PA1
+       PF-7             IBMPF7          06E                  PA2
+       PF-8             IBMPF8          06D                  Clear
+       PF-9             IBMPF9          06B                  PA-3
+       PF-10            IBMP10          07A                  PF-10
+       PF-11            IBMP11          07B                  PF-11
+       PF-12            IBMP12          07C                  PF-12
+       PF-13            IBMP13          0C1                  PF-13
+       PF-14            IBMP14          0C2                  PF-14
+       PF-15            IBMP15          0C3                  PF-15
+       PF-16            IBMP16          0C4                  PF-16
+       PF-17            IBMP17          0C5                  PF-17
+       PF-18            IBMP18          0C6                  PF-18
+       PF-19            IBMP19          0C7                  PF-19
+       PF-20            IBMP20          0C8                  PF-20
+       PF-21            IBMP21          0C9                  PF-21
+       PF-22            IBMP22          04A                  PF-22
+       PF-23            IBMP23          04B                  PF-23
+       PF-24            IBMP24          04C                  PF-24
+
+
+
+
+
+
+2.6 3101 printer support
+
+    Version 7.04 supports associate printers for 3101 and 470.  Please refer
+    to 3270 Host Interface reference manual for associate printer configur-
+    ations.
+
+
+
+2.7 3101 read modify command and read buffer command.
+
+    The read modify command on the  IBM 3101 is fully supported in version
+    7.04.   Read buffer command  is not fully supported because  nulls are 
+    not transmitted from IBM 3101 when a read buffer command is received.
+    In response, the IBM 3101 transmits all data in screen buffer except nulls
+    to host interface.  In the real 3270 environment, nulls are transmitted
+    whenever a read buffer command is received.
+
+2.8 Error messages to supervisor log.  (7.04)
+
+    All error messages detected by the 3270 terminal interface or detected
+    by the host interface via the established DSP error reporting mechanism
+    are logged to the supervisor.  An operator may access this log via PROBE.
+    The log message for each error will have the following format:
+
+    NODE REPORT 2001 FROM SLOT# 6 PBH TYPE 20 414549
+
+    Where 2001 is the node number
+          6    is the slot of the 3270 host interface.
+          PBH  stands for Polled Bisync Host, and is the mneumonic for
+               3270 host interface in the standard TYMNET terminology
+          20   is the error type, where in this case "20" means circuit zapped.
+          41   is the line address, as defined in the TYM file
+          45   is the control unit address, as defined in the TYM file
+          49   is the terminal address, as defined in the TYM file
+
+
+    The error type is derived from the standard DSP error codes as listed
+    in the DSP manual under COMMANDS/RESPONSE UNDELIVERED and ABORTED.  The
+    derivation is performed in the following manner :
+
+                               CMD/RES    ORIGINAL      INPUT      OUTPUT
+
+    3270 Terminal Interface     XMT        10XX ---->   10XX ----> 00-3F
+                                RCV        11XX ---->   11XX ----> 40-7F
+    3270 Host Interface         XMT        10XX ----->  12XX ----> 80-BF
+                                RCV        11XX ----->  13XX ----> C0-FF
+    Where ORIGINAL  is the error code as defined by DSP
+                    10XX undelivered with code XX
+                    11XX aborted with code XX
+
+          OUTPUT    is the error type as displayed in the Supervisor log
+
+
+    Below is the list of current error types and corresponding descriptions :
+
+    Detected     Detected
+    by 3270      by 3270
+    Terminal     Host
+    Interface    Interface
+
+    Command/Response Undelivered
+
+       01*       81     message undelivered due to receipt of EOT
+       02        82     message undelivered due to receipt of RVI
+       03        83     facilities failure detected
+       04        84     failure to respond to message (timeout)
+       05        85     message undelivered due to repeated NAKS
+       06        86     message undelivered due to repeated WACKS
+       07               message undelivered due to repeated wrong ACKS
+       08        88     invalid message format
+       09        89     unrecognizable response from remote 
+       10               bad UCN
+       11               message out of sequence
+       12               CU not responding to polls
+       13               time out wait for ETX or ETB after STX
+       20               circuit zapped
+
+
+    Command/Response Aborted
+       43        C3     facility failure detected
+       44        C4     failure to response to message (timeout)
+       45        C5     receipt of repeated NAKS
+       4A        CA     repeated (STX...SUB...ENQ) sequence
+       50               repeated request to resend ACKS
+       51               no ETX after ETB...sent repeated TTDs
+       52               circuit reset message from Host Pad
+
+
+* Note : Unfortunately, at present Type 1 Node Report message may also
+         refer to the slot being restarted.  If so, then the address 
+         field would be meaningless and a host up message should immediately
+         follow this node report.  An example of such a report would be :
+
+         NODE REPORT 2023 FROM SLOT# 1 PBH TYPE 1 10200
+         HOST 142 UP
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3. Terminal Interface
+
+3.1 Host number associated with Terminal Interface (HSTPRT)
+
+    SYNTAX: HSTPRT(H0,0)
+
+    This macro specifies the host number (decimal) associated with the Terminal
+    Interface.  This macro is required and must appear before the configuration
+    macro.  "H0" is to define the host number and "0" is the port number with 
+    no port defined.   This macro used in Terminal Interface is for account-
+    ing purpose and port number should be equal to 0.  Any port number other
+    than "0" is meaningless and wastes memory.
+
+     Example:
+
+          HSTPRT(900,0)
+
+     Host 900 has 0 port associated with it.
+
+
+3.2 Parameter to skip DSP screen
+
+    Syntax:  DSPSCN EQ #
+
+    Default: 1
+
+    This parameter specifies whether DSP logon screen is displayed in the
+    login process.   
+
+          1   DSP logon screen will be displayed.
+          0   DSP logon screen will not be displayed.
+
+    If DSPSCN is set to 0, connection request mode (CRM) will be assigned
+    to 3 automatically, i.e. host interface will provide the destination
+    terminal address at call set up time.
+
+    Example:
+
+         DSPSCN EQ 0
+
+     DSP logon screen will be skipped.
+
+3.3 Screen recovery after network services.
+
+    Whenever a network service is requested, terminal interface will send a
+    read buffer command to read all data in the addressed display buffer
+    and stores received data in "SAVEQ". After the service is completed,
+    All data in "SAVEQ" will send back to terminal to recover the original
+    screen.   Transparent data used in extended features (such as color, high-
+    lighting or programmable symbols) are not currently supported. Therefore,
+    the original screen might not be correctly recovered if transparent
+    data described above are included.  Clear key is defined to exit network
+    service to get original screen.
+
+3.4  Node information in network service screen
+
+     Node number, slot number, line address, control unit address and
+     device address are included in network service screen.  All
+     addresses are displayed in symbols.  A period is followed to end the 
+     field.
+     For example, "A." for "0C1" and " ." (space and period) for "40".
+     Table 3. is an example of network service screen.
+
+               Table 3.  An example of network service screen
+
+  ------------------------------------------------------------------------
+|                                                                         |
+|               NETWORK SERVICES                                          |
+|    NODE: 2062.  SLOT: 4.  LINE: 1.  CU ADR:  .  DEV ADR: D.             |
+|    CLR   RETURN TO CONVERSATION                                         |
+|    PF1   LOGOFF CRT                                                     |
+|    PF2   LOG ON PRINTER                                                 |
+|    PF3   LOG OFF PRINTER                                                |
+|      CRT IS CURRENTLY LOGGED IN                                         |
+|    POSITION CURSOR TO SELECT PRINTER                                    |
+|    NO.  ADR  STAT   LABEL                                               |
+|     0    A   IDLE                                                       |
+|     1    B   IDLE                                                       |
+|     2    E   IDLE                                                       |
+|                                                                         |
+--------------------------------------------------------------------------
+
+      The node information twork service screen above is:
+      Node is 2062, slot is 4, line number is 1, control unit address is 40
+      and device address is 0C4.
+
+
+
+3.5 Quick key sequence to bypass network service screen
+
+     Three more network service keys are defined to log off current circuit and
+     to logon to desired destinations.   There are PFMEN, PFMEN1 and PFMEN2.
+     Table 4 describes the functions of these key sequences:
+
+                Table 4.  Functions of network key sequence
+
+     Key sequence                      Function
+     NETKEY + PFMEN     Logoff current circuit and get the menu screen
+     NETKEY + PFMEN1    Logoff current circuit and logon to the first
+                        destination defined in menu screen.
+     NETKEY + PFMEN2    Logoff current circuit and logon to the second
+                        destination defined in menu screen.
+     NETKEY + NETKEY    Send NETKEY to host.
+     NETKEY + Others    Get network service screen.
+
+
+
+
+
+
+     
+     Followings are the defaults for these parameters:
+
+     Symbol:             Default:              IBM3270 key
+
+     PFMEN                  0F3                   PF-3
+     PFMEN1                 0F1                   PF-1
+     PFMEN2                 0F2                   PF-2
+     NETKEY                 0F4                   PF-4
+
+     Below is the default key sequence and result:
+
+     Key Sequence           Result
+     
+      PF-4 + PF-3          Menu screen
+      PF-4 + PF-1          Logon to first destination
+      PF-4 + PF-2          Logon to second destination
+      PF-4 + PF-4          Send PF-4 key
+      PF-4 + Others        Network service
+
+     Example:
+
+          PFMEN1 EQ 0F8
+
+          Preess PF4 and PF8 sequence will disconnect current circuit and
+          logon to  the first destination.
+
+
+3.6 Interval parameter to record polling time to supervisor log.
+
+    Syntax:  SPLTYM  EQ  $A N
+
+    Defaults: $A 5 (5 minutes)
+
+    This parameter specifies the time interval which the Terminal Interface
+    records the polling time to the supervisor log.   An operator may access
+    this log via probe.   The log message for each line will have the follow-
+    ing format:
+
+    NODE REPORT 2001 FROM SLOT# 6 PBT TYPE 3F 1134F
+
+    Where 2001 is the node number
+          6    is the slot number
+          PBT  stands for polled bisync terminal, and is the mneumonic for
+               3270 terminal interface in the standard Tymnet terminology
+          3F   is the report type for this kind of message.  Any message type
+               other than 3F is nothing related to polling time. (Refer to 
+               section 3.7)
+          1    is the line number.  If the line number is 0, then this byte 
+               will be skipped, i.e., there are only four bytes left in this 
+               log message to display the average polling time for line 0.
+          134F is the average polling time in ticks for this line.
+             
+3.7 Error messages to Supervisor Log
+
+    All error messages detected by the 3270 terminal interface or detected
+    by the host interface via the established DSP error reporting mechanism
+    are logged to the supervisor.  An operator may access this log via PROBE.
+    The log message for each error will have the following format:
+
+    NODE REPORT 2001 FROM SLOT 6 PBT TYPE 20 414549
+
+    Where 2001 is the node number
+          6    is the slot of the 3270 terminal interface.
+          PBT  stands for Polled Bisync Terminal, and is the mneumonic for
+               3270 terminal interface in the standard TYMNET terminology
+          20   is the error type, where in this case "20" means circuit zapped.
+          41   is the line address, as defined in the TYM file
+          45   is the control unit address, as defined in the TYM file
+          49   is the terminal address, as defined in the TYM file
+
+
+    The error type is derived from the standard DSP error codes as listed
+    in the DSP manual under COMMANDS/RESPONSE UNDELIVERED and ABORTED.  The
+    derivation is performed in the following manner :
+
+                               CMD/RES    ORIGINAL      INPUT      OUTPUT
+
+    3270 Terminal Interface     XMT        10XX ---->   10XX ----> 00-3F
+                                RCV        11XX ---->   11XX ----> 40-7F
+    3270 Host Interface         XMT        10XX ----->  12XX ----> 80-BF
+                                RCV        11XX ----->  13XX ----> C0-FF
+    Where ORIGINAL  is the error code as defined by DSP
+                    10XX undelivered with code XX
+                    11XX aborted with code XX
+
+          OUTPUT    is the error type as displayed in the Supervisor log
+
+
+    Below is the list of current error types and corresponding descriptions* :
+
+    Detected     Detected
+    by 3270      by 3270
+    Terminal     Host
+    Interface    Interface
+
+    Command/Response Undelivered
+
+       01**      81     message undelivered due to receipt of EOT
+       02        82     message undelivered due to receipt of RVI
+       03        83     facilities failure detected
+       04        84     failure to respond to message (timeout)
+       05        85     message undelivered due to repeated NAKS
+       06        86     message undelivered due to repeated WACKS
+       07               message undelivered due to repeated wrong ACKS
+       08        88     invalid message format
+       09        89     unrecognizable response from remote 
+       10               bad UCN
+       11               message out of sequence
+       12               CU not responding to polls
+       13               time out wait for ETX or ETB after STX
+       20               circuit zapped
+
+
+    Command/Response Aborted
+       43        C3     facility failure detected
+       44        C4     failure to response to message (timeout)
+       45        C5     receipt of repeated NAKS
+       4A        CA     repeated (STX...SUB...ENQ) sequence
+       50               repeated request to resend ACKS
+       51               no ETX after ETB...sent repeated TTDs
+       52               circuit reset message from Host Pad
+
+
+Note:
+*     : Report type "3F" is defined to report average polling time to 
+        supervisor log in terminal interface.  Please refer to section 3.6.
+**    : Report message Type 1 may also refer to the slot being restarted.
+        If so, then the address field would be meaningless and a host up
+        message should immediately follow this node report.
+
+        An example of such a report would be :
+
+         NODE REPORT 2023 FROM SLOT# 1 PBT TYPE 1 10200
+         HOST 142 UP
+
+
+
+3.8 Bisync Operation Monitor (BOM)
+
+   Bisync operations monitor is implemented to provide some monitoring
+   facilities for the 3270 Terminal Interface.  By using these facilities
+   the operator can display the status of lines, control units and devices,
+   or start/stop polling on a line or a control unit.
+
+(NOTE!  The BOM was rewritten for Version 5.05 of the Terminal Interface.
+None of the commands described here are valid for Version 5.05 (or later)
+of the Terminal Interface.)
+
+3.8.1 LOGGING INTO THE BISYNC OPERATIONS MONITOR 
+
+A USER WITH APPROPRIATE NETWORK VALIDATION CAN ACCESS THE BOM BY TYPING
+"?STAT" COMMAND IN DDT.  THE BOM WILL PROMPT THE USER WITH THE COMMAND 
+PROMPT ":>".  WHEN THE PROMPT ":>" OCCURS, THEN THE COMMAND IN THE 
+FOLLOWING SECTION CAN BE USED.
+
+
+
+3.8.2 COMMAND
+
+1. STOP POLLING A LINE (STOPLN)
+
+        SYNTAX: STOPLN N
+
+        THIS COMMAND IS USED TO STOP A POLLING ON THE LINE N.
+        LINE NUMBER N IS DECIMAL .
+        EXAMPLE:
+                    STOPLN 1        :STOP POLLING ON LINE 1
+
+2. START POLLING A LINE (STRTLN)
+
+        SYNTAX: STRTLN N
+
+        THIS COMMAND IS USED TO START A POLLING ON THE LINE N.
+        LINE NUMBER N IS DECIMAL.
+        EXAMPLE:
+                    STRTLN 0        :STOP POLLING ON LINE 0
+
+
+3. STOP POLLING A CONTROL UNIT (STOPCU)
+
+        SYNTAX: STOPCU M,N
+
+        THIS COMMAND IS USED TO STOP A POLLING ON THE CONTROL UNIT N
+        on line M.  Where line number M is decimal and N is the control 
+        unit address.
+
+        EXAMPLE:
+                    STOPCU 0,40     :STOP POLLING CONTROL UNIT 40 on
+                                    :LINE 0
+
+4. START POLLING A CONTROL UNIT (STRTCU)
+
+        SYNTAX: STRTCU M,N
+
+        THIS COMMAND IS USED TO START A POLLING ON THE CONTROL UNIT N
+        ON LINE M.  Where line number M is decimal and N is the control
+        unit address.
+
+        EXAMPLE:
+                    STRTCU 2,0C1    :START POLLING CONTROL UNIT 0C1 ON
+                                    :LINE 2
+
+
+
+
+
+
+
+5. STATUS
+
+        SYNTAX: STATUS
+
+        THIS COMMAND LIST THE STATUS OF ALL DEVICES, CONTROL UNITS AND
+        LINES IN THIS INTERFACE.  (SEE FIG. 1)
+        EXAMPLE:    STATUS
+
+
+     .............................................................
+
+          STATUS OF 3270 DEVICES, CONTROL UNITS AND LINES
+
+    *************************************************************
+              LINE:     LU = NN      PU = NN        DSR = N
+              CU:       ADDR. = NN   RETRANS = NN   NAKS = NN
+              DEV:      ADDR. = NN   STATE = _____
+              DEV:      ADDR. = NN   STATE = _____
+                 :                   :
+                 :                   :
+              CU:       ADDR. = NN   RETRANS = NN   NAKS = NN
+              DEV:      ADDR. = NN   STATE = _____
+                :                    :
+                :                    :
+              LINE:     LU = NN      PU = NN        DSR = N
+                :                    :
+                :                    :
+      ********************************************************
+        LU = LOGICAL UNIT ADDRESS
+        PU = PHYSICAL UNIT ADDRESS
+        DSR = DATA SET READY STATE, ON, OFF OR NOT REQUIRED
+        RETRANS = RETRANSMISSION COUNT
+        NAKS = COUNT OF NAKS RECEIVED
+        STATE = IDLE, LOGON OR CIRCUIT BUILT
+        ADDR. = CONTROL UNIT ADDRESS OR DEVICE ADDRESS
+     -----------------------------------------------------------
+
+                       FIG. 1
+
+
+        DATA RETRANSMITTED COUNT (RETRANS) AND NAKS RECEIVED COUNT (NAKS)
+        ARE BASED ON A TIME PERIOD PARAMETER "CNTPED" WHICH IS DEFAULTED
+        TO 24 HOURS.  CNTPED CAN BE RE-DEFINED IN THE TYMFILE FOR THE
+        USER'S CONVENIENT.
+        EXAMPLE:
+                    CNTPED      EQ      $A10        :SET COUNT TIME PERIOD
+                                                    :FOR CONTROL UNIT'S
+                                                    :STATUS TO 10 HOURS
+
+
+
+
+
+
+
+
+
+
+
+3.8.3 LOGGING OUT THE BISYNC OPERATIONS MONITOR
+
+USER CAN USE THE FOLLOWING TWO COMMANDS TO EXIT FROM BOM.
+
+1. QUIT COMMAND
+
+        SYNTAX: QUIT(CR), Q(CR)
+
+        THIS COMMAND IS USED TO EXIT TO DDT.
+
+2. EXIT COMMAND.
+
+        SYNTAX: EXIT(CR), EXI(CR)
+
+        THIS COMMAND IS USED TO LOG OFF.
+
+II. Versions 7.05/5.05
+
+1. Summary of changes:
+
+   1. Host Interface (PBH07.?05)
+      
+      None 
+
+
+   2. Terminal Interface (PBT05.?05)
+
+      1. Bisync Operations Monitor. (5.05 and up)
+      2. Define device macro. (5.05 and up)
+      3. Define control unit macro. (5.05 and up)
+      4. Define device macro. (5.05 and up)
+      5. PVC circuit rebuild options. (5.05 and up)
+
+
+2. Host Interface
+
+   None
+
+3. Terminal Interface
+
+3.1 Bisync Operations Monitor
+
+    See (DNDSPEC)BOM.DOC for documentation of the Bisync Operations
+    Monitor.
+
+3.2 Define Line Macro
+
+    A user defined ID (line number field) has been added to the DEFLN macro.
+    It is the fourth field in the macro.  This number is for reference only
+    via the BOM.  There must be a unique ID number for each line.  The ID
+    is defaulted to the relative line number, if not specified in the
+    TYMFILE (the first line configured is line zero, the second is line
+    one, etc.).  See (DNDSPEC)BOM.DOC for usage of the user defined ID.
+    For example:
+
+	DEFLN(40,0F5,0,25)		:Line address 40, line ID 25
+
+3.3 Define Control Unit Macro
+
+    A user defined ID (control unit number field) has been added to the
+    DEFCU macro.  It is the second field in the macro.  This number is for
+    reference only via the BOM.  There must be a unique ID number for each
+    control unit on a given line.  The ID is defaulted to the relative
+    postion of the control unit on the line, if not specified in the
+    TYMFILE (the first CU configured for the line is CU zero, the second is
+    CU one, etc.).  See (DNDSPEC)BOM.DOC for usage of the user defined ID.
+    For example:
+
+	DEFCU(40,5)			:CU address 40, CU ID 5
+
+3.4 Define Device Macro
+
+    A user defined ID (device number field) has been added to the DEFDEV
+    macro.  It is the third field in the macro.  This number is for reference
+    only via the BOM.  There must be a unique ID number for each device on a
+    given control unit.  The ID is defaulted to the relative position of the
+    device on the control unit, if not specified in the TYMFILE (the first
+    device configured is device zero, the second is device one, etc.).  See
+    (DNDSPEC)BOM.DOC for usage of the user defined ID.
+    For example:
+
+	DEFDEV(40,C1920,2)		:Device address 40, device ID 2
+
+3.5 Permanent Virtual Circuit Options
+
+    Permanent Virtual Circuits (PVC) for the 3270 terminal interface
+    is simulated by performing an automatic logon procedure without
+    user intervention.  This logon procedure is defined in the TYMFILE
+    and is stored in the slot.  When the slot is started or restarted,
+    each device that is defined as PVC will automatically be logged in.
+    There is a timer routine that runs periodically and checks whether
+    or not a PVC defined device is logged in.  If not, this routine will
+    initiate the login process for this device.
+
+    The PVC options allow flexibility in deciding the type of retry
+    mechanism desirable.  Once a retry mechanism (or PVC option) is
+    chosen, it applies to all PVC devices of the slot.  In describing these
+    different options, the default value of five minutes for PVCTIM is
+    assumed.
+
+    Option 1	PVC option to retry within five minutes
+
+		Once a circuit for a PVC device is zapped, a
+		circuit rebuild is attempted within five minutes.
+
+    Option 2	PVC option to retry at an average of five minutes
+
+		Once a circuit for a PVC device is zapped, a
+		circuit rebuild is attempted at an average of five
+		minutes, but an attempt may happen anytime from
+		zero to ten minutes.
+
+    Option 3	PVC option to retry after five minutes has elapsed
+
+		Onve a circuit for a PVC device is zapped, a
+		circuit rebuild is attempted after at least five
+		minutes has passed, but at most ten minutes.
+		This is the default option, and is the mechanism
+		used by the standard 3270 terminal interface.
+
+    Option 4	PVC option to retry immediately after non-logon zap
+
+		Once a circuit for a PVC device is zapped during
+		a non-logon session, a circuit rebuild is
+		immediately attempted.  Otherwise, it is similar
+		to option 1.
+
+    For all options, after the failure of each retry, the next
+    retry is five minutes later.  In order to set the desired option,
+    equate PVCOPT to 1, 2, or 4 (3 is the default) in the parameter
+    modification area after the ENDTYM macro in the TYMFILE.
+    &|.A
