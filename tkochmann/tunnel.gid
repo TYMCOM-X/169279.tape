@@ -1,0 +1,2437 @@
+                                                              December 21, 1987
+
+
+
+
+
+
+
+
+                      ***** *   * *   * *   * ***** *****
+                        *    * *  ** ** **  * *       *  
+                        *     *   * * * * * * ****    *  
+                        *     *   * * * *  ** *       *  
+                        *     *   * * * *   * *****   *  
+
+
+         ***** *   * *   *  *****  *   *  *    *  *    *  *****  *    
+           *    * *  ** **    *    *   *  **   *  **   *  *      *    
+           *     *   * * *    *    *   *  * *  *  * *  *  ****   *    
+           *     *   * * *    *    *   *  *   **  *   **  *      *    
+           *     *   * * *    *    *****  *    *  *    *  *****  *****
+
+                                ***   ***  **** 
+                               *   *   *   *   *
+                               *       *   *   *
+                               *  **   *   *   *
+                                ***   ***  **** 
+
+                    TYMNET-II NODE CODE TYMTUNNEL INTERFACE
+                            GENERAL INTERNAL DESIGN
+
+                                Eric Valentino
+                             Node Code Development
+
+
+     DRAFT COPY - FOR REVIEW ONLY    ****    DRAFT COPY - FOR REVIEW ONLY
+                    NETWORK TECHNOLOGY MANAGEMENT DIVISION
+                               December 21, 1987
+
+
+
+
+
+
+
+
+
+
+      ******************************************************************
+      **                  PROPRIETARY INFORMATION                     **
+      **                                                              **
+      **  MDC-TYMNET's   proprietary  rights  are  included  in  the  **
+      **  information disclosed herein.  The recipient, by receiving  **
+      **  this document,  agrees that neither this document nor  the  **
+      **  information disclosed herein nor any part thereof shall be  **
+      **  reproduced  or  transferred to other documents or used  or  **
+      **  disclosed  to  others for manufacturing or for  any  other  **
+                                General Internal Design              TUNNEL.GID
+                                                              December 21, 1987
+
+
+              **  purpose  except as specifically authorized in  writing  by  **
+          **  MDC-TYMNET.                                                 **
+          ******************************************************************
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                General Internal Design              TUNNEL.GID
+                                                              December 21, 1987
+
+
+
+
+
+
+
+                                   TABLE OF CONTENTS
+
+        Section                                                            Page
+
+
+
+        1.   Introduction                                                     1
+          1.1   Purpose of this Document                                      1
+          1.2   Objective                                                     1
+          1.3   Services                                                      1
+          1.4   TymTunnel Environment                                         3
+
+
+        2.   Implementation Overview                                          4
+          2.1   TymTunnel Components                                          4
+          2.2   Configuration                                                 5
+          2.3   Basic Functions                                               5
+          2.4   Building a TymTunnel Circuit                                  5
+          2.5   Types of TymTunnels                                           6
+             2.5.1    Dedicated TymTunnel                                     6
+             2.5.2    Backup TymTunnel                                        6
+
+          2.6   Connecting the TymTunnel                                      7
+             2.6.1    Using an X.25 PVC                                       7
+             2.6.2    Using an X.25 SVC                                       7
+
+          2.7   TymTunnel Link Establishment                                  8
+
+
+        3.   Data Flow within a TymTunnel Node                                9
+          3.1   Components of TymTunnel Node Code                             9
+          3.2   Internal Data Flow Diagram                                   10
+
+
+        4.   Configuration Macros and Parameters                             11
+          4.1   TUNLNK Macro                                                 11
+          4.2   TUNBAK Macro                                                 12
+          4.3   TUNCAL Macro                                                 12
+          4.4   TUNUSR Macro                                                 13
+          4.5   X.25 Configuration Macros                                    13
+             4.5.1    DNICM Macro                                            13
+             4.5.2    HSTLNK Macro                                           14
+             4.5.3    PVCHAN Macro                                           14
+             4.5.4    CUGROU Macro                                           14
+
+          4.6   Configuration Assembly Errors                                15
+
+
+
+                                General Internal Design              TUNNEL.GID
+                                                              December 21, 1987
+
+
+        5.   TymTunnel Data Structure                                        16
+          5.1   Bit Arrays for Building, Connecting and Servicing            16
+          5.2   TymTunnel Storage Arrays                                     17
+          5.3   TymTunnel Link Descriptor                                    17
+          5.4   TymTunnel Link Reset Buffers                                 17
+          5.5   Called Address strings buffer                                18
+          5.6   TymTunnel Log-in and Connect Buffer                          18
+
+
+        6.   Initialization Routines                                         19
+          6.1   Descriptor Parameter Initialization                          19
+          6.2   Block and Service Pointers                                   20
+
+
+        7.   TymTunnel Building Routines                                     21
+          7.1   Build Circuit to X.25 Slot                                   21
+          7.2   IIX Negotiation                                              21
+          7.3   TymTunnel Call Request                                       22
+             7.3.1    Connect to an X.25 PVC                                 22
+             7.3.2    Make TymTunnel SVC                                     22
+
+          7.4   TymTunnel End Circuit Completion                             23
+             7.4.1    TymTunnel Pseudo Needle Routine                        24
+             7.4.2    Destination IIX Exchange                               24
+
+          7.5   Link Establishment                                           25
+
+
+        8.   Tunnel Service Routines                                         26
+          8.1   Service Data Structures                                      26
+          8.2   Packet Detection and Copy to Input Sectors                   27
+             8.2.1    Complete Packet Detection                              27
+             8.2.2    Checksumming and Packet Sector Evaluation              28
+
+          8.3   Copy from Output Sector to Dispatcher Ring                   29
+
+
+        9.   TymTunnel Host Management                                       30
+
+
+        10.  Tunnel Errors and Teardown                                      31
+          10.1  X.25 Reset Causes                                            31
+
+
+        11.  Xray for TymTunnels                                             32
+          11.1  TymTunnel Operation Commands                                 32
+             11.1.1   Open TymTunnel Command                                 32
+             11.1.2   Close TymTunnel Command                                32
+             11.1.3   Modify TymTunnel Parameters                            33
+
+          11.2  Error and Condition Reports                                  33
+             11.2.1   TymTunnel Building Crypto Reports                      33
+             11.2.2   TymTunnel Reports to Supervisor                        34
+
+                                General Internal Design              TUNNEL.GID
+                                                              December 21, 1987
+
+
+                                     APPENDICES
+                                     ==========
+
+
+        I.   Reference Documents                                             35
+
+
+        II.  Sample Configuration Files                                      36
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                General Internal Design              TUNNEL.GID
+        Introduction                                          December 21, 1987
+
+
+
+
+
+
+                                   1 -  Introduction
+
+
+
+
+
+
+
+                             1.1  Purpose of this Document
+
+
+             The purpose of  this document is to  provide a general  outline of
+        the  internal structure  of modifications  to TYMNETYMNET-II  Node Code
+        which will, when implemented, provide the service known  as TymTunnels.
+        Throughout the text, references are  made to Node Code routines  and as
+        yet to be implemented TymTunnel routines.
+
+
+
+
+
+
+                                    1.2  Objective
+
+
+             The objective of TymTunnel is to establish an X.25 virtual circuit
+        over a Public Data Network (PDN) to provide the internodal link between
+        two  TYMNET technology  nodes.  This  would allow  a  TYMNET Technology
+        network  to  use  a  public  data  network  (PDN)  for  its  internodal
+        connections, hence  reducing the dependence  on leased lines.   The PDN
+        could also  provide the backup  internodal connection when  the primary
+        connection fails.
+
+
+
+
+
+
+                                     1.3  Services
+
+
+             TymTunnels will provide either dedicated or backup services.  As a
+        dedicated service, TymTunnels will provide the internodal connection as
+        an alternative to a leased line.  As a backup service,  TymTunnels will
+        provide a backup to a  leased line  when the primary  connection fails.
+        The X.25  circuit used may be either a Permanent Virtual  Circuit (PVC)
+        or a Switched Virtual Circuit (SVC), and  will be a selectable option.
+
+
+
+        1                       General Internal Design              TUNNEL.GID
+        Introduction                                          December 21, 1987
+
+
+             Dedicated service will be  established when the Node Code  and the
+        X.25 interface become active in the Network.
+
+             A backup  service can  be established in  one of  two ways.   As a
+        manual backup the X.25  circuit will be established only  upon operator
+        request through TMCS.  As an automatic backup the X.25 circuit  will be
+        automatically requested by TMCS as  soon as the primary link  outage is
+        detected.
+
+             TymTunnel service  will not  include International  Record Carrier
+        (IRC)  rotation.   The  concept  of  'multi-line  links'  will  not  be
+        supported.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        2                       General Internal Design              TUNNEL.GID
+        Introduction                                          December 21, 1987
+
+
+                              1.4  TymTunnel Environment
+
+
+             A TymTunnel originates on  a Node Code interface and  transits one
+        or more  than one network  or host before  terminating on  another Node
+        Code interface.
+
+                                A TYMTUNNEL LINK
+                ________
+                :      :
+                : SUP. :
+                :______:
+                    +
+                    +
+           Connected Node                                  Remote Node
+           _____________  (network                        _____________
+           |d   :      |....  links)                 .....|       :  d|
+           |i  .:..    |....               + + +       ...|    ...:. i|
+           |s  .: N. C.|        + + + + +        +        | N. C. :. s|
+           |p__.:______|   + +                      +     |_______:._p|
+           |a  .:      | +                            +   |       :. a|
+           |t  .: X.25 | +      X.25/X.75 P.D.N.        + | X.25  :. t|
+           |c  .:      | +===============================+|       :. c|
+           |h  .:......|.........TymTunnel Link...........|.......:. h|
+           |e   :      | +===============================+|       :  e|
+           |r___:______|  +        X. Link            + + |_______:__r|
+                           +                        +
+                             + + +              + +
+                                   + + + + + + +
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        3                       General Internal Design              TUNNEL.GID
+        Implementation Overview                               December 21, 1987
+
+
+
+
+
+
+                             2 -  Implementation Overview
+
+
+
+
+
+
+
+                               2.1  TymTunnel Components
+
+
+             The TymTunnel facility provided  by Node Code consists  of several
+        'logical levels'.  The transport  level from one node to  its TymTunnel
+        neighbor consists of a 'circuit'.  This circuit has  several components
+        which are listed below.
+
+                o   an internal circuit from  the Node Code to the  X.25 slot
+                    at one end (Node Code and X.25 co-resident)
+
+                o   an X.25  circuit (over a PDN or through some host or other
+                    data transport facility)  from one X.25 slot  to the
+                    X.25 slot on the other end of the 'link'
+
+                o   an internal circuit from the destination X.25 slot to its
+                    Node Code (X.25 and Node Code co-resident)
+
+             Each end of  this circuit talks to  the 'Tunnel Host'  resident in
+        its Node Code.  The  TymTunnel Host acts with intelligence  with regard
+        to maintaining the status of  the TymTunnel and responding to  X.25 IIX
+        messages to it.  The TymTunnel Host provides drivers to  transport data
+        between the Tunnel End and the Link.
+
+             The link level is maintained above the TymTunnel level.  TymTunnel
+        Link  events are  the same  as for  normal TYMNET-II  links,  with some
+        modifications in consideration of the TymTunnel transport medium.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        4                       General Internal Design              TUNNEL.GID
+        Implementation Overview                               December 21, 1987
+
+
+                                  2.2  Configuration
+
+
+             The nodes on either end of a TymTunnel link will be  ISIS systems,
+        each with a Node Code slot and an X.25 slot as a minimum configuration.
+        Node Code and the  X.25 slot on each end  of the TymTunnel must  be co-
+        resident  within  the  same  machine.   This  provides   for  TymTunnel
+        communication from X.25 to  the Node Code via the  machine's Dispatcher
+        interface.  The Node Code will establish a circuit to the X.25 slot and
+        submit a request to build  an X.25 circuit through the PDN.   This X.25
+        circuit  will  terminate at  the  X.25 slot  on  the other  end  of the
+        TymTunnel, and will be passed into the Node Code in that  machine.  The
+        two Node Codes  will then treat this  virtual circuit as  an internodal
+        link for further data transfers and communication.
+
+
+
+
+
+
+                                 2.3  Basic Functions
+
+
+             The TymTunnel link is  no different than other  TYMNET inter-nodal
+        links  and  will  conform to  standard  TYMNET  link  protocol.  TYMNET
+        virtual circuits will  be built across  this link.  User  data, command
+        circuit  messages   and  inter-node  control   messages  will   all  be
+        transmitted across this link in the standard TYMNET packet format.
+
+             TYMNET packets will be assembled to contain the data that needs to
+        be transmitted across the link.  Instead of sending the packet out on a
+        physical line,  the Node Code  will send the  packet to the  X.25 slot,
+        through  ISIS, using  the IIX  'data' message.   This message  is large
+        enough to accommodate the maximum packet size of 128 bytes.
+
+
+
+
+
+
+                           2.4  Building a TymTunnel Circuit
+
+
+             A dedicated TymTunnel link will be invoked upon Node Code startup.
+        A backup TymTunnel link will be invoked in response to a TYMNET-II link
+        outage.  Activation of backup   TymTunnels will be left to  the control
+        of TMCS via Xray.
+
+             TymTunnel links may  be made using either  an X.25 PVC or  an X.25
+        SVC.  One procedure will exist for each of the X.25 circuit types.
+
+             Procedures used for establishing TymTunnels are as follows:
+
+
+        5                       General Internal Design              TUNNEL.GID
+        Implementation Overview                               December 21, 1987
+
+
+                o    A dedicated TymTunnel will be initiated from either
+                     Node Code using an internal circuit to the X.25 interface
+                     resident in the same node and a call to the other end 
+                     TymTunnel host via an X.25 SVC.  
+
+           o    A dedicated TymTunnel will be initiated from both ends by
+                     connecting to an X.25 predefined PVC.
+
+                o    A backup TymTunnel will be initiated from the connected
+                     end by a command from TMCS, using an X.25 SVC.  (It is
+                     unlikely that a PVC would be used for a backup Tunnel.)
+
+
+
+
+
+
+                               2.5  Types of TymTunnels
+
+
+
+
+
+
+                    2.5.1  Dedicated TymTunnel
+
+             The dedicated  TymTunnel will become  'active' when the  Node Code
+        starts up and begins to initialize all links.  When a TymTunnel link is
+        encountered, the  Node Code will first establish an X.25 circuit.
+
+                   Call setup will be initiated from either node which has been
+        configured with  'origination' status.   The Node  Code  will  build an
+        internal  circuit  to  the  X.25 slot,  and  submit  the   Call Request
+        sequence to  the slot  to establish the  X.25 circuit  through the PDN.
+        The Node  Code of  the 'called'  node will  wait  for a circuit  to  be
+        built   to   it   before  beginning   the   line-reset  procedure.  The
+        circuit (an internal  circuit from the X.25  slot in the  same machine)
+        will  be  built  to  a specified  'host'  with   a  pre-defined special
+        username.
+
+
+
+
+
+                    2.5.2  Backup TymTunnel
+
+                        If a  TymTunnel link is  specified as a  'backup' link,
+        then the link will not  be 'activated' when  the node  is  initialized.
+        The Node Code will wait for a command from TMCS before   initiating the
+        call  setup.  In  either manual  or automatic  backup mode,   TMCS will
+        build a   virtual circuit  to  XRAY in  the  node  and issue   the XRAY
+        command  that will  begin  the  X.25 circuit  establishment.    In this
+
+
+        6                       General Internal Design              TUNNEL.GID
+        Implementation Overview                               December 21, 1987
+
+
+        environment, the  node  that  is a part   of the  main portion   of the
+        network  will  initiate  the  call.   (The remote   node no   longer is
+        accessible from the  rest of the network  and thus  cannot  terminate a
+        circuit from TMCS.)
+
+
+
+
+
+
+                             2.6  Connecting the TymTunnel
+
+
+                        To bring  up a TymTunnel  after circuit  completion the
+        'caller' Node  Code first  enters  into an IIX  exchange with  the X.25
+        slot.  After successful  IIX negotiation, the  Call Request to  the PDN
+        can now begin.  If  the X.25 slot detects   an error, a zapper  will be
+        sent to the Node Code to clear the internal circuit.
+
+
+
+
+
+                    2.6.1  Using an X.25 PVC
+
+             The Node  Code slots at  each end of  the TymTunnel  will initiate
+        circuit  building to  the PVC  host configured  in the  X.25 interface.
+        This will be done by means of Type 19 and 1A X.25 IIX messages from the
+        Node Code to the X.25 interface, requesting circuit connections  to the
+        PVC circuits  specified.  If  the X.25  interfaces at  each end  of the
+        TymTunnel are operating, then the connection will exist over  which the
+        TymTunnel link may be established.
+
+                  If  the TymTunnel  has  been defined  as a  PVC,  the circuit
+        through  the  PDN  will  be  established and   maintained by   the X.25
+        slot.
+
+
+
+
+
+                    2.6.2  Using an X.25 SVC
+
+             The X.25 interfaces at each end of the prospective  TymTunnel must
+        be configured with the CLDMAP option, and the +TKSUP option.   When the
+        circuit  is successfully established,  a  CALL ACCEPT IIX  message will
+        be sent back to  the Node Code.
+
+                        The following exceptions can occur:
+
+                o   Reset is  received  - this  is translated  into  an ISIS
+                    Gobbler, followed by an IIX Reset Message which includes a
+                    reason for this reset
+
+        7                       General Internal Design              TUNNEL.GID
+        Implementation Overview                               December 21, 1987
+
+
+
+                o   a Call Clear is received, cause and  diagnostic, followed
+                    by a zapper
+
+                        The   X.25  slot  in  the   'called'  (or  destination)
+        node will  receive a  CALL  REQUEST  over the  PDN  and  the  following
+        exchange occurs:
+
+                o   Slot sends a pseudo-needle request to Node Code.
+
+                o   If Supe is present, normal logon proceeds.
+
+                o   If no Supe present, a special handler is invoked.
+
+                o   Node Code returns a pseudo-needle.
+
+                o   Slot sends in the 'login' string.
+
+                o   Node Code  checks for a special  username and for  a 
+                    predefined TymTunnel host number. Circuit is marked as
+                    a TymTunnel.
+
+                o   IIX exchange successfully completes.
+
+                o   CALL DATA arrives from the Slot and is discarded.
+
+                        The  connection  between  the  two  Node  Codes  is now
+        established.
+
+
+
+
+
+
+                           2.7  TymTunnel Link Establishment
+
+
+             The Circuit  connection between  the TymTunnel  Node Codes  is now
+        successfully  completed and  the Link  Reset may  proceed.   The normal
+        exchange of Reset Packets will take place and the Link between  the two
+        Node Codes will be established.
+
+
+
+
+
+
+
+
+
+
+
+
+
+        8                       General Internal Design              TUNNEL.GID
+        Data Flow within a TymTunnel Node                     December 21, 1987
+
+
+
+
+
+
+                        3 -  Data Flow within a TymTunnel Node
+
+
+
+
+
+
+
+                        3.1  Components of TymTunnel Node Code
+
+
+             Circuits which  terminate at the  TymTunnel Host have  reached the
+        TymTunnel  End.  The  TymTunnel End  is simply  the dispatcher  port on
+        which the TymTunnel Circuit terminates.
+
+             It is  from the TymTunnel  End that  data is copied  to or  from a
+        Sector.  This Sector constitutes the front end of a Link Process.
+
+             The  Link to  which a  TymTunnel End  is connected  is  called the
+        Tunnel Link.  This TymTunnel Link  functions in the same manner  as any
+        other link, except that its Input/Output is connected to the Tunnel End
+        instead of a real external I/O process.
+
+             The TymTunnel Link Descriptor has all the same fields as  a normal
+        TYMNET-II Link, plus some  extra fields for TymTunnel  processing.  The
+        Tunnel Link is declared at configuration time by the TUNLNK  Macro.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        9                       General Internal Design              TUNNEL.GID
+        Data Flow within a TymTunnel Node                     December 21, 1987
+
+
+                            3.2  Internal Data Flow Diagram
+
+
+             The internal structure of a TymTunnel within Node Code  is derived
+        from the existing Node  Code structure, plus additional  elements added
+        to accommodate servicing of the  TymTunnel .
+
+
+                            NODE'S
+                           CHANNELS           ..............
+                            ._____.           |  TymTunnel |
+           (Normal Circuit) |  T  | (Tunnel)  |   I / O    |
+                    :       |  N  |===========|= Service  >|- - -
+                    :       |  L  | (Circuit) | Routines   |    :
+                  ..:..     |  E  |           |............|   \/
+                  : B :     |  N  |                ^            :
+                  : U :     |  D  |                :            : 
+                  : F :     |     |                ^           \/
+                  :...:     |  D  |                :            :
+                    :       |  I  |                ^           \/
+                    :.......|. S  |          ......:............:.......
+                            |  P  |         O|............|............|
+              ..............|. A  |         u|............|............|I
+              :             |  T  |         t|............|............|n
+              :             '-----'         p|............|............|p
+            ..:..           |  L  |         u|............|............|u
+            : B :           |  I  |         t|............|............|t
+            : U :  .........|. N  |          |............|............|
+            : F :  :        |  K  |         S|............|............|S
+            :...:  :        |  0  |         e|............|............|e
+              :    :        '-----'         c|............|............|c
+         N    :    :   .....|. L  |         t|............|............|t
+         o    :    : ..:..  |  I  |         o|............|............|o
+         r    :    : : B :  |  N  |         r|............|............|r
+         m    :    : : U :  |  K  |                ^             :
+         a    :    : : F :  |  1  |                :            \/
+         l    :    : :...:  '-----'           .....^             :
+              :  ..:.. :    |  T  |           :                  :
+         C    :  : B : :....|. U .|......     : ............... \/
+         i    :  : U :      |  N  |      `.   : | Tunl Link's |  :
+         r    :  : F :      |  L  |        `.  -|--< RMAKE    |  :
+         c    :  :...:      |     |     .....`..|    RTEAR <--|--
+         u    :    :........|. L .|....'     .' |   Process   |
+         i    :             |  I  |        .'   |.............|
+         t    :.............|. N .|.......'
+         s                  |  K  |
+                            '-----'
+                              etc.
+
+
+
+
+
+
+        10                      General Internal Design              TUNNEL.GID
+        Configuration Macros and Parameters                   December 21, 1987
+
+
+
+
+
+
+                       4 -  Configuration Macros and Parameters
+
+
+             TymTunnel links are declared  in the ISIS Node Code  Tymfile along
+        with other  types of Network  Links.  The TUNLNK  or TUNBAK  Macro will
+        accept the parameters which are common for both PVC and SVC TymTunnels.
+        The TUNLNK and TUNBAK Macros are mutually exclusive.
+
+             The TUNCAL Macro accepts the call string for the SVC Call Request.
+        The TUNUSR Macro accepts  the network username for the  TYMNET portions
+        of the circuit.
+
+             In  order  to  co-ordinate  the  Node  Code  and  X.25 parameters,
+        additional Macros  which contain  TymTunnel /  X.25 parameters  must be
+        included in the ISIS Node Code Tymfile.  These Macros contain parameter
+        lists which always begin with the TymTunnel neighbor number,  but which
+        then follow the same order as their similiar X.25 Macros.  Examples are
+        given in Section 4.4.
+
+             The X.25 slot must be TURKEY level 2.
+
+
+
+
+
+
+                                   4.1  TUNLNK Macro
+
+
+             The TUNLNK Macro declares the parameters for a dedicated TymTunnel
+        link.  It provides  for the creation of  the Tunnel Descriptor  and the
+        Link Descriptor for the specified TymTunnel neighbor.
+
+                TUNLNK(NBR,WSZ,SPD,TYP,OHST,DHST)
+
+        Where:  NBR     =  Neighbor number on TymTunnel Link 
+                WSZ     =  TYMNET window size for this link
+                SPD     =  Link speed as in T-II link.  
+                TYP     =  Origination, active TymTunnel builder
+                           Destination, passive (no TymTunnel building)
+                OHST    =  TYMNET Host number for this TymTunnel End
+                DHST    =  TYMNET Host number for other TymTunnel End
+
+
+
+
+
+
+
+
+        11                      General Internal Design              TUNNEL.GID
+        Configuration Macros and Parameters                   December 21, 1987
+
+
+                                   4.2  TUNBAK Macro
+
+
+             The TUNBAK Macro declares  the parameters for a  backup TymTunnel.
+        It provides  for the  creation of  the Tunnel  Descriptor and  the Link
+        Descriptor for the  specified TymTunnel neighbor.   In the case  of the
+        backup TymTunnel, a TIILNK Macro  for the same neighbor must  have been
+        previously declared.
+
+             The  TUNBAK  Macro  allows  parameters  for  TymTunnel  backups to
+        TIILNKs to be optimized for the type of transport service  acquired for
+        the backup link.
+
+                TUNBAK(NBR,WSZ,SPD,TYP,OHST,DHST)
+
+        Where:  NBR     =  Neighbor number on TymTunnel Link 
+                WSZ     =  TYMNET window size for this link
+                SPD     =  Link speed as in T-II link.  
+                TYP     =  Origination, active TymTunnel builder
+                           Destination, passive (no TymTunnel building)
+                OHST    =  TYMNET Host number for this TymTunnel End
+                DHST    =  TYMNET Host number for other TymTunnel End
+
+
+
+
+
+
+                                   4.3  TUNCAL Macro
+
+
+             The  TUNCAL  Macro supplies  the  Called Address  string,  and its
+        inclusion following a TUNLNK Macro defaults the TymTunnel  circuit type
+        to an SVC, unless a PCVHANNEL Macro also follows the same TUNLNK Macro.
+
+                TUNCAL(NBR,CALDAD)
+
+                Where:  NBR     =  Neighbor number on TymTunnel Link 
+                        CALDAD  =  Called Address String
+                                   A string of characters designated by the
+                                   X.25 PDN Administration to create a call to
+                                   the destination TymTunnel X.25 interface.
+
+
+
+
+
+
+
+
+
+
+
+
+        12                      General Internal Design              TUNNEL.GID
+        Configuration Macros and Parameters                   December 21, 1987
+
+
+                                   4.4  TUNUSR Macro
+
+
+             The TUNUSR Macro accepts the username which will be  submitted for
+        TYMNET validation at the destination TymTunnel end.  This username must
+        be valid on  the Supervisor and must  be valid for the  TymTunnel Hosts
+        specified.  The TUNUSR Macro must  follow the TUNLNK Macro to  which it
+        applies.  The first  TUNUSR declared will  be the default  username for
+        all subsequent TUNLNKs unless a new TUNUSR is declared.
+
+                TUNUSR(NBR,USRNAM)
+
+                Where:  NBR     =  Neighbor number on TymTunnel Link 
+                        USRNAM  =  Username is the network username to be 
+                                   submitted at the TymTunnel destination.
+
+
+
+
+
+
+                            4.5  X.25 Configuration Macros
+
+
+             Each TUNLNK Macro  must be accompanied  by parameters from  one or
+        several  X.25  configuration Macros.   These  Macros  contain parameter
+        lists which always begin with the TymTunnel neighbor number,  but which
+        then follow  the same order  as their similiar  X.25 Macros.   The X.25
+        Macro parameters may  be copied directly  from the X.25  Macros, except
+        that  the TymTunnel  Macro to  which they  apply must  always  have the
+        TymTunnel  neighbor number  as the  first parameter  in the  list.  The
+        names of the X.25  Macros and their corresponding TymTunnel  Macros are
+        very similiar.   For more complete  explanations of  X.25 configuration
+        Macros,  the  reader  is referred  to  the  TYMNET  X.25/X.75 Interface
+        Reference Manual publication number 399.
+
+
+
+
+
+                    4.5.1  DNICM Macro
+
+             The  DNICM Macro  specifies the  Data Network  Identification code
+        composed by four decimal digits, required for X.25's building circuits.
+                DNICM(DNIC)
+
+                Where:
+                        DNIC    =  DNIC in BCDecimal
+
+
+
+
+
+
+        13                      General Internal Design              TUNNEL.GID
+        Configuration Macros and Parameters                   December 21, 1987
+
+
+                    4.5.2  HSTLNK Macro
+
+             The HSTLNK Macro should  contain the correct Host number  to which
+        the TymTunnel circuit will be built in the co-resident  X.25 interface.
+        The  HSTLNK Macro is taken  from the HOSTLINKS X.25 Macro.   The HSTLNK
+        Macro will also contain the X.25 link number on which the  circuit must
+        travel to reach the destination TymTunnel Node Code.
+
+             The HSTLNK Macro is REQUIRED for both SVC and PVC circuit types.
+                HSTLNK(NBR,HN)
+
+                Where:
+                NBR     =  Neighbor number on TymTunnel Link 
+                HN      =  an X.25 Network Host Number
+
+
+
+
+
+                    4.5.3  PVCHAN Macro
+
+             If  the PVCHAN  Macro is  included following  a TUNLNK  Macro, the
+        TymTunnel  circuit will  be a  PVC.  The  essential  parameters include
+        channel number, host number, and link number.
+                PVCHAN(NBR,XCHN,THST,XLNK)
+
+                Where:
+                NBR     =  Neighbor number on TymTunnel Link 
+                XCHN    =  channel number of PVC origination in
+                           X.25 companion interface
+                THST    =  TymTunnel host number this Node Code
+                XLNK    =  link number of PVC origination in
+                           X.25 companion interface
+
+        NOTE:  The PVCHAN dhost must match the TymTunnel End host
+               number.  In addtion, the TymTunnel End host number (DHost)
+               must be greater than the HSTLNK host number for the link
+               on which this PVC circuit will be connected.
+
+
+
+
+
+                    4.5.4  CUGROU Macro
+
+             The CUGROU Macro contains the 32 bit (hex) 'interlock  code' which
+        will be used to characterize the CUG for the TymTunnel.  The first four
+        digits  are in  decimal, and  represent the  'DNIC'.  The  next 1  to 5
+        digits comprise the remainder of the interlock code, and may range from
+        1 to 65535 decimal.
+
+             This macro is  reserved for future use.   Should it appear  in the
+        Tyme file, it would be assembled according to the following format.
+
+        14                      General Internal Design              TUNNEL.GID
+        Configuration Macros and Parameters                   December 21, 1987
+
+
+                CUGROU(NBR,IDX,DNIC,INTC)
+
+                Where:
+                        NBR     =  Neighbor number on TymTunnel Link 
+                        IDX     =  Not used by TymTunnel
+                        DNIC    =  DNIC in BCDecimal
+                        INTC    =  Interlock code (decimal)
+
+
+
+
+
+
+                          4.6  Configuration Assembly Errors
+
+
+             The following error messages may appear during sysgen and indicate
+        some configuration error in the Node Code parameter file.
+
+        TYMTUNNEL CONFIGURATION ERROR  == TUNLNK Neigh#
+                Config'd as Origination SVC ... no TUNCAL given  
+                !!!!    ASSEMBLY KILLED         !!!!
+
+        TYMTUNNEL CONFIGURATION ERROR  ==  TUNCAL and PVCHAN 
+                PVC will be used ... TUNCAL ignored !!!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        15                      General Internal Design              TUNNEL.GID
+        TymTunnel Data Structure                              December 21, 1987
+
+
+
+
+
+
+                             5 -  TymTunnel Data Structure
+
+
+                      TymTunnels  depend on  a number of data  structures.  Bit
+        arrays  are used  to invoke  TymTunnel Building  and  TymTunnel Connect
+        processing.  An  array of  link descriptor  pointers to  TymTunnel Link
+        Descriptors are  used to  make circuit connections  to the  Tunnel End.
+        The structures are outlined below.
+
+
+
+
+
+
+                5.1  Bit Arrays for Building, Connecting and Servicing
+
+
+             The following bit arrays will be defined:
+
+                o ACTUNL  :Marks 'Active Tunnels' relative to number of
+                          : TymTunnel s defined.  This will include dedicated
+                          :Tunnels as well as backup Tunnels which have
+                          :been invoked by TMCS.  In the event of a node
+                          :failure, all previously active Tunnels will be
+                          :restored to service.
+
+                o TUNBLD  :Examined periodically by 'Linker' TNBULD process.
+                          :ACTUNL copied to TUNBLD by Nstart.  Invokes Tunnel
+                          :building process for this relative Tunnel.
+
+                o TNLSND  :Set by TymTunnel Link's RMAKE  when new packets
+                          :are placed in link's Output Sector
+                          :Examined by the TymTunnel  Output Service Routine
+                          :to see if data needs to be moved to the Tunnel
+                          :End Dispatcher
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        16                      General Internal Design              TUNNEL.GID
+        TymTunnel Data Structure                              December 21, 1987
+
+
+                             5.2  TymTunnel Storage Arrays
+
+
+                o TNLPTR  :FW pointers to TymTunnel Link Descriptors in order,
+                          :built at initialization from configuration
+
+
+
+
+
+
+
+                            5.3  TymTunnel Link Descriptor
+
+
+             The  TymTunnel Link  Descriptor will  contain the  same  fields as
+        normal T-II links.
+
+             The TymTunnel Link Descriptor is built at initialization time, and
+        is  included  as part  of  the link  descriptor.   The  link descriptor
+        contains the following fields, used to describe the TymTunnel End.
+                o  HW TymTunnel End Host number (our host number, OHost)
+                o  FW Pointer to SVC Called Address string
+                o  FW Pointer to Reset Buffer
+                o  FW CUG Specification
+                o  HW relative dispatcher index of present circuit
+                o  HW Circuit Target Host (for building Needle, Hostlinks)
+                o  HW Target End Host number (in dest. Node Code, DHost)
+                o  HW PVC Channel target 
+                o  Byte PVC Link # target
+                o  Byte TymTunnel type (Dedicated / Backup)
+                o  Byte TymTunnel Circuit type (PVC / SVC)
+                o  Byte Status of TymTunnel End
+                o  Current window being filled in sector 
+                o  Length of packet to be put in window
+                o  Current fill pointer for appending data to packet
+
+
+
+
+
+
+                           5.4  TymTunnel Link Reset Buffers
+
+
+             A pool  of contiguous  memory area  will be  assigned to  serve as
+        Tunnel  Link Reset  buffers.  This  will allow  the TymTunnel  Links to
+        support  reset operations  independent from  any physical  line.   Each
+        configured Tunnel Link will have one reset buffer and a pointer will be
+        contained in the TymTunnel Link Descriptor.
+
+
+
+
+        17                      General Internal Design              TUNNEL.GID
+        TymTunnel Data Structure                              December 21, 1987
+
+
+                          5.5  Called Address strings buffer
+
+
+             A  fixed  size  area  for storage  of  Called  Address  strings is
+        allocated for TymTunnels using X.25 SVC circuits.
+
+
+
+
+
+
+                       5.6  TymTunnel Log-in and Connect Buffer
+
+
+             A buffer  will contain the  buffer numbers of  potential TymTunnel
+        End circuits.  Once the  username has been evaluated the  buffer number
+        of  the  potential  candidate may  be  retained  for  further TymTunnel
+        Connect processing.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        18                      General Internal Design              TUNNEL.GID
+        Initialization Routines                               December 21, 1987
+
+
+
+
+
+
+                             6 -  Initialization Routines
+
+
+             TymTunnel Descriptors  will be initialized  at node  startup time.
+        Pointer  entries will  be made  during TymTunnel  Building and  at Link
+        initialization after successful Link Attach.
+
+
+
+
+
+
+                       6.1  Descriptor Parameter Initialization
+
+
+             The  TUNLNK Macro  generates a  number of  unique  symbolic values
+        which are used  to build linear value  arrays.  These arrays  are later
+        used to initialize TymTunnel Link Descriptors and bit arrays.  They are
+        defined below.
+
+        TUNLNK Param    Symbolic        Linear Array    Function
+        -----------     -----------     ------------    ------------------
+
+        NBR             NEI|Q|          NEIKN(KN)       Neighbor number
+
+        WSZ             WSIZ|Q|         WSZKN(KN)       Window size of link
+
+        SPD             KNSP|Q|         KNSAT(KN)       Link speed
+
+        TYP             T.DS|Q|         TNTYKN(TN)      TymTunnel type
+
+        OHST            T.OH|Q|         OHSTKN(KN)      Orignination host
+
+        DHST            T.DH|Q|         DHSTKN(TN)      Destination host
+
+        TUNBAK Param
+        (exclusively for backup TymTunnel links)
+        ------------
+        WSZ             TWSZ|Q|         TNBKWS(TN)      Window size 
+
+        SPD             T.SP|Q|         TNTHRU(TN)      Through-put class 
+
+        HSTLNK Param
+        ------------
+        HN              H.TN|Q|         XHSTKN(TN)      X.25 Slot Host#
+
+        PVCHAN Param (For PVC)
+        ------------
+        XCHN            X.CH|Q|         PCHKN(TN)       X.25 PVC channel number
+
+        19                      General Internal Design              TUNNEL.GID
+        Initialization Routines                               December 21, 1987
+
+
+
+        XLNK            X.LN|Q|         PLKKN(TN)       X.25 PVC link number
+
+        TUNCAL Param (For SVC)
+        ------------
+        CALDAD          T.CL|Q|         CALKN(TN)       X.25 SVC called address
+
+        TUNUSR Param (For SVC)
+        ------------
+        USRNAM          T.US|Q|         USRKN(TN)       X.25 SVC user name
+
+        DNICM Param                     Ascii String
+        -----------                     ------------
+        DNIC            DNICS           DNICA           Data Network ID Code
+
+
+
+
+
+
+                            6.2  Block and Service Pointers
+
+
+             The pointer array  TNLPTR will be  initialized in EXEC  at NSTART.
+        The  array  will  contain  Fullword  pointers  to  each  TymTunnel Link
+        Descriptor based on the order declared at configuration time.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        20                      General Internal Design              TUNNEL.GID
+        TymTunnel Building Routines                           December 21, 1987
+
+
+
+
+
+
+                           7 -  TymTunnel Building Routines
+
+
+             The TNBULD routine is called in two cases:
+
+                o       If dedicated TymTunnels are configured
+
+                o       If backup TymTunnels are invoked from Xray
+
+             A check  for TymTunnel building  is made every  125 ms as  per the
+        LINKER  routine.  If  a bit  is set  for a  particular TymTunnel  to be
+        built, the TNBULD routine is called to build that TymTunnel.   The bits
+        are initially set at NSTART or by XRAY.
+
+             The stages of TymTunnel building are described below.
+
+
+
+
+
+
+                            7.1  Build Circuit to X.25 Slot
+
+                o       Find a channel to Dispatcher (FNDCHN)
+                o       Send a needle  to the X.25 slot.  
+
+                        In addition to the standard Needle components for 
+                        this circuit, the following special attributes are
+                        noted:
+                        a)  Invoice number - real or dummy
+                        b)  Desitination host on link to other end of Tunnel.
+                        c)  IIX, TPC=3, CCT=00 (Aux)
+
+
+
+
+
+
+
+                                 7.2  IIX Negotiation
+
+
+             The IIX exchange from the originating Node Code is outlined below.
+
+                o       Send IIX Dialect response  based on 
+                        having received Select IIX Dialect (8080 etc.)
+                        from X.25 slot
+                        (BF) (04 8081 8083)
+
+
+        21                      General Internal Design              TUNNEL.GID
+        TymTunnel Building Routines                           December 21, 1987
+
+
+                o       Send Turkey Level message  based on 
+                        having completed Dialect select
+                        (BF)  (04 C093 0002)
+
+
+
+
+
+
+
+                              7.3  TymTunnel Call Request
+
+
+             The  type  of  circuit  to be  built  will  be  obtained  from the
+        TymTunnel Link Descriptor.  The TymTunnel call will be either an SVC or
+        a PVC.  The processes are described below.
+
+
+
+
+
+                    7.3.1  Connect to an X.25 PVC
+
+                o  IIX connect to PVC message will be sent to the X.25 slot.
+                   (BF)  (0C C099 llll dhst dchn lk t1 t2 st)
+
+                        Where:  llll  =  HW of message length
+                                dhst  =  HW of destination host #
+                                dchn  =  HW of destination channel #
+                                lk    =  Byte of destination link #
+                                t#    =  Byte of CCITT Tput class (03-12)
+                                         TymTunnel default = 10 (9600 bps)
+                                         #1 = reverse direction
+                                         #2 = this direction
+                                st    =  Byte of DTE status
+                                
+                o  IIX PVC confirmation will be received from the X.25 slot.
+                    (BF)  (04 C09A s1 s2)
+
+                        Where:  s1    =  PVC status
+                                s2    =  DTE status     
+
+
+
+
+
+                    7.3.2  Make TymTunnel SVC
+
+             A standard X.25  Call Request will be  issued to connect  with the
+        destination  of  the  TymTunnel Circuit.   Following  the  'Send Turkey
+        Level' message (C093) from the Node Code, the SVC exchange  is outlined
+        below.
+
+
+        22                      General Internal Design              TUNNEL.GID
+        TymTunnel Building Routines                           December 21, 1987
+
+
+                o  Node code sends X.25 Called Address message to X.25 slot
+                   (BF)  (l1 C087 l2 [Called address])
+
+                        Where:  ll    =  Length of message
+                                l2    =  Length of Called Address field
+                        and [Called address]  =  specific X.121 address
+                        of destination X.25 interface as specified by
+                        X.25 PDN administration.
+
+                o  Node code sends X.25 Calling Address message to X.25 slot
+                   (BF)  (l1 C088 l2 [Calling address])
+
+                        Where:  ll    =  Length of message
+                                l2    =  Length of Calling Address field
+                        and [Calling address]  =  supplied by Node Code
+
+                o  Node code sends call user data (usually nothing)
+                   (BF)  (03 C089 00)
+
+                o  X.25 sends Turkey Level message to Node Code
+                   (BF)  (04 C093 02)
+
+                o  The PDN completes the call to the destination X.25
+
+                o  X.25 sends a call accept message to originating N. C.
+                   (BF)  (l1 C092 llll [varied data CCITT]
+
+                        Where:  l1    =  Length of message
+                                llll  =  HW length of Call Accept data
+                        and [varied data CCITT]  may include Utility 
+                        and Facility fields according to the CCITT Call
+                        Connect Packet format
+
+
+             The  circuit is  now complete  and the  Link Reset  proceedure may
+        begin.
+
+
+
+
+
+
+                         7.4  TymTunnel End Circuit Completion
+
+
+             The receiving end of  the TymTunnel circuit  will  perform several
+        functions.  It will validate  the incoming TymTunnel circuit.   It will
+        connect the TymTunnel End to the TymTunnel Link, and when this  link is
+        established, it will  disable further TymTunnel Building  or Connecting
+        for the TymTunnel Link.
+
+
+
+
+        23                      General Internal Design              TUNNEL.GID
+        TymTunnel Building Routines                           December 21, 1987
+
+
+                    7.4.1  TymTunnel Pseudo Needle Routine
+
+             The routine DSZTLG, which normally handles Pseudo Needle requests,
+        will be  modified so  that if  TymTunnel Links  are configured  for the
+        node,  and there  is no  Supe  currently in  control of  the  node, the
+        following procedures will be implemented:
+
+                o       Check orig. host number for match with TymTunnel Host
+                        X.25 companion Host.
+
+                o       If match is found, proceed with buffer allocation and
+                        return Pseudo Needle to origination slot.
+
+                o       Enter buffer number in TLCBUF for continued TNBULD
+                        processing with proper dispatch address.
+
+             For this potential TymTunnel circuit, the Username portion will be
+        examined  and  compared to  the  Network TymTunnel  Username.   If they
+        match, a  special routine will  be invoked to  connect the  circuit and
+        provide a Needle to the requesting slot.
+
+             If a Supervisor is present  in the Node Code, the  circuit request
+        will be allowed to complete normally.  The CRQ routine will be modified
+        so that circuits destined for a TymTunnel host are validated  as having
+        come  from  the Dispatcher.   The  CRQ routine  will  then  connect the
+        circuit to the process for completing the TymTunnel.
+
+
+
+
+
+                    7.4.2  Destination IIX Exchange
+
+             Upon receipt  of a  Pseudo Needle  (B2) from  the Node  Code (Node
+        Code), the destination X.25 slot will return a Call Accepted  packet to
+        the  originating X.25  interface.   This will  be followed  by  a Login
+        promt, and both forwarded to the originating Node Code
+
+             Node Code at the originating  end will then submit a Login  to the
+        destination TymTunnel Host.  When this is verified as a TymTunnel login
+        (B6) by the destination Node Code the IIX exchange can occur.
+
+             At this time the buffer is discarded and a relative pointer to the
+        designated TymTunnel End Host Descriptor Block is installed in  the I/O
+        table.   This  enables the  TymTunnel  connect logic  to  formulate the
+        correct IIX messages and pass the IIX messages and  parameters directly
+        into  the Dispatcher  ring.   At this  point the  dispatch  address for
+        connect processing is contained within the TymTunnel Descriptor.
+
+                o  Node Code follows B6 with Select Dialect Command
+                   (BF)  (06 8080 8083 8081)
+
+                o  X.25 responds with Select Dialect Response
+
+        24                      General Internal Design              TUNNEL.GID
+        TymTunnel Building Routines                           December 21, 1987
+
+
+                   (BF)  (04 8081 8083)
+
+                o  X.25 sends Turkey Level
+                   (BF)  (04 C093 0002)
+
+                o  X.25 sends Called Address
+                   (BF)  (l1 C087 l2 [called addr])
+
+                        Where:  l1  =  length of message
+                                l2  =  length of called address field
+
+                o  X.25 sends Calling Address
+                   (BF)  (l1 C088 l2 [calling addr])
+
+                        Where:  l1  =  length of message
+                                l2  =  length of calling addr
+
+                o  X.25 sends Facilities
+                   (BF)  (06 C08D 03 0202 77)
+
+                o  X.25 sends Call User Data (usually nothing)
+                   (BF)  (03 C089 00)
+
+                o  Node Code sends Turkey Level
+                   (BF) (04 C093 02)
+
+
+             The  Node Code  may ignore  the incoming  Called  Address, Calling
+        Address, Facilities  and Call  User Data.  The  Calling Address  may be
+        used  to  verify the  origin  of the  TymTunnel  circuit,  for security
+        purposes,  although  this  check  will  be  made  in  the   Link  Reset
+        proceedure.
+
+             After  the  above  IIX exchange  has  successfully  completed, the
+        TymTunnel Link Reset may proceed.
+
+
+
+
+
+
+                                7.5  Link Establishment
+
+
+             Upon completion of the  IIX negotiation the Link  Reset proceedure
+        can begin.  Reset  packets are copied from  the Dispatcher ring  to the
+        designated Reset  Buffer.  The  TymTunnel Link  reset process  can then
+        evaluate the reset packet and make the appropriate response.
+
+             When the reset process is complete, the I/O Table entry is changed
+        from the  relative TymTunnel Descriptor,  to the active  TymTunnel Link
+        number.  In this way servicing can proceed directly from  the TymTunnel
+        Link's I/O Sectors to the Dispatcher ring.
+
+        25                      General Internal Design              TUNNEL.GID
+        Tunnel Service Routines                               December 21, 1987
+
+
+
+
+
+
+                             8 -  Tunnel Service Routines
+
+
+             Two TymTunnel  service routines  exist for  the purpose  of moving
+        data between the TymTunnel  End buffer and the TymTunnel  Link Sectors.
+        TNCPSC will detect packets and copy them from the TymTunnel  End buffer
+        to the TymTunnel Link's  Input Sectors.  TNINTO will copy  packets from
+        the TymTunnel Link's Output Sectors to the TymTunnel End buffer.
+
+             These  routines will  also maintain  accounts of  sequence, window
+        size,  and  Acknowledgement  protocol in  advance  of  RMAKE  and RTEAR
+        activity.
+
+
+
+
+
+
+                             8.1  Service Data Structures
+
+
+             A set of  pointers exists for each  TymTunnel so that data  may be
+        transferred efficiently between the TymTunnel Link and the Tunnel End.
+
+             The permuter table  entry on the  Dispatcher range for  the Tunnel
+        End circuit will  contain a special index  (FKN0) pointing to  the link
+        number  for the  associated TymTunnel  Link.  This  special  index will
+        indicate to normal  dispatcher logic that the  circuit is a  Tunnel End
+        circuit,  and  that a  jump  to  a special  handler  is  required.  The
+        TymTunnel  Link  Descriptor  field  TNPRT  will  contain  the  relative
+        dispatcher port number of  the TymTunnel End circuit.   An illustration
+        is given below.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        26                      General Internal Design              TUNNEL.GID
+        Tunnel Service Routines                               December 21, 1987
+
+
+
+                      Permuter
+                       Table    
+                    (Dispatcher)
+                       ____             Link
+         ____         |    |          Descriptor
+        |    | D      |    |          __________
+        |    | a      |____|         |          |
+        |D   |------->|  o-|-------->|_____     |
+        |i   |<-------|-o  |<--------|TNPRT|    |
+        |s R | t      |____|         |-----     |
+        |p   | a      |    |         |__________|
+        |a I |        |    |    
+        |t   |        |____|   
+        |c N |                 
+        |h   |          
+        |e G |
+        |r   |          
+        |____|          
+
+                        o---->  =  Pointer
+
+
+
+
+
+
+                    8.2  Packet Detection and Copy to Input Sectors
+
+
+             The routine TNEPSC will control the functions of detecting packets
+        in the Dispatcher ring for  the TymTunnel End circuit and  copying them
+        into the appropriate TymTunnel Link Input Sector.
+
+             This routine  is based upon  the assumption that  in most  cases a
+        packet will  be completely  or nearly  completely contained  within one
+        Dispatcher message.
+
+
+
+
+
+                    8.2.1  Complete Packet Detection
+
+             The routine  will first  check to see  if it  is assembling  a new
+        packet or  completing an already  partially assembled packet.   It does
+        this by  examining the  Input Sector  pointer and  pointer displacement
+        fields for this  link.  If the displacement  is greater than  zero then
+        the  copy  is made  from  the  ring to  the  sector,  complimenting the
+        exisiting characters in the sector with ones remaining to be  placed in
+        the packet.
+
+
+
+        27                      General Internal Design              TUNNEL.GID
+        Tunnel Service Routines                               December 21, 1987
+
+
+             If the Sector pointer is not valid then the routine will  look for
+        a new packet to copy to the input sector.
+
+             The routine  TNSCAN will scan  the ring and  determine if  a valid
+        BORI and RECN have been received.  If so, the RECN field will  be range
+        checked to be within the current window.  If it is, the  sector address
+        will be determined and if the record is not a retransmission it will be
+        copied to the sector.  The displacement will be updated accordingly.
+
+             The process will be functionally as follows:
+
+                o  Find first non-zero byte
+                o  Compare with expected BORI from Link Descriptor
+                o  If good BORI get byte 'count' field  
+                o  Get Ack and RECN
+                o  Is RECN G.T. LRT
+                o  If RECN L.E. LRT+WSIZ
+                o  Find Sector address
+                o  If RECN field present .. this is a rexmission .. count it
+                o  COPY Packet to appropriate Input Sector
+
+
+
+
+
+
+                    8.2.2  Checksumming and Packet Sector Evaluation
+
+             The  Input  sector will  be  used as  the  contiguous  memory area
+        necessary for the Checksumming operation.  If a successful  checksum is
+        obtained,  the packet  will  be accounted  for and  the  processing may
+        continue to the next record.
+
+                o  Perform software checksum (CKSUM)
+                o  Update RECN
+                o  Note packet time
+                o  Schedule RTEAR for this link
+                o  Get Ack and compare with LAR
+                o  If Ack > LAR then update LAR
+                o  Enter trace table data if tracing
+                o  Proceed to next link
+
+
+
+
+
+
+
+
+
+
+
+
+
+        28                      General Internal Design              TUNNEL.GID
+        Tunnel Service Routines                               December 21, 1987
+
+
+                    8.3  Copy from Output Sector to Dispatcher Ring
+
+
+             The routine TNINTO will  control the functions of  copying packets
+        from the TymTunnel Link's  Output Sectors into the Dispatcher  ring for
+        the TymTunnel End.  TNINTO  will be scheduled from SPIDER,  after RMAKE
+        and before DISIN.
+
+             The following basic tasks will be executed:
+
+                o       Find link needing output service
+                o       Get NRXM's RECN
+                o       Has RECN been Ack'd (re. LAR)
+                o       If RECN not already Ack'd, send it
+                o       If LLXM not zero - is reXmission, do not advance NRXM
+                o       If LLXM is zero get RLINK's pointer into NRXM
+                o       Perform CKSUM in Sector
+                o       Send packet (copy to ring)
+                o       Mark LLXM
+                o       Store FASTC time for packet transmit
+                o       Calculate delay time and store in Link Descriptor 
+                o       Go process next TymTunnel Link or dismiss
+
+             TNINTO  will  also be  responsible  for sending  Dummy  Records if
+        necessary.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        29                      General Internal Design              TUNNEL.GID
+        TymTunnel Host Management                             December 21, 1987
+
+
+
+
+
+
+                            9 -  TymTunnel Host Management
+
+
+             Node Code will be modified to maintain a listing for the TymTunnel
+        termination host in the Host  tables.  This Host will be  the recipient
+        of a circuit built with  a special TymTunnel username.    The TymTunnel
+        circuit termination is known as the TymTunnel End.  Only one circuit at
+        a time will be allowed to terminate on each TymTunnel Host.
+
+             In addition, each TymTunnel Host will maintain a cell containing a
+        Host in an X.25 environment to  which it will build a circuit  in order
+        to initiate a TymTunnel connection.  The TymTunnel End will also keep a
+        host number for the Remote TymTunnel End to which it may connect via an
+        X.25 SVC.
+
+             The Host Table will be updated according to the following:
+
+                o  At Nstart all hosts  declared as GONE to Sup,
+                   then DOWN.
+                o  TymTunnel hosts are always IIX.
+                o  If PVC, will be Origination only.
+                o  If SVC, may be Origination or Destination.
+                o  Declared UP upon completion of TymTunnel Building process.
+                o  Declared SHUT when X.25 reset error but Link not dropped
+                o  Ports field not used, ignored.
+                o  Host cost 
+                o  Product I.D. = '9C'
+                o  Declared DOWN after Link Teardown has completed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        30                      General Internal Design              TUNNEL.GID
+        Tunnel Errors and Teardown                            December 21, 1987
+
+
+
+
+
+
+                           10 -  Tunnel Errors and Teardown
+
+
+
+
+
+
+
+                                10.1  X.25 Reset Causes
+
+
+             The following Reset  Cause codes and  action by the  TymTunnel End
+        are listed below.
+
+        code    reason                  Tunnel End response
+        ====    =====================   =====================
+         00     reset from remote X.25  may have data loss but
+                or remote Node Code     link not torn down
+
+         01     lost X.25 connection    link teardown and 
+                ops msg to follow       periodic reset attempts
+
+         03     remote end proceedure   possible data loss, if
+                error, but connection   repeated requires operator
+                is ok                   intervention
+
+         05     local end proceedure    same as above
+                same as above
+
+         07     circuit problem X.25    no circuit, data loss
+                rebuild in progress     wait for Reset 09 or 0F
+
+         09     DTE operational         circuit is ok, engage link
+                                        reset
+
+         0F     Network operational     same as above
+
+         11     Configuration error     check configuration files
+                                        issue error message
+
+         1D     Network out of Order    same as for 07, wait for
+                                        operational status
+
+
+
+
+
+
+
+
+        31                      General Internal Design              TUNNEL.GID
+        Xray for TymTunnels                                   December 21, 1987
+
+
+
+
+
+
+                               11 -  Xray for TymTunnels
+
+
+
+
+
+
+
+                          11.1  TymTunnel Operation Commands
+
+
+             TymTunnels which are configured  as 'backup' may be built  or torn
+        down by  issuing commands  to 'open'  the TymTunnel  or to  'close' the
+        TymTunnel.  In addition, commands exist to modify  TymTunnel parameters
+        for  either  primary  or backup  TymTunnels.   All  TymTunnel Operation
+        Commands require  Priveledged Xray Status.
+
+
+
+
+
+                    11.1.1  Open TymTunnel Command
+
+             This command may be issued automatically or manually from  Xray in
+        order to initiate the building of a TymTunnel.  The command may also be
+        used to  reinitialize a  TymTunnel for which  the parameters  have been
+        modified.  The syntax is:
+
+                        > OT Neig#
+
+                where Neig# is the TymTunnel Neighbor Node number 
+
+
+
+
+
+
+                    11.1.2  Close TymTunnel Command
+
+             This command may be issued automatically or manually from  Xray in
+        order  to  end  TymTunnel  Link operation  and  Close  (tear  down) the
+        TymTunnel.  The syntax is:
+
+                        > CT NEIG#
+
+                where NEIG# is the TymTunnel Neighbor Node number
+
+
+
+
+        32                      General Internal Design              TUNNEL.GID
+        Xray for TymTunnels                                   December 21, 1987
+
+
+                    11.1.3  Modify TymTunnel Parameters
+
+             This command may be used by an Xray Operator to change a parameter
+        within the  TymTunnel Descriptor  Block.  When  the command  is issued,
+        Xray will present  the parameters and  the opportunity to  change each.
+        The syntax is
+
+                        > MT NEIG#
+
+                where NEIG# is the TymTunnel Neighbor Node number
+
+
+
+
+
+
+
+                           11.2  Error and Condition Reports
+
+
+             Various error conditions  during TymTunnel building  or operations
+        are  reported  from  Node  Code as  well  as  X.25.   Certain  of these
+        conditions are reported  to the Supervisor as  well as being  logged in
+        the Xray Crypto Log.
+
+
+
+
+
+                    11.2.1  TymTunnel Building Crypto Reports
+
+             Xray on the origination  or destination TymTunnel Node  will issue
+        the following messages to report on TymTunnel events.
+
+        ##: TYMTUNNEL BUILDING INITIATED - TNHOST = ####, NEIG =#####
+
+                (Issued at time of TymTunnel IIX negotiation at origination
+                        or destination node.)
+
+        ##: TYMTUNNEL BUILDING ERROR - TNHOST = ####, NEIG = #####, ERR = ##
+
+                (Issued during TymTunnel building after receiving an
+                        X.25 Reset via an IIX message or an IIX Clear
+                        Indication and associated reasons.)
+
+        ##: TYMTUNNEL OPEN - TNHOST = ####, NEIG = #####, TYPE = ##
+
+                (Issued after X.25 circuit is complete and IIX
+                        negotiation is complete.)
+
+        ##: TYMTUNNEL OPERATION ERROR - TNHOST = ####, NEIG = #####, ERR = ##
+
+                (Issued during TymTunnel normal operation when having recieved
+
+        33                      General Internal Design              TUNNEL.GID
+        Xray for TymTunnels                                   December 21, 1987
+
+
+                        an X.25 Reset and Reason.)
+
+        ##: TYMTUNNEL CLOSED - TNHOST = ####, NEIG = #####, TYPE = ##, ERR = ##
+
+                (Issued upon receipt of an X.25 Call Clear and Reason
+                        terminating normal TymTunnel operation, or by using
+                        the Xray CT command to close the Tunnel.)
+
+
+
+
+
+
+                    11.2.2  TymTunnel Reports to Supervisor
+
+             Certain  events  in  TymTunnel  building  and  operation  will  be
+        reported to the Supervisor.
+
+             If either of the  TymTunnel Error messages exceeds a  threshold of
+        occurances within a certain time period, a Node Report will be  sent to
+        the Supervisor to outline  the error conditions.  An Xray  operator may
+        be alerted to difficulties on the TymTunnel by way of this message.
+
+             Upon completion  of initialization  and Takeover  by the  Sup, the
+        Node Code will report all Backup TymTunnels to the Sup.  This data will
+        be used by Xray to provide control service to the Node in the  event of
+        a primary link failure.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        34                      General Internal Design              TUNNEL.GID
+        Reference Documents                                   December 21, 1987
+
+
+
+
+
+
+                           APPENDIX I.   Reference Documents
+
+
+                        hello
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        35                      General Internal Design              TUNNEL.GID
+        Sample Configuration Files                            December 21, 1987
+
+
+
+
+
+
+                       APPENDIX II.   Sample Configuration Files
+
+
+        :REGULAR X25 HDLC TYMFILE
+
+        : Global statements
+        SEECONFIGURATION
+        PROTOCOL(X.25,HDLC,LAPB)
+        DPORTS(64)
+
+        HOSTLINKS(949,0)
+                PSADR(03,01)                    :DCE specification
+                PKTOPT(-HILCN,+TKSUP)           :HILCN for DCE
+                ODNIC(3106,3107)
+                PCNL(01,03)
+                ICNL(11,13)
+                TCNL(21,23)
+                OCNL(31,33)
+                LTEXT(0000,"8D"8AREM: BUBBNET DTE HOST 949: )
+                LTEXT(0001,"8D"8ALOC: BUBBNET DTE HOST 949: )
+
+        HOSTLINKS(948,1)
+        :       CLDADR(3106000101,0140)         :Called address
+                PSADR(01,03)                    :DTE specification
+                PKTOPT(+HILCN,+TKSUP)           :HILCN for DTE
+                ODNIC(3106,3107)
+                PCNL(01,03)
+                ICNL(11,13)
+                TCNL(21,23)
+                OCNL(31,33)
+                LTEXT(0000,"8D"8AREM: BUBBNET DTE HOST 948: )
+                LTEXT(0001,"8D"8ALOC: BUBBNET DTE HOST 948: )
+                
+        HOSTLINKS(947,2)
+                PSADR(03,01)                    :DCE specification
+                PKTOPT(-HILCN,+TKSUP)           :HILCN for DCE
+                ODNIC(3106,3107)
+                TCNL(1,10)
+                TCLASS(8,8)
+        :       FASTSELECT(+SUBSCRIPTION,+ACCEPTANCE)
+                LTEXT(0000,"8D"8AREM: BUBBNET DTE HOST 947: )
+                LTEXT(0001,"8D"8ALOC: BUBBNET DTE HOST 947: )
+
+        MTEXT(0000,"8D"8AREM: BUBBNET HOST: )
+        MTEXT(0001,"8D"8ALOC: BUBBNET HOST: )
+        MTEXT(0006,YO"3B )
+
+        XOMHOST(2718)
+        XOMUSERNAME(ISISTECH)
+
+        36                      General Internal Design              TUNNEL.GID
+        Sample Configuration Files                            December 21, 1987
+
+
+        :FSLTCODE(ON)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        37                      General Internal Design              TUNNEL.GID
+  OCrké
