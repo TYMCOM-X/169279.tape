@@ -1,0 +1,87 @@
+
+
+To  :  Raymond Wong
+
+Copy:  Steve Wong
+
+Fr  :  James Wang
+
+Sub :  X.25/X.75 Segment/packet/character counts
+
+
+==========================================================================
+
+
+ (1). Consider two kinds of virtual circuits:
+
+                          NETWORK
+                      ____________________
+                      |                  |
+       Call ---> consat -----------------> X.25/X.75 host A ----->
+                      |                  |
+       Call ---> X.25/X.75 host B -------> X.25/X.75 host C ----->
+
+For host A, Destination input/output segment/packet counts are used.
+For host B, Origination input/output segment/packet counts are used.
+For host C, Destination input/output segment/packet counts are used.
+
+Input : packet comes from the X-link.
+Output: packet goes to the X-link.
+
+ (2). Segment input count is incremented by n when X.25/X.75 receives
+      a data packet from the link. THe value n is calculated by the following
+      steps:
+          1. The size of this packet is divided by 64 (decimal) to get 
+             quotient q and remainder r.
+          2. If r equals zero then value n is set to the value q
+             else n is set to the value q + 1.
+
+      -------------------------------------------------------------------
+
+      Packet input count is incremented by 1 when X.25/X.75 receives 
+      following packets coming from the X-link:
+           data packet
+           interrupt/interrupt confirmation packet
+           reset/reset confirmation packet
+
+      -------------------------------------------------------------------
+
+      Segment output count is incremented by n when X.25/X.75 interface sends
+      data packet to the link. (value of n is calaulated by the same way
+      described as above.)
+
+      -------------------------------------------------------------------
+
+      Packet output count is incremented by 1 when X.25/X.75  sends the 
+      following packets to the link:
+           data packet
+           interrupt/interrupt confirmation packet
+           reset/reset confirmation packet
+     -------------------------------------------------------------------
+
+
+      Character input(output) count is incremented by the size of data
+      packet  sent to the link (received from the link).
+
+ 
+ (3). Input segment count may be greater or less than input packet count.
+      But these two counts should have only a little difference.
+      
+       
+===========================================================================
+
+   I have checked the X.75 slot host 23 and found there is not much different
+between input/output segment count and packet count. From the ontyme #67785,
+you provided me that I/P segment & packet are 48347 and 72496. There may be
+something wrong in the packet level. Next time when you find the same problem,
+please do the packet trace (?stat, then enter 'os' for output packet trace
+or 'pb' for input trace to see if there is a lot of interrupt/interrupt conf/
+reset/reset conf packets)
+
+   According the CCITT, we may count CALL REQ ,interrupt, interrupt conf
+packet in the segment count. 
+
+
+regards,
+james
+
