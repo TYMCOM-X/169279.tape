@@ -1,0 +1,399 @@
+
+
+                      SUGGESTED GENERIC SOP UPDATES
+                      --------- ------- --- -------
+
+        The following is a precis of recommendations obtained through
+a survey taken of VANCF line personnel as pertaining to anticipated
+editing of the GENERIC SOP.  These recommendations fall into two 
+catagories ( alterations and additions) and are addressed accordingly.
+
+
+  I. Suggested Alterations:
+     --------- -----------
+     A.  Due to changes/upgrades in network software, the COUNT command 
+         (page 40, section I) is no longer available in all systems.
+         The STAT command is now used in VANET.
+     
+     B.  Whenever possible, the use of the G 5A command in DDT should
+         be used rather than DLOAD command in PROBE (pages 58 & 59).
+         This command is preferable in ISIS nodes due to the fact that
+         the node will be forced to run bootstrap routine.  Unlike the
+         DLOAD command of PROBE, which relies on the position of the
+         watchdog timer switch.
+
+     C.  Regarding the manual method of forcing a node to boot, the
+         use of the watchdog timer switch (up position for 10 seconds,
+         then bottom position) to enable automatic reboot should be 
+         included.
+
+     D.  Three line personnel mentioned the fact that the "Node Failure    
+         and Recovery" section on page 40 does not include that the
+         circuit link to network via Dataphone Controller might be responsible
+         for node outage/recovery and should, when present, be utilized to
+         investigate the outage.
+
+     E.  "Gateway Failure and Recovery" section should be substituted
+         with the VANCF SOP procedure.
+
+     F.  The reference to Ontyming FE's on page 54 has been made obsolete
+         by use of CHAD system and practice of reporting trouble to Central
+         Dispatch.
+
+
+ II. Suggested Additions:
+     --------- ---------
+
+     A. Due to our ever increasing reliance on them, the addition of a 
+        procedure reflecting the proper use of PC's in a network operations
+        environment is needed.  Since many or our first line technicians
+        have limited experience with PC operations, a explicit list of
+        Do's and Don'ts should be included in this procedure:
+        
+        1. Do's
+           
+           a. CRT and keyboard should be kept clean at all times.
+           b. All files in personal directories should be kept as brief
+              and revelant as possible to assure optimum use of disk space.
+           c. As with the use of PDP 10's, respect for the directories and
+              files of others should be stressed.
+           d. Notification of responsible person (programmer, coordinator,
+              supervisor, or manager) of any planned changes to the PC
+              environment before they are made.
+
+
+
+
+                                    (2)
+
+
+**         e. When utilized, one should limit use of PC to the menu system
+              of operations. This menu system is especially recommended
+              for use in situations where line personnel have little or no
+              experience in using PC's.
+
+        2. Don'ts
+
+           a. Storage of and use of PC game software must be warned against.
+           b. Utilization of PC's to gain access to public bulletin board
+              systems should be carefully limited.  Though there are many
+              free bulletin board systems which offer useful public domain
+              software, use of PC's to access these should be carefully
+              controlled so as to monitor proper use of disk space.
+**         c. For ethical and legal reasons, it should be stressed that
+              no marketed software be stored or installed on PC's without
+              prior purchase by the business unit.     
+             
+     B.  The use of LOD on reload systems should be included in the SOP
+         since the implamentation of the LODSTRG program in all networks.
+
+     C.  Due to the development of HDLC micro computers, the use of the
+         manual boot switch needs to be addressed.         
+
+     D.  A procedure explaining the proper file transfer methods between
+         PC/Host, Host/PC, PC/Ontyme, and Ontyme/PC is needed.  Suggest
+         including NSSC Procdure addressing this issue.
+
+
+III. Summary:
+     -------
+     Due to differences in structure between the Public Net and the VA
+Net, there were some factors which caused confussion during our survey. 
+Primarily, these factors involved use of a utility none of VANCF's line
+personnel have had occassion to use.  The ELF utility is not presently
+used in the VA Net and, therfore, was viewed as not needed.  In addition,
+many of the sites in the VA Net are not manned 24 hours a day.  This
+factor caused some differences in troubleshooting methodology.
+     One further question needs to be addressed. Copies of the documentation
+pakage for LODSTRG and AUTOLOAD have been attached. How best should the
+use of these programs (as well as TYMWATCH) be addressed in the updated
+SOP.  Should each be covered by a seperate procdure, should all applications
+programs be covered by one procedure referencing users to apporpriate
+documentation, or should they simply be omitted??
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                LODSTRG
+                                -------
+
+*******************************************************************************
+
+
+
+                                CONTENTS
+                                --------
+
+
+                        I.  Operations Requirements
+                       II.  Software Capabilities
+                      III.  Software Operations
+                       IV.  File Descriptors
+
+------------------------------------------------------------------------------
+
+
+
+        I.    This program requires use of an IBM (PC/XT/AT) or IBM compatible,
+        attached printer, hard disk (internal/external), and one synchronous
+        communications port. Program produces data files upon which other
+        programs rely to execute. It is therefore necessary to run LODSTRG
+        before attempting to run AUTOLOAD.
+
+              Due to complexity of program and use of communications
+        port/buffer, attention must be paid to system operating environ-
+        ment.  Consult your operations manual for communications
+        configuration requirements.
+
+
+
+        II.  PROGRAM CAPABILITIES:
+
+             LODSTRG- is a program designed to log on to XRAY of each node
+        in a network and extract a listing of load strings.  These
+        listings are then sorted and written to file (file suffix = .SRT).
+        This sorted file can then be printed to hard copy or transferred
+        to a PDP10 for access by LOD data search program.  File transfer
+        to PDP10 is accomplished by use of TYMCOMM communications program
+        on IBM and COPYPC on PDP10.
+
+             Approximate operating time = 30 to 50 minutes for 340 node
+                                          network
+
+        III. PROGRAM OPERATION:
+
+             A. Type LOD at system prompt.
+             B. When asked if NODE LIST update is needed, answer <N>
+                if updated recently. Use this procedure only if additions
+                to or deletions from network structure have occured
+                since file was built/updated.
+             C. Enter XRAY user name and password of selected network
+                as prompted. Enter Network code (two letters) as
+                prompted.
+             D. Select <R> option from menu.
+             E. Program will produce audible tone on each Xray
+                logoff. No tone = Program Halted. In this case, it is
+                best to restart program.
+                1. Depress <Ctrl> + <Break>
+                2. Type CLOSE and depress <Return>
+                3. Type CLEAR and depress <Return>
+                4. Type RESET and depress <Retrun>
+                5. Type RUN and depress <Return>
+                6. You may select start at node option to continue run
+                   and reduce run time.
+             F. After program completion, Program Submenu will appear.
+                Select T (file transfer) option. This option will
+                automatically give you access to TRANSFER ( a customized
+                TYMCOMM terminal communications file).
+             G. Utilize TRANSFER to logon primary code system as
+                prompted. File transfer will be automatic until prompted
+                for secondary system number and directory. After TRANSFER
+                is complete, you will be returned to MENU.
+             H. Select E (exit to Main Menu) from program submenu to
+                exit.
+
+         IV. FILE DESCRIPTORS:
+
+             A. LODSTRG.DOC = this documentation file
+             B. LODSTRG.BIN = binary source code for NODLOAD
+             C. LOD.EXE     = machine level executable file
+             D. TRANSFER    = customized version TYMCOMM for file
+                transfers
+             E. PROC2.TYM   = procedures file for TRANSFER ... this
+                file must accompany TRANSFER.
+
+
+             **NOTE**  NOD file is required by AUTOLOAD and LOD program on
+                       PDP10's needs the SRT file produced by LODSTRG.
+
+         ================================================================
+
+             **NOTE** LOD is a TBA program (NCF directory, sys 26/31)
+             designed to access database of valid load$'s resulting from
+             file transfer procedure. Once copied onto appropriate
+             systems, it is activated with the GO LOD command.
+             Enter tagret NODE # and LOD will produce a listing of said
+             load$'s.
+
+
+
+
+
+
+
+
+                                AUTOLOAD
+                                --------
+
+*******************************************************************************
+
+
+
+                                CONTENTS
+                                --------
+
+
+                        I.  Operations Requirements
+                       II.  Software Capabilities/Limitations
+                      III.  Software Initiation
+                       IV.  File Descriptors
+
+------------------------------------------------------------------------------
+
+
+
+        I.    This program requires use of an IBM (PC/XT/AT) or IBM
+        compatible, attached printer, hard disk (internal/external), and
+        one synchronous communications port. The program also depends upon
+   *    a data file produced by LODSTRG. Please be sure LODSTRG has been run
+        recently before attempting to run AUTOLOAD. In addition, AUTOLOAD
+  **    utilizes MUX capabilites for multiple virtual circuit construction.
+        It is therefore necessary to assign a valid MUX user id and
+        password to the program during intialization.
+
+
+        II.  PROGRAM EXPLICATION:
+
+             AUTOLOAD- is a compiled program designed to monitor PROBE for
+       Node outages. AUTOLOAD takes immediate remedial/diagnostic
+       action (UPCOMING:opens trouble tickets in the event of said outages).
+
+             While AUTOLOAD is activated, all program activity is
+       monitored by the screen and documented on printed hardcopy.
+       The user is informed of all program activity (attempted CDUMPS,
+       crash code analysis, attempted reloads, and prompts for follow
+       up actions required by user) through hardcopy produced on the
+       on line printer. Although it is not necessary for personnel to
+       attempt manual reloads, it is necessary to periodically monitor
+       program output and take appropriate action as directed.
+
+             When a node outage is detected, AUTOLOAD:
+
+       1. waits the time specified by user at program intialization
+
+ ***   2. searches NET.NOD to obtain valid load strings
+
+       3. interacts with the PDP10 system specified by the user to attempt
+          a CDUMP on the down node
+
+       4. utilizes NAD to analize the crash dump
+
+
+
+
+
+
+
+
+                                 (2)
+
+
+       5. attempts to reload production code through use of LOADII
+          on the specified system
+
+       6. (VERSION 6.0) and, finally, interacts with another PDP10 to open a
+          trouble ticket on the down node.
+
+       (Ticket header information is obtained from a datasearch of
+       archive tickets)
+
+
+             During these operations, an arrowhead display will "travel"
+       the top of screen to indicate program activity. When program is
+       involved in a background task (i.e. cdumps, reloads, tkt opening,
+       or data searches) this arrowhead indicator will stop. However, the
+       PROBE monitoring prompt should flash. If this indicator is not
+       present, utilize function key F1 to unhang. In addition, F2 may be
+       used to enter a node # for addition to AUTOLOAD's file of down
+       nodes (very useful for scheduled reloads), and F3 may be used to
+       toggle on/off CDUMP routine whithout terminating program execution.
+
+
+        III. PROGRAM INITIATION:
+
+             A. Copy ALOAD.EXE onto your IBM or compatible.
+
+             B. At system prompt, type <ALOAD> and enter.
+
+             C. Warning .. LODSTRG must be run prior to ALOAD. After initial
+                run, LODSTRG need only be run after additions to or deletions
+                from network structure.
+
+             D. When asked if CDUMP option should be bypassed, answer <Y>
+                only if ALOAD is being used for scheduled reloads.
+             ** Bypass of CDUMP will deactivate TICKET option on Ver. 6.0**
+
+             E. Program will produce audible tone on each Node outage
+                No tone on outage= Program Halted. In this case, it is
+                best to restart program.
+                1. Depress F4 ... if ineffective <Ctrl> + <Alt> + <Del>
+                2. At system prompt, type <ALOAD> and enter
+
+       ------------------------------------------------------------------
+             ********
+             **NOTE** Care should be taken that gateway is preserved.
+             ******** If gateway is lost, halt program and restart using
+             procedures outlined above.
+       ------------------------------------------------------------------
+
+         IV. FILE DESCRIPTORS
+
+             *  LODSTRG- an accompanying program that utilizes XRAY
+                to create a file of currently valid load strings for
+                all network nodes.
+
+            **  MUX- utilization of multiplexer is necessary for AUTOLOAD
+                to build its needed circuits to appropriate systems and
+                PROBE.
+
+           ***  NET.NOD- LODSTRG produced file of valid load strings
+                needed for AUTOLOAD to perform its duties.
+
+
+
+
+          ALOAD.EXE  >>> compiled version of AUTOLOAD
+
+          ALOAD.BAS  >>> source file for AUTOLOAD (QUICK BASIC)
+
+          ALOAD.DOC  >>> documentation file for AUTOLOAD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
