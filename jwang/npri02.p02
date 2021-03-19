@@ -1,0 +1,23 @@
+
+: This patch is used for Nscnet. The parity bit is used for control bit, not
+: parity bit. the messages coming from node code need to be turn off the
+: parity bit. 
+: for version 2.02, 3.00
+
+patch(850620,1600,JWANG,DAT120+4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1C)
+        LR      R8,R0
+        NHI     R8,7F           :REQUIRED BY DAMAC1/2
+        LHL     R4,IPORT
+        TBT     R4,NEWLOG,,     :B6 MSG HASN'T RECEIVED YET?
+        JEFS    .+6             :YES, DON'T TOUCH THE PARITY BIT
+        NHI     R0,7F           :TURN OFF THE PARITY BIT.
+        J       DAT120+0A,,
+ENDPATCH(TURN OFF THE PARITY BIT OF THE MSGS COMING FROM NODE CODE)
+
+
+:***************************************************************************
+
+PATCHREPORT
+FINPATCH
