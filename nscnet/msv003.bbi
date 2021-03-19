@@ -1,0 +1,170 @@
+:(NSCNET)MSV003.BBI
+:*********************************************************************
+:      AUTO DIAL MACRO ON HEYSE MODEM
+:      reviced 15 FEB 1989  by Y.Furuta
+:      reviced 02 mar 1989  by Furuta, for protection from hacker
+:                           ADD S14=154 to inhibit any command
+:      reviced 02 MAR 1990 for MSV v.3 by Y.FURUTA
+:      reviced 01 AUG 1990 Set display CONNECT for CONSAT by Y.Shimada
+:*********************************************************************
+:   There are 4 MACRO for outdial
+:    using independent username
+:      c.atdt(X,Y)  X=username to TYMCOM, Y=dial number
+:      C.ATDT(USERNAME"3BPSWD"0D,5559526)       ... 1200
+:      C.AT24(Username"3Bpassword"0D,5559696)   ... 2400
+:
+:    using passthrough username
+:      C.OTDL(host number,telephone number)     ... 1200
+:      C.OT24(host number,telephone number)     ... 2400
+:    
+:*********************************************************************
+:    outdial with independent username
+:*********************************************************************
+C.ATDT   macro (X,Y) [
+  C.STRING(X)
+  C.TOSINCLUDINGTHEN(OK"0D"0A)
+  C.STRING(ATS2=127S12=25E"0D)
+  C.TOSINCLUDINGTHEN(OK"0D"0A) 
+  C.STRING("41"54"44"54)             : ATDT
+  C.STRING(Y)                   :DIAL NUMBER
+  C.STRING("0D)
+  C.SEEINCLUDINGTHEN("0D"0ACONNECT 1200"0D"0A)
+  C.STRING("7F"7F"7F)
+  C.SEEINCLUDINGTHEN(OK"0D"0A) 
+  C.STRING("41"54"26"53"31"53"31"34"3d"31"35"34"4F"0d)
+:           A  T  &  S  1  S  1  4  =  1  5  4  O
+  ]
+C.AT24   macro (X,Y) [
+  C.STRING(X)
+  C.TOSINCLUDINGTHEN(OK"0D"0A)
+  C.STRING(ATS2=127S12=25E"0D)
+  C.TOSINCLUDINGTHEN(OK"0D"0A) 
+  C.STRING("41"54"44"54)             : ATDT
+  C.STRING(Y)                   :DIAL NUMBER
+  C.STRING("0D)
+  C.SEEINCLUDINGTHEN("0D"0ACONNECT 2400"0D"0A)
+  C.STRING("7F"7F"7F)
+  C.SEEINCLUDINGTHEN(OK"0D"0A) 
+  C.STRING("41"54"26"53"31"53"31"34"3d"31"35"34"4F"0d)
+:           A  T  &  S  1  S  1  4  =  1  5  4  O
+  ]
+:*************************************************
+:      AUTO DIAL with LOGIN USERNAME
+:
+:      C.OTDL(X,Y)  X=HOST NUMBER , Y=tel no       
+:
+:*************************************************
+C.OTDL MACRO (X,Y) [
+  C.USERNAME
+  C.STRING("3A)
+  C.STRING(X)
+  C.STRING("3B)
+  C.PASSWORD(AAA) 
+  C.TOSINCLUDINGTHEN(OK"0D"0A)
+  C.STRING(ATS2=127S12=25E"0D)
+  C.TOSINCLUDINGTHEN(OK"0D"0A) 
+  C.PROMPT("0D"0A***   TYMPAS  Hostdial  Service   ***"0D"0A)
+  C.PROMPT("0D"0A***   One  Moment  Please ....!   ***"0D"0A)
+  C.STRING("41"54"44"54)             : ATDT
+  C.STRING(Y)                   :DIAL NUMBER
+  C.STRING("0D)
+  C.SEEINCLUDINGTHEN("0D"0ACONNECT 1200"0D"0A)
+  C.STRING("7F"7F"7F)
+  C.SEEINCLUDINGTHEN(OK"0D"0A) 
+  C.STRING("41"54"26"53"31"53"31"34"3d"31"35"34"4F"0d)
+:           A  T  &  S  1  S  1  4  =  1  5  4  O
+  ]
+:*************************************************
+:      AUTO DIAL with LOGIN USERNAME
+:      for 2400 bps port
+:      C.OT24(X,Y)  X=HOST NUMBER , Y=tel no       
+:
+:*************************************************
+C.OT24 MACRO (X,Y) [
+  C.USERNAME
+  C.STRING("3A)
+  C.STRING(X)
+  C.STRING("3B)
+  C.PASSWORD(AAA) 
+  C.TOSINCLUDINGTHEN(OK"0D"0A)
+  C.STRING(ATS2=127S12=25E"0D)
+  C.TOSINCLUDINGTHEN(OK"0D"0A) 
+  C.PROMPT("0D"0A***  TYMPAS  Hostdial  Service  ***"0D"0A)
+  C.PROMPT("0D"0A***  One  Moment  Please ....!  ***"0D"0A)
+  C.STRING("41"54"44"54)             : ATDT
+  C.STRING(Y)                   :DIAL NUMBER
+  C.STRING("0D)
+  C.SEEINCLUDINGTHEN("0D"0ACONNECT 2400"0D"0A)
+  C.STRING("7F"7F"7F)
+  C.SEEINCLUDINGTHEN(OK"0D"0A) 
+  C.STRING("41"54"26"53"31"53"31"34"3d"31"35"34"4F"0d)
+:           A  T  &  S  1  S  1  4  =  1  5  4  O
+  ]
+:=============================================================
+:/      AUTO DIAL MACRO FOR CONSAT OUTDIAL
+:/
+:/      First version   : by KANETA
+:/      Date            : 15 MAR 1989
+:/      REVICED 02 MAR 1990 for MSV 3 by FURUTA
+:/      Reviced 01 AUG 1990  Set display CONNECT by Y.SHIMADA
+:=============================================================
+:************************************************************
+:*      AUTO LOGIN MACRO FOR CONSAT OUTDIAL HOST
+:*      using passthrough user name
+:*
+:*      DIAL24(host number,telephone number)    ... 2400 bps
+:*
+:*************************************************************
+DIAL24  macro (X,Y) [
+  C.USERNAME
+  C.STRING("3A)
+  C.STRING(X)
+  C.STRING("3B)
+  C.PASSWORD(AAA) 
+  C.TOSINCLUDINGTHEN("0A"0A"0D"3E)
+  C.STRING(SET XON"0D)
+  C.TOSINCLUDINGTHEN("0A"0A"0D"3E)
+  C.STRING(SET RXON"0D)
+  C.TOSINCLUDINGTHEN("0A"0A"0D"3E)
+  C.PROMPT("0D"0A***  TYMPAS  Hostdial  Service  ***"0D"0A)
+  C.PROMPT("0D"0A***  One  Moment  Please ....!  ***"0D"0A)
+  C.STRING(D T )
+  C.STRING(Y)
+  C.STRING("0D)
+  C.TOSINCLUDINGTHEN("0D"0AConnect 2400)
+  C.STRING("7F"7F"7F)
+  C.TOSINCLUDINGTHEN("B0"8D)
+  C.STRING("41"54"53"31"34"3D"31"35"34"4F"0D)   : ATS14=154O
+  C.PROMPT("0D"0A"43"4F"4E"4E"45"43"54"0D"0A)
+]
+
+:*************************************************************
+:*      AUTO LOGIN MACRO FOR CONSAT OUTDIAL HOST
+:*      using passthrough user name
+:*
+:*      DIAL12(host number,telephone number)    ... 1200 bps
+:*************************************************************
+DIAL12  macro (X,Y) [
+  C.USERNAME
+  C.STRING("3A)
+  C.STRING(X)
+  C.STRING("3B)
+  C.PASSWORD(AAA) 
+:  C.SEEINCLUDINGTHEN(Please..."8d"8a)
+:  C.STRING(BPS 1200"0D)
+  C.TOSINCLUDINGTHEN("0A"0A"0D"3E)
+  C.STRING(SET XON"0D)
+  C.TOSINCLUDINGTHEN("0A"0A"0D"3E)
+  C.STRING(SET RXON"0D)
+  C.TOSINCLUDINGTHEN("0A"0A"0D"3E)
+  C.PROMPT("0D"0A***  TYMPAS  Hostdial  Service  ***"0D"0A)
+  C.PROMPT("0D"0A***  One  Moment  Please ....!  ***"0D"0A)
+  C.STRING(D T )
+  C.STRING(Y)
+  C.STRING("0D)
+  C.TOSINCLUDINGTHEN("0D"0AConnect 1200)
+  C.STRING("7F"7F"7F)
+  C.TOSINCLUDINGTHEN("B0"8D)
+  C.STRING("41"54"53"31"34"3D"31"35"34"4F"0D)   : ATS14=154O
+  C.PROMPT("0D"0A"43"4F"4E"4E"45"43"54"0D"0A)
+]
