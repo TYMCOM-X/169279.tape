@@ -1,0 +1,124 @@
+O BASE4 BASE7.
+DBSET BASE4.
+DEFINE TEXT 2 DM$.
+DEFINE TEXT 3 CNN$.
+DEFINE REAL STRT.
+DEFINE REAL STP.
+DEFINE REAL TOTGL1 TOTGL2 TOTGL3.
+SET FMSG OFF.
+SET FERR OFF.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "PLEASE ENTER START DATE (X22 FORMAT) ".
+ACCEPT STRT.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "PLEASE ENTER STOP DATE (X22 FORMAT) ".
+ACCEPT STP.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "ASSURE PRINTER ECHO IS ON AND DEPRESS ENTER <CONTINUE> ".
+ACCEPT DM$.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+DPL START.
+
+DBSET 1.
+TYPE "NSSC TOTAL SEVERITY 1 TICKETS ".
+TYPE "============================= ".
+TYPE "     ".
+FI HN EQ 1 SVER EQ 1 CDAT GE STRT AND LE STP.
+PRI SYSNREC.
+MAP TO 2 VIA TNUM.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "NSSC SEVERITY 1 TICKETS OVER TO CFSS".
+TYPE "==================================== ".
+TYPE "     ".
+FI LAST AND MAINT EQ CFSS.
+PRI SYSNREC.
+MAP TO 1 VIA TNUM.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "NSSC SEVERITY 1 TICKETS OVER TO CFSS WITH ELM'S LESS THAN 4 HRS".
+TYPE "=============================================================== ".
+TYPE "     ".
+FI LAST AND ELM LT 240.
+PRI SYSNREC.
+
+DBSET 1.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "NSSC TOTAL SEVERITY 2 TICKETS ".
+TYPE "============================= ".
+TYPE "     ".
+FI HN EQ 1 SVER EQ 2 CDAT GE STRT AND LE STP.
+PRI SYSNREC.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+MAP TO 2 VIA TNUM.
+TYPE "NSSC SEVERITY 2 TICKETS OVER TO CFSS".
+TYPE "==================================== ".
+TYPE "     ".
+FI LAST AND MAINT EQ CFSS.
+PRI SYSNREC.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+MAP TO 1 VIA TNUM.
+TYPE "NSSC SEVERITY 2 TICKETS OVER TO CFSS WITH ELM'S LESS THAN 4 HRS".
+TYPE "=============================================================== ".
+TYPE "     ".
+FI LAST AND ELM LT 240.
+PRI SYSNREC.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+
+DBSET 1.
+TYPE "NSSC SEVERITY 1 TICKETS CLOSED OUT AS NTF/CWT".
+TYPE "============================================= ".
+TYPE "     ".
+FI HN EQ 1 SVER EQ 1 CDAT GE STRT AND LE STP COC EQ NTF/CWT.
+PRI SYSNREC.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+
+TYPE "NSSC SEVERITY 2 TICKETS CLOSED OUT AS NTF/CWT".
+TYPE "============================================= ".
+TYPE "     ".
+FI HN EQ 1 SVER EQ 2 CDAT GE STRT AND LE STP COC EQ NTF/CWT.
+PRI SYSNREC.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "NSSC SEVERITY 1 TICKETS CLOSED OUT AS HUMAN ERROR".
+TYPE "=================================================".
+TYPE "     ".
+FI HN EQ 1 SVER EQ 1 CDAT GE STRT AND LE STP COC EQ "HUMAN ERR".
+PRI SYSNREC.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "NSSC SEVERITY 2 TICKETS CLOSED OUT AS HUMAN ERROR".
+TYPE "=================================================".
+TYPE "     ".
+FI HN EQ 1 SVER EQ 2 CDAT GE STRT AND LE STP COC EQ "HUMAN ERR".
+PRI SYSNREC.
+TYPE "     ".
+TYPE "     ".
+TYPE " END OF REPORT ".
+
+CLOSE.
+CLOSE.
+DPL END.
+QUIT.
