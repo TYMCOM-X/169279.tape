@@ -1,0 +1,119 @@
+:: --------------------------------------------------------------------------
+:: Company Name :       BT TYMNET France
+:: Location-SID :       Suresnes-A955
+:: Node#        :       N03326
+:: Kernel host# :       H13096
+:: Slot#        :       1
+:: Interface    :       XCOM 4.03
+:: --------------------------------------------------------------------------
+:: Customer     :       ST-JUDE MEDICAL
+:: Contact      :       M. NORRE          @ (33-1) 69.28.09.00
+:: IOES#        :       060016
+:: Host#        :       H10056 - XOM HOST H6751
+:: Link#        :       0
+:: Circuit#     :       N1003633 DPR4 @ 9,600 bps (4W-analog circuit)
+::
+:: FEP          :       HEWLETT-PACKARD 2335 (PAD)
+:: Software     :
+:: Version      :
+::
+:: C.S.         :       Etienne ABGUEGUEN @ (33-1) 47.12.57.37
+:: Sun ID       :       eabguegu
+:: --------------------------------------------------------------------------
+:: Customer     :       UNION DE BANQUES ARABES ET FRANCAISES
+:: Contact      :       Madame PHAM @ (33-1) 46.40.63.94
+:: IOES#        :       061165
+:: Host#        :       12931
+:: Link#        :       1
+:: Version      :       XCOM 4.03
+:: Circuit#     :       N1N03611 DPG4 @ 9,600 bps (4W-digital circuit)
+::
+:: FEP          :       Timeplex NP100E
+:: Version      :
+::
+:: C.S.         :       Etienne ABGUEGUEN @ (33-1) 47.12.57.37
+:: Sun ID       :       eabguegu
+:: <<<<<<<<<<<<<<<<<<<<<<<<<     COMMENTS     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+:: <<<<<<<<<<<<<<<<<<<<<<<<< REVISION HISTORY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+::   Date       Author          Action
+:: 90/11/26     E. Abgueguen    Dial-up code for St-Jude Medical
+:: 90/12/27     E. Abgueguen    Code for St-Jude Medical
+:: 91/01/08     E. Abgueguen    Code for Union de Banques Arabes et Francaises
+:: 91/05/22     G. Poisson      By-pass X.75 gateway for UBAF
+:: --------------------------------------------------------------------------
+SEECONFIGURATION(3)                     : Displays Tymfile and system genera-
+                                        : tion list
+PROTOCOL(X.25,LAPB,HDLC)                : X.25 DCE dial-up HIF, HDLC framing,
+                                        : balanced mode link access procedure
+DPORTS(16)                              : #of dports = #of simultaneous users
+                                        : on the slot...
+::------------------------------ Link# 0 -------------------------------------
+::
+::                      <<< FRAME LEVEL MACROS >>>
+::
+HOSTLINK(5120,0)                       : interface H10056 can access link# 0
+        PSADR(03,01)                    : 03=PRIMARY, 01=SECONDARY address
+                                        : ie. DCE type of interface
+        HOSTKEY(1)
+        K(7)                            : Frame window size=7
+        N2(20)                          : Max retransmissions of a frame=20
+        T1(30)                          : 3s between frame retransmissions
+::
+::                      <<< PACKET LEVEL MACROS >>>
+::
+        NETUSERNAMEPREFIX(X25)          : Username X2510056 is used to
+                                        : connect up
+        HIHOST(99999)                   : Non-numeric username is used to
+                                        : build the circuit
+        PKTOPT(+TKSUP)                  : Packet options - talk to the Sup,
+                                        : use the NTN portion of the called @
+                                        : to establish the virtual circuit
+        TCNL(1,8)                       : Range of 2-way channels#=8
+::
+::                     <<<  X.25 UTILITY MACROS  >>>
+::
+        PWIND(2,2,+NEGOTIATION)         : Packet window size=2
+        PSIZE(128,128,+NEGOTIATION)     : Packet size=128 bytes
+        MAXPSIZE(128,128)               : Maximum packet size=128 bytes
+        TCLASS(10,10,+NEGOTIATION)      : Throughput class=9,600bps w. negotia.
+        CLDADL()                        : No called address validation perf.
+        CHKCLG()                        : No calling address validation perf.
+::------------------------------ Link# 1 -------------------------------------
+::
+::                      <<< FRAME LEVEL MACROS >>>
+::
+HOSTLINK(12931,1)                       : interface H12931 can access link# 1
+        PSADR(03,01)                    : 03=PRIMARY, 01=SECONDARY address
+                                        : ie. DCE type of interface
+        HOSTKEY(1)			: Multi-based host for test purposes
+        K(7)                            : Frame window size=7
+        N2(20)                          : Max retransmissions of a frame=20
+        T1(30)                          : 3s between frame retransmissions
+::
+::                      <<< PACKET LEVEL MACROS >>>
+::
+        ODNIC(3106)	
+        NETUSERNAMEPREFIX(X25)          : Username X2512931 is used to
+                                        : connect up
+        HIHOST(99999)                   : Non-numeric username is used to
+                                        : build the circuit
+        PKTOPT(+TKSUP,+IPRNR,-PM128,-HILCN,-ZCAUS,-NONTN,-BRFCA,-TKDSP)
+        GATEWAY(4406,PARUBAF"3BMME PHAM"8D) : login string for 4406'DNIC
+        TCNL(1,64)                      : Range of 2-way channels#=64
+::
+::                     <<<  X.25 UTILITY MACROS  >>>
+::
+        PWIND(2,2,+NEGOTIATION)         : Packet window size=2 w. neg.
+        PSIZE(512,512,+NEGOTIATION)     : Packet size=512 bytes w. neg.
+        TCLASS(11,11,+NEGOTIATION)      : Throughput class=19,200bps w. neg.
+::
+::                    <<<  INTERFACE  MANAGEMENT  >>>
+::
+        XOMHOST(3881)                   : XOM Host# 6751
+        XOMUSERNAME(ENOPS)              : Tech support username for xom use
+        XOMUSERNAME(ISISTECH)           : Tech support username for xom use
+        XOMUSERNAME(OMNC)               : Tech support username for network
+                                        : console use
+::
+::                      <<<  GLOBAL PARAMETERS  >>>
+::
