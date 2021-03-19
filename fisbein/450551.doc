@@ -1,0 +1,3910 @@
+
+ NETWORK  : AUTONET    SEVERITY     : 3          CUSTOMER: AUTOSTRADE
+ NODE TKT#:   450551   STATE        : CLSD       CONTACT : ALESSANDRO LANDI
+ NODE #   :  2010      CONTROL GROUP: ECSC        CPHONE : (39 55) 8825297
+ KERNAL   :    10      REFERRED TO  : ECSC       LOCALE  :
+ PRODUCT  : XCOM       MGMT ESCAL   : H1 S4 T1   RPTD BY :
+ S/W VERS : 4.03       TECH ESCAL   : NSS         RPHONE :
+ S/W DIST : SIRTI      DE-ESCAL CODE:   3        PLAN #  :
+ H/W DIST : SIRTI      DEFER :    0/ 62          SITE HR :       TO
+ PRIMARY  : NO         OPEN  : 22-OCT-92 14:24Z  COM SPEC: ANGELO ZUCCHETT
+ OPEN BY  : PPD        RESLV :  9-DEC-92 15:07Z  CKT #   :
+ ZONE     : 2          CLOSE :  9-MAR-94  8:53Z  TELCO # :
+                       ELAPS :    1090.7 HR.     REF.TKT#:
+                       CLSCD : NEW PTCH          BILL/T40: NO /NO
+
+ REPORTED PROBLEM: OTHER
+
+ PROBLEM DESCRIPTION :
+PER A. ROMOLI- A. ZUCCETI (SIRTI):WHEN DTE SENDS THE REJ RESPONSE (N(R)=7)
+DCE DOESN'T RETRASMIT THE INFO (N(S)=7) IMMEDIATLY, BUT IT SENDS A WRONG
+INFO WITH BAD SEQUENCE NUMBER (N(S)=1) AND FLOW OF FRAMES IS INCORECT
+ABOUT THE N(R) SEQUENCE. THIS CAUSE THE FRMR CONDITION INITIATED BY DTE.
+
+A COPY OF THE TRACE IS GIVEN.
+O/T ECSG TO INVESTIGATE THX
+
+ ***ESCALATIONS PERFORMED ...***
+   PERSON                 DATE/TIME
+
+   JACQUES DOUCET         MAR-12-93  10:12
+   SCOTT TAYLOR           MAR-16-93  13:10
+   doug ellenburg         MAR-26-93  17:15
+   stan king              MAR-26-93  17:15
+
+ CALL BACK LIST...
+   PERSON               COMPANY              PHONE NUMBER    TALKED TO ?
+
+ *                      AUTOSTRADE                            rty
+
+ --#  1 STATUS ENTERED FROM TNSM            BY FC  ON 22-OCT-92 @16:22 ZULU.
+     REPORT SENT YET ?: NO
+Please lower severity to 3 ! Then refer back to Sirti. By the way, this
+should have been a host ticket.
+To Sirti : how often does this problem occur ? Can you have a FT of the
+problem in the slot, please ? Thanks. Stephane.
+
+ --#  2 STATUS ENTERED FROM TNSM            BY FC  ON 22-OCT-92 @16:22 ZULU.
+     REPORT SENT YET ?: NO
+TNSM (FC ) TRANSFERRED THIS TICKET FROM ECSG  TO ECSC .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#  3 STATUS ENTERED FROM ECSC            BY PPD ON 22-OCT-92 @16:55 ZULU.
+     REPORT SENT YET ?: NO
+lowering sev by request and over to btita to contact sirti to get info
+requested
+thx
+
+ --#  4 STATUS ENTERED FROM ECSC            BY PPD ON 22-OCT-92 @16:57 ZULU.
+     REPORT SENT YET ?: NO
+ECSC (PPD) TRANSFERRED THIS TICKET FROM ECSC  TO BTITA.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#  9 STATUS ENTERED FROM FISBEIN         BY CSG ON 23-OCT-92 @16:38 ZULU.
+     REPORT SENT YET ?: NO
+Alessandro, Angelo, the trace provided has many strange aspects. A general
+remark is that it seems that both ends take a long time to react to the other
+end's commands. Also, there seems to be several problems showing up in this
+trace. I am refering this ticket to STS for any suggestive input, but in the
+
+ --# 10 STATUS ENTERED FROM FISBEIN         BY CSG ON 23-OCT-92 @16:38 ZULU.
+     REPORT SENT YET ?: NO
+meantime, I would like you to reply to the following points :
+1. Can you trace a FT in the XDDT when the problem shows up.
+2. Can you get hold of an hexadecimal trace of the problem ?
+3. Can you take the SIO status before and after the problem ?
+
+ --# 11 STATUS ENTERED FROM FISBEIN         BY CSG ON 23-OCT-92 @16:38 ZULU.
+     REPORT SENT YET ?: NO
+4. When did the customer start to complain about this problem ? Is it related
+   to any particular change in the customer environment lately ?
+In the trace provided, it looks like the info frame # 7 never reached the host
+computer. When the host received the next frame (# 0) it replied with REJ 7.
+
+ --# 12 STATUS ENTERED FROM FISBEIN         BY CSG ON 23-OCT-92 @16:38 ZULU.
+     REPORT SENT YET ?: NO
+For some reason, the XCOM resent frame # 7 a bit too late but I'm not 100% sure
+that the FRMR is a response to the info 4 1 . The FRMR analysis tends to show
+that the info frame rejected would be the info 4 3. If you could provide a hex
+trace, we could have a deeper analysis of the real cause of this problem.
+
+ --# 13 STATUS ENTERED FROM FISBEIN         BY CSG ON 23-OCT-92 @16:38 ZULU.
+     REPORT SENT YET ?: NO
+I am continuing investigating this anyhow. Thanks. Stephane.
+
+ --# 14 STATUS ENTERED FROM FISBEIN         BY CSG ON 23-OCT-92 @16:38 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 20 STATUS ENTERED FROM TECHSERV        BY STS ON 28-OCT-92 @ 0:51 ZULU.
+     REPORT SENT YET ?: NO
+I don't have much to add besides what Fisbein said.  It appears the root
+cause is a host buffering problem, because rnr's coming from the host
+always precede the problem.  Note that we send the frame with a good
+checksum but the host still does not receive it, or acts like they
+
+ --# 21 STATUS ENTERED FROM TECHSERV        BY STS ON 28-OCT-92 @ 1:01 ZULU.
+     REPORT SENT YET ?: NO
+don't receive it.  After host sends us REJ frame, we do retransmit the
+rejected frame, but there is a delay because other frames are already
+in the queue.  It looks like it is a very busy time, the host can't handle
+so much traffic, and that's what starts the problem.   ..Jerry Lucas
+
+ --# 26 STATUS ENTERED FROM ECSC            BY PPD ON 30-OCT-92 @10:54 ZULU.
+     REPORT SENT YET ?: NO
+ECSC (PPD) TRANSFERRED THIS TICKET FROM ECSC  TO BTITA.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 27 STATUS ENTERED FROM SIRTITAS        BY RL  ON 30-OCT-92 @16:02 ZULU.
+     REPORT SENT YET ?: NO
+Naturally, nothing is OK! Problem still occurs...
+Please, Stephan Fisbein, answer our consideration in
+entry n. 23 above.  Thank you   RL.
+
+ --# 28 STATUS ENTERED FROM SIRTITAS        BY RL  ON 30-OCT-92 @16:02 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM BTITA TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 29 STATUS ENTERED FROM FISBEIN         BY CSG ON  4-NOV-92 @ 8:29 ZULU.
+     REPORT SENT YET ?: NO
+We keep working on your problem. It is not an obvious one. We are trying to
+reproduce it in lab. Perhaps we'll have to install a trap patch to crash the
+slot when problem shows up to better analyze circumstances. Can I have a tel
+number to talk to someone from Sirti ? Thanks. Stephane.
+
+ --# 31 STATUS ENTERED FROM SIRTITAS        BY RL  ON  4-NOV-92 @13:09 ZULU.
+     REPORT SENT YET ?: NO
+Stephane, you can phone at + 39-55-88 25 297   or at + 39-55-88 22 15  .
+Thanks,  Roberto Leone.
+
+ --# 32 STATUS ENTERED FROM SIRTITAS        BY RL  ON  4-NOV-92 @13:09 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 33 STATUS ENTERED FROM FISBEIN         BY CSG ON  5-NOV-92 @17:08 ZULU.
+     REPORT SENT YET ?: NO
+I am still working on trying to reproduce your problem. I went as far as
+getting the bad RNR recovery. As far as the REJ and subsequent FRMR are con-
+cerned, I think they are related to a buffer problem in the host.
+However,I am also checking the reason why the host had to FRMR in this case
+
+ --# 34 STATUS ENTERED FROM FISBEIN         BY CSG ON  5-NOV-92 @17:09 ZULU.
+     REPORT SENT YET ?: NO
+(invalid N(R)).
+I tried to call you today and yesterday without success. I'll try again
+tomorrow. In the meantime, can you answer the following :
+1. Is there any other location where the same problem might have been observed?
+
+ --# 35 STATUS ENTERED FROM FISBEIN         BY CSG ON  5-NOV-92 @17:09 ZULU.
+     REPORT SENT YET ?: NO
+2. You mentionned that the customer has this problem since he changed his host
+model. What is so different between those two models that can explain such a
+different behaviour ?
+3. The reason why you didn't catch the REJ in your FT trace was probably
+
+ --# 38 STATUS ENTERED FROM SIRTITAS        BY RL  ON  6-NOV-92 @10:05 ZULU.
+     REPORT SENT YET ?: NO
+The problem is observed only when working with our customer's new
+host model (LSX4000 Olivetti). Its frequency is higher if this machine
+is a central host, rather than a peripherical host, but we have it
+in both cases.
+
+ --# 39 STATUS ENTERED FROM SIRTITAS        BY RL  ON  6-NOV-92 @10:05 ZULU.
+     REPORT SENT YET ?: NO
+2. In comparison with the old model (CPS32 Olivetti), the new host has
+   a quicker speed in internal data-processing, but a slower line-handling
+   ability (in the hold model a co-processor unit was dedicated to I/O
+   data handling).
+
+ --# 40 STATUS ENTERED FROM SIRTITAS        BY RL  ON  6-NOV-92 @10:05 ZULU.
+     REPORT SENT YET ?: NO
+   We tried to bring lines speed down, from 19.2 Kbps to 9.6 Kbps, but
+   the problem still occurs with the same frequency.
+3. You can find a REJ, and subsequent FRMR's, detected by FT in XCOM,
+   in the file X25FT, near the end of the file.  RL.
+
+ --# 41 STATUS ENTERED FROM SIRTITAS        BY RL  ON  6-NOV-92 @10:05 ZULU.
+     REPORT SENT YET ?: NO
+
+ --# 42 STATUS ENTERED FROM SIRTITAS        BY RL  ON  6-NOV-92 @10:35 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 43 STATUS ENTERED FROM FISBEIN         BY CSG ON  6-NOV-92 @12:21 ZULU.
+     REPORT SENT YET ?: NO
+Thanks for the info ! Regarding point 3, I meant FRMR, sorry.
+It is obvious that the way the host handles its I/O influences the frame level
+behaviour. We are trying to set up a trap patch to understand why the slot
+does not recover from the DCE busy state more properly. The rest of the
+
+ --# 44 STATUS ENTERED FROM FISBEIN         BY CSG ON  6-NOV-92 @12:21 ZULU.
+     REPORT SENT YET ?: NO
+problem is only a consequence of the DCE busy state recovery and the host I/O
+processing capability. In parallel, I would like to know if the LSX4000
+from Olivetti is an approved equipment on GNS, and if there are any particular
+
+ --# 45 STATUS ENTERED FROM FISBEIN         BY CSG ON  6-NOV-92 @12:21 ZULU.
+     REPORT SENT YET ?: NO
+setting required for this model. Can the product line handle both aspects,
+please ?
+Thanks. Stephane.
+
+ --# 47 STATUS ENTERED FROM SIRTITAS        BY RL  ON  6-NOV-92 @16:20 ZULU.
+     REPORT SENT YET ?: NO
+Here are the X25 parameters for LSX 4000:
+CCITT 1980 recommendations, MAX LOGICAL CHANNEL = 32, K = 7 (Link Level),
+W = 6 (Packet Level), N2 = 5, T1 = 3 sec.,  PKTSIZE = 128, MODULE = 8 .   /RL.
+
+ --# 48 STATUS ENTERED FROM TNSM            BY HW  ON  9-NOV-92 @16:59 ZULU.
+     REPORT SENT YET ?: NO
+Modem excepted, There is no approved equipment on Gns.. There only have to
+be in conformity with CCITT 88 X25 recommandations.
+About your parameters, could you try with a standard Packet window size of 2
+                Herve.
+
+ --# 49 STATUS ENTERED FROM TNSM            BY HW  ON  9-NOV-92 @16:59 ZULU.
+     REPORT SENT YET ?: NO
+TNSM (HW ) TRANSFERRED THIS TICKET FROM ETSG  TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 50 STATUS ENTERED FROM TNSM            BY FC  ON 10-NOV-92 @14:19 ZULU.
+     REPORT SENT YET ?: NO
+Thank you for your answer but we also ask for a trap patch (status 43)
+in order to capture informations when the problem occurs
+If necessary you can ask to sts to create this trap patch
+
+ --# 51 STATUS ENTERED FROM TNSM            BY FC  ON 10-NOV-92 @14:19 ZULU.
+     REPORT SENT YET ?: NO
+TNSM (FC ) TRANSFERRED THIS TICKET FROM ECSG  TO ETSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 53 STATUS ENTERED FROM STONEK          BY STS ON 10-NOV-92 @19:18 ZULU.
+     REPORT SENT YET ?: NO
+I THINK I JUMPED INTO THE MIDDLE OF A CONVERSATION.  STATUS 43 IS NOT
+ENOUGH INFORMATION FOR ME TO CREATE A TRAP PATCH.
+
+ --# 54 STATUS ENTERED FROM STONEK          BY STS ON 10-NOV-92 @19:18 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 37 STATUS ENTERED FROM FISBEIN         BY CSG ON 12-NOV-92 @21:06 ZULU.
+     REPORT SENT YET ?: NO
+I left a message to Ken and Jerry to get some tips to proceed with this
+problem a little bit further. Thanks. Stephane.
+
+ --# 38 STATUS ENTERED FROM FISBEIN         BY CSG ON 12-NOV-92 @21:06 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 39 STATUS ENTERED FROM STONEK          BY STS ON 12-NOV-92 @21:22 ZULU.
+     REPORT SENT YET ?: NO
+COUPLE OF QUICK IDEAS, 1, NEXT REFERRAL LEAVE US THE LOCATION OF THE
+FRAME TRACE.  2.  YOU COULD TRY THE PATCH FRMRTP.403.  THIS WILL
+CAUSE A SLOT CRASH WITH 11 WHEN RECEIVING A FRMR.  WE CAN READ THE
+BITS OF THE FRMR AND KNOW THE EXACT CAUSE FOR HOST SENDING FRMR....
+
+ --# 40 STATUS ENTERED FROM STONEK          BY STS ON 12-NOV-92 @21:23 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 41 STATUS ENTERED FROM FISBEIN         BY CSG ON 12-NOV-92 @21:58 ZULU.
+     REPORT SENT YET ?: NO
+OK, but please have a look at the files under (sirtitas:26)x25###. They show
+the FRMR. Thanks. Stephane.
+
+ --# 42 STATUS ENTERED FROM FISBEIN         BY CSG ON 12-NOV-92 @21:58 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 43 STATUS ENTERED FROM FISBEIN         BY CSG ON 12-NOV-92 @22:06 ZULU.
+     REPORT SENT YET ?: NO
+I realize that some statuses have been eaten in a lot of tickets recently by
+PAPER. The trace files reference was in one of them. In X25SIO you can see the
+CRC status bit on. Can this explain everything ?
+
+ --# 44 STATUS ENTERED FROM STONEK          BY STS ON 12-NOV-92 @23:31 ZULU.
+     REPORT SENT YET ?: NO
+THE HEX TRACE LOOKS INTERESTING.  THE FRMR BIT IS Z INVALID N(R).
+GIVE ME SOME TIME TO LOOK AT THIS TRACE.  IS THERE A FRMR IN X25FT?
+
+ --# 45 STATUS ENTERED FROM FISBEIN         BY CSG ON 13-NOV-92 @ 8:24 ZULU.
+     REPORT SENT YET ?: NO
+Answer : no. That's what I would like to see too !!! I'll contact Sirti to get
+access to this node's DDT to trace and record FT permanently to get a chance
+to trap the FRMR as seen by XCOM. Have a look at X25TRA and X25FRM too. You'll
+see two strange FRMRs ! Hope to hear from you soon ! Good luck ! Thanks. S.F.
+
+ --# 46 STATUS ENTERED FROM STONEK          BY STS ON 13-NOV-92 @23:26 ZULU.
+     REPORT SENT YET ?: NO
+FIRST, GO INTO XRAY AND TYPE CL 0.  WAIT 20 SECONDS AND TYPE IT AGAIN.
+MAKE SURE THE TIME DISPLAY IS CONSISTENT.  THIS IS ONE TYPE OF FRMR
+PROBLEM.  TO CATCH THE FRMR, ADD THAT FRMRTP.403 TRAP PATCH.
+IT WILL CRASH THE SLOT AND GIVE US THE FRMR AND ORDER OF EVENTS.
+
+ --# 47 STATUS ENTERED FROM STONEK          BY STS ON 13-NOV-92 @23:26 ZULU.
+     REPORT SENT YET ?: NO
+ALSO PROVIDE US THE LOCATION OF COMMAND AND SLOT TYMFILES.
+WE KNOW OF NO BUG, CAUSED BY THE REJ.  WE ARE INVESTIGATING ALL
+KINDS OF POSSIBILITIES.  CAN YOU BE RUNNING THE X25HEX TRACE AT THE
+TIME OF THE CRASH WITH FRMRTP.403 SO WE CAN COMPARE...?
+
+ --# 48 STATUS ENTERED FROM STONEK          BY STS ON 13-NOV-92 @23:26 ZULU.
+     REPORT SENT YET ?: NO
+
+ --# 49 STATUS ENTERED FROM STONEK          BY STS ON 13-NOV-92 @23:34 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 50 STATUS ENTERED FROM TNSM            BY FC  ON 16-NOV-92 @12:35 ZULU.
+     REPORT SENT YET ?: NO
+Please Sirti could you operate the following recommendations:
+- Could you regen the code with the trap patch FRMRTP.403
+-Could you provide us the location of command files and slot tymfiles
+- Could you go into XRAY and type the command CL 0 and could you do it
+
+ --# 51 STATUS ENTERED FROM TNSM            BY FC  ON 16-NOV-92 @12:37 ZULU.
+     REPORT SENT YET ?: NO
+gain 20 seconds after (this command display the time); could you check
+if the time display is consistent (cf status 46)
+
+ --# 52 STATUS ENTERED FROM TNSM            BY FC  ON 16-NOV-92 @12:37 ZULU.
+     REPORT SENT YET ?: NO
+TNSM (FC ) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 53 STATUS ENTERED FROM TNSM            BY FC  ON 16-NOV-92 @12:59 ZULU.
+     REPORT SENT YET ?: NO
+I just called mrs Leone and he will also providethe Frame Trace as
+requested on status 45 (it will be easier as he will do it in
+accordance with the customer)
+Mrs leone you can call me i(331 46672459) if needed.thanks
+
+ --# 54 STATUS ENTERED FROM SIRTITAS        BY RL  ON 17-NOV-92 @ 8:38 ZULU.
+     REPORT SENT YET ?: NO
+We are organizing to provide you with all the info you need.
+Just few days in order to implement the organized actions, as
+the field technician handling this problem, is ill.  RL.
+
+ --# 55 STATUS ENTERED FROM SIRTITAS        BY RL  ON 17-NOV-92 @13:35 ZULU.
+     REPORT SENT YET ?: NO
+In the meantime, you can look at (sirtitas:33)x12010.c01/t01/##1 for
+gen codes. (This info was included in our escalation....!).   RL.
+
+ --# 56 STATUS ENTERED FROM SIRTITAS        BY RL  ON 17-NOV-92 @14:37 ZULU.
+     REPORT SENT YET ?: NO
+As for the CL 0 commands in XRAY, the time display difference detected,
+matches with the effective time elapsed between two CL 0 commands.  RL.
+
+ --# 57 STATUS ENTERED FROM SIRTITAS        BY RL  ON 20-NOV-92 @ 8:07 ZULU.
+     REPORT SENT YET ?: NO
+We are going to regen the code with the trap, reload and
+register the FT trace...  RL.
+
+ --# 58 STATUS ENTERED FROM SIRTITAS        BY RL  ON 24-NOV-92 @11:25 ZULU.
+     REPORT SENT YET ?: NO
+You can look at (sirtitas:33)x22010.dp1 (code with trap and crash 11)
+and at (sirtitas:33)x25tra  for the FT trace.   RL.
+
+ --# 59 STATUS ENTERED FROM SIRTITAS        BY RL  ON 24-NOV-92 @11:25 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 60 STATUS ENTERED FROM SIRTITAS        BY RL  ON 25-NOV-92 @16:16 ZULU.
+     REPORT SENT YET ?: lease, ECSC, advise Mr. Chevalier and/or Mr. Fisbein (ECSG group)
+in order they take care about this ticket.  Thank you.  RL.
+
+ --# 61 STATUS ENTERED FROM SIRTITAS        BY RL  ON 25-NOV-92 @16:16 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM ECSG  TO ECSC .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 62 STATUS ENTERED FROM FISBEIN         BY CSG ON 25-NOV-92 @17:01 ZULU.
+     REPORT SENT YET ?: NO
+Sorry to have forgotten to status this, but we've been working on this new
+trace and dump today. I have isolated the interesting part of the trace in
+(fisbein:33)x25tra . This and the dump show the following :
+1. the final FRMR received has an info field C1 96 08
+
+ --# 63 STATUS ENTERED FROM FISBEIN         BY CSG ON 25-NOV-92 @17:02 ZULU.
+     REPORT SENT YET ?: NO
+2. the rejected frame is the RR 6
+3. the DTE's internal variables are V(S)=3 & V(R)=4 which means that the last
+   info frame sent by the host was an INFO R4,S2. But the strange thing, unless
+   I got confused, is that the FRMR seems to indicate that the rejected frame
+
+ --# 64 STATUS ENTERED FROM FISBEIN         BY CSG ON 25-NOV-92 @17:02 ZULU.
+     REPORT SENT YET ?: NO
+was a command one.
+4. bit Z is set to indicate an invalid N(R) .
+With the exception of the command/response bit, the only explanation I have
+for the FRMR is a host buffering problem with I/O (very long reactions).
+
+ --# 65 STATUS ENTERED FROM FISBEIN         BY CSG ON 25-NOV-92 @17:02 ZULU.
+     REPORT SENT YET ?: NO
+However, the whole thing comes from the slot keeping on sending I frames after
+having received RNR.
+Ken, do you have any suggestion before your long Thanksgiving week end ?
+Thanks.
+
+ --# 66 STATUS ENTERED FROM FISBEIN         BY CSG ON 25-NOV-92 @17:02 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSC  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 67 STATUS ENTERED FROM STONEK          BY STS ON 26-NOV-92 @ 0:09 ZULU.
+     REPORT SENT YET ?: NO
+SORRY I DID NOT HAVE MUCH TIME TO LOOK AT THIS TICKET TODAY.  I AGREE
+WITH YOUR FINDINGS THOUGH.  THE FRMR IS FOR THE C1 FRAME, WHICH IS
+SO LONG AGO IT IS NO LONGER EVEN IN OUR ROTOR LIST FOR THAT LINK.  I DON'T
+THINK THAT THE SLOT IS SENDING DATA THROUGH THE RNR, I THINK THAT THE SLOT
+
+ --# 68 STATUS ENTERED FROM STONEK          BY STS ON 26-NOV-92 @ 0:09 ZULU.
+     REPORT SENT YET ?: NO
+HAS AN OPEN WINDOW AND PUTS AS MANY FRAMES OUT AS IT CAN. (LESS THAN
+FRAME WINDOW).  AS THE HOST IS RECEIVING THEM IT SENDS RNR FOR EACH ONE.
+IT OCCURS AFTER THE REJ BECAUSE THE REJ FORCE THE SLOT TO RETRANSMIT MANY
+FRAMES.  BUT EVEN IF THE HOST WAS BACKED UP WHY WOULD IT FRMR THE C1?  EVEN
+
+ --# 69 STATUS ENTERED FROM STONEK          BY STS ON 26-NOV-92 @ 0:09 ZULU.
+     REPORT SENT YET ?: NO
+IF THE HOST IS WAY BEHIND IT SHOULD NOT GET THE ITEMS OUT OF ORDER.  I DON'T
+`HAVE ANY GOOD IDEAS OFF THE TOP OF MY HEAD.  BUT A HOST THAT SENDS THE
+RNR SO FREQUENTLY, WOULD IT BE A POSSIBILITY TO LOWER THE
+THE WINDOW SIZE?
+
+ --# 70 STATUS ENTERED FROM STONEK          BY STS ON 26-NOV-92 @ 0:09 ZULU.
+     REPORT SENT YET ?: NO
+
+ --# 71 STATUS ENTERED FROM FISBEIN         BY CSG ON 26-NOV-92 @17:09 ZULU.
+     REPORT SENT YET ?: NO
+Grabbing the ticket due to Thanksgiving.
+
+ --# 72 STATUS ENTERED FROM FISBEIN         BY CSG ON 26-NOV-92 @17:09 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 73 STATUS ENTERED FROM FISBEIN         BY CSG ON 27-NOV-92 @10:30 ZULU.
+     REPORT SENT YET ?: NO
+Roberto, the best guess we can make for the moment is that, by reducing the
+frame window size, we leave less possibilities for the host to be out of
+buffers. Can you envisage a reduction of K on both ends ? On the XCOM side,
+
+ --# 74 STATUS ENTERED FROM FISBEIN         BY CSG ON 27-NOV-92 @10:30 ZULU.
+     REPORT SENT YET ?: NO
+you can do this with XOM. I don't know about the Olivetti host. Please advise !
+Thanks. Stephane.
+
+ --# 75 STATUS ENTERED FROM FISBEIN         BY CSG ON 27-NOV-92 @10:30 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 76 STATUS ENTERED FROM SIRTITAS        BY RL  ON 30-NOV-92 @ 8:03 ZULU.
+     REPORT SENT YET ?: NO
+We are going to propose this temporary remedy to the customer.
+
+ --# 77 STATUS ENTERED FROM SIRTITAS        BY RL  ON  4-DEC-92 @14:37 ZULU.
+     REPORT SENT YET ?: NO
+Customer agrees in lowering window size (we will execute it in next
+week), but they also ask for a radical solution.   RL.
+
+ --# 78 STATUS ENTERED FROM SIRTITAS        BY RL  ON  4-DEC-92 @14:37 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 79 STATUS ENTERED FROM FISBEIN         BY CSG ON  6-DEC-92 @22:33 ZULU.
+     REPORT SENT YET ?: NO
+As already said, it is not obvious at all that Tymnet is faulty in this
+problem. The host behaves strangely. I am sorry, but it is difficult to insure
+a radical solution with the frame window size reduction. This is just a
+"test and see" solution, but this is what we can do best for the moment.
+
+ --# 80 STATUS ENTERED FROM FISBEIN         BY CSG ON  6-DEC-92 @22:33 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 81 STATUS ENTERED FROM SIRTITAS        BY RL  ON  7-DEC-92 @10:57 ZULU.
+     REPORT SENT YET ?: NO
+Have we to perform any specific operation concurrently with the test?
+Whatever result this test will bring, we can already say that customer
+will return to the previous frame window size (K parameter) situation.
+RL.
+
+ --# 82 STATUS ENTERED FROM SIRTITAS        BY RL  ON  7-DEC-92 @10:57 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 83 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-DEC-92 @14:21 ZULU.
+     REPORT SENT YET ?: NO
+Yes, please record FT and, if possible datascope, when testing a new value for
+K. Try to arrange several tests with different values of K. This can be p
+presented to the customer as an optimization process. I don't know how easy
+(or uneasy) it is for the customer to change K on their side, but you know
+
+ --# 84 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-DEC-92 @14:21 ZULU.
+     REPORT SENT YET ?: NO
+that this is an extremely easy process on our side, through XOM. If this is
+easy for the customer, and if he agrees to cooperate smoothly, you could try
+K=5,3,2 for example. Otherwise, just try to suggest to test K=3 for example.
+We'll decide on the next action on the outcome of the test. Please let me
+
+ --# 85 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-DEC-92 @14:21 ZULU.
+     REPORT SENT YET ?: NO
+know when you think this test can be completed. Thanks. Stephane.
+
+ --# 86 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-DEC-92 @14:21 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 87 STATUS ENTERED FROM SIRTITAS        BY RL  ON  9-DEC-92 @ 8:02 ZULU.
+     REPORT SENT YET ?: NO
+Could it be useful, for our test, to have the trap patch running?
+RL.
+
+ --# 88 STATUS ENTERED FROM SIRTITAS        BY RL  ON  9-DEC-92 @ 8:02 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 89 STATUS ENTERED FROM FISBEIN         BY CSG ON  9-DEC-92 @16:29 ZULU.
+     REPORT SENT YET ?: NO
+I just tried to call you, Roberto and got RNA. What are the hours where I
+can be lucky enough to get hold of you ?
+ You can have the trap patch running if the customer accepts the interruption
+caused by the dump taking.
+
+ --# 90 STATUS ENTERED FROM FISBEIN         BY CSG ON  9-DEC-92 @16:29 ZULU.
+     REPORT SENT YET ?: NO
+Can you please let me know when you plan to perform these tests ?
+Thanks. Stephane.
+
+ --# 91 STATUS ENTERED FROM FISBEIN         BY CSG ON  9-DEC-92 @16:29 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --# 92 STATUS ENTERED FROM SIRTITAS        BY RL  ON 10-DEC-92 @ 7:40 ZULU.
+     REPORT SENT YET ?: NO
+Sorry for the RNA.
+Going to test and see, without the trap.
+RL.
+
+ --# 93 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-DEC-92 @16:54 ZULU.
+     REPORT SENT YET ?: NO
+Have you already had the chance to lower K and test it ?
+Thanks. Stephane.
+
+ --# 94 STATUS ENTERED FROM ECSC            BY FC  ON 15-DEC-92 @16:15 ZULU.
+     REPORT SENT YET ?: NO
+I spoke with mr Leone and they made a test with k=5 and they are still
+have frame reject.
+Now they are making test with k=3 and Robeto will status (if system 26
+available) when he will have result
+
+ --# 95 STATUS ENTERED FROM FISBEIN         BY CSG ON 16-DEC-92 @17:16 ZULU.
+     REPORT SENT YET ?: NO
+Roberto, can you please provide the following information ?
+1. Did you take any trace when the problem reoccurred with K=5 ?
+2. When do you plan to test other values for K ?
+3. Has the customer got this problem anywhere else in the network ? Any other
+
+ --# 96 STATUS ENTERED FROM FISBEIN         BY CSG ON 16-DEC-92 @17:16 ZULU.
+     REPORT SENT YET ?: NO
+host connection, for example ?
+Thanks. Stephane.
+
+ --# 97 STATUS ENTERED FROM SIRTITAS        BY RL  ON 17-DEC-92 @13:32 ZULU.
+     REPORT SENT YET ?: NO
+Here are the results of our tests:
+With K=5,  time of test= 24 hours , frequence of RNR = 270/1 hour , frequence
+           of REJ = 17 / 1 hour  .
+           We still have  the FRMR condition on the line.
+
+ --# 98 STATUS ENTERED FROM SIRTITAS        BY RL  ON 17-DEC-92 @13:32 ZULU.
+     REPORT SENT YET ?: NO
+With K = 3,  time of test= 48 hours,  frequence of RNR = 1638 / 1 hour,
+             frequenceof REJ = 75 / 1 hour .
+             We have no more FRMR conditions on the line .
+
+ --# 99 STATUS ENTERED FROM SIRTITAS        BY RL  ON 17-DEC-92 @13:32 ZULU.
+     REPORT SENT YET ?: NO
+We can generally say that the lower is the K parameter, the lower is the
+frequence of the FRMR condition, but the higher is the RNR frequence.
+With K=3 we have no FRMR, but also we have a too much slow trafic line.
+
+ --#100 STATUS ENTERED FROM SIRTITAS        BY RL  ON 17-DEC-92 @13:32 ZULU.
+     REPORT SENT YET ?: NO
+
+ --#101 STATUS ENTERED FROM SIRTITAS        BY RL  ON 17-DEC-92 @13:53 ZULU.
+     REPORT SENT YET ?: NO
+As for your last questions:
+1. No FT trace was taken , neighter with k = 5, nor with k = 3. Due to the
+   fact that our tec persons are busy otherwhere, we can trace it more easily
+   with a stopping trap on.
+
+ --#102 STATUS ENTERED FROM SIRTITAS        BY RL  ON 17-DEC-92 @13:57 ZULU.
+     REPORT SENT YET ?: NO
+3. As already said, they have this pbl everywhere in their network.
+   The frequence of the pbl is higher with the central hosts.
+RL.
+
+ --#103 STATUS ENTERED FROM SIRTITAS        BY RL  ON 17-DEC-92 @13:57 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#104 STATUS ENTERED FROM SIRTITAS        BY RL  ON 18-DEC-92 @ 8:08 ZULU.
+     REPORT SENT YET ?: NO
+By a telephonic conversation, we leaved Mr. Fisbein with username and
+password in order they to be directly able in tracing the line.
+In the meantime, Sirti is going  to investigate about an effective
+CCITT certification for the Olivetti LSX 4000 equipment.
+
+ --#105 STATUS ENTERED FROM SIRTITAS        BY RL  ON 18-DEC-92 @ 8:16 ZULU.
+     REPORT SENT YET ?: NO
+Sirti is going also to ask to the customer (Autostrade) for initiating
+a direct dialogue with Olivetti responsible people.
+
+ --#106 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-DEC-92 @ 7:15 ZULU.
+     REPORT SENT YET ?: NO
+I have no further idea to pursue this investigation for the moment, except the
+comments below. It seems that, given the above test results, we have a general
+issue to deal with when connecting a LSX4000 Olivetti host. I would like the
+Product line to take care of this problem now and, in particular, try to provide
+
+ --#107 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-DEC-92 @ 7:15 ZULU.
+     REPORT SENT YET ?: NO
+the next step :
+1. Are there queries to be made to the customer or to Olivetti, which replies
+   will help understand this problem ?
+2. Is there any additional test we can propose to the customer, that has a
+
+ --#108 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-DEC-92 @ 7:15 ZULU.
+     REPORT SENT YET ?: NO
+great chance to improve the situation ?
+HELP ! HELP !
+Thanks. Stephane.
+
+ --#109 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-DEC-92 @ 7:15 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#110 STATUS ENTERED FROM SIRTITAS        BY RL  ON  4-JAN-93 @10:45 ZULU.
+     REPORT SENT YET ?: NO
+Here below is the info that ECSG required, about CCITT approval for
+this equipment:
+the LSX 4000 equipment is manufactured by Stratus Computers (Massachussets,
+USA), and commercialized/maintained in Italy by Olivetti.
+
+ --#111 STATUS ENTERED FROM SIRTITAS        BY RL  ON  4-JAN-93 @10:45 ZULU.
+     REPORT SENT YET ?: NO
+It is certified for CCITT 1980 X.25 Standard for NET-2 (Common European
+Standard).
+It is in the process of being certified for CCITT 1984 Standard for NET-2
+in Q1,93.
+
+ --#112 STATUS ENTERED FROM SIRTITAS        BY RL  ON  4-JAN-93 @10:45 ZULU.
+     REPORT SENT YET ?: NO
+It is also registered with numerous countries' PTT for use.
+Regards, RL.
+
+ --#113 STATUS ENTERED FROM STONEK          BY STS ON  5-JAN-93 @18:28 ZULU.
+     REPORT SENT YET ?: NO
+STEPHANE I AM LIKE YOU LOW IN IDEAS ABOUT THIS.  I STILL DO NOT UNDERSTAND
+THE RNR FUNCTION OF THE HOST.  WHY WOULD RNR INCREASE AS K IS LOWERED?
+ALSO I NOTICE THE THE M-BIT IS IN USE.  IF THEY ARE BETWEEN 1980 AND 1984
+DO WE KNOW FOR SURE THEY CAN PROPERLY HANDLE THE MORE BIT?
+
+ --#114 STATUS ENTERED FROM STONEK          BY STS ON  5-JAN-93 @18:28 ZULU.
+     REPORT SENT YET ?: NO
+
+ --#115 STATUS ENTERED FROM STONEK          BY STS ON  5-JAN-93 @18:31 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#116 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-JAN-93 @18:51 ZULU.
+     REPORT SENT YET ?: NO
+I am examining this hypothesis. The only packet trace I have is the datascope
+hex trace. Unfortunately, there are parts missing. Probably lost during the
+file transfer between your PC/datascope and the PDP. Would you please try to
+take another hex trace and transfer it to the PDP using <CTRL-R><CTRL-X> at
+
+ --#117 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-JAN-93 @18:51 ZULU.
+     REPORT SENT YET ?: NO
+the please log in prompt, followed by your username, etc.... In the same time I
+would also appreciate a PFT trace to get the conjunction of frames and packets
+all together. This will be more readable than the datascope trace. I think you
+can get the PFT trace at least without involving the customer. As for the
+
+ --#118 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-JAN-93 @18:51 ZULU.
+     REPORT SENT YET ?: NO
+datascope hex trace, there should not be any problem if the cable is a Y one.
+Perhaps you could just resend your X25HEX trace using the above procedure if
+you still have it on disk. Please advise ! Thanks. Stephane.
+
+ --#119 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-JAN-93 @18:51 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#120 STATUS ENTERED FROM SIRTITAS        BY RL  ON  8-JAN-93 @16:49 ZULU.
+     REPORT SENT YET ?: NO
+We resent the datascope hex trace that was saved onto a disk.
+It is under (sirtitas:26)X25HEX .We hope it has no part missing.
+RL
+
+ --#121 STATUS ENTERED FROM SIRTITAS        BY RL  ON  8-JAN-93 @16:50 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#122 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JAN-93 @10:32 ZULU.
+     REPORT SENT YET ?: NO
+Roberto, thank you for the new X25HEX. It looks better than the former one.
+I'll see if I can find anything more conclusive in this. For the moment, in
+order to speed up the resolution of this problem, I ask you to let me know
+a username and a password to log into node 2010's DDT and slot 1's XOM.
+
+ --#123 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JAN-93 @10:32 ZULU.
+     REPORT SENT YET ?: NO
+With these, I'll be able to make some more tracing and monitoring without
+disturbing you. In the meantime, I have come to the following temporary
+conclusion :
+1. When XCOM receives the first RNR (with N(R)=7), it already has the next
+
+ --#124 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JAN-93 @10:32 ZULU.
+     REPORT SENT YET ?: NO
+   I frame being sent(with N(S)=7). The latter is acked with RNR 0.
+2. Since the RNR received by XCOM acknowledges all previous sent frames,
+   XCOM may send the next I frame, per CCITT 1988 paragraph 2.4.5.7, and so
+
+ --#125 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JAN-93 @10:32 ZULU.
+     REPORT SENT YET ?: NO
+3. For the same reason, XCOM sends the next I frame, which contains a packet
+   with the M bit. This frame (with N(S)=1) is not acked. Some more tracing
+   is necessary here to determine if there is any relation between the M bit
+   (layer 3) and the host busy condition (layer 2).
+
+ --#126 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JAN-93 @10:32 ZULU.
+     REPORT SENT YET ?: NO
+4. The host busy condition is lifted with the reception of an RR 1. XCOM
+   resumes sending I frames since its window allows it.
+5. For some reason, the host was still expecting I frame # 1 whereas XCOM
+
+ --#127 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JAN-93 @10:32 ZULU.
+     REPORT SENT YET ?: NO
+6. Since the XCOM saw the flow of frames resuming, it starts acknowledging
+   what the host sends, in particular it acks the host I frame # 5 with an
+   RR 6, before receiving the REJ 1.
+7. XCOM resumes sending I frames from # 1 at this moment.
+
+ --#128 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JAN-93 @10:32 ZULU.
+     REPORT SENT YET ?: NO
+   problem. However, there is a possibility of a host problem when the host
+   keeps increasing the N(R) of its RNRs three consecutive times and then
+
+ --#129 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JAN-93 @10:32 ZULU.
+     REPORT SENT YET ?: NO
+   reaction on the non acknowledgement of I frame # 1. Hence my proposition
+   to have access to XOM to try and reduce T1 to see what happens.
+Thanks to grant me the access to DDT and XOM ! Stephane.
+
+ --#130 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JAN-93 @10:32 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#131 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JAN-93 @10:44 ZULU.
+     REPORT SENT YET ?: NO
+Sorry for the mess in the previous statuses. This happened during my file
+transfer from my PC. Corrections follow :
+-->Status 124 : point 2 ends with : and so does, leading to an RNR 1.
+-->Status 126 : point 5 should read :
+
+ --#132 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JAN-93 @10:44 ZULU.
+     REPORT SENT YET ?: NO
+5. For some reason, the host was still expecting I frame # 1 whereas XCOM
+   just sent I frame # 2, and therefore replies with REJ 1.
+-->Status 128 : points 8 & 9 are missing :
+8. Due to some delay in the I/O processing the host sees the RR 6 before
+
+ --#133 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JAN-93 @10:44 ZULU.
+     REPORT SENT YET ?: NO
+   the I frame # 1 and decides this is a protocol error. Hence the FRMR
+   C1 36 08 (C1 is the control field of the rejected frame=RR 6).
+9. There is no particular protocol error in fact, just a host reaction delay
+   problem. However, there is a possibility of a host problem when the host
+
+ --#134 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JAN-93 @10:44 ZULU.
+     REPORT SENT YET ?: NO
+   keeps increasing the N(R) of its RNRs three consecutive times and then
+   locks up on the third number. The proposed tracing will help confirm or
+   lift this hypothesis. On the other hand, XCOM could have a quicker
+   reaction on the non acknowledgement of I frame # 1.
+
+ --#135 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JAN-93 @10:44 ZULU.
+     REPORT SENT YET ?: NO
+Sorry if this looks more like a jigsaw puzzle. PAPER has still lots of problems
+when entering statuses. Hope you'll get through this. Let me know if not.
+Thanks. Stephane.
+
+ --#136 STATUS ENTERED FROM SIRTITAS        BY RL  ON 11-JAN-93 @15:45 ZULU.
+     REPORT SENT YET ?: NO
+Stephane, you can find the info that you need in the ontyme
+message # S17426 sent today jan.11.93 .
+RL
+
+ --#137 STATUS ENTERED FROM SIRTITAS        BY RL  ON 11-JAN-93 @15:45 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#138 STATUS ENTERED FROM FISBEIN         BY CSG ON 12-JAN-93 @ 0:44 ZULU.
+     REPORT SENT YET ?: NO
+Thanks for the info. I have already taken a 3  Megabytes trace which I will
+analyse tomorrow.. However, a further analysis of X25HEX tends to confirm the
+above 9 points.
+
+ --#139 STATUS ENTERED FROM FISBEIN         BY CSG ON 12-JAN-93 @19:54 ZULU.
+     REPORT SENT YET ?: NO
+Still taking and analysing traces. Nothing more than already said. Continuing.
+Would it be possible to get another datascope hex trace of the problem ?
+If not, I'll try to manage. It's just a little harder to interpret...
+Thanks. Stephane.
+
+ --#140 STATUS ENTERED FROM FISBEIN         BY CSG ON 12-JAN-93 @19:54 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#141 STATUS ENTERED FROM SIRTITAS        BY RL  ON 13-JAN-93 @15:12 ZULU.
+     REPORT SENT YET ?: NO
+We are going to provide you with an other datascope hex trace...
+RL
+
+ --#142 STATUS ENTERED FROM SIRTITAS        BY RL  ON 14-JAN-93 @13:04 ZULU.
+     REPORT SENT YET ?: NO
+Stephane, a new analyzer trace will be available on next monday 18 jan.
+RL.
+
+ --#143 STATUS ENTERED FROM FISBEIN         BY CSG ON 14-JAN-93 @18:05 ZULU.
+     REPORT SENT YET ?: NO
+Thank you. Don't forget to log in with CTRL-X CTRL-R when you will transfer it
+on the PDP. In the meantime, I am tracing the slot. I have very few occurrences
+of the problem, maybe 1 per day. However, I cannot confirm the relation with
+the M bit. I can only tend to confirm what I already specified earlier.
+
+ --#144 STATUS ENTERED FROM SIRTITAS        BY RL  ON 20-JAN-93 @ 7:33 ZULU.
+     REPORT SENT YET ?: NO
+Still waiting for catching the problem, after tec inconveniences with
+our datascope.
+That is normally inserted between our XCOM interface and the first
+modem along the line to the Host.
+
+ --#145 STATUS ENTERED FROM SIRTITAS        BY RL  ON 20-JAN-93 @13:12 ZULU.
+     REPORT SENT YET ?: NO
+You have now a new hex trace under (sirtitas:26)x25.2 .
+You have also the same x25.2 data, translated into a non-hex trace
+under x25.1   .
+Requesting customer's permit for modifying k and w parameters on both sides. RL
+
+ --#146 STATUS ENTERED FROM SIRTITAS        BY RL  ON 20-JAN-93 @13:12 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#147 STATUS ENTERED FROM SIRTITAS        BY RL  ON 21-JAN-93 @10:47 ZULU.
+     REPORT SENT YET ?: NO
+Going to re-transmit the hex trace avoiding a loss of data...
+RL
+
+ --#148 STATUS ENTERED FROM SIRTITAS        BY RL  ON 21-JAN-93 @14:29 ZULU.
+     REPORT SENT YET ?: NO
+You have now the same hex trace re-transmitted again under (sirtitas:26)x25.2 .
+All the flow control features have been enabled before of the transmission.
+For the major security, we made the file to be transferred a little shorter,
+by discarding it of the primitive initial and final parts. Hope this helps...RL
+
+ --#149 STATUS ENTERED FROM FISBEIN         BY CSG ON 21-JAN-93 @16:35 ZULU.
+     REPORT SENT YET ?: NO
+Thank you. The file newly transfered seems in a better shape. I am looking into
+it and will status tomorrow with findings. Thanks. Stephane.
+
+ --#150 STATUS ENTERED FROM SIRTITAS        BY RL  ON 22-JAN-93 @16:15 ZULU.
+     REPORT SENT YET ?: NO
+The modification of k and w parameters is scheduled for next monday 25 jan.
+RL.
+
+ --#151 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-JAN-93 @17:35 ZULU.
+     REPORT SENT YET ?: NO
+I have compiled both traces in (fisbein:26)x25.12 . We have three phenomenons :
+1. The host sends RNRs on many occasions, thus proving a buffering problem in
+the host. However, the RNR N(R) is increased and Tymnet copes with it OK.
+2. The host REJ us before we even get a chance to retransmit the first
+
+ --#152 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-JAN-93 @17:35 ZULU.
+     REPORT SENT YET ?: NO
+unacknowledged frame. Since we were sending frames in sequence and within the
+open window, this is probably an unexpected reaction from the host. Perhaps, T1
+should be lowered on the Tymnet side to allow quicker recovery from non acked
+frames.
+
+ --#153 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-JAN-93 @17:35 ZULU.
+     REPORT SENT YET ?: NO
+3. When Tymnet reacts on the incoming REJ, resends the right frame with the
+right N(S). However, it seems that the N(R) is wrong. I suppose that N(R)
+should be equal to V(R) instead of the N(R) value of the rejected frame.
+
+ --#154 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-JAN-93 @17:35 ZULU.
+     REPORT SENT YET ?: NO
+Can STS input on this ? Do you agree on the above three statements ? If so,
+then is there anything we can do for point 3 ?
+Thanks for a prompt reply (long lasting problem). Stephane.
+
+ --#155 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-JAN-93 @17:35 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#156 STATUS ENTERED FROM SIRTITAS        BY RL  ON 25-JAN-93 @10:30 ZULU.
+     REPORT SENT YET ?: NO
+For Stephane Fisbein by Sirti:
+as scheduled, parameters K and W have been modified today, respectively
+from 7 to 5, and from 6 to 4.
+This modification has been done in both XCOM and Host sides.   RL.
+
+ --#157 STATUS ENTERED FROM STONEK          BY STS ON 26-JAN-93 @22:29 ZULU.
+     REPORT SENT YET ?: NO
+I HAVE FORGOTTEN, IS THERE A SLOT DUMP TAKEN WITH THE FRMRTP.403
+PATCH?  IF SO I DON'T REMEMBER WHERE IT IS.  IF IT SHOWS THE V(R)
+N(R) DESCREPENCY I COULD LOOK THERE.  MAYBE DEVELOP ANOTHER PATCH
+FOR FIND THE PROBLEM FROM THERE.  MOST OF THEORIES YOU HAVE
+
+ --#158 STATUS ENTERED FROM STONEK          BY STS ON 26-JAN-93 @22:29 ZULU.
+     REPORT SENT YET ?: NO
+LOOK PRETTY GOOD.  I DON'T KNOW ABOUT LOWERING T1.  THE FASTER AND MORE OFTEN
+WE DO THINGS TO THIS HOST THE MORE THE PROBLEM.  LET ME KNOW ABOUT THE
+DUMP AND IF THERE IS AN X25TRACE TO MATCH ..
+
+ --#159 STATUS ENTERED FROM STONEK          BY STS ON 26-JAN-93 @22:29 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#160 STATUS ENTERED FROM FISBEIN         BY CSG ON 27-JAN-93 @15:54 ZULU.
+     REPORT SENT YET ?: NO
+I realize that this ticket is getting more and more statuses and the useful
+information gets lost easily. To sum up : the dump with the trap patch is in
+(sirtitas:33)x22010.dp1 . Now, the last trace taken is in (fisbein:26)x25.1
+in frame format, x25.2 in hex, and x25.12 in frame and packet format (compiled)
+
+ --#161 STATUS ENTERED FROM FISBEIN         BY CSG ON 27-JAN-93 @15:54 ZULU.
+     REPORT SENT YET ?: NO
+The point in lowering T1 is to have XCOM attempt to recover from the unacked
+frame faster, namely before the host goes into REJ, and subsequent FRMR. I
+have already made some testing, but the results were not conclusive. I had
+less FRMR, but many more REJs and RNRs. So, there is something to dig in the
+
+ --#162 STATUS ENTERED FROM FISBEIN         BY CSG ON 27-JAN-93 @15:54 ZULU.
+     REPORT SENT YET ?: NO
+fact that XCOM apparently sends an invalid N(R) when recovering from REJ,
+following a host busy condition (RNR). Thanks for your inputs. The codes are
+in (sirtitas:33)x12010.#01 . Stephane.
+
+ --#163 STATUS ENTERED FROM FISBEIN         BY CSG ON 27-JAN-93 @15:54 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#164 STATUS ENTERED FROM STONEK          BY STS ON 27-JAN-93 @19:47 ZULU.
+     REPORT SENT YET ?: NO
+SENT MAIL TO STEPHANE.  DUMP DOES NOT SHOW THE VARIABLE DIFFERENCE.
+YOU CAN KEEP SENDING THE DUMPS IF YOU LIKE?
+
+ --#165 STATUS ENTERED FROM STONEK          BY STS ON 27-JAN-93 @19:47 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#166 STATUS ENTERED FROM FISBEIN         BY CSG ON 28-JAN-93 @18:06 ZULU.
+     REPORT SENT YET ?: NO
+Sorry for the confusion. The dump is old and show one occurrence of the
+problem. The traces in my directory are recent and show another occurrence of
+the problem. Can you come to any conclusion with these traces or do you wish
+to install a trap  patch again ? Will try to call you anyway. Thanks. Stephane.
+
+ --#167 STATUS ENTERED FROM FISBEIN         BY CSG ON 28-JAN-93 @18:06 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#168 STATUS ENTERED FROM FISBEIN         BY CSG ON 28-JAN-93 @19:13 ZULU.
+     REPORT SENT YET ?: NO
+In accordance with Ken Stone, I am grabing this ticket back. It seems that the
+last trace taken shows something interesting. However, it will be interesting
+to have a look at certain internal variables when the problem occurs. The best
+way to do this is to reload the slot with the same trap patch as before and
+
+ --#169 STATUS ENTERED FROM FISBEIN         BY CSG ON 28-JAN-93 @19:13 ZULU.
+     REPORT SENT YET ?: NO
+monitor it and take a dump everytime it crashes. After a certain number of
+occurrences (half a dozen or so), reload the original code. Can Sirti
+envisage this with the customer and get his cooperation ? Thanks. Stephane.
+
+ --#170 STATUS ENTERED FROM FISBEIN         BY CSG ON 28-JAN-93 @19:13 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM MMGMT TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#171 STATUS ENTERED FROM SIRTITAS        BY RL  ON 29-JAN-93 @ 8:07 ZULU.
+     REPORT SENT YET ?: NO
+Sirti acknowledges.
+RL.
+
+ --#172 STATUS ENTERED FROM SIRTITAS        BY RL  ON  1-FEB-93 @ 9:59 ZULU.
+     REPORT SENT YET ?: NO
+At this moment, you can work with the following dump files, available
+in sirtitas:33, with symbols incorporated: x32010.dp1, x42010.dp1, x52010.dp1.
+We are going to provide you with other 2/3 dumps...
+RL
+
+ --#173 STATUS ENTERED FROM SIRTITAS        BY RL  ON  2-FEB-93 @10:58 ZULU.
+     REPORT SENT YET ?: NO
+Besides the dumps above, you have now (:33)x62010.dp1 and x72010.dp1 .
+For all these dumps, the gen codes are (:33)x22010.##1 .
+The trap has been disinstalled.
+RL
+
+ --#174 STATUS ENTERED FROM SIRTITAS        BY RL  ON  2-FEB-93 @10:58 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#175 STATUS ENTERED FROM FISBEIN         BY CSG ON  2-FEB-93 @14:19 ZULU.
+     REPORT SENT YET ?: NO
+Am refering this to the XCOM group for dump analysis. I'll have a look in the
+meantime myself, but the gurus' views are always appreciated. Thanks.
+Stephane.
+
+ --#176 STATUS ENTERED FROM FISBEIN         BY CSG ON  2-FEB-93 @14:19 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#177 STATUS ENTERED FROM TECHSERV        BY STS ON  2-FEB-93 @23:08 ZULU.
+     REPORT SENT YET ?: NO
+STephane, I reviewed this ticket and have one thought that has not been
+mentioned so far in the statuses.  Hardware switch should not be set for
+fast interrupt.  If you log in to xray, do a cl command to get the time,
+then wait one minute, do it again, time should increment by one minute
+
+ --#178 STATUS ENTERED FROM TECHSERV        BY STS ON  2-FEB-93 @23:11 ZULU.
+     REPORT SENT YET ?: NO
+not four minutes.  Bad setting of the interrupt switch can lead to a lot
+of crazy problems like maybe this one.  Other thought is if you are
+getting foreground or background overload messages in TMCS you can adjust
+the equates q.fgx and q.bgx where x is slot number to try to get rid of
+
+ --#179 STATUS ENTERED FROM TECHSERV        BY STS ON  2-FEB-93 @23:14 ZULU.
+     REPORT SENT YET ?: NO
+them.  If they correspond with the times of the problem, this is a good
+bet.  Particularly bad problems come about when the foreground gets
+interrupted.  Will research the dumps.   ...Jerry Lucas
+
+ --#180 STATUS ENTERED FROM TECHSERV        BY STS ON  2-FEB-93 @23:14 ZULU.
+     REPORT SENT YET ?: NO
+TECHSERV  (STS) TRANSFERRED THIS TICKET FROM MMGMT TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#181 STATUS ENTERED FROM SIRTITAS        BY RL  ON  3-FEB-93 @10:16 ZULU.
+     REPORT SENT YET ?: NO
+Hardware switches are set in the same way as they were set when working
+with the old host model, with which we did not get this problem.
+As already tested, xray cl time is consistent with the expected one.
+No bg/fg isis ff TMCS event regards the involved nodes. RL
+
+ --#182 STATUS ENTERED FROM SIRTITAS        BY RL  ON  3-FEB-93 @10:16 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#183 STATUS ENTERED FROM SIRTITAS        BY RL  ON  3-FEB-93 @17:09 ZULU.
+     REPORT SENT YET ?: NO
+p.s.   please, gentlemen, this ticket is really getting too long...
+       the customer (the italian motorways company) now expects for
+       some conclusive results.     Thanks, RL.
+
+ --#184 STATUS ENTERED FROM FISBEIN         BY CSG ON  4-FEB-93 @20:04 ZULU.
+     REPORT SENT YET ?: NO
+Tried to call Ken and Jerry. Ken is out of the office today and Jerry got a
+voice mail message . Any interesting findings in these dumps, folks ?
+Thanks for the reply. Stephane.
+
+ --#185 STATUS ENTERED FROM STONEK          BY STS ON  8-FEB-93 @20:21 ZULU.
+     REPORT SENT YET ?: NO
+DOES 'OLD HOST MODEL' MEAN THE HOST THAT THEY HAVE BEFORE THIS ONE?
+
+ --#186 STATUS ENTERED FROM STONEK          BY STS ON  8-FEB-93 @22:06 ZULU.
+     REPORT SENT YET ?: NO
+I LOOKED AT ALL 5 DUMPS.  I TOOK THE FRAME TRACE FROM ONE OF THEM
+AND WENT OVER IT WITH JERRY.  ALL THE DUMPS ARE THE SAME.   WE CANNOT
+SEE WHERE THE INTERFACE IS DOING ANYTHING WRONG.  DID THEY HAVE A HOST
+IN WHICH THIS PROBLEM USED TO NOT HAPPEN?
+
+ --#187 STATUS ENTERED FROM STONEK          BY STS ON  8-FEB-93 @22:06 ZULU.
+     REPORT SENT YET ?: NO
+I DON'T KNOW WHAT ELSE TO COMMENT ON.  YOU CERTAINLY HAVE SEEN THE
+FT AFTER A CRASH.  THE HOST SEND RNR'S  AND EITHER MISSED OR
+THROUGH OUT A FRAME.  WE TRANSMIT ON, THE HOST ASKS FOR A RETRANSMIT
+OF THAT FRAME WE RESEND AND THE HOST FRMR THAT FRAME OR ONE ABOVE.
+
+ --#188 STATUS ENTERED FROM STONEK          BY STS ON  8-FEB-93 @22:06 ZULU.
+     REPORT SENT YET ?: NO
+IF IT WAS A CLOCKING OR HARDWARE PROBLEM WE WOULD SEE THIS
+PROBLEM MORE FREQUENTLY AND WITHOUT THE LEAD-IN OF THE RNR'S.
+
+ --#189 STATUS ENTERED FROM STONEK          BY STS ON  8-FEB-93 @22:12 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#190 STATUS ENTERED FROM FISBEIN         BY CSG ON 10-FEB-93 @12:56 ZULU.
+     REPORT SENT YET ?: NO
+To answer status # 186, yes the problem appeared when they changed host, so
+the problem used to not happen with their previous host. I would like to set
+up an action plan quickly. To this end, I have sent a request for a telephone
+conference to Doug Ellenberg for today (before 10 a.m. PST). Thanks.
+
+ --#191 STATUS ENTERED FROM FISBEIN         BY CSG ON 10-FEB-93 @12:56 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#192 STATUS ENTERED FROM STONEK          BY STS ON 11-FEB-93 @22:24 ZULU.
+     REPORT SENT YET ?: NO
+STEPHANE I HAVE CREATED A PATCH REJINF.403.  IT WILL CRASH WHEN BUILDING
+THE FIRST I FRAME TO GO OUT AFTER RECEIVING AN REJ.  THE CONTROL FIELD
+OF THIS FRAME GOING OUT IS IN REGISTER 1.
+I WOULD STILL USE THE FRMRTP PATCH WITH THE DATASCOPE TRACE.
+
+ --#193 STATUS ENTERED FROM STONEK          BY STS ON 11-FEB-93 @22:25 ZULU.
+     REPORT SENT YET ?: NO
+THIS PATCH REJINF.403 YOU COULD TRY SEPARATE BEFORE GETTING THE
+SCOPE TRACE WITH THE OTHER DUMP.
+
+ --#194 STATUS ENTERED FROM STONEK          BY STS ON 11-FEB-93 @22:25 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#195 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-FEB-93 @23:34 ZULU.
+     REPORT SENT YET ?: NO
+Roberto, here is the outcome of the conference call held today between STS
+Ken Stone & Doug Ellenberg and myself, and the actions proposed :
+1. There is a slight possibility of an SIO DB malfunction (which we don't
+   really believe), so you could arrange for an SIO DB swap as preventive
+
+ --#196 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-FEB-93 @23:34 ZULU.
+     REPORT SENT YET ?: NO
+   maintenance or something.
+2. We would like to know how the customer's host system reports this problem:
+   tracing tool, monitor console, error logger, ...
+3. Although this may sound boring to the customer, arrange to trap a couple
+
+ --#197 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-FEB-93 @23:34 ZULU.
+     REPORT SENT YET ?: NO
+   of other dumps with FRMRTP.403 with the corresponding datascope traces
+   because we need to match the two elements.
+4. Seperately from point 3. above, arrange to trap a couple of dumps with
+   patch REJINF.403 instead of FRMRTP.403 . REJINF will give us the internal
+
+ --#198 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-FEB-93 @23:34 ZULU.
+     REPORT SENT YET ?: NO
+   variables state when responding to the incoming REJ.
+You can eventually motivate the customer to cooperate by telling him that we
+are trying to help him identify a possible problem with his host.
+I will be away from my office on Friday, and the U.S. will be on holiday next
+
+ --#199 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-FEB-93 @23:34 ZULU.
+     REPORT SENT YET ?: NO
+Monday (Washington day). So, we'll make another status on this ticket all
+together next Tuesday. But in the meantime, I can answer any concern you may
+have on this ticket. Thanks. Stephane.
+
+ --#200 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-FEB-93 @23:34 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#201 STATUS ENTERED FROM SIRTITAS        BY RL  ON 12-FEB-93 @ 8:26 ZULU.
+     REPORT SENT YET ?: NO
+Sirti is organizing to answer all the four points of the action plan.
+We expect to be able in providing you with all the requested feedback
+infoes, not before of next 17 february. RL.
+
+ --#202 STATUS ENTERED FROM SIRTITAS        BY RL  ON 12-FEB-93 @14:33 ZULU.
+     REPORT SENT YET ?: NO
+In the meantime, here are the answers regarding the first two points:
+1. As already said, this problem is detected in all the lines leading
+   to all the LSX 4000 equipments, with a higher frequence in those
+   lines with a higher trafic (the central hosts).
+
+ --#203 STATUS ENTERED FROM SIRTITAS        BY RL  ON 12-FEB-93 @14:33 ZULU.
+     REPORT SENT YET ?: NO
+   Standing this fact, we think you agree in considering a "not realistic"
+   possibility some hardware malfunction.
+   An other possibility, still regarding hardware, could be the fact that
+   switches are erroneously set for "fast interrupt" (see entries # 177 & 178).
+
+ --#204 STATUS ENTERED FROM SIRTITAS        BY RL  ON 12-FEB-93 @14:33 ZULU.
+     REPORT SENT YET ?: NO
+
+ --#205 STATUS ENTERED FROM SIRTITAS        BY RL  ON 12-FEB-93 @14:58 ZULU.
+     REPORT SENT YET ?: NO
+    Regarding this last hypothesis, we repeat that the position of our
+    switches is the same one we had when working with the old host model,
+    which did not suffer for this problem.
+    Anyway, this consideration is not enough to discard the bad set for
+
+ --#206 STATUS ENTERED FROM SIRTITAS        BY RL  ON 12-FEB-93 @14:58 ZULU.
+     REPORT SENT YET ?: NO
+    switches
+    To pursue this possibility, we need to know exactly which switchers
+    (on the SIO daughter or controller , or on some other board) we have
+    to act on, in order we can disable the fast interrupt.
+
+ --#207 STATUS ENTERED FROM SIRTITAS        BY RL  ON 12-FEB-93 @14:58 ZULU.
+     REPORT SENT YET ?: NO
+2.  All the tools you mentioned (tracing monitor, error logger) can,in
+    the LSX 4000 equipment, real-time detect ,and save on mass storage, the
+    problem. The event, that is related with the problem, is a message of
+    "line detached"  and subsequent "line attached", as a consequence of
+
+ --#208 STATUS ENTERED FROM SIRTITAS        BY RL  ON 12-FEB-93 @14:58 ZULU.
+     REPORT SENT YET ?: NO
+    of a "line error".
+RL.
+
+ --#209 STATUS ENTERED FROM FISBEIN         BY CSG ON 16-FEB-93 @15:56 ZULU.
+     REPORT SENT YET ?: NO
+Roberto, further to our phone conversation earlier, I just transfered patch
+rejinf.403 from system 25 (Unix) to (fisbein:33) .
+Can Ken transfer it to (xcompat:33) ?
+Thanks. Stephane.
+
+ --#210 STATUS ENTERED FROM SIRTITAS        BY RL  ON 17-FEB-93 @15:19 ZULU.
+     REPORT SENT YET ?: NO
+3. You have now other two dumps taken with trap FRMRTP.403, each related to
+   a datascope trace. They are:
+   - x82010.dp1   corresponding  x8tra.x25
+   - x92010.dp1   corresponding  x9tra.x25 (under sys 33 // gen codes x22010.*)
+
+ --#211 STATUS ENTERED FROM FISBEIN         BY CSG ON 17-FEB-93 @19:35 ZULU.
+     REPORT SENT YET ?: NO
+Ken, I didn't have time to look at these dumps so far, and I'm going home
+(it's 8.30 p.m.). Can you start looking at them, please ? Thanks.
+Stephane.
+
+ --#212 STATUS ENTERED FROM FISBEIN         BY CSG ON 17-FEB-93 @19:35 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM SIRTI TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#213 STATUS ENTERED FROM STONEK          BY STS ON 17-FEB-93 @23:22 ZULU.
+     REPORT SENT YET ?: NO
+I LOOKED AT BOTH.  I STARTED WITH 8 GOT CONFUSED AND WENT TO 9 AND
+FOUND THE SAME THING.  THE FRMR IS MORE UNDERSTANDABLE UNDER
+THE DATASCOPE TRACE.  HOWEVER I SEE A LOT OF LOOPHOLES.  SEVERAL FRAMES
+WE SENT ARE MISSING FROM THE DATASCOPE TRACE.  INFO 2,3 INFO 3,3.
+
+ --#214 STATUS ENTERED FROM STONEK          BY STS ON 17-FEB-93 @23:22 ZULU.
+     REPORT SENT YET ?: NO
+A COUPLE OF FRAMES ARE SWITCHED FROM THE FT OF THE DUMP AND THE
+TRACE.  I DON'T MEAN ORDER BETWEEN IN AND OUT.  I MEAN FT SHOWS
+WE SENT INFO 6,8 AND THEN A,A.  DATASCOPE SHOWS THE OPPOSITE.
+HOW?  I WILL LOOK MORE AND HOPE I CAN GET JERRY IN TO HELP, HE
+
+ --#215 STATUS ENTERED FROM STONEK          BY STS ON 17-FEB-93 @23:22 ZULU.
+     REPORT SENT YET ?: NO
+IS BUSY RIGHT NOW.  QUESTION.  DOES THE DATASCOPE THROW OUT FRAMES
+WITH A BAD CHECKSUM OR SHOULD I SEE EVERYTHING?????
+
+ --#216 STATUS ENTERED FROM SIRTITAS        BY RL  ON 18-FEB-93 @13:09 ZULU.
+     REPORT SENT YET ?: NO
+Sirti grabs this ticket in order we to complete the answers to the action
+plan:
+4.  two other dumps and concurrent traces have been taken using the trap
+
+ --#217 STATUS ENTERED FROM SIRTITAS        BY RL  ON 18-FEB-93 @13:09 ZULU.
+     REPORT SENT YET ?: NO
+    using the trap REJINF.403 . They are:
+    xa2010.dp1   and trace   xatra.x25
+    xb2010.dp1   and trace   xbtra.x25
+    They all are under sirtitas:33  and their gen codes are x32010.##1 .
+
+ --#218 STATUS ENTERED FROM SIRTITAS        BY RL  ON 18-FEB-93 @13:09 ZULU.
+     REPORT SENT YET ?: NO
+Before giving this back to the attention of MMGMT, just a final consideration:
+even if it is not obvious at all that Tymnet is faulty in this problem, the
+customer is now quite angry! Too many dumps and too many months of analysis
+have been required until today. From now on,it will be extremely difficult,
+
+ --#219 STATUS ENTERED FROM SIRTITAS        BY RL  ON 18-FEB-93 @13:09 ZULU.
+     REPORT SENT YET ?: NO
+for us, to create new stops to their service....
+RL.
+
+ --#220 STATUS ENTERED FROM SIRTITAS        BY RL  ON 18-FEB-93 @13:09 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM MMGMT TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#221 STATUS ENTERED FROM FISBEIN         BY CSG ON 18-FEB-93 @18:23 ZULU.
+     REPORT SENT YET ?: NO
+Ken and Jerry, thanks very much in advance for doing your best with these
+dumps. If the traces look corrupted, we may ask Sirti to retransfer them to
+PDP, making sure they use ^X^R to log in to enable flow control during the
+upload between the disk and the gateway, and between the gateway and the PDP.
+
+ --#222 STATUS ENTERED FROM STONEK          BY STS ON 18-FEB-93 @22:39 ZULU.
+     REPORT SENT YET ?: NO
+FOR THE TIME I NEED NO MORE DUMPS/TRACES.  IN THE DUMP 8 I MAY
+HAVE ANSWERED MY OWN QUESTION ABOUT THE MISORDERING.  THE ROTOR LIST
+SHOWS A REPEAT ENTRY.  I WENT OVER THIS WITH SOMEONE ELSE AND THE
+QUESTION CAME UP ABOUT FRAME WINDOW.  OUR SNA/SDLC HAD A SIMILAR
+
+ --#223 STATUS ENTERED FROM STONEK          BY STS ON 18-FEB-93 @22:40 ZULU.
+     REPORT SENT YET ?: NO
+PROBLEM.  THE PROBLEM SHOULD NOT BE SEEN WITH K=7 ON TYMNET
+AND HOST.  A PATCH COULD BE CREATED IN THE MEANTIME.  I RELAYED THIS
+TO STEPHANE BUT BECAUSE OF CUSTOMER SENSITIVITY
+ASKING THE CUSTOMER TO CHANGE SOMETHING MAY NOT BE ACCEPTABLE.  PLUS
+
+ --#224 STATUS ENTERED FROM STONEK          BY STS ON 18-FEB-93 @22:40 ZULU.
+     REPORT SENT YET ?: NO
+PERHAPS THEY (TYMNET AND HOST) WERE BOTH AT ONE TIME SET TO 7.  AND THE
+PROBLEM STILL OCCURRED.  I WOULD CONSIDER THIS INFORMATION TO BE
+CRITICAL.  IF THE ANSWER IS MAYBE I WOULD RECOMMEND THAT WINDOW SIZE
+FOR BOTH SIDES.  IF THEY ARE SURE, I WILL NOT CREATE THE PATCH BECAUSE
+
+ --#225 STATUS ENTERED FROM STONEK          BY STS ON 18-FEB-93 @22:40 ZULU.
+     REPORT SENT YET ?: NO
+IT WON'T MATTER THEN.  I AM ABOUT TO LOOK AT DUMP 9 AGAIN TO SEE IF THE
+ROTOR LIST HAS THE SAME PROBLEM.
+
+ --#226 STATUS ENTERED FROM STONEK          BY STS ON 18-FEB-93 @22:47 ZULU.
+     REPORT SENT YET ?: NO
+ALSO, IF BOTH TYMNET AND HOST GO TO K = 7, REMOVE TRAP PATCH FOR NOW.
+IF THIS IS A SENSITIVE ISSUE WE CAN SKIP SCOPE TRACE AND DUMP UNTIL I
+AM FINISHED WITH THESE.
+
+ --#227 STATUS ENTERED FROM SIRTITAS        BY RL  ON 19-FEB-93 @ 8:03 ZULU.
+     REPORT SENT YET ?: NO
+Mr. Stone, the answer to your critical question is: YES! the problem still
+occurs with k=7 on both sides (that is the normally used value for k).
+We also did a test, by lowering the k parameter, whose results you can find
+in entries # 97,98,99  above.  RL.
+
+ --#228 STATUS ENTERED FROM STONEK          BY STS ON 19-FEB-93 @18:17 ZULU.
+     REPORT SENT YET ?: NO
+SNA/SDLC HAD A SIMILAR FAILURE.  THE FAILURE OCCURS AT
+WINDOW SIZES OTHER THAN 3 AND 7.  STATUS 97-99 SAID IT FAILED AT
+5 AND NOT AT 3.  I AM ALSO AWARE THE DEFAULT SETTING IS 7.  I AM
+NOT AS CONVINED AS YOU THAT THE SAME FAILURE OCCURRED AT 7 BY
+
+ --#229 STATUS ENTERED FROM STONEK          BY STS ON 19-FEB-93 @18:17 ZULU.
+     REPORT SENT YET ?: NO
+READING THOSE STATUS.  IF THE CUSTOMER WAS NOT AS ANGRY AS YOU SAY
+I WOULD REFER THIS TICKET BACK AND ASK TO CHANGE BOTH SIDES TO 7
+AND RETEST WITH FRMRTP.403 TO HELP GIVE US MORE INFO TO EXAMINE.  FOR
+THE TIME I WILL NOT CREATE THE SNA/SDLC PATCH AND CONTINUE ON.
+
+ --#230 STATUS ENTERED FROM STONEK          BY STS ON 19-FEB-93 @18:17 ZULU.
+     REPORT SENT YET ?: NO
+
+ --#231 STATUS ENTERED FROM STONEK          BY STS ON 19-FEB-93 @19:52 ZULU.
+     REPORT SENT YET ?: NO
+DUMP X22010.DP1 IS THE OLDEST DUMP I COULD FIND AND IT APPEARS TO
+HAVE WINDOW SIZE 7.  ALTHOUGH THE PROBLEM APPEARS SIMILAR TO THE
+WINDOW 5 PROBLEM.
+
+ --#232 STATUS ENTERED FROM FISBEIN         BY CSG ON 19-FEB-93 @21:44 ZULU.
+     REPORT SENT YET ?: NO
+Ken, Roberto's status might not be as clear as expected. Sirti is 100% sure
+that K was 7 when the problem was originally reported. He told me that there
+should not be much problem changing K back to 7 on both sides, but he would
+prefer without trap patch. Thank you. Stephane. (I'm leaving...)
+
+ --#233 STATUS ENTERED FROM STONEK          BY STS ON 20-FEB-93 @ 0:24 ZULU.
+     REPORT SENT YET ?: NO
+JERRY AND I STILL INVESTIGATING.  IF YOU ARE HOT FOR ACTION YOU
+MIGHT TRY REMOVING JOHNSONP-FRMR.PAT
+
+ --#234 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-FEB-93 @22:42 ZULU.
+     REPORT SENT YET ?: NO
+Ken, I had a quick look at (johnsonp:33)frmr.403 . This patch was made during
+version 4.03's QA with several PTTs in Europe, including Televerket, PSS,
+Iberpac, ... Also, a quick analysis shows me that this patch handles the FRMR
+recovery from Tymnet following bad reactions from the external device.
+
+ --#235 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-FEB-93 @22:46 ZULU.
+     REPORT SENT YET ?: NO
+Therefore, I don't see any particular in removing it. Nor do I see any
+particular justification to leave it in this case, but I think it is just
+harmless to leave it. Can I emphasize the fact that the customer expects BT's
+next action on this problem to be more conclusive than the previous ones. ?
+
+ --#236 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-FEB-93 @22:48 ZULU.
+     REPORT SENT YET ?: NO
+Note that I appreciate the difficulty of this problem, but we have a lot of
+pression on our shoulders now, even if we conclude on a host problem.
+Thanks again for all your efforts. Stephane.
+
+ --#237 STATUS ENTERED FROM STONEK          BY STS ON 23-FEB-93 @18:00 ZULU.
+     REPORT SENT YET ?: NO
+THE FRMR PATCH BY PAUL IS IN AN AREA OF THE CODE WHERE IT MAY HAVE
+SOME INFLUENCE.  AFTER LOOKING AT THE PROBLEM FOR MOST OF THE DAY
+JERRY AND I CANNOT CONCLUDE MUCH.  THE X.25 INTERFACES
+AROUND THE NETWORK HANDLE THOUSANDS OF REJ'S A DAY.  WHY DOES YOUR
+
+ --#238 STATUS ENTERED FROM STONEK          BY STS ON 23-FEB-93 @18:00 ZULU.
+     REPORT SENT YET ?: NO
+INTERFACE HAVE A PROBLEM?  IN SITUATIONS LIKE THIS WE REMOVE
+ALL PATCHES THAT ARE EVEN LOCATED IN THE AREA OF CONCERN.  THIS PATCH
+IS CLOSE ENOUGH, AND I KNOW OF NO ONE ELSE USING IT HERE SO IT
+WAS JUST A THOUGHT.  IT COULD NOT HURT.  IF THE PROBLEM WAS EVER
+
+ --#239 STATUS ENTERED FROM STONEK          BY STS ON 23-FEB-93 @18:00 ZULU.
+     REPORT SENT YET ?: NO
+FORMERLY TURNED OVER TO NTD, THEY WOULD ASK YOU REMOVE ALL PATCH FILES
+BEFORE THEY LOOK AT ANYTHING.  THE OTHER AREA OF DIFFERENCE IS THE WINDOW
+SIZE 5.  WE WOULD STILL PREFER THAT THE WINDOW SIZE ON BOTH SIDES BE
+MOVED TO 7.
+
+ --#240 STATUS ENTERED FROM STONEK          BY STS ON 23-FEB-93 @18:00 ZULU.
+     REPORT SENT YET ?: NO
+
+ --#241 STATUS ENTERED FROM SIRTITAS        BY RL  ON 26-FEB-93 @ 8:48 ZULU.
+     REPORT SENT YET ?: NO
+Information for Stephane Fisbein from Roberto Leone (Sirti):
+Stephane, the next week I will be available at our offices in Milano (tel.
++39-2-95 25 71). There, it will not be immediate, for me, to access paper.
+I will be back to Florence offices on Monday, 8th of March.   Roberto.
+
+ --#242 STATUS ENTERED FROM FISBEIN         BY CSG ON  4-MAR-93 @21:34 ZULU.
+     REPORT SENT YET ?: NO
+Roberto, I have prepared a code in (fisbein:33)x42010.##1 which contains only
+the (source) patch file and the xomhst patch to allow login in XOM, per STS's
+request. I have additionally added more diagnostic tools in the XDDT (?stat)
+(2[ddtdia: in the c01).
+
+ --#243 STATUS ENTERED FROM FISBEIN         BY CSG ON  4-MAR-93 @21:34 ZULU.
+     REPORT SENT YET ?: NO
+Now, the next step is to make sure that there is no influence on the data link
+layer from the additional patches that I have removed. So, please schedule a
+slot reload with customer, including the change of K to 7 on both sides. Your
+side still has 5 but since maxk is 7 you can change it to 7 whenever
+
+ --#244 STATUS ENTERED FROM FISBEIN         BY CSG ON  4-MAR-93 @21:34 ZULU.
+     REPORT SENT YET ?: NO
+appropriate. Then, the only thing we need to know is whether the problem
+persists under these conditions. There will be no trap patch, so no dump. Only
+a slot reload from Elf to minimize the system outage. Please let us know
+
+ --#245 STATUS ENTERED FROM FISBEIN         BY CSG ON  4-MAR-93 @21:34 ZULU.
+     REPORT SENT YET ?: NO
+when you plan to schedule this reload. Thanks. Stephane.
+
+ --#246 STATUS ENTERED FROM FISBEIN         BY CSG ON  4-MAR-93 @21:34 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM MMGMT TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#247 STATUS ENTERED FROM SIRTITAS        BY RL  ON  8-MAR-93 @ 8:45 ZULU.
+     REPORT SENT YET ?: NO
+Stephane,  I will inform you when the reload is executed.
+I am leaving again to Milan. I'll be back in my office on 15 march.
+RL
+
+ --#248 STATUS ENTERED FROM SIRTITAS        BY RL  ON 11-MAR-93 @10:40 ZULU.
+     REPORT SENT YET ?: NO
+STEPHANE, I AM STILL IN MILAN, I WAS INFORMED BY MY PEOPLE AT AUTOSTRADE SITE
+THAT THE PATCHHES-REMOVED CODE STILL SUFFERS FOR THE PROBLEM, WITH THE SAME
+FREQUENCE OF THHE STANDARD CODE.  THE K PARAMETER IS NOW AT 7 ON BOTH SIDES.
+STANDING THESE TEMPORARY RESULTS, WE ARE TRYING TO REACTIVATE A DEAL WITH
+
+ --#249 STATUS ENTERED FROM SIRTITAS        BY RL  ON 11-MAR-93 @10:43 ZULU.
+     REPORT SENT YET ?: NO
+WITH STRATUS/OLIVETTI PEOPLE INVOLVED, DIRECTLY OR THROUGH THE CUSTOMER.
+IN THE MEANTIME, PLEASE, LET''S PURSUE OUR INVESTIGATIONS.
+RL.
+
+ --#250 STATUS ENTERED FROM SIRTITAS        BY RL  ON 11-MAR-93 @10:43 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#251 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-MAR-93 @11:31 ZULU.
+     REPORT SENT YET ?: NO
+Ken, according to Roberto's status above, your (and/or NTD's) suggestions are
+giving the exact same symptoms. What else can be done now ? Thanks in advance
+for your further inputs. Stephane.
+
+ --#252 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-MAR-93 @11:31 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#253 STATUS ENTERED FROM SIRTITAS        BY RL  ON 15-MAR-93 @ 9:43 ZULU.
+     REPORT SENT YET ?: NO
+SIRTI GRABS THIS TICKET.
+
+ --#254 STATUS ENTERED FROM SIRTITAS        BY RL  ON 15-MAR-93 @ 9:43 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM MMGMT TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#255 STATUS ENTERED FROM SIRTITAS        BY RL  ON 15-MAR-93 @ 9:50 ZULU.
+     REPORT SENT YET ?: NO
+STEPHANE, I HAVE SPOKEN TO THE CUSTOMER:
+IN ORDER THEY TO OFFICIALLY INVOLVE OLIVETTI'S SUPPORT, THEY WANT NOW
+WE PROVIDE THEM WITH CONCLUSIVE RESULTS.
+RL
+
+ --#256 STATUS ENTERED FROM SIRTITAS        BY RL  ON 15-MAR-93 @ 9:50 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#257 STATUS ENTERED FROM FISBEIN         BY CSG ON 15-MAR-93 @12:36 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#258 STATUS ENTERED FROM CSS800          BY EAC ON 16-MAR-93 @17:34 ZULU.
+     REPORT SENT YET ?: NO
+s=n/a d=n/a a=rec'd fax from jacgues doucet/ecsc mgr requesting assistance
+on this ticket. have left a voice mail for doug ellenburg requesting
+mmgmt investigate. n=mmgmt to review/advise. c=n/a
+
+ --#259 STATUS ENTERED FROM DOUGE           BY STS ON 16-MAR-93 @18:44 ZULU.
+     REPORT SENT YET ?: NO
+I'll talk to Ken Stone about this today.
+
+ --#260 STATUS ENTERED FROM STONEK          BY STS ON 16-MAR-93 @18:46 ZULU.
+     REPORT SENT YET ?: NO
+JERRY AND I WILL GET TOGETHER THIS WEEK ON THIS TICKET.  WE ARE WORKING
+ON IT TOGETHER STUDYING THE PROBLEM IN SOME DIFFERENT LAB ENVIRONMENTS.
+MY SCHEDULE IS A LITTLE LIMITED BUT WE SHOULD BE ABLE TO GET
+TIME TUES OR WEDNESDAY.  SORRY TO HEAR OLIVETTI WILL NOT BE INVOLVED.
+
+ --#261 STATUS ENTERED FROM FISBEIN         BY CSG ON 25-MAR-93 @ 8:30 ZULU.
+     REPORT SENT YET ?: NO
+Any progress, guys ? (even not conclusive!).
+Stephane.
+
+ --#262 STATUS ENTERED FROM CSS800          BY EAC ON 26-MAR-93 @17:15 ZULU.
+     REPORT SENT YET ?: NO
+s=n/a d=n/a a=have left voice mail for doug ellenburg and stan king
+regarding this ticket and requests for status. n=update from mmgmt
+c=n/a
+
+ --#263 STATUS ENTERED FROM DOUGE           BY STS ON 26-MAR-93 @17:29 ZULU.
+     REPORT SENT YET ?: NO
+I know some progress has bene made on this.  Ken and I were discussing
+it yesterday with two other people.  I'll have Ken status shortly.
+
+ --#265 STATUS ENTERED FROM SIRTITAS        BY RL  ON 31-MAR-93 @ 6:58 ZULU.
+     REPORT SENT YET ?: NO
+Could you make me aware of progresses made?
+After more than five months of analysis, I have no longer the heart
+for meeting or simply contacting the customer...
+Roberto Leone.
+
+ --#266 STATUS ENTERED FROM CSS800          BY EAC ON  1-APR-93 @18:27 ZULU.
+     REPORT SENT YET ?: NO
+s=n/a d=n/a a=contacted doug ellenburg to request status update. n=update
+from mmgmt, ken or jerry. c=thanks
+
+ --#267 STATUS ENTERED FROM STONEK          BY STS ON  1-APR-93 @21:20 ZULU.
+     REPORT SENT YET ?: NO
+JERRY AND I MET WITH DENNIS ERNST OF NTD TODAY.  HE DID NOT HAVE
+AN EXPLANATION FOR THE PROBLEM EITHER.  HIS RECOMMENDATION IS TO
+UPGRADE TO VERSION 7.  INCLUDE NO SPECIALS UPGRADED FROM VERSION
+4.  THE PDP'S HAVE 7.01 AND UNIX HAS 7.02 BUT OUR CHOICE WOULD
+
+ --#268 STATUS ENTERED FROM STONEK          BY STS ON  1-APR-93 @21:20 ZULU.
+     REPORT SENT YET ?: NO
+TO USE 7.02.  MAYBE KEEP THE CODE IN YOUR OWN DIRECTORY OR WHATEVER
+FOR TIME BEING.  PERSONALLY I WOULD ADD TO MAKE THE K = 7. FOR
+BOTH SIDES.  ANOTHER RECOMMENDATION, WHICH DOUG ELLENBERG FIRST
+CONVINCED ME WE SHOULD TALK ABOUT IS OLIVETTI.  THEY HAVE A KNOWN
+
+ --#269 STATUS ENTERED FROM STONEK          BY STS ON  1-APR-93 @21:20 ZULU.
+     REPORT SENT YET ?: NO
+PROBLEM WITH THE LOST FRAME AFTER THE RNR.  WE THINK THEY SHOULD GET
+INVOLVED AND TAKE A LOOK AT THAT PROBLEM.  IT IS POSSIBLE THAT
+IF THIS IS FIXED THAN OUR PROBLEM WOULD VANISH ALSO.  I ASSUME OLIVETTI
+HAS NOT BEEN INVOLVED PREVIOUSLY BECAUSE OF COST.  IF THIS IS THE CASE
+
+ --#270 STATUS ENTERED FROM STONEK          BY STS ON  1-APR-93 @21:20 ZULU.
+     REPORT SENT YET ?: NO
+LET US KNOW.  IF SO WHY WOULD OLIVETTI CHARGE FOR THEIR PROBLEM ??
+UPGRADE AND LET US KNOW THE RESULTS.  TRY TO BE MORE SPECIFIC
+THAN 'IT STILL DOESN'T WORK, FIX IT, ' STUFF LIKE THAT.  THE MORE
+SPECIFIC INFORMATION WE CAN RECEIVE THE BETTER.  IF NOT I WILL CREATE
+
+ --#271 STATUS ENTERED FROM STONEK          BY STS ON  1-APR-93 @21:20 ZULU.
+     REPORT SENT YET ?: NO
+A FRMR TRAPPING PATCH FOR VERSION 7.
+
+ --#272 STATUS ENTERED FROM STONEK          BY STS ON  1-APR-93 @21:28 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#273 STATUS ENTERED FROM FISBEIN         BY CSG ON  2-APR-93 @14:14 ZULU.
+     REPORT SENT YET ?: NO
+Roberto, further to Ken and Dennis's recommendation, I have regenned node
+2010 slot 1 with version 7.02 under Unix. Since you don't have access to system
+25, please let me know when I can load this slot. We'll test this version for
+a while, and will make sure that you have access to it under CMS if it works.
+
+ --#274 STATUS ENTERED FROM FISBEIN         BY CSG ON  2-APR-93 @14:16 ZULU.
+     REPORT SENT YET ?: NO
+When this version will be loaded, and should any problem show up, would you
+please make sure that you take all the necessary information, traces, ... as to
+the circumstances of the problem. If you want, I can monitor the slot from my
+office too. Thanks. Stephane.
+
+ --#275 STATUS ENTERED FROM FISBEIN         BY CSG ON  2-APR-93 @14:16 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#276 STATUS ENTERED FROM SIRTITAS        BY RL  ON  2-APR-93 @14:21 ZULU.
+     REPORT SENT YET ?: NO
+Sirti  acknowledges.  RL.
+
+ --#278 STATUS ENTERED FROM SIRTITAS        BY RL  ON  5-APR-93 @ 7:13 ZULU.
+     REPORT SENT YET ?: NO
+as allowed in working under their production environment.
+RL.
+
+ --#279 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-APR-93 @17:25 ZULU.
+     REPORT SENT YET ?: NO
+From the FT taken, I have to report the following :
+1. Regular RNRs from the host, ranging from 1 to 6 in a row, with no
+   consequence in most cases.
+2. RNRs leading to a REJ from the host : examples are provided in system 25
+
+ --#280 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-APR-93 @17:25 ZULU.
+     REPORT SENT YET ?: NO
+   under ~sfisbein/sirti/rej.trc .
+3. REJ from the host leading to FRMR from the host : examples in the same
+   directory /frmr.trc .
+The codes which ran in the engine are in the same directory /t01 c01 n01.
+
+ --#282 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-APR-93 @17:25 ZULU.
+     REPORT SENT YET ?: NO
+whether it was taken before or after last Monday's reload. Can you check this,
+Roberto ? In any case, a datascope trace of the FRMR in a PDP file is most
+welcome. Thanks. Stephane.
+
+ --#283 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-APR-93 @17:59 ZULU.
+     REPORT SENT YET ?: NO
+Sorry, Roberto, I cannot transfer n01 for the moment. I'll try later tomorrow
+if you're interested. Thanks. Stephane.
+
+ --#284 STATUS ENTERED FROM SIRTITAS        BY RL  ON  9-APR-93 @ 8:42 ZULU.
+     REPORT SENT YET ?: NO
+Version 7.02 has been removed, as the problem still occurs. If you need it,
+we can try to convince the customer to reinstall it for pursuing
+investigations.
+Giving you infoes regarding datascope trace by phone as possible.   RL.
+
+ --#285 STATUS ENTERED FROM SIRTITAS        BY RL  ON  9-APR-93 @ 8:45 ZULU.
+     REPORT SENT YET ?: NO
+As for Zucchetti's trace time, I'll provide you this info next Tuesday,
+as he is at home today.
+RL
+
+ --#286 STATUS ENTERED FROM SIRTITAS        BY RL  ON  9-APR-93 @ 8:45 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#287 STATUS ENTERED FROM FISBEIN         BY CSG ON  9-APR-93 @15:42 ZULU.
+     REPORT SENT YET ?: NO
+Thank you ! Over to Sirti to provide datascope trace.
+Stephane.
+
+ --#288 STATUS ENTERED FROM FISBEIN         BY CSG ON  9-APR-93 @15:42 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#289 STATUS ENTERED FROM SIRTITAS        BY RL  ON 13-APR-93 @ 9:42 ZULU.
+     REPORT SENT YET ?: NO
+Stephane,
+1. I am sorry to listen that no trace has been taken with version 7.02,
+   as the customer immediately forced us for removing it as soon as they
+
+ --#290 STATUS ENTERED FROM SIRTITAS        BY RL  ON 13-APR-93 @ 9:42 ZULU.
+     REPORT SENT YET ?: NO
+   realized that the problem persisted.
+2. As for Zucchetti's trace, there is a misunderstanding: it is one of the
+   old traces, taken in the past with version 4.02.
+3. We are 90 % sure (going to get a confirm) that we have this problem only
+
+ --#291 STATUS ENTERED FROM SIRTITAS        BY RL  ON 13-APR-93 @ 9:42 ZULU.
+     REPORT SENT YET ?: NO
+   when a x.25 slot is running with a sdlc slot on the same node.
+RL
+
+ --#293 STATUS ENTERED FROM FISBEIN         BY CSG ON 13-APR-93 @11:00 ZULU.
+     REPORT SENT YET ?: NO
+Based on my traces mentionned above, it seems that version 7.02 is showing
+the two problems separately. Frmr.trc shows the REJ recovery problem which
+seems to be independent from the RNRs (rej.trc) . The FRMR aspect of the
+
+ --#294 STATUS ENTERED FROM FISBEIN         BY CSG ON 13-APR-93 @11:00 ZULU.
+     REPORT SENT YET ?: NO
+the problem remains with 7.02 and is absolutely similar to the one of 4.03 .
+1. Since the customer has come back to 4.03, and the FRMR problem remains in
+   the same conditions, except that we know it can happen independently of the
+   RNRs, is this enough information to re-focus on this problem with 4.03 ?
+
+ --#295 STATUS ENTERED FROM FISBEIN         BY CSG ON 13-APR-93 @11:00 ZULU.
+     REPORT SENT YET ?: NO
+2. Could there be any interaction at the SIO level between an SDLC slot and
+   an XCOM slot ? Note that I am sure we have a lot of counter examples.
+Thanks. Stephane. ECSG.
+
+ --#296 STATUS ENTERED FROM FISBEIN         BY CSG ON 13-APR-93 @11:00 ZULU.
+     REPORT SENT YET ?: NO
+
+ --#297 STATUS ENTERED FROM FISBEIN         BY CSG ON 13-APR-93 @11:00 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#298 STATUS ENTERED FROM STONEK          BY STS ON 13-APR-93 @16:59 ZULU.
+     REPORT SENT YET ?: NO
+PLEASE UPGRADE BACK TO 7.02.  TO FORMALLY TURN THIS TO NTD, IT WILL
+BE EASIER FOR THEM TO ACCEPT AND WORK ON THE PROBLEM AT 7.02.
+ALSO I HAVE NOT SEEN ANY RESPONSE BACK TO OLIVETTI'S INVOLVEMENT
+IN THE RNR PROBLEM.  THAT IS ALSO OUR RECOMMENDATION.  AGAIN UPGRADE
+
+ --#299 STATUS ENTERED FROM STONEK          BY STS ON 13-APR-93 @16:59 ZULU.
+     REPORT SENT YET ?: NO
+
+ --#301 STATUS ENTERED FROM STONEK          BY STS ON 13-APR-93 @17:03 ZULU.
+     REPORT SENT YET ?: NO
+OH BY THE WAY, HOW DO YOU KNOW ABOUT THE 90%???
+
+ --#302 STATUS ENTERED FROM STONEK          BY STS ON 13-APR-93 @17:03 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#303 STATUS ENTERED FROM STONEK          BY STS ON 13-APR-93 @20:05 ZULU.
+     REPORT SENT YET ?: NO
+TALKED TO STEPHANE.  WE AGREED HE COULD LEAVE THE INTERFACE AT 4.03,
+BUT NTD WOULD GIVE ANY FIX FOR 7.02 AND THEY WOULD HAVE TO UPGRADE
+THEN.  OR IF THEY HAD A TRAP PATCH IT WOULD BE FOR 7.02..
+KEN
+
+ --#304 STATUS ENTERED FROM SIRTITAS        BY RL  ON 15-APR-93 @15:49 ZULU.
+     REPORT SENT YET ?: NO
+Sirti takes this ticket for adding some news about the 90% above...
+
+ --#305 STATUS ENTERED FROM SIRTITAS        BY RL  ON 15-APR-93 @15:49 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#306 STATUS ENTERED FROM SIRTITAS        BY RL  ON 15-APR-93 @15:51 ZULU.
+     REPORT SENT YET ?: NO
+We realized that the problem occurs when an XCOM slot is running with an
+other "working" slot (sdlc, or uts, or 3270) on the same node.
+When Xcom is running alone in a node, or when no data are processed by the
+
+ --#307 STATUS ENTERED FROM SIRTITAS        BY RL  ON 15-APR-93 @15:51 ZULU.
+     REPORT SENT YET ?: NO
+other(s) slot(s) (during the night , for example, while no user works) we
+we have not this problem.
+RL
+
+ --#308 STATUS ENTERED FROM SIRTITAS        BY RL  ON 15-APR-93 @15:51 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#309 STATUS ENTERED FROM FISBEIN         BY CSG ON 16-APR-93 @ 7:28 ZULU.
+     REPORT SENT YET ?: NO
+Ken, can you please consider the above statement by Roberto Leone and talk to
+the ISIS gurus, because, if experimentation confirms it, it would be deeper
+than just SIO since they have the problem in a node with XCOM and UTS only
+when UTS is running (daytime). However, the problem shows up slightly more
+
+ --#310 STATUS ENTERED FROM FISBEIN         BY CSG ON 16-APR-93 @ 7:30 ZULU.
+     REPORT SENT YET ?: NO
+frequently when XCOM shares the node with SDLC.
+With UTS, it shows up during daytime, probably because UTS is not used at
+night (mainly office work).
+Thanks. Stephane.
+
+ --#311 STATUS ENTERED FROM FISBEIN         BY CSG ON 16-APR-93 @ 7:30 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#312 STATUS ENTERED FROM STONEK          BY STS ON 19-APR-93 @20:14 ZULU.
+     REPORT SENT YET ?: NO
+STEPHANE, I HAVE SOME QUESTIONS FROM NTD.  AS ALWAYS ACCURACY COUNTS!
+WAS 7.02 TESTED WITH K=7 OR 5?  IF K=5, WAS IT CHANGED
+TO 7?  CHANGED WITH XOM OR REGEN AND RELOAD?  SAME QUESTIONS
+FOR 4.03 REGEN OR XOM CHANGE?  ALSO NEED TO VERIFY FOR NTD
+
+ --#313 STATUS ENTERED FROM STONEK          BY STS ON 19-APR-93 @20:14 ZULU.
+     REPORT SENT YET ?: NO
+THAT THE MDIS..PATCH FILE WAS REMOVED AND THE SAME FAILURE
+OCCURRED...THANKS...P.S....IF THEY ARE USING 4.03 NOW, AND HAVING
+PROBLEM, CAN YOU CHANGE K=7 ON BOTH SIDES, AND REGEN XCOM DON`T
+MAKE XOM CHANGE...
+
+ --#314 STATUS ENTERED FROM STONEK          BY STS ON 19-APR-93 @20:14 ZULU.
+     REPORT SENT YET ?: NO
+
+ --#315 STATUS ENTERED FROM STONEK          BY STS ON 19-APR-93 @20:18 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#316 STATUS ENTERED FROM TNSM            BY FC  ON 20-APR-93 @17:35 ZULU.
+     REPORT SENT YET ?: NO
+Ken, Stephane is in vaccation and i am don't know how he modified the
+K parameter (xom or with genning the code)
+He will answer you tomorrow.On the other hand have you contact the isis
+expert about the possible interference between sdlc or uts slot and xcom
+
+ --#317 STATUS ENTERED FROM TNSM            BY FC  ON 20-APR-93 @17:37 ZULU.
+     REPORT SENT YET ?: NO
+one?
+Please send back the tt to Stephane to answer your question
+Thanks Franck Chevalier (ecsg)
+
+ --#318 STATUS ENTERED FROM TNSM            BY FC  ON 20-APR-93 @17:37 ZULU.
+     REPORT SENT YET ?: NO
+TNSM (FC ) TRANSFERRED THIS TICKET FROM ECSG  TO CS800.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#319 STATUS ENTERED FROM CSS800          BY DCB ON 20-APR-93 @18:10 ZULU.
+     REPORT SENT YET ?: NO
+CSS800    (DCB) TRANSFERRED THIS TICKET FROM CS800 TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#320 STATUS ENTERED FROM STONEK          BY STS ON 20-APR-93 @23:44 ZULU.
+     REPORT SENT YET ?: NO
+THE ISIS AND UTS INTERACTION WE HAVE ALMOST NO INFORMATION TO
+GIVE TO THE ISIS GROUP.  (DO THEY INTERFERE?  NO SHOULD NOT.)
+IF THERE IS A QUESTION LIKE THAT, WHAT MIGHT BE BEST WOULD BE TO
+GET A COUPLE OF DIAL MODEMS AND MOVE THEIR SLOT TO ANOTHER NODE
+
+ --#321 STATUS ENTERED FROM STONEK          BY STS ON 20-APR-93 @23:44 ZULU.
+     REPORT SENT YET ?: NO
+AND HAVE THE CUSTOMER DIAL AROUND THE CABLE AND NODE.
+NTD FOUND SOME SIMILAR PROBLEMS THAT CAN OCCUR WHEN THE T1
+TIMER HAS A MISMATCH.  THEY WOULD LIKE FOR YOU TO DOUBLE CHECK
+CUSTOMER SETTING FOR THE T1 TIMER.  ALSO DOES CUSTOMER HAVE TRACE
+
+ --#322 STATUS ENTERED FROM STONEK          BY STS ON 20-APR-93 @23:44 ZULU.
+     REPORT SENT YET ?: NO
+MECHANISM ON THE HOST.  THEY ARE LOOKING FOR AS MANY ANGLES AS POSSIBLE.
+A TIMESTAMP TRACE WOULD BE GREAT FOR THEM.
+
+ --#323 STATUS ENTERED FROM STONEK          BY STS ON 20-APR-93 @23:47 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#324 STATUS ENTERED FROM FISBEIN         BY CSG ON 21-APR-93 @16:57 ZULU.
+     REPORT SENT YET ?: NO
+Information requested :
+1. Problem shows up in version 4.03 with K=7 and no custom patch but xomhst
+   for xom access.
+2. Problem shows up in version 7.02 with K=7 too. (assembled as in both vers.)
+
+ --#325 STATUS ENTERED FROM FISBEIN         BY CSG ON 21-APR-93 @16:57 ZULU.
+     REPORT SENT YET ?: NO
+3. Sirti is trying to isolate an LSX4000 in its own node. Wait and see !
+4. I think T1 was consistent, but I would like Roberto to confirm this.
+5. As far as I know, Autostrade never took any trace on their end, therefore
+
+ --#326 STATUS ENTERED FROM FISBEIN         BY CSG ON 21-APR-93 @16:57 ZULU.
+     REPORT SENT YET ?: NO
+   I don't know if there is a trace facility on the host with time stamp. I
+   would like Roberto to answer on this too.
+Roberto, can you please answer to points 4 & 5 above ? Thanks. Stephane.
+
+ --#327 STATUS ENTERED FROM FISBEIN         BY CSG ON 21-APR-93 @16:57 ZULU.
+     REPORT SENT YET ?: NO
+
+ --#328 STATUS ENTERED FROM FISBEIN         BY CSG ON 21-APR-93 @16:57 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#329 STATUS ENTERED FROM SIRTITAS        BY RL  ON 22-APR-93 @12:06 ZULU.
+     REPORT SENT YET ?: NO
+Sirti acks. Going to answer.
+RL
+
+ --#330 STATUS ENTERED FROM SIRTITAS        BY RL  ON 26-APR-93 @ 8:58 ZULU.
+     REPORT SENT YET ?: NO
+Here are our answer:
+4.  parameter T1 = 3 sec. on both the sides.
+5.  yes, LSX 4000  has a trace facility with time stamps. We can try
+    to provide you with a file containing this trace, if you need it.  RL.
+
+ --#333 STATUS ENTERED FROM FISBEIN         BY CSG ON 26-APR-93 @ 9:45 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#327 STATUS ENTERED FROM FISBEIN         BY CSG ON 29-APR-93 @ 7:57 ZULU.
+     REPORT SENT YET ?: NO
+Roberto, status # 331 & 332 seem to have been lost. Please try to have the
+customer providing you with a trace of the problem with time stamps.
+Thanks. Stephane.
+
+ --#328 STATUS ENTERED FROM SIRTITAS        BY RL  ON 29-APR-93 @ 8:57 ZULU.
+     REPORT SENT YET ?: NO
+Sirti acks. Going to provide you with the Host's trace...
+RL.
+
+ --#329 STATUS ENTERED FROM SIRTITAS        BY AR  ON 30-APR-93 @ 7:09 ZULU.
+     REPORT SENT YET ?: NO
+I have generated a new node with only a X25 slot to isolate an LSX4000.
+I need same day to check if the problem shows up again. A.Romoli
+
+ --#330 STATUS ENTERED FROM SIRTITAS        BY AR  ON 30-APR-93 @ 7:13 ZULU.
+     REPORT SENT YET ?: NO
+Can you see our ontyme message for ELF problem?  Thanks, AR.
+
+ --#331 STATUS ENTERED FROM SIRTITAS        BY RL  ON  3-MAY-93 @ 8:31 ZULU.
+     REPORT SENT YET ?: NO
+We are still waiting for the trace to be provided by the customer...
+RL.
+
+ --#332 STATUS ENTERED FROM FISBEIN         BY CSG ON  3-MAY-93 @14:06 ZULU.
+     REPORT SENT YET ?: NO
+Alessandro, I have replied your ontyme. S.F.
+
+ --#333 STATUS ENTERED FROM SIRTITAS        BY AL  ON  5-MAY-93 @ 7:01 ZULU.
+     REPORT SENT YET ?: NO
+No appreciable improvements acknowledged in the isolated X.25 node-host
+situation: disconnections occur so frequently as in the case of the node
+in which both UTS and X.25 slot run simultaneously.
+
+ --#334 STATUS ENTERED FROM SIRTITAS        BY AL  ON  5-MAY-93 @ 7:03 ZULU.
+     REPORT SENT YET ?: NO
+The trace you asked for is not yet available. A.L.
+
+ --#335 STATUS ENTERED FROM SIRTITAS        BY RL  ON  5-MAY-93 @12:15 ZULU.
+     REPORT SENT YET ?: NO
+Here are the results of our tests:
+1. A slot x.25 running alone in a node, still suffers for the problem.
+2. the frequence of the problem is higher when an sdlc slot runs with
+   the x.25 slot, in the same node.
+
+ --#336 STATUS ENTERED FROM SIRTITAS        BY RL  ON  5-MAY-93 @12:15 ZULU.
+     REPORT SENT YET ?: NO
+3. The frequence of the problem does not depend on the presence of an
+   uts slot in the same node.
+Conclusions: it seems to be something involved with the SIO processes,
+             rather than ISIS.
+
+ --#337 STATUS ENTERED FROM SIRTITAS        BY RL  ON  5-MAY-93 @12:15 ZULU.
+     REPORT SENT YET ?: NO
+Please, a confirm....and something more...
+RL.
+
+ --#338 STATUS ENTERED FROM SIRTITAS        BY RL  ON  5-MAY-93 @12:32 ZULU.
+     REPORT SENT YET ?: NO
+As for the Host's trace, we will advise you when it is available.
+RL
+
+ --#339 STATUS ENTERED FROM SIRTITAS        BY RL  ON  5-MAY-93 @12:32 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (RL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#340 STATUS ENTERED FROM FISBEIN         BY CSG ON  5-MAY-93 @13:03 ZULU.
+     REPORT SENT YET ?: NO
+Ken, Jerry, I think that the information requested has been provided, except
+the host trace. This will be made available asap. In the meantime, could you
+please inform NTD of the answers provided and rethink on the problem ? Thanks.
+Stephane.
+
+ --#341 STATUS ENTERED FROM FISBEIN         BY CSG ON  5-MAY-93 @13:03 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#342 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-MAY-93 @16:51 ZULU.
+     REPORT SENT YET ?: NO
+A conference call was held this morning at 9 a.m. (CET)/Midnight (PST) between
+MMGMT Jerry Lucas and ECSG Stephane Fisbein to explore new possibilities
+related to a possible bug in XCOM foreground. This led to the following
+
+ --#343 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-MAY-93 @16:51 ZULU.
+     REPORT SENT YET ?: NO
+action plan :
+1. MMGMT will try to reproduce this problem in lab with all the latest
+   information they have been provided with, and come up with a thoroughly
+   tested patch in the foreground which gets rid of useless checks for SIO
+
+ --#344 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-MAY-93 @16:51 ZULU.
+     REPORT SENT YET ?: NO
+   activity. This patch should be available for implementation by Sirti by
+   Thursday or Friday next week. Sirti will have to closely observe and
+   precisely report, with traces, ..., any improvement, deterioration, change,
+   continuation of the original symptoms. This report will decide whether this
+
+ --#345 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-MAY-93 @16:51 ZULU.
+     REPORT SENT YET ?: NO
+   lead will be followed on, or if we will shift to action # 2.
+2. Based on the results of action # 1, MMGMT will prepare a patch that will
+   collect diagnostic information when the rotor table is modified and place
+   that information in a special patch buffer when the problem shows up so
+
+ --#346 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-MAY-93 @16:51 ZULU.
+     REPORT SENT YET ?: NO
+   that the slot will not crash, and no dump taking should be necessary. It
+   will be up to us to check that buffer on a regular basis. I have a sugges-
+   tion to this end.  Maybe the DMY1 command could be programmed to display
+   a flag when the patch buffer is full, if this is not too complicated.
+
+ --#347 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-MAY-93 @16:51 ZULU.
+     REPORT SENT YET ?: NO
+MMGMT will try to get NTD's assistance whenever necessary.
+Jerry, if I missed anything, please feel free to fill the hole !
+Thanks. Stephane.
+
+ --#348 STATUS ENTERED FROM FISBEIN         BY CSG ON 10-MAY-93 @16:10 ZULU.
+     REPORT SENT YET ?: NO
+Roberto, the first phase of our new action plan has been completed, as far as
+BT is concerned. A patch is ready for you to be tested. It has already been
+tested in lab environment. Please test it whenever you can. Please remember
+to use K(7). The patch can be assembled on PDP 33 as well as CMS. In your
+
+ --#349 STATUS ENTERED FROM FISBEIN         BY CSG ON 10-MAY-93 @16:10 ZULU.
+     REPORT SENT YET ?: NO
+command file, remove ;x(fisbein)mdisi4.p03 and add instead :
+;@(xcompat)xomhst.403
+;@(xcompat)sioact.403
+As indicated before, this patch (sioact.403) only answers to a possible bug.
+
+ --#350 STATUS ENTERED FROM FISBEIN         BY CSG ON 10-MAY-93 @16:10 ZULU.
+     REPORT SENT YET ?: NO
+If it fixes the problem, fine. If not, please collect as much information as
+possible as to the exact symptoms, frequency, and possible traces (host trace?)
+and let us know at your easiest convenience. Thanks. Stephane.
+
+ --#351 STATUS ENTERED FROM FISBEIN         BY CSG ON 10-MAY-93 @16:10 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM MMGMT TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#352 STATUS ENTERED FROM SIRTITAS        BY AL  ON 11-MAY-93 @ 6:20 ZULU.
+     REPORT SENT YET ?: NO
+Sirti acks. Going to test the patches.
+A.L.
+
+ --#353 STATUS ENTERED FROM SIRTITAS        BY AL  ON 18-MAY-93 @ 9:21 ZULU.
+     REPORT SENT YET ?: NO
+Here is the situation with the new patches:
+1. disconnections (FRMR) still occur
+2. their frequency is so high as in the worst case (SDLC and X.25
+   running on the same node)
+
+ --#354 STATUS ENTERED FROM SIRTITAS        BY AL  ON 18-MAY-93 @ 9:21 ZULU.
+     REPORT SENT YET ?: NO
+3. traces will be provided asap.
+A.L.
+
+ --#355 STATUS ENTERED FROM SIRTITAS        BY AL  ON 18-MAY-93 @14:14 ZULU.
+     REPORT SENT YET ?: NO
+A X.25 trace is available on SYS 26 as:
+ - (sirtitas)trace
+ - (sirtitas)trace.hex
+A.L.
+
+ --#356 STATUS ENTERED FROM SIRTITAS        BY AL  ON 18-MAY-93 @14:14 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#357 STATUS ENTERED FROM FISBEIN         BY CSG ON 18-MAY-93 @14:42 ZULU.
+     REPORT SENT YET ?: NO
+Over to STS Jerry Lucas & Ken Stone to proceed with phase 2 of the current
+action plan.
+Thanks. Stephane.
+
+ --#358 STATUS ENTERED FROM FISBEIN         BY CSG ON 18-MAY-93 @14:42 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#359 STATUS ENTERED FROM TECHSERV        BY STS ON 24-MAY-93 @17:21 ZULU.
+     REPORT SENT YET ?: NO
+I am preparing a trace patch to capture information on rotor table
+activity.  This is a very difficult patch to write.  I am carrying the
+beeper this week and expect to very busy.  I will also plan to take comp
+days next week.  Therefore, with these constraints and the difficulty
+
+ --#360 STATUS ENTERED FROM TECHSERV        BY STS ON 24-MAY-93 @17:25 ZULU.
+     REPORT SENT YET ?: NO
+of the patch and the difficulty in testing it, I will plan to deliver it
+by 6/10.  If I can quickly clean up many other existing problems and if
+beeper activity is very low, then I can probably move this date up.  But
+this is what I can commit to and hope to make.
+
+ --#361 STATUS ENTERED FROM TECHSERV        BY STS ON 24-MAY-93 @17:28 ZULU.
+     REPORT SENT YET ?: NO
+Please defer this ticket to 6/10 as explained in previous status
+entiries.   ..Jerry Lucas
+
+ --#362 STATUS ENTERED FROM ECSC            BY SH  ON 27-MAY-93 @14:30 ZULU.
+     REPORT SENT YET ?: NO
+THIS TICKET REFERS TO PR 1468 .
+
+ --#363 STATUS ENTERED FROM DOUGE           BY STW ON 28-MAY-93 @20:53 ZULU.
+     REPORT SENT YET ?: NO
+While Jerry works on the patch we will try to arrange a meeting with
+NTD, Field and MMGMT on this next week.  NTD has provided help on
+this already but with no solution forthcoming.
+
+ --#364 STATUS ENTERED FROM FISBEIN         BY CSG ON  1-JUN-93 @ 7:59 ZULU.
+     REPORT SENT YET ?: NO
+Doug, this is fine for me if you except Friday (TGIF!). Thanks. Stephane.
+
+ --#365 STATUS ENTERED FROM DOUGE           BY STS ON  4-JUN-93 @19:15 ZULU.
+     REPORT SENT YET ?: NO
+Conf. call was held (without Development due to injury absence).  Additional
+information was requested from Stephane.  Jerry Lucas will be meeting
+with Dev. to discuss the conf. call on Friday, June 4th.  The trap patch
+is ready but we'd like Dev. review before delivery to Stephane.
+
+ --#366 STATUS ENTERED FROM STONEK          BY STS ON  4-JUN-93 @23:12 ZULU.
+     REPORT SENT YET ?: NO
+SENDING STEPHANE QUESTION THRU E-MAIL FROM NTD MEETING.
+
+ --#367 STATUS ENTERED FROM NSSC            BY JLM ON  9-JUN-93 @12:31 ZULU.
+     REPORT SENT YET ?: NO
+STEPHANE.  I SPOKE TO D. ELLENBERG YESTERDAY (VOICEMAIL).  HE INDICATES
+HE IS AWAITING RESPONSE FROM YOU IN ORDER TO PURSUE THIS PROBLEM.
+DO WE HAVE ANY RESULTS TO SPEAK OF>??
+
+ --#368 STATUS ENTERED FROM FISBEIN         BY CSG ON 10-JUN-93 @18:49 ZULU.
+     REPORT SENT YET ?: NO
+I will status this ticket tomorrow. Thanks. Stephane.
+
+ --#369 STATUS ENTERED FROM TECHSERV        BY STS ON 11-JUN-93 @16:19 ZULU.
+     REPORT SENT YET ?: NO
+Sent email via unix to Stephane on 6/10 detailing the use of trace and/or
+trap patch.    ... Jerry Lucas.  Everyone try to hang in there.  I know
+this is a tough problem but I think we'll get it eventually.  (Maybe
+problem with customer's host not reliably supplying clocks)
+
+ --#370 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JUN-93 @18:50 ZULU.
+     REPORT SENT YET ?: NO
+Actions for Sirti :
+1. Can you please describe as precisely as possible all the devices, cables,
+   connector types, patch pannels that are linking the LSX4000 to the engine ?
+2. Did someone connect the LSX4000 to the engine via a modem eliminator, thus
+
+ --#371 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JUN-93 @18:50 ZULU.
+     REPORT SENT YET ?: NO
+   eliminating all possible suspicious external clocking ? If not, can you
+   schedule this and let us know if there is any evolution of the problem ?
+3. Finally, there is a couple of trap patched files ready to be loaded when
+   you tell me. Before loading these codes, you need to regen the tym file of
+
+ --#372 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JUN-93 @18:50 ZULU.
+     REPORT SENT YET ?: NO
+   node 2010 with 220k in slot 1, because it is version 7.02 and there is a
+   very big buffer in the trap patch. There is a slot with a trap patch that
+   crashes the slot upon reception of a FRMR. If you want me to load this
+   one, then you'll have to dump the slot on CMS when it is halted. There is
+
+ --#373 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JUN-93 @19:03 ZULU.
+     REPORT SENT YET ?: NO
+   another slot with a trap patch that does not crash. Although we prefer the
+   other one, you may want me to load this one because of the customer's
+   present sensitivity. In this case, please let me know when I can schedule
+
+ --#374 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JUN-93 @19:03 ZULU.
+     REPORT SENT YET ?: NO
+   this reload, because I'll need to monitor the trap patch when the problem
+   shows up.
+4. Did you ever notice any background/foreground overload messages in TMCS
+   when the problem shows up ?
+
+ --#375 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JUN-93 @19:03 ZULU.
+     REPORT SENT YET ?: NO
+I am grabbing this ticket from STS to refer it to Sirti to start the above
+actions, and prepare the appropriate replies. I also apologize for the little
+delay in replying to STS, this was due to overload as usual. Thanks. Stephane.
+
+ --#376 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-JUN-93 @19:03 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM MMGMT TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#377 STATUS ENTERED FROM SIRTITAS        BY AR  ON 16-JUN-93 @ 9:12 ZULU.
+     REPORT SENT YET ?: NO
+Answering your questions:
+1)The connector type was realized with a straight RS232 cable from SIO port
+to patch pannel, then another straight RS232 cable from patch pannel to
+a couple of modems ARE BBR-19, at last another straight RS232 cable
+
+ --#378 STATUS ENTERED FROM SIRTITAS        BY AR  ON 16-JUN-93 @ 9:12 ZULU.
+     REPORT SENT YET ?: NO
+from modem to LSX4000.
+2)I have connected via modem-eliminator the host line from engine to LSX4000.
+I will want to stay in this situation until tomorrow morning to test if
+problem show up again.
+
+ --#379 STATUS ENTERED FROM SIRTITAS        BY AR  ON 16-JUN-93 @ 9:12 ZULU.
+     REPORT SENT YET ?: NO
+3) I have regenned a new .TYM file with 220 Kb on slot 1, I will load the
+new .BN0 tomorrow morning at 8:00 a.m. .You can load the slot X25 with a
+trap patch that crashes the slot upon reception of a FRMR at 10:00 a.m. .
+
+ --#380 STATUS ENTERED FROM SIRTITAS        BY AR  ON 16-JUN-93 @ 9:12 ZULU.
+     REPORT SENT YET ?: NO
+I will update this ticket when a dump will be availableon CMF system.
+4) I don't saw any back/foreground overload messages in TMCS.
+    Romoli  Alessandro
+
+ --#381 STATUS ENTERED FROM SIRTITAS        BY AR  ON 16-JUN-93 @ 9:12 ZULU.
+     REPORT SENT YET ?: NO
+
+ --#382 STATUS ENTERED FROM TNSM            BY FC  ON 17-JUN-93 @ 8:53 ZULU.
+     REPORT SENT YET ?: NO
+As sheduled, the slot 1 have been reloaded with the trap patch at
+10:15 am.We are waiting for the dump when the crash will occur
+Franck Chevalier (ECSG)
+
+ --#383 STATUS ENTERED FROM SIRTITAS        BY AR  ON 17-JUN-93 @12:30 ZULU.
+     REPORT SENT YET ?: NO
+The result of test with modem-eliminator wasn't very good.
+The problem always is present.
+We can't take a dump of slot with trap patch, because the x25 slot
+goes in crash after few seconds with "ill. mem. ref. at ......."message.
+
+ --#384 STATUS ENTERED FROM SIRTITAS        BY AR  ON 17-JUN-93 @12:30 ZULU.
+     REPORT SENT YET ?: NO
+I just have reloaded the old x25 slot.The node 2010 always is configured
+with 220 Kb of memory for slot 1 x25.
+I'm waiting to schedule a new test in next day. Romoli Alessandro
+
+ --#385 STATUS ENTERED FROM SIRTITAS        BY AR  ON 17-JUN-93 @12:30 ZULU.
+     REPORT SENT YET ?: NO
+
+ --#386 STATUS ENTERED FROM SIRTITAS        BY AR  ON 17-JUN-93 @12:30 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AR ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#387 STATUS ENTERED FROM ECSC            BY FL  ON 17-JUN-93 @17:11 ZULU.
+     REPORT SENT YET ?: NO
+According to status 383, the slot crashed but it was not for the expected
+reason.Could STS have a look at the trap patch to checked what is going wrong?
+unfortenally sirti does not said which address the ill mem is located
+
+ --#388 STATUS ENTERED FROM ECSC            BY FL  ON 17-JUN-93 @17:16 ZULU.
+     REPORT SENT YET ?: NO
+On the other hand, we are going to change the mini-engine with a cxl next week
+as we think that cpu will be faster and may be it will bypass the problem
+--> to sts Franck chevalier (ecsg)
+
+ --#389 STATUS ENTERED FROM ECSC            BY FL  ON 17-JUN-93 @17:16 ZULU.
+     REPORT SENT YET ?: NO
+ECSC (FL ) TRANSFERRED THIS TICKET FROM ECSG  TO CS800.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#390 STATUS ENTERED FROM CSS800          BY MLA ON 17-JUN-93 @17:41 ZULU.
+     REPORT SENT YET ?: NO
+CSS800    (MLA) TRANSFERRED THIS TICKET FROM CS800 TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#391 STATUS ENTERED FROM STONEK          BY STS ON 18-JUN-93 @17:18 ZULU.
+     REPORT SENT YET ?: NO
+THE SIRTI PATCHES HAVE BEEN CORRECTED.  REGEN AND RELOAD.
+
+ --#392 STATUS ENTERED FROM STONEK          BY STS ON 18-JUN-93 @17:18 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#393 STATUS ENTERED FROM TNSM            BY FC  ON 21-JUN-93 @ 8:50 ZULU.
+     REPORT SENT YET ?: NO
+The code has been regenned and is ready to be loaded.
+The code is on the following directory ~fchevalr/sirti
+Iam going to contact sirti to plan the reload. Fc (ecsg)
+
+ --#394 STATUS ENTERED FROM TNSM            BY FC  ON 21-JUN-93 @ 8:55 ZULU.
+     REPORT SENT YET ?: NO
+I just spoke with mr Leone and he is going to plan a reload in relation with
+the customer
+
+ --#395 STATUS ENTERED FROM TNSM            BY FC  ON 21-JUN-93 @ 8:55 ZULU.
+     REPORT SENT YET ?: NO
+TNSM (FC ) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#396 STATUS ENTERED FROM SIRTITAS        BY AR  ON 21-JUN-93 @ 9:59 ZULU.
+     REPORT SENT YET ?: NO
+You can load the slot 1 node 2010 tomorrow morning at 9:00 o'clock.
+Then, I will take the dump asap.
+Romoli  Alessandro
+
+ --#397 STATUS ENTERED FROM SIRTITAS        BY AR  ON 21-JUN-93 @ 9:59 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AR ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#398 STATUS ENTERED FROM ECSC            BY JM, ON 22-JUN-93 @ 7:27 ZULU.
+     REPORT SENT YET ?: NO
+I tried to reload the code this morning but got timed out each time I was
+entering the nc command to connect to node 2010. the gc command worked ok
+before. Please contact me (331) 46 67 24 58 if there is a problem with 2010
+
+ --#399 STATUS ENTERED FROM ECSC            BY JM, ON 22-JUN-93 @ 7:27 ZULU.
+     REPORT SENT YET ?: NO
+ECSC (JM,) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#400 STATUS ENTERED FROM ECSC            BY JME ON 22-JUN-93 @ 8:01 ZULU.
+     REPORT SENT YET ?: NO
+after contact with Alessandro i succeeded to reload the slot . it crashed
+after 7 seconds with ill. mem. ref. at 36bd8c. over to ecsg to keep on
+investigating ! thanks.
+
+ --#401 STATUS ENTERED FROM ECSC            BY JME ON 22-JUN-93 @ 8:01 ZULU.
+     REPORT SENT YET ?: NO
+ECSC (JME) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#402 STATUS ENTERED FROM DOUGE           BY STS ON 22-JUN-93 @16:26 ZULU.
+     REPORT SENT YET ?: NO
+We will look into the trap to see what happened.
+
+ --#403 STATUS ENTERED FROM STONEK          BY STS ON 22-JUN-93 @18:14 ZULU.
+     REPORT SENT YET ?: NO
+WE HAVE FOUND THE PROBLEM IN THE PATCH AND WE ARE WORKING ON IT.
+
+ --#404 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUN-93 @21:44 ZULU.
+     REPORT SENT YET ?: NO
+Stephane:  (1) I have fixed the patches sirti.trp and sirti.trc. They are
+under xcompat directory on either system 25 or system 33.  Sorry about the
+crashes.  They were very tricky patches to write.  (2) A better idea I
+think --  We have located another customary with what looks like the same
+
+ --#405 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUN-93 @21:47 ZULU.
+     REPORT SENT YET ?: NO
+problem.  Thanks to Tod Penniman of the Boston office who had the problem
+with Fidelity Bank and also recognized that Autostrade was really using
+Stratus equipment (their Olivetti is just Stratus OEM).  According to Tod,
+the Stratus equipment has an upper limit on how many transmissions it can
+
+ --#406 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUN-93 @21:50 ZULU.
+     REPORT SENT YET ?: NO
+receive per second.  The size of the transmissions is not important, as long
+as the number of them per second does not go over the limit.  When this
+happens, Stratus gets very confused, sends RNR's, REJ's, etc. exactly like
+Autostrade is seeing.  Tod Penniman got around this problem by increasing
+
+ --#407 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUN-93 @21:52 ZULU.
+     REPORT SENT YET ?: NO
+the packet size from 128 to 256.  Thus, the number of transmissions was
+reduced significantly enough so that the problem never happened again.
+This sounds like it's definitely worth trying.  256 or 512 will probably
+fix it, since a precedent exists with another customer.
+
+ --#408 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUN-93 @21:55 ZULU.
+     REPORT SENT YET ?: NO
+Some people you can talk to on this if you want to:  Tod Penniman, BTNA
+Boston office (GMT - 5hrs.) 617-487-4009.  Mark Wlodarczyk (Don't ask
+me to pronounce this) 508-460-2000, he's also GMT - 5 hrs.  Actually those
+guys are on the east coast of USA and since it's summer I think that puts
+
+ --#409 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUN-93 @21:58 ZULU.
+     REPORT SENT YET ?: NO
+at GMT - 4hrs.  They are California time + 3 hrs.  So to sum up, I think
+the packet size change is the best try right now, since it has some previous
+customer experience.  After that, the fixed patch.  ..Jerry Lucas
+
+ --#410 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUN-93 @21:58 ZULU.
+     REPORT SENT YET ?: NO
+TECHSERV  (STS) TRANSFERRED THIS TICKET FROM ECSG  TO BTFR .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#411 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-JUN-93 @22:42 ZULU.
+     REPORT SENT YET ?: NO
+Thanks for the status, Jerry. Our refer group is ECSG (# 78), which stands for
+European Customer Support Group.
+1) I have found some additional problems within the patch that are likely to
+provoke unexpected results when running in production. Based on sirti.trp,
+
+ --#412 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-JUN-93 @22:42 ZULU.
+     REPORT SENT YET ?: NO
+an entry in trcbfr is 90x bytes long (80+4+2+2+2+6) and this induces the end
+of the patch to look like : AIS R2,4 to push bfrinx 4 bytes further after
+ST R3,TRCBFR,R2, . Also, the test at TRACIT+6 should be CLHI R2,7F70 to
+accomodate enough room for a complete entry. Please study these remarks and
+
+ --#413 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-JUN-93 @22:42 ZULU.
+     REPORT SENT YET ?: NO
+make the necessary changes. I will make it on a personal copy if you don't have
+enough time to do it.
+2) I have been forwarded Todd Peniman's experience outcome today and will try
+to convince the customer to implement this solution on a test line.We may then
+
+ --#414 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-JUN-93 @22:42 ZULU.
+     REPORT SENT YET ?: NO
+have forthcoming arguments with the customer as to the opportunity to change
+those X.25 parameters they have always been told they should work fine becaus
+the hardware has been certified in Italy. I know we can still reply that this
+is a flaw in the LSX4000 X.25 package which is known and can only be
+
+ --#415 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-JUN-93 @22:42 ZULU.
+     REPORT SENT YET ?: NO
+circumvented this way. We'll try this anyway.
+Thanks. Stephane Fisbein.
+
+ --#416 STATUS ENTERED FROM FISBEIN         BY CSG ON 22-JUN-93 @22:42 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM BTFR  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#417 STATUS ENTERED FROM STONEK          BY STS ON 22-JUN-93 @22:58 ZULU.
+     REPORT SENT YET ?: NO
+STEPHANE GO TO SLEEP!  WE MADE CHANGES A FEW MINUTES AGO THAT SEEM
+TO MATCH THE PROBLEM YOU ARE DESCRIBING ABOVE.  PATCH SHOULD
+BE OKAY NOW (4PM P.S.T. USA)
+
+ --#418 STATUS ENTERED FROM DOUGE           BY STS ON 22-JUN-93 @23:00 ZULU.
+     REPORT SENT YET ?: NO
+Stephane, we can hold off on the requested conf. call (see email from
+yesterday) until the outcome of the above recommendations and trap
+patch.  Doug.
+
+ --#419 STATUS ENTERED FROM STONEK          BY STS ON 22-JUN-93 @23:05 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#420 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUN-93 @23:43 ZULU.
+     REPORT SENT YET ?: NO
+Stephane, looked at the patch, I think ais  r2,6 is okay after all as in
+the very latest version (just changed around 1AM your time).  The ais r2,6
+accounts for the two stores, the sth r3,trcbfr,r2,    and the
+st  r3,trcbfr,r2,  below it.  It's kind of confusing, but I think it's
+
+ --#421 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUN-93 @23:44 ZULU.
+     REPORT SENT YET ?: NO
+okay now.  We were running it for a few minutes on K. Stone's slot.  It
+looked okay.  Thanks.   ..Jerry Lucas
+
+ --#422 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUN-93 @23:44 ZULU.
+     REPORT SENT YET ?: NO
+TECHSERV  (STS) TRANSFERRED THIS TICKET FROM ECSG  TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#423 STATUS ENTERED FROM FISBEIN         BY CSG ON 23-JUN-93 @18:18 ZULU.
+     REPORT SENT YET ?: NO
+Over to Jerry to fix a slight remaining problem with ais r2,6 (should be
+ais r2,2 and then ais r2,4 after the st r3...). Thanks. Stephane.
+
+ --#424 STATUS ENTERED FROM FISBEIN         BY CSG ON 23-JUN-93 @18:18 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#425 STATUS ENTERED FROM TECHSERV        BY STS ON 23-JUN-93 @21:55 ZULU.
+     REPORT SENT YET ?: NO
+Fixed patches per Fisbein's recommendations -- sent mail to Fisbein
+to let him know.  Over to Fisbein.  I'll be out on Thurs. and Fri.
+Good luck. ...Jerry Lucas
+
+ --#426 STATUS ENTERED FROM TECHSERV        BY STS ON 23-JUN-93 @21:55 ZULU.
+     REPORT SENT YET ?: NO
+TECHSERV  (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#427 STATUS ENTERED FROM FISBEIN         BY CSG ON 24-JUN-93 @ 9:25 ZULU.
+     REPORT SENT YET ?: NO
+To Sirti :
+We have now three concurrent actions ongoing to trap and resolve this problem.
+1. The trap patch has been debugged and tested OK. A slot code with the
+   crashing trap patch is available under ~sfisbein/sirti/trap/n01 for node
+
+ --#428 STATUS ENTERED FROM FISBEIN         BY CSG ON 24-JUN-93 @ 9:25 ZULU.
+     REPORT SENT YET ?: NO
+   2010 slot 1. Please let me know when this code can be loaded. Please try
+   to avoid Friday 25th June as I and STS will not be available. The purpose of
+   this trap patch is to allow us to understand where the problem lies.
+2. Connect a LSX4000 line to a CXL (provided, installed and managed by BT)
+
+ --#429 STATUS ENTERED FROM FISBEIN         BY CSG ON 24-JUN-93 @ 9:25 ZULU.
+     REPORT SENT YET ?: NO
+   in order to test the latest CPU3 and SIO III boards and see if they solve
+   this problem. Can Sirti provide us with a) an early possible installation
+   date for this CXL (it's smaller than a mini); b) a node and KH numbers;
+   c) the neighbour node # and LU # to connect it to. Installation is to be
+
+ --#430 STATUS ENTERED FROM FISBEIN         BY CSG ON 24-JUN-93 @ 9:25 ZULU.
+     REPORT SENT YET ?: NO
+   coordinated with Corrado Angeletti (BT Italy). d) Since I'll take care of
+   the X.25 slot, I need to know which slot of the network we can replace with
+   the CXL.
+3. Can Sirti schedule with the customer the possibility to test MAXPSIZE(256)
+
+ --#431 STATUS ENTERED FROM FISBEIN         BY CSG ON 24-JUN-93 @ 9:25 ZULU.
+     REPORT SENT YET ?: NO
+   on a line which would not be busy with any of the other two actions above ?
+   This is a serious hypothesis regarding Stratus's LSX4000 inability to
+   process more than a given number of frames per second.
+All 3 actions need to be performed as they have a great chance to indicate
+
+ --#432 STATUS ENTERED FROM FISBEIN         BY CSG ON 24-JUN-93 @ 9:25 ZULU.
+     REPORT SENT YET ?: NO
+where the problem lies and eventually solve it.
+Please let us know when these actions can be scheduled ! I remain at your
+disposition for any further clarification on these issues. Thanks. Stephane.
+
+ --#433 STATUS ENTERED FROM FISBEIN         BY CSG ON 24-JUN-93 @ 9:25 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#434 STATUS ENTERED FROM FISBEIN         BY CSG ON 24-JUN-93 @14:38 ZULU.
+     REPORT SENT YET ?: NO
+Last minute information ! We have established contact with Stratus and they
+are going to send us a fax requesting Olivetti to get in touch with them and
+discuss this problem. Probably by Monday. Wait and see ! Thanks. Stephane.
+
+ --#435 STATUS ENTERED FROM SIRTITAS        BY AR  ON 25-JUN-93 @13:48 ZULU.
+     REPORT SENT YET ?: NO
+Regarding your questions:
+1) You can load the trap patch on Monday 28/6 at 9:00 o'clock. If you prefer,
+   before to reload the slot, you can phone me at this number: 0039 55 4202578
+  (my office in Autostrade) and we can make this test together.
+
+ --#436 STATUS ENTERED FROM SIRTITAS        BY AR  ON 25-JUN-93 @13:48 ZULU.
+     REPORT SENT YET ?: NO
+   Please advise me if you can't do it.
+2) a. My colleague M. Checcacci just has spoken with Mr. Angeletti to install
+      the CXL on 5 or 6 of July.
+   b. We think to copy the configuration of node 2010 with all his lines on CXL
+
+ --#437 STATUS ENTERED FROM SIRTITAS        BY AR  ON 25-JUN-93 @13:48 ZULU.
+     REPORT SENT YET ?: NO
+      You can found all the necessary informations that you need to generate
+      the .BN0 and slots for CXL on CMF System, net Autonet, partition Firenze,
+      cluster AU2010, node N02010, slot S00 ISIS S01 S02.
+      When the CXL is installed in Autostrade, we will disconnect all lines
+
+ --#438 STATUS ENTERED FROM SIRTITAS        BY AR  ON 25-JUN-93 @13:48 ZULU.
+     REPORT SENT YET ?: NO
+      from node 2010 and connect them on CXL, so the CXL will be available in
+      network Autonet with name 2010 and the same neighbour nodes.
+      Are you of the same opinion?
+   c. d.  See point b.
+
+ --#439 STATUS ENTERED FROM SIRTITAS        BY AR  ON 25-JUN-93 @13:48 ZULU.
+     REPORT SENT YET ?: NO
+3) I will test the MAXPSIZE (256) on next week on node 2010 or 2014.
+Please let me know if you have any further questions. Thanks.
+  Alessandro Romoli
+
+ --#440 STATUS ENTERED FROM SIRTITAS        BY AR  ON 25-JUN-93 @14:27 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AR ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#441 STATUS ENTERED FROM SIRTITAS        BY AR  ON 25-JUN-93 @14:33 ZULU.
+     REPORT SENT YET ?: NO
+To Fisbein:  You have a ontyme message pending. Can you see it please ?
+         Alex
+
+ --#442 STATUS ENTERED FROM TNSM            BY FC  ON 28-JUN-93 @ 7:29 ZULU.
+     REPORT SENT YET ?: NO
+Action 1: the slot has been reload as sheduled on status 435.
+After monitoring this slot during 5 mins, few connections was setup
+without any problem.--> To sirti to dump the slot when a crash will
+occur and to send back the ticket to us .FC (ecsg)
+
+ --#443 STATUS ENTERED FROM TNSM            BY FC  ON 28-JUN-93 @ 7:29 ZULU.
+     REPORT SENT YET ?: NO
+TNSM (FC ) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#444 STATUS ENTERED FROM SIRTITAS        BY AR  ON 28-JUN-93 @ 8:53 ZULU.
+     REPORT SENT YET ?: NO
+A dump is available on CMF system under net Autonet,partition Firenze
+cluster AU2010,node N02010,slot S01.dump, file A12010.dmp. Alex
+
+ --#445 STATUS ENTERED FROM SIRTITAS        BY AR  ON 28-JUN-93 @ 8:55 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AR ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#446 STATUS ENTERED FROM FISBEIN         BY CSG ON 28-JUN-93 @17:25 ZULU.
+     REPORT SENT YET ?: NO
+1. The dump with symbols has been copied in ~sfisbein/sirti/trap/dp1. The same
+   directory holds the files used for the test. STS is already aware of this
+   via Unix mail.
+2. I talked to Corrado Angeletti, and it seems that the installation and the
+
+ --#447 STATUS ENTERED FROM FISBEIN         BY CSG ON 28-JUN-93 @17:25 ZULU.
+     REPORT SENT YET ?: NO
+   test with the CXL will take place on July 6th. I need to know from BTITA
+   a precise installation and test schedule. BTITA will prepare and install
+   the H/W. ECSG will set up the S/W. SIRTI needs to provide a new node #, as
+   well as a new KH#, because we need to see the CXL running in the net before
+
+ --#448 STATUS ENTERED FROM FISBEIN         BY CSG ON 28-JUN-93 @17:25 ZULU.
+     REPORT SENT YET ?: NO
+   actually moving the links from the mini to the CXL, in order to minimize
+   service interruption.
+3.)I would encourage you to test MAXPSIZE(256) as soon as possible, as we'll be
+   busy with point 3 next week. Let me know when this test can be done. Don't
+
+ --#449 STATUS ENTERED FROM FISBEIN         BY CSG ON 28-JUN-93 @17:25 ZULU.
+     REPORT SENT YET ?: NO
+   forget to set the maximum packet size in both the slot and the LSX4000. You
+   may eventually need to involve N1 (in the LSX4000). Please record all
+   possible information when making this test, regarding the problem and its
+   frequency. Or just let me know so I can monitor it. Thanks. Stephane.
+
+ --#450 STATUS ENTERED FROM FISBEIN         BY CSG ON 28-JUN-93 @17:25 ZULU.
+     REPORT SENT YET ?: NO
+Since STS is already working on point 1, over to Sirti to check on points 2 & 3
+and refer back to ECSG (#78) when necessary information is provided.
+
+ --#451 STATUS ENTERED FROM FISBEIN         BY CSG ON 28-JUN-93 @17:25 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#452 STATUS ENTERED FROM DOUGE           BY STS ON 28-JUN-93 @22:52 ZULU.
+     REPORT SENT YET ?: NO
+IMPORTANT:  We only want to look at FRAME WINDOW SIZE of 7 to rule out the
+KNOWN problems with SIO.  The last dump had the link at window size 5.
+We are looking at this dump but all future efforts need to be kept at 7.  We
+know there is a problem in SDLC with window sizes not 2 or 7.  We want
+
+ --#453 STATUS ENTERED FROM DOUGE           BY STS ON 28-JUN-93 @22:52 ZULU.
+     REPORT SENT YET ?: NO
+to eliminate all possible side issues.
+PACKET SIZE:  The macro for packet size is PSIZE.  MAZPSIZE is OK if you
+are going to change this via the XOM.  I'm sure you know this but to be sure.
+
+ --#454 STATUS ENTERED FROM SIRTITAS        BY AR  ON 29-JUN-93 @ 7:43 ZULU.
+     REPORT SENT YET ?: NO
+Regarding the node # and Khost #,you can use the new node# 2037 with Khost# 37.
+For the test, I hope that you want to use the same host # (500 XOM, 501 link 0,
+502 link 1) on new node 2037, putting in Halted the slot 1 X25 on node 2010,
+and to transfer the two X25 lines from node 2010 to new node 2037.
+
+ --#455 STATUS ENTERED FROM SIRTITAS        BY AR  ON 29-JUN-93 @ 7:43 ZULU.
+     REPORT SENT YET ?: NO
+We have available 1 or 2 node code lines spare to install the CXL in network.
+I think that it is sufficient.
+Yesterday, we have reloaded the slot X25 on node 2010 with the value of
+PSIZE=256 (MAXPSIZE=Default - Like Psize) only for link 1 (host 502).
+
+ --#456 STATUS ENTERED FROM SIRTITAS        BY AR  ON 29-JUN-93 @ 7:43 ZULU.
+     REPORT SENT YET ?: NO
+For about 24 hours (11:30 28/6 to 9:30 29/6) the problem IS NOT OCCURRED !
+We will take under pressure the slot until the end of week (as agreed with
+customer). For monitor it ,you can use the usernames NCC:10;GAM or
+XOM2010;XOM .
+
+ --#457 STATUS ENTERED FROM SIRTITAS        BY AR  ON 29-JUN-93 @ 7:43 ZULU.
+     REPORT SENT YET ?: NO
+To Douge: We confirm you,that the value of Frame Window Size was 7 before to
+take the dump.
+I will be on one's holidays until 19/7.You can talk with Checcacci Marco
+
+ --#458 STATUS ENTERED FROM SIRTITAS        BY AR  ON 29-JUN-93 @ 7:43 ZULU.
+     REPORT SENT YET ?: NO
+to schedule the rest of tests. Bye, Alessandro Romoli.
+
+ --#459 STATUS ENTERED FROM SIRTITAS        BY AR  ON 29-JUN-93 @ 7:43 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AR ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#460 STATUS ENTERED FROM FISBEIN         BY CSG ON 29-JUN-93 @13:26 ZULU.
+     REPORT SENT YET ?: NO
+1. The problem with K comes from the fact that I used (sirtitas:33)au2010.t01
+   to generate the trap patched slot. And this version contained K(5). I have
+   made a new slot in ~sfisbein/sirti/trap/n01 ready to be loaded when you
+   tell me so, that has K(7), if need be.
+
+ --#461 STATUS ENTERED FROM FISBEIN         BY CSG ON 29-JUN-93 @13:26 ZULU.
+     REPORT SENT YET ?: NO
+2. Thanks for the node info. Your assumptions are right. We're now waiting for
+   an installation schedule.
+3. Good news, you're giving us. Please keep on monitoring this link. I am
+   tracing it remotely, just in case. Whatever the result, I suggest to stick
+
+ --#462 STATUS ENTERED FROM FISBEIN         BY CSG ON 29-JUN-93 @13:26 ZULU.
+     REPORT SENT YET ?: NO
+   to the proposed action plan, as we want to resolve the customer's problem,
+   but we also want to understand it. If PWIND(256) fixes the problem, the
+   customer may request a solution for 128 anyway. Then we'll have to determine
+   where the fault lies really.
+
+ --#463 STATUS ENTERED FROM FISBEIN         BY CSG ON 29-JUN-93 @13:26 ZULU.
+     REPORT SENT YET ?: NO
+Thanks for any further input you may have on the above points.
+Stephane. ECSG.
+
+ --#464 STATUS ENTERED FROM FISBEIN         BY CSG ON 29-JUN-93 @13:26 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#465 STATUS ENTERED FROM CSS800          BY RAJ ON 29-JUN-93 @20:50 ZULU.
+     REPORT SENT YET ?: NO
+a-talked to pascal/ecsc. he will e-mail stephane to update this ticket
+  in the morning.
+
+ --#466 STATUS ENTERED FROM CSS800          BY WRK ON 30-JUN-93 @ 9:47 ZULU.
+     REPORT SENT YET ?: NO
+Stephane will be contacting the customer shortly and will status the
+ticket if there is anything new to report.
+
+ --#467 STATUS ENTERED FROM SIRTITAS        BY AR  ON 30-JUN-93 @12:10 ZULU.
+     REPORT SENT YET ?: NO
+ The customer asks me to wait until the end of this week to see if the
+ problem shows up again (with psize=256 on X25 slot). I'll tell you
+ when you can load the new slot X25 with K(7).
+ I'm monitoring the link 1 of the X25 slot node 2010 and the problem is not
+
+ --#468 STATUS ENTERED FROM SIRTITAS        BY AR  ON 30-JUN-93 @12:10 ZULU.
+     REPORT SENT YET ?: NO
+ occurred from 28/6 at 11:30 to 30/6 at 13:00.
+
+ --#469 STATUS ENTERED FROM SIRTITAS        BY AR  ON 30-JUN-93 @12:10 ZULU.
+     REPORT SENT YET ?: NO
+
+ --#470 STATUS ENTERED FROM SIRTITAS        BY AR  ON 30-JUN-93 @13:49 ZULU.
+     REPORT SENT YET ?: NO
+I REMEMBER YOU THAT YOU CAN FIND ALL NECESSARY INFORMATIONS THAT YOU NEED TO
+GENERATE THE NEW .BN0 AND SLOTS FOR CXL (NEW NAME NODE 2037, KHOST 37) ALWAYS
+ON CMF IN NET AUTONET, PART. FIRENZE , CLUSTER AU2010, NODE N02010 , SLOT ISIS
+S00 S01 S02. THANKS. MARCO CHECCACCI.
+
+ --#471 STATUS ENTERED FROM SIRTITAS        BY AR  ON  2-JUL-93 @10:47 ZULU.
+     REPORT SENT YET ?: NO
+The problem on X25 slot " the link has been reset" is occurred only 4 times
+(with psize=256) from 28/06 at 11:30 to 02/07 at 9:00.
+You can reload the trap patch (X25 slot node 2010 with k(7) on Monday
+05/07 at 9:00 o'clock. We set the maxpsize=128 in both the slot and the LSX4000.
+
+ --#472 STATUS ENTERED FROM SIRTITAS        BY AR  ON  2-JUL-93 @10:47 ZULU.
+     REPORT SENT YET ?: NO
+If you prefer, before to reload the X25 slot, you can phone me at this number:
+0039 55 4202578 (Autostrade).
+Regarding the CXL, Mr Angeletti tell me that the CXL probably will be in
+Sirti (Florence) on Monday 05 july.
+
+ --#473 STATUS ENTERED FROM SIRTITAS        BY AR  ON  2-JUL-93 @10:47 ZULU.
+     REPORT SENT YET ?: NO
+Last information: the customer prefers to keep the maxpsize=256 after that
+the problem will be resolved. Thanks. Checcacci
+
+ --#474 STATUS ENTERED FROM SIRTITAS        BY AR  ON  2-JUL-93 @10:47 ZULU.
+     REPORT SENT YET ?: NO
+
+ --#475 STATUS ENTERED FROM SIRTITAS        BY AR  ON  2-JUL-93 @10:47 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AR ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#476 STATUS ENTERED FROM FISBEIN         BY CSG ON  2-JUL-93 @14:13 ZULU.
+     REPORT SENT YET ?: NO
+So, it seems that PSIZE(256) reduces considerably the problem frequency. Now,
+we need to focus on the other actions, independently of the above result. It is
+important that the customer set PSIZE to 128 for the other tests. When all
+these tests will be over, it will be time to eventually conclude that PSIZE
+
+ --#477 STATUS ENTERED FROM FISBEIN         BY CSG ON  2-JUL-93 @14:13 ZULU.
+     REPORT SENT YET ?: NO
+must be increased. I will reload node 2010 slot 1 at 9.00 a.m. on Monday 5th
+of July with K(7) and the same trap patch as last week. PSIZE will be 128 and
+should be so in the host as well. When the problem will show up, please take
+a dump and reload version 4.03 from Elf. BT Italy representatives will be on
+
+ --#478 STATUS ENTERED FROM FISBEIN         BY CSG ON  2-JUL-93 @14:13 ZULU.
+     REPORT SENT YET ?: NO
+site on Monday afternoon, to set up the CXL H/W. If all goes well, the S/W
+will be loaded on Tuesday morning, and we'll monitor this during the day.
+Please make sure that PSIZE remains at 128 and K at 7 throughout the testing
+period, i.e. until the middle of next week.
+
+ --#479 STATUS ENTERED FROM FISBEIN         BY CSG ON  2-JUL-93 @14:13 ZULU.
+     REPORT SENT YET ?: NO
+Thanks. Stephane. ECSG.
+
+ --#480 STATUS ENTERED FROM FISBEIN         BY CSG ON  2-JUL-93 @14:13 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#481 STATUS ENTERED FROM TECHSERV        BY STS ON  2-JUL-93 @22:10 ZULU.
+     REPORT SENT YET ?: NO
+Stephane, just a quick thought ...  if PSIZE of 256 made a big
+improvement, you may want to go further and try 512 or even 1024.
+The idea is that the Stratus box is limited to a certain number
+of transmissions per time interval, and a larger PSIZE helps
+
+ --#482 STATUS ENTERED FROM TECHSERV        BY STS ON  2-JUL-93 @22:11 ZULU.
+     REPORT SENT YET ?: NO
+to meet this restriction.  ...Jerry Lucas
+
+ --#483 STATUS ENTERED FROM BTSWE           BY CY  ON  3-JUL-93 @10:50 ZULU.
+     REPORT SENT YET ?: NO
+Guys, my contact at Stratus has sent us a fax (now forwarded to Stephane)
+to show to Olivetti which strongly advises they contact Stratus on this
+prblm. Stratus has made corrections to their RNR code and they want to
+be certain Olivetti has this version. Chuck.
+
+ --#484 STATUS ENTERED FROM FISBEIN         BY CSG ON  5-JUL-93 @ 6:52 ZULU.
+     REPORT SENT YET ?: NO
+Jerry, you're right. I just want to go through all the planned action points
+in order to better characterize the problem without any interference of one
+of the outcomes on the other actions. We'll draw conclusions in the end of
+the week.
+
+ --#485 STATUS ENTERED FROM FISBEIN         BY CSG ON  5-JUL-93 @ 6:54 ZULU.
+     REPORT SENT YET ?: NO
+Thanks for the fax, Chuck. We'll act upon it asap.
+Stephane. ECSG.
+
+ --#486 STATUS ENTERED FROM FISBEIN         BY CSG ON  5-JUL-93 @ 7:14 ZULU.
+     REPORT SENT YET ?: NO
+Just reloaded node 2010 slot 01 with sfisbein/sirti/trap/n01, which contains
+the trap patch and k(7). Please, Sirti, take a dump when it will next crash
+and reload whatever version you wish. Thanks. Stephane. ECSG.
+
+ --#487 STATUS ENTERED FROM SIRTITAS        BY AR  ON  5-JUL-93 @ 9:23 ZULU.
+     REPORT SENT YET ?: NO
+The X25 slot has gone in crash (halted-ill. instr. at 06353A) after 15 minutes.
+A dump is available on the CMF under net. Autonet, part. firenze, cluster
+au2010, node n02010, slot s01.dump, file a22010.dmp. Thanks Checcacci
+
+ --#488 STATUS ENTERED FROM SIRTITAS        BY AR  ON  5-JUL-93 @ 9:23 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AR ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#489 STATUS ENTERED FROM FISBEIN         BY CSG ON  6-JUL-93 @ 8:09 ZULU.
+     REPORT SENT YET ?: NO
+Jerry, can you have a look at this dump, please ? I am on customer's site
+today and will not be available before tomorrow. The slot code is in
+sfisbein/sirti/trap on 25. Thanks. Stephane. ECSG.
+
+ --#490 STATUS ENTERED FROM FISBEIN         BY CSG ON  6-JUL-93 @ 8:09 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#491 STATUS ENTERED FROM STONEK          BY STS ON  6-JUL-93 @18:26 ZULU.
+     REPORT SENT YET ?: NO
+DUMP NOT FOUND UNDER SFISBEIN/SIRTI/TRAP.  ONLY OLD DP1.K5 DUMP
+OF 28/05.
+
+ --#492 STATUS ENTERED FROM STONEK          BY STS ON  6-JUL-93 @19:23 ZULU.
+     REPORT SENT YET ?: NO
+OVER TO CLARIFY DUMP LOCATION.
+
+ --#493 STATUS ENTERED FROM STONEK          BY STS ON  6-JUL-93 @19:23 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#494 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-JUL-93 @17:01 ZULU.
+     REPORT SENT YET ?: NO
+Dump location was specified in status # 487. I have made a copy with symbols
+in ~sfisbein/sirti/trap/dp1.k7 .
+Regarding the CXL test, I was on site yesterday to help BT Italy and Sirti set
+up the CXL environment : H/W and S/W. The X.25 slot in the CXL is in monitoring
+
+ --#495 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-JUL-93 @17:01 ZULU.
+     REPORT SENT YET ?: NO
+for a few days. We'll conclude afterwards. We'll have to compare results with
+another X.25 slot, either alone in its node, or sharing a node with UTS.
+I talked to the customer and passed him a copy of Stratus's fax requesting
+
+ --#496 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-JUL-93 @17:01 ZULU.
+     REPORT SENT YET ?: NO
+them to get Olivetti get in touch with Stratus European Customer Services. I
+must add that some pertinent explanation revealed to be useful for the
+customer to well understand where we're at, and what is it that we're doing
+at present to solve his problem. His explanations reinforced the PSIZE
+
+ --#497 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-JUL-93 @17:01 ZULU.
+     REPORT SENT YET ?: NO
+hypothesis. However, he was encouraged to get Olivetti to do something to
+improve their part of the problem. The idea is to finally combine several
+possible solutions when all the testing will be over. Thanks. Stephane.
+
+ --#498 STATUS ENTERED FROM FISBEIN         BY CSG ON  7-JUL-93 @17:01 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO  28  MO.INF.REQ
+
+ --#499 STATUS ENTERED FROM TECHSERV        BY STS ON  7-JUL-93 @23:47 ZULU.
+     REPORT SENT YET ?: NO
+Investigating the dump.  dump is fine.  Probably need a couple of days.
+Will try to involve D/Ernst.  Thanks ... Jerry Lucas
+
+ --#500 STATUS ENTERED FROM SIRTITAS        BY AR  ON  8-JUL-93 @ 7:39 ZULU.
+     REPORT SENT YET ?: NO
+The problem "the link has been reset" on X25 slot 1 node 2037 (with CXl),
+has occurred 14 times from 06/07 at 14:00 to 08/07 at 8:00 a.m.
+Thanks.CM. Sirti
+
+ --#501 STATUS ENTERED FROM TECHSERV        BY STS ON 12-JUL-93 @17:49 ZULU.
+     REPORT SENT YET ?: NO
+Stephane: first findings from dump: there is a bug with how we handle
+rnr frames.  If the flag OTHBSY is set but the flag XSBUSY is not set,
+it is possible that we will keep sending frames even when the host sends
+us rnr.  I have verified that we are doing this in the dump, and have
+
+ --#502 STATUS ENTERED FROM TECHSERV        BY STS ON 12-JUL-93 @18:10 ZULU.
+     REPORT SENT YET ?: NO
+seen the flags set that way in the dump.  I wrote a patch to fix this
+bug in /ntdlib/xcompat/rnrinf.403 and rnrinf.702, which I also copied to
+(xcompat:33).  If possible, I would encourage you to try the patch with
+psize at any setting.  I think there is an excellent chance the patch
+
+ --#503 STATUS ENTERED FROM TECHSERV        BY STS ON 12-JUL-93 @18:10 ZULU.
+     REPORT SENT YET ?: NO
+will take care of it.  Meanwhile I will continue to examine the dump and
+meet with Dennis later in the week to get his ideas.  I think maybe the
+reason we have not run into this before is that it is very unusual for
+us to receive rnr frames from the host, and the bug may not have showed
+
+ --#504 STATUS ENTERED FROM TECHSERV        BY STS ON 12-JUL-93 @18:10 ZULU.
+     REPORT SENT YET ?: NO
+up anyplace else yet.  When I talk to Dennis I will concentrate on solutions
+based on why we send bad rr frames after the rej comes through.  Actually,
+this may all be related to the rnr recovery thing and the way the flags are
+set.  The patch to fix the rnr may take care of everything.  ..Jerry Lucas
+
+ --#505 STATUS ENTERED FROM TECHSERV        BY STS ON 12-JUL-93 @18:10 ZULU.
+     REPORT SENT YET ?: NO
+
+ --#506 STATUS ENTERED FROM FISBEIN         BY CSG ON 13-JUL-93 @ 7:57 ZULU.
+     REPORT SENT YET ?: NO
+ECSG acks. Will check this patch in lab before releasing it to customer,
+unless you have already done that. Thanks. Stephane.
+
+ --#507 STATUS ENTERED FROM FISBEIN         BY CSG ON 13-JUL-93 @18:56 ZULU.
+     REPORT SENT YET ?: NO
+I have genned a version 4.03 slot on 25 and loaded it in lab. Had calls e
+established and traffic going through. No anomaly detected. I suggest that
+Sirti assembles this patch in a particular slot on syst 33 for testing
+purposes. This MUST be separated from any other ongoing test. We must clearly
+
+ --#508 STATUS ENTERED FROM FISBEIN         BY CSG ON 13-JUL-93 @18:56 ZULU.
+     REPORT SENT YET ?: NO
+identify which solutions improve things and which don't.
+I talked to Alessandro Landi. We agreed to try to see what PSIZE(512) may
+give on another slot.
+And the third ongoing action is that Olivetti agrees that there is a bug on
+
+ --#509 STATUS ENTERED FROM FISBEIN         BY CSG ON 13-JUL-93 @18:56 ZULU.
+     REPORT SENT YET ?: NO
+their side as well in the RNR logic. Should Sirti wish to test a fix from
+Stratus/Olivetti, please remember to not mix this test with any of the other
+tests. Over to Sirti to ack and act upon. Thanks. Stephane. ECSG.
+
+ --#510 STATUS ENTERED FROM FISBEIN         BY CSG ON 13-JUL-93 @18:56 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM MMGMT TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#511 STATUS ENTERED FROM SIRTITAS        BY AL  ON 15-JUL-93 @ 7:11 ZULU.
+     REPORT SENT YET ?: NO
+Sirti acks. Going to test the patch...
+AL.
+
+ --#512 STATUS ENTERED FROM SIRTITAS        BY AL  ON 19-JUL-93 @14:24 ZULU.
+     REPORT SENT YET ?: NO
+1. Setting PSIZE=512 by-passes completely the problem: in four days no
+   disconnection detected.
+2. Patch rnrinf.403 seems to have something wrong; we have loaded the
+   slot more than once, but it crashes just few minutes later always
+
+ --#513 STATUS ENTERED FROM SIRTITAS        BY AL  ON 19-JUL-93 @14:24 ZULU.
+     REPORT SENT YET ?: NO
+prompting the same message: "illegal memory ref. 35FEC2".
+A dump is provided on CMF under Autonet, Firenze, AU2015, s01.dump,
+filename A12015.DMP.
+
+ --#514 STATUS ENTERED FROM SIRTITAS        BY AL  ON 19-JUL-93 @14:39 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#515 STATUS ENTERED FROM TNSM            BY FCK ON 19-JUL-93 @16:57 ZULU.
+     REPORT SENT YET ?: NO
+please could you forward the ticket to sts to check the patch
+Fc (ecsg)
+
+ --#516 STATUS ENTERED FROM TNSM            BY FCK ON 19-JUL-93 @16:57 ZULU.
+     REPORT SENT YET ?: NO
+TNSM (FCK) TRANSFERRED THIS TICKET FROM ECSG  TO CS800.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#517 STATUS ENTERED FROM CSS800          BY YV  ON 19-JUL-93 @17:00 ZULU.
+     REPORT SENT YET ?: NO
+CSS800    (YV ) TRANSFERRED THIS TICKET FROM CS800 TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#518 STATUS ENTERED FROM TECHSERV        BY STT ON 19-JUL-93 @17:49 ZULU.
+     REPORT SENT YET ?: NO
+Don't have access to cmf, so if someone could move the dump onto either
+system 25 or 33 that would be great.  Thanks  .. Jerry Lucas.  I will
+still meet with Ernst to discuss fixing possible bug in retransmitting
+frames after the reject comes in.  This meeting keeps getting shoved
+
+ --#519 STATUS ENTERED FROM TECHSERV        BY STT ON 19-JUL-93 @17:55 ZULU.
+     REPORT SENT YET ?: NO
+back because Dennis has been out of town.  One way or the other I think we
+can fix this even with psize 128.  ..Jerry Lucas
+
+ --#520 STATUS ENTERED FROM TECHSERV        BY STS ON 19-JUL-93 @18:14 ZULU.
+     REPORT SENT YET ?: NO
+Transfer to Sirti to try to get dump onto 25 or 33.  ..Jerry Lucas
+
+ --#521 STATUS ENTERED FROM TECHSERV        BY STS ON 19-JUL-93 @18:16 ZULU.
+     REPORT SENT YET ?: NO
+TECHSERV  (STS) TRANSFERRED THIS TICKET FROM MMGMT TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#522 STATUS ENTERED FROM SIRTITAS        BY AR  ON 20-JUL-93 @12:18 ZULU.
+     REPORT SENT YET ?: NO
+Is available under (sirtitas:33) the dump a12015.dp1 without symbols.
+Alessandro Romoli.
+
+ --#523 STATUS ENTERED FROM SIRTITAS        BY AR  ON 20-JUL-93 @12:18 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AR ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#524 STATUS ENTERED FROM TECHSERV        BY STS ON 20-JUL-93 @17:00 ZULU.
+     REPORT SENT YET ?: NO
+Stephane, I cannot access 33 any more.  ANy way you can copy dump to
+25 and also append symbols or move nib file to 25, that would be great.
+..Jerry Lucas.
+
+ --#525 STATUS ENTERED FROM TECHSERV        BY STS ON 20-JUL-93 @17:00 ZULU.
+     REPORT SENT YET ?: NO
+TECHSERV  (STS) TRANSFERRED THIS TICKET FROM ECSG  TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#526 STATUS ENTERED FROM TNSM            BY FC  ON 21-JUL-93 @12:27 ZULU.
+     REPORT SENT YET ?: NO
+Iam sorry for the delay but i was not available yesterday
+Jerry, i have appended the symbol table and i transfered the dump
+on system 25 (~fchevalr/sirti/a12015.dp1)
+After having a quick look at this dump we have a crash 14 (protection vio
+
+ --#527 STATUS ENTERED FROM TNSM            BY FC  ON 21-JUL-93 @12:43 ZULU.
+     REPORT SENT YET ?: NO
+-lation) . The problem is the crash address fb60, there is nothuing
+defined at this adress
+That's strange..iam still investing
+
+ --#528 STATUS ENTERED FROM TNSM            BY FC  ON 21-JUL-93 @17:22 ZULU.
+     REPORT SENT YET ?: NO
+Jerry, iam living the office now
+Could you have a look at the dump ?
+Thanks Franck
+
+ --#529 STATUS ENTERED FROM TNSM            BY FC  ON 21-JUL-93 @17:22 ZULU.
+     REPORT SENT YET ?: NO
+TNSM (FC ) TRANSFERRED THIS TICKET FROM ECSG  TO CS800.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#530 STATUS ENTERED FROM CSS800          BY JIM ON 21-JUL-93 @17:45 ZULU.
+     REPORT SENT YET ?: NO
+CSS800    (JIM) TRANSFERRED THIS TICKET FROM CS800 TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#531 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUL-93 @ 0:20 ZULU.
+     REPORT SENT YET ?: NO
+Frank and Stephane: yeah (that's American for yes), the problem was a
+conflict between the rnrinf patch and a patch by Ernst in the same area
+of code.  Patch by Ernst got pulled in under xcom04.p03.  The symbol
+tinf10 got shifted by Ernst's patch, and rnrinf overlaid the middle of
+
+ --#532 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUL-93 @ 0:20 ZULU.
+     REPORT SENT YET ?: NO
+an instruction as a result.  This caused the wild jump.  I have created
+another patch called rnrin2.403 under xcompat 25 that will be compatible
+with the Ernst patch.  You should remove rnrinf.403 and replace it with
+rnrin2.403.  rnrin2.403 should be in the command file AFTER xcom04.p03.
+
+ --#533 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUL-93 @ 0:20 ZULU.
+     REPORT SENT YET ?: NO
+Another option is to use version 7.02 with the patch rnrinf.702, because
+version 7.02 does not have the conflict that version 4.03 does.  I could
+not copy rnrin2.403 to system 33 because the system did not give me
+permission so you need to do this to use it on 33.  Thanks.....Jerry Lucas
+
+ --#534 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUL-93 @ 0:20 ZULU.
+     REPORT SENT YET ?: NO
+over to sirti
+
+ --#535 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUL-93 @ 0:20 ZULU.
+     REPORT SENT YET ?: NO
+TECHSERV  (STS) TRANSFERRED THIS TICKET FROM MMGMT TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#536 STATUS ENTERED FROM SIRTITAS        BY AL  ON 22-JUL-93 @ 9:45 ZULU.
+     REPORT SENT YET ?: NO
+The rnrin2.403 patch has been assembled, but in the log file appears
+an error message like "Operand out of range". The log file is on CMF
+under Autonet, Firenze, au2010, s01.in2. Could you have a look at
+this, please? Thanks, ALandi.
+
+ --#537 STATUS ENTERED FROM SIRTITAS        BY AL  ON 22-JUL-93 @ 9:45 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#538 STATUS ENTERED FROM TNSM            BY FC  ON 22-JUL-93 @13:10 ZULU.
+     REPORT SENT YET ?: NO
+Effectively there is an error in patch rnrin2.403 line 16
+I made a copy of cmd and log files in my directory ~fchevalr/sirti/trace
+Jerry, could you have a look at this files?
+
+ --#539 STATUS ENTERED FROM TNSM            BY FC  ON 22-JUL-93 @13:40 ZULU.
+     REPORT SENT YET ?: NO
+I have regenned a code in version 7.02 in directory ~fchevalr/sirti/702
+Before to have this version running for customer i would like to know
+if we keep version 4.03 (sothe patch has to be corrected) or if i
+transfer the code version 702 in cmf (702 is a betatest)
+
+ --#540 STATUS ENTERED FROM TNSM            BY FC  ON 22-JUL-93 @13:43 ZULU.
+     REPORT SENT YET ?: NO
+Jerry i would like to have your advise about these options?
+Thks
+FC
+
+ --#541 STATUS ENTERED FROM TNSM            BY FC  ON 22-JUL-93 @13:43 ZULU.
+     REPORT SENT YET ?: NO
+TNSM (FC ) TRANSFERRED THIS TICKET FROM ECSG  TO CS800.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#542 STATUS ENTERED FROM CSS800          BY YV  ON 22-JUL-93 @13:53 ZULU.
+     REPORT SENT YET ?: NO
+CSS800    (YV ) TRANSFERRED THIS TICKET FROM CS800 TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#543 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUL-93 @20:48 ZULU.
+     REPORT SENT YET ?: NO
+Frank, I changed the patch rnrin2.403 so that it will gen in 4.03.  I'm
+very sorry about this, somehow when I was genning it I didn't even notice
+that message.  This time it gens okay, and I checked to see where it goes
+into memory and that looks okay too.  It is on 25 so you have to copy again
+
+ --#544 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUL-93 @20:48 ZULU.
+     REPORT SENT YET ?: NO
+rnrin2.403 from 25 to 33 because my license won't let me do it.  As far
+as using 403 or 702, I would recommend 403 since this is what the
+customer is used to, and what he will probably be using.  It is also more
+stable than 702 since it is older and been around longer.  I'm very sorry
+
+ --#545 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUL-93 @20:48 ZULU.
+     REPORT SENT YET ?: NO
+about the patch, but I think it's okay now.   ...Jerry Lucas
+
+ --#546 STATUS ENTERED FROM TECHSERV        BY STS ON 22-JUL-93 @20:48 ZULU.
+     REPORT SENT YET ?: NO
+TECHSERV  (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#547 STATUS ENTERED FROM TNSM            BY FC  ON 23-JUL-93 @ 6:55 ZULU.
+     REPORT SENT YET ?: NO
+Thanks Jerry .For your information, we are not using system 33 anymore
+but CMF on host 12030
+Iam going to check and transfer the corrected patches under cmf
+Franck (ecsg)
+
+ --#548 STATUS ENTERED FROM TNSM            BY FC  ON 23-JUL-93 @12:41 ZULU.
+     REPORT SENT YET ?: NO
+Ok i have assembled the code on system 25 and it is ok
+I have tranferred the patch rnrin2.403 under cmf
+Sirti could you shedule another test?
+FC (ecsg)
+
+ --#549 STATUS ENTERED FROM TNSM            BY FC  ON 23-JUL-93 @12:41 ZULU.
+     REPORT SENT YET ?: NO
+TNSM (FC ) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#550 STATUS ENTERED FROM SIRTITAS        BY AL  ON 26-JUL-93 @ 7:12 ZULU.
+     REPORT SENT YET ?: NO
+Patch tested with negative results. The frequency of disconnections remains
+as in the worst case (roughly 10 times a day).
+ALandi.
+
+ --#551 STATUS ENTERED FROM TECHSERV        BY STS ON 26-JUL-93 @15:06 ZULU.
+     REPORT SENT YET ?: NO
+Okay, next action is to meet with Ernst to review dump and examine
+possible bug in our code responding to reject frames.  ..Jerry Lucas
+
+ --#552 STATUS ENTERED FROM TECHSERV        BY STS ON 29-JUL-93 @16:46 ZULU.
+     REPORT SENT YET ?: NO
+Please defer until 8/5.  I am carrying the pager and it is disrupting my
+ability to do other useful work until I am over carrying it.  ..Jerry Lucas
+
+ --#553 STATUS ENTERED FROM DOUGE           BY STS ON  6-AUG-93 @19:09 ZULU.
+     REPORT SENT YET ?: NO
+Jerry met with Development and another trap was requested.  Suggestion under
+review.
+
+ --#554 STATUS ENTERED FROM TECHSERV        BY STS ON  6-AUG-93 @21:54 ZULU.
+     REPORT SENT YET ?: NO
+Met with D/Ernst on 8/4.  SHowed him the dump with the history of the
+rotor table captured.  He doesn't know what the problem is, but did have
+these ideas: (1) The trace of the rotor table would be better if it included
+the beginning of the frame being inserted into the rotor table list;
+
+ --#555 STATUS ENTERED FROM TECHSERV        BY STS ON  6-AUG-93 @21:54 ZULU.
+     REPORT SENT YET ?: NO
+(2) 702 has a little better chance of fixing this than 403; (3) He was
+surprised that the patch rnrin2.403 did not help at all.   Based on this,
+he recommended an improvement to sirti.trp and sirti.trc to trap the
+first 4 bytes (actually 2 bytes of length and 2 bytes of beginning of frame)
+
+ --#556 STATUS ENTERED FROM TECHSERV        BY STS ON  6-AUG-93 @21:54 ZULU.
+     REPORT SENT YET ?: NO
+of the frame into the large trace buffer.  Other suggestion was to run with
+version 7.02 with the patch rnrinf.702.  Final recommendation, if you cnado it,
+patch sirti.trp tocrash the slot and CRSTOP set.  (2) Get dump again as
+before.
+
+ --#557 STATUS ENTERED FROM TECHSERV        BY STS ON  6-AUG-93 @21:54 ZULU.
+     REPORT SENT YET ?: NO
+Version 7.02 is out of /ntdlib/betatest/xcom07.r02.  Stephane, for your
+reference, I have added to the patches sirti.trp and sirti.trc the 8 lines
+above and including the label TRAC50 to add the first 4 bytes of the frame
+just added to the rotor list to the end of a trace entry.  I do this based
+
+ --#558 STATUS ENTERED FROM TECHSERV        BY STS ON  6-AUG-93 @21:54 ZULU.
+     REPORT SENT YET ?: NO
+on the PREPAG counter.  If the PREPAG counter points to a 0 entry then I
+store zeros into the trace.  ...Jerry Lucas
+
+ --#559 STATUS ENTERED FROM TECHSERV        BY STS ON  6-AUG-93 @21:54 ZULU.
+     REPORT SENT YET ?: NO
+TECHSERV  (STS) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#560 STATUS ENTERED FROM FISBEIN         BY CSG ON 13-AUG-93 @13:37 ZULU.
+     REPORT SENT YET ?: NO
+I have assembled the last trap patch in ~sfisbein/sirti/trap/n01. This is
+version 7.02 with K(7) and PSIZE(128). Can Sirti please schedule a test with
+the customer for next week on node 2010 slot 1 from next Tuesday on ? Thanks.
+I will load the slot as usual. Stephane. ECSG.
+
+ --#561 STATUS ENTERED FROM FISBEIN         BY CSG ON 13-AUG-93 @13:37 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#562 STATUS ENTERED FROM SIRTITAS        BY AR  ON 16-AUG-93 @ 6:40 ZULU.
+     REPORT SENT YET ?: NO
+I have schedule a test with customer for tomorrow morning at 9:00 o'clock.
+Let me know if I must take a dump, a trace or any other thing. If you want,
+you can find me at +39-55-4202578 (my office in Autostrade) until 10:30.
+
+ --#563 STATUS ENTERED FROM SIRTITAS        BY AR  ON 16-AUG-93 @ 6:40 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AR ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#564 STATUS ENTERED FROM FISBEIN         BY CSG ON 16-AUG-93 @11:45 ZULU.
+     REPORT SENT YET ?: NO
+OK. Everything must be ready by tomorrow 9.00 a.m., on customer's site, and I
+will load the trap patched slot into 2010 slot 1 (213k mem). The purpose is the
+same as usual. When the FRMR condition is encountered, the slot crashes. Then,
+you'll have to take a dump on CMS and reload whatever version you like. Thanks.
+
+ --#565 STATUS ENTERED FROM FISBEIN         BY CSG ON 16-AUG-93 @11:47 ZULU.
+     REPORT SENT YET ?: NO
+Please don't forget to status where the dump is, i.e. partition, node, slot.
+Thanks. Stephane Fisbein. ECSG.
+
+ --#566 STATUS ENTERED FROM FISBEIN         BY CSG ON 16-AUG-93 @11:47 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#567 STATUS ENTERED FROM FISBEIN         BY CSG ON 17-AUG-93 @ 7:32 ZULU.
+     REPORT SENT YET ?: NO
+Slot with trap patch reloaded. Someone was logged into slot 1 right after the
+load, so I was unable to check if traffic resumed. According to the ?diag
+though, the slot didn't crash right away. Let me know when the dump is
+available. Thanks. Stephane. ECSG.
+
+ --#568 STATUS ENTERED FROM FISBEIN         BY CSG ON 17-AUG-93 @ 7:43 ZULU.
+     REPORT SENT YET ?: NO
+When the dump will be taken, I would like to test rnrinf in version 7.02 . I
+have prepared a code in ~sfisbein/sirti/patch/n01 which has K(7) and PSIZE(128)
+enabled. So, it would be opportunate to use the same customer's setting for
+this test. Please, advise me when I can do it ! Thanks. Stephane. ECSG.
+
+ --#569 STATUS ENTERED FROM FISBEIN         BY CSG ON 17-AUG-93 @ 8:42 ZULU.
+     REPORT SENT YET ?: NO
+The slot apparently crashed half an hour after reload. Version 4.03 was then
+reloaded by someone half an hour later, i.e. 15 minutes ago. Was a dump taken ?
+Thanks. Stephane. ECSG.
+
+ --#570 STATUS ENTERED FROM SIRTITAS        BY AR  ON 17-AUG-93 @13:50 ZULU.
+     REPORT SENT YET ?: NO
+The dump is available under \autonet\firenze\au2010\p000\s01.dump with
+filename A32010.dmp on CMF system.  A. Romoli
+
+ --#571 STATUS ENTERED FROM SIRTITAS        BY AR  ON 17-AUG-93 @13:50 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AR ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#572 STATUS ENTERED FROM FISBEIN         BY CSG ON 17-AUG-93 @14:13 ZULU.
+     REPORT SENT YET ?: NO
+The dump with symbols is in ~sfisbein/sirti/trap/dp1 . Good luck !
+Stephane. ECSG.
+
+ --#573 STATUS ENTERED FROM FISBEIN         BY CSG ON 17-AUG-93 @14:13 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#574 STATUS ENTERED FROM TECHSERV        BY STS ON 21-AUG-93 @ 0:54 ZULU.
+     REPORT SENT YET ?: NO
+Expecting to have results of dump analysis Monday 8/23 PM California time.
+..Jerry Lucas
+
+ --#575 STATUS ENTERED FROM TECHSERV        BY STS ON 23-AUG-93 @22:48 ZULU.
+     REPORT SENT YET ?: NO
+Stephane and others: I have stored in ~jlucas/notes/sirti.ft the frame trace
+of the activity leading up to the FRMR.  The FRMR complains about the frame
+that we send a long time earlier in response to the RNR sent by the host.
+Other significant observation is that the rotor table trace gives the same
+
+ --#576 STATUS ENTERED FROM TECHSERV        BY STS ON 23-AUG-93 @22:48 ZULU.
+     REPORT SENT YET ?: NO
+frame trace information as the frame trace table.  This is significant, because
+it is different from the earlier dump, taken with version 4.03, which
+showed the rotor table with different things than the frame trace table.  I
+think version 7.02 may have fixed something -- either that or (God hep us)
+
+ --#577 STATUS ENTERED FROM TECHSERV        BY STS ON 23-AUG-93 @22:48 ZULU.
+     REPORT SENT YET ?: NO
+we are seeing a new manifestation of the problem.  I talked this over with
+Ernst and we agree that according to the frame trace information, the only
+thing we are doing wrong is sending I-frames in response to the RNR from the
+host.  I showed him the rnrinf.702 patch and he said that it wouldn't work
+
+ --#578 STATUS ENTERED FROM TECHSERV        BY STS ON 23-AUG-93 @22:48 ZULU.
+     REPORT SENT YET ?: NO
+because it would prevent us from sending rr's when we needed to.  Based on his
+suggestion, I then created the patch rnrin3.702 to send an rr if we needed to
+but never send an info frame in response to an rnr from the host.  Dennis
+actually believes that the host is wrong in this trace.  He says that, after
+
+ --#579 STATUS ENTERED FROM TECHSERV        BY STS ON 23-AUG-93 @22:48 ZULU.
+     REPORT SENT YET ?: NO
+sending an rnr, the host should expect some I-frames that may already be in
+transit.  But we both agree that not sending i-frames in response to rnr is
+the way to fix it.  The complete recommendation for getting rid of this
+problem is:
+
+ --#580 STATUS ENTERED FROM TECHSERV        BY STS ON 23-AUG-93 @22:48 ZULU.
+     REPORT SENT YET ?: NO
+(1) Use version 7.02.  (2) Use the patch /ntdlib/xcompat/rnrin3.702.
+(3) Incorporate the trap patch sirti.trp anticipating the problem to
+continue to happen.  (4) (If not too much trouble) Set up a datascope
+as before to capture the problem, maybe triggering on the FRMR, because
+
+ --#581 STATUS ENTERED FROM TECHSERV        BY STS ON 23-AUG-93 @22:48 ZULU.
+     REPORT SENT YET ?: NO
+if it does happen again, it may be a customer problem.  Let me know if any
+questions, and, as always, good luck and thank you all for hanging in there
+through this difficult problem.     ...Jerry Lucas
+
+ --#582 STATUS ENTERED FROM TECHSERV        BY STS ON 23-AUG-93 @22:48 ZULU.
+     REPORT SENT YET ?: NO
+TECHSERV  (STS) TRANSFERRED THIS TICKET FROM MMGMT TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO   1  NONE
+
+ --#583 STATUS ENTERED FROM FISBEIN         BY CSG ON 24-AUG-93 @10:40 ZULU.
+     REPORT SENT YET ?: NO
+I have regenned slot 1 node 2010 with version 7.02 patch rnrin3.702 and the
+trap patch. K is 7 and PWIND is 128. The code is in ~sfisbein/sirti/patch/n01
+and occupies 213Ko. I have lab tested it OK. It is ready to be loaded in the
+customer environment. Please schedule a slot reload with the customer and let
+
+ --#584 STATUS ENTERED FROM FISBEIN         BY CSG ON 24-AUG-93 @10:42 ZULU.
+     REPORT SENT YET ?: NO
+me know when I can load this slot. If the problem reoccurs, the slot will halt
+on reception of a FRMR. Then take a dump and reload whatever version you like.
+Thanks. Stephane. ECSG.
+
+ --#585 STATUS ENTERED FROM FISBEIN         BY CSG ON 24-AUG-93 @10:42 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#586 STATUS ENTERED FROM SIRTITAS        BY AR  ON 25-AUG-93 @ 8:08 ZULU.
+     REPORT SENT YET ?: NO
+You can load the slot 1 node 2010 tomorrow morning at 9:00 a.m. After the
+crash I wiil send you the dump. The customer is not more so pazient, he
+hopes that there will be no more tests in future but a resolutive patch.
+
+ --#587 STATUS ENTERED FROM SIRTITAS        BY AR  ON 25-AUG-93 @ 8:08 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AR ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#588 STATUS ENTERED FROM FISBEIN         BY CSG ON 25-AUG-93 @10:27 ZULU.
+     REPORT SENT YET ?: NO
+Please defer until tomorrow 9.00 a.m. and back to ECSG (#78). Thanks. Stephane.
+
+ --#589 STATUS ENTERED FROM FISBEIN         BY CSG ON 25-AUG-93 @10:27 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO ECSC .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#590 STATUS ENTERED FROM ECSC            BY BGH ON 26-AUG-93 @ 3:35 ZULU.
+     REPORT SENT YET ?: NO
+Time up is set, there is no need to defer this tkt.
+
+ --#591 STATUS ENTERED FROM ECSC            BY BGH ON 26-AUG-93 @ 3:35 ZULU.
+     REPORT SENT YET ?: NO
+ECSC (BGH) TRANSFERRED THIS TICKET FROM ECSC  TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#592 STATUS ENTERED FROM FISBEIN         BY CSG ON 26-AUG-93 @ 8:19 ZULU.
+     REPORT SENT YET ?: NO
+Slot loaded OK. Please monitor and report any event. Take a dump of the slot
+if it crashes. Thanks. Stephane. ECSG.
+
+ --#593 STATUS ENTERED FROM FISBEIN         BY CSG ON 26-AUG-93 @ 8:19 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#594 STATUS ENTERED FROM SIRTITAS        BY AR  ON 26-AUG-93 @18:18 ZULU.
+     REPORT SENT YET ?: NO
+Is available under CMF system the file A42010.DMP with the dump of slot 1
+node 2010 ( X25 vers. 7.02 PSIZE 128 ). The file is n directory :
+/autonet/firenze/au2010/p000/s01.dump  .
+
+ --#595 STATUS ENTERED FROM SIRTITAS        BY AR  ON 26-AUG-93 @18:21 ZULU.
+     REPORT SENT YET ?: NO
+The slot with vers. 7.02 is always running on node 2010.
+If possible, I will take another dump tomorrow morning.
+A.Romoli
+
+ --#596 STATUS ENTERED FROM SIRTITAS        BY AR  ON 26-AUG-93 @18:21 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AR ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#597 STATUS ENTERED FROM SIRTITAS        BY AR  ON 27-AUG-93 @ 7:58 ZULU.
+     REPORT SENT YET ?: NO
+Sorry, but a CED operator has reloaded the slot 1, so for me it's impossible
+to take another dump. A. Romoli
+
+ --#598 STATUS ENTERED FROM FISBEIN         BY CSG ON 27-AUG-93 @ 8:00 ZULU.
+     REPORT SENT YET ?: NO
+I have copied the dump with symbol table in ~sfisbein/sirti/patch/dp1 on 25
+in the same directory where the codes used for this test reside. I'll have a
+look at it later on. Refering to STS for their analysis and advice. Thanks.
+Stephane. ECSG.
+
+ --#599 STATUS ENTERED FROM FISBEIN         BY CSG ON 27-AUG-93 @ 8:00 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO CS800.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#600 STATUS ENTERED FROM CSS800          BY MGP ON 27-AUG-93 @ 8:13 ZULU.
+     REPORT SENT YET ?: NO
+CSS800    (MGP) TRANSFERRED THIS TICKET FROM CS800 TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#601 STATUS ENTERED FROM BTSWE           BY CY  ON  3-SEP-93 @ 7:41 ZULU.
+     REPORT SENT YET ?: NO
+S-dump analyzed and results in /home/gdn/cyounger/sirti. Unix mail sent
+to sfisbein,stonek,jlucas,ernst. Problem could be fixed by doing extra
+bookkeeping on when an output sector is busy, then defer retransmission
+of this sector somehow.
+
+ --#602 STATUS ENTERED FROM TNSM            BY FC  ON 10-SEP-93 @14:00 ZULU.
+     REPORT SENT YET ?: NO
+This ticket is in MMGMT since the 27th of sept! i am going to transfer
+this ticket to cs800 (stonek,jlucas,ernst)
+Please STS could you have a look on status enter above by chuck younger
+Thanks fc (ecsg).
+
+ --#603 STATUS ENTERED FROM TNSM            BY FC  ON 10-SEP-93 @14:00 ZULU.
+     REPORT SENT YET ?: NO
+TNSM (FC ) TRANSFERRED THIS TICKET FROM MMGMT TO CS800.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#604 STATUS ENTERED FROM CSS800          BY KTD ON 10-SEP-93 @14:12 ZULU.
+     REPORT SENT YET ?: NO
+CSS800    (KTD) TRANSFERRED THIS TICKET FROM CS800 TO MMGMT.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#605 STATUS ENTERED FROM CSS800          BY KTD ON 10-SEP-93 @14:18 ZULU.
+     REPORT SENT YET ?: NO
+s/d/a/n-na com .. will try again but this is a node tkt talking about an x.25
+these groups are paged by severity and product.. . you may want to open
+a tkt on the host sev 2 time up...
+
+ --#606 STATUS ENTERED FROM CSS800          BY KTD ON 10-SEP-93 @14:29 ZULU.
+     REPORT SENT YET ?: NO
+s/d/a/n-na com i have left a vm for doug ellenberg 408-922-7480
+his recording stated he would be in a meeting until 12:00 pst
+
+ --#607 STATUS ENTERED FROM DOUGE           BY STS ON 10-SEP-93 @16:01 ZULU.
+     REPORT SENT YET ?: NO
+Jerry Lucas in STS has been working with Dennis Ernst in Development
+on this.  Jerry is on vacation for 6 days so I will ask Ken Stone to
+look at Younger's suggestion and see what we can do.
+
+ --#608 STATUS ENTERED FROM DOUGE           BY STS ON 10-SEP-93 @16:48 ZULU.
+     REPORT SENT YET ?: NO
+Development is working on a fix for this in source that we intend to
+port over in patch form.  The development work won't be done for a
+few weeks.  In the mean time we are looking at speeding the delivery
+of a patch via alternative sources.  Next status in about 1 week.
+
+ --#609 STATUS ENTERED FROM DOUGE           BY STS ON 17-SEP-93 @ 0:16 ZULU.
+     REPORT SENT YET ?: NO
+Changing refer to from MMGMT to STS:
+
+ --#610 STATUS ENTERED FROM DOUGE           BY STS ON 17-SEP-93 @ 0:16 ZULU.
+     REPORT SENT YET ?: NO
+DOUGE(STS) TRANSFERRED THIS TICKET FROM MMGMT TO STS  .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#611 STATUS ENTERED FROM STONEK          BY STS ON 22-SEP-93 @17:41 ZULU.
+     REPORT SENT YET ?: NO
+WE HAVE NO NEW STATUS FROM DEVELOPMENT.
+
+ --#612 STATUS ENTERED FROM FISBEIN         BY CSG ON 11-OCT-93 @11:08 ZULU.
+     REPORT SENT YET ?: NO
+Any update ? Do you need someone from BT Europe to push NTD ?
+Thanks. Stephane.
+
+ --#613 STATUS ENTERED FROM STONEK          BY STS ON 11-OCT-93 @23:37 ZULU.
+     REPORT SENT YET ?: NO
+WE HAVE NO NEW STATUS.  YOU ARE CERTAINLY WELCOME TO PUSH ANY
+BUTTONS YOU HAVE OVER THERE.
+
+ --#614 STATUS ENTERED FROM TECHSERV        BY STS ON  1-NOV-93 @19:24 ZULU.
+     REPORT SENT YET ?: NO
+dennis has completed or is near completing a fix to a future
+version of source.  he will send it to us in the form of
+a context diff, we will convert to standard engine patch.  he will
+send me the diff when complete.
+
+ --#615 STATUS ENTERED FROM FISBEIN         BY CSG ON  2-NOV-93 @ 9:20 ZULU.
+     REPORT SENT YET ?: NO
+Thanks for the news. Please keep us posted ! Stephane.
+
+ --#616 STATUS ENTERED FROM STONEK          BY STS ON 30-NOV-93 @17:22 ZULU.
+     REPORT SENT YET ?: NO
+DENNIS PROMISED YESTERDAY IT IS AN EASY 4 LINE FIX THAT HE
+CAN DO BEFORE THE END OF THE WEEK!
+
+ --#617 STATUS ENTERED FROM STONEK          BY STS ON  3-DEC-93 @21:53 ZULU.
+     REPORT SENT YET ?: NO
+DENNIS GAVE ME THE CONTEXT DIFF FOR THE FIX FOR VERSION 7.  I HAVE
+CONVERTED IT TO A PATCH FOR 4.03 CALLED AUTOST.TST.  MY
+ONLY TESTING IS A GEN AND LOAD.
+
+ --#618 STATUS ENTERED FROM STONEK          BY STS ON  3-DEC-93 @21:53 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM STS   TO CS800.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#619 STATUS ENTERED FROM STONEK          BY STS ON  3-DEC-93 @21:56 ZULU.
+     REPORT SENT YET ?: NO
+PLEASE REFER TO ECSC.
+
+ --#620 STATUS ENTERED FROM CSS800          BY DCM ON  4-DEC-93 @ 1:10 ZULU.
+     REPORT SENT YET ?: NO
+CSS800    (DCM) TRANSFERRED THIS TICKET FROM CS800 TO ECSC .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#621 STATUS ENTERED FROM ECSC            BY BGH ON  4-DEC-93 @ 1:15 ZULU.
+     REPORT SENT YET ?: NO
+ECSC (BGH) TRANSFERRED THIS TICKET FROM ECSC  TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#622 STATUS ENTERED FROM FISBEIN         BY CSG ON  8-DEC-93 @ 0:21 ZULU.
+     REPORT SENT YET ?: NO
+Patch assembled with customer code, loaded in lab and call placed through
+successfully. Patch copied in patch area under id sirti on CMS host. Over to
+Sirti to test it (K=7 on all links) and let us know of any result. Thanks.
+Stephane Fisbein. ECSG.
+
+ --#623 STATUS ENTERED FROM FISBEIN         BY CSG ON  8-DEC-93 @ 0:21 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#624 STATUS ENTERED FROM DOUGE           BY STS ON 18-JAN-94 @18:36 ZULU.
+     REPORT SENT YET ?: NO
+Stephane, any word on this?  Not that I'm in a hurry but
+I was hoping this could be closed.  I am tracking this and we
+report status to our VP periodically.
+
+ --#625 STATUS ENTERED FROM DOUGE           BY STS ON 18-JAN-94 @18:36 ZULU.
+     REPORT SENT YET ?: NO
+DOUGE(STS) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#626 STATUS ENTERED FROM FISBEIN         BY CSG ON 19-JAN-94 @ 8:47 ZULU.
+     REPORT SENT YET ?: NO
+Still no news from Sirti. Can BT Italy check with Sirti what's going on ?
+Thanks. Stephane Fisbein. ECSG.
+
+ --#627 STATUS ENTERED FROM FISBEIN         BY CSG ON 19-JAN-94 @ 8:47 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO BTITA.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#628 STATUS ENTERED FROM BTITA           BY CA  ON 19-JAN-94 @15:08 ZULU.
+     REPORT SENT YET ?: NO
+CALLED SIRTI BUT RNA, WILL TRY LATER.
+
+ --#629 STATUS ENTERED FROM BTITA           BY CA  ON 21-JAN-94 @15:05 ZULU.
+     REPORT SENT YET ?: NO
+SPOKE TO A. LANDI OF SIRTI. HE SAID THEY ARE WORKING ON THE NEW CONFIG AND
+WILL PROVIDE INFORMATION ASAP. O/T SIRTI.
+
+ --#630 STATUS ENTERED FROM BTITA           BY CA  ON 21-JAN-94 @15:05 ZULU.
+     REPORT SENT YET ?: NO
+BTITA(CA ) TRANSFERRED THIS TICKET FROM BTITA TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#631 STATUS ENTERED FROM SIRTITAS        BY AR  ON 25-JAN-94 @ 8:43 ZULU.
+     REPORT SENT YET ?: NO
+After I spoke with the customer to schedule a test, I have regenned the
+slot 1 node 2010 including the patch AUTOST.TST, but if I compile this patch
+before the ;xmdisi4.p03 line or followinf it, I have the result that you can
+see in log file 012494-23:52:50 under autonet/firenze/au2010/p000/s01.
+
+ --#632 STATUS ENTERED FROM SIRTITAS        BY AR  ON 25-JAN-94 @ 8:44 ZULU.
+     REPORT SENT YET ?: NO
+Can you tell me more information about this?
+thanks,      Alessandro Romoli
+
+ --#633 STATUS ENTERED FROM SIRTITAS        BY AR  ON 25-JAN-94 @ 8:44 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AR ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#634 STATUS ENTERED FROM FISBEIN         BY CSG ON 25-JAN-94 @ 9:44 ZULU.
+     REPORT SENT YET ?: NO
+Please remove ;xmdisi4.p03 !
+Thanks. Stephane. ECSG.
+
+ --#635 STATUS ENTERED FROM FISBEIN         BY CSG ON 25-JAN-94 @ 9:44 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#636 STATUS ENTERED FROM FISBEIN         BY CSG ON 25-JAN-94 @ 9:53 ZULU.
+     REPORT SENT YET ?: NO
+Also, make sure you have (xcompat)xomhst.403 ...
+Stephane.
+
+ --#637 STATUS ENTERED FROM SIRTITAS        BY AR  ON 26-JAN-94 @ 8:38 ZULU.
+     REPORT SENT YET ?: NO
+Using yours suggestions, I have done some test but I have problems again
+during the compilation.Can you check my command file to find the mistake?
+You can examine the log and command files under autonet/firenze/au2010/
+/p000/s01.test.    Thanks,  Alessandro Romoli
+
+ --#638 STATUS ENTERED FROM SIRTITAS        BY AR  ON 26-JAN-94 @ 8:38 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AR ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#639 STATUS ENTERED FROM FISBEIN         BY CSG ON 26-JAN-94 @10:40 ZULU.
+     REPORT SENT YET ?: NO
+The mistake is with ;x(patch)... A patch needs to be assembled with ;@ ...
+;x is to be used to instruct nad to execute a list of directives.
+Please have a look at au2010.c01 in s01.test ! Thanks. Stephane.
+
+ --#640 STATUS ENTERED FROM FISBEIN         BY CSG ON 26-JAN-94 @10:40 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#641 STATUS ENTERED FROM SIRTITAS        BY AR  ON 26-JAN-94 @15:58 ZULU.
+     REPORT SENT YET ?: NO
+I have schedule a reload of slot 1 node 2010 with customer for tomorrow
+morning. Wait for news...
+
+ --#642 STATUS ENTERED FROM SIRTITAS        BY AR  ON 28-JAN-94 @ 9:25 ZULU.
+     REPORT SENT YET ?: NO
+I loaded the patch and it works fine.I'd like to wait a week
+to see if the problem shows up again. Maybe, this time, the problem is
+solved indeed!
+.................wait for news.......
+
+ --#643 STATUS ENTERED FROM FISBEIN         BY CSG ON 31-JAN-94 @11:03 ZULU.
+     REPORT SENT YET ?: NO
+Thanks for the news. Just make sure that K is set to 7 and PSIZE to 128.
+Cheers. Stephane. ECSG.
+
+ --#644 STATUS ENTERED FROM SIRTITAS        BY AL  ON  4-FEB-94 @14:30 ZULU.
+     REPORT SENT YET ?: NO
+Bingo!!! Yours patch works perfectly. The customer is completely
+satified; he kindly requests a sort of explanation regarding the
+patch attivity. At last, youcanclose this ticket!
+Best regards,  Alessandro  Landi
+
+ --#645 STATUS ENTERED FROM SIRTITAS        BY AL  ON  4-FEB-94 @14:30 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AL ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#646 STATUS ENTERED FROM FISBEIN         BY CSG ON  4-FEB-94 @16:17 ZULU.
+     REPORT SENT YET ?: NO
+Thanks for the good news ! Could Jerry or Ken provide the customer with the
+requested explanation ? Congratulations to Dennis, Ken, Jerry and Chuck for
+the resolution of this non obvious trouble ! Cheers. Stephane. ECSG.
+
+ --#647 STATUS ENTERED FROM FISBEIN         BY CSG ON  4-FEB-94 @16:17 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO STS  .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#648 STATUS ENTERED FROM STONEK          BY STS ON  4-FEB-94 @19:19 ZULU.
+     REPORT SENT YET ?: NO
+I HAD DENNIS FORWARD AN EXPLANATION TO SFISBEIN@DELTA
+
+ --#649 STATUS ENTERED FROM STONEK          BY STS ON  4-FEB-94 @19:19 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM STS   TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#650 STATUS ENTERED FROM BTSWE           BY CY  ON 11-FEB-94 @12:06 ZULU.
+     REPORT SENT YET ?: NO
+C-I am wondering if this patch is widely applicable to reject recovery
+ and should be in the released patchfile, also if the same problem is
+ to found in SNA and SDLC slot code.
+
+ --#651 STATUS ENTERED FROM SIRTITAS        BY AR  ON 16-FEB-94 @15:10 ZULU.
+     REPORT SENT YET ?: NO
+I loaded the patch on 21/1/94 and for a few days the problem didn't happen.
+Instead, from 1/2/94 the problem shows up again about 17 times. Tomorrow
+morning I'll reload the slot 1 and I'll try to monitor the problem with
+
+ --#652 STATUS ENTERED FROM SIRTITAS        BY AR  ON 16-FEB-94 @15:13 ZULU.
+     REPORT SENT YET ?: NO
+datascope. Please,wait to close this ticket, I hope to provide you some
+news asap.     Romoli Alessandro
+
+ --#653 STATUS ENTERED FROM SIRTITAS        BY AR  ON 17-FEB-94 @12:11 ZULU.
+     REPORT SENT YET ?: NO
+The customer has resetted the counters on LSX4000 ( 15/2/94 ) and, for now,
+the problem is occurred one time. This morning I have installed the datascope
+on line and I`m waiting for some news.  AR
+
+ --#654 STATUS ENTERED FROM FISBEIN         BY CSG ON 17-FEB-94 @20:34 ZULU.
+     REPORT SENT YET ?: NO
+Please make sure that : a) the right code is running (with the patch), b) K=7,
+c) PSIZE=128.
+The patch basically fixes a race condition between output sectors and rotor
+list in the particular case of a RNR-REJ sequence. Thanks. Stephane. ECSG.
+
+ --#655 STATUS ENTERED FROM FISBEIN         BY CSG ON 17-FEB-94 @20:34 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO SIRTI.
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#656 STATUS ENTERED FROM SIRTITAS        BY AL  ON 23-FEB-94 @15:20 ZULU.
+     REPORT SENT YET ?: NO
+Maybe, I have good news for you. Forget the status 651 - 652 - 653 because
+I'm afraid we had a misunanderstanding with the customer.
+The problem hasn't occurred between 15/2/94 and 23/2/94.
+I want to check the line,with datascope, for another week.
+
+ --#657 STATUS ENTERED FROM SIRTITAS        BY AL  ON 23-FEB-94 @15:20 ZULU.
+     REPORT SENT YET ?: NO
+I will inform you for any further concernings.
+                                               Alessandro Romoli
+
+ --#658 STATUS ENTERED FROM SIRTITAS        BY AL  ON 23-FEB-94 @15:20 ZULU.
+     REPORT SENT YET ?: NO
+
+ --#659 STATUS ENTERED FROM BTSWE           BY CY  ON 24-FEB-94 @12:09 ZULU.
+     REPORT SENT YET ?: NO
+Just a question, whether you can still see instances of rnr - rej
+behaviour between our equipment and the LSX4000, which will confirm
+that the patch is doing something useful.
+Chuck
+
+ --#660 STATUS ENTERED FROM FISBEIN         BY CSG ON 28-FEB-94 @ 9:43 ZULU.
+     REPORT SENT YET ?: NO
+True. Furthermore, the RNR-REJ frequency will decrease when Olivetti will fix
+the Stratus problem. Stephane. ECSG.
+
+ --#661 STATUS ENTERED FROM SIRTITAS        BY AR  ON  7-MAR-94 @11:45 ZULU.
+     REPORT SENT YET ?: NO
+Escuse me for the wait,but tomorrow morning I have spoken with the customer
+about the patch on X25. The patch works fine and the customer is satisfied.
+We consider closed the problem and this ticket.  Thanks,
+                                 Alessandro Romoli
+
+ --#662 STATUS ENTERED FROM SIRTITAS        BY AR  ON  7-MAR-94 @11:45 ZULU.
+     REPORT SENT YET ?: NO
+SIRTITAS  (AR ) TRANSFERRED THIS TICKET FROM SIRTI TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#663 STATUS ENTERED FROM FISBEIN         BY CSG ON  8-MAR-94 @ 9:28 ZULU.
+     REPORT SENT YET ?: NO
+Thanks for the good news ! Again, congratulations to Dennis, Chuck, Jerry and
+Ken ! Over to STS to ack. Then back to me, please ! (ECSG # 78).
+Thanks. Stephane.
+
+ --#664 STATUS ENTERED FROM FISBEIN         BY CSG ON  8-MAR-94 @ 9:28 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO STS  .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#665 STATUS ENTERED FROM STONEK          BY STS ON  8-MAR-94 @17:20 ZULU.
+     REPORT SENT YET ?: NO
+OKAY...
+
+ --#666 STATUS ENTERED FROM STONEK          BY STS ON  8-MAR-94 @17:20 ZULU.
+     REPORT SENT YET ?: NO
+STONEK    (STS) TRANSFERRED THIS TICKET FROM STS   TO ECSG .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#667 STATUS ENTERED FROM FISBEIN         BY CSG ON  9-MAR-94 @ 8:49 ZULU.
+     REPORT SENT YET ?: NO
+Please close ! Thanks. Stephane. ECSG.
+
+ --#668 STATUS ENTERED FROM FISBEIN         BY CSG ON  9-MAR-94 @ 8:49 ZULU.
+     REPORT SENT YET ?: NO
+FISBEIN   (CSG) TRANSFERRED THIS TICKET FROM ECSG  TO ECSC .
+RESOLUTION CODE IS CURRENTLY SET TO  24  NEW PTCH
+
+ --#669 STATUS ENTERED FROM ECSC            BY GJD ON  9-MAR-94 @ 8:53 ZULU.
+     REPORT SENT YET ?: NO
+as per above status.
+ '7€
