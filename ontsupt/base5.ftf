@@ -1,0 +1,99 @@
+C-------
+C
+C DATA EXTRACTION PROGRAM
+C
+C TO EXTRACT DATA FROM 1022 DATABASE
+C EXPECTS TO BE USED AGAINST (TNT)BASE5.DMS
+C
+C WRITTEN BY TOM HACKWOOD 408 922 7053
+C BASE CODE WRITTEN BY ROBERT KLUTE
+C 25 JULY 1993
+C
+C------
+ 
+      DOUBLE PRECISION TYMNET, VNET
+      DATA TYMNET/'TYMNET'/, VNET/'       '/
+C
+      REAL RVNET, SNET, TVNET
+      DATA RVNET/'TYMN'/, SNET/'TYMNE'/, TVNET/'TYM'/
+C
+C     MORE VARIABLES: THESE ARE SPECIFIC TO BASE 5
+ 
+      INTEGER   TNUM
+      INTEGER   SDAT(2)
+      INTEGER   TIM1
+      INTEGER   WHO
+      INTEGER   RS
+      INTEGER   STAT
+      INTEGER   INFO(64)
+      INTEGER   UNAM(3)
+      INTEGER   ORDER
+      INTEGER   STYP
+C
+      INTEGER IERT, IERC, I, J, X
+      INTEGER NHTYPE, NHNUM
+      INTEGER IM, ID, IY, LOGST, LOGSD, LOGED, LOGET, LOGLT, TEMP(4)
+      INTEGER SM, SD, SY, EM, ED, EY, DM, DD, DY
+C------
+C     OK, FIRST LET X22 KNOW ABOUT US.
+C------
+      CALL DBSTRT(-1,1, 1,0, 5,0, -1,0, 1,1, 5,1)
+      CALL DBERR($666,IERT,IERC,10)
+10100 FORMAT(I2,1X,I2,1X,I2,1X,A5)
+10110 FORMAT(A5,4X,4A5)
+10111 FORMAT(I5)
+10112 FORMAT(3A5)
+10113 FORMAT(A10)
+10115 FORMAT(1X,A5,4X,4A5)
+      OPEN(8,'OUT',OUTPUT)
+      CALL DBOPEN('(TNT)BASE5')
+      CALL DBFIND('TNUM','EQ',493110)
+140      CALL DBGREC($200)
+         CALL DBVAL('TNUM',TNUM,
+     1              'SDAT', SDAT,
+     2              'TIM1', TIM1,
+     3              'WHO', WHO,
+     4              'RS', RS,
+     5              'STAT', STAT,
+     6              'INFO', INFO, 
+     7              'UNAM', UNAM,
+     8              'ORDER', ORDER,
+     9              'STYP', STYP)
+ 
+150      CALL DBNDAT(SDAT, SM,SD,SY)
+         IF (SY .GT. 99) SY = SY - 1900
+         CALL DBNDAT(CDAT , EM,ED,EY)
+         IF (EY .GT. 99) EY = EY - 1900
+         CALL DBNDAT(DUP,DM,DD,DY)
+         IF (DY .GT. 99) DD = DD - 1900
+         WRITE(8,10130) TNUM,
+     1                 SD,SM,SY,
+     2                 TIM1,
+     3                 WHO,
+     4                 RS,
+     5                 STAT,
+     6                 UNAM,
+     7                 ORDER,
+     8                 STYP,
+     9                 INFO
+         GOTO 140
+10130 FORMAT(I7,1H|,
+     1       I2,1H/,I2,1H/,I2,1H|,
+     2       A5,1H|,
+     3       A3,1H|,
+     4       I1,1H|,
+     5       A5,1H|,
+     6       3A5,1H|,
+     7       I3,1H|,
+     8       I1,1H|,
+     9       65A5,1H|)
+200   CALL DBCLOSE
+      CLOSE(8)
+      CALL DBEND
+      STOP
+666   CONTINUE
+      TYPE 10140,IERT, IERC
+      STOP
+10140 FORMAT(1X,'1022 ERROR  ERROR TYPE = ',I8,' ERROR CODE = ',I8)
+      END
+ 
