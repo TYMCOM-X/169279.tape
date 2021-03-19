@@ -1,0 +1,171 @@
+
+  TO>	Ken Holcomb
+
+From>	T.C.Kochmann
+
+Date>	16-Oct-89
+
+Subj>	PICO Field Status
+|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+Ken:
+
+	Please refer to the following memo from 18-Sept-89 updating Don
+Johnson of the PICO firmware issues being addressed by the transition from
+1.7 to 1.8:
+
+  To>	Don Johnson
+
+From>	T.C.Kochmann
+
+Date>	18-Sept-89
+
+Subj>	PICO Firmware Modifications
+-------------------------------------------------------------------------
+
+Don:
+
+	A variety of modifications have been made to the PICO 1.7 Firmware
+addressing some of the old firmware constraints we documented when this
+version was released as well as a couple of new bugs.  The changes are:
+
+  I.	Tymsync and Mailbox Interrupt Priorities raised to level 6 for
+	the 68010.  ATN1 interrupts were being lost in the Tymsync mode
+	at the mailbox level leaving the associated channel in a TX-ENDING
+	state until a board reset clears it.
+
+ II.	The RTS/CTS and DTR/DSR control signal bit array reversed in the
+	Tymsync mode only for ISIS.  The MSB to LSB order of bits for the
+	bit array was set up for the 68010 and not reordered for the
+	Engine.  HDLC and Async modes are proper and unchanged.
+
+III.	Oversize records greater than the specified packet length, typically
+	1/8th the receive buffer size are now thrown away at the firmware
+	level.  All protocols will no longer "see" the oversize records
+	written into slot memory areas.
+
+ IV.	Async flow control changed to "X-OFF" at the firmware level on
+	receipt of 13x when DC3/DC1 flow-control is enabled as well as
+	pass the 13x onto the ISIS slot to handle.  All subsequent bytes
+	received will be passed on except for 11x which will release the
+	"X-OFF" condition.  Previously neither 13x or 11x was passed on.
+
+
+Tim
+---------------------------------------------------------------------------
+
+
+	The Tymsync TX-ENDING condition is being addressed as an outstanding
+issue with HKSBC as they experience difficulties operating with two (2)
+channels in the emulated sync mode at 9600 bps whereupon they enter the
+TX-ENDING state which can only be recovered by resetting the state machine
+via a board reset which brings the entire machine down.  Raising the priorites
+to level 6 in the firmware did address the emulated sync ending state but with
+the catastrophic result that only one (1) interrupt OR DMA channel could run
+at 4800 bps at which time life with PICO became more than interesting!  When
+the developer observed the DMA channels as well as the interrupt channels
+experiencing transmit underruns at only 9600 bps with only one channel
+active he proposed an architectural change to address the problems.
+
+	ANZ bank uses 48K bps on channels 0-1 throughout the country and up
+to 6 ports of X.25 at 9600 bps.  Reducing them to a single 4800 bps HDLC
+channel is unthinkable.  At last tally we are concerned with approximately
+60 machines in their domain that we know of and some unknown quantity that
+they themselves have deployed for their own customers.  During Betatest ANZ
+executed load specification testing at which time they in fact actually
+ran a test PICO network with each node supporting two (2) 72K bps and two (2)
+HDLC/INT channels at 19.2 and was unable to overload PICO to a point of
+failure that all were looking for.  Even though they constrain the deployment
+of the box to run no greater than 9600 bps they are quite comfortable
+feeling that they have I/O bandwidth to spare and in no danger of overloading
+their nodes.
+
+	HKSBC deploys PICO with a mixture of protocols at times even assigning
+Async, Byte Sync and HDLC protocols to run concurrently on the same machine.
+They again require the ability to operate the DMA channels at speeds of up to
+64K bps and the HDLC/INT channels at speeds of up to 9600 bps.  Even though it
+is to service HKSBC's needs that we are addressing the Tymsync performance,
+again bringing them down to 4800 bps for their HDLC lines is not a realistic
+possibility.
+
+	Ford proposed a need to run 14.4 3270-SNA on one (1) channel per
+port.  This was to be presented to the network via two (2) 19.2 node
+code lines thus an inquiry was made to determine the feasibility of
+proposing PICO as a solution.  To complement the SNA nodes an array of
+nodes running CMT is required and again an inquiry as to whether or not
+PICO could serve as a solution was made.  Typically traffic is directed
+over two (2) lines through the CMT nodes, one line of 19.2K bps coming
+in from the SNA machine and another of 19.2K bps out to the network.
+A cluster was constructed to serve the purpose which offers six (6)
+network lines to assist in allowing optimum circuit routing through each
+cluster and most importantly redundancy of the network paths available.
+The worst case CMT machine was tested in the lab with two (2) 19.2K bps
+lines on DMA, three (3) 19.2K bps lines and one (1) 9600 bps network
+lines.  The remaining two (2) are unused.  The three (3) port SNA access
+node and six (6) port CMT nodes were brought up and tested in the lab
+for a point of failure which would prohibit such a configuration and
+the only problems to surface were those of the SNA input buffer wrap
+pointer mismatching the firmware wrap calculation (which has been addressed)
+and CMT backpressure bugs (at which time we learned that End to End
+backpressure arrays no longer work in ISIS version 11.01).  Actual
+application loading reveals that the two (2) primary lines on these
+machines sustain the bulk of the traffic while the remaining lines
+sustain minimal "keep alive" data loads.  The firmware with the Tymsync
+fix for HKSBC being unable to sustain more than one (1) 4800 bps HDLC
+line is obviously out of the question for the Ford network.
+
+	LEB has built a private SNA network based upon PICO where their
+HIF operates with one (1) 56K bps line from the FEP and another 56K bps
+line to the network.  The TIF machines are comprised of six (6) HDLC
+channels operating at 9600 bps.  Again, to offer the Tymsync solution
+to LEB after spending such effort to install their PICO network is
+not practical.
+
+	The past 2 to 3 weeks of testing and debugging have been spent
+in an effort to maintain the PICO 1.7 level of HDLC performance on both
+DMA and Interrupt channels.  Recall that even a single DMA/HDLC channel
+underran at only 9600 bps with the Tymsync fix although no channels were
+even configured for emualted sync!  Restoring the HDLC performance has led
+to the loss of Tymsync again and again as we attempt various "fixes"
+to resolve the issue.  A deviation from the implemented interrupt
+structure is required to realistically address the problem.  At this time
+we are testing with a solution that is implemented in both PAL and PROM
+changes to the IOC while physically raising the interrupt levels from
+a three (3) to a five (5) at the hardware level.  This strategy appears
+to offer the best performance we have seen as regards maintaining HDLC
+service as well as emulated sync.  The Async performance is as of yet
+totally untested and will be explored in the regression testing this week.
+
+	The IOC weighting factors specified for PICO version 1.7 will
+be changed little if at all by the time we are finished.  The end result
+of these past few weeks of work will most apparently be seen in the 
+increased reliability of PICO which is what 1.8 offers.  The PICO Sales
+Handbook is presented to the field for pricing and configuration
+guidelines and presents the details not addressed in the PICO marketing
+glossy (which is exactly that; only a gloss of the product).  The Sales
+manual directs that channels 0-1 may be operated at speeds up to 72K bps
+for V.35 interfaces and any line 0-7 may operate at 19.2K bps for V.24
+interfaces and explicitly offers the limitation that aggregate throughput
+will be less than 12,500 cps.  The throughput guidelines dictate that
+there is sufficient bandwidth for three (3) HDLC/INT channels to avoid
+the unpleasent possiblity of anyone configuring PICO to run all eight (8)
+channels at 19.2K bps.  On page 26 I explicitly direct marketing
+to discourage Byte synchronous applications on PICO and specify that
+aggregate emulated sync bandwidth will be no greater than 19.2K bps.
+Operating one channel of Tymsync at 19.2K bps is prohibited as it leaves
+no remaining IOC bandwidth to work with!  Again, with the current PICO
+modifications there appears to be little or no reason to revise the
+established guidelines.  The stated goal of the Tymsync modifications is
+simply to present a more reliable product to HKSBC without degrading
+our existing service to established users.  The other issues addressed
+by the 1.8 modifications are more straightforward logic errors which have
+surfaced these last few months and this seems a most appropriate time to
+address them.  At this time all issues appear resolved and the solutions
+are being retested in the lab.
+
+
+:send d/johnson t/kochmann k/holcomb b/shepherd
+PICO Field/Change Status as requested
+:erase
+:log
+   
