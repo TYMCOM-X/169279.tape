@@ -1,0 +1,2708 @@
+
+
+
+
+
+
+
+
+
+
+
+
+                       *     *  ****     *    **** *****
+                       **   **  *   *   * *  *     *
+                       * * * *  ****   *****  ***  ****
+                       *  *  *  *   *  *   *     * *
+                       *     *  ****   *   * ****  *****
+
+
+
+                            ***       ***      ****
+                           *   *       *       *   *
+                           *           *       *   *
+                           *  ***      *       *   *
+                            ****  *   ***   *  ****  *
+
+
+
+
+
+
+
+                                      MBASE
+                             GENERAL INTERNAL DESIGN
+                                  Revision 1.0
+
+                                   Dick Rawson
+
+                                     TYMNET
+                         NETWORK TECHNOLOGY DEVELOPMENT
+                                 August 19, 1985
+
+
+
+
+
+
+
+      File: MBASE12, updated August 19, 1985 12:12
+
+      *==================================================================*
+      |       THIS DOCUMENT IS THE SOLE PROPERTY AND CONFIDENTIAL        |
+      |       INFORMATION OF TYMNET, AND MAY NOT BE COPIED IN            |
+      |       WHOLE OR IN PART OR DISCLOSED TO ANY THIRD PARTY           |
+      |       WITHOUT THE PRIOR WRITTEN CONSENT OF TYMNET.               |
+      *==================================================================*
+
+
+
+   Copyright 1985 by Tymnet -- The McDonnell Douglas Network Systems Company
+
+
+
+
+
+
+
+
+
+
+                                                          August 19, 1985
+
+
+
+
+
+
+                                     PREFACE
+
+
+        This General Internal Design describes how the MBase slot is to
+        implement the functionality described in the General External
+        Design.  It must be read along with the Design Objectives and
+        General External design; this GID does not include everything in
+        the higher-level documents.
+
+        The General External Design is to specify MBase functionality and
+        interfaces.  This General Internal Design should not do that,
+        although it is sometimes convenient to repeat some details from
+        the GED.  If this GID happens to specify external design issues,
+        meaning that they are not specified in the GED, then that is an
+        error to be fixed.
+
+        Concurrent with implementation, the Internal Maintenance
+        Specification is to be completed, detailing the actual
+        programming as implemented.  That IMS then superceeds this GID.
+
+
+
+                                    FOREWARD
+
+
+        MBase is the Tymnet interface for the Microdata Spirit computer.
+        The MBase software runs on the TSI, or Tymnet Spirit Interface
+        processor, which is a card plugging into the Spirit's card cage,
+        on the processor and memory bus, S-BUS.  In fact, the TSI is a
+        Tymnet Engine running ISIS, and the MBase software runs as an
+        ISIS application slot.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        2                 Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+                                                          August 19, 1985
+
+
+
+
+                       T A B L E    O F    C O N T E N T S
+
+
+                     Preface
+
+                     Forward
+
+                  1  Introducing the Design
+
+                  2  Multitasking
+                  2.1  Exec Loop
+                  2.2  List of Tasks
+                  2.3  Intertask Sequencing
+
+                  3  S-BUS Interface to Spirit
+                  3.1  S-BUS Driver IOCB Scanner Task
+                  3.2  S-BUS Driver I/O Request Starter Task
+                  3.3  S-BUS SubDriver Task
+                  3.4  S-BUS Driver SRD Starter Task
+                  3.5  S-BUS Driver SRB Queuer Routine
+                  3.6  Channel 1 Command Handlers
+                  3.7  Channels 2-253 Command and Message Handlers
+                  3.8  Halt I/O Handler
+
+                  4  Dispatcher Rings Interface to ISIS
+                  4.1  Dispatcher OUT Ring Build Routines
+                  4.2  Dispatcher IN Ring Teardown Task
+                  4.3  IN Ring Message Handlers
+                  4.4  Circuit Input Buffering and Forwarding
+
+                  5  Disk and Tape Extension Cord Module
+                  5.1  ICOM Driver
+                  5.2  Message Handlers
+
+                  6  Miscellaneous Services
+                  6.1  Timer Driver and Task
+                  6.2  ISIS Output Task
+                  6.3  Waiting Queue Driver and Task
+                  6.4  Memory Allocation Module
+                  6.5  Event Trace Module
+
+                  7  Initialization and Restart Modules
+                  7.1  Initialization
+                  7.2  Restart
+
+                  8  Data Structures Summary
+
+                                    APPENDIX
+
+                  A    S-BUS Timing Estimates
+
+
+
+        3                 Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Introducing the Design                            August 19, 1985
+
+
+
+
+
+
+                      Chapter 1  -  INTRODUCING THE DESIGN
+
+
+        MBase is a collection of tasks (processes) that run as the slot's
+        Background Job.  There are also a small Foreground Job, and an
+        ISIS device driver, but these are very small and simple.
+
+        MBase tears down the Dispatcher IN ring, and mostly forwards what
+        it receives to Spirit.  Likewise, MBase collects output from
+        Spirit channels and stuffs it into the Dispatcher OUT ring.
+
+        The biggest part of the complexity is the mismatch between
+        Spirit's S-BUS and Tymnet's ISIS and its Dispatcher rings.  MBase
+        interprets Spirit I/O requests and maintains I/O status
+        information on a per-channel basis, there being two channels per
+        ISIS port.  But MBase must re-multiplex activities for these
+        channels over the S-BUS Service Request facility (Message Block).
+        The circuit status and activity is then maintained separately by
+        circuit.  It is combined into a single input and a single output
+        stream for communication with ISIS over the Dispatcher rings.
+        This is shown in Figure 1.1.
+
+
+        S-BUS         Spirit Service         MBase Port        Dispatcher
+        Channels         Requests              Status            Rings
+
+        IOCB   \        -----------         /   PORT   \        IN RING
+        IOCB    \ <--   | Message |  <-->  /    PORT    \  <---
+        IOCB    / -->   |  Block  |        \    ...     /  --->
+         ...   /        -----------         \   PORT   /        OUT RING
+        IOCB  /
+
+
+                    Figure 1.1:  Overall MBase Data Flow
+
+
+        Not shown in that "overall" view are some important but transient
+        data structures.  Data buffers are allocated as needed; data must
+        be copied once between a buffer accessible to the S-BUS and a
+        Dispatcher ring, and very short input strings (going to Spirit)
+        are copied a second time.  Also, there are several kinds of
+        transient blocks used to pass signals or requests between tasks.
+
+        Initialization and termination are usually troublesome to
+        program, and they do complicate the MBase design.  This happens
+        at two levels:  MBase's dialog with Spirit and ISIS, and the
+        creation and clearing of network circuits.  Associated with this,
+        there is a small timing facility to help detect hangs and escape
+        from them.
+
+
+        4                 Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Multitasking                                      August 19, 1985
+
+
+
+
+
+
+                           Chapter 2  -  MULTITASKING
+
+
+        MBase is organized as several concurrent execution tasks, all but
+        two of them running in the slot's Background Job.  ISIS does not
+        explicitly support multiple tasks within the background, so MBase
+        follows the common practice of providing an "exec loop", which
+        gives each task in turn a chance to run.
+
+        The tasks that are called in turn from the exec loop may have to
+        defer work they have started until later, and this is usually
+        done via dynamically allocated "request blocks".
+
+        MBase documentation uses the expression "backtround turn" to
+        denote the interval of Background Job execution from the time
+        ISIS starts it running following an earlier dismiss, until it
+        next dismisses.
+
+
+
+
+                                 2.1 - Exec Loop
+
+        One background task often makes work available to another, so it
+        isn't appropriate to let each task take one turn, and then to
+        dismiss the Background Job.  That could leave the slot with
+        processable - but unprocessed - work.
+
+        On the other hand, it is also inappropriate to continue executing
+        the various tasks if they have no further work to do:  it
+        consumes Engine cpu to no purpose.
+
+        Accordingly, each task is designed to return to the Exec loop
+        with a progress indication:  an indication of whether or not the
+        call found any work that could be done.  Also, each task tests
+        promptly and efficiently for available work, so that it can
+        return the "no" indication very cheaply.
+
+        When the Background Job is entered from ISIS, it simply repeats
+        the following loop until satisfied:  initialize all tasks'
+        progress flags, call each of the tasks, and exit the loop if no
+        progress flag was set.  If the loop ever does exit, the job
+        simply dismisses.
+
+        Common Tymnet practice has the Background Job dismiss each time
+        through the Exec Loop.  That may also be appropriate for MBase,
+        instead of the looping technique described.
+
+
+
+
+        5                 Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Multitasking                                      August 19, 1985
+
+
+
+
+                               2.2 - List of Tasks
+
+        The following tasks are in the Background Job unless noted
+        otherwise.
+
+
+        IOCB Scanner Task.  This task, the only Foreground one, scans S-
+        BUS IOCBs for new Start I/O and Halt I/O indications.
+
+        I/O Request Starter Task.  This task initiates Background
+        processing for each Start I/O and Halt I/O indication presented
+        by the IOCB Scanner Task.
+
+        S-BUS SubDriver Task.  This task, the only ISIS Kernel one, is in
+        fact the ISIS I/O device driver for the S-BUS.  It processes a
+        list of S-BUS Service Request Blocks concurrently with all other
+        ISIS slot execution.
+
+        SRD Starter Task.  This task resumes Background processing
+        associated with Service Requests that the SubDriver has
+        completed.  (SRD denotes SRB Done.)
+
+        IN Ring Teardown Task.  This task initiates processing for each
+        message found in the Dispatcher IN Ring.
+
+        Data Forwarding Task.  This task examines each port on the Data
+        Forwarding Queue, and determines whether to present the port's
+        data to Spirit at this time.
+
+        ISIS Output Task.  This task moves circuit output from Spirit
+        (and occasionally from MBase) into the Dispatcher OUT ring.
+
+        Global Backpressure Task.  This task applies ISIS backpressure to
+        certain circuits if MBase buffer space nears exhaustion.
+
+        ICOM Driver Task.  This task initiates processing for each disk
+        or tape service message that ICOM presents.
+
+        Timer Task.  This task initiates processing associated with a
+        timeout when the requested time is passed.
+
+        Waiting Queue Task.  This task initiates Background processing
+        during the next Background turn for a procedure that asked to
+        wait until then.
+
+
+
+
+
+
+
+
+
+        6                 Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Multitasking                                      August 19, 1985
+
+
+
+
+                           2.3 - Inter-Task Sequencing
+
+        A given signal received by MBase often requires processing by a
+        sequence of tasks.  The signal may be handled once by each task
+        in turn, or one task may call another to perform a step, and then
+        resume processing the signal when the called task returns.
+
+        MBase tasks have specialized occupations, such as emptying the
+        Dispatcher IN ring.  (See Figure 2.1.)  Such a task performs one
+        function, such as moving data from one place to another, or
+        transforming it from one representation to another.  Any time
+        such a task finds input, it can perform its assigned function; it
+        is finished temporarily whenever it exhausts its input.  In the
+        process, it generally provides data for another MBase task to
+        consume, or else it provides data to Spirit or ISIS.
+
+
+             ------------        Processing      |--|--|--|
+            (            )  -->     Task     --> |  |  |  | --> . . .
+             ------------                        |--|--|--|
+
+               IN Ring                          Buffer Queue
+
+             Figure 2.1:  Dispatcher IN Ring Processing Made Simple
+
+
+
+        Some tasks, however, process input and return the result to the
+        task that provided the input; in that way, they resemble
+        subroutines.  For example, there is a Timer Task which notifies a
+        task when a specific time is reached.  Each request is a control
+        block containing a wake-up time field, and a return address
+        field.  When the Timer Task executes, it determines whether any
+        request's wake-up time has been reached, and if so, gives control
+        to the program designated by the return address field.
+
+        A more complex, but very important version of this technique is
+        used to drive the S-BUS interface.  (See Figure 2.2.)  Each
+        request for S-BUS service is packaged into a Service Request
+        Block, describing not only the details of the requested service,
+        but also the "return address" that should resume processing when
+        the S-BUS service has been completed.
+
+        The S-BUS SubDriver, which performs the request, is an ISIS
+        interrupt-level device driver.  That means its execution is
+        interleaved arbitrarily with the MBase slot's execution, and so
+        the SubDriver can't simply "give control to" the appropriate
+        return address when it comletes a task.  The SubDriver returns
+        completed Service Request Blocks to yet another MBase task in the
+        MBase Background Job, via a queue; this additional task actually
+        gives control to the program designated by the request block's
+
+
+        7                 Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Multitasking                                      August 19, 1985
+
+
+        return address field.
+
+
+        TASK Y
+
+          |
+          |                                                     S-BUS
+        Build a                  Queue of S-BUS Service        REQUEST
+        Service                         Requests             SERVER TASK
+        Request
+        Block                      |--|--|--|--|--|--|
+          |                        |  |  |  |  |  |  | ---> Get a request
+        Queue it ----------------> |  |  |  |  |  |  |      Process it
+                                   |--|--|--|--|--|--|           |
+          .                                                      |
+                                                                 |
+          .                                                      |
+                                                                 |
+          .         STARTER TASK                                 |
+                                            |--|--|--|           |
+          .           Get a block <-------- |  |  |  | <--- Requeue it
+                      Return to requester   |  |  |  |      Repeat
+        Resume      <--- /                  |--|--|--|
+          processing
+                                  Queue of finished S-BUS Requests
+
+
+                  Figure 2.2:  S-BUS SubDriver Task Sequencing
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        8                 Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        S-BUS Interface                                   August 19, 1985
+
+
+
+
+
+
+                     Chapter 3  -  S-BUS INTERFACE TO SPIRIT
+
+
+        The Spirit Bus interface programming could be considered in two
+        parts:  a "driver" to make bus transfers proceed, and various
+        "handlers" to handle the indications received from Spirit.  The
+        driver is structured as four logically concurrent tasks, for
+        performance reasons:  to maximize the utilization of the S-BUS
+        when work is waiting.  The handlers are simply the routines to
+        handle different cases:  the various S-BUS channel commands, and
+        the various messages.
+
+
+
+
+                      3.1 - S-BUS Driver IOCB Scanner Task
+
+
+        When the Spirit cpu wishes to start an S-BUS channel command, it
+        prepares an I/O Control Block, IOCB, in the S-BUS window, and
+        sets the IOCB SIO field as the last step.  MBase is responsible
+        for observing that SIO has been set in IOCBs for channels above
+        zero; the TSI firmware recognizes SIO for IOCB zero.
+
+        When Spirit wishes to cancel a command it has started, but which
+        hasn't completed, it sets the IOCB HIO field.  MBase is
+        responsible for observing that HIO has been set in IOCBs for
+        channels four and above; Halt I/O is undefined for lower-numbered
+        channels.
+
+        The Scanner Task runs as MBase'sground Job, scanning
+        appropriate IOCBs.  It scans SIO fields more often than HIO
+        fields.  Only some of the IOCBs need to have the SIO field
+        watched; channels having no circuit attached can be ignored, and
+        channels with I/O already started can also be ignored.  It scans
+        the HIO fields of channels with I/O already started, but scanning
+        can be as slow as once every 4 seconds, since HIO is used only
+        for error recovery.
+
+        The Scanner Task keeps a list of IOCBs that it should examine,
+        and scans some or all of then each time it is entered.  Putting
+        this task in the Foreground ensures predictably prompt notice of
+        a new SIO, but also limits the amount of Engine cpu that will be
+        spent on scanning.
+
+        No matter how soon the Foreground notices an event, nothing
+        really gets done until the background runs.  The Scanner Task
+        communicates newly noticed SIOs and HIOs to a background task via
+        a ring buffer, the IORQ (I/O Request Queue).
+
+
+        9                 Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        S-BUS Interface                                   August 19, 1985
+
+
+        The Scanner Task dismisses whenever the IORQ ring is full, so
+        that it can find an event only when there is space in the ring.
+        When it notices a new SIO or HIO, it places a corresponding IORB
+        (I/O Request Block) into the ring; for SIO, it also marks the
+        IOCB SIO field X'80'.  (The IORB is simply the channel number and
+        the event type (SIO or HIO), hardly worthy of the name "block.")
+
+        In the special case of finding HIO set but SIO clear, no IORB is
+        queued; instead, the Scanner Task immediately resets HIO.
+
+
+
+
+                   3.2 - S-BUS Driver I/O Request Starter Task
+
+
+        This background task consumes IORBs from the IORQ:  indications
+        that Spirit is starting or halting I/O on a channel.  When
+        called, it tries to obtain the next IORB, and if there is no next
+        IORB, it returns to the Exec Loop.
+
+        If it obtains an IORB, it sets its Progress Flag, considers the
+        IOCB command, event type, and the channel number, and calls the
+        corresponding S-BUS Command Handler (see Sections 3.6 through
+        3.8).  When the handler returns, the task repeats the sequence,
+        trying to get another IORB; the number of times it will repeat
+        before returning to the Exec Loop can be limited by a tuning
+        parameter.
+
+        Generally, the handler either just makes a note of the event, or
+        prepares data for transfer to Spirit and queues a transfer
+        request, or queues a transfer request FROM Spirit and receives
+        control again after the data has arrived.
+
+
+
+
+                           3.3 - S-BUS SubDriver Task
+
+
+        The SubDriver Task controls the actual data movement commanded by
+        IOCB commands; for this, it uses the S-BUS Message Block to make
+        Service Requests of Spirit.  To be able to keep starting Service
+        Requests even when the MBase slot is dismissed, the SubDriver
+        Task is in fact an ISIS I/O Driver.  (From the viewpoint of
+        MBase's S-BUS Driver, it is a "Driver's Driver", hence the name
+        SubDriver.)
+
+        The SubDriver receives requests in the SRQ (Service Request
+        Queue), specifying how to fill out the Message Block for one S-
+        BUS Service Request; the SubDriver follows those specifications,
+        then interrupts Spirit, which performs the transfer.  Upon
+        completing the requested transfer, Spirit resets the Message
+
+
+        10                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        S-BUS Interface                                   August 19, 1985
+
+
+        Block's Service Request byte, which interrupts the TSI Engine;
+        the interrupt signals the SubDriver that the transfer completed.
+
+        The completed request is returned in the SRDQ (Service Request
+        Done Queue), to be discovered by an MBase background task when it
+        runs.
+
+        The SubDriver must share read-write access to the S-BUS Window
+        with the MBase slot, in order to manipulate the Message Block
+        (which is in that window).  With no extra mechanism, the SRQ and
+        SRDQ are shared between MBase and SubDriver by putting them also
+        in the window.  ICOM could be used instead of shared-memory
+        queues, but it would be slower and return no benefit.
+
+
+
+
+                       3.4 - S-BUS Driver SRD Starter Task
+
+
+        This awkwardly named task gets completed SRBs (Service Request
+        Blocks) from the SRDQ (SR Done Queue), and passes them to
+        appropriate handlers.
+
+        For example, to process a Send Circuit Signal S-BUS command, an
+        SRB is used to cause Spirit to copy the message into an S-BUS
+        Window buffer where MBase can see it.  When the SubDriver returns
+        the SRB in the SRDQ, this task examines the SRB, determines what
+        routine handles it further, and calls the routine.  The called
+        routine will see which signal code Spirit sent, and act
+        accordingly.
+
+        It has one additional function:  making sure that the SubDriver
+        doesn't stall.  It confirms that if there are any entries in the
+        SRQ, then the SubDriver also says it is running; if not, then it
+        executes the ISIS SVC to restart SubDriver.  This is cheaper than
+        using a better interlock for appending SRBs to SRQ.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        11                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        S-BUS Interface                                   August 19, 1985
+
+
+
+
+                      3.5 - S-BUS Driver SRB Queuer Routine
+
+
+        A subroutine for placing a prepared Service Request Block on the
+        SubDriver input queue, SRQ.  Many MBase routines need to do this,
+        and it must be done consistently.
+
+        This routine finds (or remembers) the last SRB on the SRQ, and
+        adds the new one as its successor.  If the SubDriver isn't
+        currently active, an ISIS SVC is issued to restart it.  (Also see
+        the note in the preceeding section.)
+
+
+
+
+                        3.6 - Channel 1 Command Handlers
+
+
+        These are routines that arrange to carry out the S-BUS commands
+        that are defined for Channel 1.  Channel 1 traffic pertains to
+        the "controller" aspects of MBase, in contrast to ISIS,
+        Supervisor, or individual circuit aspects.  Channel 1 is used to
+        initialize the Spirit-MBase dialog, and to suspend it
+        temporarily.
+
+
+        3.6.1 - Reset Interface
+
+        There are four cases:  If MBase is not already performing its
+        reset procedure, this message initiates it.  Or the reset
+        procedure may be in progress:  begun but not completed.  Or
+        MBase's part may be complete, and MBase is awaiting this message.
+        Or MBase's part may be complete, and MBase already received the
+        Reset Interface command it was awaiting, and this one is extra.
+
+        In the first three cases, we first mark the MBase Status Table to
+        show that the message has arrived.  Then, if Interface Reset is
+        not already running, we call an entry point to begin it; there
+        are other occasions that can call that entry point.  Upon return,
+        we also return.  (Interface Reset is described in Chapter 7.)
+
+        In the last case, MBase had received the expected Reset Interface
+        command, and was waiting for a Read Extended Status command when
+        this extra Reset Interface command arrived.  MBase traces the
+        command, and queues an SRB to end the command with normal status.
+        (This is peculiar behavior on Spirit's part, but it is easily
+        ignored.  We want to ignore it because it unnecessarily clutters
+        the crash history records, and delays proceedings by another four
+        seconds minimum.)
+
+
+
+
+        12                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        S-BUS Interface                                   August 19, 1985
+
+
+        3.6.2 - Read Extended Status
+
+        This routine prepares a message buffer with the information to be
+        returned, prepares an SRB (Service Request Block) to transfer the
+        buffered data, and calls the SRB Queuing subroutine to enqueue
+        the SRB.  When the SRB completes, it and its buffer are
+        deallocated.
+
+
+        3.6.3 - Load Mapping Table
+
+        An SRB is prepared and queued that will transfer the mapping
+        table to a buffer in the S-BUS window.  When available, it is
+        copied into the Message Mapping Table; then the SRB and buffer
+        are deallocated.
+
+
+        3.6.4 - Suspend MBase
+
+        The MBase Suspended flag is set in the MBase Status Table, and
+        the Flush flag is set in all currently queued SRBs.  The
+        Suspender routine described below is put on the Waiting Tasks
+        Queue, to check during each background turn whether the command
+        can be completed yet.  Then this command handler returns to its
+        caller.
+
+        The Suspender routine is called from the Waiting Tasks Queue each
+        background time, and just requeues itself on the Waiting Tasks
+        Queue unless all the SRBs have been flushed.  When that has
+        happened, it builds a new SRB to finish the Suspend MBase command
+        on Channel 1 (using the Read Status service request), and queues
+        it onto SRQ.  Then it returns to its caller (the Waiting Task).
+
+        The MBase Suspended flag prevents queuing new SRBs on SRQ for all
+        channels except Channel 1; an SRB for any other channel gets
+        added instead to the SR Suspended Queue.  Other than this, MBase
+        keeps running as usual.  Only circuits that buffer too much data
+        will get backpressured, the same as happens anytime if data
+        arrives much faster than Spirit accepts it.
+
+        The Flush flag is used to flush all SRBs off the SRQ; it works
+        this way.  The flag causes the S-BUS SubDriver to treat an SRB as
+        a no-op; all the SubDriver does is move the SRB to the SRDQ (Done
+        queue).  When the SRB is taken off the SRDQ, the Flush flag
+        causes it to be saved on a SR Flushed Queue (with the Flush flag
+        turned back off), not really treated as if it had completed.
+
+        Two different holding queues are used while MBase is suspended to
+        make sure that SRBs are eventually presented to the SubDriver in
+        the same sequence that they would have been, if the Suspend
+        hadn't taken place.  (The SRBs for the Suspend and Resume
+        commands are exceptions.)  Otherwise, new SRBs might get
+        interleaved with SRBs being flushed.
+
+
+        13                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        S-BUS Interface                                   August 19, 1985
+
+
+        3.6.5 Resume MBase
+
+        Clear the MBase Suspended flag in the MBase Status Table.  Build
+        and queue an SRB to finish the Resume MBase command.  When the
+        SRB completes, it is deallocated.  Then copy all SRBs from the SR
+        Flushed Queue to the SRQ, followed by any SRBs from the SR
+        Suspended Queue.  Then return to the caller.
+
+        While MBase was suspended, enough data may have arrived for some
+        circuits to cause MBase to apply ISIS backpressure.  Following
+        the Resume MBase command, Spirit should accept the waiting data;
+        if it does, MBase releases backpressure automatically.  However,
+        MBase doesn't release backpressure explicitly in response to
+        receiving the Resume MBase command.
+
+
+
+
+                3.7 - Channels 2-253 Command and Message Handlers
+
+
+        These channels have the same set of S-BUS commands, but Channels
+        2 and 3 correspond to Dispatcher Port Zero (the "ISIS port"), and
+        so have a different set of messages.  The command handling is
+        done uniformly for ISIS and circuit ports, but messages from S-
+        BUS Channel 2 are handled differently from the other output
+        channels.
+
+
+        3.7.1 - Commands
+
+
+        3.7.1.1 Read Data Command
+
+        The Read Data command is the simplest to describe.  It is the
+        only input command Spirit uses on these channels, and inputs both
+        circuit data and signals -- whatever appears.  If no data is
+        waiting to be read (the usual case), then the only thing to do
+        now is to output a Release Backpressure message to ISIS (if the
+        port had been backpressured), and return to the caller.
+        Otherwise, put the port on the Data Forwarding Queue (see
+        Sections 4.4 and 4.4.2).  Then return to the caller.
+
+
+        3.7.1.2 Write and Send Commands
+
+        The Write and Send commands provide four different ways of
+        transmitting messages from Spirit to MBase.  Write and Send each
+        have short and long alternatives; each short form costs one less
+        Spirit interrupt and one less MBase Service Request than the
+        corresponding long form, but transfers only one byte, or one
+        short circuit signal.  In any case, the Send Circuit Signal
+        commands designate only one circuit signal, usually corresponding
+
+
+        14                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        S-BUS Interface                                   August 19, 1985
+
+
+        to one ISIS message.  The Write Data command, however, can
+        designate thousands of bytes.
+
+        MBase must obtain an entire circuit signal message from Spirit in
+        order to process it.  And MBase must place an entire ISIS non-
+        Data message into the Dispatcher OUT ring as a unit.  But data
+        bytes uninterrupted by circuit signals are just a stream of
+        bytes, and while their order must be preserved, their grouping is
+        unimportant and need not be preserved.
+
+        MBase obeys ISIS backpressure and transmit-limit rules for each
+        circuit, for Data messages, and for most other messages; gobblers
+        and zappers are exempt.  (But they are exempt only if MBase can
+        recognize them; the GED recommends that Spirit send a gobbler or
+        zapper using the Send Circuit Signal Short command.)
+
+        The general method of handling Write and Send commands assumes
+        that backpressure or transmit limit might prevent further output
+        right now, and that the output command might designate too many
+        bytes to buffer at once in MBase.  When bytes are transferred
+        from Spirit, long transfers proceed by moving up to 256
+        characters to an MBase buffer at one time, and waiting until they
+        have all been given to ISIS before getting more from Spirit.
+
+        Accordingly, there are two different occasions when MBase
+        proceeds with Spirit output on a channel:  when Spirit signals
+        Start I/O, and when MBase determines to proceed with already
+        pending I/O.  Therefore, command processing is written as a
+        routine that "gets some more bytes from Spirit":  the routine is
+        called once when Start I/O is recognized, and as many more times
+        as needed to complete the transfer, from the ISIS Output Task.
+
+        In other words, Write and Send commands are processed by calling
+        the Get Spirit Bytes Routine, described below.
+
+
+        3.7.1.3 Get Spirit Bytes Routine
+
+        This routine attempts to transfer bytes for a pending Write or
+        Send command, and handles all the exceptions and end conditions,
+        and the four different command formats.  Let's consider the Send
+        and Write commands separately.
+
+
+        For a Send command, if Spirit is using Send Circuit Signal Short
+        to output a gobbler or zapper, that can be determined by looking
+        at the IOCB, without Spirit noticing our looking.  If we can
+        detect a gobbler or zapper that way, or if there is no ISIS
+        backpressure on the port, we can continue; otherwise, the routine
+        gives up, having made no progress.
+
+        If we are still proceeding, we get the circuit-signal message
+        into a buffer (described in 3.7.1.4), then process the message
+
+
+        15                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        S-BUS Interface                                   August 19, 1985
+
+
+        according to its type code (see 3.7.2).  If the circuit signal
+        should be delivered to ISIS, that is done by queueing the same
+        message buffer on the port's Output Queue, and queueing the port
+        onto the ISIS Output Queue if it isn't there already; there is a
+        routine to do that.  There is another routine to place a specific
+        ISIS message onto the port's Output Queue, and make sure the port
+        is on the ISIS Output Queue, when that is needed.
+
+
+        For the Write commands, if the port is backpressured by ISIS,
+        then give up.  Otherwise, get one buffer's worth of data (see
+        3.7.1.4), queue the same buffer on the port's Output Queue, and
+        make sure the port is on the ISIS Output Queue.
+
+
+        3.7.1.4 Moving Data from Spirit to a Buffer
+
+        This function allocates a buffer, moves all or a portion of the
+        designated data into it, and returns the prepared buffer to the
+        requester.  The function needn't be written as a closed routine;
+        it's described that way here for convenience.
+
+        First, a buffer is allocated.  If the command is Write Single
+        Byte or Send Circuit Signal Short, the data is already in the S-
+        BUS window, in IOCB fields; it is copied to the buffer (which can
+        be small), and an SRB is made and queued to signal Spirit that
+        the command is done (using the Read Status Service Request).  The
+        buffer is returned immediately to the requester.  When the SRB is
+        completed, it is deallocated.
+
+        Otherwise the command is Write Data or Send Circuit Signal Long.
+        The circuit-signal code is moved from the IOCB to the buffer, or
+        the code for data is placed in the buffer, as appropriate.  Then
+        an SRB is made and queued to cause Spirit to move data or signal
+        bytes into the buffer, up to 256 of them (using the Write Data
+        Service Request).  When the SRB completes, it returns control to
+        this routine, signalling that the circuit signal or data bytes
+        are available in the buffer; the SRB is deallocated, and the
+        buffer is returned to the requester.
+
+
+        3.7.2 - Messages
+
+        When the message is ready in the buffer, the appropriate Message
+        Handler is called, considering the message code and whether it
+        appeared on Channel 2.
+
+
+
+
+
+
+
+
+
+        16                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        S-BUS Interface                                   August 19, 1985
+
+
+        3.7.2.1 Channel 2 Messages (Port 0)
+
+        Channel 2 messages are all copied to the Dispatcher OUT ring.
+        MBase does not interpret or validity check them.
+
+
+        3.7.2.2 Circuit-Channel Messages (Ports > 0)
+
+
+        Data "message"
+
+        Transfers are done by the Get Spirit Bytes Routine (3.7.1.3).
+
+
+        Logon String message
+
+        This message is translated into a sequence of ISIS Normal Logon
+        Character messages, which are queued for placing into the
+        Dispatcher OUT ring.
+
+
+        Circuit Clearing messages
+
+        The messages Zap, Detach, and Zap with Reason participate in the
+        circuit clearing procedure, rather than being forwarded directly
+        to ISIS.  For an overview of the circuit clearing procedure, see
+        the GED; what follows describes how MBase responds to receiving
+        these messages from Spirit.
+
+        If Spirit sends the first Zap or Detach, it begins the procedure.
+        MBase marks its tables to record that Spirit did this, and
+        indicating that write-channel SIO is not expected; and discards
+        any messages buffered for input to Spirit, plus any messages
+        buffered for output to ISIS, on the port.  SRBs already queued
+        are not disturbed; Spirit will have to consume them.  An SRB is
+        built and queued to present a Zap Acknowledge message to Spirit.
+        When this SRB returns, it is deallocated, the port's table is
+        marked to show that read-channel SIO is not expected, and a Zap
+        or Detach message is placed in the Dispatcher OUT ring.  The
+        port's table is marked to show a zapper was sent to ISIS, and
+        checked to see if a zapper was already received from ISIS:  if
+        so, the port is marked completely zapped, and we are done.  (If
+        not, circuit clearing ends when ISIS presents a zapper.)
+
+        Otherwise, ISIS had sent the first Zap message, and Spirit is
+        deemed to be acknowledging the Zap message from MBase.  (By
+        coincidence, Spirit may think it is initiating the circuit
+        clearing, having not yet seen MBase's zapper, and regard the
+        MBase zapper as a response, but the confusion doesn't matter.)
+        MBase discards any messages remaining to be output for the
+        circuit, places a Zap messages into the Dispatcher OUT ring, and
+        marks the port as completely zapped.
+
+
+
+        17                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        S-BUS Interface                                   August 19, 1985
+
+
+        Clear Output message
+
+        MBase empties any output buffered on the port, then queues a
+        Clear Output (gobbler) message to ISIS.
+
+
+        Backpressure messages
+
+        MBase combines Spirit's backpressure requests with MBase's own
+        backpressure needs.  MBase maintains a flag for each port showing
+        whether MBase wants to backpressure the circuit from ISIS, and a
+        flag showing whether Spirit wants backpressure.  This latter flag
+        is updated according to each Apply Backpressure and Release
+        Backpressure message received.  Then, if both flags had been off
+        and one is now on, an Apply Backpressure message is placed into
+        the Dispatcher OUT ring; else, if one had been on and both are
+        now off, a Release Backpressure message is sent.
+
+
+        Set Forwarding Characteristics message
+
+        The forwarding characteristics codes are placed into their fields
+        in the port table.  If the port has input buffers, MBase should
+        reconsider whether the input is forwardable now; the port is put
+        on the Data Forwarding Queue if it isn't there already, and the
+        last character examined indicator is reset.  No ISIS message
+        results.
+
+
+        Other messages
+
+        All other messages are simply copied into the Dispatcher OUT
+        ring, if the message type is recognizable.  The Message Type
+        Mapping Table is used to translate the Spirit type code to an
+        ISIS type code, and ISIS tables LP0LST and LENGTH are used to
+        determine the corresponding ISIS message's length.
+
+
+
+
+                             3.8 - Halt I/O Handler
+
+
+        Halt I/O provides Spirit a way to escape from a permanently
+        backpressured circuit, when backpressure prevents an S-BUS output
+        command from making progress and eventually completing.  For
+        completeness, Halt I/O is implemented for both input and output
+        channels, although it isn't clearly needed for input channels.
+
+        The S-BUS architecture has no provision for ending status to
+        indicate how many bytes of information MBase transmitted to ISIS,
+        as distinct from how many bytes MBase procured from the Spirit
+        cpu by means of a Service Request.  The MBase/Spirit protocol
+
+
+        18                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        S-BUS Interface                                   August 19, 1985
+
+
+        says that Halt I/O results in I/O Halted status if and only if
+        the IOCB's command wasn't performed fully, due to the Halt I/O.
+
+        If a Write Data or Write Single Byte message is pending, MBase
+        waits until any pending SRBs have returned; ordinarily there will
+        be none, but MBase must make sure.  If at this point the command
+        still hasn't completed, then data buffers are deallocated, and an
+        SRB is built and queued to present I/O Halted status (a Read
+        Status Service Request).  If the command did indeed complete
+        during the wait, there is nothing further to do.
+
+        Halting a Send Circuit Signal Long or Short command proceeds
+        similarly to halting a Write command.  In most cases nothing has
+        been sent to the Dispatcher OUT ring, because either the whole
+        message is put there (finishing the Send operation, so it isn't
+        there to be halted), or nothing is; ISIS messages are not split.
+        The exception case is the Spirit's normal Logon String message,
+        which MBase expands into a sequence of ISIS messages, some of
+        which might have been sent already.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        19                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Dispatcher Rings Interface                        August 19, 1985
+
+
+
+
+
+
+                Chapter 4  -  DISPATCHER RINGS INTERFACE TO ISIS
+
+
+        The MBase's job is connecting a Spirit cpu to ISIS; all
+        procedures for building and using circuits communicate with ISIS
+        via the Dispatcher rings.  Each ring is a single path over which
+        flow messages concerning all existing circuits, messages used for
+        establishing circuits, and other intra-ISIS messages.  That means
+        that neither ISIS nor MBase can simply leave a message in a ring
+        if it is inconvenient to complete processing it at the time.
+        MBase buffers messages from the IN ring until it can process them
+        completely.  For output, MBase buffers output from Spirit, along
+        with output generated by MBase, until it can be placed in the OUT
+        ring.
+
+        Along with responsibility for buffering comes the danger that
+        buffer space will be exhausted.  MBase can apply backpressure to
+        ISIS and to Spirit, in different ways.  MBase uses the standard
+        ISIS backpressure messages both to protect its own buffer space,
+        and to forward Spirit's backpressure request messages.  MBase
+        exercises its discretion whether to make the Service Requests
+        that transfer data from Spirit to MBase buffers, performing the
+        transfers only as data flow makes space available.
+
+        S-BUS Service Requests are used to move output from Spirit into
+        S-BUS Window buffers.  MBase generally keeps such output in the
+        same buffers until it can be copied into the Dispatcher OUT ring.
+
+        The design assumes no need to ration the use of the OUT ring, in
+        order to promote fair sharing, beyond whatever results from
+        backpressure and transmit limit messages.
+
+        The Dispatcher IN ring is torn down by a task called from the
+        Exec Loop; each message is processed by a routine selected
+        according to the message type.  The IN ring will be completely
+        emptied before dismissing the Background Job.
+
+        Circuit clearing requires explicit controls to ensure correct
+        results from all possible event sequences.  MBase explicitly
+        controls circuit clearing rather than simply passing zappers and
+        such on through.  For this to work, the MBase slot must be
+        configured with the options "ports not reusable", and "zap
+        acknowledge required".
+
+
+
+
+
+
+
+
+        20                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Dispatcher Rings Interface                        August 19, 1985
+
+
+
+
+                    4.1 - Dispatcher OUT Ring Build Routines
+
+
+        These routines handle some complications of sharing the OUT ring
+        among the various MBase tasks.  Some output is already formatted
+        as an ISIS message; other output is formatted as a Spirit
+        message, and requires translation.  The ring is a circular
+        structure, so output has to wrap from the end back to the start.
+        And the ring may fill up, while most messages must not be split,
+        meaning putting part of the message in the ring now, and the rest
+        later.  Circuit data, however, may always be split when
+        expedient.
+
+
+        4.1.1 - Copy Port Buffers to OUT Ring Routine
+
+        This routine copies as much data and control messages from port
+        buffers to the Dispatcher OUT ring as possible and permissible.
+        It is responsible for observing backpressure and transmit limit.
+
+        It also interprets a rather structured buffer format.  A buffer
+        may hold data bytes, a Spirit formatted message, or an ISIS
+        formatted message.  Messages from Spirit have not been translated
+        yet, to avoid an extra copying step, since they have to be copied
+        to the Dispatcher ring anyway.  Messages originated by MBase
+        (zappers and backpressure) are already in ISIS format.
+
+        A buffer holding data bytes has an additional indicator that
+        shows how much data has already been emptied; a buffer can hold
+        more bytes than the transmit limit permits in a background turn,
+        and some of that limit may have been consumed by earlier output.
+
+        This routine copies output from buffers into the OUT ring,
+        deallocating any buffers that it empties, and stopping when the
+        transmit limit is reached or if backpressure is present.  As an
+        exception, if the buffer at the head of the queue is a zapper of
+        some kind, or a gobbler, then it is output if there is ring
+        space, regardless of backpressure and transmit limit.  The
+        routine makes sure that the port is on the ISIS Output Queue if
+        any buffers remain for the port, and the port is not
+        backpressured; else, ensures that it is off the ISIS Output
+        Queue.
+
+
+
+
+
+
+
+
+
+
+
+        21                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Dispatcher Rings Interface                        August 19, 1985
+
+
+        4.1.2 - Buffer an ISIS Message Routine
+
+        This routine accepts an ISIS format message, and creates an
+        output buffer, copies the message into the buffer, and queues the
+        buffer onto the port.  The routine makes sure that the port is on
+        the ISIS Output Queue if any buffers remain for the port, and the
+        port is not backpressured; else, ensures that it is off the ISIS
+        Output Queue.
+
+
+        4.1.3 - Output an ISIS Message Routine
+
+        This routine places the message directly into the OUT ring if
+        space permits; otherwise it calls the preceeding routine to
+        buffer it for later output.  This routine is used for
+        backpressure messages, because they should be output as promptly
+        as possible.
+
+
+        4.1.4 - Purge Port Output Buffers Routine
+
+        This routine removes and deallocates any buffers on a port's
+        output queue.  It is used during circuit clearing, and when
+        Spirit sends a Flush Output (gobbler) message.
+
+
+
+
+                     4.2 - Dispatcher IN Ring Teardown Task
+
+
+        This background task consumes ISIS messages from the Dispatcher
+        IN ring.  When called, it tries to obtain the next message, and
+        if there is none, it returns to the Exec Loop.
+
+        If it obtains one, it sets its Progress Flag, considers the
+        message type and whether it specifies Port 0, and calls the
+        corresponding Message Handler (see below).  An unrecognized ISIS
+        message type is counted and traced, then ignored.  When the
+        handler returns, the task advances the ring empty pointer, and
+        then repeats the sequence, trying to get another message; the
+        number of times it will repeat before returning to the Exec loop
+        can be limited by a tuning parameter.
+
+        Generally, the handler just buffers an equivalent Spirit-
+        interface message in the S-BUS Window, and initiates an S-BUS
+        transfer if Spirit is already Reading.  Some ISIS messages are
+        interpreted before, or instead of, passing them to Spirit.
+
+        Since Spirit loads the Message Mapping Table into MBase, it is
+        always possible that MBase will be unable to determine the
+        corresponding Spirit message type for a message to be buffered
+        for Spirit.  If the Spirit message type cannot be determined, the
+
+
+        22                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Dispatcher Rings Interface                        August 19, 1985
+
+
+        event is traced and counted, but the message is discarded.
+
+
+
+
+                         4.3 - IN Ring Message Handlers
+
+
+        4.3.1 - Port Zero messages
+
+        All of these are buffered for transfer to Spirit, without MBase
+        interpretation, providing that the Message Mapping Table defines
+        a Spirit message type for the ISIS message type.
+
+
+        4.3.2 - Circuit Port messages
+
+
+        4.3.2.1 Needle and Pseudo Needle
+
+        These are received from ISIS on the circuit's own port, but they
+        are not forwarded to Spirit on the corresponding S-BUS channel.
+        In fact, Spirit need not maintain a Read command on an S-BUS
+        channel that has no circuit attached.  Rather, the needle's
+        content is forwarded to Spirit using Channel 3, which is
+        generally the input channel for port zero.
+
+        The ISIS message is interpreted to determine which Dispatcher
+        Port was assigned, and that port's table is marked to show it is
+        attached.  As a result, the S-BUS Driver will be expecting SIO
+        activity on the corresponding two S-BUS channels.  An Attach
+        Channel message is constructed and buffered for transfer to
+        Spirit via Channel 3.
+
+
+        4.3.2.2 Set Transmit Limit
+
+        The limit value is placed in the corresponding Port Table.  The
+        message is also buffered for transfer to Spirit, using the
+        appropriate Spirit message type.
+
+
+        4.3.2.3 Data messages
+
+        The data are copied into the appropriate S-BUS Window buffer,
+        appended to space in the existing buffer as much as possible, and
+        then if necessary placed in newly allocated buffers.  The port is
+        placed onto the Data Forwarding Queue if it is not already there,
+        for consideration after Dispatcher IN Ring Teardown finishes.
+        There may be multiple ISIS Data messages for the port in the IN
+        ring during this background execution turn; delaying data
+        forwarding tests until the IN ring is emptied allows such data
+        fragments to be combined.
+
+
+        23                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Dispatcher Rings Interface                        August 19, 1985
+
+
+        4.3.2.4 Gobbler message
+
+        Any data queued for Spirit on this port are discarded; data
+        already assembled into a Spirit message and queued for the S-BUS
+        Driver are not affected.  The Gobbler message is also buffered
+        for transfer to Spirit, using the appropriate Spirit message
+        type.
+
+
+        4.3.2.5 Apply and Release Backpressure messages
+
+        The port's ISIS Backpressure flag is set or cleared, as
+        indicated.  If the message is Release Backpressure, and the port
+        has output messages queued, the port is added to the ISIS Output
+        Queue if it isn't already on that queue.  The backpressure
+        message is also buffered for transfer to Spirit, using the
+        appropriate Spirit message type.
+
+
+        4.3.2.6 Zap, Zap with Reason, Zap Acknowledge, and Detach
+                messages
+
+        For an overview of the circuit clearing procedure, see the GED;
+        what follows describes how MBase responds to receiving these
+        messages from ISIS.
+
+        If Spirit hasn't previously initiated the Circuit Clearing
+        Procedure, then it is initiated by any of these messages.  The
+        port table is marked to show a zapper received from ISIS; there
+        is no need to distinguish among the kinds.  Port processing
+        proceeds unaffected, although ISIS will discard most output sent
+        to it.  The message is also buffered for transfer to Spirit,
+        using the appropriate Spirit message type.  (Circuit clearing
+        will proceed when a zapper is received from Spirit, q.v.)
+
+        Otherwise, MBase had already recognized a zapper from Spirit, and
+        begun the Circuit Clearing Procedure, and that itself will
+        present a Zap Acknowledge message to Spirit, and later a Zap or
+        Detach message to ISIS.  In this case, receiving any of these
+        ISIS messages causes MBase to mark the port table to show a
+        zapper was received from ISIS.  If the port table already shows a
+        zapper sent to ISIS, then the port is marked as completely
+        zapped.  (If not, circuit clearing will end when a zapper is sent
+        to ISIS.)
+
+
+
+
+
+
+
+
+
+
+
+        24                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Dispatcher Rings Interface                        August 19, 1985
+
+
+        4.3.2.7 All Other messages
+
+        The remaining ISIS message types are simply buffered without
+        MBase interpretation, providing that the Message Mapping Table
+        defines a Spirit message type for the ISIS message type.  (As
+        mentioned earlier, if the Spirit message type cannot be
+        determined, the event is traced and counted, but the message is
+        discarded.)
+
+
+
+
+                  4.4 - Circuit Input Buffering and Forwarding
+
+
+        The Dispatcher IN Ring provides a stream of ISIS messages that
+        MBase has to deal with in the sequence they are found.  MBase
+        uses a pool of buffers to decouple the process of emptying the
+        Dispatcher IN Ring from the process of transferring messages
+        across the S-BUS.  Each message in turn is unloaded from the
+        ring, examined to see if special handling is required, and most
+        are buffered for later transfer to Spirit.
+
+        Data and circuit signal messages to be transferred to Spirit are
+        initially buffered.  After the IN ring has been emptied, ports on
+        the Data Forwarding Queue are examined to decide whether to
+        transfer the input to Spirit immediately, or to wait awhile.
+        (This queue includes ports with newly arrived input, plus ports
+        which held input when Spirit started a Read Data command.)  If
+        the decision for a port is to wait, the data will be forwarded
+        when certain additional input arrives, or after a certain amount
+        of time expires without further input; the criteria are specified
+        by Spirit's Set Forwarding Characteristics message.
+
+        Described below are routines used to load data and circuit
+        signals into buffers, and to forward them via the S-BUS to
+        Spirit.  Following that is a description of the Data Forwarding
+        Task.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        25                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Dispatcher Rings Interface                        August 19, 1985
+
+
+
+
+        4.4.1 - Input Buffering
+
+        Input data and signals are buffered in the S-BUS Window, in such
+        a way that data needs to be copied only once by MBase, from the
+        IN ring to the buffer.  Spirit eventually copies it from the
+        MBase buffer into its own memory.  (MBase does one additional
+        copy of very short messages - one byte of data, or three bytes of
+        signal.)
+
+        The content of a circuit's successive ISIS Data messages is
+        concatenated in a single buffer, until either it fills up, or an
+        ISIS non-Data message arrives; then a new buffer is started.  A
+        buffer holds either a single non-Data message, or a variable
+        number of data characters.  A port can have as many buffers as
+        needed.
+
+        If the S-BUS window doesn't happen to have as much buffer space
+        as needed, MBase uses backpressure and buffer zapping to conserve
+        or recover space.
+
+
+        4.4.1.1 Move Circuit Data to Buffer
+
+        This appends the current IN ring data message to the port's
+        buffer queue.  It uses the remainder of any existing data buffer,
+        and allocates additional buffers as needed.  It may split the
+        data message across buffer boundries.  And it makes sure the port
+        is on the Data Forwarding Queue.
+
+
+        4.4.1.2 Move Circuit Signal to Buffer
+
+        This appends the current IN ring non-Data ISIS message to the
+        port's buffer queue.  It allocates a buffer for the purpose, and
+        does not use space remaining in an existing data buffer.  The
+        message must fit entirely in one buffer, because it must be sent
+        to Spirit in a single S-BUS transfer.  And it makes sure the port
+        is on the Data Forwarding Queue.
+
+
+        4.4.1.3 Send a Buffer to Spirit
+
+        This takes the buffer that is at the head of the port's buffer
+        queue, removes it from the queue, creates an SRB to move the
+        buffered data or circuit signal to Spirit, and enqueues it on the
+        SRQ.  When the SRB completes, it and its buffer are deallocated.
+
+
+
+
+
+
+
+        26                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Dispatcher Rings Interface                        August 19, 1985
+
+
+        4.4.2 - Data Forwarding Task
+
+        This background task consumes each entry on the Data Forwarding
+        Queue; each entry represents a port whose input may have become
+        forwardable recently.  Each such port is examined to determine
+        whether the buffered data or circuit signals should be forwarded
+        now.  If so, SRBs are constructed to satisfy Spirit's pending
+        Read Data command, and placed on the SRQ.  (That may result in
+        leaving a partially emptied buffer.)
+
+
+
+        4.4.2.1 Determining Whether to Forward Anything
+
+        If the first buffered message is a circuit signal, meaning
+        anything except circuit data, then it is forwardable.  Otherwise
+        it is data, and several more rules apply.
+
+        If there are several buffers in the queue and one of them is a
+        circuit signal, then all buffers up to and including that circuit
+        signal are forwardable.
+
+        Otherwise, there are one or more buffers, all containing circuit
+        data.  The newly arrived characters (or all of them, in the case
+        of initiating a Read Data command) are examined to see if they
+        are among those specified by Spirit's Set Forwarding
+        Characteristics message (or defaulted); if so, all these data
+        buffers are forwardable.  The port status table is updated to
+        show the last character examined.
+
+
+        4.4.2.2 Constructing Service Request Blocks
+
+        The preceding analysis determined some amount of circuit data or
+        signal that could be passed along to Spirit, providing that
+        Spirit is ready for it.  Spirit may be ready for all, some, or
+        none of it.
+
+        If no Read Data command is pending on the port's input channel,
+        no data can be forwarded, even though some is ready.  In that
+        case, the Service Request Block is built when the Read Data
+        command becomes pending, by a call from the command handler (see
+        3.7.1.1).
+
+        If Read Data is pending, the IOCB indicates the maximum number of
+        bytes that may be transferred.  It must always be long enough for
+        the maximum length circuit signal, as the protocol doesn't
+        support splitting a circuit signal across two reads.  It may not
+        be as long as needed to hold all the buffered data, however, and
+        in that case only as many bytes as Read Data requests are
+        forwarded.
+
+        Another complication is the S-BUS artifact that limits Service
+
+
+        27                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Dispatcher Rings Interface                        August 19, 1985
+
+
+        Requests to at most 256 bytes at once, requiring multiple Service
+        Requests for larger transfers.
+
+        All in all, it is necessary to build a sequence of one or more
+        SRBs (one per Service Request needed), subject to all the
+        following constraints.  An SRB can transfer at most 256 bytes, or
+        the number of bytes in consecutive buffer locations, whichever is
+        less.  The sequence can transfer at most the IOCB-specified byte
+        count, or the number of bytes available in buffers, whichever is
+        less.  Each SRB is built and placed on the SRQ.  Then, if
+        characters are still buffered, the "last character examined
+        indicator" in the Port Status Table is set to resume the search
+        for forwarding characters with the first character not
+        transferred this time.
+
+
+        4.4.3 - Global Backpressure Task
+
+        This background task attempts to avoid running out of buffer
+        space by applying backpressure to ISIS Dispatcher ports as
+        needed.  When called, it determines how much buffer space is
+        available; if space is running short, it applies backpressure to
+        certain ports.  This backpressure is released on each port as its
+        buffered messages are delivered to Spirit, and in some other
+        cases.  If buffer space runs out anyway, MBase must discard
+        buffered data.
+
+        The Global Backpressure Task decides backpressure is needed if
+        space remaining for input is less than some threshhold, such as
+        the sum of the input transmit limits of attached ports, plus
+        twice the size of the IN ring.  If so, then each port is
+        examined, and selected ports are backpressured by setting a Port
+        Status bit to show it was backpressured by MBase, and then
+        sending an Apply Backpressure Message to the OUT ring (see
+        4.1.3).
+
+        A port is selected if it has no Spirit Read Data command pending,
+        regardless whether Spirit suppressed MBase backpressure.  A port
+        is also selected, Spirit willing, if it is using more than its
+        fair share of buffer space, regardless of how many input data or
+        signal bytes this is:  the user pays for fragmentation.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        28                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Disk and Tape                                     August 19, 1985
+
+
+
+
+
+
+                Chapter 5  -  DISK AND TAPE EXTENSION CORD MODULE
+
+
+        This is responsible for maintaining communications with the ISIS
+        SVC handlers that originate requests, and with the Spirit
+        facility that provides the services; it converts requests between
+        formats that are convenient to the two parties.
+
+
+
+
+                       5.1 - ICOM Driver Routines and Task
+
+
+        This module uses the ICOM interface to exchange messages with
+        ISIS SVC handlers that replace the usual Disk and Tape SVC
+        handlers.
+
+        The ICOM Driver Task is a background task determines whether a
+        message has arrived from ISIS, and if so, calls the appropriate
+        Message Handler; when the handler returns, the ICOM control
+        variables are updated to release the message space for reuse.
+
+        There is also an ICOM routine which is called in order to send
+        Spirit's responses to the ISIS SVC folks.
+
+        And there is an initialization routine called during slot reset.
+
+        Note parallels between the ICOM and Dispatcher Ring interfaces.
+
+
+
+
+                             5.2 - Message Handlers
+
+
+        These routines handle messages received via ICOM, reformat them
+        as necessary to fit the interface with Spirit, and queue them as
+        though they had been data messages received from a Dispatcher
+        port.
+
+        If the appropriate circuit to Spirit doesn't exist, MBase first
+        logs into Spirit, and then proceeds with handling the ICOM
+        message.
+
+        If Spirit clears the circuit while a message to it is pending, or
+        if Spirit doesn't reply quickly enough, an error indication is
+        returned via ICOM.  ISIS must also understand that the request
+        has failed if MBase is reset.
+
+
+        29                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Miscellaneous Services                            August 19, 1985
+
+
+
+
+
+
+                      Chapter 6  -  MISCELLANEOUS SERVICES
+
+
+
+
+                           6.1 - Timer Driver and Task
+
+
+        This module accepts requests to establish and cancel timeouts,
+        and calls the specified routine whenever a timeout happens before
+        being cancelled.
+
+        Subroutines provide the services of establishing and cancelling
+        the requests; the caller provides the control block to be linked
+        into the timing queue.  The queue is kept in chronological order,
+        with new entries being inserted according to requested timeout
+        instant.  A background task called from the Exec loop finds each
+        expired timeout, removes the timer control block from the queue,
+        and calls the routine specified in the block.
+
+        Timeout recognition is needed for at least these reasons.  The
+        Set Forwarding Characteristics message can specify a Pad Idle
+        Timer value which is a timeout, likely on the order of hundreds
+        of milliseconds or a few seconds.  And MBase may need to detect
+        that Spirit's disk and tape server, or even the S-BUS itself, is
+        not responding to requests, in order to begin an Interface Reset
+        in response.
+
+
+
+
+                             6.2 - ISIS Output Task
+
+
+        This background task moves output data and control messages to
+        the Dispatcher OUT ring for each port.  The data may already be
+        available in MBase buffers, or it may have to be brought from
+        Spirit.
+
+        A port having data available in one of these two ways, and not
+        backpressured by ISIS, is placed on the ISIS Output Queue.  This
+        task considers each port on the ISIS Output Queue, and attempts
+        to transfer output to ISIS, up to the port's Transmit Limit each
+        background turn.  When a port's output is completed, the port is
+        no longer on the ISIS Output Queue.
+
+        Most of the task's work is done in other routines.  Once each
+        background turn, for each port on the ISIS Output Queue, do the
+        following.  If the port has message buffers present, call a
+
+
+        30                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Miscellaneous Services                            August 19, 1985
+
+
+        routine (4.1.1) to move as much as possible to the Dispatcher OUT
+        ring; afterward, if it STILL has message buffers present, or if
+        the output command was completed, then this finishes the port's
+        turn.  Otherwise there is more output available from Spirit; call
+        the Get Spirit Bytes Routine (3.7.1.3) to start a transfer.  The
+        result won't be available soon, in general, so that finishes the
+        port's turn.  When the result becomes available, the Get Spirit
+        Bytes Routine will put the port back onto the ISIS Output Queue.
+
+
+
+
+                       6.3 - Waiting Queue Driver and Task
+
+
+        This module maintains a queue of tasks that are to be run "later"
+        - during the NEXT background turn.  This is mostly used
+        (entirely, so far) to wait for some condition to be satisfied, in
+        cases where it is more suitable to check the condition
+        occasionally than to recognize the specific event that will
+        satisfy the condition.  For examples, see the Suspend command
+        handler (3.6.4) and the Halt I/O Handler (3.8).
+
+        The Wait Queue contains Wait Request Blocks, similar to the
+        SubDriver's Service Request Blocks.  There are routines to add
+        and remove a WRB from the Wait Queue.
+
+        The Waiting Queue Task runs once every background turn, and
+        removes in turn each WRB that was enqueued prior to this
+        background turn.  It removes a WRB from the queue, then transfers
+        control to the entry point designated in the WRB.
+
+
+
+
+                         6.4 - Memory Allocation Module
+
+
+        This is a set of subroutines that manage MBase's dynamically
+        allocated table space; all MBase tables are allocated this way.
+        MBase's Crash and Event Trace tables are kept across restarts if
+        possible; the other tables are reinitialized then.  The S-BUS
+        IOCB and Message Block tables are hardware defined, and not
+        allocated dynamically.
+
+        Space can be allocated for three classes of use, with provision
+        for adding more classes if needed.  The caller specifies which
+        class the space is requested for; the choices are:
+
+           1.  S-BUS Window
+           2.  Crash and Event Trace tables
+           3.  Other uses
+
+
+
+        31                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Miscellaneous Services                            August 19, 1985
+
+
+        For each class, there is a master chain of storage blocks that
+        are available to the class, sorted by address; adjacent blocks
+        are combined.  For good performance, there are subpools (caches)
+        of blocks of commonly needed sizes.
+
+        An integrity feature helps assure that space is not deallocated
+        twice, and that space beyond the allocated portion isn't
+        overwritten.  It consumes little execution overhead, but
+        allocates additional storage.  A larger block is allocated than
+        the requester specified, and control information is placed around
+        the block that was requested.  Upon deallocation, it is checked
+        to confirm that the space was properly allocated, and that the
+        control information wasn't accidently overwritten, and indicates
+        the size of block being deallocated.
+
+
+        6.4.1 - Initialize Table Space Routine
+
+        This routine is called when initially starting the MBase slot,
+        and when it restarts.  A parameter specifies whether
+        initialization should preserve storage of the class that has
+        crash and event trace tables.  The routine consults a static
+        table describing what addresses contain storage of each class,
+        and constructs a chain of storage blocks to use for requests for
+        each class of storage.
+
+
+        6.4.2 - Get Table Space Routine
+
+        This routine is called with parameters specifying the length of
+        space needed, and the class; it returns the starting address of
+        the space to be used.  (The integrity checking header immediately
+        preceeds the useful space.)
+
+
+        6.4.3 - Return Table Space Routine
+
+        This is called with a parameter specifying the starting address
+        of the block's usable space.  The routine determines where the
+        validity checking information is, and verifies it, and returns
+        the total (usable plus overhead) storage block to the correct
+        class of available storage.
+
+
+
+
+
+
+
+
+
+
+
+
+
+        32                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Miscellaneous Services                            August 19, 1985
+
+
+
+
+                            6.5 - Event Trace Module
+
+
+        This module maintains an Event Trace Table to help a programmer
+        understand what happened to cause a failure.
+
+        It should be implemented early during development, because its
+        primary value is saving programmer time debugging, and some of
+        that value is wasted if this "extra" facility is put off until
+        last.
+
+        It actually maintains an archive of several previous trace
+        tables, so that a production MBase can reinitialize after a
+        serious failure, and still retain debugging information for
+        analysis much later.
+
+        Each Event Trace Table is a ring buffer that has only an IN
+        pointer; nothing takes entries OUT, and the table continually
+        loses its oldest entries.
+
+        Each entry records some event that could be interesting, either
+        because of its content, or because of its sequence relative to
+        other events.  Absolute timing usually not critical, but time
+        stamps can be included in trace table entries where they seem
+        useful, such as a timeout of some kind.  The entries can be of
+        fixed or variable length, but they should be completely parsable
+        by a program, even if no analysis program is planned.
+
+        Events that might be traced include:
+
+           Start I/O notification from the Foreground
+           Queueing an SRB
+           Starting a task from the SRDQ
+           Messages, and first few data bytes (from Spirit and ISIS)
+           Messages to and from ICOM
+           Storage allocation and deallocation
+           Background entry and dismissal
+           Stages of interface reset and slot initialization
+
+
+        6.5.1 - Event Trace Routine
+
+        This routine is called with parameters that are to be recorded in
+        the Event Trace Table.  The first parameter designates the
+        specific event that prompted making this call.
+
+
+
+
+
+
+
+
+        33                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Miscellaneous Services                            August 19, 1985
+
+
+        6.5.2 - Initialize Event Tracing Routine
+
+        This routine allocates and begins use of a new Event Trace Table.
+        If the slot has memory of an earlier table, it is saved with
+        whatever contents it last had.
+
+        If too many tables have been saved, one of them is discarded (or
+        cleared and used as the current table); it might be wise never to
+        discard the first (oldest) trace table, so that a rapid sequences
+        of slot failures won't flush the table having the only indication
+        of how the sequence got started.  It might be better to discard
+        the next-to-oldest table.
+
+
+        6.5.3 - Trace Stopping and Starting
+
+        The Event Trace module consumes space and processor cycles.  It
+        is not too hard to evaluate how much space is occupied by the
+        tables.  Event tracing can be turned on and off to help evaluate
+        how much it is loading the processor.  The event trace routine
+        (6.5.1) consults a control flag word somewhere that slot DDT can
+        alter; the flag can be set to cause the trace routine to return
+        immediately.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        34                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Initialization and Restart                        August 19, 1985
+
+
+
+
+
+
+                Chapter 7  -  INITIALIZATION AND RESTART MODULES
+
+
+        MBase performs two kinds of initialization.  Full initialization
+        happens when execution first begins after loading MBase into its
+        slot.  MBase performs a partial initialization in all other
+        cases:  ISIS crashes the slot, MBase software detects internal
+        corruption, or Spirit commands an Interface Reset.
+
+
+
+
+                              7.1 - Initialization
+
+
+        When first executed, MBase performs some minor once-only
+        initialization, and then proceeds with Restart and Interface
+        Reset, described in the following section.
+
+        First, initialize the MBase Master Table to show that no Crash
+        Table and no Event Trace Tables exist.  Then call the Initialize
+        Table Space Routine (6.4.1) to initialize allocation of all
+        classes of storage, including trace tables.
+
+
+
+
+                    7.2 - Restart and Interface Reset Routine
+
+
+        This routine is invoked for every kind of reinitialization
+        including the first.  Briefly, it saves information about its
+        previous incarnation, initializes its environment, aborts all I/O
+        that Spirit has started (or continues to start) until it appears
+        that Spirit has gotten the idea, and then begins normal
+        operation.
+
+
+        7.2.1 - Saving Historical Archives
+
+        First, check the MBase Master Table to verify that it appears to
+        be present and valid.  If not, it won't be safe (or even
+        possible) to save historical information, and MBase must do a
+        full initialization.
+
+        Issue the Restart Syscall so that MBase will be allowed to handle
+        further ISIS-detected failures.  (That has the added effect of
+        stopping the Foreground Job, and the ISIS S-BUS SubDriver, if a
+        slot crash hadn't already done so.)  If this is a restart, the
+
+
+        35                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Initialization and Restart                        August 19, 1985
+
+
+        stimulus event has made an Event Trace Table entry.  Call the
+        Initialize Event Tracing Routine (6.5.2) to save the old Trace
+        Table and start using a new one.  Update statistics in the Crash
+        Table.
+
+
+        7.2.2 - Initializing MBase Environment
+
+        Call the Initialize Table Space Routine (6.4.1) to deallocate all
+        the storage it manages except in the Trace Table class.  Validate
+        the format of S-BUS interface tables:  the Message Block, and all
+        256 I/O Control Blocks; reinitialize certain fields if they are
+        found to be invalid.
+
+        Allocate and initialize MBase tables:
+
+           -  MBase Status Table
+           -  Port Status Tables (125 ports)
+           -  ISIS Output Queue
+           -  Wait Queue
+           -  Service Request Queue (SRQ)
+           -  SRQ Done Queue (SRDQ)
+           -  etc....
+
+        Initialize the S-BUS ISIS SubDriver.  Initialize the disk and
+        tape service ICOM connection.
+
+
+        7.2.3 - Flush Previous S-BUS Activity
+
+        To get rid of activity remaining from the previous incarnation,
+        MBase drives the S-BUS from this background routine, using the
+        SubDriver, but not using the Foreground task at all, and not
+        attempting to overlap multiple S-BUS channels.
+
+        If this is a full initialization, then a pending Reset Interface
+        command might not indicate that Spirit is ready to proceed with
+        the Interface Reset Procedure.  So if this is a full
+        initialization, if Channel 1 has a Reset Interface command, then
+        make an SRB to do a Read Status Service Request, specifying
+        Interface Reset Required status; execute the ISIS SVC to wake up
+        the S-BUS SubDriver (it will be asleep, having little to do);
+        then repeatedly test whether the SRB has completed, and dismiss
+        until the test succeeds.
+
+        Repeat entire the following paragraph until it finishes.
+
+           Scan the IOCBs to find one having I/O pending; ignore Channel
+           1 if its command is Reset Interface, otherwise include it.  If
+           there is such an IOCB, then make an SRB to do a Read Status
+           Service Request, specifying Interface Reset Required status;
+           execute the ISIS SVC to wake up the S-BUS SubDriver (it will
+           be asleep, having little to do); then repeatedly test whether
+
+
+        36                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Initialization and Restart                        August 19, 1985
+
+
+           the SRB has completed, and dismiss until the test succeeds.
+           Otherwise (namely no channels above 1 are active), if Channel
+           1 has a Reset Interface command active, this paragraph is
+           done.
+
+
+        7.2.4 - Start Normal Operations
+
+        This step finishes the MBase-controlled portion of the Interface
+        Reset Procedure, with MBase able to talk normally with Spirit.
+        Spirit must still perform the steps described in the GED to
+        finish the procedure, but Spirit is in control after this step.
+
+        Queue an SRB to present normal ending status for the Reset
+        Interface command pending on Channel 1.  Start the Foreground
+        Job.  And transfer control to the Exec Loop.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        37                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Data Structures                                   August 19, 1985
+
+
+
+
+
+
+                      Chapter 8  -  DATA STRUCTURES SUMMARY
+
+
+        S-BUS Message Block
+
+        As defined by Microdata.  Managed for MBase by the S-BUS
+        SubDriver Task, an ISIS interrupt-level device driver able to
+        present Spirit an S-BUS interrupt.
+
+
+        S-BUS I/O Control Blocks (IOCB)
+
+        As defined by Microdata.  An array of 256 blocks, one per S-BUS
+        channel.  Managed by MBase - various routines.
+
+
+        Master Table
+
+        The MBase table in writable memory from which the other tables in
+        writable memory can be found.  If it is corrupted, a restart will
+        retain no history of the failure.
+
+
+        MBase Status Table
+
+        Contains information about the status of MBase's interactions
+        with Spirit and ISIS.  A catchall for topics not deserving their
+        own tables; especially NOT used for lengthy data, data repeated
+        once per circuit or port etc., and dynamically changing numbers
+        of entries.
+
+
+        Port Status Table
+
+        Data concerning the status of each possible port.  A port is the
+        interface between Spirit and ISIS for one potential circuit.  A
+        port may be attached or not.  Ports are numbered to match the
+        ISIS Dispatcher's port numbers.  Information needed to manage the
+        corresponding S-BUS channels also lives here if Microdata hasn't
+        specified an S-BUS table for it.
+
+
+        Crash Table
+
+        This is available to receive information about the next crash or
+        restart.  During that restart, this table is saved and a new one
+        allocated, up to some limit.  (See also Event Trace Table.)
+
+
+
+
+        38                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Data Structures                                   August 19, 1985
+
+
+        Event Trace Table
+
+        This collects a record of events while MBase runs normally, until
+        a crash or restart.  During that restart, this table is saved and
+        a new one allocated, up to some limit.  (See also Crash Table.)
+
+
+        I/O Request Queue
+
+        A queue of Start and Halt I/O requests, from the Foreground IOCB
+        Scanner Task, to the background.  Each request is an I/O Request
+        Block (IORB).
+
+
+        Service Request Queue
+
+        A queue of S-BUS transfer requests from MBase routines to the S-
+        BUS SubDriver.  Each request is a Service Request Block (SRB).
+        An SRB corresponds to one S-BUS Message Block Service Request.
+
+
+        Service Request Done Queue
+
+        A queue of completed requests (SRBs) returned to MBase routines
+        from the S-BUS SubDriver.
+
+
+        Service Request Suspended and Flushed Queues
+
+        Two queues used to hold unperformed service requests (SRBs) while
+        Spirit has commanded Suspend MBase, until it commands Resume
+        MBase.
+
+
+        ISIS Dispatcher IN and OUT Rings
+
+        The MBase/ISIS communication path for circuit creation and use,
+        and certain other status data.
+
+
+        ICOM Communicator
+
+        Used for the Disk and Tape support function, to communicate with
+        ISIS.  Format to be determined.
+
+
+        Input Buffers
+
+        These are allocated dynamically in the S-BUS Window, to hold data
+        characters and circuit signals from the Dispatcher IN ring, in a
+        place from which they can be transferred to Spirit using Service
+        Requests.
+
+
+
+        39                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        Data Structures                                   August 19, 1985
+
+
+        Output Buffers
+
+        These are allocated dynamically in the S-BUS Window, to hold data
+        messages and circuit-signal messages from Spirit, until they can
+        be copied into the Dispatcher OUT ring.
+
+
+        ISIS Output Queue
+
+        A queue of Port Status Tables, designating the ports which have
+        output pending.
+
+
+        Message Mapping Table
+
+        This is loaded to Spirit to specify translations between Spirit,
+        MBase, and ISIS message type codes.
+
+
+        Timer Request Queue
+
+        A queue of Timer Request Blocks (TRBs) - requests to recognize
+        timeouts.
+
+
+        Wait Request Queue
+
+        A queue of Wait Request Blocks (WRBs) - requests to be called
+        during the next background turn.
+
+
+        Memory Allocation Tables
+
+        Tables describing the storage still available for satisfying
+        dynamic allocation requests.  Available storage is managed in
+        several classes, according to important usage characteristics.
+        Within each class, subpools of commonly used sizes are cached to
+        improve performance.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        40                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+
+
+
+        S-BUS Timing                                      August 19, 1985
+
+
+
+
+
+
+                      Appendix A  -  S-BUS TIMING ESTIMATES
+
+
+        The following estimates are condensed from Graham Imber's May 29,
+        1985 memo.
+
+        Spirit cpu time in microseconds, spent performing I/O handshakes
+        for certain S-BUS transfers.
+
+
+        188 + 0.8x   Write x bytes using Write SR, then Read Status SR
+
+        113          Write 3 bytes in IOCB using only Read Status SR
+
+        121 + 0.8x   Read x bytes using one Read Data and Status SR
+
+
+        I understand that these figures represent all the Spirit cpu time
+        that would have been available to application programs if the
+        transfers hadn't been made.  They are the basis for MBase trying
+        to delay transferring input data to Spirit until several
+        characters can go at once, as well as for the channel command
+        design that provides a special case for very short output
+        operations.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        41                Microdata SPIRIT Network Base         MBASE.GID
+
+
+
+
+[@FÝ
