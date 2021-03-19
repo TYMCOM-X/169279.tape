@@ -1,0 +1,823 @@
+                                                               January 11, 1987
+
+
+
+
+
+
+
+                            *   * ****  *      *** 
+                            *   * *   * *     *   *
+                            ***** *   * *     *    
+                            *   * *   * *     *   *
+                            *   * ****  *****  *** 
+
+                            ***** *   *  ***  ***** *   * *****
+                            *     **  * *   *   *   **  * *    
+                *   *       ****  * * * *       *   * * * **** 
+                *   * ***** *     *  ** *  **   *   *  ** *    
+                 ***        ***** *   *  **** ***** *   * *****
+
+                       *****       ****       ******   
+                       *          *           *     *  
+                       ****        ***        *     *  
+                       *              *       *     *  
+                       *    *     ****   *    ******  *
+
+                                 HDLC u-Engine
+                            FIELD SERVICE DOCUMENT
+
+
+                               By:  TIM KOCHMANN
+
+
+
+
+                            ***********************
+
+                                    TYMNET
+                          NATIONAL TECHNICAL SUPPORT
+                               January 11, 1987
+
+
+
+     ====================================================================
+     |   Tymnet,  Inc.'s  proprietary  rMENT                                        25
+
+
+                                     HDLC u-Engine                     HDLC.FSD
+
+
+
+
+
+
+
+
+                                                               January 11, 1987
+
+
+        6.   MAINTENANCE HINTS                                               27
+          6.1   GENERAL TROUBLESHOOTING                                      27
+          6.2   SIO MB CHIP LEVEL TROUBLESHOOTING                            30
+          6.3   HDLC MICRO PRODUCT LIST                                      40
+
+
+        7.   MISCELLANEOUS INFORMATION                                       41
+          7.1   RS-232 SIGNAL LOOPBACK METHODS                               41
+          7.2   COMPONENT PART NUMBERS                                       42
+          7.3   SAMPLE CONFIGURATION FILE                                    43
+
+
+        8.   PERFORMANCE CAPABILITIES                                        46
+          8.1   PERFORMANCE CAPABILITIES OVERVIEW ISIS                       46
+   ers, each 32  bits wide,
+        and supports special  instructions to facilitate the  implementation of
+        TYMNET  communication   technology.   The   available  CPU   power  for
+        applications is 20% less than the ENGINE.
+
+        The micro-code-driven intelligent  I/O processor is based  on bit-slice
+        microprocessor  technology  and  supports  all  TYMNET  SYNC   and  SIO
+        ASYNC/HDLC communication protocols.
+
+        4 asynchronous and 10 synchronous communication lines are  supported in
+        full duplex or half duplex modes.  Transmission speeds for asynchronous
+        lines are available from 75  to 9600 bps; and for synchronous  lines up
+        to 19.2 Kbps.  Internal clocking is provided on all  asynchronous lines
+        and is available  on synchronous lines at  speeds of 1200,  1600, 2400,
+        4800, 9600, 14400, and 19200.  Interface signals conform to EIA RS-232-
+        C interface standard.
+
+        System  configuration  is  software  defined  and  controlled.   The 10
+        synchronous  communication  ports  can  be  individually  configured to
+        support bit, byte synchrnous, or TYMNET T201 protocol.
+
+        HDLC micro-engine  is supplied  in an aluminum  desk top  micro cabinet
+    I/O
+        board also.  The board is  strapped to provide a 4Mhz  clock, therefore
+        each microcycle is 250 nanoseconds.
+
+
+
+
+
+
+                                  2.5  BLOCK DIAGRAM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        5                            HDLC u-Engine                     HDLC.FSD
+
+
+
+
+
+
+
+
+        SYSTEM DESCRIPTION                                     January 11, 1987
+
+
+
+
+        ____________________          ____________________
+        |                  |          |                  |
+        |                  |--------->|                  |
+        |       MAC        |--------->|  1024K BYTES MEM |
+        |                  |          |                  |
+        |                  |__________|                  |
+        |                  |__________|                  |
+        --------------------          --------------------
+         | | PMA001-181 | | MD001-151
+         | |            | |
+         | |            | |
+        --------------------          --------------------
+        |                  |          |                  |
+        |                  |                                                                       |
+        |                                                                   |
+        |                                                                   |
+        |                                                                   |
+        |                                                                   |
+        |                                                                   |
+        |                                                                   |
+        ---------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+        7                            HDLC u-Engine                     HDLC.FSD
+
+
+
+
+
+
+
+
+        PHYSICAL DECRIPTION                                    January 11, 1987
+
+
+                                    3.3  REAR PANEL
+
+
+        The rear panel houses an AC ON/OFF switch, an IEC line  cord connector,
+        a front  console power  cable connector, a  front console  signal cable
+        connector, a battery backup power cable connector, the boot switch, and
+        the connectors required to interface with the various ports on  the I/O
+        board.  The I/O port connectors are:
+
+
+             o  One (1) 25-pin female suminiature-D connector for the                                                                  |
+        |SW13          [ 40-PIN SYNC  CONNECTOR ] P6                          |
+        |SW14                 PORTS  4-7    SW5  SW1                          |
+        |[ 26-PIN CONNECTOR ] P8 SYNC                                         |
+        |[ 26-PIN CONNECTOR ] P9 SYNC                                         |
+        |SW15                                                                 |
+        |SW16                               SW6  SW2                          |
+        |                                                                     |
+        |                                                                     |
+        |SW17          [ 40-PIN SYNC  CONNECTOR ] P7            DS1           |
+        |SW18             PORTS  0-3    SW7  SW3        [ SYS CLR LED ]       |
+        |                                           A   10W         11W       |
+        |SW19                                       | ________                                 |
+        |                     __________                                      |
+        |                     |        |                                      |
+        |                     ----------                                      |
+        |              [ 26-PIN CONSOLE CONECTER ]                            |
+        |                                                                     |
+        |                                                                     |
+        |                                                                     |
+        |                                                                     |
+        |                                                                     |
+        |                                                                     |
+        |                                                                     |
+        |                          |                                     .   .   .                       |
+        |                                     .W18.W17.W16                    |
+        |                                                                     |
+        |                                 [ MEMORY SIZE SELECT ]              |
+        |                                                                     |
+        |                                                                     |
+        |                                                                     |
+        |                                                                     |
+        |                                                                     |
+        |                                                                     |
+        |                               J2                     J1             |
+        |                                                                     |
+        | O                      [50-PIN CPU CONNECTOR][50-PIN CPU CONNECTOR]O|
+        |_____________________________________________________________________|
+
+        11                           HDLC u-Engine                     HDLC.FSD
+
+
+
+
+
+
+          1,200                    50
+                       300                    50
+                       150                    50
+                       135                    50
+                       110                    50
+                        75                    50
+
+        To insure proper  operation, cable length  must not exceed  the maximum
+        length listed above.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        14                           HDLC u-Engine                     HDLC.FSD
+
+
+
+
+
+
+
+
+        INSTALLATION                                           January 11, 1987
+
+
+
+
+
+
+                                   5 -  INSTALLATION
+
+
+
+
+
+
+
+                                     5.1  AC POWER
+
+
+        The AC  power connector  utilizes the  industry standard  IEC connector
+        configuration.  This allows for interchangeable line  cords simplifying
+        U.S.A. and non-U.S.A. installations.
+
+        The HDLC Micro-engine  can use either  115VAC or 230VAC  (nominal), 47-
+        63Hz,  sllation as the standard Microengine.  If R7 has been
+        removed  from the  CPU board  as  per ECO  #85-524 the  Console  may be
+        installed and removed while the machine is running.
+
+
+
+
+
+
+
+
+        16                           HDLC u-Engine                     HDLC.FSD
+
+
+
+
+
+
+
+
+        INSTALLATION                                           January 11, 1987
+
+
+                                 5.4  BOARD STRAPPING
+
+
+        The CPU, MEMORY, and HDLC I/O  boards have a number of jumpers  used to
+        configure  operating parameters.   The following  sections  outline the
+        parameter strapping for the HDLC micro-engine boards.
+
+
+
+
+
+
+                                       5.5  CPU
+
+
+        There is one  LED mounted on  the CPU board.  This  LED is "ON"  when a
+        microcode branch is executed.  The connector for the front  panel POWER
+        and RUN LEDs is located at J6 on the CPU board.  The RED LED  should be
+        "ON" whenever +5VDC is being supplied to the CPU board.  The  GREEN LED
+        should  be  "ON"  whenever the  system  software  accesses  the console
+        (independent of the console's presence or absence).  This LED may blink
+                     HDLC u-Engine                     HDLC.FSD
+
+
+
+
+
+
+
+
+        INSTALLATION                                           January 11, 1987
+
+
+        The MAC  circuitry is contained  on the memory  board and  receives the
+        unrelocated address of the memory  locations to be acted upon  from the
+        CPUs Processor  Memory Address  Register via the  PMA bus.   The memory
+        communicates via the MA (address) and MD (data) busses.  The MD  bus is
+        a 16-bit tri-state, bi-directional  data bus with drivers at  both ends
+        of the  bus.  The MAC  uses only one  set of 16  segmentation registers
+        (93422  SRAMs) equivalent  to the  MAC I  on the  Engine  requiring the
+        Zeitel equate statement in the machine Tymfile be set to 0.
+
+
+
+
+
+
+                                5.7  HDLC I/O PROCESSOR
+
+
+        The switch settings on the HDLC I/O processor are as follows:
+
+           E1  [3600/14400 INTERRUPT SELECTOR]
+
+               The  interruptor strapping  selects the  fre              non-destructive  write  is issued  to  all memory.   If  a front
+               console is  installed the display  will read "FF100  BA5E".  The
+               bootstrap allows the machine to accept SYNC, SIO  downline loads
+               and local TTY loads.  Tape, 10MB Disk and MSC1400 Disk loads are
+               not possible.  Downline loads may be clocked from 1200 to 19200.
+               For either SYNC or SIO loads data is bufferred and scanned for a
+               3232x pattern  and checksummed.   If no data  is received  in 60
+               seconds  the  bootstrap reinitializes  the  machine  and resumes
+               scanning  all  SIO/SYNC  ports.   Resets  are  issued  to device
+               addresses 80-90x inclusive.
+
+               NOTE:  3270 bisync controllers may be connected  as SYNC(bisync)
+               lines during downline loading and as they constantly  transmit a
+               3232x pattern they  should cause no  problem as the  machine has
+               already selected the previous 3232x pattern as the load.
+
+
+                DOWNLINE LOAD RECORD FORMAT:
+
+                    3232  tt  0aaaaa  nn...nn  vvvv dddd
+                    
+                    where
+                        tt = Record type
+                                 E4E to E4R      E5E to E5R       600
+                  E4F to E4S      E5F to E5S       300
+                  E4G to E4T      E5G to E5T       150
+                  E4H to E4U      E5H to E5U       135
+                  E4J to E4V      E5J to E5V       110
+                  E4K to E4W      E5K to E5W        75
+
+
+
+           E6  [BAUD RATE MULTIPLIER]
+
+               On  board timing  is available  for the  Z80-SIO/2 and  the T609
+               support devices  for I/O data  timing if required.   A 1.8432MHz
+               crystal  oscillator  drives  a  14411  baud  rate  generator (at
+               location  2W).   The  14411  divides  the  oscillator  frequency
+               providing seven  continuous frequencies output  on the  BR (baud
+               rate) bus  (signals BR1, BR2,  BR3,...  BR7).  The  frequency of
+               the  baud rate  generater can  be multiplied  by one  of several
+               values by strapping the nuary 11, 1987
+
+
+
+                  BAUD RATE and INTERNAL/EXTERNAL SWITCH SELECTION
+
+                  Channel     Baud Rate Switch     Int/Ext Switch
+                  -------     ----------------     --------------
+
+                    0              SW8                 SW20
+                    1              SW4                 SW19
+                    2              SW7                 SW18
+                    3              SW3                 SW17
+                    4              SW6                 SW16
+                    5              SW2                 SW15
+                    6              SW5                 SW14
+                    7              SW1                 SW13
+                    8              SW10                SW12
+                    9              SW90                SW11
+
+
+                  BAUD RATE SWITCH SELECTION
+
+                  Switch Selection     Baud Rate
+                  ----------------     ---------
+
+                        1               1600
+                        2               2400
+                        3               4800
+                        4               9600
+                        5              14400
+                        6              19200
+                        7              28800                           HDLC u-Engine                     HDLC.FSD
+
+
+
+
+
+
+
+
+        INSTALLATION                                           January 11, 1987
+
+
+            o  Adjust the voltage with the Potentiometer on the +5VDC supply to
+               approximately 5.1VDC (clockwise raises the voltage).
+
+            o  To  check the  PFT setting  at  R6 on  the I/O  board  leave the
+               machine running the boot routine and lower the  +5VDC adjustment
+               pot on the  supply (counter-clockwise) until the  leftmost digit
+               of the console freezes.
+
+
+
+        II.  +/-12V DC ADJUSTMENT
+
+           The following are the steps necessary to adjust the =/- 12V power:
+
+            o  Power unit off.
+
+            o  Remove cover as in  the second step above.  It is  not necessary
+               to run the boot.
+
+            o  Measure  the  +12VDC  from  the  YELLOW  wire  on  the  J3 molex
+               connector on the I/O board.   Use the BLACK wire grounds  on the
+               J2 connector on the I/O board for ground reference.
+
+            o  Adjust the voltt  the test.
+               If failure occurs  at a customer  site simply exchange  the unit
+               with  a replacement  and return  to the  local Tymnet  office to
+               isolate and repair the point of failure in the machine.  Bringup
+               PROMs  are available  for the  I/O boards  useful for  gross I/O
+               failures which provide some scopeloop tests for  component level
+               troubleshooting.   A  front console  is  highly  recommended for
+               performing installations and troubleshooting.
+
+
+        10.  Normal 10W dip switch settings are as follows:
+
+             3 - ON     PFD
+             4 - ON     Watdchdog timer enabled
+             5 - OFF    36,400 interrupter enabled
+             6 - OFF    TTY port DTR signal disconnected from internal data bus
+            E3 - ON     Boot  prom  can be  accessed when  the "boot" switch is
+                        pressed  or  the watchdog  timer times  out;   the boot
+                        function  cannot be accessed under program control, and
+                        a power  fail such.
+
+        This short microcode program may be  used with a scope to bring  up the
+        HDLC micro engine I/O hardware.  It will run with power applied  to the
+        I/O  board alone  and does  not  need the  CPU and  memory  boards.  it
+        toggles the  signals of the  central part of  SIO subsystem on  the I/O
+        board.  The multifunction section  of the circuit is not  exercised nor
+        is the  CPU and SIO  interface.  It assumes  that the clock  circuit is
+        functioning &  clocks are present  and the  micro-instruction sequencer
+        2910 can at least sequence the micro-instructions.  Scope may be set up
+        to sync on 6d-11(p.3) which  occurs once each time through the  loop at
+        instruction addr  0.  System clock  available at 8a-3  (page 3)  may be
+        used as reference  for the micro-instruction  cycles.  If the  board is
+        functioning properly,  expected events will  occur and  the appropriate
+        micro-instruction time.
+
+        Should the expected event differ from the       11L, 11N, 11P, 11S (page 8) should have:
+
+
+                  Pins 20, 19, 18, 17   = 1100
+                  Pins 1, 2, 3, 4       = 0101
+                  Pins 14, 13, 12       = 100
+                  Pins 27, 28, 26       = 011
+                  Pins 6, 7, 5          = 111
+
+
+           M A6+RAMD,ALU+ZB+OR+QREG,2A0+BC
+
+               6G, 6H (page 3) drives 2AAA (hex) onto B-bus.  11U, 10U (page 8)
+               should have B-bus data and B -> RAMD0, also:
+
+
+                  Pins 1, 2, 3, 4               = 0000
+                  Pins 5, 6, 7, 8, 22, 23       = 101010
+
+               11L, 11N, 11P, 11S (page 8) should have B-bus data and also:
+
+
+                  Pins 20, 19, 18, 17   = 1010
+                  Pins 1, 2, 3, 4       = 0110
+                  Pins 14, 13, 12       = 111
+                  Pins 27, 28, 26       = 011
+                  Pins 6, 7, 5          = 011
+
+
+
+
+
+
+        32                           HDLC u-Engine                     HDLC.FSD
+
+
+
+
+
+
+
+
+        MAINTENANCE HINTS                                      January 11, 1987
+
+
+           M A5+RAMD,ALU+AB+OR,BUS5+150+B5
+
+               11L, 11N, 11P, 11S (page 8) should have ALU0 -> B (pin 40) and :
+
+
+                  Pins 20, 19, 18, 17   = 0101
+              15.
+
+
+
+           M A5+MUXDL,RAM+DA+SUBS+RAMF,CARRY+BUS0+3E0+B3
+
+               11U, 10U (page 8) should have RAMS0 -> B (pin 20) and also:
+
+
+                  Pins 5, 6, 7, 8, 22, 23       = 010011
+                  Pins 1, 2, 3, 4               = 0000
+
+
+               B-bus should have AAAA (hex).   2Y, 2Z (page 19) l
+
+               B-bus should have FFFF  (hex).  9S (page 8) loads  1111  40                           HDLC u-Engine                     HDLC.FSD
+
+
+
+
+
+
+
+
+        MISCELLANEOUS INFORMATION                              January 11, 1987
+
+
+
+
+
+
+                            7 -  MISCELLANEOUS INFORMATION
+
+
+
+
+
+
+
+                          7.1  RS-232 SIGNAL LOOPBACK METHODS
+
+
+        RS-232 Signal loopback is accomplished via either a breakout box or the
+        standard Tymnet loopback plugs.
+
+        For loopback via the standard plugs the following plug are necessary:
+
+
+             SYNC Loopback Plugs:
+                 Test plug #630030-001 (25-pin)
+                 Test plug #630025-001 (37-pin)
+
+
+        For  loopback  via  a  breakout box,  the  following  pin  jumpering is
+        necessary:
+
+
+             SYNC EIA Signals:
+                 Jumper :  80 MINUTES BEFORE PROBE MSG MUST BE PUT OUT
+
+
+
+
+
+
+
+
+
+
+
+        43                           HDLC u-Engine                     HDLC.FSD
+
+
+
+
+
+
+
+
+        MISCELLANEOUS INFORMATION                              January 11, 1987
+
+
+
+        :               NODE CONFIGURATION
+        TII     EQ      1       :  TYMNET II IS ON THIS NODE
+        PTHRU   EQ      0       :* 1 IF PASSTHROUGHS ARE INHIBITTED
+        MACHNM  EQ      $8 5555 :  NODE NUMBER
+        HST0    EQ      $A 8888 :  KERNEL HOST NUMBER
+        NSYNC   EQ      1       :  NUMBER OF LINES EMULATING SYNC
+        NLINES  EQ      1       :  NUMBER OF SYNC LINES T micro SIO/ASYNC  ports  will support  full  or  half duplex;
+        conversation or  block mode data  transmission.  When  supporting block
+        mode transmission, or  PC file transfers, little  CPU power is  left to
+        support any other slot interface applications, or even a full  array of
+        network lines.  When  using PC's and/or  block mode terminals  the most
+        logical configuration would assign up to 4 SIO/ASYNC ports @ up to 9.6K
+        and  up  to 4  9.6K  bps or  2  19.2K bps  SIO/SYNC  ports  for network
+        connectivity, to the machine.   Each 9.6K SIO/ASYNC port  will transfer
+        data up to approximately 720 cps.
+
+
+        46                           HDLC u-Engine                     HDLC.FSD
+
+
+
+
+
+
+
+
+        PERFORMANCE CAPABI
+
+
+        CPU resource utilization:  
+            Kernel      =  3% -  5%
+            slot 0      = 18% - 30%
+            slot 1      = 19% - 53%
+            slot 2      = 19% - 48%
+
+        Code delays:
+            up to 151 milliseconds (90 ms code delay + 38 ms h/w delay)
+
+
+        TEST 1 CONCLUSIONS (HDLC MICRO):
+
+        Network throughput = 83% of the engines
+        Aggregate total    = 86% of the engines
+        Code delay         = 1.38 times greater than the engines
+        Processing rate    = 63% of the engines
+
+        The crypto loggers reported no error conditions during testing.
+
+
+
+
+
+
+                     8.4  BENCHMARK #2 NODE CODE AND 3 X.25 SLOTS
+
+
+        The second X.25 benchmark consisted of adding a third X.25 slot  to the
+        test configuration described in Benchmark #1.  Results of the tests are
+        as follows:
+
+        HDLC MICRO ENGINE X.25 BENCHMARK TEST #1 
+
+
+        Code versions:  
+            Kernel      7.02
+            Node        5.10
+            XCOM (X.25) 3.0  HDLC u-Engine                     HDLC.FSD
+
+
+
+
+
+
+
+
+        PERFORMANCE CAPABILITIES                               January 11, 1987
+
+
+                         8.5  BENCHMARK #3 NODE CODE AND SDLC
+
+
+        The benchmark test incorporating  an SDLC interface in addition  to the
+        standard node resulted in the following performance statistics:
+
+
+        Code versions:  
+            Kernel      7.02
+            Node        5.10
+            SDLC        1.12
+
+
+        Slots: 
+            0 = Node Code
+
+        Neighbors:
+            5 SYNC and SIO double-line links
+
+
+        Ports:  10 @ 9.6 K
+
+
+        Slot 0 max logical cps =  11515 total
+            (5345 cps in / 6170 cps out)
+         
+        Machine aggregate max physical cps = 13546
+            (6288 cps in / 7258 cps out)
+
+
+        Exec counts:
+            start of test (no load)     = 151
+            low water                   =  40
+            average during test         =  96
+
+
+        Code delays:  
+            Up to 133 milliseconds (37 ms cod|
+        | ENGINE |//                          \\| ENGINE |
+        |        |/                            \|        |
+        |   #4   |                              |   #5   |
+        |        |                              |        |
+        ----------                              ----------
+
+
+
+
+
+
+
+
+
+        54                           HDLC u-Engine                     HDLC.FSD
+
+
+
+
+
+
+
+
+
+  DH~v
