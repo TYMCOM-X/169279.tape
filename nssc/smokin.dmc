@@ -1,0 +1,126 @@
+O BASE4 BASE7.
+DBSET 1.
+DEFINE TEXT 2 DM$.
+DEFINE TEXT 3 CNN$.
+DEFINE REAL STRT.
+DEFINE REAL STP.
+DEFINE REAL NSSC.
+DEFINE REAL DIAL.
+DEFINE REAL CS800.
+DEFINE REAL DIAL1.
+DEFINE REAL FLM1.
+DEFINE REAL DIAL2.
+DEFINE REAL TOTGL1 TOTGL2 TOTGL3.
+SET FMSG OFF.
+SET FERR OFF.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "Please Enter START Date (X22 Format) ".
+ACCEPT STRT.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "Please Enter STOP Date (X22 Format) ".
+ACCEPT STP.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "Assure Printer Echo is ON and Depress ENTER <continue> ".
+ACCEPT DM$.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+DPL START.
+TYPE "MCI".
+PRINT "QUALITY ASSURANCE REPORT FROM",STRT,"TO",STP FORMAT A29,1X,D3,1X,A2,1X,D3 END.
+TYPE "=====================================================================".
+TYPE "   ".
+DBSET 1.
+F HN EQ 1 CDAT GE STRT AND LE STP.
+type "          ".
+TYPE "NSSC TOTAL TICKETS".        
+TYPE "------------------".
+TYPE "                  ".
+PRI SYSNREC.
+EV NSSC EQ SYSNREC.
+TYPE "                  ".
+TYPE "                  ".
+F HN EQ 1 CDAT GE STRT AND LE STP PROD EQ DIALU.
+TYPE "TOTAL NSSC TICKETS W/PRODUCT ID OF DIALUP".
+TYPE "-----------------------------------------".
+TYPE "                                         ".
+PRI SYSNREC.
+EV DIAL EQ SYSNREC.
+TYPE "                  ".
+TYPE "                  ".
+TYPE "PERCENTAGE OF NSSC TICKETS W/PRODUCT ID OF DIALUP".
+TYPE "-------------------------------------------------".
+TYPE "                  ".
+TYPE DIAL/NSSC*100.
+TYPE "                  ".
+TYPE "                  ".
+TYPE "                  ".
+TYPE "                  ".
+DBSET 1.
+F HN EQ 4 CDAT GE STRT AND LE STP.
+type "          ".
+TYPE "CS800 TOTAL TICKETS".        
+TYPE "-------------------".
+TYPE "                  ".
+PRI SYSNREC.
+EV CS800 EQ SYSNREC.
+TYPE "                  ".
+TYPE "                  ".
+F HN EQ 4 CDAT GE STRT AND LE STP PROD EQ DIALU.
+TYPE "TOTAL CS800 TICKETS W/PRODUCT ID OF DIALUP".
+TYPE "------------------------------------------".
+TYPE "                                         ".
+PRI SYSNREC.
+EV DIAL1 EQ SYSNREC.
+TYPE "                  ".
+TYPE "                  ".
+TYPE "PERCENTAGE OF CS800 TICKETS W/PRODUCT ID OF DIALUP".
+TYPE "--------------------------------------------------".
+TYPE "                  ".
+TYPE DIAL1/CS800*100.
+TYPE "                  ".
+TYPE "                  ".
+TYPE "                  ".
+TYPE "                  ".
+DBSET 1.
+FI HN LT 5 CDAT GE STRT AND LE STP.
+MAP TO 2 VIA TNUM.
+FI LAST AND MAINT EQ FLM.
+TYPE "TOTAL TICKETS TURNED OVER TO FLM".        
+TYPE "--------------------------------".
+TYPE "                  ".
+PRI SYSNREC.
+EV FLM1 EQ SYSNREC.
+TYPE "                  ".
+TYPE "                  ".
+TYPE "                  ".
+TYPE "                  ".
+TYPE "                  ".
+MAP TO 1 VIA TNUM.
+FI LAST AND PROD EQ DIALU.
+TYPE "TOTAL TICKETS TURNED OVER TO FLM W/PRODUCT ID OF DIALUP".
+TYPE "-------------------------------------------------------".
+TYPE "                                         ".
+PRI SYSNREC.
+EV DIAL2 EQ SYSNREC.
+TYPE "                  ".
+TYPE "                  ".
+TYPE "PERCENTAGE OF TICKETS TURNED OVER TO FLM W/PRODUCT ID OF DIALUP".
+TYPE "---------------------------------------------------------------".
+TYPE "                  ".
+TYPE DIAL2/FLM1*100.
+TYPE "                  ".
+TYPE "                  ".
+TYPE "                  ".
+TYPE "                  ".
+TYPE "END OF REPORT".
+CLOSE.
+DPL END.
+QUIT.
+
