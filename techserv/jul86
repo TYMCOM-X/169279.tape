@@ -1,0 +1,835 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TTTTTTTT   EEEEEE    CCCCCC    HHH   HHH   TTTTTTTT   IIII   PPPPP       SSSS
+TTTTTTTT   EEEEEE   CCC   CC   HHH   HHH   TTTTTTTT   IIII   PP   PP    SS  SS
+   TT      EE       CC         HHH   HHH      TT       II    PP    PP   SS
+   TT      EEEE     CC         HHHHHHHHH      TT       II    PPPPPPP     SSSS
+   TT      EE       CC         HHH   HHH      TT       II    PP             SS
+   TT      EEEEEE   CC    CC   HHH   HHH      TT      IIII   PP         SS  SS 
+   TT      EEEEEE    CCCCCC    HHH   HHH      TT      IIII   PP          SSSS 
+
+
+
+
+
+
+
+
+
+ 
+                                 July 01, 1986
+
+
+
+                              TABLE OF CONTENTS
+                              -----------------
+
+
+
+WHY ARE THE RIGHT-HAND (2 DIGITS) OF THE MICRO SOMETIMES 'FE' OR 'FC'. . . .01
+
+CREATING A BACKUP DISC FOR A TMCS NODE . . . . . . . . . . . . . . . . . . .02
+
+RECOVERY AFTER TERMINAL GOES DOWN (MIDWAY THROUGH TRANSMISSION). . . . . . .04
+
+ASYNC OUTDIAL INACTIVITY TIMER . . . . . . . . . . . . . . . . . . . . . . .05
+
+SNA HIF INACTIVITY TIMER OVERRIDE. . . . . . . . . . . . . . . . . . . . . .06
+
+MAXIMUM PRIMARY SESSION POOL . . . . . . . . . . . . . . . . . . . . . . . .07
+
+FULL RELEASE FOR 3270 BISYNC HOST INTERFACE VER. 7.05. . . . . . . . . . . .08
+
+DATA LOSS BETWEEN HIF AND TIF. . . . . . . . . . . . . . . . . . . . . . . .09
+
+CONFIGURATION ANOMALY IN SUP V41.04. . . . . . . . . . . . . . . . . . . . .10
+
+THIRD PARTY SOFTWARE CERTIFICATIONS. . . . . . . . . . . . . . . . . . . . .11
+
+MONTHLY 'BETA, LIMITED AND FULL' RELEASE REPORTS . . . . . . . . . . . . . .12
+
+FIELD CERTIFICATION PROCEDURE. . . . . . . . . . . . . . . . . . . . . . . .14
+
+MORE IBM SERVICES BETA CUSTOMERS NEEDED. . . . . . . . . . . . . . . . . . .16
+
+FULL RELEASE OF X.PC . . . . . . . . . . . . . . . . . . . . . . . . . . . .17
+
+
+
+
+
+                                     01
+                                  --------
+
+
+    WHY ARE THE RIGHT-HAND (2 DIGITS) OF THE MICRO SOMETIMES 'FE' OR 'FC'?
+    ----------------------------------------------------------------------
+    ----------------------------------------------------------------------
+
+
+Written by : John Burrough, HQ Network Staff Consultant
+      Date : June 06, 1986
+
+
+
+
+ORIGINAL QUESTION:
+
+   Usually the right most (2) digits of a front panel indicate the number of
+   circuits terminated on that node, plus the number of passthroughs currently
+   through that node.  The micro, however, sometimes shows 'FE' or 'FC' alter-
+   nately, but actually not that many circuits are within the node.  Does
+   the node code use the last 2 digits for some other purpose?  Any special
+   meaning by the 'FE' and/or 'FC' being displayed?
+
+
+
+RESPONSE:
+
+   The right-hand 2 digits of the micro, when the front panel is displaying 
+   information for slot 0, displays the righthand 2 digits of the number of 
+   active ports.  This number is computed by nodecode (slot 0).  It is 
+   increased every time a needle or pseudo-needle is received, and decreased 
+   by 1 when a zapper is received.
+
+   HOWEVER IT IS NOT ENTIRELY ACCURATE.
+
+   Due to login race conditions, this number can become inaccurate - i.e. 
+   become too big or too small.  In your case, it went negative - 'FE' = -2 
+   and 'FC' = -4.
+
+   When you do  a 'ND' in XRAY, this number will be accurately computed.    
+   Next time you see this happen, go into XRAY and do an 'ND' and observe 
+   the righthand 2 digits of the console change to a more reasonable number.
+
+   I assume that you know, of course, that the front panel can display 
+   information on other slots - by pressing DATA <slot#> RUN.  These other 
+   slots can display whatever they want in the front panel - however, you will
+   not see the distinctive slot 0 display , where you have a 3-second display,
+   then a 1-second display alternating.
+
+
+
+
+                                     02
+                                  --------
+
+
+                   CREATING A BACKUP DISC FOR A TMCS NODE
+                   --------------------------------------
+                   --------------------------------------
+
+
+Written by : Jan Smith, HQ Network Staff Consultant
+      Date : May 22, 1986
+
+
+
+
+ORIGINAL QUESTION:
+
+   I have received a request that a backup disc be created for my cusotmer's
+   TMCS node.  I need to know how to proceed with this process.  By loading
+   the node via PDP-10 onto a formated disc pack, I am concerned about losing
+   TMCS history buffers, as well as, user profiles.  How can we retain all the
+   information that is located on the production disc pack?
+
+
+
+RESPONSE:
+
+   The following is the procedure to archive disk files to tape.  In this
+   procedures, use the first value of the DTAPE parameter of the TMCS slot 
+   tymfile as the value of tape unit #:
+
+       o  Insert a write ring in a scratch tape
+       o  Mount the scratch tape on an available TMCS unit
+       o  Log into TMCS
+       o  At the * prompt enter
+
+                 ARCHIVE STORE {tape unit #}
+
+       The name of each file will be displayed beofe it is stored; example:
+
+       PROFILE STORED
+       HOST NAME STORED
+       HOST LOCATION STORED
+       NODE NAME STORED
+       PROBE STORED
+
+        (etc)
+
+       o  Remove the write ring from the tape and remount
+       o  At the * prompt enter
+
+                 ARCHIVE DIRECTORY {tape unit #}
+
+   The files stored on the tape will display in the following format:
+
+       TAPEPOS   MM/DD/YY   HH:MM:SS    FILENAME    SIZE
+
+       o  Remove the tape from the drive and store it
+
+
+   If TMCS seems to be working improperly due to a possible disk problem
+
+       o  Take out the disk pack
+       o  Insert a test pack
+       o  Load disk diagnostics
+       o  Restore the disk pack belonging to TMCS
+
+   Adjust the hardware according to the diagnostics.  If there was nothing
+   wrong with the controller, reformat the TMCS disk.
+
+   To restore the stored data perform the following:
+
+       o  Reload TMDM using the configuration existing at the time of the
+          last archive store
+
+       o  Initialize the disk
+
+       o  Reload TMCS also using the same configuration at the time of the 
+          last archive store
+
+       o  Remount the archived tape
+
+       o  Log into TMCS
+
+
+       At the * prompt, execute:
+
+                 ARCHIVE RESTORE {tape unit #}
+
+       o  Halt and execute the TMCS slot
+
+   The procedure is complete.
+
+
+
+
+                                     04
+                                  --------
+
+
+       RECOVERY AFTER TERMINAL GOES DOWN (MIDWAY THROUGH TRANSMISSION)
+       ---------------------------------------------------------------
+       ---------------------------------------------------------------
+
+
+Written by : John Burrough, HQ Network Staff Consultant
+      Date : June 05, 1986
+
+
+
+   
+ORIGINAL QUESTIONS:
+
+   Host sends data to HIF--HIF acknowledges it--sends it on to TIF, but then 
+   the terminal goes down and doesn't get all the data.  What happens?
+
+
+
+RESPONSE:
+
+   If the terminal comes back up within 12 minutes, nothing at all.  The user
+   can keep going with his application.  Any data that was queued up for the 
+   terminal when it went down, will be sent to the terminal.
+
+   After 12 minutes, the TIF will perform a cleanup operation, deleting any
+   data bound for that terminal.  If the terminal comes up after the 12 
+   minutes, any data queued for the terminal will be lost;  however, the user
+   can type <something> TRANSMIT and the application should respond.
+
+   Note that, just because a terminal goes down, its circuit is NOT zapped.  
+   (Exception: if ALL the terminals on a line go down, i.e. stop responding to
+   polls, when we finally give up trying to poll them we WILL zap all the 
+   circuits on that line.)
+
+
+
+                                     05
+                                  --------
+
+
+                       ASYNC OUTDIAL INACTIVITY TIMER
+                       ------------------------------
+                       ------------------------------
+
+
+Written by : Brywn Wing, HQ Network Staff Consultant
+      Date : June, 1986
+
+
+
+
+      The default setting for inactivity is no hang.  The number of minutes
+    of inactivity, to elapse before a user is to be dropped, must be specified
+    with the 'inact' option.  This option may be set at the global, host, or
+    subhost level.  In the case of an async outdial tymcom, this option would
+    be set at the host level.  Project Implementation would not be responsible
+    for this customer's portion of the code since addition of an inactivity
+    timer would fall inter the non-standard configuration category.  A
+    Communications Consultant would be responsible for submitting the revision
+    to Project Implementation.  The procedure is as follows:
+
+    Non-Standard Configurations
+    ---------------------------
+
+    Communications Consultants shall be responsible for configuration of 
+    individual customer's portion of the Outdial slot Tymfile and for updating
+    the "REVISION HISTORY".
+
+    1.  The Communication Consultant may configure the individual customer's
+        portion of the Outdial interface in any way he deems appropriate so
+        long as it may be affected at the host, subhost, or port level.
+   
+    2.  The Communication Consultant may NOT alter the hardware, TOM, or
+        global level configuration of the Outdial interface.
+
+    3.  The Communication Consultant MUST provide Project Implementation with
+        the appropriate individual customer host portion of the Outdial slot
+        Tymfile 72 hours before the scheduled installation.  Project 
+        Implementation shall be responsible for code generation and install-
+        ation of the slot code.
+
+    Complications in communicating with the called device after the slot has
+    been succesfully loaded, shall be the responsibilty of the Communication
+    Consultant (responsible to the customer account being installed) to
+    resolve using the resources of a Communication Consultant local to the
+    Outdial slot.  Under NO circumstances shall Project Implementation be
+    contacted to troubleshoot the Outdial slot code after the slot has been 
+    successfully loaded.  Project Implementation must be notified of any 
+    subsequent changes made to the original Outdial slot code by Communication
+    Consultants.
+
+    ----------------------------
+
+    NOTE : This memo refers to the async outdial offering, utilizing the async
+           Tymcom code.  It does not refer to other outdial offerings.
+
+
+
+                                     06
+                                  --------
+
+
+                      SNA HIF INACTIVITY TIMER OVERRIDE
+                      ---------------------------------
+                      ---------------------------------
+
+
+Written by : David Pau, HQ Network Staff Consultant
+      Date : June, 1986
+
+
+
+
+ORIGINAL QUESTION:
+
+   How can the Inactivity Timer be overriden by the Application ID field,
+   in the DSP logon string?
+
+
+
+RESPONSE:
+
+   The answer to you question is explained in the SNA ERS manual.
+ 
+   In essence, SNA HIF has the feature of allowing users to eliminate the 
+   sysgen defined Inactivity Time-out value during logon to the the HIF.  If 
+   the graphic character representing the Application ID (line No.) is in the
+   range of 50-5F, the user will have a Class 2 status and the originally 
+   defined ITIMOUT is reset to 0.
+
+
+
+                                     07
+                                  --------
+
+
+                        MAXIMUM PRIMARY SESSION POOL
+                        ----------------------------
+                        ----------------------------
+
+
+Written by : Jan Smith, HQ Network Staff Consultant
+      Date : June 5, 1986
+
+
+
+
+ORIGINAL QUESTION:
+
+   How large can the parameter governing the size of the primary session pool 
+   be?
+
+
+
+ANSWER:
+
+   Each session requires 112 bytes of memory.  Using our lab version and the
+   code generated I calculated the value to be 6,959.  However the calculation
+   must have been a little off.  Once I tried to gen with this value RAM 
+   displayed a message giving the maximun value to be 6,838.
+
+   The restriction on this parameter will be governed by your availability of
+   core for RAM.
+
+
+
+
+                                     08
+                                  --------
+
+
+           FULL RELEASE FOR 3270 BISYNC HOST INTERFACE VER. 7.05
+           -----------------------------------------------------
+           -----------------------------------------------------
+
+
+Written by : Mary Chalmers, Mgr. Product Mktg.
+      Date : June 12, 1986
+
+
+
+
+      Version 7.05 of 3270 Bisync Host Interface (PBH) will be in Full
+   Release on June 10, 1986.
+ 
+   This version of the PBH includes the following new features:
+ 
+   --multiple disconnect facility
+   --2 greeting messages
+   --enhacements for Softerm by Softronics for the IBM PC 3101 block
+
+   Mode emulation includes:
+    
+   --24 PF Key support
+   --aux port attached, seperately addressable printer
+
+
+
+
+                                     09
+                                  --------
+
+
+                        DATA LOSS BETWEEN HIF AND TIF
+                        -----------------------------
+                        -----------------------------
+
+
+Written by : John Burrough, HQ Network Staff Consultant
+      Date : May 30, 1986
+
+
+
+
+   What happens when data is lost between HIF and TIF?
+
+   Error correction is done locally, between the HIF and the host, and between
+   the TIF and the UTS stations connected to it.  So the HIF/TIF only sends
+   what it thinks is error-free data.
+
+   The TIF and HIF are essentially independent from one another.  The way that
+   the HIF/TIF will detect a data loss problem at the other end or in an 
+   intermediate node will be the reciept of an ISIS message - Black Ball or 
+   Zap.
+
+   If data is lost in the network, a Black Ball is sent (i.e. replaces lost 
+   data) in the same direction as the original data.
+
+   If the TIF receives a Black Ball, it:
+        - sends "NETWORK CIRCUIT LOST" to the appropriate terminal.
+        - zaps circuit.
+
+   In Early Data Forwarding, 1 large message coming into the HIF can be split
+   into smaller, self-contained, correctly formatted Univac messages and 
+   shipped off before the entire mainframe message has been received.
+   Therefore, you can have the situation where part of the EDF'ed message gets
+   received properly by the TIF (and sent -> terminal), but the rest of the 
+   mainframe message is lost.
+
+   If the HIF receives a Black Ball, it will clear table entries related to 
+   the device associated with theis circuit - freeing buffers queued to this 
+   device, etc.
+
+   If the circuit gets zapped:
+
+        SVC - user must redial
+        PVC - Circuit automatically rebuilds.  User will detect problem in
+              this case by a pause and "NETWORK CIRCUIT LOST" on the screen.
+
+
+
+
+                                     10
+                                  --------
+
+
+                   CONFIGURATION ANOMALY IN SUP V41.04
+                   -----------------------------------
+
+
+Written by : Gail Bubsey, HQ Network Staff Consultant
+      Date : June 13, 1986
+
+
+
+
+      Although it is still in limited release, there is a known bug in
+   v.41.04 which can cause future problems, yet be easily avoided.  The 
+   DEFNOD statement generally is of the format:
+
+   DEFNOD ((NTYP,ADR,NUM),(NTYP,ADR,NUM),(NTYP,ADR,NUM))
+
+   Normally, one would fill in the type of node (NTYP=BASE,REMOTE, or TII),
+   the maximum node number (ADR) for that type, and the expected node count
+   (NUM) of that type.  A typical statement might be:
+
+   DEFNOD ((BASE,11,2),(REMOTE,1001,1),(TII,3000,200))
+
+   In this particular version of code, the filling of the ADR parameters in 
+   the BASE and REMOTE definitions causes the unusual problem of allowing a 
+   network operator to shut lines (ESHUT), but not unshut (RSHUT) them again.
+
+   So, for version 41.04 the ADR parameters must be allowed to default in the
+   BASE and REMOTE definitions as follows:
+
+   DEFNOD ((BASE,,2),(REMOTE,,1),(TII,3000,200))
+
+   Of course, if you have no Tymnet I Bases (i.e. you have upgraded all your 
+   gateways to TII) and you have no TI Remotes, then these definitions may be
+   omitted:
+
+   DEFNOD ((TII,3000,200))
+
+
+
+                                     11
+                                  --------
+
+
+                     THIRD PARTY SOFTWARE CERTIFICATIONS
+                     -----------------------------------
+                     -----------------------------------
+
+
+Written by : Mary Arnett, HQ Q.A.
+      Date : June 17, 1986
+
+
+
+
+   I WOULD LIKE TO MAKE ALL SALES PERSONS, FIELD REPS AND CC'S WHO INTERACT
+   WITH CUSTOMERS, AWARE OF THE FOLLOWING INFORMATION CONCERNING CERTIFIED 
+   PRODUCTS USING CMT.
+
+   WHEN A PRODUCT IS TESTED AND CERTIFIED, THE QA CERTIFICATIONS GROUP IS 
+   RESPONSIBLE FOR WRITING A CERTIFICATION DOCUMENT THAT DEFINES EXACTLY
+   WHAT IS CERTIFIED AND ANY PECULIARITIES OR PROBLEMS RELATED TO A PRODUCT.
+   NOT ALL THE FEATURES OF A PRODUCT ARE NECESSARILY CERTIFIED.  WE CERIFIY 
+   ONLY THE SPECIFIC FEATURE THAT IS REQUESTED WHEN WE RECEIVE THE PRODUCT 
+   FROM PRODUCT MARKETING.
+
+   FOR EXAMPLE, A SOFTWARE PACKAGE MAY EMULATE SEVERAL TERMINAL TYPES, BUT WE 
+   MAY ONLY BE REQUIRED TO CERTIFY TWO OF THEM.  ANOTHER EXAMPLE MAY BE THAT
+   THE VT100 EMULATION MAY INTERACT PERFECTLY WELL WITH CMT, BUT THE EMULATION
+   IN THE SOFTWARE CAN NOT HANDLE PRINTER SUPPORT.  SOME OF THESE PACKAGES MAY
+   OFFER FILE TRANSFER CAPABILITIES THAT WE HAVE NOT BEEN REQUIRED TO TEST.
+   AS A RESULT, A PRODUCT THAT APPEARS ON OUR CERTIFIED PRODUCTS LIST, MAY
+   BE ONLY PARTIALLY CERIFIIED, OR SOME PARTICULAR FUNCTIONS MAY NOT WORK,
+   I.E.PRINTER SUPPORT.
+
+   WHEN RECOMMENDING AUCT TO A CUSTOMER, PLEASE LOOK AT THESE DOCUMENTS
+   AND MAKE YOUR CUSTOMER AWARE OF EXACTLY WHAT CAN BE EXPECTED WHEN USING THE
+   PRODUCT WITH TYMNET.  I'M SURE YOU CAN UNDERSTAND SOME OF THE PROBLEMS THAT
+   COULD ARISE FROM NOT CHECKING THESE THINGS OUT.
+
+   I FEEL THAT SOME OF YOU MAY NOT BE AWARE THAT THESE DOCUMENTS EXIST.  IF
+   YOU NEED TO SEE ONE OF THE DOCUMENTS WE HAVE WRITTEN, CONTACT DON PARKMAN
+   OR DIRK HEARTMEN IN PRODUCT MARKETING, AS I DO NOT KEEP THESE FILES ON-
+   LINE.
+
+   HOPE THIS HELPS YOU IN THE FUTURE.
+
+
+
+
+                                     12
+                                  --------
+
+
+             MONTHLY 'BETA, LIMITED AND FULL' RELEASE REPORTS
+             ------------------------------------------------
+             ------------------------------------------------
+
+
+Written by : John Gomes, Mgr. HQ Q.A.
+      Date : June 17, 1986
+
+
+
+
+   The  Monthly  Beta,  Limited  and Full Release  reports  are  now 
+   available  for  your review.   Highlights for this period are  as 
+   follows:
+
+   NEW PRODUCTS IN BETA TEST:
+
+        -  ISRS  Isis Slot Recovery System  1.00
+        -  ISIS  Consat Async Outdial  6.01
+        -  SNA (HIF)  Bisync-to-SNA  1.04
+        -  TYMSTAR (pilot)           
+
+
+   NEW PRODUCTS IN LIMITED RELEASE:
+
+        -  ELF  4.00  This version may only be used for customers who
+                 do NOT use tape drive.
+
+
+   NEW PRODUCTS IN FULL RELEASE:
+
+        -  3270 PBH Polled Bisync Host Interface  7.05
+
+   
+   PRODUCTS NO LONGER SUPPORTED
+
+        -  ISIS Consat Async Outdial 5.00 (Beta)
+           Customers must upgrade to beta version 6.01.  New
+           customers must be approved before installation.
+
+        -  NVAL 3.02 (Beta)
+           Customers must upgrade to beta version 3.03.  New
+           customers must be approved before installation.
+
+        -  PBH 7.01 (Full)
+           Customers must upgrade to version 7.02, 7.03 or 7.05.
+           No approval is necessary.
+
+        -  PBT 5.01 (Full)
+           Customers must upgrade to version 5.02 or 5.03.  No 
+        approval is necessary.
+
+
+   NUMBER OF PRODUCTS AND SITES
+
+        -  33 Beta Test Products
+        -  103 Beta Test Sites
+        -  9 Limited Release Sites
+        -  59 Limited Release Sites
+
+
+   The complete beta,  limited and full release reports can be found 
+   on  System  56  in  the TECHREF directory.   File  names  are  as 
+   follows:
+
+        -  BETA.JUN  (Beta Test Report)
+        -  FULLIM.JUN  (Full and Limited Release Reports)
+
+   SITES  WHICH DO NOT HAVE THE PROPER APPROVALS AND A  SIGNED  BETA 
+   TEST AGREEMENT, WILL NOT BE INSTALLED.
+
+   If  you require additional information on the beta test  program, 
+   please  read the Beta Test Guidelines (***  BETA.TESTGUIDELINES), 
+   call me at 408-942-5142, or send me an Ontyme - QSATS.J/GOMES.
+
+
+
+                                     14
+                                  --------
+
+
+                        FIELD CERTIFICATION PROCEDURE
+                        -----------------------------
+                        -----------------------------
+
+
+Written by : John Gomes, Mgr. HQ Q.A.
+      Date : June 18, 1986
+
+
+
+
+   I.   Types of certifications
+ 
+        A. Third Party Software
+           1. terminal emulations
+           2. file transfer
+ 
+        B. Terminal which emulates another terminal for which a
+           macro has already been developed.
+ 
+   II.  The certification must be approved for field testing
+        by contacting Dirk Heartman in Product Marketing.  His
+        Ontyme name is NSMS.D/HEARTMAN.
+ 
+   III. Contact Mary Arnett in Quality Assurance and provide 
+        the following information. Ontyme QSATS.M/ARNETT.
+ 
+        A. The name of the product to be tested.
+        B. Information on the type of testing to be done (See
+           Section I), including the type of terminal(s) emulated.
+ 
+   IV.  If the terminal emulated is not one provided for in our CMT
+        demo facility, or if file transfer requires that some other
+        host than Fremont be targeted, a special slot will have to
+        be provided for the testing.
+ 
+   V.   The field person doing the testing must obtain the Certifi-
+        cation Procedures Document from Quality Assurance, the
+        CMTERM.ERS manual, and the document for the product being
+        tested.
+ 
+   VI.  Using the procedure described in the product document, set
+        up the terminal emulation with the features defined in the
+        CMTERM.ERS manual under "Set Up".
+    
+   VII. At this point testing becomes a matter of following the
+        procedures outlined in the Certification Procedures
+        Document.
+    
+   VIII.Once the testing is complete, the results should be care-
+        fully documented.  The exact configuration(s) tested 
+        and any problems encountered should be described.  Also,
+        any differences between the CMTERM.ERS documentation 
+        and the product tested should be noted.  For example,
+        the terminal emulated may support a printer, but the
+        emulation of that terminal may not.  We would also like to 
+        have the steps necessary to access the program.
+ 
+   IX.  Once the documentation is complete, all of the information,
+        and the software package or terminal should be sent to Quality
+        Assurance for final test.
+ 
+   X.   Quality Assurance will be responsible for the final test and
+        documentation.
+ 
+   XI.  The final documentation will be sent to Product Marketing
+        by QA, and there it will be added to the list of certified
+        products.
+
+
+
+
+                                     16
+                                  --------
+
+
+                  MORE IBM SERVICES BETA CUSTOMERS NEEDED      
+                  ---------------------------------------
+                  ---------------------------------------
+
+
+Written by : Gordon Smith, Mgr. Production
+      Date : June 23, 1986
+
+ 
+
+
+We've got two new capabilities coming out in July and we need more beta
+test customers...
+
+  Pooled Addressing for Printers
+
+    Our Async-to-3270 Bisync Service now supports CRM 4 addressing.  This
+    means that customers with printers no longer need unique usernames for
+    every printer, i.e., one-to-one addressing is no longer a requirement.
+    Users with attached printers will be able to share usernames.  This
+    also means significant reductions in memory requirements when alot of
+    printers need to be supported.
+
+    (Note: this capability is supported by our 3270 Bisync HIF ONLY.  CRM 4
+    SNA/SDLC support is targetted for the end of the year in beta test.)
+
+
+  System Request Key
+
+    This is an important capability for alot of Async-to-3270 SNA/SDLC 
+    customers.  The Sys Req Key is a button on a 3270 that allows a user
+    who is talking to an application (LU) on their host to switch to the
+    System Services Control Point (SSCP).  The SSCP enables them to then
+    login to other applications, i.e., it provides a multi-application
+    access capability.
+
+
+
+If you have a customer who wants to beta test either of these capabilities,
+send an Ontyme to Mary Chalmers (NSMS.M/Chalmers) with the following info:
+
+  1. Beta test suitability.  Does the customer have the resources, expertise,
+     and commitment to be an effective beta test site?
+
+  2. Customer Equipment.  What type of host hardware and system software
+     (e.g., TSO, CICS, IMS) do they have?  What types of terminals, PCs,
+     and printers?
+
+  3. Tymnet support.  Can a CC be assigned with sufficient time and experience
+     to conduct a productive test?  (contact your RTM)
+
+  4. Target install date you would like.
+
+
+
+                                     17
+                                  --------
+
+
+                            FULL RELEASE OF X.PC
+                            --------------------
+                            --------------------
+
+
+Written by : Steve Kim, Product Spec. II
+      Date : June 27, 1986
+          
+
+
+
+   X.PC FULL RELEASE:  JULY 1, 1986.
+
+   IT'S TYM FOR X.PC.
+
+
+   Thanks to your support, X.PC is now ready for Full Release for public
+   network access.  For last 90 days (since April 1, 1986), X.PC has been
+   in limited release.  22 limited release sites were using X.PC on a
+   daily basis without serious problems.
+
+   As of July 1, 1986, your customer will be able to obtain access to
+   publicly shared X.PC Network Servers (host #4463) or order their own
+   dedicated servers (with different host number), through the normal
+   order entry process.  As with all full release products, product
+   marketing approval is no longer required to process an X.PC order.
+
+   There is no impact on your existing X.PC customers.
+
+   You can retrieve any information regarding X.PC by typing "LIST ***
+   XPC.ALL" on Ontyme.
+
+   Thank you very much for your support of X.PC.
+
+   H P9
