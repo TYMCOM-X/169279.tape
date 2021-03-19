@@ -1,0 +1,24 @@
+PATCH(850125,0700,JL,TDA130+6,,4)
+         SHI       R6,CM.FST-0A
+CONPATCH(XL1600,,4)
+         J         XL1800
+CONPATCH(TDA140+6,,6)
+         J         PA1PTR,,
+CONPATCH(PA1PTR,,40)
+         LR        R3,R0            :SAVE COUNT OF TEXT IN R3
+         AIS       R0,0C            :ADD IN AN EXTRA SLOP FACTOR
+         JAL       R4,SLOR,,    
+TDA15A   LB        R0,,R5
+         JAL       R4,PUTCH,,        :PLACE IN OUTPUT RING
+         NHI       R0,7F
+         CLHI      R0,0D             :IS IT A CARRIAGE RETURN?
+         JN        TDA15B            :NO, DON'T SWEAT IT
+         LHI       R0,0A             :INSERT A LINEFEED
+         JAL       R4,PUTCH,,        :INTO THE ORING
+         AIS       R3,1              :UPDATE CHARACTER COUNT
+TDA15B   AIS       R5,1              :UPDATE RING POINTER
+         SIS       R6,1              :AND PACKET BYTE COUNT
+         JN        TDA15A            :KEEP GOING IF MORE THERE
+         JAL       R4,ELODR,,        :FINISH OFF MESSAGE
+         J         TDA152,,          :AND RETURN
+ENDPATCH(SUPPORTS PAD PARAMETER 13 SET TO A VALUE OF 5)
