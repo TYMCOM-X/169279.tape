@@ -1,0 +1,1400 @@
+:**************** PATCH FILE FOR CONSAT/PAD VERSION 6.03 *****************
+:
+	REMARK %%	 PATCH FILE FOR CONSAT/PAD VERSION 6.03  %
+:************************************************************************
+
+:*********************************************************************
+: Patch name: VIDBA.603              Product and Version: ISIS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: TELEVERKET, NIS               Date Written: 4/20/88
+: Description of Problem:  
+:
+:	This patch has two purposes:
+:	1. Corrects faulty exclusive-or logic at VRET which caused
+:	   transmitter to be called for a port when YOENENA was re-
+:	   set while RXON was set. This led to GCI crash since there
+:	   was no data for port.
+:	2. Corrects the condition where YONENA was reset while RXON
+:	   was set. This is caused when YONENA is reset as a VID
+:	   flag at VIDBA. This was done by IZPORT for CONSAT ports
+:	   and by INITCS for PAD ports.
+:********************************************************************
+
+	IF	NAPORT
+	LO	DATA
+	LO	CONSAT
+PATCH(880420,1030,JREILLY,XRET,,6)
+	J	PA1PTR,,		:go to patch area
+CONPATCH(PA1PTR,,24)
+	LHL	R0,TOPORT,RPOL,		:check for XMIT data in to port buf
+  IF	X3ON
+	OH	R0,FRECHO,RPOL,		:check for XMIT data in echo buf
+  EI	:X3ON
+	OH	R0,RXON,RPOL,		:don't transmit if
+	XH	R0,RXON,RPOL,		:backpressured
+  IF	NSPORT
+	OH	R0,FRCXMT,RPOL,		:force XMIT-enable/disable RXON
+  EI	:NSPORT
+	J	XMIT2-18,,
+
+CONPATCH(IZP1+2,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,22)
+	RBT	RP,RXON			: turn it off
+	JEFS	VRSRET			: already off, continue...
+	RBT	RP,OUTMSK		: was there data to output?
+	JEFS	VRSRET			: no, continue...
+	SBT	RP,QDDAT		: yes, let it be output
+VRSRET	LHL	R1,VIDBA,R3,		: because we're turning off YONENA
+	JE	IZP2,,			: and continue...
+	J	IZP1+8,,		:	"
+
+  IF	X3ON
+	LO	X3PAD
+CONPATCH(INCS10+2,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,1C)
+	RBT	RP,RXON			: turn it off
+	JEFS	VRSRT1			: already off, continue...
+	RBT	RP,OUTMSK		: was there data to output?
+	JEFS	VRSRT1			: no, continue...
+	SBT	RP,QDDAT		: yes, let it be sent
+VRSRT1	LHL	R1,VIDBA,R3,		: because we're turning off YONENA
+	J	INCS10+8,,		: and continue...
+	FO	X3PAD
+  EI	:X3ON
+
+ENDPATCH(Patch to fix CGI crash caused by not resetting RXON)
+
+	FO	CONSAT
+	FO	DATA
+	EI	:NAPORT
+
+:********************************************************************
+:********************************************************************
+: Patch name: DDTPVC.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: TRW                           Date Written: 2/8/88
+: Description of Problem:  
+:
+:	Patch to fix XDDT 'PVC' command. Should not index into PVCARY
+:	if RP=MAXPRT so JLE is changed to JL.
+:********************************************************************
+
+	IF	PVC
+	LO	STATUS
+PATCH(880208,2000,JREILLY,X.PVC2+6,,4)
+	JL	X.PVC1
+ENDPATCH(Patch to fix XDDT 'PVC' command)
+	FO	STATUS
+	EI	:PVC
+
+:********************************************************************
+:********************************************************************
+: filename: stat.pat
+: dae: 5/24/88
+: Objective: turn off the extended status report bit in
+: pseudo-needle request
+:-------------------------------------------------------------------
+
+	LO ISIS
+PATCH(880524,1300,DTAI,ESTPT4,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,20)
+	NHI	R0,0BFFF
+	STH	R0,EORING,R15,
+	AI	R15,2
+	JLFS	ESTP44
+	LHI	R15,-ORSIZE,
+ESTP44	J	ESTPT4+0E,,
+ENDPATCH(patch to disable request for extended logon status)
+
+	FO	ISIS
+:********************************************************************
+:********************************************************************
+: Patch name: SET.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: Public Outdial Consats        Date Written: 4/19/88
+: Description of Problem:  
+:
+:	This patch corrects the parser for the Outdial 'SET' command
+:	(O.SET) to check TOTRAN bit array to verify more command data
+:	before GETCHR is called at OPARSE. If patch is not installed,
+:	entering 'SET[space][cr]' causes GCI crash.
+:********************************************************************
+
+	IF	OUTDIA
+	LO	OUTDIA
+	LO	DATA
+PATCH(880419,1600,JREILLY,O.SET,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,1C)
+	LR	R0,R0			: -1 if last char was space
+	JGE	SNDERR,,		: send 'huh?' if not
+	RBT	RP,OTDIGT		: from source
+	TBT	RP,TOTRAN		: more data after space?
+	JE	SNDERR,,		: send 'huh?' if not
+	J	O.SET3,,		: go process if so
+ENDPATCH(Patch to correct 'SET' command parser)
+	FO	DATA
+	FO	OUTDIA
+	EI	:OUTDIA
+
+:*********************************************************************
+: ====================================================================
+:  patch ISCS06.PAG copied from (QSATS:33) 10/22/87 by DTAI
+:  for NSR# 1421
+: ====================================================================
+:(3)	Patch to fix CONSAT type 8D crash due to lack of ISIS port 
+:	for OUTPUT after OUTDIAL command port is switched.
+:=====================================================================
+
+	LO	DATA
+	LO	ISIS
+PATCH(870630,1539,JREILLY,PRTSWI+1A,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,20)
+	LB	R1,XLIMIT,R9	:old transmit limit is new one
+	STB	R1,XLIMIT,RP
+	RBT	R9,SENDON	:apply backpressure on OUTDIAL cmd port
+	GETPTP(R1,R9,R9)	:set up R1 - port table pointer
+	L	R2,.FTBUF,R1	:get from-term buffer pointer
+	J	EMPTY,,		:empty buffer,  return via R7
+ENDPATCH(PATCH 3 - PREVENT 8D CRASH DUE TO NO ISIS PORT FOR OUTPUT)
+	FO	ISIS
+	FO	DATA
+: ============================================================
+:   patch ISCS06.PAJ copied from (QSATS:33) 10/22/87 by DTAI
+:   for NSR# 1444
+: ============================================================
+:
+: TRIROK.PAT
+:	Originated 07/30/87 PC
+:	Revised 08/05/87 PC
+:	Revised 08/10/87 PC Re-did checking at D.LGC1+4 for RLA
+: ESC# 63041
+:	Patch to resolve outdial port being "BUSY" out
+:	and still considered available for outdial.
+:	BUSY.O is set for the port being busied by the COM
+:	command "OBUSY", and BUSY.H gets set when COM execuutes
+:	the command "BUSY".
+:	When DIAL or TERSE command is being executed by the OUTDIAL user
+:	D.LGIC is always called to dial the number entered.
+:	OT.HS is the time-out routine to check and report the OUTDIAL
+:	host status for the port availablity.
+:
+:	This patch forces the BUSY.H and BUSY.O be checked before
+:	any further actions are taken in searching for an OUTDIAL port.
+:
+
+	IF	OUTDIAL
+	LO	OUTDIAL
+	LO	CONSAT
+	LO	DATA
+PATCH(870730,1400,P/CHU,OT.HS4+6,,6)
+	J	PA1PTR,,
+:
+CONPATCH(PA1PTR,,1A)
+	NH	R0,RLA,RPOL,		:ORIGINAL INSTRUCTION
+	OH	R0,BUSY.O,RPOL,		:NOT BUSIED BY "OBUSY"
+	OH	R0,BUSY.H,RPOL,		:NOT BUSIED BY "BUSY"
+	XR	R0,R1			:GET ONE THAT DOES EXIST
+	J	OT.HS4+0C,,		:RESUME NORMAL FLOW
+:
+CONPATCH(D.LGC1+4,,6)
+	J	PA1PTR,,
+:
+CONPATCH(PA1PTR,,26)
+	LHL	R0,BUSY.H,R5,		:GET PORTS BUSIED BY "BUSY"
+	OH	R0,BUSY.O,R5,		:GET PORTS BUSIED BY "OBUSY"
+	OH	R1,RLA,R5,		:NOT ANSWERING INCOMING CALL
+					:RLA IS SET WHEN IC! IS RECEIVED
+					:OR WHEN THE PORT HAS BEEN ACTIVE
+	LHL	R1,OT.CAP,R5,		:GET CAPABLE PORTS
+	XR	R1,R0			:GET ONE THAT'S OK TO DIAL
+	NH	R1,HDWDSR,R5,		:NOT ANSWERING INCOMING CALL
+	J	D.LGC1+14,,
+:
+CONPATCH(M.CON2+10,,2)
+	JFS	M.CON2+16		:DON'T FLUSH BUF ON CONNECT
+:
+CONPATCH(M.IC+26,,4)
+	SBT	RP,RLA			:SINCE ANSWERING INCOMING CALL
+					:IT MUST BE ACTIVE
+:
+ENDPATCH(Ensure ports busied are not available for OUTDIAL, ISCS 6.02)
+:
+	FO	CONSAT
+	FO	DATA
+	FO	OUTDIAL
+
+	EI	-OUTDIAL-
+:
+: SEARCH.PAT
+:	Originated 08/07/87 PC
+:	Modified 09/26/87 JR - Changed some instructions to RX3
+:	for > 16 port configurations.
+:
+: Patch to search for the last bit set for OUTDIAL
+:
+
+	IF	OUTDIAL
+	LO	OUTDIAL
+	LO	CONSAT
+	LO	DATA
+PATCH(870730,1400,P/CHU,D.LGC3,,6)
+	J	PA1PTR,,
+:
+CONPATCH(PA1PTR,,1E)
+	LIS	R2,0F		:LENGTH FOR HALF WORD
+D.LGC4
+	SRLS	R1,1		:MOVE LSB TO CARRY
+	JC	D.LGC2,,	:FOUND ONE, BIT NUMBER IN R2
+	SIS	R2,1		:MOVE DOWN ONE BIT
+	JGE	D.LGC4		:AND CONTINUE SEARCHING
+	SIS	R5,2		:RESTORE INSTRUCTIONS
+	JGE	D.LGC1,,	:           "
+	J	D.LGC3+8,,	:AND RETURN
+:
+ENDPATCH(Search from the last port for OUTDIAL, ISCS 6.02)
+:
+	FO	CONSAT
+	FO	DATA
+	FO	OUTDIAL
+	EI	-OUTDIAL-
+
+:***********************************************************************
+:      PATCH TO CORRECT TYPOGRAPHICAL ERRORS IN OUTDIAL MESSAGES AND
+:      TO ADD DIALING INFORMATION TO "HELP" SCREEN.
+:***********************************************************************
+ 
+  IF OUTDIAL
+ 
+       LO       CONSAT
+       LO       OUTDIA
+       LO       DATA
+ 
+PATCH(871230,1040,POHARROW,MSGNT,,MSGCF-MSGNT)
+ 
+       AC       /"0D"0AMalfunction on Outdial port - no dial tone received."0D"0A/
+       AC       /Please call Customer Service."0D"0A/ ; .MOPRM
+ 
+CONPATCH(MSGMT,,MSGBS-MSGMT)
+ 
+       AC       /"0D"0AMalfunction on Outdial port - modem timed itself out."0D"0A/
+       AC       /Please call Customer Service."0D"0A/ ; .MOPRM
+ 
+CONPATCH(OHLPMG+301,,5)
+ 
+       AC       /pulse/  : TYPO FIXED HERE - had been spelled "pusle"
+ 
+CONPATCH(PA0PTR,,83)   : SET UP TEXT FOR ADDITIONAL DIALING INFO
+ 
+DIAHLP AC       /"0D"0ANOTES"3A * Dialed number need not be preceded by "229"22."0D"0A/
+       AC       /       * In some locations"2C long-distance numbers must be preceded by "221"22."0D"0A/
+       BC       0
+ 
+CONPATCH(O.HELP+14,,8)
+ 
+       J        PA1PTR,,
+       HC       0
+ 
+CONPATCH(PA1PTR,,18)
+ 
+       JAL      R9,MSG,,       : SEND REGULAR HELP SCREEN
+       LA       R6,DIAHLP,,    : GET ADDRESS OF ADDITIONAL DIAL INFO
+       JAL      R9,MSG,,       : SHIP IT
+       J        OTPRMT,,       : SEND PROMPT AND SPLIT
+ 
+ENDPATCH(REPAIR TYPOS IN MESSAGE TEXTS AND ADD TO HELP SCREEN)
+ 
+       FO       CONSAT
+       FO       OUTDIA
+       FO       DATA
+ 
+ EI    : OUTDIAL
+ 
+:EOF ********************************************************************
+:************************************************************************
+:	Patch to change logic at OPARS9 to preserve character in RBC
+:	for call to command handling routine. Specifically, O.DIAL
+:	indexes into several bit arrays based on value in RBC.
+:************************************************************************
+
+	IF	OUTDIA
+	LO	OUTDIA
+	LO 	DATA
+	LO	CONSAT
+PATCH(880114,0130,JREILLY,OPARS9,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+	CLHI	RBC,0AC		:IS IT A COMMA?
+	JE	OPAR11,,	:YES, PUT -1 IN R0
+	CLHI	RBC,0A0		:IS IT A SPACE?
+	JE	OPAR11,,	:YES, PUT -1 IN R0
+	J	OPARS9+0A,,	:NEITHER, JUMP BACK
+ENDPATCH(Patch to preserve RCB at Outdial command parser)
+	FO	CONSAT
+	FO	DATA
+	FO	OUTDIA
+	EI	:OUTIA
+
+:eof ********************************************************************
+
+:************************************************************************
+:
+: SENDE.PA1
+:	This patch is an revised version of (JREILLY:37)SENDE.PAT
+:	Revised 08/07/87 PC
+:
+:	Patch to send 'E cr' after initialization of
+:	OUTDIAL ports to leave command mode.
+:************************************************************************
+:
+  IF	OUTDIA
+	LO DATA
+	LO OUTDIA
+PATCH(870708,1615,JREILLY,M.COM+0C,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,26)
+	JAL	R15,ZAPMOD,,
+	L	RBP,.TTBUF,RPI	: GET TO TERMINAL BUFFER POINTER
+	LHI	RBC,0C5		: LOAD 'E'
+	JAL	RCH,PUTCHR,,	: AND SEND
+	LHI	RBC,0D		: LOAD 'CR'
+	JAL	RCH,PUTCHR,,	: AND SEND
+	J	VRET,,		: RETURN
+:
+ENDPATCH(Patch to exit modem out of command mode, ISCS 6.02)
+	FO OUTDIA
+	FO DATA
+  EI	:OUTDIA
+:
+:************************************************************************
+:	Patch to allow 'L' to be sent to modem in DIAL command to
+:	activate modem's MNP protocol.
+:
+  IF	OUTDIA
+	LO DATA
+	LO OUTDIA
+PATCH(870819,1405,JREILLY,O.DCOM,,8)
+	WC	00080000
+	WC	00088800
+ENDPATCH(Patch to allow 'L' in dial string for MNP)
+	FO	OUTDIA
+	FO	DATA
+  EI	:OUTDIA
+:************************************************************************
+:************************************************************************
+:	Patch to answer SIO ports only after DSR and CP are both
+:	true. THI causes port to answer if either are true.
+:
+	IF	NSPORT
+	LO	CONSAT
+PATCH(870915,1730,JREILLY,QHASIO+2E,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,14)
+	NHI	R0,028
+	CLHI	R0,028
+	JN	QHANS6,,
+	J	QHASIO+36,,
+ENDPATCH(Patch to answer SIO ports only if DSR and CP)
+	FO	CONSAT
+	EI	:NSPORT
+
+:********************************************************************
+:********************************************************************
+: Patch name: TAMCHK.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: NIS, HSBC, TRW                Date Written: 6/14/88
+: Description of Problem:  
+:	
+:	This is a modification of TAMCHK.603 with the following
+:	changes:
+:
+:	  1. Check RLA and not TAMTO so that TAM correction is
+:	  performed for any active ports.
+:
+:	  2. No need to reset TAMTO at CIRDSC since we're not
+:	  using TAMTO any more.
+:
+:	  3. Lets count the number of times this correction is
+:	  actually being made by setting up a counter TAMCNT.
+
+	IF	NAPORT
+	LO	ISIS
+	LO	DATA
+	LO	CONSAT
+
+PATCH(880614,1400,JREILLY,PA0PTR,,NAPORT*2)
+TAMCNT	HS	NAPORT			: storage for counter
+
+CONPATCH(TAMCH1+4,,4)
+	NH	R0,RLA,RPOL		: use RLA, not TAMTO
+
+CONPATCH(TAMCH3+4,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,22)
+	JE	TAMCH1,,		: from source
+	TBT	RP,TAMTO2		:      "
+	JEFS	TAMCH5			:      "
+	SBT	RP,TAM			:      "
+	LIS	R0,1			: increment counter
+	AHM	R0,TAMCNT,RP2,		:      "
+TAMCH5	RBT	R1,POLTMP		: reset POLTMP
+	J	TAMCH4+4,,		: and continue...
+
+ENDPATCH(Patch to fix TAMCHK logic)
+
+	FO	CONSAT
+	FO	DATA
+	FO	ISIS
+	EI	:NAPORT
+
+:********************************************************************
+:********************************************************************
+: Patch name: PULSE.603              Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: Public Outdial                Date Written: 5/12/88
+: Description of Problem:  
+:
+:	This patch forces Outdial call to be placed with PULSE dial
+:	instead of TONE dial, whether user enters a 'P' in the dial
+:	string or not. This can be used for telco rotaries which do
+:	not allow TONE dialing.
+
+	IF	OUTDIA
+	LO	OUTDIA
+	LO	DATA
+
+PATCH(051288,1135,JREILLY,D.LGC8+0E,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,16)
+	JAL	RCH,PUTCHR,,		: send the 'D'
+	LHI	RBC,0D0			: 'P'
+	JAL	RCH,PUTCHR,,		: send the 'P'
+	J	D.LGC8+14,,		: and continue...
+
+CONPATCH(D.LGC7+6,,4)
+	LHI	RBC,0D0			: convert 'T' to 'P'
+
+ENDPATCH(Patch to force pulse dialing)
+
+	FO	DATA
+	FO	OUTDIA
+	EI	:OUTDIA
+
+:********************************************************************
+:********************************************************************
+: Patch name: VHBGD.603              Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: CHASE                         Date Written: 5/17/88
+: Description of Problem:  
+:
+:	This patch corrects the first instruction at VHBGD, which
+:	is the half-duplex baudot async input routine. Instead of
+:	a GETCHR, we want to do a AGETCH, to get the data from the
+:	async input rings, not from the From-Terminal buffer.
+
+	IF	BAUDA+BTELEX
+	LO	CONSAT
+
+PATCH(880517,1330,JREILLY,VHBGD,,4)
+
+	JAL	RCH,AGETCH		: get the next character
+
+ENDPATCH(Patch to AGETCH and not GETCHR at VHBGD)
+
+	FO	CONSAT
+	EI	:BAUDA+BTELEX
+
+:********************************************************************
+:********************************************************************
+: Patch name: VHBG2.603              Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: CHASE                         Date Written: 5/24/88
+: Description of Problem:  
+:
+:	This patch copies received data character into R9 at VHBG2,
+:	the transparent half-duplex baudot receiver, for correct
+:	call to VASEND. Failure to include this causes incorrect
+:	data sent to network.
+
+	IF	BAUDA+BTELEX
+	LO	CONSAT
+
+PATCH(880524,2340,JREILLY,VHBG2,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,0C)
+	OHI	RBC,0E0		: make sure high-order bits are set
+	LR	R9,RBC		: copy into R9 for call to VASEND
+	J	VASEND,,	: and sent it...
+
+ENDPATCH(Patch to copy data character into R9 at VHBG2)
+
+	FO	CONSAT
+	EI	:BAUDA+BTELEX
+
+:********************************************************************
+:********************************************************************
+: Patch name: XTGATE.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: FTS                           Date Written: 6/20/88
+: Description of Problem:  
+:
+:	When PAD call reaches 'smart' host, we reset XTGATE at GGD.20
+:	causing reset at GIS.10 not to fall through to restore
+:	X3DAT as PAD state. From there, data is still sent without
+:	IIX and X.25 clears call. Patch causes XTGATE to be reset
+:	only if 'dumb' host is reached.
+
+	IF	X3ON
+	LO	DATA
+	LO	X3PAD
+
+PATCH(880620,1920,JREILLY,GGD.20,,8)
+	RBT	RP,XTGATE		: not talking to gateway
+GGD.21	SBT	RP,SENDON		: release backpressure
+
+CONPATCH(GGS.10+4,,2)
+	JBS	GGD.21			: jump back to GGD.21 and not
+					: GGD.20 so we don't reset
+					: XTGATE
+
+ENDPATCH(Patch to allow PAD call through TII gateway)
+
+	FO	X3PAD
+	FO	DATA
+	EI	:X3ON
+
+:********************************************************************
+:********************************************************************
+: Patch name: PADHNG.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer:                               Date Written: 6/26/88
+: Description of Problem:  
+:
+:	Patch to restore origional PAD profile if call is aborted
+:	because user enters unecessary password. (from PADHNG.602)
+:	Also restore .VSAVE into .VSTAT so we don't get hung with
+:	P.VASC as our receiver. (added 6/26/88)
+
+	IF	X3ON
+	LO	X3PAD
+PATCH(880303,0230,JREILLY,CALABT+16,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,36)
+	LB	R1,X3OPRO,RP,		:GET ORIGIONAL PROFILE
+	STB	R1,X3CPRO,RPI,		:AND MAKE IT THE CURRROFILE
+	JAL	R9,INITX3,,		:SET UP X.3 PARAMETERS
+	L	R1,.VSTAT,RPI,		:GET CURRENT RECEIVER
+	CI	R1,P.VASC		:READING ASYNC RING?
+	JN	CALAB1			:YES, CONTINUE
+	L	R1,.VSAVE,RPI,		:NO, GET SAVED RECEIVER
+	ST	R1,.VSTAT,RPI,		:AND RESTORE IT (OVER P.VASC)
+CALAB1	LIS	R9,3			:PASSWORD ERROR
+	J	XLOGIN,,		:AND JUMP BACK
+ENDPATCH(Patch to reset PAD profile after unecessary password)
+	Fo	X3PAD
+	EI	:X3ON
+
+:********************************************************************
+:********************************************************************
+: Patch name: DDTPV1.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: TRW                           Date Written: 6/30/88
+: Description of Problem:  
+:
+:	This patch fixes the X-DDT 'PVC' command to correctly
+:	display the TID value for AID ports.
+:	Updated 7/12/88 to fix incorrect TID value for SIO
+:	ports by removing 2F displacement into PVCTID.
+
+	IF	PVC
+	LO	DATA
+	LO	STATUS
+
+PATCH(880630,2230,JREILLY,X.DPVC+20,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,22)
+	NI	R0,7FFFFFFF		: get rid of high-order bit
+	SRL	R0,$A 24		: from source
+	CLHI	RP,.SPORT		: SIO port?
+	JLFS	X.DP01			: no, output TID value as is
+	SI	R0,2F			: yes, get rid of SIO offset
+X.DP01	SVC	K.OUT,X.PVM1,,		: from source
+	J	X.DPVC+28,,		: ...and return
+
+ENDPATCH(Patch to correct X-DDT 'PVC' display for AID ports)
+
+	FO	STATUS
+	FO	DATA
+	EI	:PVC
+
+:********************************************************************
+:********************************************************************
+: Patch name: TLXSND.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: CHASE                         Date Written: 8/3/88
+: Description of Problem:  
+:
+:	This patch sets bit in SENDON for telex calls when TIIX
+:	message is received and processed at TLXTIX. Bit was reset
+:	to keep CONSAT from sending data on IIX capable circuit
+:	before IIX negotiation is complete, but was not set to
+:	allow data to be sent to Isis.
+
+	IF	TELEX
+	LO	TELEX
+	LO	DATA
+
+PATCH(880803,1515,JREILLY,TLXTIX+4,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,10)
+	SBT	RP,SENDON		: turn it on now
+	LH	R0,.IIXMD,RPI		: from source
+	JGER	RLINK			: from source
+	J	TLXTIX+0A,,		: and continue...
+
+ENDPATCH(Patch to set SENDON for TELEX calls)
+
+	FO	DATA
+	FO	TELEX
+	EI	:TELEX
+
+:********************************************************************
+:********************************************************************
+: Patch name: BZAP0.603              Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: VA                            Date Written: 11/29/88
+: Description of Problem:  
+:
+:	This patch changes the message type for Probe message
+:	sent by CONSAT when buffer is zapped from 16 to 0, which
+:	is recognized as a buffer zap by TMCS. This has already
+:	been corrected in version 7.
+
+	LO	BUFFER
+PATCH(881129,1200,JREILLY,BZAP5+3A,,4)
+	LHI	R0,0		: type 0, not type 16
+ENDPATCH(Patch to report buffer zap as type 0 PROBE message)
+	FO	BUFFER
+
+:********************************************************************
+:********************************************************************
+: Patch name: COMBUF.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: Televerket                    Date Written: 5/24/88
+:       patch modified to add RBT RP,COMTO on 1/31/89.  This fixes problem
+:       of subsequent user being in consat mode causing crash when timer
+:       expires for previous user.              sdw
+: Description of Problem:  
+:
+:	This patch correctly places the COMTIMER expiration hang
+:	signal in the .ECOBF (not .TTBUF), which is where we are
+:	putting the disconnect message. Failure to include this
+:	results in GCI crash if timer expires, and subseqent user
+:	initiates in CONSAT mode.
+:	Also patches HANG/ANSWER code to empty .ECOBF when change
+:	to RLA is detected. This prevents subsequent user from
+:	getting 'old' disconnect message.
+
+	IF	X3ON
+	LO	X3PAD
+	LO	CONSAT
+
+PATCH(880524,1010,JREILLY,T1M150,,4)
+	L	RBP,.ECOBF,RPI		: put hang signal in .ECOBF
+ENDPATCH(Patch to place COMTIMER hang signal in .ECOBF)
+
+PATCH(880526,1210,JREILLY,QHA3+10,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,20)
+	L	RBP,.ECOBF,RPI		: get .ECOBF pointer
+	JAL	RCH,EMPTY,,		: and empty
+	L	RBP,.FTBUF,RPI		: get .FTBUF pointer (from code)
+	JAL	RCH,EMPTY,,		: and empty (from code)
+        rbt     rp,comto,,              :prevent timer from going off
+	J	QHA3+18,,		: nad jump back...
+ENDPATCH(Patch to empty .ECOBF at QHA3)
+
+	FO	CONSAT
+	FO	X3PAD
+	EI	:X3ON
+
+:********************************************************************
+:********************************************************************
+: Patch name: SETRED.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: TELEVERKET/SW BELL            Date Written: 2/7/89
+: Description of Problem:  
+:
+:	Upgraded to version 6.03 2/7/89
+:
+:	Mask off bit 8 of parameter reference in X.29 SET and READ PAD 
+:	message to avoid crash when parameter is > 7F.
+:
+	IF	X3ON
+	LO	X3PAD
+
+PATCH(871208,0105,JREILLY,PARST2,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,12)
+	NHI	R2,7F		: MASK HIGH-ORDER BIT
+	TBT	R2,0,R3		: AND REPLACE INSTRUCTIONS
+	JER	R9
+	J	PARST2+6,,
+
+CONPATCH(PARR10,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,14)
+	NHI	R2,7F		: MASK HIGH-ORDER BIT
+	TBT	R2,0,R3		: AND REPLACE INSTRUCTIONS
+	JN	PARR10+6,,
+	LIS	R3,1
+	JR	R9
+
+ENDPATCH(Patch to mask high-order bit in X.29 SET and READ parameter)
+
+	FO	X3PAD
+	EI	:X3ON
+
+:********************************************************************
+:********************************************************************
+: Patch name: KADCMD.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: TELEVERKET/SW BELL            Date Written: 2/7/89
+: Description of Problem:  
+:
+:	Upgraded to version 6.03 2/7/89
+:
+:	Patch to remove CMDEK-BASE listing in CMDEXT since KATAKANA
+:	command was removed. We don't want 'K' to be valid as the first
+:	letter of a command. (For example, 'KAD' entered as command will
+:	cause 'ill mem ref' crash...)
+
+	IF	X3ON
+	LO	X3PAD
+
+PATCH(8809315,0030,JREILLY,CMDEXT+14,,2)
+	HC	0
+
+ENDPATCH(Patch to avoid 'KAD' crash)
+
+	FO	X3PAD
+	EI	:X3ON
+
+:********************************************************************
+:********************************************************************
+: Patch name: GCDCRA.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: TELEVERKET/SW BELL            Date Written: 2/6/89
+: Description of Problem:  
+:
+:	Upgraded to version 6.03 2/6/89
+:
+:	GCDCRA.PAT 06/10/87 PC
+:	GCDALT is called TWICE due to re-entrant coding at EDERASE.
+:	The return registers must thus be preserved and restored when
+:	EDERASE is done
+:
+	IF	X3ON
+	LO	X3PAD
+	LO	DATA
+PATCH(890206,1000,JREILLY,EDERS1,,06)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,34)
+	TBT	RP,X3.P2,,	
+	JE	EDERS2,,		: MUST RESTORE REGS
+	NHI	R1,7F
+	CHI	R1,09
+	JE	EDERS4,,
+	TBT	R1,.ECHT1,RPI,
+	JNFS	EDERS9			: MUST RESTORE REGS
+	CHI	R1,8
+	JEFS	EDERS9			: MUST RESTORE
+	J	EDERS1+1E,,
+EDERS9
+	J	EDERS2,,
+
+ENDPATCH(Patch to restore registers after call to GCD)
+
+	FO	X3PAD
+	FO	DATA
+	EI	-X3ON-
+
+:********************************************************************
+:********************************************************************
+: Patch name: SEGPAD.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: TELEVERKET/SW BELL            Date Written: 2/7/89
+: Description of Problem:  
+:
+:	Upgraded to version 6.03 2/7/89
+:
+:	12/01/87 PC
+:	SEGPAD.PAT
+:	This patch takes care of the accounting report
+:	when the terminal drops the signal to disconnect
+:	instead of normal logoff.
+:
+:	Problem rises when the terminal drops the signal instead of logging off
+:	the session with short connect time.
+:	The problem is that since the accounting report of the segment and packet
+:	counts are reported to the RAM once every 16 minutes, and for a short
+:	session less than 16 minutes, the reports will go out only when the
+:	the circuit is terminated when the PAD receives a zapper or when
+:	the PAD sends out a zapper.
+:
+:	By dropping the signals, CONSAT takes care of sending the zapper
+:	who doesn't send the packet and segment reports.
+:
+:	This results in incorrect RAM reports in mismatched input/output
+:	octets and the input/output segment/packet counts.
+
+	IF	X3ON
+	LO	DATA
+	LO	CONSAT
+
+PATCH(871201,1600,P/CHU,QHA8-6,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,18)
+	JAL	R6,PCTRPT,,
+	JAL	R6,SCTRPT,,
+	JAL	R6,CTARPT,,
+	J	QHA8,,
+
+ENDPATCH(ACCOUNTING- REPORT FINAL SEG AND PACKET COUNT WHEN SIGNAL GONE)
+
+	FO	CONSAT
+	FO	DATA
+	EI	:X3ON
+
+:********************************************************************
+:********************************************************************
+: Patch name: CALCMD.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: TELEVERKET/SW BELL            Date Written: 2/7/89
+: Description of Problem:  
+:
+:	Upgraded to version 6.03 2/7/89
+:
+: NSR 		CALCMD.PAT 11/17/87 DLG      PATCH FOR ISCS 6.02
+: The CALCMD array was not being reset when the PAD Command line exceeded
+: 80 characters and the buffer was flushed. This causes the code to jump
+: to the Call command parser, which resulted in a jump to CMDER1.  This 
+: routine returns to parse CCITT commands making the assumption a TEMP area
+: has previously been set up to index into the CMDBUF.  Because TEMP
+: is zero the index is incorrect and the byte before the CMDBUF is
+: picked up.  This results in the index used for the CCITT cmd table
+: to be incorrect, added to the base and used as a pointer.  This
+: pointer is supposed to point to the length of the command, but
+: when the code tries to fetch the length the crash occurs.
+: 
+: Patch in EDCMD routine, just before EDCM60 prior to resetting
+: the FLUNCR array.
+
+	IF	X3ON
+	LO	DATA
+	LO	X3PAD
+
+PATCH(871117,1556,DGRAHAM,EDCM60-8,,06)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,2A)
+	RBT	RP,CALCMD,,	:Call command no longer in progress
+	RBT	RP,NUINAM,,	:not processing NUI
+	RBT	RP,UNAME,,	:not processing username
+	RBT	RP,CUDTIM,,	:not processing CUD
+	RBT	RP,LOCDEM,,	:let receiver do echoing
+	SBT	RP,FLUNCR,,	:look for CR to stop tossing user chr
+	J	EDRTN,,		:return to process next character
+
+ENDPATCH(INITIALIZE CALL CMD BIT ARRAYS WHEN COMMAND BUFFER OVERFLOW OCCURS)
+
+	FO	X3PAD
+	FO	DATA
+	EI	-X3ON-
+
+:********************************************************************
+:********************************************************************
+: Patch name: COMTIM.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: TELEVERKET/SW BELL            Date Written: 3/9/89
+: Description of Problem:  
+:
+:	Modified 3/9/89 to set bit in COMTO at CIRDS2 only if port
+:	is in PAD mode (PADACT=1) so we don't have COMTIMER expiring
+:	for ports in CONSAT mode, which leads to GCI crash.
+:
+:	Upgraded to version 6.03 2/7/89. Also modified to allow for
+:	possibility that PVC code is included by jumping back to
+:	CIRDSC rather than JR RLINK.
+:
+: When a zapper is received from the Sup directly on call set-up e.g
+: when the X.25 host called is down, the circuit is disconnected O.K
+: in the CIRDIS routine but the command mode timer is not started.
+: This means that the operator gets the CLR DER service message but
+: is never disconnected from the PAD port if no further calls are placed.
+: This is seen as serious when one is using dial-in.
+
+	IF	X3ON
+	LO	DATA
+	LO	X3PAD
+
+PATCH(890309,1030,JREILLY,CIRDSC+30,,06)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,24)
+	RBT	RP,GOT.PN
+	RBT	RP,IIXCAL
+	TBT	RP,PADACT		: in PAD mode? (3/9/89)
+	JEFS	CIRDS2			: no, forget COMTIMER stuff (3/9/89)
+	LB	R0,COM.IN,RP,,
+	JEFS	CIRDS2
+	STB	R0,COM.CU,RPI
+	SBT	RP,COMTO
+CIRDS2	J	CIRDSC+38,,
+
+ENDPATCH(ENABLE COMTIMER WHEN CALL ZAPPED DIRECT FROM SUP)
+
+	FO DATA
+	FO X3PAD
+	EI	-X3ON-
+
+:********************************************************************
+:********************************************************************
+: Patch name: MBIT.603               Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: TELEVERKET/SW BELL            Date Written: 2/7/89
+: Description of Problem:  
+:
+:	Upgraded to version 6.03 2/7/89
+:
+:	14/12/88 PJ	Add (johnsonp)mbit.602		(TKT #216587)
+:	Set M-Bit in full data packets sent from PAD into network.
+:	When a packet is sent due to the buffer being full - and ONLY
+:	due to the buffer being full (no packet assembly timeout nor
+:	data forward character received from terminal) the PAD was not
+:	setting the More-data bit in the data packet (to signify that
+:	the data stream has been truncated by the network.
+
+	IF	X3ON
+	LO	DATA
+	LO	X3PAD
+
+PATCH(881206,1155,PJOHNSON,EDSFWD+12,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,28)
+	L	R5,.FEDBF,RPI,	: RESTORE
+	LHL	R6,P.BCT,RPI,	: GET BYTE COUNT
+	CLH	R6,EBSIZE,RP,RP	: COMPARE WITH EDIT BUFFER SIZE
+	JL	EDSFWD+1A,,		: LESS THAN PACKET SIZE - RETURN
+	LIS	R0,0			: GREATER THAN PACKET SIZE...
+	STH	R0,P.BCT,RPI,			: ... RESET BYTE COUNT
+	LIS	R0,1				: SET M-BIT IN FLAG BYTE
+	J	EDSFWD+20,,			: GO SEND IIX DATA MESSAGE
+
+ENDPATCH(SET M-BIT WHEN FORWARDING FULL DATA PACKET)
+
+	FO	DATA
+	FO	X3PAD
+	EI	: X3ON
+
+:********************************************************************
+:********************************************************************
+: Patch name: PADCNT.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: TELEVERKET/SW BELL            Date Written: 2/7/89
+: Description of Problem:  
+:
+:	PADCNT.PAT 09/04/87 PMJ		PATCH FOR ISCS 6.02
+: The correct data and packet segment counters were not being updated.
+: Hence the ADA messages sent to the Sup and RAM were not reflecting
+: the true picture. The problem is that INPUT and OUTPUT counters were 
+: reversed. 
+: In the case of a PAD user making a call, all data sent from the
+: terminal should then be regarded as INPUT. All the data received
+: should be regarded as OUTPUT.
+: The routines in question are COSP - count output segments and packets,
+: and..........................CISP -   "   input     "      "     "
+
+	IF	X3ON
+	LO	DATA
+	LO	X3PAD
+
+PATCH(870902,1200,PJOHNSON,XCD.40+8,,04)
+	JAL	R4,COSP
+
+CONPATCH(OUTPKT+18,,04)
+	JAL	R4,CISP
+
+ENDPATCH(UPDATE CORRECT DATA PACKET AND SEGMENT COUNTERS)
+
+	FO	DATA
+	FO	X3PAD
+	EI	-X3ON-
+
+:********************************************************************
+:********************************************************************
+: Patch name: PADADA.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: TELEVERKET/SW BELL            Date Written: 2/7/89
+: Description of Problem:  
+:
+:	PADADA.PAT 09/01/87 PMJ      PATCH FOR ISCS 6.02
+: The packet and segment accounting counters for the ADA messages sent
+: to the Sup and RAM were not being reset to zero when a call was
+: cleared without the DTR dropping. The problem here was that the
+: packet and segment count was never reset for the DPORT in question,
+: with rather dramatic consequences for customer billing.
+: 
+: Patch in SENCLR routine, just after PAD port state has been switched
+: back to PAD WAITING after OPERATOR CLEAR.
+:
+	IF	X3ON
+	LO	DATA
+	LO	X3PAD
+
+PATCH(870901,1200,PJOHNSON,QQ4+18,,06)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,22)
+	LIS	R0,0
+	ST	R0,POCNT,RPI		: force all counters to zero.
+	ST	R0,PICNT,RPI
+	ST	R0,SOCNT,RPI
+	ST	R0,SICNT,RPI
+	ST	RLINK,XPTMP2	: save register before JAL.
+	JAL	RLINK,XP.ZAK,,	:send operator message, reinit par's.
+	J	QQ4+20,,	: go restore reg's and return.
+
+ENDPATCH(RESET DATA PACKET AND SEGMENT COUNTERS TO ZERO ON OPERATOR CLEAR)
+
+	FO	DATA
+	FO	X3PAD
+	EI	-X3ON-
+
+:********************************************************************
+:********************************************************************
+: Patch name: GCITIM.603             Product and Version: ISCS 6.03
+:     Author: scott wedel                   Organization: STS
+:   Customer: SWBELL                        Date Written: 2/09/89
+: Description of Problem: 
+:
+:       This patch is another attempt to fix GCI crashes on ports that
+:       have hung up(been hung up).  What is seen is From Echo buffer
+:       having the 'no calls being placed..' message but trying to get
+:       data from To Termina Buffer.
+:       bug as I see it is earlier patch sets comto in CIRDSC and if user
+:       has timer enabled and hangs up then cirdsc still sets the timer to
+:       run even though there is no user.
+:
+:********************************************************************
+
+	IF	X3ON
+	LO	X3PAD
+        lo      consat
+        lo      data
+        patch(890209,211,sdw,qha8+4,,6)
+        j       pa1ptr,,
+        conpatch(pa1ptr,,20)
+        rbt     rp,comto
+        rbt     rp,c.acp                :existing inst
+        j       qha2,,                  :existing
+        l       rbp,.ttbuf,rpi          :instead of .ecobf
+        endpatch(Patch fixes a GCI crash dealing with command timer)
+
+	FO	CONSAT
+	FO	X3PAD
+	EI	:X3ON
+
+:********************************************************************
+:********************************************************************
+: Patch name: DDTIME.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: TRW				 Written: 7/21/88
+: Description of Problem:  
+:
+:	This patch correctly resets the 'TIME' portion of the
+:	DDT 'PORT' command for AID ports.
+
+	IF	NAPORT
+	IF	PVC
+	LO	CONSAT
+	LO	DATA
+
+PATCH(880721,1530,JREILLY,QHA4-8,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,18)
+	JAL	R9,A.VID,,		: set up port (from source)
+	L	R4,SLOWC,,		: get time
+	ST	R4,.TIME,RPI,		: and store it
+	J	QHA2,,			: return (from source)
+
+ENDPATCH(Patch to correctly display X-DDT 'PORT' time for AID ports)
+
+	FO	DATA
+	FO	CONSAT
+	EI	:PVC
+	EI	:NAPORT
+
+:********************************************************************
+:********************************************************************
+: Patch name: UPTIME.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: TRW                           Date Written: 7/29/88
+: Description of Problem:  
+:
+:	This patch, executed in the 8 second timeout logic,
+:	checks to make sure the node has been taken over (GMT
+:	is not 80000000) before storing slot start-up time at
+:	UPTIME for display through X-DDT.
+
+	LO	ISIS
+	LO	DATA
+	LO 	CONSAT
+
+PATCH(880729,1045,JREILLY,RBTIME+2A,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,34)
+	JGE	RBTIM1,,		: service next 16 (from source)
+	LH	R0,UPTIME,,		: get time
+	THI	R0,8000			: good?
+	JE	CSDISM,,		: yes, jump out
+	L	R0,GMT,,		: no, get GMT
+	TI	R0,80000000		: good yet?
+	JN	CSDISM,,		: no, jump out
+	ST	R0,UPTIME,,		: yes, save it
+	J	CSDISM,,		: done...
+
+ENDPATCH(Patch to get correct slot start time for X-DDT)
+
+	FO	CONSAT
+	FO	DATA
+	FO	ISIS
+
+:********************************************************************
+:********************************************************************
+: Patch name: DDTSIO.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: TRW                           Date Written: 7/29/88
+: Description of Problem:  
+:
+:	This patch causes SIO port EIA signals to be correctly
+:	displayed in the X-DDT 'PORT' command.
+
+	IF	NSPORT
+	LO	STATUS
+
+PATCH(880729,1620,JREILLY,DPORT7+8,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,1C)
+	LHL	R7,DPRTAR,R6,		: from source
+	JE	DPORT9,,		: from source
+	CLHI	RP,.SPORT		: SIO port?
+	JL	DPORT7+0E,,		: no, check array
+	J	DPORT8,,		: yes, use FF
+
+ENDPATCH(Patch to correctly display SIO EIA leads through X-DDT)
+
+	FO	STATUS
+	EI	:NSPORT
+
+:********************************************************************
+:********************************************************************
+: Patch name: SIOELT.603	     Product and Version: ISCS 6.03
+:     Author: BBT (MDIS) / WBA (ANZ)	    Organization: MDIS
+:   Customer: ANZ			    Date written: 09/14/88
+:
+:	Modified to account for full-word boundary stuff at SIG.SI
+:	4/18/89 JCR
+:
+: Description of problem:
+:
+:	This patch  allows  the consat	to support space parity and
+:	Eight  Bit  Transparency mode on sio ports. It looks at the
+:	SEVBIT,  TRANSP   and  PARITY	 bit   arrays  to  properly
+:	determine  what parity	 to send.   In	order to do this it
+:	must enable  processing   of  Enter and  Leave Transparency
+:	Mode  messages which  are usually ignored in the SIO signal
+:	processing
+:
+	IF	NSPORT			: Only if SIO enabled
+	LO	DATA
+	LO	CONSAT
+:
+PATCH(880914,1120,BTHOMSON,XSIO3B+0C,,6)
+	J	PA1PTR,,
+:
+:	Modify	the SIO  transmitter  (XSIO) to output space parity
+:	if SEVBIT  is set,   or  send data  without modification if
+:	TRANSP bit is set by an enter transparency mode.
+:
+CONPATCH(PA1PTR,,26)
+SIOELT	TBT	RP,TRANSP,,		: Are we in transparency mode?
+	JNFS	XSIO3D			: YES, go send it as is.
+	TBT	RP,SEVBIT,,		: Are we forcing space parity?
+	JNFS	XSIO3C			: YES, send whats in R0
+	TBT	RP,PARITY,,		: Do we want even parity?
+	JN	XSIO3B+12,,		: YES, go make it even
+XSIO3D	J	XSIO4,, 		: Send data unchanged.
+XSIO3C	LR	RBC,R0			: Send space parity.
+	JBS	XSIO3D
+:
+:	This turns  off  the bits that	are generated by the SIGBGN
+:	macro for  ignoring  Enter   and  Leave   Transparency Mode
+:	messages in  the SIO   Signal  Processor  so that these are
+:	handled  in the  normal   fashion.   This  allows us to use
+:	SEVBIT	and TRANSP  bit arrays	to determine when to fiddle
+:	the parity.
+:
+	IF	SIG.SI&2		: On full-word?
+CONPATCH(SIG.SI+44,,2)			: No
+	HC	0300			: Don't ignore ET and LT
+	ELSE
+CONPATCH(SIG.SI+46,,2)			: Yes
+	HC	0300			: Don't ignore ET and LT
+	EI	:SIG.SI&2
+:
+ENDPATCH(SIO signal & space parity - Fix Enter & Leave transparency)
+:
+	FO	CONSAT
+	FO	DATA
+	EI	: NSPORT
+:
+:********************************************************************
+:********************************************************************
+: Patch name: XMDEL.603              Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: Public OUTDIAL                Date Written: 3/23/89
+: Description of Problem:  
+:
+:	This patch corrects the OUTDIAL delay transmitter routine
+:	at XMDEL to load delay value into R5 before call to ADELYG.
+:	Failure to do so always caused a delay value of 6 (which is
+:	the signal value), regardless of the actual delay value de-
+:	sired.
+
+	IF	OUTDIA
+	LO	OUTDIA
+	
+PATCH(890323,1200,JREILLY,XMDEL,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,0E)
+	LR	R5,RBC		: get the value in the right place
+	JAL	RCH,ADELYG,,	: send it
+	J	XRET,,		: and return...
+
+ENDPATCH(Patch to generate correct delays for OUTDIAL)
+
+	FO	OUTDIA
+	EI	:OUTDIA
+
+:********************************************************************
+:********************************************************************
+: Patch name: MPVCAC.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: Public CONSATs                Date Written: 3/16/89
+: Description of Problem:  
+:
+:	This patch causes MPVC accounting routine to check to make
+:	sure MPVC port is not logging in before generating accounting
+:	information. Failure to make this check (go by RLA only) can
+:	cause dispatcher crash if B7 is sent during logon.
+
+	IF	NMPVC
+	LO	DATA
+	LO	ISIS
+
+PATCH(890316,1500,JREILLY,M.ACCT+4,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,1A)
+	TBT	RP,RLA,,		: active? (source)
+	JEFS	M.ACT4			: no, skip it
+	TBT	RP,MPCLOG,,		: yes, still logging in?
+	JE	M.ACT3,,		: no, service it
+M.ACT4	J	M.ACT2,,		: yes, skip it
+
+ENDPATCH(Patch to skip MPVC accounting for ports still logging in)
+
+	FO	ISIS
+	FO	DATA
+	EI	:NMPVC
+
+:********************************************************************
+:********************************************************************
+: Patch name: OUTPRT.603             Product and Version: ISCS 6.03
+:     Author: JCR                           Organization: STS
+:   Customer: Public Outdial                Date Written: 3/15/89
+: Description of Problem:  
+:
+:	This patch causes the physical Outdial port/modem which was
+:	selected for use to appear when outputting Outdial call
+:	failure messages to user, unless 'TERSE' command is used.
+
+	IF	OUTDIA
+	LO	OUTDIA
+
+PATCH(031589,1415,JREILLY,PA0PTR,,0B)
+O.PTNUM	AC	/"0D"0A"0D"0APort#"A0"00/	: "Port# "
+SAVR6	WS	1			: area to save R6
+CONPATCH(M.CFL+3E,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,3E)
+	L	RBP,.FTBUF,R9,		: command port buffer (source)
+	TBT	RP,OTDIGT,,		: using TERSE command?
+	JN	OUTPT1			: yes, better skip "Port#" stuff
+	ST	R6,SAVR6,,		: save R6
+	LA	R6,O.PTNUM,,		: get "Port# " message
+	JAL	R9,MSG,,		: send it
+	LR	R0,RP			: get physical port #
+	LIS	R4,2			: 2 byte output
+	JAL	R9,ODN,,		: output decimal number
+	LHI	RBC,3A			: get ':'
+	JAL	RCH,PUTCHR,,		: send it
+	L	R6,SAVR6,,		: get R6
+OUTPT1	JAL	R9,O.SMGB,,		: send error message (source)
+	J	M.CFL3,,		: and continue...
+
+CONPATCH(M.TIME+3A,,6)
+	J	PA1PTR,,
+
+CONPATCH(PA1PTR,,38)
+	L	RBP,.FTBUF,R9,,		: command port buffer (source)
+	TBT	RP,OTDIGT,,		: using TERSE command?
+	JN	OUTPT2			: yes, better skip "Port#" stuff
+	LA	R6,O.PTNUM,,		: get "Port# " message
+	JAL	R9,MSG,,		: send it
+	LR	R0,RP			: get physical port #
+	LIS	R4,2			: 2 byte message
+	JAL	R9,ODN,,		: output decimal number
+	LHI	RBC,3A			: get ':'
+	JAL	RCH,PUTCHR,,		: send it
+OUTPT2	LIS	R6,9			: time-out message (source)
+	J	M.TIME+40,,		: and continue...
+
+ENDPATCH(Patch to output port number in Outdial call failure messages)
+
+	FO	OUTDIA
+	EI	:OUTDIA
+
+:**********************************************************************
+
+  jK2Dã
