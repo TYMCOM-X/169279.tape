@@ -1,0 +1,27 @@
+
+:
+: ESC# 176781
+: REPORTED BY CUSTOMER: MANPOWER. 
+: The xcom 3.01 count the number of hostcost step by
+:    (mincostchan-maxcostchan)/("numsteps" - 2)
+:
+: The macro (0,248,8,0,8,8) will set hostcost 0 for both
+: 0 and 1 port in use. the logic will use 7 total steps.
+: We need use ("numsteps" - 1) to define 8 steps.
+:  1. INICS1: USE EXACT NUMSTEPS.
+:  2. HCOST1: UPDATE HOSTCOST WHEN NO FREE PORT AVAILABLE
+:  3. INICS8: IF THE NUMSTEPS IS AN EVEN NUMBER, THE MINCOST
+:             WILL DESTROY THE CSO.HT. SO, REMOVE THE STORE INSTRUCTION.
+:  4. HCOST3: REPORT MINCOST DEFINED BY TYMFILE WHEN NO PORT IN USE.
+
+  IF  HCO.MX
+PATCH(880222,1230,JWANG,INICS1+36,,2)
+        SIS     R3,1
+CONPATCH(HCOST1+6,,6)
+        JGE     HCOST3,,
+CONPATCH(INICS8,,6)
+        NOP     0,0,0,0
+CONPATCH(HCOST3+8,,4)
+        JG      HCOST0
+ENDPATCH(DEFINE CORRECT STEPS OF HOSTCOST REPORT)
+  EI
