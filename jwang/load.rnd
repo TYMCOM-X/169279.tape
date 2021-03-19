@@ -1,0 +1,1149 @@
+.ap
+.ch X.75/X.25 GATEWAY LOADING AND DUMPING
+.lm 10
+.rm 70
+.t ##########MAYNENET - X.75/X.25 GATEWAY LOADING AND DUMPING
+.hl 1 INTRODUCTION TO CALOAD
+ CALOAD is a downstream loading programme used to load a binary image 
+of executeable code from Tymnet system 37 or 22 into engine within a MayneNet
+network by transitting OTC (and AUSTPAC). THe binary image may consist of
+an ISIS Kernel, node code, and/or combination of standard slot codes.
+ There are four main operations performed by CALOAD:
+.ls
+.ls
+.le;To load a slot, the node may be in
+the network and the remainder of the node will not be affected by the load.
+.le;To load an entire machine, the node must not be operating as part
+of the network at the time, but must be running a special synchronous 
+bootstrap program. The bootstrap program can be invoked either remotely
+via privileged DDT command with watch dog timer enabled or by throwing the
+bootswitch physically if the node is still running or in the network.
+The node may go into bootstrap if there is a system malfunction providing
+that the watch dog timer is enabled.
+To perform an entire machine load, the operator needs to specify the
+neighbor node number and the line number.
+.le;To dump a slot, the node must be in the network.
+CALOAD programme will not halt or restart a slot during the dump.
+.le;To dump an entire machine, the node must not be operating as part of
+the network at the time, but must be running a special synchronous bootstrap
+program described in item 2. CALOAD programme will ask if the operator
+wishes to reload the machine. If the operator elects to reload, the machine
+will be dumped and reloaded and then return to service immediately without
+losing valuable infomation about it's state. If operator elects not to
+reload, the machine will be left at it's boot after the dump is completed.
+.els
+.els
+.hl 1 LOADING AND DUMPING
+ CALOAD programme can be accessed by doing :
+.lt
+
+        R (CASGEN)CALOAD.SAV      <c/r>
+
+.el
+on system 37. When CALOAD is accessed, it identifies itself by outputting
+"NODE LOADER VERSION- 2.16" (may be higher) and prompts
+"ENTER FUNCTION:". At this point, the operator enters "X" for passing X.75/
+X.25 gateway and then enters carriage return. The CALOAD will then prompt for 
+gateawy host number. For MayneNet loading/dumping, the gateway hosts are 602
+(WUI),2847 (RCA). (ITT and TRT host may be used in the future). After that
+number is entered, a prompt for "ENTER FUNCTION" is issued again.  Now
+you may enter the following options:
+.lm 5
+.lt
+
+
+            OPTIONS
+             S - LOADING A SLOT. (The engine must be running)
+             U - DUMPING A SLOT. (The engine must be running)
+             L - LOADING AN ENTIRE MACHINE. (The engine must
+                 be in boot)
+             D - DUMPING AN ENTIRE MACHINE. (The engine must
+                 be in boot)
+.el
+.lm 10
+ The following sections  describe these options.
+Four examples are shown below. User input is illustrated
+in lower case letters. The call connected messages prompted by gateway
+interface are also in lower case letters.
+.hl 2 LOADING A SLOT
+ After "S" is issued, the operator will then be prompted for the Kernel host
+number. After the Kernel host number is
+entered, it will prompt with
+"CIRCUIT TO GATEWAY BUILT" AND "ENTER RELAY MODE (CTL)Z TO EXIT" AND A ";".
+At this point, the operator may enter the called address followed by 
+":gateway:Kernel host number" and carriage return.
+ WARNING: If the operator only enters
+called address followed by carriage return, the time spent on the loading
+will be increased. Even worse for dumping a slot and loading an entire engine. So,
+please be advised to enter "called address:gateway: kernel host number" followed
+by carriage return. ( Four special gateway loading/dumping patches are put
+in the host 602/WUI, 2847/RCA.)
+ The called address may be chosen by the circuit path:
+.lt
+
+        5053222110 ---- by passing thru "OTC" only.
+        505226920006 -- by passing thru "OTC" and "AUSTPAC".
+
+.el
+ After the operator enters the called address and "gateway: kernel host number", it 
+will prompt with call connected message and ask for password.
+The operator needs to enter password and 
+carriage return. ( It may ask for the password again. If so, enters it
+again). Now, the operator should not enter anything until it prompts with "slot :".
+When the operator gets this prompt, enters "(CTL)Z". Then it will ask for 
+slot number. After the operator enters slot number, it will ask for the file.
+The operator needs to enter the filename which is going to be
+loaded into the slot and then enters carriage return. After this, it will continue
+to prompt with the loading message of each segment and exits.
+.hl 3 SAMPLE OF SLOT LOADING
+.lt
+
+
+Example 1.
+
+
+
+
+-r (casgen)caload.sav
+
+NODE LOADER VERSION- 2.16
+
+ENTER FUNCTION:x
+ENTER GATEWAY HOST:2847
+ENTER FUNCTION:s
+ENTER KERNEL HOST NUMBER:40
+CIRCUIT TO GATEWAY BUILT
+
+ENTERING RELAY MODE (CTL)Z TO EXIT
+
+;505226920006:gateway:40
+
+rca/remote network:  call connected via rca
+.................... see note 1.
+
+MayneNet
+password:
+###############
++++++++++++++++
+OOOOOOOOOOOOOOO
+big-chris
+.................... see note 2.
+node: 2040
+host: 40
+
+slot #: CIRCUIT BUILT
+.................... see note 3.
+ENTER SLOT NUMBER:4
+ENTER FILE FOR SLOT:(casgen)ca2040.n04
+INITIALIZING MAC
+
+TRANSMITTING SEGMENT 14
+
+       
+SENDING DATA TO ADDRESS:00000 BYTES=    8626
+SENDING DATA TO ADDRESS:10000 BYTES=   32766
+SENDING DATA TO ADDRESS:17FFE BYTES=   32766
+SENDING DATA TO ADDRESS:1FFFC BYTES=   32436
+SENDING DATA TO ADDRESS:50000 BYTES=   16156
+SENDING DATA TO ADDRESS:30000 BYTES=    6524
+SENDING DATA TO ADDRESS:90000 BYTES=   22624
+
+SLOT 4 LOADED
+
+
+EXIT
+.el
+ NOTE :
+.ls
+.ls
+.ls
+.le;This line and
+the following 5 lines are outputs/prompts from gateway interface.
+.le;Enter password and <c/r> here. Password is not echoed.
+.le;After it prompts "slot  :", user enters "(CTL)Z".
+.els
+.els
+.els
+.hl 2 DUMPING A SLOT
+ After "U" is issued, the slot dumping will begin and may take as long
+as 16 minutes. (16 minutes/X.25 slot, 4 minutes/Consat slot).
+The steps to
+be entered are the same as the steps for slot loading. When it asks for file,
+the operator enters a file name for dumping.
+Always use the appropriate node naming convention, and the
+following extension is recommended.
+.lt
+
+     <node><number>.dxy
+ 
+     Where x is the sequence number of the dumps taken,
+           y is the slot number
+
+     Ex. : ca2040.d14 = First dump from slot 4, node 2040
+           nd2020.d36 = Third dump from slot 6, node 2020
+
+.el
+.hl 3 SAMPLE OF DUMPING A SLOT
+.lt
+
+
+
+Example 2.
+
+-r (CASGEN)CALOAD.SAV
+
+NODE LOADER VERSION- 2.16
+
+ENTER FUNCTION:x
+ENTER GATEWAY HOST:2847
+ENTER FUNCTION:u
+ENTER KERNEL HOST NUMBER:40
+CIRCUIT TO GATEWAY BUILT
+
+ENTERING RELAY MODE (CTL)Z TO EXIT
+
+;5053222110:gateway:40
+
+rca/remote network:  call connected via rca
+
+MayneNet:
+password:
+###############
++++++++++++++++
+OOOOOOOOOOOOOOO
+big-chris
+
+node: 2040
+host: 40
+
+slot #: CIRCUIT BUILT
+
+ENTER SLOT NUMBER:4
+ENTER FILE FOR SLOT:ca2040.d14
+
+
+READING FROM ADDRESS:E0000 BYTES=     264
+*
+READING FROM ADDRESS:00000 BYTES=    8636
+**********************
+READING FROM ADDRESS:10000 BYTES=   65535
+*****************************************************
+READING FROM ADDRESS:20000 BYTES=   32432
+***********************************************
+READING FROM ADDRESS:30000 BYTES=    6524
+****************
+READING FROM ADDRESS:50000 BYTES=   16156
+******************************************
+READING FROM ADDRESS:90000 BYTES=   22624
+***************************************************
+SLOT DUMP COMPLETE
+
+
+EXIT
+
+.el
+.hl 2 LOADING AN ENTIRE MACHINE
+ After "L" is issued, the operator will then be prompted for the neighbor's
+node number. For Tymnet II neighbors, the operator will also be prompted
+for the
+Kernel host number of this neighbor. After the Kernel host number is entered,
+CALOAD will prompt for the logical line number and the object filename.
+After this, CALOAD outputs
+"BUILDING CIRCUIT", "CIRCUIT TO GATEWAY BUILT", "ENTER RELAY MODE (CTL)Z TO
+EXIT" AND ";". At this point, the operator enters called address and "dload:Kernel host
+number"
+and carriage return. it will prompt with call connected message and asks for
+password. After password and carriage return are entered, enter "(CTL)Z"
+if it doesn't ask for password again. When "(CTL)Z" is entered, it will
+prompt with "CIRCUIT BUILT", "THE LOAD REQUEST HAS BEEN ACKNOWLEDGED", and
+followed by loading message and exits.
+.hl 3 SAMPLE OF LOADING AN ENTIRE MACHINE
+.lt
+
+Example 3.
+
+-r (casgen)caload.sav
+
+NODE LOADER VERSION- 2.16
+
+ENTER FUNCTION:x
+ENTER GATEWAY HOST:2847
+ENTER FUNCTION:l
+ENTER NEIGHBOR NUMBER:2041
+ENTER KERNEL HOST NUMBER:41
+ENTER LINE NUMBER:4
+ENTER OBJECT FILE NAME:(casgen)ca2040.bnd
+BUILDING CIRCUIT
+
+CIRCUIT TO GATEWAY BUILT
+
+ENTERING RELAY MODE (CTL)Z TO EXIT
+
+;5053222110:dload:41
+
+rca/remote network:  call connected via rca
+
+MayneNet:
+password:
+###############
++++++++++++++++
+OOOOOOOOOOOOOOO
+big-chris
+CIRCUIT BUILT
+... note: Enter (CTL)Z after password and <c/r>.
+THE LOAD REQUEST HAS BEEN ACKNOWLEDGED
+
+LOADING
+
+  40-XMT    0-RCV    0-LOST
+  80-XMT   24-RCV    8-LOST
+ 120-XMT   42-RCV    9-LOST
+ 160-XMT   66-RCV   13-LOST
+ 200-XMT   96-RCV   14-LOST
+ 240-XMT  133-RCV   15-LOST
+ 280-XMT  163-RCV   15-LOST
+ 320-XMT  199-RCV   15-LOST
+ 360-XMT  236-RCV   15-LOST
+ 400-XMT  260-RCV   15-LOST
+ 440-XMT  284-RCV   15-LOST
+ 480-XMT  303-RCV   17-LOST
+ 520-XMT  327-RCV   17-LOST
+ 560-XMT  351-RCV   17-LOST
+ 600-XMT  381-RCV   18-LOST
+ 640-XMT  406-RCV   18-LOST
+ 680-XMT  424-RCV   18-LOST
+ 720-XMT  509-RCV   18-LOST
+ 760-XMT  545-RCV   20-LOST
+ 800-XMT  569-RCV   21-LOST
+ 840-XMT  612-RCV   24-LOST
+ 880-XMT  654-RCV   24-LOST
+ 920-XMT  684-RCV   24-LOST
+ 960-XMT  721-RCV   24-LOST
+1000-XMT  757-RCV   24-LOST
+1040-XMT  787-RCV   24-LOST
+1080-XMT  824-RCV   25-LOST
+1120-XMT  860-RCV   26-LOST
+1160-XMT  915-RCV   27-LOST
+1200-XMT  957-RCV   28-LOST
+1240-XMT  975-RCV   28-LOST
+1280-XMT 1040-RCV   30-LOST
+1320-XMT 1070-RCV   31-LOST
+1360-XMT 1101-RCV   33-LOST
+1400-XMT 1137-RCV   34-LOST
+1440-XMT 1180-RCV   35-LOST
+1480-XMT 1210-RCV   36-LOST
+1520-XMT 1252-RCV   37-LOST
+1560-XMT 1283-RCV   37-LOST
+1600-XMT 1337-RCV   40-LOST
+1640-XMT 1392-RCV   41-LOST
+1680-XMT 1428-RCV   42-LOST
+1720-XMT 1452-RCV   42-LOST
+1760-XMT 1489-RCV   42-LOST
+1800-XMT 1561-RCV   42-LOST
+1840-XMT 1586-RCV   42-LOST
+1880-XMT 1610-RCV   42-LOST
+1920-XMT 1646-RCV   42-LOST
+1960-XMT 1652-RCV   42-LOST
+2000-XMT 1702-RCV   43-LOST
+2040-XMT 1787-RCV   43-LOST
+2080-XMT 1823-RCV   44-LOST
+2120-XMT 1884-RCV   44-LOST
+2160-XMT 1920-RCV   44-LOST
+2200-XMT 1950-RCV   46-LOST
+2240-XMT 1981-RCV   47-LOST
+2280-XMT 2023-RCV   50-LOST
+2320-XMT 2054-RCV   50-LOST
+2360-XMT 2114-RCV   52-LOST
+2400-XMT 2144-RCV   52-LOST
+2440-XMT 2175-RCV   52-LOST
+2480-XMT 2235-RCV   53-LOST
+2520-XMT 2278-RCV   56-LOST
+2560-XMT 2314-RCV   56-LOST
+2600-XMT 2344-RCV   56-LOST
+2640-XMT 2387-RCV   57-LOST
+2680-XMT 2411-RCV   57-LOST
+2720-XMT 2435-RCV   57-LOST
+2760-XMT 2484-RCV   61-LOST
+2800-XMT 2514-RCV   61-LOST
+2840-XMT 2557-RCV   61-LOST
+2880-XMT 2617-RCV   61-LOST
+2920-XMT 2666-RCV   62-LOST
+2960-XMT 2708-RCV   62-LOST
+3000-XMT 2738-RCV   62-LOST
+3040-XMT 2775-RCV   62-LOST
+3080-XMT 2835-RCV   62-LOST
+3120-XMT 2878-RCV   62-LOST
+3160-XMT 2914-RCV   62-LOST
+3200-XMT 2950-RCV   62-LOST
+3240-XMT 3029-RCV   63-LOST
+3280-XMT 3053-RCV   63-LOST
+3320-XMT 3059-RCV   63-LOST
+3360-XMT 3066-RCV   63-LOST
+3400-XMT 3066-RCV   63-LOST
+3440-XMT 3163-RCV   63-LOST
+3480-XMT 3193-RCV   64-LOST
+3520-XMT 3223-RCV   65-LOST
+3560-XMT 3302-RCV   66-LOST
+3600-XMT 3338-RCV   66-LOST
+3640-XMT 3363-RCV   66-LOST
+3680-XMT 3399-RCV   67-LOST
+3720-XMT 3429-RCV   68-LOST
+3760-XMT 3480-RCV   69-LOST
+3800-XMT 3480-RCV   69-LOST
+3840-XMT 3481-RCV   69-LOST
+3880-XMT 3482-RCV   69-LOST
+3888-XMT 3483-RCV   69-LOST
+ALL DATA TRANSFERRED
+SENDING STARTUP
+START-UP ACK RECEIVED
+DOWNLINE LOADED
+
+EXIT
+-
+.el
+.hl 2 DUMPING AN ENTIRE MACHINE
+ After "D" is issued, the operator will be prompted for beginning address
+and ending address. For dumping Kernel and node code area, 0 is the 
+beginning address and $020000 (2000 in hexadecimal number) is the ending
+address.
+ The operator will then be asked if he wishes to reload the machine.
+.ls
+.ls
+.le;If the operator elects to reload, he will be prompted for neighbor node
+number, Kernel host number, and line number as well as the object filename
+and dump filename.
+.le;If the operator elects not to reload, he will be prompted for manual
+restart address. If no restart is desired, the operator enters "-1".
+CALOAD will then output "THE MACHINE WILL BE LEFT AT ITS BOOT" and
+prompts for neighbor node number, Kernel host number and line number.
+CALOAD will also ask if the target machine is varian. 
+.els
+.els
+ Next, CALOAD will prompt for start-up address in dump file. If none,
+enters "-1". After this address is entered, CALOAD outputs "BUILDING
+CIRCUIT", "CIRCUIT TO GATEWAY BUILT", "ENTERING RELAY MODE (CTL)Z TO EXIT",
+and ";". All the steps after this point are the same as the steps for loading
+an entire machine. When CALOAD completes the dumping, it outputs "DUMP
+COMPLETE" and exits.
+.hl 3 SAMPLE OF DUMPING AN ENTIRE MACHINE
+.lt
+
+
+
+Example 4.
+
+
+-r (casgen)caload.sav
+
+NODE LOADER VERSION- 2.16
+
+ENTER FUNCTION:x
+ENTER GATEWAY HOST:2847
+ENTER FUNCTION:d
+ENTER START ADDRESS:0
+ENTER THE FINISH ADDRESS:$020000
+DO YOU WANT A RELOAD:n
+ENTER MANUAL RESTART ADDRESS (-1 IF NO RESTART):-1
+THE MACHINE WILL BE LEFT AT ITS BOOT
+
+ENTER NEIGHBOR NUMBER:2021
+ENTER KERNEL HOST NUMBER:21
+ENTER LINE NUMBER:2
+IS TARGET A VARIAN?:n
+ENTER DUMP OUTPUT FILE:ca2062.dmp
+ENTER START-UP ADDR IN DUMP FILE (-1 IF NONE) :-1
+BUILDING CIRCUIT
+
+CIRCUIT TO GATEWAY BUILT
+
+ENTERING RELAY MODE (CTL)Z TO EXIT
+
+;505226920006:dload:21
+
+rca/remote network:  call connected via rca
+
+MayneNet
+password:
+###############
++++++++++++++++
+OOOOOOOOOOOOOOO
+... note: Enter password and <c/r> and (CTL)Z.
+CIRCUIT BUILT
+
+THE LOAD REQUEST HAS BEEN ACKNOWLEDGED
+
+DUMPING
+
+  40-XMT    0-RCV    0-LOST
+  80-XMT    6-RCV    0-LOST
+ 120-XMT   12-RCV    0-LOST
+ 160-XMT   24-RCV    0-LOST
+ 200-XMT   30-RCV    0-LOST
+ 240-XMT   42-RCV    0-LOST
+ 280-XMT   48-RCV    0-LOST
+ 320-XMT   60-RCV    0-LOST
+ 360-XMT   90-RCV    0-LOST
+ 400-XMT  139-RCV    0-LOST
+ 440-XMT  187-RCV    0-LOST
+ 480-XMT  254-RCV    0-LOST
+ 520-XMT  266-RCV    0-LOST
+ 560-XMT  321-RCV    0-LOST
+ 600-XMT  339-RCV    0-LOST
+ 640-XMT  399-RCV    0-LOST
+ 680-XMT  406-RCV    0-LOST
+ 720-XMT  454-RCV    0-LOST
+ 760-XMT  521-RCV    0-LOST
+ 800-XMT  533-RCV    0-LOST
+ 840-XMT  581-RCV    0-LOST
+ 880-XMT  630-RCV    0-LOST
+ 920-XMT  642-RCV    0-LOST
+ 960-XMT  727-RCV    0-LOST
+1000-XMT  739-RCV    0-LOST
+1040-XMT  799-RCV    0-LOST
+1080-XMT  812-RCV    0-LOST
+1120-XMT  860-RCV    0-LOST
+1160-XMT  909-RCV    0-LOST
+1200-XMT  921-RCV    0-LOST
+1240-XMT  969-RCV    0-LOST
+1280-XMT 1042-RCV    0-LOST
+1320-XMT 1066-RCV    0-LOST
+1360-XMT 1109-RCV    0-LOST
+1400-XMT 1127-RCV    0-LOST
+1440-XMT 1206-RCV    0-LOST
+1480-XMT 1218-RCV    0-LOST
+1520-XMT 1284-RCV    1-LOST
+1560-XMT 1309-RCV    1-LOST
+1600-XMT 1351-RCV    1-LOST
+1640-XMT 1381-RCV    1-LOST
+1680-XMT 1418-RCV    1-LOST
+1720-XMT 1448-RCV    1-LOST
+1760-XMT 1496-RCV    1-LOST
+1800-XMT 1557-RCV    1-LOST
+1840-XMT 1569-RCV    1-LOST
+1880-XMT 1624-RCV    1-LOST
+1920-XMT 1672-RCV    1-LOST
+1960-XMT 1690-RCV    1-LOST
+2000-XMT 1751-RCV    1-LOST
+2040-XMT 1769-RCV    1-LOST
+2080-XMT 1854-RCV    1-LOST
+2120-XMT 1866-RCV    1-LOST
+2160-XMT 1878-RCV    2-LOST
+2200-XMT 1939-RCV    2-LOST
+2240-XMT 2012-RCV    2-LOST
+2280-XMT 2030-RCV    2-LOST
+2320-XMT 2048-RCV    2-LOST
+2360-XMT 2090-RCV    2-LOST
+2400-XMT 2115-RCV    2-LOST
+2440-XMT 2127-RCV    2-LOST
+2480-XMT 2151-RCV    2-LOST
+2520-XMT 2230-RCV    2-LOST
+2560-XMT 2260-RCV    2-LOST
+2600-XMT 2309-RCV    2-LOST
+REFORMATTING DUMP DATA
+
+DUMP COMPLETE
+
+
+
+
+EXIT
+.el
+.hl 1 COMMAND FILES FOR GATEWAY LOADING AND DUMPING
+ The operator who is very familiar with CALOAD need not wait for CALOAD
+to prompt for each required field of information. The operator may create
+a command file to contain all the answers for each prompt sequently, and
+enters
+.lm 5
+.lt
+
+        R (UPL)COM;<command filename>      <c/r>
+
+.el
+.lm 10
+on system 37/22. The system will output "type carriage return to start". 
+After carriage return is entered, all the subsequent steps will be done
+step by step until the loading/dumping is finished.
+     The samples of command files are shown on the folowing sections.
+.hl 2 SAMPLE OF COMMAND FILE FOR LOADING A SLOT
+ Here are two listings of the command file and a sample of using the command
+file. There is a control character "(CTL)Z" inside the command file. (on
+the line right after password.) The 1st listing is displayed by using editor.
+The 2nd listing is displayed by using "type" command on system 37.
+When you use the "type <filename>" command, the "(CTL)Z" will not be displayed
+on the terminal. 
+.lt
+
+
+
+Listings of command file for loading a slot--- SLOTL:
+
+Listing 1. *********************************
+
+
+-mod slotl
+110 Chars
+*/
+day
+r (casgen)caload.sav
+x
+2847
+s
+62
+5053222110:gateway:62
+big-chris
+&Z1
+(casgen)ca2062.n01
+day
+*q
+
+
+
+Listing 2. *********************************
+
+-typ slotl
+day
+r (casgen)caload.sav
+x
+2847
+s
+62
+5053222110:gateway:62
+big-chris
+1
+(casgen)ca2062.n01
+day
+
+
+********************************************
+
+Sample of using command file SLOTL
+
+
+-r (upl)com;slotl        <c/r>
+
+type carriage return to start       <c/r>
+-day
+27-MAR-1985 17:47:32 PST
+
+-r (casgen)caload.sav
+
+NODE LOADER VERSION- 2.16
+
+ENTER FUNCTION:x
+ENTER GATEWAY HOST:2847
+ENTER FUNCTION:s
+ENTER KERNEL HOST NUMBER:62
+CIRCUIT TO GATEWAY BUILT
+
+ENTERING RELAY MODE (CTL)Z TO EXIT
+
+;5053222110:gatew
+
+rcCIRCUIT BUILT
+
+ENTER SLOT NUMBER:1
+ENTER FILE FOR SLOT:(casgen)ca2062.n01
+INITIALIZING MAC
+
+TRANSMITTING SEGMENT 14
+
+SENDING DATA TO ADDRESS:00000 BYTES=    4220
+
+SENDING DATA TO ADDRESS:10000 BYTES=   15300
+
+SLOT 1 LOADED
+
+
+EXIT
+
+-day
+27-MAR-1985 17:50:28 PST
+.el
+.hl 2 SAMPLE OF COMMAND FILE FOR DUMPING A SLOT
+ Here are two listings of command files and a sample of using command
+file. Be aware of the control character "(CTL)Z".
+.lt
+
+
+
+Listings of command file for dumping a slot--- SLOTD:
+
+Listing 1. *********************************
+
+
+-mod slotd
+100 Chars
+*/
+day
+r (casgen)caload.sav
+x
+2847
+u
+62
+505226920006:gateway:62
+big-chris
+&Z1
+ca2062.d11
+day
+*q
+
+
+
+Listing 2. ***********************************
+
+-typ slotd
+day
+r (casgen)caload.sav
+x
+2847
+u
+62
+505226920006:gateway:62
+big-chris
+1
+ca2062.d11
+day
+
+
+********************************************
+
+Sample of using command file SLOTD
+
+-r (upl)com;slotd          <c/r>
+
+type carriage return to start        <c/r>
+-day
+27-MAR-1985 17:52:17 PST
+
+-r (casgen)caload.sav
+
+NODE LOADER VERSION- 2.16
+
+ENTER FUNCTION:x
+ENTER GATEWAY HOST:2847
+ENTER FUNCTION:u
+ENTER KERNEL HOST NUMBER:62
+CIRCUIT TO GATEWAY BUILT
+
+ENTERING RELAY MODE (CTL)Z TO EXIT
+
+;505226920006:gateway:62
+
+CIRCUIT BUILT
+
+ENTER SLOT NUMBER:1
+ENTER FILE FOR SLOT:ca2062.d11
+
+
+READING FROM ADDRESS:E0000 BYTES=     256
+*
+READING FROM ADDRESS:00000 BYTES=    4220
+***********
+READING FROM ADDRESS:10000 BYTES=   15300
+**************************************
+READING FROM ADDRESS:20000 BYTES=    6276
+****************
+READING FROM ADDRESS:30000 BYTES=    1024
+**
+SLOT DUMP COMPLETE
+
+
+EXIT
+
+-day
+27-MAR-1985 17:55:49 PST
+
+.el
+.hl 2 SAMPLE OF COMMAND FILE FOR LOADING AN ENTIRE MACHINE
+ Here are two listings of command file and a sample of using command
+file. Be aware of the control character "(CTL)Z".
+.lt
+
+Listings of command file for loading an entire machine--- ENGNL:
+
+
+
+Listing 1.**********************************
+
+-MOD ENGNL
+115 Chars
+*/
+day
+r (casgen)caload.sav
+x
+2847
+l
+2021
+21
+2
+(casgen)ca2062.bnd
+5053222110:dload:21
+big-chris
+&Z
+day
+*Q
+
+
+
+Listing 2. *********************************
+
+-TYP ENGNL
+day
+r (casgen)caload.sav
+x
+2847
+l
+2021
+21
+2
+(casgen)ca2062.bnd
+5053222110:dload:21
+big-chris
+
+day
+
+
+
+********************************************
+
+Sample of using command file ENGNL
+
+
+-r (upl)com;engnl       <c/r>
+
+type carriage return to start       <c/r>
+-day
+27-MAR-1985 16:49:15 PST
+
+-r (casgen)caload.sav
+
+NODE LOADER VERSION- 2.16
+
+ENTER FUNCTION:x
+ENTER GATEWAY HOST:2847
+ENTER FUNCTION:l
+ENTER NEIGHBOR NUMBER:2021
+ENTER KERNEL HOST NUMBER:21
+ENTER LINE NUMBER:2
+ENTER OBJECT FILE NAME:(casgen)ca2062.bnd
+BUILDING CIRCUIT
+
+CIRCUIT TO GATEWAY BUILT
+
+ENTERING RELAY MODE (CTL)Z TO EXIT
+
+;5053222110:dload:21
+
+rcaCIRCUIT BUILT
+
+THE LOAD REQUEST HAS BEEN ACKNOWLEDGED
+
+LOADING
+
+  40-XMT    0-RCV    0-LOST
+  80-XMT    0-RCV    0-LOST
+ 120-XMT    0-RCV    0-LOST
+ 160-XMT    0-RCV    0-LOST
+ 200-XMT    1-RCV   28-LOST
+ 240-XMT   24-RCV   66-LOST
+ 280-XMT   54-RCV   66-LOST
+ 320-XMT  103-RCV   66-LOST
+ 360-XMT  139-RCV   66-LOST
+ 400-XMT  181-RCV   66-LOST
+ 440-XMT  218-RCV   66-LOST
+ 480-XMT  260-RCV   66-LOST
+ 520-XMT  296-RCV   66-LOST
+ 560-XMT  345-RCV   66-LOST
+ 600-XMT  381-RCV   66-LOST
+ 640-XMT  424-RCV   66-LOST
+ 680-XMT  454-RCV   66-LOST
+ 720-XMT  503-RCV   66-LOST
+ 760-XMT  533-RCV   66-LOST
+ 800-XMT  581-RCV   66-LOST
+ 840-XMT  618-RCV   66-LOST
+ 880-XMT  654-RCV   66-LOST
+ 920-XMT  696-RCV   66-LOST
+ 960-XMT  727-RCV   66-LOST
+1000-XMT  781-RCV   66-LOST
+1040-XMT  812-RCV   66-LOST
+1080-XMT  866-RCV   66-LOST
+1120-XMT  903-RCV   66-LOST
+1160-XMT  933-RCV   66-LOST
+1200-XMT  987-RCV   66-LOST
+1240-XMT 1024-RCV   66-LOST
+1280-XMT 1060-RCV   66-LOST
+1320-XMT 1109-RCV   66-LOST
+1360-XMT 1145-RCV   66-LOST
+1400-XMT 1175-RCV   66-LOST
+1440-XMT 1224-RCV   66-LOST
+1480-XMT 1260-RCV   66-LOST
+1520-XMT 1296-RCV   66-LOST
+1560-XMT 1345-RCV   66-LOST
+1600-XMT 1381-RCV   66-LOST
+1640-XMT 1418-RCV   66-LOST
+1680-XMT 1459-RCV   67-LOST
+1720-XMT 1483-RCV   67-LOST
+1760-XMT 1520-RCV   67-LOST
+1800-XMT 1574-RCV   67-LOST
+1840-XMT 1611-RCV   67-LOST
+1880-XMT 1653-RCV   67-LOST
+1920-XMT 1689-RCV   67-LOST
+1960-XMT 1732-RCV   67-LOST
+2000-XMT 1768-RCV   67-LOST
+2040-XMT 1817-RCV   67-LOST
+2080-XMT 1853-RCV   67-LOST
+2120-XMT 1883-RCV   67-LOST
+2160-XMT 1938-RCV   67-LOST
+2200-XMT 1974-RCV   67-LOST
+2240-XMT 2017-RCV   67-LOST
+2280-XMT 2053-RCV   67-LOST
+2320-XMT 2083-RCV   67-LOST
+2360-XMT 2138-RCV   67-LOST
+2400-XMT 2174-RCV   67-LOST
+2440-XMT 2205-RCV   67-LOST
+2480-XMT 2247-RCV   67-LOST
+2520-XMT 2283-RCV   67-LOST
+2560-XMT 2326-RCV   67-LOST
+2600-XMT 2362-RCV   67-LOST
+2601-XMT 2365-RCV   67-LOST
+
+SENDING STARTUP
+
+START-UP ACK RECEIVED
+
+DOWNLINE LOADED
+
+
+
+EXIT
+
+-
+-day
+27-MAR-1985 17:08:01 PST
+
+-        
+
+
+.el
+.hl 2 SAMPLE OF COMMAND FILE FOR DUMPING AN ENTIRE MACHINE
+ Here are two listings of command file and a sample of using command
+file. Be aware of the character "(CTL)Z".
+.lt
+
+Listings of command file for dumping an entire machine--- ENGND:
+
+Listing 1. *********************************
+
+-mod engnd
+130 Chars
+*/
+day
+r (casgen)caload.sav
+X
+2847
+D
+0
+$020000
+N
+-1
+2021
+21
+2
+N
+CA2062.dmp
+-1
+5053222110:dload:21
+big-chris
+&Z
+day
+*q
+
+Listing 2. *********************************
+
+-typ engnd
+day
+r (casgen)caload.sav
+X
+2847
+D
+0
+$020000
+N
+-1
+2021
+21
+2
+N
+CA2062.dmp
+-1
+5053222110:dload:21
+big-chris
+
+day
+
+
+********************************************
+
+Sample of using command file ENGND
+
+-r (upl)com;engnd      <c/r>
+
+type carriage return to start         <c/r>
+-day
+27-MAR-1985 16:15:55 PST
+
+-r (casgen)caload.sav
+
+NODE LOADER VERSION- 2.16
+
+ENTER FUNCTION:X
+ENTER GATEWAY HOST:2847
+ENTER FUNCTION:D
+ENTER START ADDRESS:0
+ENTER THE FINISH ADDRESS:$020000
+DO YOU WANT A RELOAD:N
+ENTER MANUAL RESTART ADDRESS (-1 IF NO RESTART):-1
+THE MACHINE WILL BE LEFT AT ITS BOOT
+
+ENTER NEIGHBOR NUMBER:2021
+ENTER KERNEL HOST NUMBER:21
+ENTER LINE NUMBER:2
+IS TARGET A VARIAN?:N
+ENTER DUMP OUTPUT FILE:CA2062.dmp
+ENTER START-UP ADDR IN DUMP FILE (-1 IF NONE) :-1
+BUILDING CIRCUIT
+
+CIRCUIT TO GATEWAY BUILT
+
+ENTERING RELAY MODE (CTL)Z TO EXIT
+
+;5053222110:dload:21
+
+rca/rCIRCUIT BUILT
+
+THE LOAD REQUEST HAS BEEN ACKNOWLEDGED
+
+DUMPING
+
+  40-XMT    0-RCV    0-LOST
+  80-XMT    4-RCV    0-LOST
+ 120-XMT    4-RCV    0-LOST
+ 160-XMT   11-RCV    0-LOST
+ 200-XMT   17-RCV    0-LOST
+ 240-XMT   17-RCV    0-LOST
+ 280-XMT   23-RCV    0-LOST
+ 320-XMT   41-RCV    0-LOST
+ 360-XMT   77-RCV    0-LOST
+ 400-XMT  114-RCV    0-LOST
+ 440-XMT  120-RCV    0-LOST
+ 480-XMT  168-RCV    0-LOST
+ 520-XMT  223-RCV    0-LOST
+ 560-XMT  283-RCV    0-LOST
+ 600-XMT  332-RCV    0-LOST
+ 640-XMT  404-RCV    0-LOST
+ 680-XMT  417-RCV    0-LOST
+ 720-XMT  420-RCV    0-LOST
+ 760-XMT  421-RCV   90-LOST
+ 800-XMT  427-RCV   99-LOST
+ 840-XMT  474-RCV  106-LOST
+ 880-XMT  492-RCV  106-LOST
+ 920-XMT  553-RCV  106-LOST
+ 960-XMT  583-RCV  106-LOST
+1000-XMT  632-RCV  106-LOST
+1040-XMT  656-RCV  106-LOST
+1080-XMT  705-RCV  106-LOST
+1120-XMT  717-RCV  106-LOST
+1160-XMT  783-RCV  106-LOST
+1200-XMT  801-RCV  106-LOST
+1240-XMT  868-RCV  106-LOST
+1280-XMT  886-RCV  106-LOST
+1320-XMT  905-RCV  106-LOST
+1360-XMT  947-RCV  106-LOST
+1400-XMT  989-RCV  106-LOST
+1440-XMT 1026-RCV  106-LOST
+1480-XMT 1044-RCV  106-LOST
+1520-XMT 1123-RCV  106-LOST
+1560-XMT 1171-RCV  106-LOST
+1600-XMT 1186-RCV  106-LOST
+1640-XMT 1186-RCV  106-LOST
+1680-XMT 1186-RCV  106-LOST
+1720-XMT 1186-RCV  106-LOST
+1760-XMT 1203-RCV  223-LOST
+1800-XMT 1210-RCV  304-LOST
+1840-XMT 1276-RCV  304-LOST
+1880-XMT 1319-RCV  304-LOST
+1920-XMT 1343-RCV  304-LOST
+1960-XMT 1400-RCV  304-LOST
+2000-XMT 1423-RCV  321-LOST
+2040-XMT 1459-RCV  321-LOST
+2080-XMT 1490-RCV  321-LOST
+2120-XMT 1508-RCV  321-LOST
+2160-XMT 1562-RCV  321-LOST
+2200-XMT 1580-RCV  321-LOST
+2240-XMT 1599-RCV  321-LOST
+2280-XMT 1629-RCV  321-LOST
+2320-XMT 1702-RCV  321-LOST
+2360-XMT 1744-RCV  321-LOST
+2400-XMT 1756-RCV  321-LOST
+2440-XMT 1805-RCV  321-LOST
+2480-XMT 1853-RCV  321-LOST
+2520-XMT 1877-RCV  321-LOST
+2560-XMT 1880-RCV  321-LOST
+2600-XMT 1880-RCV  321-LOST
+2640-XMT 1908-RCV  436-LOST
+2680-XMT 1935-RCV  436-LOST
+2720-XMT 1935-RCV  436-LOST
+2760-XMT 1935-RCV  436-LOST
+2800-XMT 1990-RCV  567-LOST
+2840-XMT 2008-RCV  567-LOST
+2880-XMT 2032-RCV  567-LOST
+2920-XMT 2048-RCV  576-LOST
+2960-XMT 2083-RCV  583-LOST
+3000-XMT 2144-RCV  583-LOST
+3040-XMT 2168-RCV  583-LOST
+3080-XMT 2180-RCV  583-LOST
+3120-XMT 2277-RCV  583-LOST
+3160-XMT 2307-RCV  583-LOST
+3200-XMT 2341-RCV  583-LOST
+
+DUMP COMPLETE
+
+
+EXIT
+
+-
+-day
+27-MAR-1985 16:38:49 PST
+
+-        
+
+
+.el
+.hl 1 COMMENT ON X.75/X.25 GATEWAY LOADING/DUMPING
+ The operator can use the programme CALOAD to do gateway
+loading/dumping
+only when he choose the gateway interface which was patched
+with four special X.75/X.25 gateway loading patches. Otherwise, it
+may take hours to do gateway loading/dumping and may be even worse ---
+timeout and fails to complete.
+
+.lm 7
+.lt
+
+
+
+*******************************************************************
+*                                                                 *
+*  AUTHOR: James Wang         International Technical Support     *
+*  DATE  : 02-APR-85                                              *
+*  GATEWAY INTERFACE: X.75 I/F with four special loading patches  *
+*  PROGAMME: CALOAD.SAV located on CASGEN:37/22, also JWANG:37/22 *   
+*  DOCUMENT: LOAD.DOC loacted on CASGEN:37/22, also JWANG:37/22   *
+*  REMARK: If you have any question, please contact with me       *
+*                                                                 *
+*******************************************************************
+.el
+.lm 10
+
+
+    q W¼
