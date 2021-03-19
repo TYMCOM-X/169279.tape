@@ -1,0 +1,269 @@
+
+Checkup (tm)
+Copyright (c) 1988 Richard B. Levin
+All Rights Reserved
+
+ Program:  Checkup
+ Version:  1.2
+Released:  April 20, 1988
+Function:  Detects file size and incremental checksum changes
+  Editor:  Norton Editor v.1.3C
+Compiler:  Microsoft BASIC v.6.0
+Math LIB:  Alternate (/FPA)
+External:  AdvBAS CHECKSUM v.99a
+  Author:  Richard B. Levin
+ Contact:  BBSoft
+ Address:  P.O. Box 14546, Phila., PA, 19115
+     Lab:  215-677-9782
+     BBS:  215-969-8379 (300/1200/2400)
+     BBS:  215-635-5226 (300/1200/2400)
+
+Important note:
+
+        Please read this document in it's entirety before using CHECKUP.
+
+Document formatting note:
+
+        This document is formatted for 80 columns, no margins, with tabs set
+every 8 characters.
+
+Copyright notice:
+
+        The name "CHECKUP" and the CHECKUP program(s), products, interface,
+layout, design, look, and feel are copyright (c) and trade mark (tm) 1988
+Richard B. Levin, all rights reserved.  The author reserves the right to make
+changes to the CHECKUP program(s) at any time without prior notice.  The
+CHECKUP program(s) are provided to the user as is without warranty of any kind
+either express or implied.  No part of the CHECKUP programs may be reproduced
+without the express written permission of the author.
+
+        The CHECKUP program(s), associated file(s), software, and
+documentation are protected by United States Copyright Law (Title 17 United
+States Code).  Unauthorized reproduction, duplication, transfer, and/or
+sale(s) may result in imprisonment of up to one year and fines of up to
+$10,000.00 (17 USC 506).  Copyright infringers may also be subject to civil
+liability.
+
+Owner registration:
+
+        Private individual users are hereby granted a license to use and
+distribute CHECKUP to other private individual users free of charge.
+
+        Private individual users of CHECKUP are not required to register their
+ownership of the program with the author.
+
+        For profit, non-profit, and not-for-profit corporations, governmental
+offices and agencies, or private individuals using CHECKUP within one of the
+aforementioned classifications are required to register their ownership of the
+CHECKUP program(s) with the author.  Each registration must be accompanied by
+a registration fee of $5.00 PER COMPUTER/USER.
+
+        CHECKUP users who are required to register their ownership of the
+CHECKUP program(s) and fail to do so are in violation of United States
+Copyright Law.  See the section titled "Copyright notice" for more
+information.
+
+Registration form:
+
+        Print out, complete, and mail to BBSoft
+                                         CHECKUP registration
+                                         P.O. Box 14546
+                                         Phila., PA  19115
+
+        IMPORTANT:  MAKE CHECKS PAYABLE TO "RICHARD B. LEVIN"
+        DO NOT MAKE CHECKS PAYABLE TO "CHECKUP" OR "BBSOFT"
+
+Registered owner name:  _______________________________________________________
+
+_______________________________________________________________________________
+
+Company:  _____________________________________________________________________
+
+_______________________________________________________________________________
+
+Address:  _____________________________________________________________________
+
+City:  ________________________________________________________________________
+
+State:  _______________________________________________________________________
+
+Zip:  _________________________________________________________________________
+
+Phone:  _______________________________________________________________________
+
+Total number of PC's using CHECKUP at site:  __________________________________
+
+Registration fee @ $5.00 per PC:  $  __________________________________________
+
+Documentation revision notes:   
+
+        - April 20, 1988 -
+
+        Optimized and recompiled using the new Microsoft BASIC compiler v.6.0
+and linked with CHECKSUM.OBJ, one of Tom Hanlin's superb AdvBAS support
+routines.  Now MUCH faster throughput.
+
+        For some reason the simple FOR/NEXT loop which calculated the checksum
+in earlier versions of CHECKUP was SLOOOW using raw MBASIC (it shouldn't be
+but it is), hence our use of Tom's ASM subroutine.  The BASIC checksum
+calculation was the principal bottleneck in v's 1.0 and 1.1, along with
+QuickBASIC's pokey 80X87 emulation overhead.
+
+        Another anti-virus technique:  Use the SYS command at least once a
+week to reinstall the system files onto your boot hard disk.  This will
+eliminate any lurking viruses on the spot.
+
+        - April 4, 1988 -
+
+        CHECKUP does not require that the attributes of hidden system files be
+changed prior to running CHECKUP.  As long as the correct name of the hidden
+and/or system files are specified on the CHECKUP command line, CHECKUP will
+successfully check the file.
+
+This archive contains two files:
+
+         CHECKUP.DOC - This file
+         CHECKUP.EXE - Checkup stand alone executable
+
+Notes to users of MS DOS:
+
+        The files "MSDOS.COM" and "MSIO.COM" are the MS DOS equivalents to PC
+DOS's "IBMBIO.COM" and "IBMDOS.COM".
+
+The problem defined:
+
+        Computer programs which appear to be normal applications but, after
+one or more uses, destroy programs and/or data stored on the host system are
+popularly called "Trojan horse" programs.
+
+        Trojan horse programs are usually distributed by unsuspecting bulletin
+board system operators (BBS SysOps) and attack users who do not know or care
+to follow the proper precautions for evaluating BBS downloads.
+
+        Once a Trojan horse program completes it's deadly mission, it has
+obliterated itself as well as the host system's data.  The affected user can
+and generally will warn other users to beware of the suspect program.  Thus,
+the useful life of a Trojan horse program is limited.
+
+        The newest form of computer terrorism to surface is the "computer
+virus".  A computer virus differs from a Trojan horse program in that it is
+capable of secretly spreading and infecting other computer systems in order to
+extend it's useful life.
+
+        The well written computer virus is difficult to detect using current
+file management and anti-Trojan techniques.  This ingenious bit of code
+infects systems by inserting itself into a benign program's executable file.
+An expertly crafted virus will not change the host file's date or time stamps
+nor will it alter the host file's size upon infection.
+
+        Converting the attributes of potential virus targets (such as
+COMMAND.COM, IBMBIO.COM, or IBMDOS.COM) to "read only" might prevent some
+virus infections.  However, the intelligently designed virus will first check
+the host file's attribute, reset it if necessary, infect, then return the
+attribute to it's original state.
+
+         When an infected program is innocently copied and distributed, a
+hidden virus has another opportunity to spread to another system.  A computer
+virus may remain dormant for months and then suddenly emerge to do it's
+dastardly deed.  By the time a virus has revealed itself, numerous offspring
+may have been spawned.
+
+How CHECKUP works:
+
+        CHECKUP detects potential viral infections by first comparing a target
+file's size and then comparing it's checksum on an incremental basis.
+
+        CHECKUP consumes significantly less disk space than using DOS's or
+other file comparison utility(s) or vaccines which require a mirror-image
+duplicate of every compared file.
+
+        Using a randomly generated block size with each pass, CHECKUP scans
+and compares every byte of the target filespec.  If any one of the block
+checksum comparisons do not match, or if the recorded file sizes do not match,
+CHECKUP alerts the user that the target file is suspect.
+
+        CHECKUP uses a random block size and compare to defeat any future
+virus which may be intelligent enough to maintain a file's total checksum
+integrity.  It is, in our opinion, impossible for a virus to maintain a
+correct file checksum when the checked block size may vary from 1 byte to near
+total file size.
+
+Program invocation:
+
+        Install CHECKUP in your AUTOEXEC.BAT file.  This insures that
+important files are checked once per system boot.  If your system is rarely
+rebooted (such as a BBS which is on-line 24 hours a day), schedule timed
+events to run file CHECKUPs on a regular basis.
+
+        Launch CHECKUP for each file you wish to check.  CHECKUP may be
+launched as many times as necessary.
+
+        Launch syntax is CHECKUP [d:][path]filename[.ext].  For example, to
+check COMMAND.COM on the default drive in the default directory, the launch
+syntax would be [ CHECKUP COMMAND.COM ].
+
+        The first time a file is checked, CHECKUP will create a .XUP file in
+the same directory as the target file.  DO NOT DELETE .XUP FILES.  CHECKUP
+requires access to a file's .XUP file with each future file check.
+
+        CHECKUP will create and maintain a CHECKUP.LOG file on the root
+directory of the currently logged disk.  You may view the CHECKUP.LOG file
+with any ASCII editor.  You may delete the CHECKUP.LOG file at any time.
+
+        It is suggested that COMMAND.COM, IBMBIO.COM, and IBMDOS.COM be
+checked on a daily basis.  These files are the most likely targets of an
+spreading virus.
+
+Precautions:
+
+        CHECKUP creates one .XUP for each checked file.  The .XUP file is only
+created once; the first time a target file is checked.
+
+        If your .XUP file(s) are ever mysteriously deleted or altered, it is a
+good indication that a "CHECKUP-aware" virus has landed on your system.
+
+        To prevent a CHECKUP-aware virus from gaining control of .XUP files,
+keep a back up copy of .XUP files as they are created.  The suggested back up
+method is to have a batch file copy .XUP files from another directory to the
+root and then run CHECKUP.  This assures the integrity of all .XUP files.
+
+Example of suggested CHECKUP portion of AUTOEXEC.BAT file:
+
+        REM make sure we're on the root directory
+                CD \
+        REM copy .xup files from another directory to root directory
+                COPY \ANYDIR1\ANYDIR2\*.XUP \
+        REM run checkup (should be stored in a pathed subdirectory)
+                CHECKUP IBMBIO.COM
+                CHECKUP IBMDOS.COM
+                CHECKUP COMMAND.COM
+
+        For added protection against virus attack, system file attributes
+should be changed to "read only".
+
+        There are many public domain utilities which can be used to set and
+reset a file's attributes.  Popular utilities include ALTER.COM, a public
+domain tool available for downloading from the BBSoft support BBS's (see top
+of this document for access numbers), ATTR.COM, also available via the BBSoft
+BBS (see 1COM.ARC) and from the PC-Magazine IRS (212-696-0360 or
+415-598-9100).
+
+        If you own the Norton Utilities, you may use Norton's FA.EXE to change
+a file's attributes to read only.  For example, to change COMMAND.COM to read
+only using Norton's FA, enter:
+
+                FA COMMAND.COM /R+
+
+*============================================================================*
+Notice:
+
+This program must be distributed AS IS without alterations of any kind.  No
+additional files may be added to the CHKUP12.ARC file without the express
+written permission of the author.  This DOC file must be included with
+CHECKUP.EXE in the CHKUP12.ARC file.
+
+Released And Distributed Through BBS's All Across America on April 20, 1988
+*============================================================================*
+
+- End of CHECKUP.DOC -
+ 
