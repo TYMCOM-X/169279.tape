@@ -1,0 +1,730 @@
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+     1.0 INTRODUCTION
+ 
+          The term scheduling is to cover the questions of when to
+ 
+     introduce new processes into system and the order in which process
+ 
+     should run.
+ 
+ 
+ 
+     2.0 PROCESS SCHEDULER
+ 
+          In a batch system jobs awaiting execution are stored in a job
+ 
+     pool which is held in secondary memory. The scheduler starts
+ 
+     execution of a job by initiating an appropriate process such as
+ 
+     compilation. The choice of which job to start next depends on the
+ 
+     resource each job requires and on the current pattern of resource
+ 
+     allocation in the system. In order to achieve high throughput the
+ 
+     scheduler should initiate a new process as soon as resource
+ 
+     capacity warrants it.
+ 
+          In multi-access system processes are created when users log-
+ 
+     in to the system. Each new users increases the demand on the
+ 
+     resources, and access can be refused when the number of logged-
+ 
+     in users is such as to increase responce time to the limit of
+ 
+     acceptability.
+ 
+          The order in which processes are run is determined either by
+ 
+     the order of processor queue or by the order in which the dispatcher
+ 
+     selects processes from the queue. To minimize the overhead, the
+ 
+     dispatcher should always pick the first eligible process in the queue;
+ 
+     this implies the order of the queue will be the determining factor.
+ 
+     The schedule is responsible for assigning priorities to process so
+ 
+     that when they become runnable they are linked into the appropriate
+ 
+     place in the queue.
+ 
+ 
+ 
+     2.1  Process Status
+ 
+          Each process is created and eventually dies; during its
+ 
+     lifetime, it exists in various states. Process in multitasking
+ 
+     system change states frequently, passing through most states
+ 
+     at one time or another.
+ 
+         Figure 1 shows how the job status changes, when a user submits
+ 
+     a job to system via  batch or interactive mode. When the job is
+ 
+     accepted by the system it is put on hold and placed in CREATED queue.
+ 
+          From CREATED, the job moves to READY when it is ready
+ 
+     to run but is waiting for CPU. RUNNING means that the job is being
+ 
+     processed. BLOCKED means that the process can't continue until
+ 
+     a specific resource is allocated or a I/O operation has finished.
+ 
+     Upon completion, the process is terminated and placed in DORMANT.
+ 
+     The DORMANT STATE IS A STATE of nonexistence. Programs normally
+ 
+     reside in files on disk during the dormant state.
+ 
+ 
+ 
+    2.2 Process Control Block
+ 
+        Each process in the system is represented by a data structure
+ 
+     called a Process Control Block (PCB) that performs the same
+ 
+     function as a traveler's passport. The PCB (illistrated in figure 2)
+ 
+     cotains the basic infromation about the job such as what it is,
+ 
+     where it is going, how much of its processing has been completed,
+ 
+     where it is stored, and how much it has spent in utilizing resources.
+ 
+     queues use PCBs to track processes the same way customs officials
+ 
+     use passports to track international visitors.
+ 
+ 
+ 
+     2.2.1 Process Identification
+ 
+         Each job is uniquely identified by the user's identification
+ 
+     and a pointer connecting it to its descriptor supplied by the Job
+ 
+     Schedule when the job first enters the system and is placed on
+ 
+     CREATED.
+ 
+ 
+ 
+     2.2.2 Process Status
+ 
+         This indicates the current status of the job-CREATED, READY,
+ 
+     RUNNING, or BLOCKED - and the resourcess responsible for that
+ 
+     status.
+ 
+ 
+ 
+     2.2.3 Process States
+ 
+         This contains all of the information needed to indicate the
+ 
+     current state of the job such as process status word which is the
+ 
+     current instruction counter and condition flags. Other informations
+ 
+     are Register Contents, Main Memory location, Resources allocated
+ 
+     to this process, and process priority.
+ 
+ 
+ 
+     2.2.4 Accounting
+ 
+        This contains information used mainly for billing purposes
+ 
+     and performance measurement. It indicates what kinds of resources
+ 
+     the jobs used and for how long.
+ 
+ 
+ 
+     3.0 LEVELS OF SCHEDULING
+ 
+         High level (or long term) scheduling involves job (process)
+ 
+     initiation and termination; transsition between the running and
+ 
+     ready states. Transitions out of the running state are due to either
+ 
+     process completion or an I/O request. (Figure 3) The high level
+ 
+     scheduling's goal is to put the jobs in a sequence that will use
+ 
+     all of the system's resourcesas as fully as possible. If high level
+ 
+     scheduling selected jobs to run consecutively and each had a lot
+ 
+     of I/O then the I/O devices would be kept very busy and the CPU
+ 
+     might be busy handling the I/O, If an I/O Controller were not used
+ 
+     so that little computation might get done. On the other hand, if
+ 
+     the scheduler selected several consecutive jobs with great deal of
+ 
+     computation, then the CPU would be very busy but the I/O devices
+ 
+     would be idle waiting for I/O requests.
+ 
+         In a highly interactive environment there's also a third layer
+ 
+     called middle-level scheduler. When the system is overloaded, the
+ 
+     middle-level scheduler finds it is advantageous to remove active
+ 
+     process from memory to reduce the degree of multiprogramming
+ 
+     and thus allow process to be completed faster. The process that are
+ 
+     swapped out and eventually swapped back in are managed by middle-
+ 
+     level scheduler.
+ 
+ 
+ 
+     4.0 SCHEDULER OBJECTIVES
+ 
+         A scheduling dicipline should
+ 
+         . Be fair -all process are treated the same, and no more
+ 
+           process can suffer indefinite postponement.
+ 
+         . Maximize throughput- Scheduler should attempt to service
+ 
+           the largest possible number of process per unit time.
+ 
+         . Maximize the number of interactive useres receiving
+ 
+           acceptable response times. (ie, at most a few seconds).
+ 
+         . Minimize turnaround time- The entire jobs should be
+ 
+           moved in and out of the system quicky.
+ 
+         . Minimize waiting time - The process in READY queue should be
+ 
+           moved out to RUNNING as quicky as possible.
+ 
+         . maximize CPU efficiency by keeping the CPU busy 100% of the
+ 
+           time.
+ 
+         . Be predictable- A given job should run in about the same
+ 
+           amount of time and at about the same cost regardless of
+ 
+           the load on the system.
+ 
+         . Balance resource use - The schedule should keep the
+ 
+           resources of the system busy.
+ 
+         . Enforce priorities- The schedule mechanism should favor
+ 
+           the higher- priority processes.
+ 
+         . Degrade gracefully under heavy loads- The schedule mechanism
+ 
+           should prevent excessive loading by not allowing new job
+ 
+           (process) to be created when the load is heavy.
+ 
+ 
+ 
+     5.0 SCHEDULING CRITERIA
+ 
+         To realize the scheduling objectives a scheduling mechanism
+ 
+         should consider
+ 
+         . The I/O-boundedness of a process - when a process gets the
+ 
+           CPU, does it use the CPU only briefly before generating an
+ 
+           I/O request?
+ 
+         . The CPU- boundedness of a process - when a process gets the
+ 
+           CPU, does  it tend to use  the CPU until  its time  quantum
+ 
+           expires?
+ 
+         . Whether a process is  batch  or  interactive -  Interactive
+ 
+           users should receive immediate  service to  guarantee  good
+ 
+           response times. Batch users are  not present and can suffer
+ 
+           reasonable delays.
+ 
+         . How  urgent a fast response is -  A overnight batch process
+ 
+           will  not  need immediate  response.  A real - time process
+ 
+           control  system  monitoring a  gasoline  refinery  requires
+ 
+           fast response, possibly to prevent an explosion.
+ 
+         . Process priority- High- priority  processes should recieve
+ 
+           better treatment than those of lower priority.
+ 
+         . How  much r eal execution  time  the process has recieved -
+ 
+           some designers feel that a process that has recieved little
+ 
+           execution time should be favored. Others believe  a process
+ 
+           that has recieved much execution time  should be  near com-
+ 
+           pletion  and should be favored  to help it reach completion
+ 
+           and leaves the system as soon as possible.
+ 
+ 
+ 
+     6.0 PREEMPTIVE VS. NONPREEMPTIVE SCHEDULING
+ 
+         A scheduling discipline is nonpreemptive if, once  a  process
+ 
+     has been giving the CPU, the CPU cannot be taken away from
+ 
+     that process. A scheduling discipline is preemptive if the
+ 
+     CPU can be taken away.
+ 
+         Preemptive scheduling is useful in systems in which high-priority
+ 
+    process require rapid attention. In interactive timesharing systems,
+ 
+    preemptive scheduling is important in guaranteeing acceptable response
+ 
+    times.
+ 
+         Preemption is  not without cost.  Context switching involves
+ 
+    overhead. To make preemption effective, many process must be kept
+ 
+    in main memory so that next process is normally ready for the CPU
+ 
+    when it becomes available. Keeping  nonrunning  programs in  main
+ 
+    memory also involves overhead.
+ 
+         In  nonpreemptive systems,  short jobs  are made to  wait by
+ 
+    longer jobs.  Response   times   are more   predicatable  because
+ 
+    incoming high-priority jobs can not displace waiting jobs.
+ 
+ 
+ 
+    7.0  THE INTERVAL TIME OR INTERRUPTING CLOCK
+ 
+         The operating system sets an interruping clock or interval
+ 
+    timer to generate an interrupt at some specific future time (or at
+ 
+    some elapsed time into the future). The CPU is then dispatched to
+ 
+    the next process. The process retains control of the CPU until
+ 
+    it voluntarily releases the CPU, or the clock interrupt, or some
+ 
+    other interrupts. The interrupting clock helps guarantee reasonable
+ 
+    response times to interactive users, prevents the system from
+ 
+    getting hung up on a users in an infinite events,and allows process
+ 
+    to response to time-dependent events. Processes that need to run
+ 
+    periodically depend on the interrupting clock.
+ 
+ 
+ 
+    8.0 PRIORITIES
+ 
+         Priorities may be assigned automatically by the system or they
+ 
+    may be assigned externally. They may be static or dynamic.
+ 
+         Static priorities do not change. Static priority mechanisms
+ 
+    are easy to implement and have relatively low overhead. Dynamic priority
+ 
+    mechanisms are responsive to change. The initial priorities assigned
+ 
+    to a process may have only a short duration after which it is
+ 
+    adjusted to a better value. The overhead is hopefully justified by
+ 
+    the increased responsiveness of the system.
+ 
+ 
+ 
+    9.0 PROCESS SCHEDULING ALGORITHMS
+ 
+         The process Schedule relies on a process scheduling algorithm,
+ 
+    based on a specific policy, to allocate the CPU and move jobs
+ 
+    (processes) through the system.
+ 
+         Early Operating systems used nonpreemptive policies designed
+ 
+    to move batch jobs through the system as efficiently as possible.
+ 
+    Most current system, with emphasis on interactive use and
+ 
+    response time, use an algorithm that takes care of the immediate
+ 
+    requests of interactive users.
+ 
+ 
+ 
+    9.1 First Come First Serve
+ 
+         First come first served (FCFS) (Figure 4) is a nonpreemtive
+ 
+    scheduling algorithm that handles jobs according to their
+ 
+    arrival time: the earlier they arrive, the sooner they're served.
+ 
+    It's a very simple algorithm to implement because it uses a
+ 
+    FIFO typed of queue. This algorithm is fine for most batch systems,
+ 
+    but it is unacceptable for interactive systems because interactive
+ 
+    users expect quick response times.
+ 
+         With FCFS, as a new job enters the system its PCB is linked to
+ 
+    the end of the READY queue and it is removed from the front of the
+ 
+    queue when the processor becomes available-that is, after it has
+ 
+    processed all of the jobs before it in the queue.
+ 
+         In a strictly FCFS system there are no BLOCKED queues (each job
+ 
+    is to run to completion), altough there may be systems in which control
+ 
+    ("context") is switched on a natuarl wait (I/Q request) and then the
+ 
+    job resumes on I/Q completion.
+ 
+ 
+ 
+    9.2 Shortest Job Next
+ 
+        Shortest job next (SJN) is a nonpreemptive schedule algorithm
+ 
+    (also known as shortest job first, or SJF) thet handles jobs based on
+ 
+    the lenght of their CPU cycle time. It's easiest to complete in batch
+ 
+    enviornments where the estimated CPU time required to run the job
+ 
+    is given in advance by each user at the start of each job. However,
+ 
+    it doesn't work in interactive system because users dodn't estimate
+ 
+    in advance the CPU time required to run thier jobs.
+ 
+         Figure 5 shows a job stream. SJN starts Job 2 and completes it
+ 
+    at t=2. By then Job 3 has arrived and is choosen over Job 1, complet-
+ 
+    ing at t=5. The jobs follow in the order 4,5,and 1, with respective
+ 
+    completion times 6,10, and 15.
+ 
+ 
+ 
+    9.3 Priority Scheduling
+ 
+         Priority Scheduling is a  nonpreemtive algorithm and one of the
+ 
+    most common scheduling algorithm in batch systems, even though it may
+ 
+    give slower turnaround to some users. This algorrithm gives preferent-
+ 
+    ial  treatment to important jobs. This algorithm gives preferential
+ 
+    treeatment to important jobs. It  allows the programs with
+ 
+    the highest priority to be processed first, and they aren't inter-
+ 
+    rrupted until their CPU cycles (run times) are completed or a natrual
+ 
+    wait occurs. If two or more jobs with equal priority are presented
+ 
+    in the READY queue, the processor is allocated the one that arrived
+ 
+    first (first come first served within priority).
+ 
+         Priorities can be assigned by a system administrator using
+ 
+    characteristics extrisic to the jobs. Priorities can also be determined
+ 
+    by the Processor Manager based on characteristics intrinsic to the
+ 
+    jobs such as memory requirements, number and type of peripheral device,
+ 
+    total CPU time, and  amount of time already spent in the system.
+ 
+ 
+ 
+    9.4 Shortest Remaining Time
+ 
+        Shortest remaining time (SRT) is the preemptive version of the
+ 
+    SJN algorithme. The processor is allocated to the job closeter to
+ 
+    completion-but even this job can be preempted if a newer job in the
+ 
+    READY queue has a "time to completion" that's shorter.
+ 
+         This algorithm can't be implemented in an interactive system
+ 
+    because it requires advance knowledge of the CPU time requied to
+ 
+    finish each job. It often used in batch environments.
+ 
+         For SRT (without time slicing), (Figure 5) Job 2 still
+ 
+    finishes at t = 2 and Job 3 begins. At t = 3, however, Job
+ 
+    3 is preempt(with 2 units of service time still needed) by
+ 
+    Job 4, which finishes at t=4. Then Job 3 is dispatched and
+ 
+    finishes at t=6. Jobs 5 and 1 finish at t=10 and t=15,
+ 
+    respectively.
+ 
+ 
+ 
+    9.5 Round Robin
+ 
+         Round Robin is in process scheduling algorithm that is used
+ 
+    extensively in interactive systems becauseit's easy to implement
+ 
+    and it isn't based on job characteristics but on a predetermined
+ 
+    sliced of time that's given to each job to ensure that the CPU is
+ 
+    equally shared among all active processes and isn't monopolized by
+ 
+    any one job.
+ 
+         This time slice is called a time quantum and its size is crucial
+ 
+    to the perrmance of the system. It usually varies from 100 millisecond
+ 
+    to 1 or two seconds.
+ 
+         Job are placed in the READY queue using a first- come first-
+ 
+    served scheme and the Process Schedule selects the first job from
+ 
+    the front of the queue, sets the timer to the quantum, and allocates
+ 
+    the CPU to this job. If processing isn't finished when time expires,
+ 
+    the job is preempted and put at the end of the READY queue and its
+ 
+    information is saved in its PCB (see figure 6).
+ 
+         In the job's CPU cycle is shorter than the time quantum, then
+ 
+    one of the two actions will take place:(1) if this is the job's last
+ 
+    CPU cycleand the job is finished, then all the resources allocated
+ 
+    to it are released and the completed job is returned to the user;(2)
+ 
+    if the CPU cycle has been interrupted by an I/O request, then
+ 
+    information about the job is saved in its PCB and it is linked at
+ 
+    the end of the appropriate I/O queue. Later , when the I/O request
+ 
+    has been satisfied, it is returned to the end of the READY queue to
+ 
+    await allocation of the CPU.
+ 
+ 
+ 
+    9.6 Highest Penality Ratio Next
+ 
+        Brinch Hansen(Br71)developed the highest-response-t-next
+ 
+    (HRN)strategy that corrects some of the weaknesses in SJF,
+ 
+    particularly the excessive bias against longer jobs and the excessive
+ 
+    favoritism toward short new jobs. HRN is a nonpreemptive scheduling
+ 
+    discipline in which the priority of each job is a function not only
+ 
+    of the job's service time but also of the amount of time the job
+ 
+    has been waiting for service. Once a job gets the CPU, it runs to
+ 
+    completion. Dynamic priorities in HRN are calculated according to
+ 
+    the formula
+ 
+                       time waiting + service time
+           priority = -----------------------------
+                               service time
+       Because the service time appears in the denominator, shorter
+ 
+    jobs will get preference. But because time waiting appears in the
+ 
+    numerator, longer jobs that have been waiting will also be given
+ 
+    favorable treatment. Note that the sum
+ 
+                       time waiting +  service time
+ 
+    is the system's response time to the job if the job were to be
+ 
+    initiated immediately.
+ 
+         For the job stream of Figure 5, HPRN dispatches either Job 1
+ 
+    or 2 first (both initially have a penalty ratio of 1.0). Suppose
+ 
+    the tie-breaking feature of the implementation dispatches Job 1 first.
+ 
+    At t=5 Job 1 completes, and Jobs 2 through 5 have respective penalty
+ 
+    ratios of 3.5, 2.33, 3.0, and 1.75. Job 2 is dispatched and completed
+ 
+    at t=7. The penalty ratios at that time for Jobs 3 through 5 are
+ 
+    3.0, 5.0, and 2.0, respectively. Job 4 is dispatched and finished
+ 
+    at t=8. The penalty ratios are then 3.33 and 2.25: Job 3 finishes at
+ 
+    t=11 and Job 5 at t=15.
+ 
+ 
+ 
+    9.7 Multilevel Feedback Queues
+ 
+        A good scheduling mechanism should
+ 
+        . favor short jobs
+ 
+        . favor I/O-bound jobs to get good I/O devices utilization
+ 
+        . determine the nature of a job as quickly as possible and
+ 
+          schedule the job accordingly.
+ 
+        Multilevel feedback queues (Fig. 7) provide a structure that
+ 
+    accomplishes these goals. A new process enters the queueing network
+ 
+    at the back of the top queue. It moves through that queue. It
+ 
+    moves through that queue FIFO until it gets the CPU. If the job
+ 
+    completes or relinquishes the CPU to ait for I/O completeion or
+ 
+    completion of some event, the job leaves the queueing network. If
+ 
+    the quantum expires before the process voluntarily relinguishes
+ 
+    the CPU, the process is placed at the back of the next lower-level
+ 
+    queue. The process is next serviced when it reaches the head of that
+ 
+    queue if the first queue is empty. As long as the process continues
+ 
+    using the full quantum provided at each level, it continues to move
+ 
+    to the back of next lower queue. Usually there is some bottom-level
+ 
+    queue through which the process circulates round robin until it
+ 
+    completes. In many multilevel feedback schemes, the quantum given
+ 
+    to the process as it moves to each lower-level queue becomes larger.
+ 
+    Thus the longer a process has been in the queueing network, the
+ 
+    larger quantum it is assigned each time it gets the CPU. But it may
+ 
+    not get the CPU very often because processes in the higher queues
+ 
+    are given higher priority. A process can not run unless all higher
+ 
+    level queues are empty. A running process is preempted by a process
+ 
+    arriving in a higher queue.
+ 
+ 
+ 
+ 
+    10.0 SUMMARY
+ 
+         Processor scheduling determines when processors should be
+ 
+    assigned to which processes. High-level scheduling or job
+ 
+    scheduling determines which jobs to admit to the system. Upon
+ 
+    admission, these job become processes. LOw-level scheduling or
+ 
+    dispatching determines ready process gets CPU next. Intermediate
+ 
+    level scheduling determines which process shall be allowed to
+ 
+    compete for CPU and which shall be temporayily suspended in
+ 
+    response to system overload.
+ 
+         A scheduling discipline should be fair, maximize throughput,
+ 
+    maximize the number of interactive users receiving acceptable
+ 
+    response time, be predictable, minimize overhead, balance resource
+ 
+    use, avoid indefinite postponment, enforce priorities. Seven
+ 
+    algorithms were discussed: FCFS, SJN, PS, SRT, RR, HPRN, MFQ.
+ 
+ 
+ 
+
+   7 	)î
