@@ -1,0 +1,20 @@
+DPL START.
+DEFINE REAL XREC.
+LET XREC = SYSNREC*1.
+LET XREC = XREC/100.*5.
+LET NREC = XREC.
+SORT KEY AVAIL.
+LET I = 1.
+PRINT NREC  FORMAT / "DROPPING THE FOLLOWING" I6 " RECORDS" END.
+NEXTREC:        GETREC DOAVG.
+                P ALL.
+                DROP.
+                LET I = I +1.
+                IF I GT NREC THEN DOAVG.
+                GOTO NEXTREC.
+
+DOAVG:          FI LAST.
+                PRINT MEAN AVAIL FORMAT / "AVERAGE AVAILABILITY = " &
+                        F3.2 END.
+
+DPL END.
