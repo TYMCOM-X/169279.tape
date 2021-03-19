@@ -1,0 +1,318 @@
+*******************************************************************************
+*                                                                             *
+*                              T E C H T I P S                                *
+*                                                                             *
+*******************************************************************************
+
+
+
+
+
+
+1.  Nodecode v5.22/ISIS v5.08 
+    Angela Healy - Software Technical Support
+
+2.  Terrestrial Window Size Recommendations 
+    Doug Ellenberg - Software Technical Support
+
+3.  RAM Preventative Maintenance Procedures 
+    Jeff Liu - Software Technical Support
+
+4.  First Aid For Concurrent Pascal Product Problems 
+    Ted Yeh - Software Technical Support 
+
+*****************
+*               * 
+* T E C H T I P * 
+*               *
+*****************
+
+Angela M. Healy 
+Software Technical Support
+
+SUBJECT:
+
+Nodecode v5.22/ISIS v5.08
+
+Presently, nodecode version 5.22 assembly will abort if the following
+two parameters are not compatible.
+
+PRODUCT:  TII - Nodecode, I2IS - ISIS
+
+VERSION:  5.22 (TII), 5.08 (I2IS)
+
+SYMPTOM:  Nodecode crash upon DDT access attempt -or- No DDT access -
+          user hung or no kernel ports
+
+PROBLEM:  
+
+Optimized memory use is a new option in nodecode version 5.2x, per
+undocumented parameter NOSEG (for no segmentation).  When compatibility
+with ISIS version 5.08 was restored in nodecode version 5.22, the new
+option was not part of the changes and so is incompatible with kernel
+communication requirements.  There will be segment utilization conflicts
+between ISIS and nodecode, resulting in an access problem or nodecode
+crash when a DDT circuit is attempted.
+
+Because "old memory use" is available, memory is not a problem, except
+that the default setting for the new option NOSEG was not changed when
+ISIS 5.08 compatibility was restored.  NOSEG is defaulted to one (option
+invoked) except for a supervisor which is forced to zero (option
+ignored).  The default one is incorrect for slot 0 nodecode when ISIS
+version 5.08 is used (when IKNRNG is undefined or set to zero).
+
+SOLUTION:  
+
+For non-supervisor ISIS nodes, ensure that nodecode parameters IKNRNG
+(with default zero) and NOSEG (with default one) have identical
+settings.  Specifically, if nodecode version 5.22 is to run with ISIS
+version 5.08, add the following parameter to the node tymfile and
+regen/reload:
+
+NOSEG EQ 0:  no segmentation option 0-no 1-yes 
+
+***************** 
+*               * 
+* T E C H T I P * 
+*               * 
+*****************
+     
+Doug Ellenberg 
+Software Technical Support
+
+SUBJECT:  TERRESTRIAL WINDOW SIZE RECOMMENDATIONS
+
+Below are the terrestrial window size recommendations.  These numbers
+cover MAC II and MAC III engines.  Satellite window size can be
+calculated by the information in the Techtips dated Feb.  1988.
+
+
+
+		   WINDOW SIZE CONFIGURATION
+
+            Terrestrial Link Bandwidth Window Size
+
+                MS   _________________  8 
+                56   _________________ 12 
+                38.4 _________________ 16
+                28.8 _________________ 16 
+                19.2 _________________ 12 
+                14.4 _________________ 12 
+                 9.6 _________________  8 
+                 4.8 _________________  4 
+                 2.4 _________________  4
+
+****************** 
+*                * 
+* T E C H T I P  * 
+*                * 
+******************
+    
+Jeff Liu 
+Software Technical Support
+
+Contributions to Article:  
+Tony Ferro 
+Domestic Field Operations
+     
+SUBJECT:
+
+RAM Preventative Maintenance (PM) Procedures
+
+DISCUSSION:
+
+In an effort to keep incomplete sessions to an absolute minimum, please
+adhere to the following operations procedures when conducting engine
+PM's and when bringing up RAM in the event of a crash.  As a general
+rule, get a hardcopy of all steps during the PM.
+
+ 1.  Get hardcopy of STATUS of RAM, then PAUSE.  
+ 2.  Do STATUS of RAM until two consecutive STATUSes are identical, get a
+     hardcopy.  
+ 3.  REWIND/REMOVE the tape.  
+ 4.  DO NOT TOUCH THE DISK DRIVE.
+ 5.  Perform PM on the engine and/or tape drive.  
+ 6.  MOUNT SAME TAPE.
+ 7.  Load BND file (RAM slot code is in BND).  
+ 8.  Get hardcopy STATUS.
+ 9.  Issue WARMSTART then STATUS commands, STATUS should be same as in in
+     step 2.  
+10.  Verify that RAM can WARMSTART successfully.
+
+NOTE:
+
+The tape won't move until the RUN command is issued, even though
+WARMSTART says the pointer has been positioned.
+
+11.  Issue RUN command.  Do STATUS every 10 to 15 minutes for the first
+     hour.  
+12.  If RAM won't WARMSTART, check tape status.  Is it attached?
+     On-line?  Check RAM STATUS.  Use reference manual if error message
+     results.  
+13.  Return to step 9 and try WARMSTART again.  And possibly a
+     third time.
+
+NOTE:
+
+If RAM won't WARMSTART, it will force it to COLDSTART when you issue
+RUN.
+
+DO NOT ISSUE THE RUN COMMAND UNTIL STEP 17.
+
+14.  IMMEDIATELY REWIND/REMOVE tape.  Deliver to billing.  
+15.  Install new tape.  
+16.  Use SETBLOCK command to set RAM collection pointer from step 2.  
+17.  Issue RUN command, RAM will COLDSTART and start running.
+
+In the event of a crash, reload the BND file and issue WARMSTART.  If
+WARMSTART doesn't work, follow procedures 12-17.  It is best if you make
+it part of your procedures to pull hardcopy STATUSes every hour, or write
+them to disk on a PC.  This way, if you need to set the pointer, you
+will be making RAM collect one hour of redundant data at most.
+
+NOTE:
+
+Information on the use of DRAIN command.
+
+a.  When the session pool is full and RAM pauses; or b.  If the PM is
+going to affect the disk and/or disk drive.  In this case, do a DRAIN
+and then follow the COLDSTART procedures after the PM is performed.
+
+
+***************** 
+*               * 
+* T E C H T I P * 
+*               * 
+*****************
+
+Ted Yeh 
+Software Technical Support
+
+SUBJECT:
+
+First Aid For Concurrent Pascal Product Problems
+
+DISCUSSION:
+
+I.  Introduction
+
+When most Tymnet products have problems, the first reaction is to bring
+the products back into service.  In order to investigate the problems,
+take a dump with the symbol table attached and the files which genned
+the code.  However, for those Concurrent Pascal written products some
+other steps needed to be taken for de-bug purposes.
+
+II.  Products Applied
+
+Currently, the products written in Concurrent Pascal and supported by
+STS include:
+
+     TMCS         Tymnet Monitoring and Control System 
+     TMDM         TMCS Disk Maintenance Program 
+     NEM          Network Event Monitor 
+     NMDM         NEM Disk Maintenance Program
+     NETVAL       Network Validation Program 
+     NTCN         Network Console 
+     ELF          Engine Load Facility program
+
+III.  General Procedures
+
+A.  Record the evidence that make you believe it is abnormal.  
+B.  Log into the kernel host using a DDT username.  
+C.  Issue ?mem to check parity errors.  
+D.  Issue ?hist to review the node history.  
+E.  Issue ?host to look at the status of the host.  
+F.  Issue ?stat to get into extended DDT.  
+G.  Issue ALL to display the status of all the processes (PASCAL-specific).  
+H.  Issue PR process# to get more detailed information for those
+    (PASCAL-specific) processes have state in END or RUN besides process #1.
+I.  Issue Q and ZZ to exit extended DDT and the kernel host.  
+J.  Take slot dump and with symbol table attached.  
+K.  Send OnTyme with all above information and the files which genned the
+    code and the ticket number for the problem.
+
+IV.  Example
+
+Please log in:      ddtUsername:KernelHost#;password 
+Node:               Kernel Node #
+host:               Kernel Host # (as above) 
+Slot #:             Enter slot number
+
+*?mem 
+Current system time is:  3:07:11:02
+
+*?host 
+0 Host 5325d has 52d ports, is answered 
+14d ports in use
+      
+*?hist 
+Current system time is:  3:07:11:55 
+3:07:10:53 ago, slot 1:Halted 
+3:07:10:53 ago, slot 1:  HALTED BY COMMAND 
+3:06:40:41 ago, slot 1:  Started 
+3:06:40:41 ago, slot 1:  Restarted
+      
+*?stat 
+:>all 
+Process  1:  state=END priority=3 addr= 6E372 in process MAIN PROCESS 
+Process  2:  state=WAI priority=3 addr= 2C5EE in procedure SLEEP 
+Process  3:  state=WAI priority=3 addr= 2C5EE in procedure SLEEP
+Process  4:  state=DLY priority=1 addr= 46FA0 in procedure COMMAND_WAIT
+Process  5:  state=DLY priority=1 addr= 46FA0 in procedure COMMAND_WAIT
+Process  6:  state=DLY priority=1 addr= 46FA0 in procedure COMMAND_WAIT
+Process  7:  state=DLY priority=1 addr= 46FA0 in procedure COMMAND_WAIT
+Process  8:  state=DLY priority=1 addr= 46FA0 in procedure COMMAND_WAIT
+Process  9:  state=DLY priority=1 addr= 38E1A in procedure
+             CHECK_AWAKE_SU**PERVIS
+Process 10:  state=DLY priority=1 addr= 58D70 in procedure
+             NEXT_PROBE_COM **MAND
+Process 11:  state=DLY priority=1 addr= 59022 in procedure
+             NEXT_NODE_SNAP **_REQUE
+Process 12:  state=WAI priority=3 addr= 5BE36 in procedure READ_LOGGER
+Process 13:  state=IO priority=3 addr= 20A1A in procedure LOGIN 
+Process 14:  state=WAI priority=3 addr= 5D2A6 in procedure RUN_DISPLAY 
+Process 15:  state=IO priority=3 addr= 20A1A in procedure LOGIN 
+Process 16:  state=WAI priority=3 addr= 459F8 in procedure
+             GET_ERLOG_MESS **AGE 
+Process 17:  state=WAI priority=3 addr= 5D2A6 in procedure RUN_DISPLAY 
+Process 18:  state=IO priority=3 addr= 20A1A in procedure LOGIN 
+Process 19:  state=IO priority=3 addr= 21110 in procedure READ_LINE 
+Process 20:  state=IO priority=3 addr= 20A1A in procedure LOGIN 
+Process 21:  state=IO priority=3 addr= 20A1A in procedure LOGIN 
+Process 22:  state=IO priority=3 addr= 21110 in procedure READ_LINE 
+Process 23:  state=IO priority=3 addr= 21110 in procedure READ_LINE 
+Process 24:  state=IO priority=3 addr= 21110 in procedure READ_LINE 
+Process 25:  state=IO priority=3 addr= 20A1A in procedure LOGIN 
+Process 26:  state=IO priority=3 addr= 20A1A in procedure LOGIN 
+Process 27:  state=IO priority=3 addr= 20A1A in procedure LOGIN 
+Process 28:  state=IO priority=3 addr= 20A1A in procedure LOGIN 
+Process 29:  state=IO priority=3 addr= 20A1A in procedure LOGIN 
+Process 30:  state=IO priority=3 addr= 20A1A in procedure LOGIN 
+Process 31:  state=IO priority=3 addr= 20A1A in procedure LOGIN 
+Process 32:  state=IO priority=3 addr= 20A1A in procedure LOGIN 
+Process 33:  state=WAI priority=3 addr= 6D41E in process GENERAL_CLOCK
+
+Processes 11 and 12 SHOWN FOR EXAMPLE ONLY even though state is not
+equal to END or RUN:
+      
+:>pr 11 
+
+Process 11:  state=DLY priority=1 addr= 59022 in procedure
+             NEXT_NODE_SNAP **_REQUE
+      
+Called from:                At addr:  
+NODE_GATHER                    5CFB2
+      
+:>Process 12:  state=WAI priority=3 addr= 5BE36 in procedure READ_LOGGER
+
+
+Called from:  At addr:
+
+START_LOG_GATHER               5C0F4 
+LOG_GATHER                     5C152
+
+:>q
+      
+*zz Logging off?
+
+-   
