@@ -1,0 +1,114 @@
+
+To  :  Steve Wong
+
+From:  James Wang
+
+Date:  Apr 9, 1986
+
+Subj:  Patch for the X.25 feature request from MayneNet.
+       Patch document: (JWANG:37)CUD03.D01 (same as this Ontyme)
+       Patch file    : (JWANG:37)CUD03.P01
+
+======================================================================
+
+
+
+1. FUNCTION OF THIS PATCH:
+
+  Special patch for MayneNet to pass the username in the CUD to
+  Host after this username is used to built a circuit to X.25 host.
+ 
+  NONTN OPTION IS ON IN THE SLOT TYMFILE FOR OTHER IMPORTANT PURPOSE
+  IN THE MAYNENET X.25 GATEWAY CONNECTING TO AUSTPAC.
+-------------------------------------------------------------------------------
+  
+   The x.25 gateway slot code will check the call user data field
+   in the call request packet coming from AUSTPAC. The code expects
+   that the call user data field contains correct username and
+   password and may also contain host number.
+   In phase 1, the code expect that the call user data field contains 
+               correct username and correct password and correct host
+               host number if there is any.
+               The username will be saved in CUDNAM after it has been
+               sent to SUP. After the circuit is built to host and
+               starts to talk IIX, the username (not including Host# and
+               password) will be appended to IIX message C089.
+   In phase 2, it will handle all other cases such as---
+               1. Nothing is in the call user data field of call request 
+                  packet coming from AUSTPAC. (i.e., only Protocol ID
+                  in the call user data field). In this case, user will be
+                  prompted for PLEASE LOGIN:.
+               2. Call user data field contains wrong password. User will 
+                  be prompted for ERROR, TYPE PASSWORD.
+               3. Call user data field contains correct username but no
+                  password. User will be prompted for PASSWORD
+               4. Call user data field contains wrong username. User will
+                  be prompted for ERROR,TYPE USERNAME.
+   In all cases, the username is used for building a circuit to X.25 Host.
+   The same username in CUD field of Call Request packet should be passed
+   to X.25 Host. Password and Host number are not passed to the Host.
+  Task 1. save login string in CUDNAM on the routine ICP050 and TDA100
+  Task 2. Append username excluding password to IIX Call user data
+          at TOK145.
+   
+  FORMAT OF CUDNAM
+        32(decimal) BYTES FOR EACH PORT
+         _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+        |_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|
+         ^ ^ ^ ^ ^
+         | | | | |___BEGINNING OF CUD
+         | | | |_____LENGTH OF CUD
+         | | |_______GAUGING LEVEL 
+         | |_________01
+         |___________LENGTH OF TOTAL LOGING STRING
+
+
+2. THERE ARE FIVE MAJOR AREAS IN THE CURRENT TYMNET X.25 SOFTWARE TO BE
+   MODIFIED TO PASS THE CALL USER DATA TO HOST. THERE ARE TWO PARTS IN
+   PHASE 1 TO DO THIS FEATURE. THERE ARE THREE PARTS IN THE PHASE 2 TO
+   RECOVER THE ERROR CUASED BY USER SUCH AS WRONG USERNAME OR WRONG PASSWORD
+   ETC. THE COMMENT OF EACH PART ON BOTH PHASES ARE STATED BELOW.
+
+
+****************************************************************************
+* PHASE 1 -- CALL USER DATA FIELD IN THE CALL REQUEST PACKET CONTAINS
+*            CORRECT USERNAME AND PASSWORD.
+***************************************************************************
+  
+  PART 1 -- SAVE CUD WHEN COPY THE LOGING STRING FROM IEDBUF TO IDBUF
+  
+  
+  PART 2 -- APPEND USERNAME FORM CUDNAM TO IIX MESSAGE C089
+ 
+**************************************************************************
+*  PHASE 2
+*  THIS PHASE INCLUDES THE FOLLOWING CASES:
+*    1. CALL USER DATA IS NOT PRESENTED IN THE CALL USER DATA. USER
+*       IS PROMPTED FOR 'PLEASE LOGIN:'.
+*    2. PASSWORD IS NOT PRESENTED IN CALL USER DATA OR WRONG PASSWORD
+*       IS PRESENTED IN CUD. USER WILL BE PROMPTED FOR 'PASSWORD'.
+*    3. WRONG USERNAME IS PRESENTED IN CUD. USER IS PROMPTED FOR '
+*       'ERROR, TYPE USERNAME'.
+****************************************************************************
+
+  
+  
+  PART 1 -- APPEND THE USERNAME EVEN IF THE PACKET STATE IN IN FLOW CONTROL
+            PFLOWC (decimal 7).
+            APPEND THE USERNAME IN THE CASE THAT CALL USER DATA FIELD DOESN'T
+            CONTAINS USERNAME.
+  
+  
+  PART 2 -- SET THE FLAG ON IF THE USER IS PROMPTED FOR PASSWORD.
+            THIS FLAG IS USED TO DETERMINE WHETHER WE NEED TO RESTORE
+            THE DATA SENT FROM USER TO CUDNAM OR NOT. THIS FLAG IS USED
+            IN PART 3.
+  
+  
+  PART 3 -- USER SENDS OUT THE DATA SUCH AS PASSWORD OR USERNAME AFTER
+            USER RECEIVES THE SUP MESSAGE BECAUSE OF THE WRONG USERNAME
+            OR WRONG PASSWORD OR OTHER REASONS.
+            WHEN X.25 CODE RECEIVES THIS DATA PACKET, HOW DOES THE CODE
+            KNOWS THIS DATA PACKET CONTAINS USERNAME OR PASSWORD?
+            IF IT IS USERNAME, WE NEED RESTORE IT TO CUDNAM. iF IT IS THE 
+            PASSWORD, WE SHOULDN'T RESTORE IT TO CUDNAM.
