@@ -1,0 +1,639 @@
+                                                                August 28, 1984
+
+
+
+
+
+
+
+
+
+
+                        Network Console / Extended DDT
+
+
+                            Protocol Specification
+                         End Command Mode Description
+                                 User's Guide
+
+                                 Fabrice Andre
+
+                          Network Technology Division
+
+
+                          NETWORK TECHNOLOGY DIVISION
+                                August 28, 1984
+
+
+
+
+
+
+
+
+
+
+     ====================================================================
+     |       THIS DOCUMENT IS THE SOLE PROPERTY AND CONFIDENTIAL        |
+     |       INFORMATION  OF  TYMSHARE,  INC.,  AND  MAY  NOT BE        |
+     |       COPIED  IN  WHOLE OR IN PART  OR  DISCLOSED  TO ANY        |
+     |       THIRD PARTY  WITHOUT THE PRIOR  WRITTEN  CONSENT OF        |
+     |       TYMSHARE.                                                  |
+     ====================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                             Network Console/Extended DDT            NTCDDT.INF
+                                                                August 28, 1984
+
+
+
+
+
+
+
+                                   TABLE OF CONTENTS
+
+        Section                                                            Page
+
+
+
+        1.   Network Console Protocol                                         1
+
+
+        2.   Login sequence                                                   2
+
+
+        3.   Protocol specification                                           3
+          3.1   Command message                                               3
+          3.2   Response message                                              3
+          3.3   End response message                                          4
+          3.4   End command message                                           4
+          3.5   Error message                                                 4
+          3.6   Example                                                       5
+
+
+        4.   End Command Mode                                                 6
+
+
+        5.   Extended DDT User's Guide                                        7
+          5.1   Initiating and terminating a session                          7
+          5.2   Example of session                                            8
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                             Network Console/Extended DDT            NTCDDT.INF
+        Network Console Protocol                                August 28, 1984
+
+
+
+
+
+
+                             1 -  Network Console Protocol
+
+
+             Network  Console uses  IIX for  its communications  with Operation
+        Managers.  As certain programs such as Extended DDT or PROBE  cannot be
+        easily changed in order to use  IIX, a new protocol is being  used with
+        them.
+
+             This  protocol  is  made  in such  a  way  that  the  Extended DDT
+        recognizes  a  specific  command  as  a  call  to  use  Network Console
+        protocol. Then, it  will send its responses  with a header and  send an
+        'End of response ' message instead of a prompt.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        1                    Network Console/Extended DDT            NTCDDT.INF
+        Login sequence                                          August 28, 1984
+
+
+
+
+
+
+                                  2 -  Login sequence
+
+
+             An auxilliary circuit  is built to a  kernel host, using  the name
+        'DDTNC'. The usual Network Console name was not available as it is used
+        to log in XRAY, which uses the same host numbers.
+
+             When  the  circuit  is  succesfully  built,  the  destination host
+        prompts for a slot  number. Network Console sends a  byte corresponding
+        to the slot number ( x'02' for slot 2).
+
+             Destination  host  responds  with  an  asterisk  prompt  ('*') and
+        Network  Console  sends  then the  command  '?stat',  giving  access to
+        Extended DDT.
+
+             The extended DDT has to have a prompt finishing by  character '>'.
+        When  Network  Console  receives  this  prompt,  it  sends  the command
+        x'80828486' followed  by a carriage  return. This command  indicates to
+        DDT  that  it  should  use  Network  Console  protocol.  The  following
+        character sent by DDT should  be a x'80'. Otherwise, it means  that the
+        Destination host  is not an  extended DDT able  to use  Network Console
+        protocol. In this case, the circuit is zapped by Network Console.
+            Summary :
+
+          Network Console  : <login string>
+          Destination host : node: <node#>CRLF
+                             host: <host#>CRLF
+                             CRLF
+                             slot #: 
+          Network Console  : <slot number>
+          Destination host : CRLF
+                             CRLF
+                             *
+          Network Console  : ?statCR
+          Destination host : <prompt>
+          Network Console  : x'80828486'CR
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        2                    Network Console/Extended DDT            NTCDDT.INF
+        Protocol specification                                  August 28, 1984
+
+
+
+
+
+
+                              3 -  Protocol specification
+
+
+             The following is a list of Network Console protocol messages.
+
+
+
+
+
+
+                                 3.1  Command message
+
+
+             This message is initiated  by Network Console and sends  a command
+        to DDT.  The command is the same as usual DDT commands , it is followed
+        by a carriage return. The only difference is a header.
+
+             The header is a four  bytes message. The first two  bytes indicate
+        the message  type (  here x'8080')  the second  two bytes  identify the
+        command and its response. It allows multiple commands to be  active and
+        provides command/response synchronization.  DDT will send back  this ID
+        with all response messages for this command.
+
+            The format of the message is :
+         
+            x'8080' ID <usual DDT command followed by carriage return>
+
+
+
+
+
+
+
+                                 3.2  Response message
+
+
+             This message is sent by  the destination host and it  contains the
+        response to  a command.  The ID of  the command  is returned  after the
+        message  code  x'8081'. The  usual  response of  DDT  (  multiple lines
+        followed by CRLF) follows the header.
+
+            The format of the message is :
+
+          x'8081' ID <usual DDT response>
+
+
+
+
+
+
+        3                    Network Console/Extended DDT            NTCDDT.INF
+        Protocol specification                                  August 28, 1984
+
+
+                               3.3  End response message
+
+
+             This message  is used to  replace the prompt  sent by DDT  after a
+        response.  It is sent by DDT.
+
+            The format of the message is :
+
+          x'8082' ID CRLF
+
+
+
+
+
+
+
+                               3.4  End command message
+
+
+             This message is sent by Network Console after the reception  of an
+        End Response message or when a continuous flow of data from DDT  has to
+        be stopped.  If DDT receives  this message before  having sent  the End
+        Response message  of the corresponding  command, it stops  sending data
+        and sends the End response message.
+
+             Network Console will  not send a new  command to DDT until  it has
+        sent this message.
+
+          The format of the message is :
+
+          x'8085' ID
+
+
+
+
+
+
+
+                                  3.5  Error message
+
+
+             This message  is sent  by DDT whenever  it receives  an unexpected
+        message.  In place of the usual ID, this message contains two  bytes of
+        error code.
+
+            The format of the message is :
+
+          x'8084' <2 bytes error code>
+
+
+
+
+
+
+        4                    Network Console/Extended DDT            NTCDDT.INF
+        Protocol specification                                  August 28, 1984
+
+
+                                     3.6  Example
+
+
+          In this example two users of Network Console type the command 'pr 1'
+        destinated to the Pascal Nucleus extended DDT.
+
+          Network Console  : x'8080' x'FFFF' PR 1<CR>
+          Pascal Nucleus   : x'8081' x'FFFF' Process   1:  state=END priority=
+                             3 addr= 3C530 in process   MAIN PROCESS<CRLFCRLF>
+          Pascal Nucleus   : x'8082' x'FFFF' <CRLF>
+          Network Console  : x'8085' x'FFFF'
+          Network Console  : x'8080' x'FFFE' PR 1<CR>
+          Pascal Nucleus   : x'8081' x'FFFE' Process   1:  state=END priority=
+                             3 addr= 3C530 in process   MAIN PROCESS<CRLFCRLF>
+          Pascal Nucleus   : x'8082' x'FFFE' <CRLF>
+          Network Console  : x'8085' x'FFFE'
+
+          Notice that Network Console sends the second command only when the
+        End Command is sent for the first one.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        5                    Network Console/Extended DDT            NTCDDT.INF
+        End Command Mode                                        August 28, 1984
+
+
+
+
+
+
+                                 4 -  End Command Mode
+
+
+             This section  describes new features  added to Network  Console in
+        order to make possible the protocol described previously.
+
+             A new  command mode  has been added  : End  Command Mode.  In this
+        mode, Network Console cannot send a new command to an host until an end
+        command has been sent by the previous sending process.
+
+             This mode  is different  from single command  mode as  no 'Command
+        ready' message  exist in the  protocol. In single  command mode,  a new
+        command can be sent only when such a message has been received.
+
+             Here is the sequence of what happens in End Command mode :
+
+          A process requests a circuit from Connection monitor ( it is assumed
+        that the port state is PT_READY : the port is available to send) :
+
+        *port state becomes PT_SENDING ( no other process will be allowed to
+        send)
+
+          After the command is sent, the user process call Connection monitor
+        wait_end_command procedure.
+
+        *port state becomes PT_WAITING
+
+          If an other user process then tries to request a circuit
+
+        *port state is PT_WAITING, status returned is CI_BUSY
+
+          The first sending process tries to send an end_command, it calls
+        the Connection monitor end_command_request_circuit procedure.
+
+        *port state becomes PT_SENDING
+
+          When the end_command is sent, a circuit release is called.
+
+        *port state becomes PT_READY
+
+          An other process can now request a circuit.
+
+
+
+
+
+
+
+
+
+        6                    Network Console/Extended DDT            NTCDDT.INF
+        Extended DDT User's Guide                               August 28, 1984
+
+
+
+
+
+
+                            5 -  Extended DDT User's Guide
+
+
+             This  section  explains how  a  user of  Network  Console  can use
+        Extended DDT. As commands depend on the specific DDT to which  the user
+        is  connected,  it is  impossible  to give  all  the  possible commands
+        available for each  type of DDT.  The user can  type the 'HELP'  or '?'
+        command, when logged into DDT,  in order to have the list  of available
+        commands.
+
+             Examples given  in this  section use  the Pascal  Nucleus Extended
+        DDT.
+
+
+
+
+
+
+                       5.1  Initiating and terminating a session
+
+
+             A DDT  session is  begun from  the main  command level  of Network
+        Console which is  indicated by an asterisk  prompt '*'. The  session is
+        initiated by the command  'XDDT' ( for eXtended DDT),  followed, either
+        by the node number in which  DDT is implemented ( node <node#>),  or by
+        the kernel host number of  this node ( host <host#>). The  command must
+        also specify the slot number in which the Extended DDT  is implemented.
+        If the connection is successfull, the Network console responds with the
+        prompt 'xddt> '. If the connection is not successful, an  error message
+        occurs ( the message 'Circuit zap' appears when DDT is not available).
+
+             To terminate a DDT session, the user can use one of the 3 commands
+        : 'RETurn', 'Quit', 'EXit'. This  returns the user to the  main command
+        level with an asterisk prompt.
+
+        Example :
+
+        please log in:  <user name>:<network console host>;<password>
+        >
+
+        Network Console - Version 3.02
+
+        name: <name>
+        password: <password>
+
+
+        8/1/84 14:42:25
+
+        * xddt node 2100 slot 2
+
+        7                    Network Console/Extended DDT            NTCDDT.INF
+        Extended DDT User's Guide                               August 28, 1984
+
+
+
+        xddt> return
+
+        * xddt node 2100 slot 2
+
+        xddt> quit
+
+        * xddt host 584 slot 2
+
+        xddt> exit
+
+        * quit
+
+        Logging out at: 8/1/84 14:44:32
+
+        please log in:
+
+
+
+
+
+
+
+                                5.2  Example of session
+
+
+             This example is  a session with  the Pascal Nucleus  Extended DDT.
+        Commands used in these examples are generally commands specific to this
+        DDT.
+
+             In order  to have a  list of all  available commands the  user can
+        type the 'HELP' or '?' commands.
+
+             Of  course,  global  Network  Console  commands  such  as  'Date',
+        'Version'..etc.. are available at the DDT command level.
+
+          Example :
+
+        xddt node 2100 slot 2
+
+        xddt> date                              ( global command)
+        8/1/84 14:51:45
+                                
+        xddt> help                              ( list commands)
+                Extended DDT help list:           
+        ALL     Print the status for all the processes
+        PR N    Print the status for process n only
+        EXIT    Log off
+        QUIT    Back to DDT
+        HELP or ?
+
+
+        xddt> all
+
+        8                    Network Console/Extended DDT            NTCDDT.INF
+        Extended DDT User's Guide                               August 28, 1984
+
+
+        Process   1:  state=END priority=3 addr= 3C678 in process   MAIN PROCES
+        Process   2:  state=IO  priority=3 addr= 216F0 in procedure READ_COMMAN
+        Process   3:  state=DLY priority=1 addr= 36E9A in procedure PORT_CONNEC
+        Process   4:  state=DLY priority=1 addr= 36E9A in procedure PORT_CONNEC
+        Process   5:  state=DLY priority=1 addr= 36E9A in procedure PORT_CONNEC
+        Process   6:  state=DLY priority=1 addr= 36E9A in procedure PORT_CONNEC
+        Process   7:  state=DLY priority=1 addr= 36E9A in procedure PORT_CONNEC
+        Process   8:  state=DLY priority=1 addr= 36E9A in procedure PORT_CONNEC
+        Process   9:  state=DLY priority=1 addr= 36E9A in procedure PORT_CONNEC
+        Process  10:  state=DLY priority=1 addr= 36E9A in procedure PORT_CONNEC
+        Process  11:  state=DLY priority=1 addr= 36E9A in procedure PORT_CONNEC
+        Process  12:  state=RUN priority=3 addr= 399DC in procedure RECEIVE 
+        Process  13:  state=IO  priority=3 addr= 2092A in procedure LOGIN 
+        Process  14:  state=IO  priority=3 addr= 2092A in procedure LOGIN 
+        Process  15:  state=IO  priority=3 addr= 2092A in procedure LOGIN 
+        Process  16:  state=IO  priority=3 addr= 2092A in procedure LOGIN 
+        Process  17:  state=IO  priority=3 addr= 2092A in procedure LOGIN 
+        Process  18:  state=IO  priority=3 addr= 2092A in procedure LOGIN 
+        Process  19:  state=IO  priority=3 addr= 2092A in procedure LOGIN 
+        Process  20:  state=IO  priority=3 addr= 2092A in procedure LOGIN 
+        Process  21:  state=IO  priority=3 addr= 2092A in procedure LOGIN 
+
+
+        xddt> pr 12
+        Process  12:  state=WAI priority=3 addr= 399DC in procedure RECEIVE 
+
+        Called from:           At addr:
+        ECHO_RESPONSE           3B2FC
+        RUN_COMMAND             3B4D2
+        EXECUTE_DDT_COMMAND     3B5CA
+        SCAN_DDT_COMMAND        3B912
+        PROCESS_USER            3BD9A
+        COMMAND_LEVEL           3C18C
+
+
+        xddt> return
+
+        * 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        9                    Network Console/Extended DDT            NTCDDT.INF
+
