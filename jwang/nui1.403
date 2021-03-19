@@ -1,0 +1,32 @@
+
+:*******************************************************************
+:
+: customer: Tymdial X.32
+: XCOM VERSION:  4.03
+: FILENAME: NUI1.403   
+: WRITTEN BY:  JAMES WANG
+: DATE:  JUNE 21, 1989
+:
+:------------------------------------------------------
+: TASK: When NUI is presented and 'DNIC+9xxxxxxxxxxx' is called 
+:       address, not attempt to extract destination host number
+:       from 9xxxxxxxxx.
+:
+:       (part 2 is to ensure that a gateway call can use TARGET
+:       profile and not to extrace destination host number from
+:       9xxxxxxxxx format. NUI.403 patch is also needed for a
+:       gateway call to use TARGET PROFILE.)
+:*****************************************************************
+
+PATCH(890621,1400,JWANG,PCR920+4A,,8)
+        NOP     0,0,0
+        NOP     0,0,0
+CONPATCH(PCR936,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1C)
+        TBT     R2,CUNTRG,,     :TARGET PROFILE USED?
+        JN      PCR938,,
+        CLHI    R12,9           :9-FORMAT?
+        JE      PCR950,,
+        J       PCR936+8,,
+ENDPATCH(NOT EXACT DESTINATION FROM 9-FORMAT CLD WHEN NUI IS PRESENTED)
