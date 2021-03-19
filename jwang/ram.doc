@@ -1,0 +1,127 @@
+
+
+To  :  Gerry Deakin
+
+Copy:  Jan Smith (HQ)
+       NSSC
+
+From:  James Wang
+
+Date:  Apr 14,1986
+
+Re  :  RAM problem, ESC#46495, NSSC# 14358
+
+-------------------------------------------------------------------
+
+Gerry,
+
+   AS you know that Jan Smith of HQ has some findings back. You should aslo
+have that Ontyme copy #M79966. Jan is assuming that the variable number of
+blocks doesn't cause you big trouble and you are not complaining it. Please
+confirm this.
+   For the incorrect block count:
+    1. NSR is needed to requset NTD to fix this problem. Please provide
+'WHY it is so important to have the correct block number'. So, Jan can speed
+up the NSR process after she sends NSR to NTD.
+    2. Jan provides a temporary solution because it takes NTD some time
+before a patch is released. Please modify the RAM tymfile by specifing
+a parameter of 1 in the TAPBLK macro and test it to see if the problem
+will go away. Let me know the testing result as soon as possible.
+Regards and thanks,
+James
+
+**********************************************************
+
+Following is an Ontyme #M79966 sent from Jan Smith
+
+***********************************************************
+
+
+
+                            M E M O R A N D U M
+
+                                                        [] TYMNET - NETWORK
+                                                           SYSTEMS SUPPORT
+DATE>      11 APR 86  15:32
+
+TO>        James Wang
+
+COPIES>    Shirley Chiang
+           Stephen Wong
+           Romolo Raffo
+
+FROM>      Jan Smith
+
+
+SUBJECT>   RAM Escalation #46495
+
+
+-----------------------------------------------------------------------
+
+
+James,
+
+In the problem description of this Escalation you mention:
+
+  o  RAM writes a variable number of blocks per file
+
+  o  RAM 50% or more of the time is writing an incorret block count in
+     the trailer record (always reporting N-1 instead of N blocks)
+
+
+I am assuming that you are not complaining about the variable number
+of blocks written per file but are merely memtioning it.  The reason
+RAM writes a variable number of records is as follows:
+
+  1.  Although RAM closes out a file that has 256        to the current file.
+
+     o   RAM has been paused either manually or automatically 
+
+
+Incorrect Block Count
+=====================
+
+
+From my analysis of the code, the only possible reason that I can see for
+RAM to write an incorrect block count is that RAM fails to increment the
+block count at the time of the 15 minute timeout when there is data in
+the block that has to be written to tape.
+
+Actions to be Taken
+===================
+   1.  Run a test over-night with RAM version 10.07 running on
+       BUBBNET.  Hopefully the traffic will be slow enough to cause
+       RAM to close a file at the 15 minute timeout.
+
+   2.  Submit a NSR describing the fix for the problem
+
+  
+
+Since this is a priority 3 Escalation, it may take NTD some time before
+a patch is released addressing this problem.
+
+
+Temporary Solution
+==================
+
+
+To avoid an incorrect block count in the interim you may use a 
+blocking factor of 1.  If a blocking factor of 1 is used there can
+be no instance of data to be written at the 15 minute timeout.
+The blocking factor can be set to 1 by specifying a parameter
+of 1 in the TAPBLK macro of the RAM tymfile.
+
+When using a blocking factor of 1, there will be more inter-record gaps
+on the tape and RAM will run a bit slower but at least you will be 
+able to run continously and be assured of the correct block count.
+
+It will help me in my submission of the NSR to know why it is important
+to have the correct block count.  Please pass that information along
+as quickly as possible.  My phone # is (408)942-5111.
+
+Regards,
+
+Jan Smith
+(RAM support)
+
+
