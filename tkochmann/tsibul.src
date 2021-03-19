@@ -1,0 +1,1393 @@
+	NOLIST	M
+;*************************************************************
+;*> TSI CPU Printed Circuit Board Bring Up Test Loops
+;*
+;*> Written By: Alan Lo x7288
+;*> Filename: (MICROTST:39)TSIBUL.SRC
+;*> Date: 6/19/86
+;*
+;*> Abstract:
+;*	These tests exercise the following CPU functions:
+;*
+;*	T1	micro program counter count-up test -
+;*		NO MICROCODE
+;*		this test is accomplish by hardware forcing
+;*		the microcode jump field (bit 16-19) to 0000
+;*		with jumpers
+;*
+;*	T2	microcode branch according to MAP<0:11>
+;*		there are 4 test loops, they are at
+;*		u-address 000, 2AA, 555, 7FF
+;*
+;*	T3	microcode unconditional branch test loop
+;*		test loop start address: 002
+;*
+;*	T4	microcode branch on external interrupt loops
+;*		test loop start address: 010
+;*
+;*	T5	microcode branch on CPU status test loops
+;*		test loop start address: 300
+;*
+;*	T6	control store data path exerciser - all
+;*		data lines (except jump field) are toggled
+;*		test loop start address: 610
+;*
+;*	T7	PSW exerciser - toggle all 16 PSW bits
+;*		test loop start address: 620
+;*
+;*	T8	B bus to ALU data path exerciser - 
+;*		exercises data path between u-code constant
+;*		field and ALU
+;*		test loop start address: 630
+;*
+;*	T9A-D	ALU to register file write/read/write exerciser -
+;*		exercises data path, address path and read/write 
+;*		control timing between ALU and register file
+;*		test loop start address: 640
+;*
+;*	T10	memory data register data path exerciser - toggles
+;*		the 16-bit B bus and the MDR
+;*		test loop start address: 680
+;*
+;*	T11	memory counter data path exerciser - toggles the
+;*		24-bit memory counter data lines
+;*		test loop start address: 690
+;*
+;*	T12	memory counter increment exeriser - exercises MC
+;*		count-up function
+;*		test loop start address: 6A0
+;*
+;*	T13	program counter data path exerciser - toggles the
+;*		PC data path
+;*		test loop start address: 6B0
+;*
+;*	T14	program counter increment exerciser - exercises PC
+;*		count-up function
+;*		test loop start address: 6D0
+;*
+;*	T15	extended work register (XWR) data path exerciser -
+;*		toggles the 32-bit XWR data lines
+;*		test loop start address: 6E0
+;*
+;*	T16	work register (WR) arithmetic shift exerciser -
+;*		exercises the WR arithmetic right shift function
+;*		test loop start address: 6F0
+;*
+;*	T17	work register/extended work register rotate left
+;*		exerciser - exercises the WR/XWR double word rotate 
+;*		left function
+;*		test loop start address: 700
+;*
+;*	T18	ALU subtraction exerciser - exercises the critical
+;*		path of the ALU gate array
+;*		test loop start address: 710
+;*
+;*	T19	system bus arbitration exerciser - exercises 
+;*		the control signals for memory access
+;*		test loop start address: 720
+;*
+;*	T20A-D	memory write/read exerciser - exercises the memory
+;*		address bus and memory data bus
+;*		test loop start address: 730
+;*
+;*	T21A-B	instruction fetch loop - exercises the target
+;*		instruction fetch operation; toggles the
+;*		instruction register, YS and YD data lines
+;*		test loop start address: 770
+;*
+;*	T22	RX decode exerciser - exercises the microcode
+;*		4-way branch function and the microcode
+;*		address select mux
+;*
+;*	These tests requires the following hardware support:
+;*
+;*	1.	12-bit dip switch in place of the mapping PROM
+;*	2.	jumpers to emulate interrupts and CPU status
+;*
+;*************************************************************
+	EJECT
+;
+;*> Macro Defination:
+;
+GOTO0:	MACRO	COUNT
+	DUP	COUNT
+	E 0,TRUE 		; go to 0
+	ENDM
+;
+;
+;*> Test loops start address defination
+;
+T3:	EQU	H#002
+T4:	EQU	H#010
+T5:	EQU	H#300
+T6:	EQU	H#610
+T7:	EQU	H#620
+T8:	EQU	H#630
+T9A:	EQU	H#640
+T9B:	EQU	H#650
+T9C:	EQU	H#660
+T9D:	EQU	H#670
+T10:	EQU	H#680
+T11:	EQU	H#690
+T12:	EQU	H#6A0
+T13:	EQU	H#6B0
+T14:	EQU	H#6D0
+T15:	EQU	H#6E0
+T16:	EQU	H#6F0
+T17:	EQU	H#700
+T18:	EQU	H#710
+T19:	EQU	H#720
+T20A:	EQU	H#730
+T20B:	EQU	H#740
+T20C:	EQU	H#750
+T20D:	EQU	H#760
+T21A:	EQU	H#770
+T21B:	EQU	H#780
+T22:	EQU	H#790
+	EJECT
+;
+	TITLE	2 - MICROCODE BRANCH ON MAP<0:11>
+	EJECT
+	ORG	H#00
+;
+;	microcode branch on map<0:11> &
+;	test loop dispatch
+;
+;	This test allows one to check the following elements:
+;		microcode address select mux
+;		map PROM to u-adrs mux data path
+;
+;	Recommended check point & expected result
+;		microcode ROM address input 000
+;		
+START:	E ,TRUE,MAP 		; jump according to MAP<0:11>
+;
+;
+	GOTO0	1
+	TITLE	3 - MICROCODE UNCONDITIONAL BRANCH LOOP
+	EJECT
+	ORG	H#02
+;
+;	Microcode unconditional branch test loop
+;
+;	Correct execution of microcode will give the following
+;	microcode addresses:
+;		002, 006, 004, 008, 000
+;
+	E 006,TRUE 		; go to 6
+;
+	GOTO0	1 
+;
+	E 008,TRUE 		; go to 8
+;
+	GOTO0	1
+;
+	E 004,TRUE 		; go to 4
+;
+	GOTO0	1 
+;
+	E 000,TRUE,,,,,RESMAC 	; go to 0
+;				; scope sync on bit 43 RESMAC
+;
+L2C1:	GOTO0	(H#10-L2C1)
+	TITLE	4 - MICROCODE BRANCH ON INTERRUPT LOOPS
+	EJECT
+	ORG	H#010
+;
+;	Interrupt test loop dispatch
+;
+;	use jumper to simulate interrupt
+;	interrupt pending signal should be set
+;
+;	the interrupt should force the next microcode address 
+;	select mux to select interrupt vector
+;
+;		go to 020 if INT0
+;		go to 060 if Power Fail
+;		go to 0A0 if CATN0
+;		go to 0E0 if PAR ERR
+;		go to 120 if MAC ERR
+;		go to 160 if ATN0
+;		go to 1A0 if ATN1
+;		go to 1E0 if ATN2
+;
+	E 64C0,,,,CNST,PSW,MAPSEL 	; enable interrupt mask
+;					; BS0-1 = 10
+	E ,TRUE,MAP 			; jump to interrupt service routine
+;					; if interrupt pending
+;					; otherwise go to 10
+;
+L2C2:	GOTO0	(H#20-L2C2)
+;
+	EJECT
+;
+;	INT0 test loop
+;
+	ORG	H#020
+	E ,,,,,,MAPSEL 		; BS0-1 = 10
+	E ,TRUE,MAP,,,,RESMAC	; should go to 20 if INT0
+;				; otherwise go to 10 on error
+;				; scope sync on bit 43 RESMAC
+;
+;
+L2C3:	GOTO0	(H#60-L2C3)
+;
+	EJECT
+	ORG	H#060
+;
+;	Power Fail Interrupt test loop
+;
+	E ,,,,,,MAPSEL 		; BS0-1 = 10
+	E ,TRUE,MAP,,,,RESMAC	; should go to 60 if Power Fail
+;				; otherwise go to 10 on error
+;				; scope sync on bit 43 RESMAC
+;
+;
+;
+L2C4:	GOTO0	(H#0A0-L2C4)
+	EJECT
+	ORG	H#0A0
+;
+;	CATN0 Interrupt test loop
+;
+	E ,,,,,,MAPSEL 		; BS0-1 = 10
+	E ,TRUE,MAP,,,,RESMAC	; should go to A0 if CATN0
+;				; otherwise go to 10 on error
+;				; scope sync on bit 43 RESMAC
+;
+;
+L2C5:	GOTO0	(H#0E0-L2C5)
+;
+	EJECT
+	ORG	H#0E0
+;
+;	Parity Error Interrupt test loop
+;
+	E ,,,,,,MAPSEL 		; BS0-1 = 10
+	E ,TRUE,MAP,,,,RESMAC 	; should go to E0 if PAR ERR
+;				; otherwise go to 10 on error
+;				; scope sync on bit 43 RESMAC
+;
+;
+L2C6:	GOTO0	(H#120-L2C6)
+;
+	EJECT
+	ORG	H#120
+;
+;	MAC Error Interrupt test loop
+;
+	E ,,,,,,MAPSEL 		; BS0-1 = 10
+	E ,TRUE,MAP,,,,RESMAC	; should go to 120 if MAC ERR
+;				; otherwise go to 10 on error
+;				; scope sync on bit 43 RESMAC
+;
+;
+L2C7:	GOTO0	(H#160-L2C7)
+;
+	EJECT
+	ORG	H#160
+;
+;	ATN0 Interrupt test loop
+;
+	E ,,,,,,MAPSEL 		; BS0-1 = 10
+	E ,TRUE,MAP,,,,RESMAC	; should go to 160 if ATN0
+;				; otherwise go to 10 on error
+;				; scope sync on bit 43 RESMAC
+;
+;
+L2C8:	GOTO0	(H#1A0-L2C8)
+;
+	EJECT
+	ORG	H#1A0
+;
+;	ATN1 Interrupt test loop
+;
+	E ,,,,,,MAPSEL 		; BS0-1 = 10
+	E ,TRUE,MAP,,,,RESMAC	; should go to 1A0 if ATN1
+;				; otherwise go to 10 on error
+;				; scope sync on bit 43 RESMAC
+;
+;
+L2C9:	GOTO0	(H#1E0-L2C9)
+;
+	EJECT
+	ORG	H#1E0
+;
+;	ATN2 Interrupt test loop
+;
+	E ,,,,,,MAPSEL 		; BS0-1 = 10
+	E ,TRUE,MAP,,,,RESMAC	; should go to 1E0 if ATN2
+;				; otherwise go to 10 on error
+;				; scope sync on bit 43 RESMAC
+;
+;
+L2A1:	GOTO0	(H#2AA-L2A1)
+;
+	TITLE	2 - MICROCODE BRANCH ON MAP<0:11> LOOP
+	EJECT
+	ORG	H#2AA
+;
+;	Branch test loop on MAP<0:11>
+;	map PROM dip switch should be set to 2AA
+;
+;	This test allows one to check the following elements:
+;		microcode address select mux
+;		map PROM to u-adrs mux data path
+;
+;	Recommended check point & expected result
+;		microcode ROM address input 2AA
+;
+	E ,,,,,,MAPSEL 		; BS0-1 = 10
+	E ,TRUE,MAP,,,,RESMAC	; should go to 2AA if MAP<0:11>=2AA
+;				; otherwise error
+;				; scope sync on bit 43 RESMAC
+;
+;
+L2A2:	GOTO0	(H#300-L2A2)
+;
+	TITLE	5 - MICROCODE BRANCH ON CPU STATUS LOOP
+	EJECT
+	ORG	H#300
+;
+;	Test loop for microcode branch on XWR31
+;
+TXWR31:	E TXWR31,XWR31,,,,,RESMAC	; spin if XWR31 set
+;					; go to 0 if error
+;					; scope sync on bit 43 RESMAC
+;
+;
+LXWR31:	GOTO0	(H#310-LXWR31) 
+;
+	EJECT
+	ORG	H#310
+;
+;	Test loop for microcode branch on WR31
+;
+TWR31:	E TWR31,WR31,,,,,RESMAC		; spin if WR31 set
+;					; go to 0 if error
+;					; scope sync on bit 43 RESMAC
+;
+;
+LWR31:	GOTO0	(H#320-LWR31) 
+;
+	EJECT
+	ORG	H#320
+;
+;	Test loop for microcode branch on WR0
+;
+TWR0:	E TWR0,WR0,,,,,RESMAC		; spin if WR0 set
+;					; go to 0 if error
+;					; scope sync on bit 43 RESMAC
+;
+;
+LWR0:	GOTO0	(H#330-LWR0) 
+;
+	EJECT
+	ORG	H#330
+;
+;	Test loop for microcode branch on YDCARRY
+;
+TYDCRY:	E TYDCRY,YDCARY,,,,,RESMAC 	; spin if YDCARRY set
+;					; go to 0 if error
+;					; scope sync on bit 43 RESMAC
+;
+;
+LYDCRY:	GOTO0	(H#340-LYDCRY) 
+;
+	EJECT
+	ORG	H#340
+;
+;	Test loop for microcode branch on CARRY
+;
+TCARRY:	E TCARRY,CARRY,,,,,RESMAC	; spin if CARRY set
+;					; go to 0 if error
+;					; scope sync on bit 43 RESMAC
+;
+;
+LCARRY:	GOTO0	(H#350-LCARRY) 
+;
+	EJECT
+	ORG	H#350
+;
+;	Test loop for microcode branch on MC11
+;
+TMC11:	E TMC11,MC11,,,,,RESMAC		; spin if MC11 set
+;					; go to 0 if error
+;					; scope sync on bit 43 RESMAC
+;
+;
+LMC11:	GOTO0	(H#360-LMC11) 
+;
+	EJECT
+	ORG	H#360
+;
+;	Test loop for microcode branch on G
+;
+TG:	E TG,G,,,,,RESMAC		; spin if G set
+;					; go to 0 if error
+;					; scope sync on bit 43 RESMAC
+;
+;
+LG:	GOTO0	(H#370-LG) 
+;
+	EJECT
+	ORG	H#370
+;
+;	Test loop for microcode branch on SNGL
+;
+TSNGL:	E TSNGL,SNGL,,,,,RESMAC		; spin if SNGL set
+;					; go to 0 if error
+;					; scope sync on bit 43 RESMAC
+;
+;
+LSNGL:	GOTO0	(H#380-LSNGL) 
+;
+	EJECT
+	ORG	H#380
+;
+;	Test loop for microcode branch on PSW7
+;
+TPSW7:	E TPSW7,PSW7,,,,,RESMAC		; spin if PSW7 set
+;					; go to 0 if error
+;					; scope sync on bit 43 RESMAC
+;
+;
+LPSW7:	GOTO0	(H#390-LPSW7) 
+;
+	EJECT
+	ORG	H#390
+;
+;	Test loop for microcode branch on PSW6
+;
+TPSW6:	E TPSW6,PSW6,,,,,RESMAC		; spin if PSW6 set
+;					; go to 0 if error
+;					; scope sync on bit 43 RESMAC
+;
+;
+LPSW6:	GOTO0	(H#3A0-LPSW6) 
+;
+	EJECT
+	ORG	H#3A0
+;
+;	Test loop for microcode branch on PSW4
+;
+TPSW4:	E TPSW4,PSW4,,,,,RESMAC		; spin if PSW4 set
+;					; go to 0 if error
+;					; scope sync on bit 43 RESMAC
+;
+;
+LPSW4:	GOTO0	(H#3B0-LPSW4) 
+;
+	EJECT
+	ORG	H#3B0
+;
+;	Test loop for microcode branch on PSW3
+;
+TPSW3:	E TPSW3,PSW3,,,,,RESMAC		; spin if PSW3 set
+;					; go to 0 if error
+;					; scope sync on bit 43 RESMAC
+;
+;
+LPSW3:	GOTO0	(H#3C0-LPSW3) 
+;
+	EJECT
+	ORG	H#3C0
+;
+;	Test loop for microcode branch on console attention
+;
+TCATN:	E TCATN,CATN,,,,,RESMAC		; spin if CATN set
+;					; go to 0 if error
+;					; scope sync on bit 43 RESMAC
+;
+;
+LCATN:	GOTO0	(H#555-LCATN) 
+;
+	TITLE	2 - MICROCODE BRANCH ON MAP<0:11> LOOP
+	EJECT
+	ORG	H#555
+;
+;	Branch test loop on MAP<0:11>
+;	map PROM dip switch should be set to 555
+;
+;	This test allows one to check the following elements:
+;		microcode address select mux
+;		map PROM to u-adrs mux data path
+;
+;	Recommended check point & expected result
+;		microcode ROM address input 555
+;
+	E ,,,,,,MAPSEL 		; BS0-1 = 10
+	E ,TRUE,MAP,,,,RESMAC	; should go to 555 if MAP<0:11>=555
+;				; otherwise error
+;				; scope sync on bit 43 RESMAC
+;
+;
+L6:	GOTO0	(T6-L6)
+	TITLE	6 - CONTROL STORE DATA PATH EXERCISER
+	EJECT
+	ORG	T6
+;
+;	Control Store Data Path Exerciser
+;
+;	all data lines are toggled except jump field
+;	the microcode jump field has been tested by test 2
+;
+;	This test allows one to check the following:
+;		control store ROM data path
+;		microcode pipeline register
+;		ALU control
+;		ALU MUX control
+;		XWR & WR control
+;		PC/MC control
+;
+;	Recommended check points
+;		control store output
+;		pipeline register output
+;		ALU control input
+;		ALU input MUX control input
+;		XWR & WR control input
+;		PC & MC control input
+;
+;	Expected results for each line is either
+;		01010 or 00110
+;
+	E ,,,,,LDMAC,,INDEX 			; force all bits to 0
+;
+	E 5555,,55,5,5,0D,55,0D55,5 		; force most bits to 5's
+;
+	E 0AAAA,,0AA,0A,0A,02,0AA,02AA,0A 	; force most bits to A's
+;
+	E 0FFFF,,0FF,0F,0F,07,0FF,07FF,0F 	; force most bits to F's
+;
+	E 0,TRUE,,,,,RESMAC 			; go to 0
+;						; scope sync on bit 43 RESMAC
+;
+L7:	GOTO0	(T7-L7)
+;
+	TITLE	7 - PSW EXERCISER
+	EJECT
+	ORG	T7
+;
+;	PSW Exerciser
+;
+;	This test loop exercises the 16-bit data path between
+;	the microcode constant field and the PSW as well as the
+;	16-bit PSW.
+;
+;	This test allows one check the following elements:
+;		microcode constant field
+;		B Bus
+;		PSW
+;
+;	Recommended check point and expected results
+;		PSW output	0000, 5555, AAAA, FFFF, 0000, 0000
+;
+;	Test data used are 0000, 5555, AAAA, FFFF
+;
+	E 0000,,,,CNST,PSW 		; 0000 -> PSW
+	E 5555,,,,CNST,PSW 		; 5555 -> PSW
+	E 0AAAA,,,,CNST,PSW 		; AAAA -> PSW
+	E 0FFFF,,,,CNST,PSW 		; FFFF -> PSW
+	E 0000,,,,CNST,PSW 		; 0000 -> PSW
+;
+	E 0,TRUE,,,,,RESMAC 		; go to 0
+;					; scope sync on bit 43 RESMAC
+;
+L8:	GOTO0	(T8-L8)
+	TITLE	8 - B BUS TO ALU DATA PATH EXERCISER
+	EJECT
+	ORG	T8
+;
+;	This test exercises the 16-bit data path that runs
+;	from the microcode constant field, thru the B bus
+;	to the ALU port B input. The ALU passes the data to
+;	WR and on the following microcode cycle, the data
+;	is written onto the B bus.
+;
+;	This test allows one to check the following elements:
+;		ALU/B bus input
+;		ALU/B bus output
+;		ALU pass B function
+;
+;	Recommended check point and expected result
+;		B bus	0000, 0000, 5555, 5555, AAAA, AAAA,
+;			FFFF, FFFF, 0000
+;
+;	The following elements are presume good:
+;		B bus
+;		microcode constant field
+;
+;	The data pattern used are 0000, 5555, AAAA, FFFF
+;
+;	Note 1: the ALU gate array is presumed to be good.
+;	Note 2: the control lines from the microinstruction
+;		to the ALU are presumed to be exercised in test loop 3.
+;
+	E 0000,,B,WR,CNST,,,BUS2+BUS3 	; 0000 -> ALU -> WR
+	E ,,B,,ALU,,,WR2+WR3 		; WR<16:31> -> ALU -> B BUS
+;
+	E 5555,,B,WR,CNST,,,BUS2+BUS3 	; 5555 -> ALU -> WR
+	E ,,B,,ALU,,,WR2+WR3 		; WR<16:31> -> ALU -> B BUS
+;
+	E 0AAAA,,B,WR,CNST,,,BUS2+BUS3 	; AAAA -> ALU -> WR
+	E ,,B,,ALU,,,WR2+WR3 		; WR<16:31> -> ALU -> B BUS
+;
+	E 0FFFF,,B,WR,CNST,,,BUS2+BUS3 	; FFFF -> ALU -> WR
+	E ,,B,,ALU,,,WR2+WR3 		; WR<16:31> -> ALU -> B BUS
+;
+	E 0,TRUE,,,,,RESMAC 		; go to 0
+;					; scope sync on bit 43 RESMAC
+;
+L9A:	GOTO0	(T9A-L9A)
+;
+	TITLE	9 - ALU TO REGISTER FILE WRITE/READ/WRITE LOOP
+	EJECT
+	ORG	T9A
+;
+;	This test exercises the register file write/read/write operation.
+;	0000 is taken from the microcode constant field 
+;	to the ALU work register, it is then written into
+;	the register 0, the same data is read back from register
+;	0 to the ALU work register and again written to register 0.
+;
+;	This test allows one to check the following elements:
+;		ALU to register file read/write path
+;		register file read/write control
+;		ALU Work Register
+;		ALU G & L flags
+;		ALU A MUX data path
+;
+;	Recommended check point and expected results
+;		ALU/register file data bus
+;			0000 0000, 0000 0000, 0000 0000, 0000 0000, 
+;			0000 0000, 0000 0000, 0000 0000
+;		register file address path
+;			00, 00, 00, 00, 00, 00, 00
+;
+;	The following elements are presumed good
+;		ALU pass B function
+;
+	E 0000,,,,CNST,PSW 			; 0 -> psw
+;
+	E 0000,,B,WR,CNST,,,BUS0+BUS2+BUS3 	; 0000 -> ALU -> WR
+	E 0,,,,,,REGWRT+MREG 			; WR -> reg0
+	E 0,,,,,,MREG 				; reg0 -> latch
+	E ,,A,WR,,,,LATCH 			; latch -> WR
+	E 0,,,,,,REGWRT+MREG 			; WR -> reg0
+;
+;
+	E 0,TRUE,,,,,RESMAC 			; go to 0
+;						; scope sync on bit 43 RESMAC
+;
+L9B:	GOTO0	(T9B-L9B)
+;
+	EJECT
+	ORG	T9B
+;
+;	This test exercises the register file write/read/write operation.
+;	5555  is taken from the microcode constant field, expanded to
+;	5555 5555 and stored in the ALU work register, it is then written 
+;	into register 0, the same data is read back from register
+;	0 to the ALU work register and again written to register 0.
+;
+;	This test allows one to check the following elements:
+;		ALU to register file read/write path
+;		register file read/write control
+;		ALU Work Register
+;		ALU G & L flags
+;		ALU A MUX data path
+;
+;	Recommended check point and expected results
+;		ALU/register file data bus
+;			0000 0000, 0000 0000, 5555 5555, 5555 5555,
+;			0000 0000, 5555 5555, 0000 0000
+;		register file address path
+;			50, 50, 55, 55, 50, 55, 50
+;
+;	The following elements are presumed good
+;		ALU pass B function
+;
+;
+	E 0050,,,,CNST,PSW 			; 50 -> psw
+;
+	E 5555,,B,WR,CNST,,,BUS0+BUS2+BUS3 	; 5555 5555 -> ALU -> WR
+	E 5,,,,,,REGWRT+MREG 			; WR -> reg5
+	E 5,,,,,,MREG 				; reg5 -> latch
+	E ,,A,WR,,,,LATCH 			; latch -> WR
+	E 5,,,,,,REGWRT+MREG 			; WR -> reg5
+;
+;
+	E 0,TRUE,,,,,RESMAC 			; go to 0
+;						; scope sync on bit 43 RESMAC
+;
+L9C:	GOTO0	(T9C-L9C)
+;
+	EJECT
+	ORG	T9C
+;
+;	This test exercises the register file write/read/write operation.
+;	AAAA  is taken from the microcode constant field, expanded to
+;	AAAA AAAA and stored in the ALU work register, it is then written 
+;	into register 0, the same data is read back from register
+;	0 to the ALU work register and again written to register 0.
+;
+;	This test allows one to check the following elements:
+;		ALU to register file read/write path
+;		register file read/write control
+;		ALU Work Register
+;		ALU G & L flags
+;		ALU A MUX data path
+;
+;	Recommended check point and expected results
+;		ALU/register file data bus
+;			0000 0000, 0000 0000, AAAA AAAA, AAAA AAAA,
+;			0000 0000, AAAA AAAA, 0000 0000
+;		register file address path
+;			A0, A0, AA, AA, A0, AA, A0
+;
+;	The following elements are presumed good
+;		ALU pass B function
+;
+	E 00A0,,,,CNST,PSW 			; A0 -> psw
+;
+	E 0AAAA,,B,WR,CNST,,,BUS0+BUS2+BUS3 	; AAAA AAAA -> ALU -> WR
+	E 0A,,,,,,REGWRT+MREG 			; WR -> regA
+	E 0A,,,,,,MREG 				; regA -> latch
+	E ,,A,WR,,,,LATCH 			; latch -> WR
+	E 0A,,,,,,REGWRT+MREG 			; WR -> regA
+;
+;
+	E 0,TRUE,,,,,RESMAC 			; go to 0
+;						;e sync on bit 43 RESMAC
+;
+L9D:	GOTO0	(T9D-L9D)
+;
+	EJECT
+	ORG	T9D
+;
+;	This test exercises the register file write/read/write operation.
+;	FFFF  is taken from the microcode constant field, expanded to
+;	FFFF FFFF and stored in the ALU work register, it is then written 
+;	into register 0, the same data is read back from register
+;	0 to the ALU work register and again written to register 0.
+;
+;	This test allows one to check the following elements:
+;		ALU to register file read/write path
+;		register file read/write control
+;		ALU Work Register
+;		ALU G & L flags
+;		ALU A MUX data path
+;
+;	Recommended check point and expected results
+;		ALU/register file data bus
+;			0000 0000, 0000 0000, FFFF FFFF, FFFF FFFF
+;			0000 0000, FFFF FFFF, 0000 0000
+;		register file address path
+;			F0, F0, FF, FF, F0, FF, F0
+;
+;	The following elements are presumed good
+;		ALU pass B function
+;
+	E 00F0,,,,CNST,PSW 			; F0 -> psw
+;
+	E 0FFFF,,B,WR,CNST,,,BUS0+BUS2+BUS3 	; FFFF FFFF -> ALU -> WR
+	E 0F,,,,,,REGWRT+MREG 			; WR -> regF
+	E 0F,,,,,,MREG 				; regF -> latch
+	E ,,A,WR,,,,LATCH 			; latch -> WR
+	E 0F,,,,,,REGWRT+MREG 			; WR -> regF
+;
+	E 0,TRUE,,,,,RESMAC 			; go to 0
+;						; scope sync on bit 43 RESMAC
+;
+L10:	GOTO0	(T10-L10)
+;
+	TITLE	10 - MDR DATA PATH EXERCISER
+	EJECT
+	ORG	T10
+;
+;	This test loop exercises the data path between the microcode
+;	constant field and the memory data register.
+;
+;	This test allows one to check the following element:
+;		memory data register
+;
+;	Recommended check point and expected results
+;		16 bit data bus
+;		0000, 5555, AAAA, FFFF
+;
+;	The following elements are presume good
+;		microcode constant field
+;		B bus
+;		16 bit data bus
+;
+	E 0000,,,,CNST,MDR 		; 0 -> B bus -> MDR
+	E 5555,,,,CNST,MDR 		; 5555 -> B bus -> MDR
+	E 0AAAA,,,,CNST,MDR 		; AAAA -> B bus -> MDR
+	E 0FFFF,,,,CNST,MDR 		; FFFF -> B bus -> MDR
+;
+	E 0,TRUE,,,,,RESMAC 		; go to 0
+;					; scope sync on bit 43 RESMAC
+L11:	GOTO0	(T11-L11)
+	TITLE	11 - MEMORY COUNTER DATA PATH EXERCISER
+	EJECT
+	ORG	T11
+;
+;	This test exercises the 24-bit address path between the ALU MC
+;	and the MAC. Test patterns are taken from the microcode
+;	constant field and written into the memory counter.
+;
+;	This test allows one to check the following element:
+;		memory counter
+;
+;	Recommended check point and expected result
+;		physical/virtual address bus
+;		00 0000, 55 5554, AA AAAA, FF FFFE, FF FFFE
+;
+;	The following elements are presumed good
+;		B bus
+;		physical/virtual address bus
+;
+;	Test patterns used are 00 0000, 55 5555, AA AAAA, FF FFFF.
+;
+;	The memory counter (MC) may be refered to as memory address 
+;	register (MAR) in other TSI documents.
+;
+	E 0,,B,WR,CNST,,,BUS0+BUS2+BUS3 	   ; 00 0000 -> ALU & WR
+	E 5555,,B,WR,CNST,,,BUS0+BUS2+BUS3,LOADMC  ; ALU->MC 555555->ALU & WR
+	E 0AAAA,,B,WR,CNST,,,BUS0+BUS2+BUS3,LOADMC ; ALU->MC AAAAAA->ALU & WR
+	E 0FFFF,,B,WR,CNST,,,BUS0+BUS2+BUS3,LOADMC ; ALU->MC FFFFFF->ALU & WR
+;
+	E 0,TRUE,,,,,RESMAC,,LOADMC 		; ALU->MC  go to 0
+;						; scope sync on bit 43 RESMAC
+;
+L12:	GOTO0	(T12-L12)
+	TITLE	12 - MEMORY COUNTER INCREMENT EXERCISER
+	EJECT
+	ORG	T12
+;
+;	This test exercises the memory counter count-up function.
+;	The MC is first initilized to 0, then it goes into an
+;	infinite loop. Each pass of the loop increments the MC
+;	by 2. The MC wraps back to 0 after it reaches FF FFFE.
+;
+;	This test allows one to check the following elements:
+;		MC increment function
+;		MC<11> (V ADDR23) to microcode jump condition path
+;
+;	Recommended check points and expected results
+;		ALU MC output
+;			00 0000, 00 0002, ... FF FFFE, 00 0000, ...
+;		V ADDR23
+;			0, ... 0, 1, ... 1, 0, ... 0, 1, ...
+;
+	E ,,B 				; 0 -> ALU
+	E ,,,,,,,,LOADMC 		; ALU -> MC
+LT12:	E LT12,TRUE,,,,,,,INCMC 	; loop forever  MC+2 -> MC
+;
+L13:	GOTO0	(T13-L13)
+	TITLE	13 - PROGRAM COUNTER DATA PATH EXERCISER
+	EJECT
+	ORG	T13
+;
+;	This test exercises the 24-bit program counter data path.
+;	The PC is loaded with 00 0000, 55 5554, AA AAAA, and FF FFFE.
+;	After the PC is loaded with a data pattern, it is read back
+;	out via the MC.
+;
+;	This test checks the following elements
+;		PC read/write data path & control path
+;		ALU A MUX
+;		ALU pass A function
+;
+;	Recommended check point and expected result
+;		V ADDR bus
+;		00 0000, 55 5554, AA AAAA, FF FFFE
+;
+;	The following elements are presumed good
+;		MC
+;
+	E 0,,B,WR,CNST,,,BUS0+BUS2+BUS3 	; 0 -> ALU & WR
+	E ,,,,,,,,LOADPC 			; ALU -> PC
+	E ,,A,WR,,,,PC 				; PC -> ALU & WR
+	E ,,,,,,,,LOADMC 			; ALU -> MC
+;
+	E 05555,,B,WR,CNST,,,BUS0+BUS2+BUS3 	; 5555 5555 -> ALU & WR
+	E ,,,,,,,,LOADPC 			; ALU -> PC
+	E ,,A,WR,,,,PC 				; PC -> ALU & WR
+	E ,,,,,,,,LOADMC 			; ALU -> MC
+;
+	E 0AAAA,,B,WR,CNST,,,BUS0+BUS2+BUS3 	; AAAA AAAA -> ALU & WR
+	E ,,,,,,,,LOADPC 			; ALU -> PC
+	E ,,A,WR,,,,PC 				; PC -> ALU & WR
+	E ,,,,,,,,LOADMC 			; ALU -> MC
+;
+	E 0FFFF,,B,WR,CNST,,,BUS0+BUS2+BUS3 	; FFFF FFFF -> ALU & WR
+	E ,,,,,,,,LOADPC 			; ALU -> PC
+	E ,,A,WR,,,,PC 				; PC -> ALU & WR
+	E 0,TRUE,,,,,RESMAC,,LOADMC 		; ALU -> MC  goto 0
+;						; scope sync bit 43 RESMAC
+;
+L14:	GOTO0	(T14-L14)
+	TITLE	14 - PROGRAM COUNTER INCREMENT EXERCISER
+	EJECT
+	ORG	T14
+;
+;	This test exercises the program counter count-up function.
+;	The PC is first initilized to 0, then it goes into an
+;	infinite loop. Each pass of the loop increments the PC
+;	by 2. The PC wraps back to 0 after it reaches FF FFFE.
+;
+;	This test allows one to check the following elements:
+;		PC increment function
+;
+;	Recommended check points and expected results
+;		ALU MC output
+;			00 0000, 00 0002, ... FF FFFE, 00 0000, ...
+;
+	E ,,B 					; 0 -> ALU
+	E ,,,,,,,,LOADPC 	 		; ALU -> PC
+;						; loop forever
+LT14:	E ,,A,WR,,,,PC 				; PC -> ALU & WR
+	E LT14,TRUE,,,,,RESMAC,,INCPC+LOADMC 	; ALU -> MC  ; PC+2 -> PC
+;						; end loop
+;
+L15:	GOTO0	(T15-L15)
+	TITLE	15 - XWR DATA PATH EXERCISER
+	EJECT
+	ORG	T15
+;
+;	This test exercises the XWR data paths. Test patterns are
+;	written into the XWR, they are then read back out thru
+;	the ALU and loaded into the WR. The test patterns are
+;	0000 0000, 5555 5555, AAAA AAAA, FFFF FFFF.
+;
+;	This test exercises the following elements:
+;		XWR data path
+;		ALU B MUX
+;
+;	Recommened check point & expected result
+;		General Purpose Register Port
+;		0000 0000, 5555 5555, AAAA AAAA, FFFF FFFF
+;
+	E 0,,B,XWR,CNST,,,BUS0+BUS2+BUS3 		; 0 -> XWR
+	E ,,B,WR,,,,XWR0+XWR2+XWR3 			; XWR -> WR
+	E 05555,,B,XWR,CNST,,REGWRT+MREG,BUS0+BUS2+BUS3 ; WR -> reg5
+;							; 5555 5555 -> XWR
+	E ,,B,WR,,,,XWR0+XWR2+XWR3 			; XWR -> WR
+	E 0AAAA,,B,XWR,CNST,,REGWRT+MREG,BUS0+BUS2+BUS3 ; WR -> regA
+;							; AAAA AAAA -> XWR
+	E ,,B,WR,,,,XWR0+XWR2+XWR3 			; XWR -> WR
+	E 0FFFF,,B,XWR,CNST,,REGWRT+MREG,BUS0+BUS2+BUS3 ; WR -> regF
+;							; FFFF FFFF -> XWR
+	E ,,B,WR,,,,XWR0+XWR2+XWR3 			; XWR -> WR
+	E 0,TRUE,,,,,RESMAC+REGWRT+MREG 		; WR -> reg0
+;							; goto 0
+;
+L16:	GOTO0	(T16-L16)
+	TITLE	16 - WR RIGHT/LEFT SHIFT EXERCISER
+	EJECT
+	ORG	T16
+;
+;	This test exercises the WR arithmetic right shift and
+;	logical left shift operations.
+;	The test pattern "AF501248" is written into the WR. An
+;	arithmetic right shift 1 bit is then performed in the WR.
+;	The shifted result is put on the general purpose register port.
+;	The WR then shifts the data left 1 bit and put the result
+;	on the GPR port.
+;
+;	This test exercises the following functions:
+;		WR 32-bit arithmetic right shift operation
+;		WR 32-bit logical left shift operation
+;
+;	Recommended check points and expected results:
+;		general puropse register port
+;			AF501248, D7A80924, AF501248
+;
+	E 0AF50,,B,LLWR,CNST,,,BUS0 		; AF50 -> WR<0:15>
+	E 01248,,B,LRWR,CNST,,,BUS2+BUS3 	; 1248 -> WR<16:31>
+	E 0,,,ASRWR,,,REGWRT+MREG 	; AF501248 -> reg0  ; arith right shift 
+	E 0,,,,,,REGWRT+MREG 		; D7A80924 -> reg0
+	E 0,,,SLWR,,,REGWRT+MREG 	; D7A80924 -> reg0  ; logical left shift
+	E 0,TRUE,,,,,RESMAC+REGWRT+MREG ; AF501248 -> reg0
+;					; go to 0 ; scope sync bit 43 RESMAC
+;
+L17:	GOTO0	(T17-L17)
+	TITLE	17 - WR/XWR ROTATE LEFT EXERCISER
+	EJECT
+	ORG	T17
+;
+;	This test exercises the WR/XWR double word rotate left operation.
+;	The test pattern "FEDC BA98" is loaded into XWR and "76543210"
+;	is loaded into WR. They are then rotated left 1 bit. The result
+;	of XWR should be "FDB9 7530", the result of WR should be "ECA8 6421".
+;	The result of WR is put onto the GPR port, follow by the result
+;	of XWR.
+;
+;	This test exercises the following function:
+;		XWR/WR rotate left long operation
+;
+;	Recommended check point and expected results:
+;		GPR port
+;		ECA8 6521, FDB9 7530
+;
+	E 0FEDC,,B,LLWR,CNST,,,BUS0 		; FEDC -> WR<0:15>
+	E 0BA98,,B,XWR,CNST,,,WR0+BUS2+BUS3 	; WR<0:15>,BA98 -> XWR
+	E 07654,,B,LLWR,CNST,,,BUS0 		; 7654 -> WR<0:15>
+	E 03210,,B,LRWR,CNST,,,BUS2+BUS3 	; 3210 -> WR<16:31>
+;
+	E ,,,RLLONG 				; XWR/WR rotate left
+;
+	E 0,,,,,,REGWRT+MREG 			; ECA8 6421 -> reg0
+	E ,,B,WR,,,,XWR0+XWR2+XWR3 		; XWR -> WR
+	E 0,TRUE,,,,,RESMAC+REGWRT+MREG 	; FDB9 7530 -> reg0
+;						; goto 0 ; scope sync RESMAC
+;
+L18:	GOTO0	(T18-L18)
+	TITLE	18 - ALU SUBTRACTION EXERCISER
+	EJECT
+	ORG	T18
+;
+;	This test exercises the subtract operation of the ALU.
+;	This is also the critical path of the ALU gate array.
+;	The test subtract 1 from "0A21 0A21". The result is
+;	put on the GPR port.
+;
+;	This test checks the following function:
+;		ALU subtract operation
+;
+;	Recommended check point and expected results:
+;		GPR port
+;		0A21 0A21, 0A21 0A20
+;
+	E 0A21,,B,WR,CNST,,,BUS0+BUS2+BUS3 	; 0A21 0A21 -> WR
+	E 0,,,,,,REGWRT+MREG 			; 0A21 0A21 -> reg0
+	E 0,,AMIN1,WR,,,,WR 			; WR-1 -> WR
+	E 0,TRUE,,,,,RESMAC+REGWRT+MREG 	; 0A21 0A20 -> reg0
+;						; go to 0  scope sync RESMAC
+L19:	GOTO0	(T19-L19)
+	TITLE	19 - SYSTEM BUS ARBITRATION LOOP
+	EJECT
+	ORG	T19
+;
+;	This test loop exercises the EP to memory access bus
+;	arbitration controls. It forces a memory read from 
+;	physical address 0. The test loop does not wait for
+;	memory to respond, thus, a memory read is performed
+;	every 6 microcode cycle.
+;
+;	This test allows one to check the following elements:
+;		system bus arbitration signal
+;		the CPU/memory access operation
+;
+;	Recommend check point
+;		CPU request signal
+;		CPU  grant signal
+;		control bus
+;
+	E 0,,B,,,LDMAC 				; nonrelocated mem read -> MAC
+;						; 0 -> ALU
+	E ,,,,,,,,LOADMC 			; ALU -> MC
+	E ,,,,,,MACREQ 				; read from memory
+;
+	E 8000,TRUE,,,MDR,,RESMAC 		; wait for read done 
+;						; MDR -> ED bus ; go to 0
+;						; scope sync on bit 43 RESMAC
+;
+;
+L20A:	GOTO0	(T20A-L20A)
+	TITLE	20 - MEMORY WRITE/READ EXERCISER
+	EJECT
+	ORG	T20A
+;
+;	This test exercises the EP to memory write and read path.
+;
+;	This test loop writes 0 to memory location 0,
+;	then writes FFFF to memory location FFFE,
+;	then reads memory location 0.
+;
+;	This test allows one to check the following system function:
+;		memory write operation
+;		memory read operation
+;		mem wait function
+;
+;	Recommended check points
+;		physical memory address bus/data bus
+;		MDR
+;
+	E 0000,,,,CNST,PSW 			; reg set 0
+	E 4,,,,,LDMAC 				; mem write -> MAC
+	E 0,,B,,CNST,MDR,,BUS2+BUS3 		; 0->ALU  0->MDR
+	E ,,,,,,,,LOADMC 			; ALU -> MC
+	E ,,,,,,MACREQ 				; write to memory
+	E 8000 					; wait for write done
+	E 0FFFF,,B,,CNST,MDR,,BUS2+BUS3 	; FFFF -> ALU
+;						; FFFF -> MDR
+	E ,,,,,,,,LOADMC 			; ALU -> MC
+	E ,,,,,,MACREQ 				; write to memory
+;						; wait for write done
+	E 8000,,,,,LDMAC 			; mem read -> MAC
+	E 0,,B,,CNST,,,BUS2+BUS3 		; 0 -> ALU
+	E ,,,,,,,,LOADMC 			; ALU -> MC
+	E ,,,,,,MACREQ 				; read from memory
+;
+	E 8000,TRUE,,,MDR,,RESMAC 		; wait for read done 
+;						; MDR -> ED bus ; go to 0
+;						; scope sync on bit 43 RESMAC
+;
+;
+L20B:	GOTO0	(T20B-L20B)
+	EJECT
+	ORG	T20B
+;
+;	This test writes 5555 to memory location 5554,
+;	then writes AAAA to memory location AAAA,
+;	and then reads memory locatoin 5554.
+;
+;	This test allows one to check the following system function:
+;		memory write operation
+;		memory read operation
+;		mem wait function
+;
+;	Recommended check points
+;		physical memory address bus/data bus
+;		MDR
+;
+	E 0000,,,,CNST,PSW 			; reg set 0
+	E 4,,,,,LDMAC 				; mem write -> MAC
+	E 5555,,B,,CNST,MDR,,BUS2+BUS3 		; 5555 -> ALU
+;						; 5555 -> MDR
+	E ,,,,,,,,LOADMC 			; ALU -> MC
+	E ,,,,,,MACREQ 				; write to memory
+	E 8000 					; wait for write done
+	E 0AAAA,,B,,CNST,MDR,,BUS2+BUS3 	; AAAA->ALU
+;						; AAAA -> MDR
+	E ,,,,,,,,LOADMC 			; ALU -> MC
+	E ,,,,,,MACREQ 				; write to memory
+;						; wait for write done
+	E 8000,,,,,LDMAC 			; mem read -> MAC
+	E 05555,,B,,CNST,,,BUS2+BUS3 		; 5555 -> ALU
+	E ,,,,,,,,LOADMC 			; ALU -> MC
+	E ,,,,,,MACREQ				; read from memory
+;	 					; wait for read done
+;
+	E 8000,TRUE,,,MDR,,RESMAC 		; wait for read done 
+;						; MDR -> ED bus ; go to 0
+;						; scope sync on bit 43 RESMAC
+;
+L20C:	GOTO0	(T20C-L20C)
+	EJECT
+	ORG	T20C
+;
+;	This test writes AAAA to memory location AAAA,
+;	then writes 5555 to memory location 5554,
+;	and then reads memory location AAAA.
+;
+;	This test allows one to check the following system function:
+;		memory write operation
+;		memory read operation
+;		mem wait function
+;
+;	Recommended check points
+;		physical memory address bus/data bus
+;		MDR
+;
+	E 0000,,,,CNST,PSW 			; reg set 0
+	E 4,,,,,LDMAC 				; mem write -> MAC
+	E 0AAAA,,B,,CNST,MDR,,BUS2+BUS3 	; AAAA->ALU
+;						; AAAA -> MDR
+	E ,,,,,,MACREQ,,LOADMC 			; ALU -> MC  write to memory
+	E 8000 					; wait for write done
+	E 5555,,B,,CNST,MDR,,BUS2+BUS3 		; 5555 -> ALU
+;						; 5555 -> MDR
+	E ,,,,,,MACREQ,,LOADMC 			; ALU -> MC  write to memory
+;	 					; wait for write done
+	E 8000,,,,,LDMAC 			; mem read -> MAC
+	E 0AAAA,,B,,CNST,,,BUS2+BUS3 		; AAAA -> ALU
+	E ,,,,,,MACREQ,,LOADMC 			; read from memory
+;	 					; wait for read done
+;
+	E 8000,TRUE,,,MDR,,RESMAC 		; wait for read done 
+;						; MDR -> ED bus ; go to 0
+;						; scope sync on bit 43 RESMAC
+;
+L20D:	GOTO0	(T20D-L20D)
+	EJECT
+	ORG	T20D
+;
+;	This test writes FFFF to memory location FFFE,
+;	then writes 0 to memory location 0,
+;	and then reads memory location FFFF.
+;
+;	This test allows one to check the following system function:
+;		memory write operation
+;		memory read operation
+;		mem wait function
+;
+;	Recommended check points
+;		physical memory address bus/data bus
+;		MDR
+;
+	E 0000,,,,CNST,PSW 			; reg set 0
+	E 4,,,,,LDMAC 				; mem write -> MAC
+	E 0FFFF,,B,,CNST,MDR,,BUS2+BUS3 	; FFFF -> ALU
+;						; FFFF -> MDR
+	E ,,,,,,MACREQ,,LOADMC 			; ALU -> MC  write to memory
+	E 8000  					; wait for write done
+	E 0,,B,,CNST,MDR,,BUS2+BUS3 		; 0->ALU  0->MDR
+	E ,,,,,,MACREQ,,LOADMC 			; ALU -> MC  write to memory
+;	 					; wait for write done
+	E 8000,,,,,LDMAC 			; mem read -> MAC
+	E 0FFFF,,B,,CNST,,,BUS2+BUS3 		; FFFF -> ALU
+	E ,,,,,,MACREQ,,LOADMC 			; read from memory
+;	 					; wait for write done
+;
+	E 8000,TRUE,,,MDR,,RESMAC 		; wait for read done 
+;						; MDR -> ED bus ; go to 0
+;						; scope sync on bit 43 RESMAC
+;
+L21A:	GOTO0	(T21A-L21A)
+;
+	TITLE	21 - INSTRUCTION FETCH LOOP
+	EJECT
+	ORG	T21A
+;
+;	This instruction fetch loop writes 5555 into memory location 0.
+;	It then fetches it as an instruction and load the data into
+;	the instruction register, YS and YD.
+;
+;	This test allows one to check the following:
+;		instruction fetch operation
+;		instruction register
+;		YS
+;		YD
+;
+;	Recommended check points
+;		instruction register
+;		YS
+;		YD
+;
+	E 0000,,B,,CNST,PSW 			; 0 -> PSW ; 0 -> ALU
+	E 5555,,,,CNST,MDR,,,LOADMC 		; ALU -> MC
+;						; 5555 -> MDR
+	E 4,,,,,LDMAC 				; mem write -> MAC
+	E ,,,,,,MACREQ 				; write to memory
+;	 					; wait for write done
+	E 8009,,,,,LDMAC 			; instruction fetch -> MAC
+	E ,,,,,,MACREQ 				; i-fetch from memory
+;	 					; wait for i-fetch done
+;
+	E 8000,TRUE,,,,,MAPSEL+RESMAC 		; go to 0
+;						; load YS & YD with MAP SEL
+;						; scope sync on bit 43 RESMAC
+;
+L21B:	GOTO0	(T21B-L21B)
+;
+	EJECT
+	ORG	T21B
+;
+;	This instruction fetch loop writes AAAA into memory location 0.
+;	It then fetches it as an instruction and load the data into
+;	the instruction register, YS and YD.
+;
+;	This test allows one to check the following:
+;		instruction fetch operation
+;		instruction register
+;		YS
+;		YD
+;
+;	Recommended check points
+;		instruction register
+;		YS
+;		YD
+;
+	E 0000,,B,,CNST,PSW 			; 0 -> PSW ; 0 -> ALU
+	E 0AAAA,,B,,CNST,MDR,,,LOADMC 		; ALU -> MC
+;						; AAAA -> MDR
+	E 4,,,,,LDMAC 				; mem write -> MAC
+	E ,,,,,,MACREQ 				; write to memory
+;	 					; wait for write done
+	E 8009,,,,,LDMAC 			; instruction fetch -> MAC
+	E ,,,,,,MACREQ 				; i-fetch from memory
+;	 					; wait for i-fetch done
+;
+	E 8000,TRUE,,,,,MAPSEL+RESMAC 		; go to 0
+;						; load YS & YD with MAP SEL
+;						; scope sync on bit 43 RESMAC
+;
+LP22:	GOTO0	(T22-LP22)
+;
+	TITLE	22 - RX DECODE EXERCISER
+	EJECT
+	ORG	T22
+;
+;	This test loop exercises the RX instruction decode logic.
+;	It fetches two halfwords starting from memory location 0.
+;	Bit 0 and 1 of the 2nd halfword contains RX instruction type:
+;			00 = RX1
+;			01 = RX3
+;		  10 or 11 = RX2
+;
+;	User has to initialize memory location 0 & 2 with data.
+;
+;	This test allows one to check the following:
+;		RX decode
+;		MDRA
+;		instruction fetch operation
+;		instruction register
+;		YS
+;		YD
+;
+;	Recommended check points
+;		microcode address
+;		instruction register
+;		YS
+;		YD
+;
+	E LP22A,TRUE 				; goto LP22A
+;
+;
+;
+LP22B:	E ,,,,,,,,INCMC 			; 2 -> MC
+	E ,,,,,,MACREQ 				; fetch 2nd halfword
+	E 8000,TRUE,RXADD,,MDRA,,MAPSEL 	; 2nd HW -> MDRA -> ED bus
+;						; load YS & YD with MAP SEL
+;						; branch on RX decode
+	E , 					; 2nd HW<0:1> = 00
+	E , 					; 2nd HW<0:1> = 01
+	E , 					; 2nd HW<0:1> = 10
+	E 0,TRUE,,,,,RESMAC 			; 2nd HW<0:1> = 11 ; go to 0
+;						; scope sync on bit 43 RESMAC
+;
+;
+LP22A:	E 9,,B,,,LDMAC 				; instruction fetch -> MAC
+;						; 0 -> ALU
+	E ,,,,,,,,LOADMC 			; ALU -> MC
+	E ,,,,,,MACREQ 				; i-fetch from memory
+	E 8000 					; wait for i-fetch done
+;
+	E 1,,,,,LDMAC 				; 2nd halfword i-fetch
+	E LP22B,TRUE 				; goto LP22B
+;
+LFF:	GOTO0	(H#7FF-LFF)
+;
+	TITLE	2 - MICROCODE BRANCH ON MAP<0:11> LOOP
+	EJECT
+	ORG	H#7FF
+;
+;	Branch test loop on MAP<0:11>
+;	map PROM dip switch should be set to 7FF
+;
+;	This test allows one to check the following elements:
+;		microcode address select mux
+;		map PROM to u-adrs mux data path
+;
+;	Recommended check point & expected result
+;		microcode ROM address input 7FF
+;
+	E ,TRUE,MAP,,,,RESMAC	; should go to 7FF if MAP<0:11>=7FF
+;				; otherwise error
+;				; scope sync on bit 43 RESMAC
+;
+	END
+    F@=k
