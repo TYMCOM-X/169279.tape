@@ -1,0 +1,533 @@
+**************************************************************************
+**************************************************************************
+**************************************************************************
+TTTTTTTT   EEEEE    CCCCCC    HH   HH   TTTTTTTT   II    PPPPPPP    SSSSSS  
+   TT      E        CC        HH   HH      TT      II    PP   PP    S      
+   TT      EEEEE    CC        HHHHHHH      TT      II    PPPPPPP    SSSSSS 
+   TT      E        CC        HH   HH      TT      II    PP              S
+   TT      EEEEE    CCCCCC    HH   HH      TT      II    PP         SSSSSS
+**************************************************************************
+**************************************************************************
+**************************************************************************
+
+
+
+                              September 1987
+
+
+                                                              Pages
+
+  
+1.    Use of RJE Devices to Connect with Swift                2 - 4
+
+
+2.    Memory Requirement for LU Configurations                5 - 7
+
+
+3.    Limitation of LU's in an SNA Interface in
+      the Public Network                                          8
+
+
+4.    Bugs in IBM's TPF Applications Software                     9
+
+
+5.    Remapping of 3278 Function Keys for CMTI 4.00 & up         10
+
+
+6.    Old Patches Replaced by New Source Patch for               
+      CMTI 2.06 and 3.00                                         11
+
+     
+7.    Class Changes on the Supervisor May Cause Problems     12 -14
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+**************************************************************************
+*                            T     I     P                               *
+**************************************************************************
+
+
+Title:      Use of RJE Devices to Connect with Swift
+
+Author:     Alok Sharma
+            Technical Support Analyst, RJE/IHSA Support     
+
+Product:    BBXS
+            Version 6.01
+            
+
+Issue:
+
+A  customer  wishes  to  use  their TYMNET network  connect  to  SWIFT  (an 
+international funds transfer network which is independently operated).  The 
+customer   has  B26  RJE  devices  running  on  Burrough's  BSC  with   the 
+understanding  that  he only functional difference between  Burrough's  and 
+IBM's BSC is one implementation.  Does the CRC on the SOH and DATA portions 
+of the block while the other performs the CRC on the DATA portion only.
+
+Questions:
+
+1.   Since we support the IBM BSC implementation; does our bBXS support CRC 
+on the DATA only or SOH and DATA?
+
+2.  Can our BBXS software be parameter modifiable to support both?
+
+3.  If so, what on-line documents are available?
+
+Answer:
+
+Our  BBXS  supports  CRC  on data only which means  a  check  character  is 
+accumulated  for  each  record of data at both transmitting  and  receiving 
+ends.
+
+1.   The check character accumulation is initiated by, but does not include 
+the STX character.  All characters,  except SYN,  following the STX (to and 
+including  the  end-of-the record character) are part of the  accumulation. 
+The  STX following ITB the unit separator is included in CRC  accumulation. 
+The sample below indicates the CRC in 2780 and 3780 text frame.
+ 
+                      SAMPLE 2780 TEXT FRAME
+                 *********************************
+ 
+                       |<---------------------->|
+                       | Included in CRC if no  |     |<---------->|
+         |<----->|     | header.                |     |  Included  |
+         |optional     |                        |     |     In     |
+         |l      |     |                        |     |    CRC     |
+---------|-------|-----|------------------------|-----|------------|-------
+  |   |  |       |  |  |      |  | |     |   |  |  |  |  |      |  |
+S | S | S|       | D| S|      | D|D|     | D | I| C| C| S|      | E| C C P
+Y | Y | O|HEADER | L| T| DATA | L|L| DATA| L | T| R| R| T|  DATA| T| R R A
+N | N | H|DATA   | E| X|      | E|E|     | E | B| C| C| X|      | B| C C D
+  |   |  |       |  |  |      |  | |     |   |  |  |  |  |      |  |
+---------|-------|-----|------|----|-----|------|-----|--|------|--|-------
+         |       |<--->|      |Sing|     |<---->|     |: |      || |
+         |       |start|      | -le|     |End Tr|     || |       |
+         |       |Trans|      |Data|     |ans pa|      |         |
+         |       |paren|      |byte|     |rent  |      |        End of
+         |       |t rec|      |X'10|     |record|      |        Rec/End
+         |       |ord  |      |    |     |      |      |        of Block
+         |                                      |      |
+         |                                      |      | 
+         |<------------------------------------>|    Start
+         |          INCLUDED IN CRC             | Non- Transparent
+         |   (DLE PREFIXES INCLUDED IN CRC      |    record
+ 
+
+                      SAMPLE 3780 TEXT FRAME
+                 *********************************
+ 
+                       |<---------------------->|
+                       | Included in CRC if no  |     |<------------->|
+         |<----->|     | header.                |     |Included In    |
+         |optional     |                        |     |    CRC        |
+         |l      |     |                        |     |               |
+---------|-------|-----|------------------------|-----|------------|--|-----
+  |   |  |       |  |  |      |  | |     |   |  |  |  |  |  | |    |  |
+S | S | S|       | D| S|      | D|I|     | D | I| C| C| S| D|I|    | E| C C P
+Y | Y | O|HEADER | L| T| DATA | L|U| DATA| L | T| R| R| T| A|R|DATA| T| R R A
+N | N | H|DATA   | E| X|      | E|S|     | E | B| C| C| X| T|S|    | B| C C D
+  |   |  |       |  |  |      |  | |     |   |  |  |  |  | A| |    |  |
+---------|-------|-----|------|----|-----|------|-----|--|-------- |--|-------
+         |       |<--->|      |End/|     |<---->|     |: |         || |
+         |       |start|      |Star|     |End Tr|     || |          |
+         |       |Trans|      |-t  |     |ans pa|      |            |
+         |       |paren|      |Tran|     |rent  |      |           End of
+         |       |t rec|      |spar|     |record|      |           Rec/End
+         |       |ord  |      |ent |     |      |      |          of Block
+         |                    |reco|            |      |
+         |                    |rd  |            |      | 
+         |<------------------------------------>|    Start
+         |          INCLUDED IN CRC             | Non- Transparent
+         |   (DLE PREFIXES INCLUDED IN CRC      |    record
+                   
+2.  Our  BBXS is not parameter modifiable to support both.  A PIR is to  be 
+submitted if the customer wishes to include first SOH to be included in CRC 
+check. There may be many more differences in Burrough's BSC and IBM's.
+ 
+3.  There  is no on-line documentation available on this  issue.   We  have 
+Implemented IBM's BSC and the following IBM documents can provide you  more 
+Information on CRC.
+ 
+    a. General Information Binary Synchronous Communications.
+       Order No GA27-3004-2.
+ 
+    b. Component Description IBM 2780 Data Transmission Terminal.
+       Order No GA27-3005-3.
+    
+    c. Component Information for the IBM 3780 Data Communication
+       Terminal. Order No. GA27-3063-3.
+ 
+************************************************************************* 
+*                            T    I     P                               * 
+************************************************************************* 
+
+
+Title:      Memory Requirement for LU Configurations
+
+Author:     Danny Fang    
+            Senior Technical Specialist, SNA/SDLC Support
+
+Product:    SNA 
+            Version 1.04    
+
+     
+     
+The table below provides you a matrix reflecting the LU configurations for 
+an SNA interface in relationship with the corresponding memory requirement, 
+as  a  result  of tymfile assemblies.  There are other factors  or  tymfile 
+parameters governing the sizing of the slot. They are not addressed in this 
+table.  
+|-------------------------------------------------------------------------|  
+|NUMBER OF LU'S| SLOT    | CMD LINK | BUFFER          | PHSIZE  | P1SIZE  |  
+|CONFIGURED    | MEMORY  | CUT %    | ALLOCATION CUT %|         |         |  
+|-------------------------------------------------------------------------|  
+|  10          | 204d Kb | No       | No              | 500/1000| 1000    |  
+|-------------------------------------------------------------------------|  
+|  20          | 265d Kb | No       | No              | 500/1000| 1000    |  
+|-------------------------------------------------------------------------|  
+|  30          | 323d Kb | No       | No              | 500/1000| 1000    |  
+|-------------------------------------------------------------------------|  
+|  40          | 390d Kb | No       | No              | 500/1000| 1000    |  
+|-------------------------------------------------------------------------|  
+|  50          | 449d Kb | No       | No              | 1000    | 1000    |  
+|-------------------------------------------------------------------------|  
+|  60          | 507d Kb | No       | No              | 1000    | 1000    |  
+|-------------------------------------------------------------------------|  
+|  70          | 574d Kb | No       | No              | 1000    | 1000    |  
+|-------------------------------------------------------------------------|  
+|  80          | 633d Kb | No       | No              | 1000    | 1000    |  
+|-------------------------------------------------------------------------|  
+|  90          | 692d Kb | No       | No              | 1000    | 1000    |  
+|-------------------------------------------------------------------------|  
+|  93          | 709d Kb | No       | No              | 1000    | 1000    |  
+|-------------------------------------------------------------------------|  
+|  94 **       | 716d Kb | No       |  1 %            | 1000    | 1000    |  
+|-------------------------------------------------------------------------|  
+|  97 **       | 716d Kb | No       |  5 %            | 1000    | 1000    |  
+|-------------------------------------------------------------------------|  
+|  100 **      | 716d Kb |  3 %     |  9 %            | 1000    | 1000    |  
+|-------------------------------------------------------------------------|  
+|  110 **      | 716d Kb | 11 %     | 26 %            | 1000    | 1000    |  
+|-------------------------------------------------------------------------|  
+|  113 **      | 716d Kb | 13 %     | 26 %            | 1000    | 1000    |  
+|-------------------------------------------------------------------------|  
+
+The following notes should be understood:
+     
+1. All the assembly results were run with SNA 1.04 standard source and most 
+current patch files.  
+     
+2.  Additional  20-30  Kbytes  is recommended for the  actual  slot  memory  
+allocation to allow flexibility for future expansion or patches.   
+     
+3.  The   latest SNA 1.04 patch file(SNA01.p04,  checksum=NAVWUZ)  requires 
+additional 8K memory on top of your existing slot requirements.  Be sure to 
+allocate sufficient memory in .TYM file, if such patch file is included.
+     
+4.  Up to 113 LU's can be genned without assembly error.   We have not been 
+able  to  measure  the  slot  performance  under  high  number  of   actual 
+simultaneous users.  However, it is better to consult with the headquarters 
+Marketing  or Support people when such condition becomes a requirement from 
+the customer.   
+     
+5.  During  the assembly,  there will be the indications on  percentage  of 
+buffer  reduction  after  certain threshold.  This can be  noticed  in  the 
+assembly  output for the CMD link and Buffer allocation  utilization.   (as 
+shown  in the table under column "CMD link cut %" & "BUFFER Allocation  cut 
+%").
+   - CMD link list and Buffer allocation are used to communicate or exchange
+     commands/data between SNA interface internal processes.
+
+   - At this point, we do not know what effect of such buffering reduction 
+     will bear upon the real traffic and what condition will trigger any   
+     problem to occur.   
+
+   - 93 LU's seems to indicate such a threshold.  
+     
+6.  PHSIZE  and P1SIZE of 1000 must be specified explicitly in the SNA  CMD 
+    file. Either 500 or 1000 can be used as PHSIZE for number of LUs under 
+    49. 
+   - It  is not encouraged as a common practice to define P1SIZE or  PHSIZE 
+     in the slot tymfile.   
+ 
+   - Be sure to put PHSIZE and P1SIZE before the SNA Initialization file in
+     the  CMD file,  otherwise an error of redefined SEGMENT 0 will  occur.  
+     An correct example is shown below: 
+     
+              ;;COMMAND FILE FOR SNA INTERFACE 
+              ;;VERSION 01 REVISION 04    
+              ;;AUGUST 12, 1987 
+              LIST -R,-X   
+              TITLE (SNA) SNA INTERFACE   
+              1000[PHSIZE: -----------> Correct placement
+              1000[P1SIZE: -----------> Correct placement
+              ;A(SOURCE)SNA01.I04-----> Initialization file   
+              ;A(SOURCE)SNA01.T04    
+              LIST -R,X    
+              ;A(SOURCE)SNA01.R04    
+              ..........   
+
+
+7. Increase the PHSIZE or P1SIZE over 1000 doesn't help for LU greater than 
+113.  For LUs configured over 113 will result a label definition (XRNG) out 
+of  range.(The  update  data on SNA version 03 will  be  available  in  the 
+future)
+     
+*************************************************************************
+*                            T     I     P                              *
+*************************************************************************
+
+Title:      Memory Requirement for SNA in the Public Network
+
+Author:     Shirley Chiang, Manager of Interface Support, STS-QSATSs
+            Mary Chalmers, Product Manager of IBM Services, Marketing
+
+Product:    SNA
+            Version 1.04
+
+
+
+We recommend that no more than 64 LU's (devices) be planned for SNA Version 
+1.04 in Public Network installations.
+
+Although, in the past, a few slots have been loaded with more devices, they 
+do not use all of the features that may be required and/or they do not have 
+the current patch file in them.
+
+If more than a total of 64 devices is required in one SNA slot, please send 
+an  RFI to *** SNA for assistance on sizing the exact configuration  needed 
+for installation.
+
+Please  remember  that the order for more than 64 devices will be  held  by 
+Order Processing until it has received Production Marketing's approval.
+
+*************************************************************************
+*                            T    I     P                               *
+*************************************************************************
+
+Title:      Bugs in IBM TPF Applications Software
+
+Author:     Ping Chu
+            Project Leader, SNA/SDLC Support
+
+Product:    SNA            
+            Version 1.04 
+
+
+For  those  customers  using IBM TPF in place of VTAM software in  the  SNA 
+environment,  TPF application, known as Transaction Processing Facility, is 
+logically  equivalent  to VTAM.   It could be installed in  IBM  mainframes 
+without  co-locating with VTAM.   TPF encompasses a subset of standard VTAM 
+capability and a few flavors of 3270 emulations.
+
+The applications of TPF are used mostly for hotel or airline reservations.
+
+In  our  recent research with an SNA customer,  we discovered that IBM  TPF 
+application  was  violating SNA protocol in a couple  of  ways.   Thus,  it 
+crashed  our SNA Host Interface with a crash code  of  53.   Namely,  these 
+violations are:
+
+1.    No  3270 command on the first byte of SNA Request Unit which is  sent 
+from TPF to terminals or printers.
+
+2.   No Begin Chain Indicator is set in a series of chains with only Middle 
+Chain Indicator being on.
+
+Both of these problems would only happen  intermittently; they require some 
+patches  to  be written  in  the  TPF program to prevent crash type 53 from 
+happening.  
+
+Please be aware of such anomalies with this package and consult with us if 
+your customers run into similar situations.
+
+*************************************************************************
+*                            T     I     P                              *
+*************************************************************************
+
+
+Title:	    Remapping of 3278 Function Keys for CMTI 4.00 & Up
+
+Author:	    Richard Ho
+            Technical Support Analyst, CMT Support
+
+Product:    CMTI 
+	    Version 4.00 and above
+
+
+CMT  version 3.0 supports HOME,  INSERT MODE,  ERASE TO END OF  FIELD,  and 
+CLEAR  keys.   The SYS REQUEST key is supported with CMT versions 4.00  and 
+above  only  (see  pages  39  of  (TECHREF:38:CMTI.ERS  for  more  detailed 
+information).
+
+The DUPLICATE and ERASE INPUT keys are not implemented.
+
+There should not be any problem with remapping the keys (see page 83 of the 
+same document for further details).
+
+
+**************************************************************************
+*                            T     I     P                               * 
+**************************************************************************
+
+
+Title:     Old Patches Replaced by New Source Patch
+
+Author:    Tod Fiste
+           Technical Support Analyst, CMT/3270 Support
+
+Product:   CMTI
+           Versions 2.06 and 3.00
+
+
+
+New  patch  files have been released for CMT versions 2.06 and  3.00.   Any 
+patches distributed by HQTECH in the last few months should be removed from 
+the  commands  file  before  regenning.    This  will  avoid   label/symbol 
+redefinition and other errors.  The patches in question are:
+
+
+            IIXBYT.PAT   \
+            NON1FF.PAT    \
+            FLD1DP.PAT     \       Versions 2.06 and 3.00
+            FXRRAP.PAT     /
+            MANLOG.PAT    /
+
+            PECHO.PAT     \
+            COMUSR.PAT        Version 3.00 only
+            NEWLIN.PAT     /
+            FOXBRO.PAT    /
+
+
+*************************************************************************
+*                            T     I     P                              *
+*************************************************************************
+
+Title:     Validation/Class Changes, Effective 17 August 1987 
+           Affecting Foreign Network Users 
+
+Author:    Stephen White
+           External Network Services
+
+Product:   Public Network Validation System
+
+
+Background:
+
+Effective Monday 17 August 1987,  Validations and External Network Services 
+will  be  making  changes to the Supervisor's Class  Tables  which  control 
+access to TYMNET.   The changes are a prerequisite to offering Public Async 
+Outdial to foreign network users and they also clean up some anomolies.
+
+Every  reasonable  effort  has  been made  to  identify  those  subscribers 
+affected  and  to change the profile of their usernames ahead of  time,  so 
+that for most people the change will be transparent.   However,  there  are 
+probably  a  few  usernames  that  were missed.   Set  out  below  are  the 
+procedures for restoring full service to those affected.
+
+Summary of Changes:
+
+               OLD PROCEDURE              NEW PROCEDURE
+
+Class  1     All X.75 & certain    Caller paid x.75/T2 gateway hosts only
+             T2 gateways           (no reverse charge gateways)
+
+Class 24     Domestic access &     Domestic access where no surcharge rates
+             access at gateways    apply (except Hawaii, see below). Access
+             PLI.  No WATS         at gateway PLI only if call is caller
+                                   paid.  ACCESS NOT PERMITTED from reverse
+                                   charge gateways.
+
+Class 36     not defined           Reverse charge gateway hosts.
+
+
+Class 24 was always intended to restrict access to only those locations to 
+which  the  standard  domestic rates apply or to  logins  from  caller-paid 
+gateways.   The changes will tighten-up on these restrictions and  separate 
+the gateways into two classes--caller-paid and reverse charge.  Access from 
+reverse charge gateways carries charges above the normal domestic rate.
+
+Access  in  Hawaii will soon be barred from Class 24 also,  since  it  does 
+carry a surcharge,  but will NOT be part of this project.   We are still in 
+the process of finding Class 24 names currently accessing in Hawaii so that 
+we  can  make the transition transparent to these users.   Separate  notice 
+will be given of the barring of Hawaii from Class 24 access when it becomes 
+imminent.
+
+Symptoms of Problems You May See:
+
+Please  be  alert to calls from people complaining that  they  are  getting 
+"ACCESS  NOT  PERMITTED"  when  trying to come through  gateways  from  the 
+following countries:
+
+                Canada                  DATAPAC
+                Mexico                  TELEPAC
+                Alaska                  ALASCOM
+                Japan                   NIS - TYMNET TECHNOLOGY NETWORK
+                Puerto Rico             PRTC
+                Guam & Saipan           PACIFIC CONNECTION (PACNET)
+
+Procedures:
+
+The  consent of the host account would normally be required to alter  their 
+usernames to allow access from locations that carry a surcharge.   However, 
+we  do not wish to disrupt service to those subscribers already using Class 
+24 names to access from locations that carry a surcharge and that up  until 
+now have been allowed Class 24 access.
+
+For a period of 30 days from 17 August 1987,  if Customer Service  receives 
+complaints  directly from users with Class 24 usernames getting "ACCESS NOT 
+PERMITTED" from the countries listed above,  they will request  Validations 
+to add Class 36 to that username without first referring to the destination 
+host or their sales/technical support group.
+
+After the 30 day cutover period,  any user with a Class 24 name that wishes 
+to  access  from Canada,  Mexico,  et al,  will NOT automatically be  given 
+access.  The TYMNET support personnel must first obtain consent (preferably 
+in  writing)  that the host acknowledges the higher rates that  apply  from 
+these locations.
+
+For 30 Days as of 17 August 1987:
+
+If  someone  complains of ACCESS NOT PERMITTED from  the  above  locations, 
+check  the profile of the username with "VALINFO~ and if it has "Class  24" 
+access, take the following action:
+
+           Ask the person calling if they have other usernames which may be 
+           affected.    Note   all   usernames  (Class  24)  that   require 
+           modification.
+
+           If the time is between 6:30 a.m.  and 5:00 p.m.  (Pacific Time), 
+           then  call Tymnet Validations in the McDonnell  Douglas  Center, 
+           requesting an office page if necessary.
+
+           If the time is between 5:00 p.m.  and 6:30 a.m.,  call  Customer 
+           Service  or  Network  Control  and request  that  the  "on-call" 
+           validations person be paged.
+
+           Once Validations has been contacted, request that the user(s) be 
+           given access from "Class 36" in addition to "Class 24".
+
+
+           If possible, inform the host's local sales representative of the 
+           change.
+
+All existing Class 1 usernames have had Class 36 added already.   Class  24 
+names are the only ones affected by this project.
+
+Validations will be standing ready for quick action at least through August 
+24  by which time most of the stragglers should have been found.   However, 
+please keep this information with your procedures for the next 30 days  and 
+remember them if you hear of a problem with these symptons.
+  T_iÿ
