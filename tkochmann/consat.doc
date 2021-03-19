@@ -1,0 +1,2635 @@
+
+:*OOS   Output Octal String
+OOS     SIS     R4,1                    :Reduce count by 1
+        JLR     R6                      :exit when done
+        JBS     OOS                     :and repeat for next digit
+
+:*ODS   Output Decimal String (up to 19 bits, positive)
+ODS     LIS     R5,$A 10                :set constant
+ODS1    SIS     R4,1                    :Reduce count by 1
+        JLR     R6                      :exit when done
+        JBS     ODS1                    :and repeat for next digit
+
+
+:*ODN   Output Decimal Number (up to 19 bits, positive)
+ODN     LIS     R5,0                    :set terminator
+        JAL     R6,ODS                  :output decimal string
+        JFS     MSG                     :and exit via MSG
+
+:*MSG0  Put port-number into preamble message and output it
+MSG0    LR      R0,RP                   :get port number
+        JAL     R6,OOS                  :Output-Octal-String
+
+:*MSG   Output a message
+MSG     LB      RBC,0,R6                :R6 points at next byte of message
+        JER     R9
+        JEFS    MSG1
+        JAL     RCH,PUTCHR,,
+        JBS     MSG
+MSG1    LB      R4,0,R6
+        JAL     RCH,PUTSIG,,            :control in the string
+        J       MSG
+
+
+:*CHNGBF        Change BF
+CHNGBF  CLH     R1,BF,RBP,              :is this a no-op (same BF?)
+        JER     R3                      :no change...leave it as-is
+        JEFS    CNGBF1                  :yes...just skip this part
+CNGBF1  LHL     R0,BF,RBP,              :get old value
+        JER     R3                      :old null...just exit
+        JER     R3                      :already off...just exit
+        JR      R3                      :and return
+
+
+:*VSAVE Special routine to save and change .VSTAT and exit
+VSAVE   L       R1,.VSTAT,RPI           :save old state
+
+:*VSTATE        Special routine to change .VSTAT and exit
+VSTATE  ST      R0,.VSTAT,RPI           :save new state
+        J       VRET                    :and exit
+
+:*XSAVE Special routine to save and change .XSTAT and exit
+XSAVE   L       R1,.XSTAT,RPI           :save old state
+
+:*XSTATE        Special routine to change .XSTAT and exit
+XSTATE  ST      R0,.XSTAT,RPI           :save new state
+        J       XRET                    :and exit
+
+:*CIRBLT        Routine for when port established.
+CIRBLT   IF     NPAPRT
+        JEFS    CIRBPA                  :no
+        JER     RLINK                   :no...don't say anything
+CIRBPA   EI     :NPAPRT
+        JAL     RCH,EMPTY,,             :empty buffer
+        JEFS    CIRBT1                  :no
+        JAL     RCH,PUTCHR,,            :...into logon-buffer
+CIRBT1  SBT     RP,LOGER                :Init Logger variables
+        JEFS    CIRBT2                  :subsequent...
+        JNFS    CIRBT2                  :skip if shouldn't output NPID
+        JAL     R9,MSG                  :output common message
+        JAL     R9,MSG0                 :...folowed by NPID
+CIRBT2  LCS     R9,1                    :"please log in"
+        J       XLSTAT                  :exit via special handler
+
+:*GO.DEM        Go enter DEM
+GO.EDM  RBT     RP,ECHO                 :echo off
+        J       PUTSIG,,                :exit via PUTSIG
+@@@
+:       General-purpose Port/Terminal initializer
+:       =============== =========================
+:       R5 -    Link register
+:       R4 -    VID-entry cursor
+:       RPI -   Port-table pointer
+IZPORT  STH     R4,.TERMT,RPI           :save terminal-type cursor
+        SBT     RP,NBO                  :force this on
+        LB      R0,VID.IB,R4
+        STB     R0,IBRATE,RP            :set up input baud-rate
+        LB      R0,VID.OB,R4
+        STB     R0,OBRATE,RP            :set up output baud-rate
+        LB      R0,VID.PA,R4            :set parameters A,B,C,D
+        STB     R0,PAR.A,RP             :Parameter A
+        LB      R0,VID.PB,R4
+        STB     R0,PAR.B,RP             :Parameter B
+        LB      R0,VID.PC,R4
+        STB     R0,PAR.C,RP             :Parameter C
+        LB      R0,VID.PD,R4
+        STB     R0,PAR.D,RP             :Parameter D
+        LHL     R2,VID.FL,R4            :Initialize bit arrays
+        LCS     R3,2
+IZP1    AIS     R3,2
+        LHL     R1,VIDBA,R3
+        JEFS    IZP2                    :zero terminates list
+        RBT     RP,0,R1                 :turn the bit off
+        SRHLS   R2,1                    :test what it should be
+        JNCBS   IZP1
+        SBT     RP,0,R1                 :else set it
+        JBS     IZP1
+
+IZP2    ST      R1,.LSTAT,RPI           :set no special status handler
+        LA      R0,BASE                 :set up base addresses
+        LR      R1,R0
+        AH      R0,VID.VF,R4            :convert EA to real address
+        AH      R1,VID.XF,R4
+         IF     .2HD
+         GL     ZHDUX
+        TBT     RP,HD202                :is this a 202 port?
+        JEFS    IZP4                    :no...proceed
+        SBT     RP,HAFDUX               :yes...flag as half-duplex
+        LB      R3,VID.TI,R4            :check TID for TID entry
+        JEFS    IZP3                    :don't change input handler for TID
+        LA      R0,ZHDUX                :no, not TID...set alternate input
+        L       R1,.XSTAT,RPI           :...keep same output
+        JFS     IZP4                    :and skip
+IZP3    LA      R1,YHDUX                :TID...set alternate output handler
+IZP4     EI     :.2HD
+        ST      R0,.VSTAT,RPI           :set state vectors
+        ST      R1,.XSTAT,RPI
+        TBT     RP,ASCII                :Check for non-ASCII terminals
+        JEFS    IZP5
+        TBT     RP,HAFDUX               :...or for half-duplex
+        JER     R5
+IZP5    RBT     RP,LGECHO               :for these, logger doesn't echo
+        JR      R5                      :and return
+        SUBTTL  HALF SECOND LOGIC
+
+:       HALF SECOND PROCESSING
+:       ==== ====== ==========
+
+        GL      CSHSEC
+CSHSEC  LHI     RPOL,(NGRP-2)*2         :for each pair of groups...
+:       XON/XOFF Logic.  Give XON/XOFF service where needed.
+XNF0    L       R0,RLA,RPOL
+        N       R0,ASYNC,RPOL           :must be ASYNC port
+        N       R0,XONENA,RPOL
+        N       R0,ASCII,RPOL           :ASCII ports only!
+        JEFS    XNF2                    :nothing to do...
+        ST      R0,P.DONE               :keep track of ports serviced
+XNF1    L       R0,P.DONE
+        JFFO    R0,XNF3                 :find port to service
+XNF2    SIS     RPOL,4                  :end of a ring-group pair
+        JGEBS   XNF0                    :next ring group
+        J       EXDISM,,                :done
+
+XNF3    RBT     R1,P.DONE               :don't look at this port again
+        LR      RP,RPOL                 :compute port number
+        SLLS    RP,3                    :(*8 because 8 bits/byte)
+        AR      RP,R1
+        LR      RP2,RP
+        AR      RP2,RP2                 :2*port
+:       LHL     RPI,.PTP.,RP,RP         :set pointer to table
+        GETPTP(RPI,RP,RP)
+        L       RBP,.FTBUF,RPI          :check from-terminal buffer
+        LH      R0,BCT,RBP,
+        SIS     R0,0F
+        JGEFS   XNF4                    :skip...no reason to send XON
+        SBT     RP,XONOUT               :small BCT...maybe send XON?
+        JN      XNF1                    :XON already out
+        LHI     RBC,11                  :XON char
+        JFS     XNF5                    :send XON character
+XNF4    SHI     R0,40-0F                :check middle range
+        JL      XNF1                    :within middle range.  do nothing.
+        RBT     RP,XONOUT
+        JE      XNF1                    :XOFF already out
+        LHI     RBC,93                  :XOFF char
+XNF5    L       RBP,.TTBUF,RPI          :send to terminal
+        JAL     RCH,PUTCHR,,            :...either XON or XOFF character
+        J       XNF1                    :...and proceed to another port
+
+         IF     1-NHNGBK
+        SUBTTL  TWO-SECOND LOGIC
+
+:       TWO-SECOND PROCESSING
+:       === ====== ==========
+
+        GL      TWOSEC
+TWOSEC  LHI     RPOL,(NGRP-2)*2         :for each pair of groups
+        LIS     R0,0                    :initialization value
+:       Hang-on-break logic
+TWOS1   L       R1,RLA,RPOL             :active port, which...
+        N       R1,ASCII,RPOL           :...is ASYNC port
+        N       R1,BRK,RPOL             :...must be in break-state
+        N       R1,BRKTO,RPOL           :...and ready to time-out next!
+        O       R1,HANGWT,RPOL          :hang these ports
+        ST      R1,HANGWT,RPOL
+        L       R1,BRKTO1,RPOL          :and update timeouts
+        ST      R0,BRKTO1,RPOL
+        ST      R1,BRKTO,RPOL
+        SIS     RPOL,4                  :end of a ring-group pair
+        JGE     TWOS1                   :next group
+        J       EXDISM,,                :done
+         EI     :1-NHNGBK
+
+         IF     NAPORT
+        SUBTTL  SIXTEEN-SECOND LOGIC
+
+:       SIXTEEN-SECOND PROCESSING
+:       ======= ====== ==========
+
+        GL      SEC16
+SEC16   LHI     RPOL,(NGRP-2)*2         :for each pair of groups
+        LIS     R0,0                    :initialization value
+SEC16A  L       R1,RLA,RPOL             :active port, which...
+        N       R1,TIDTO,RPOL           :...is ready to time-out next!
+        O       R1,HANGWT,RPOL          :hang these ports
+        ST      R1,HANGWT,RPOL
+        L       R1,TIDTO1,RPOL          :and update timeouts
+        ST      R0,TIDTO1,RPOL
+        ST      R1,TIDTO,RPOL
+        SIS     RPOL,4                  :end of a ring-group pair
+        JGE     SEC16A                  :next group
+        J       EXDISM,,                :done
+         EI     :NAPORT
+        SUBTTL  RED BALL LOGIC
+
+:       Periodic logic to cancel lost balls
+:       Runs every 8 seconds
+RBTIME  LHI     RPOL,(NGRP-2)*2         :For all groups
+RBTIM1  L       R0,NBO,RPOL
+        O       R0,TOPORT,RPOL
+        XHI     R0,-1
+        N       R0,DEM,RPOL
+        N       R0,TBOA,RPOL
+        JFFO    R0,RBTIM2               :Find one
+        L       R0,TBOB,RPOL
+        ST      R0,TBOA,RPOL
+        LCS     R0,1
+        ST      R0,TBOB,RPOL            :Age the timeouts
+        SIS     RPOL,4
+        JGE     RBTIM1                  :Service next 16 ports
+        J       EXDISM,,                :exit
+
+RBTIM2  LR      RP,RPOL                 :Port number to RP
+        SLLS    RP,3                    :*8 because we're counting by 2's
+        AR      RP,R1
+        LR      RP2,RP
+        AR      RP2,RP2                 :2*port
+:       LHL     RPI,.PTP.,RP,RP         :get pointer to port table
+        GETPTP(RPI,RP,RP)
+        RBT     RP,TBOA                 :Avoid RBTIM1 loop
+        RBT     RP,TBOB                 :No red-balls for 8 seconds
+        RBT     RP,GBO                  :Reset green-ball flag...sending Red
+        L       RBP,.FTBUF,RPI          :get from-terminal buffer-pointer
+        LO      SIGNAL
+        LIS     R4,RBSIG                :flush red-ball down pipe
+        FO      SIGNAL
+        JAL     RCH,PUTSIG,,            :send control signal
+        J       RBTIM1
+        SUBTTL  GREEN BALL LOGIC
+
+:       Runs every 250ms, tries to get out of DEM by sending green balls
+GBTIME  LHI     RPOL,(NGRP-2)*2         :For all group pairs...
+GBTIM1  LCS     R0,1
+        X       R0,TOPORT,RPOL          :no output pending
+        N       R0,NBO,RPOL             :and no balls-out
+        N       R0,DEM,RPOL             :and in DEM
+        N       R0,RLA,RPOL             :and port active
+        JFFO    R0,GBTIM2               :skip if a port qualifies
+        SIS     RPOL,4                  :next group pair...
+        JGEBS   GBTIM1
+        J       EXDISM,,                :and exit
+
+GBTIM2  LR      RP,RPOL
+        SLLS    RP,3                    :*8 because 8 bits/byte
+        AR      RP,R1
+        LR      RP2,RP
+        AR      RP2,RP2                 :2*port
+:       LHL     RPI,.PTP.,RP,RP
+        GETPTP(RPI,RP,RP)
+        RBT     RP,TBOB
+        RBT     RP,TBOA                 :Start green./red-ball timeout
+        RBT     RP,NBO                  :Show balls-out
+        SBT     RP,GBO                  :Expecting a return
+        LO      SIGNAL
+        LIS     R4,GBSIG                :Message type
+        FO      SIGNAL
+        L       RBP,.FTBUF,RPI          :Get from-terminal buffer-pointer
+        JAL     RCH,PUTSIG,,
+        J       GBTIM1
+        SUBTTL  CONSAT SIGNAL PROCESSING
+
+
+
+:       SIGNAL:  Generalized Signal Processor
+:       =======  =========== ====== =========
+
+:       Called from all transmitter to process control signals (in
+:               standard fashion).
+
+:       RLINK - Link register
+:       R5 -    Signal to process
+:       RBC -   value (if present)
+SIGNAL  LHL     R4,SIGDIS,R5,R5         :Get co-routine address
+        J       BASE,R4                 :go service signal
+
+SIGDIS  HC      EA(TYCRSH)              :00 -   enter TID mode V
+        HC      EA(TYCRSH)              :01 -   Baud-rate detected
+        HC      EA(TYEXIT)              :02 -   Break-Begin
+        HC      EA(TYEXIT)              :03 -   Break-end
+        HC      EA(TYEXIT)              :04 -   enter data-mode
+        HC      EA(TYEXIT)              :05 -   disconnect
+        HC      EA(TYEXIT)              :06 -   set delay V
+        HC      EA(TYEXIT)              :07 -   repeat data character
+        HC      EA(TYEXIT)              :08 -   Enter DEM
+        HC      EA(TYEXIT)              :09 -   Leave DEM
+        HC      EA(HANGUP)              :0A -   Hang-up
+        HC      EA(S.HANG)              :0B -   Super Hang-up
+        HC      EA(ZAPPER)              :0C -   Zapper
+        HC      EA(GOOBER)              :0D -   Gobbler
+        HC      EA(R.BALL)              :0E -   Red ball
+        HC      EA(G.BALL)              :0F -   Green ball
+        HC      EA(TYEXIT)              :10 -   Orange ball
+        HC      EA(BOUNCE)              :11 -   Yellow ball
+        HC      EA(TYEXIT)              :12 -   Gray ball
+        HC      EA(BOUNCE)              :13 -   Black ball
+        HC      EA(TYEXIT)              :14 -   Enter Transparency
+        HC      EA(TYEXIT)              :15 -   Leave Transparency
+        HC      EA(TYEXIT)              :16 -   Enter ALternate-output-device mode
+        HC      EA(TYEXIT)              :17 -   Leave ALternate-output-device mode
+        HC      EA(TYEXIT)              :18 -   Unused
+        HC      EA(TYEXIT)              :19 -   Unused
+        HC      EA(TYEXIT)              :1A -   Unused
+        HC      EA(TYEXIT)              :1B -   Unused
+        HC      EA(TYEXIT)              :1C -   Unused
+        HC      EA(TYEXIT)              :1D -   Unused
+        HC      EA(TYEXIT)              :1E -   Unused
+        HC      EA(TYEXIT)              :1F -   Unused
+
+        HC      EA(QFPSIG)              :20 -   Set input baud-rate..default - DON'T
+        HC      EA(QFPSIG)              :21 -   Query input baud-rate
+        HC      EA(QFPSIG)              :22 -   Set output baud-rate..default - DON'T
+        HC      EA(QFPSIG)              :23 -   Query output baud-rate
+        HC      EA(SFPSIG)              :24 -   Set Parameter A
+        HC      EA(QFPSIG)              :25 -   Query Parameter A
+        HC      EA(SFPSIG)              :26 -   Set Parameter B
+        HC      EA(QFPSIG)              :27 -   Query Parameter B
+        HC      EA(SFPSIG)              :28 -   Set Parameter C
+        HC      EA(QFPSIG)              :29 -   Query Parameter C
+        HC      EA(SFPSIG)              :2A -   Set Parameter D
+        HC      EA(QFPSIG)              :2B -   Query Parameter D
+        HC      EA(TYEXIT)              :2C -   Unused
+        HC      EA(TYEXIT)              :2D -   Unused
+        HC      EA(TYEXIT)              :2E -   Unused
+        HC      EA(TYEXIT)              :2F -   Unused
+
+        HC      EA(SBPSIG)              :30 -   Set Echo-control
+        HC      EA(QBPSIG)              :31 -   Query Echo-control
+        HC      EA(SBPSIG)              :32 -   Set Echo control-I
+        HC      EA(QBPSIG)              :33 -   Query Echo control-I
+        HC      EA(SBPSIG)              :34 -   Set Echo control-H
+        HC      EA(QBPSIG)              :35 -   Query Echo control-H
+        HC      EA(SBPSIG)              :36 -   Set Echo CR with CR/LF
+        HC      EA(QBPSIG)              :37 -   Query Echo CR with CR/LF
+        HC      EA(SBPSIG)              :38 -   Set Echo LF with LF/CR/RUB
+        HC      EA(QBPSIG)              :39 -   Query Echo LF with LF/CR/RUB
+        HC      EA(SBPSIG)              :3A -   Set CR delay
+        HC      EA(QBPSIG)              :3B -   Query CR delay
+        HC      EA(SBPSIG)              :3C -   Set Parity
+        HC      EA(QBPSIG)              :3D -   Query Parity
+        HC      EA(SBPSIG)              :3E -   Set Half-duplex
+        HC      EA(QBPSIG)              :3F -   Query Half-duplex
+        HC      EA(SBPSIG)              :40 -   Set X-Enable
+        HC      EA(QBPSIG)              :41 -   Query X-Enable
+        HC      EA(SBPSIG)              :42 -   Set Reverse X-Enable
+        HC      EA(QBPSIG)              :43 -   Query Reverse X-Enable
+        HC      EA(SBPSIG)              :44 -   Set KATAKANA
+        HC      EA(QBPSIG)              :45 -   Query KATAKANA
+        HC      EA(SBPSIG)              :46 -   Set Terminate-output on break
+        HC      EA(QBPSIG)              :47 -   Query Terminate-output on break
+        HC      EA(SBPSIG)              :48 -   Set Echo-ESC
+        HC      EA(QBPSIG)              :49 -   Query Echo-ESC
+        HC      EA(SBPSIG)              :4A -   Set Q-mode
+        HC      EA(QBPSIG)              :4B -   Query Q-mode
+        HC      EA(TYEXIT)              :4C -   Unused
+        HC      EA(TYEXIT)              :4D -   Unused
+        HC      EA(TYEXIT)              :4E -   Unused
+        HC      EA(TYEXIT)              :4F -   Unused
+
+C.TYCC  EQ      84                      :Illegal control signal
+
+:       Illegal control-signal decoded
+TYCRSORT(R8,C.TYCC)                :R5=Control signal
+
+
+
+:               Signal processors:
+:               ====== ==========
+
+:       Green-Ball
+G.BALL  RBT     RP,GBO                  :are we expecting a green ball?
+        JER     RLINK                   :no...just exit
+        SBT     RP,NBO                  :No-balls-out
+        RBT     RP,DEM                  :not Defered-Echo-Mode
+        SBT     RP,ECHO                 :Echo
+        LO      SIGNAL
+        LIS     R4,LDMSIG               :send host Leave-DEM
+        FO      SIGNAL
+        J       SIGRSP                  :send it and exit
+
+:       Red ball
+R.BALL  SBT     RP,NBO                  :No-balls-out
+
+:       Default exit fo nothing-to-do
+TYEXIT  JR      RLINK                   :just return
+
+        LO      SIGNAL
+
+:       Set Echo-control
+SECHO   NHI     RBC,1                   :turn on or off?
+        JEFS    SECHO1                  :turn off...skip
+        TBT     RP,ECHO                 :turn on...check ECHO
+        JN      QECHO1                  :already on, just ACK
+        SBT     RP,DEM                  :off, let usual mechanism do it
+        J       QECHO1                  :...and ACK
+
+SECHO1  L       RBP,.FTBUF,RPI          :from-terminal buffer-pointer
+        RBT     RP,ECHO                 :reset ECHO
+        JEFS    SECHO2                  :make sure it stays off
+        LHI     R4,EDMSIG               :Notify host (EDEC)
+        JAL     RCH,PUTSIG
+SECHO2  RBT     RP,DEM                  :Disarm Green-ball stuff
+        RBT     RP,GBO  
+        JEFS    SECHO3                  :no balls expected, go ACK
+        LHI     R4,RBSIG                :GREEN-BALL is out, send RED-BALL
+        JAL     RCH,PUTSIG
+        RBT     RP,TBOA                 :reset the RED-BALL timeouts
+        RBT     RP,TBOB
+SECHO3  LHI     R5,SECSIG               :Restore signal number
+
+:       Query ECHO
+QECHO   LIS     RBC,1                   :Prepare for echo on result
+        TBT     RP,ECHO                 :is ECHO on?
+        JNFS    QECHO1                  :yes...
+        TBT     RP,DEM                  :is ECHO about to go on?
+        JNFS    QECHO1                  :yes, return as on
+        LIS     RBC,0                   :ECHO not on
+QECHO1  LCS     R4,2                    :make even
+        NR      R4,R5
+        J       SIGRSP                  :go answer query
+
+:       Set a bit parameter
+SBPSIG  LCS     R4,2                    :Make even
+        NR      R4,R5
+        LHL     R3,BPFAN-SECSIG,R4      :get pointer to bit array
+        JER     RLINK                   :ignore if null
+        SBT     RP,0,R3                 :turn it on
+        NHI     RBC,1                   :test new state
+        JNFS    QBPSIG                  :Done...report it back
+        RBT     RP,0,R3                 :Else turn it off again
+        CLHI    R4,SRXSIG               :special case for reverse X-enable
+        JNFS    QBPSIG                  :no
+        RBT     RP,RXON                 :yes...release back-pressure
+
+:       Query a bit parameter
+QBPSIG  LCS     R4,2                    :Make even
+        NR      R4,R5
+        LHL     R3,BPFAN-SECSIG,R4      :get pointer to bit array
+        JER     RLINK                   :ignor if null
+        LIS     RBC,0                   :Expect to return a zero
+        TBT     RP,0,R3                 :is bit on?
+        JE      SIGRSP                  :no...skip
+        LIS     RBC,1                   :yes...return a 1
+        J       SIGRSP
+
+
+:       Set field parameter
+SFPSIG  LCS     R4,2                    :Make even
+        NR      R4,R5
+        LHL     R3,FPFAN-SIRSIG,R4      :get pointer to bit array
+        JER     RLINK                   :ignor if null
+        STB     RBC,0,R3,RP             :set new value
+
+:       Query Field parameter
+QFPSIG  LCS     R4,2                    :Make even
+        NR      R4,R5
+        LHL     R3,FPFAN-SIRSIG,R4      :get pointer to Field array
+        JER     RLINK                   :ignor if null
+        LB      RBC,0,R3,RP             :get the parameter
+
+:       Send back response
+SIGRSP  L       RBP,.FTBUF,RPI          :set From-terminal buffer-pointer
+        JAL     RCH,PUTSIG              :return signal
+        JR      RLINK                   :Then exit
+
+        FO      SIGNAL
+
+:       Pointers to bit parameters
+BPFAN   HC      ECHO                    :30 -   Echo control
+        HC      ECTLI                   :32 -   Echo Control-I
+        HC      ECTLH                   :34 -   Echo Control-H
+        HC      ECR.LF                  :36 -   Echo LF on CR
+        HC      ELF.CR                  :38 -   echo CR|RUB on LF
+        HC      CRDE                    :3A -   carriage-return delay
+        HC      PARITY                  :3C -   Parity
+        HC      HAFDUX                  :3E -   Half-duplex
+        HC      XONENA                  :40 -   X-Enable
+        HC      YONENA                  :42 -   Reverse X-Enable
+        HC      0                       :44 -   KATAKANA
+        HC      TSNBRK                  :46 -   Terminate output on BREAK
+        HC      E.ESC                   :48 -   Echo-ESC
+        HC      Q.MODE                  :4A -   Q-mode
+        HC      0                       :4C
+        HC      0                       :4E
+
+:       Pointers to Field parameters
+FPFAN   HC      IBRATE                  :20 -   Input baud-rate
+        HC      OBRATE                  :22 -   Output baud-rate
+        HC      PAR.A                   :24 -   Parameter A
+        HC      PAR.B                   :26 -   Parameter B
+        HC      PAR.C                   :28 -   Parameter C
+        HC      PAR.D                   :2A -   Parameter D
+        HC      0                       :2C
+        HC      0                       :2E
+
+
+:       Super-hang (for Half-Duplex, 2741)
+S.HANG  TBT     RP,ASCII                :test if 2741
+        JEFS    HANGUP                  :do it if so
+        RBT     RP,YONENA               :normal ASCII...Disable Reverse-XON
+        JER     RLINK                   :not set...just exit
+        RBT     RP,RXON                 :was it applied?
+        JER     RLINK                   :no...just exit
+        L       R0,.XSAVE,RPI           :...else set normal transmitter
+        ST      R0,.XSTAT,RPI
+        JR      RLINK                   :and exit
+
+:       HANG Unconditionally
+HANGUP   IF     PVC
+        TBT     RP,TATBIN               :is this special PVC port?
+        JEFS    ZAPPER                  :yes...HANG translates to ZAPPER
+         EI     :PVC
+        SBT     RP,HANGWT               :hang it
+        JR      RLINK                   :and exit
+
+
+
+:       zapper
+:       RLINK need not be preserved
+ZAPPER  RBT     RP,DEM                  :Turn off DEM
+        RBT     RP,ECHO                 :echo off
+
+:       Alternate entry for 2741
+XZAP    JAL     RLINK,CIRDIS,,          :insure circuit disconnected
+        LA      RLINK,XDEF              :set return address
+        RBT     RP,GBO                  :no green-ball out
+        SBT     RP,NBO                  :no ball out
+        RBT     RP,E.ESC                :turn off Echo-ESC
+        RBT     RP,Q.MODE               :turn off Q-mode
+        LCS     R9,4                    :assume "Logon aborted..."
+        RBT     RP,LOGING               :is LOGING set?
+        JN      XLSTAT                  :yes...exit via special handlers
+        LIS     R5,0                    :no...set "vanilla"
+         IF     NPAPRT
+        JAL     R0,PA.SL                :set limbo if required
+        GL      PA.SL
+         EI     :NPAPRT
+        J       ESTPRT,,                :establish new port and exit
+
+
+:       Gobbler
+:       RLINK need not be preserved
+GOOBER  RBT     RP,TOSING               :keep this reset
+        J       XDEF                    :and exit
+
+:       Bounce a ball back
+BOUNCE  LIS     R4,1                    :Return its complement
+        XR      R4,R5
+        L       RBP,.FTBUF,RPI          :Place in from-terminal buffer
+        JAL     RCH,PUTSIG
+        JR      RLINK                   :then exit
+
+         IF     NAPORT
+        SUBTTL  ASYNC TERMINAL IDENTIFIER/INITIALIZER
+
+:       ASYNC Terminal-IDentifier and Port-Initializer
+:       ===== =================== === ================
+AVID    JAL     RCH,AGETCH              :get input
+         J      AVID1                   :skip if control-signal
+        JR      RLINK                   :Ignor anything not a control
+
+        LO      SIGNAL
+AVID1   CLHI    R5,TIBSIG               :check for TID
+        FO      SIGNAL
+        JNR     RLINK                   :ignore all but those
+        CLHI    RBC,0F                  :Check for valid Baud-rate index
+        JGR     RLINK                   :Ignore...not valid
+        STB     RBC,IBRATE,RP           :Save input baud-rate guess
+        STB     RBC,OBRATE,RP
+        JAL     RCH,AGETCH              :get TID char
+         J      0,RLINK                 :control-signal...ignor
+        LHI     R5,1F                   :mask off lower 5 bits of TID char
+        NR      R5,RBC
+        LB      RBC,IBRATE,RP           :get input baud rate
+        EXBR    R5,R5
+        OR      RBC,R5                  :TID char in next higher byte
+        LHI     R4,-VID.SZ              :now scan table for match
+AVID2   AHI     R4,VID.SZ
+        LHL     R3,VID.TI,R4
+        JNFS    AVID3
+        JAL     RBF,A.TID               :Exit...no match found for TID character
+        JR      RLINK
+
+AVID3   SR      R3,RBC
+        JNBS    AVID2                   :continue if no match
+        RBT     RP,TIDTO                :id accepted...cancel timeouts
+        RBT     RP,TIDTO1
+        SBT     RP,C.ACP                        :set port active
+        LHL     RLINK,VID.IZ,R4         :locate initialization routine
+        JAL     R5,IZPORT               :set up terminal
+        L       RBP,.TTBUF,RPI          :set to-terminal buffer-pointer
+        JAL     RCH,EMPTY,,             :Clear  the "Please typ..." message
+        JAL     R9,A.VID                :set it up
+        LIS     R5,0                    :set "Vanilla"...
+        JAL     RLINK,BASE,RLINK        :and initialize the port...
+                                        :       (nominally, Establish the port
+                                        :       with new TID)
+        J       VRET                    :exit back to polling process
+        SUBTTL  ASYNC DRIVER CODE -- ASCII
+
+:               This code contains all the port drivers used with the CONSAT
+:       module.
+
+
+
+:       Full-Duplex ASCII Terminal Receiver
+:       =========== ===== ======== ========
+VASCI   JAL     RCH,AGETCH              :get the char
+         J      VAESC                   :Control-signal
+        LR      R9,RBC                  :data -- copy it
+        NHI     RBC,7F                  :Input Char in R9, Working Char in RBC
+        TBT     RP,YONENA               :is XON/XOFF feature enabled?
+        JE      VAS2                    :Don't check for ^S, ^Q
+        CLHI    RBC,11                  :^Q=XON
+        JEFS    VAS1                    :Service ^Q
+        CLHI    RBC,13                  :^S=XOFF
+        JNFS    VAS2                    :neither ^Q nor ^S, must be data
+        SBT     RP,RXON                 :^S...disable transmitter
+        JNFS    VAS2                    :ignor if already set...then ^S is data
+        LA      R0,XASOFF               :Else set XASOFF for transmitter
+        J       XSAVE                   :...saving current state
+
+VAS1    L       R0,.XSAVE,RPI           :^Q, prepare to restore transmitter
+        RBT     RP,RXON
+        JN      XSTATE                  :disabled...^Q is control
+
+VAS2    TBT     RP,ECHO                 :Echoing?
+        JN      VAECKO                  :yes, take alternate route
+
+:       Echo off...
+VAS3    RBT     RP,GBO                  :We're not echoing
+        JEFS    VASEND                  :No green-ball out
+        RBT     RP,TBOA
+        RBT     RP,TBOB                 :Reset red-ball timeout
+         LO     SIGNAL
+        LIS     R4,RBSIG                :Red-ball signal
+         FO     SIGNAL
+        L       RBP,.FTBUF,RPI          :from-terminal buffer-pointer
+        JAL     RCH,PUTSIG              :send signal toward network
+        JFS     VSS0
+
+:       Send the data (in R9) into net
+VASEND  L       RBP,.FTBUF,RPI          :from-terminal buffer-pointer
+VSS0    LR      RBC,R9                  :Get the character
+        JAL     RCH,PUTCHR              :...and send it
+        J       VRET                    :and exit
+
+VAECKO  TBT     RP,TOPORT               :is output pending?
+        JN      VAED                    :Yes, skip echo
+        TBT     RP,RXON                 :has user applied backpressure?
+        JN      VAED                    :yes, skip echo
+        TBT     RP,HAFDUX               :Half-Duplex?
+        JN      VAHD
+        TBT     RBC,PABLE               :Is it easily printable?
+        JN      VAN                     :No, Check special cases
+
+:       Echo (single) character
+VAK1    LR      RBC,R9                  :Get the character
+VAK2    L       RBP,.TTBUF,RPI          :set to-terminal buffer-pointer
+        JAL     RCH,PUTCHR              :...and echo it
+        J       VASEND                  :....then go send it
+
+:       Handler for "Q"-mode
+:       Echo "~" and "}"
+:       Don't echo LF
+:       Echo Cr (with LF) if Echo_on_LF set...
+:               THEN ENTER DEM!!!
+VAQ     LHI     R0,-7D,RBC              :is it "}"?
+        JE      VAK1                    :yes...echo it
+        SIS     R0,7E-7D                :is it "~"?
+        JE      VAK1                    :yes...echo it
+        LHI     R0,-0A,RBC              :LF?
+        JE      VAED                    :yes...enter DEM
+        SIS     RBC,0D                  :CR?
+        JN      VAN2                    :no...treat as non-Q char
+        TBT     RP,ELF.CR               :yes...should we echo?
+        JE      VAED                    :no
+        L       RBP,.TTBUF,RPI          :yes...set to-term buffer-pointer
+        LR      RBC,R9                  :echo CR
+        JAL     RCH,PUTCHR
+        TBT     RP,ECR.LF               :Line-feed needed too?
+        JEFS    VAQ1                    :no
+        LIS     RBC,0A                  :yes...echo it
+        JAL     RCH,PUTCHR              :echo CR/LF for CR
+VAQ1    L       RBP,.FTBUF,RPI          :set from-terminal buffer-pointer
+        LR      RBC,R9                  :and send the CR
+        JAL     RCH,PUTCHR
+        JAL     RCH,GO.EDM              :go enter DEM
+        J       VRET                    :and exit
+
+
+:       non-printable (?) char on echo...
+VAN     TBT     RP,Q.MODE               :"non-printable"...is port in "Q"-mode?
+        JN      VAQ                     :yes...do it
+        TBT     RBC,SPABLE              :special?
+        JE      VAED                    :no...go enter DEM
+        SIS     RBC,0A
+        JNFS    VAN1                    :Not a LF
+        TBT     RP,ELF.CR               :Carriage return needed too?
+        JE      VAK1                    :echo LF for LF
+        LI      R6,0FF8D00,R9
+        J       VAEK1                   :echo LF/CR/RUBOUT
+VAN1    SIS     RBC,0D-0A               :CR?
+        JNFS    VAN2                    :not a CR
+        TBT     RP,ECR.LF               :Line-feed needed too?
+        JE      VAK1                    :Echo CR for CR
+        LI      R6,8A00,R9
+        J       VAEK1                   :echo CR/LF for CR
+
+VAN2    AIS     RBC,0D-9                :^I? (may also enter from VAQ)
+        JNFS    VAN3
+        TBT     RP,ECTLI
+        JE      VAED                    :Didn't echo tabs
+        J       VAK1
+VAN3    AIS     RBC,9-8                 :^H?
+        JNFS    VAN4
+        TBT     RP,ECTLH
+        JEFS    VAED                    :don't echo ^H
+        J       VAK1
+VAN4    SHI     RBC,1B-8                :ESC?
+        JNFS    VAED
+        TBT     RP,E.ESC
+        JN      VAK1                    :Echo-ESC
+
+:       Output-buffer busy - can't echo...enter DEM
+VAED    JAL     RCH,GO.EDM              :go enter DEM
+        J       VSS0                    :send data
+
+:       Echo a (reverse) string of characters in R6
+:       (original char in R9)
+VAEK1   L       RBP,.TTBUF,RPI          :to-terminal buffer-pointer
+VAEK2   LR      RBC,R6                  :get a copy
+        JAL     RCH,PUTCHR              :echo it
+        SRLS    R6,8                    :get next character...
+        JNBS    VAEK2                   :...If any (up to three)
+        J       VASEND                  :...then go send char and exit
+
+VAHD    TBT     RBC,SPABLE              :Half-duplex...special char?
+        JE      VASEND                  :no...just go send it
+        LHI     R3,-0D,RBC              :Carriage return?
+        JNFS    VAHD1                   :skip if not
+        TBT     RP,ECR.LF               :yes...echo line-feed?
+        JE      VASEND                  :no...just send char
+        LIS     RBC,0A                  :else return line-feed
+        J       VAK2                    :echo it
+
+VAHD1   AIS     R3,0D-0A                :line-feed?
+        JN      VASEND                  :no, just send char
+        TBT     RP,ELF.CR               :yes...echo with CR|RUB?
+        JE      VASEND                  :no, just send it
+        LHI     R6,7F0D                 :yes
+        J       VAEK1                   :echo string of characters
+
+         LO     SIGNAL
+VAESC   CLHI    R5,BBSIG                :Break?
+         FO     SIGNAL
+        JNR     RLINK
+        L       R0,.VSTAT,RPI           :Save Vstate
+        ST      R0,.VSAVE,RPI
+        LA      R0,VASBK                :Set VASBK as receiver
+        ST      R0,.VSTAT,RPI           :...until we get end-break
+        SBT     RP,BRK                  :record break occuring
+         IF     1-NHNGBK
+        RBT     RP,BRKTO                :insure no early expiration
+        SBT     RP,BRKTO1               :...and start timeout
+         EI     :1-NHNGBK
+        JR      RLINK
+
+
+:       Receiver for BREAK-state
+:       ======== === ===========
+:       Hang user if 2 seconds of BREAK, unless NHNGBK set
+:       Return to normal ASCII Receiver when we detect end-BREAK
+VASBK   JAL     RCH,AGETCH              :Get something (BREAK/end-BREAK signal)
+         J      VASBK1                  :control-signal...skip
+        JR      RLINK                   :non-control...eat it
+
+         LO     SIGNAL
+VASBK1  SIS     R5,BESIG                :end-BREAK?
+        JNR     RLINK                   :still breaking...just eat signal
+        LIS     R4,BBSIG
+         FO     SIGNAL
+        L       RBP,.FTBUF,RPI          :set to-net buffer
+        JAL     RCH,PUTSIG              :Send BREAK-signal toward network
+        L       R0,.VSAVE,RPI
+        ST      R0,.VSTAT,RPI           :return to normal receiver
+        RBT     RP,BRK                  :turn off BREAK-flag
+        SBT     RP,ATTN                 :turn on ATTN
+        TBT     RP,TSNBRK               :Enabled the flush-flag?
+        JER     RLINK                   :exit if not
+        SBT     RP,TOSING               :set the flush-flag
+        JR      RLINK                   :and exit
+
+
+
+
+:               Transmitters
+:               ============
+
+
+:       Transmitter to delay output
+:       =========== == ===== ======
+:XASWT  LIS     R5,3                    :set .1 second delay
+:       JAL     RCH,ADELAY
+:       J       XDEF                    :and defer output
+
+
+:       Transmitter to service only signals
+:       =========== == ======= ==== =======
+XASOFF  JAL     RCH,CPEEK               :check for signal pending
+         J      XDEF                    :no...delay before trying again
+
+
+:       Full-duplex ASCII transmitter
+:       =========== ===== ===========
+XASCI   JAL     RCH,GETCHR              :Get the data
+         J      SIG.A                   :normal return...It's a signal
+         IF     NUMPRN                  :skip return...data
+
+:       Check for printer port
+        CLH     RP,PRTACT
+        JGFS    XAS0                    :no...just proceed
+        CLHI    RBC,82                  :yes...old-style set-printer-mode (^B)?
+        JE      TYEAOD                  :yes...enter-alt.-output-device mode
+         EI     :NUMPRN
+
+XAS0    TBT     RP,TOSING               :Are we tossing data?
+        JNR     RLINK                   :do this until gobbler resets
+:       transmit the character
+        LR      R0,RBC                  :make another copy of data-char
+        NHI     R0,7F                   :Remove MSB
+        TBT     RP,PARITY               :Parity enabled?
+        JEFS    XAS1
+        LR      RBC,R0                  :yes...set char with parity-bit off
+        TBT     R0,PARBIT               :lookup parity
+        JEFS    XAS1
+        OHI     RBC,80                  :turn parity-bit on if appropriate
+XAS1    TBT     R0,SPABLE               :is it special?
+        JEFS    XAS2                    :no...just go output it
+        SIS     R0,0D                   :Carriage return?
+        JE      XASCR
+        AIS     R0,0D-0A                :LF?
+        JE      XASLF
+        AIS     R0,0A-09                :^I?
+        JNFS    XAS2                    :no
+        LH      R0,MARGE,RP2            :yes
+        OHI     R0,7                    :force position to multiple of 8
+        STH     R0,MARGE,RP2
+
+XAS2    JAL     RCH,APUTCH              :transmit the character
+        MINH(RBF,MARGE,RP2)             :count it
+        JR      RLINK
+
+
+
+:       Carriage return
+XASCR   TBT     RP,CRDE                 :delay needed?
+        JE      XAS.PD                  :nope...just output (with Parameter D)
+        JAL     RCH,APUTCH              :First send it
+        LB      R4,PAR.A,RP             :DELAY=MIN(B+N/2**A,CPARAM(C))
+        LB      R0,PAR.B,RP             :Parameter B
+        LB      R3,PAR.C,RP             :Parameter C
+        LB      R5,MARGE+1,RP2          :N/2**A
+        SRL     R5,0,R4
+        AR      R5,R0
+        CLB     R5,CPARAM,R3
+        JLEFS   XASCR1
+        LB      R5,CPARAM,R3
+XASCR1  JAL     RCH,ADELAY              :Set up delay
+        JR      RLINK
+
+:       Output CR|LF with parameter D
+XAS.PD  JAL     RCH,APUTCH              :send it
+        MINH(R5,MARGE,RP2)              :Count it
+        LB      R5,PAR.D,RP             :and follow it with Parameter D
+        LB      R5,CPARAM,R5
+        JAL     RCH,ADELAY
+        JR      RLINK
+
+
+:       Line-Feed
+XASLF   TBT     RP,CRDE                 :Delay needed?
+        JNBS    XAS.PD                  :no...output (with Parameter D)
+        LB      R3,MARGE+1,RP2          :yes...need to generate LF delay
+        JE      XAS2                    :...but not if at column 0
+        STB     RBC,LASTCH,RP           :save a copy of the character
+        CLHI    R3,1
+        JGFS    XASLF1
+        LB      R5,PAR.A,RP             :Column 1...Delay is Parameter A
+        JFS     XASLF3
+
+XASLF1  LB      R5,PAR.C,RP             :DELAY=B+MAX(CPARAM(C)-NCHAR,0)
+        LB      R5,CPARAM,R5            :Parameter C
+        SR      R5,R3
+        JGEFS   XASLF2
+        LIS     R5,0
+XASLF2  LB      R4,PAR.B,RP             :add Parameter B
+        AR      R5,R4
+
+XASLF3  JAL     RCH,ADELAY              :Set delay
+        LB      RBC,LASTCH,RP           :restore the character
+        JAL     RCH,APUTCH              :and send line-feed
+        JR      RLINK
+
+
+:       SIG.A:  Signal Processor for ASYNC
+:       =====
+
+:       Called from ASYNC transmitter to process control signals
+
+:       RLINK - Link register
+:       R5 -    Signal to examine
+SIG.A   SIGBGN(ETMSIG,LTMSIG,LADSIG)
+        SIGEXC(ZAPSIG,ZAP.A)            :zapper
+        SIGEXC(EADSIG,TYEAOD)           :Enter alternate-output-device
+        SIGEXC(SIRSIG,SIBRAT)           :Set input baud-rate
+        SIGEXC(SORSIG,SOBRAT)           :Set output baud-rate
+        SIGEXC(SPASIG,SFPSIG)           :Set Parameter A
+        SIGEXC(SPBSIG,SFPSIG)           :Set Parameter B
+        SIGEXC(SPCSIG,SFPSIG)           :Set Parameter C
+        SIGEXC(SPDSIG,SFPSIG)           :Set Parameter D
+        SIGEXC(SECSIG,SECHO)            :Set echo-control
+        SIGEXC(QECSIG,QECHO)            :Query echo-control
+         IF     NUMPRN
+        SIGEXC(SKKSIG,PRSKK)            :Set KATAKANA
+        SIGEXC(QKKSIG,PRQKK)            :Query KATAKANA
+         EI     :NUMPRN
+        SIGEND
+
+:       zapper
+ZAP.A   TBT     RP,YONENA               :is XON/XOFF feature enabled?
+        JE      ZAPPER                  :no
+        RBT     RP,RXON                 :yes...active?
+        JE      ZAPPER                  :no
+        L       R0,.XSAVE,RPI           :yes...restore driver
+        ST      R0,.XSTAT,RPI
+        J       ZAPPER                  :and proceed
+
+:       Set input baud-rate
+SIBRAT  TBT     RBC,A.SPED              :is new speed supported?
+        JE      QFPSIG                  :no...just go respond
+        LB      R0,IBRATE,RP            :range-check on current value
+        SIS     R0,0A
+        JGE     QFPSIG                  :>9...don't change it
+        STB     RBC,IBRATE,RP           :update input rate
+        JAL     RBF,A.IBR
+        J       QFPSIG                  :go ACK
+
+:       Set output baud-rate
+SOBRAT  TBT     RBC,A.SPED              :is new speed supported?
+        JE      QFPSIG                  :no...just go respond
+        LB      R0,OBRATE,RP            :range-check on current value
+        SIS     R0,0A
+        JGE     QFPSIG                  :>9...don't change it
+        STB     RBC,OBRATE,RP           :update output rate
+        JAL     RBF,A.OBR
+        J       QFPSIG                  :go ACK
+
+:       Enter-alternate-output-device mode
+         IF     NUMPRN
+TYEAOD  CLH     RP,PRTACT               :is this a printer-port?
+        JGR     RLINK                   :no, so ignore
+        LA      R0,XPRINT               :set new driver
+        ST      R0,.XSTAT,RPI
+        GL      PINIT
+        JAL     RCH,PINIT               :initialize printer
+        TBT     RP,DEM                  :Insure now in DEM
+        JNR     RLINK                   :already ok
+        JAL     RCH,GO.EDM              :have to do it
+        JR      RLINK                   :and exit
+         ELSE   :NUMPRN
+TYEAOD  EQ      TYEXIT                  :just exit
+         EI     :NUMPRN
+        SUBTTL  VIDEOTEXT DRIVER CODE -- ASCII
+
+         IF     VTEXT
+
+:       *   * ***** ****  *****  ***  ***** ***** *   * *****
+:       *   *   *   *   * *     *   *   *   *      * *    *
+:       *   *   *   *   * ****  *   *   *   ****    *     *
+:        * *    *   *   * *     *   *   *   *      * *    *
+:         *   ***** ****  *****  ***    *   ***** *   *   *
+
+:               Videotext terminals have several strange properties:
+:       They run at 75-baud input, 1200-baud output.
+:       The keyboard lacks several important features, notably many
+:       desired keys.
+
+:               Receive-filter may run in either translate or transparency
+:       mode.  This is determined by ELF.CR (1=translate), permitting
+:       the host to examine and determine mode.  The host cannot set ELF.CR
+:       directly, but must use enter- and leave-transparency.  In translate
+:       mode, the following mapping occurs:
+
+:       KEY NAME        Input   mapped to:
+
+:       SEND            ^S|A    CR
+:       PREVIOUS        ^S|B    Ignored
+:       REPEAT          ^S|C    Ignored
+:       GUIDE           ^S|D    Ignored
+:       CANCEL          ^S|E    ESC
+:       INDEX           ^S|F    Ignored
+:       ERASE           ^S|G    Ignored
+:       NEXT            ^S|H    Ignored
+:       DISCONNECT      ^S|I    Ignored
+
+:       The mapping table:
+:       Biased by "A" (41)
+:       0 means ignored
+:                A  B  C  D  E  F  G  H  I
+MAP.VT  BC      8D,00,00,00,1B,00,00,00,00
+MAX.VT  EQ      .-MAP.VT                :length of table
+
+:       VIDEOTEXT Terminal Receiver
+:       ========= ======== ========
+:       Supports both normal and transparency modes
+V.VTX   JAL     RCH,AGETCH              :get the char
+         J      VAESC                   :Control-signal
+        LR      R9,RBC                  :data -- copy it
+        NHI     RBC,7F                  :Input Char in R9, Working Char in RBC
+        CLHI    RBC,20                  :data?
+        JGE     V.VTX1                  :yes...just proceed
+        CLHI    RBC,13                  :^S?
+        JNR     RLINK                   :not ^S, toss it
+        TBT     RP,ELF.CR               :is translate enabled?
+        JE      V.VTX1                  :no...just proceed
+        JAL     R0,VSAVE                :else wait for next character
+
+        JAL     RCH,AGETCH              :back again...get next char
+         J      VAESC                   :Control-signal
+        LA      R0,V.VTX                :restore address
+        ST      R0,.VSTAT,RPI
+        NHI     RBC,7F                  :mask character
+        SHI     RBC,41                  :^S | A ?
+        JLR     RLINK                   :Ignore
+        CLHI    RBC,MAX.VT              :range check
+        JGER    RLINK
+        LB      R9,MAP.VT,RBC           :OK...look it up
+        JER     RLINK                   :null...ignor
+        LHI     RBC,7F                  :OK...set mask
+        NR      RBC,R9                  :make 7-bit
+
+V.VTX1  TBT     RP,ECHO                 :Echoing?
+        JE      VAS3                    :no...use normal handler to clean up
+        TBT     RP,TOPORT               :is output pending?
+        JN      VAED                    :Yes, skip echo
+        TBT     RP,HAFDUX               :half-duplex?
+        JN      VAHD                    :yes...go service it
+        TBT     RBC,PABLE               :Is it easily printable?
+        JE      VAK1                    :yes, go echo
+        TBT     RP,Q.MODE               :"non-printable"...is port in "Q"-mode?
+        JN      VAQ                     :yes...do it
+        TBT     RBC,SPABLE              :special?
+        JE      VAED                    :no...go enter DEM
+        SIS     RBC,0D                  :CR?
+        JN      VAED                    :not a CR...enter DEM
+        TBT     RP,ECR.LF               :Line-feed needed too?
+        JE      VAK1                    :Echo CR for CR
+        LHI     R6,0A8D
+        J       VAEK1                   :echo CR/LF for CR
+
+
+
+:       Videotext Terminal transmitter
+:       ========= ======== ===========
+X.VTX   JAL     RCH,GETCHR              :Get the data
+         J      SIG.VX                  :normal return...It's a signal
+        TBT     RP,TOSING               :Are we tossing data?
+        JNR     RLINK                   :do this until gobbler resets
+        LR      R0,RBC                  :else make another copy of data-char
+        NHI     R0,7F                   :Remove MSB
+        TBT     RP,PARITY               :Parity enabled?
+        JEFS    X.VTX1
+        LR      RBC,R0                  :yes...set char with parity-bit off
+        TBT     R0,PARBIT               :lookup parity
+        JEFS    X.VTX1
+        OHI     RBC,80                  :turn parity-bit on if appropriate
+X.VTX1  SIS     R0,0D                   :Carriage return?
+        JNFS    X.VTX2
+        STH     R0,MARGE,RP2            :yes...reset position
+
+X.VTX2  JAL     RCH,APUTCH              :transmit the character
+        JR      RLINK                   :and exit
+
+
+:       SIG.VX: Signal Processor for VIDEOTEXT
+:       ======
+
+:       Called from VIDEOTEXT transmitter to process control signals
+:       RLINK - Link register
+:       R5 -    Signal to examine
+SIG.VX  SIGBGN(EADSIG,LADSIG)
+        SIGEXC(SECSIG,SECHO)            :Set echo-control
+        SIGEXC(QECSIG,QECHO)            :Query echo-control
+        SIGEXC(ETMSIG,ETM.VX)           :Enter transparency
+        SIGEXC(LTMSIG,LTM.VX)           :Leave transparency
+        SIGEXC(SLCSIG,QBPSIG)           :Set echo_CR_on_LF
+        SIGEND
+
+:       Service Enter-Transparency
+ETM.VX  RBT     RP,ELF.CR               :set transparency on
+        JR      RLINK
+
+:       Service Leave-Transparency
+LTM.VX  SBT     RP,ELF.CR               :set transparency off
+        JR      RLINK
+
+         EI     :VTEXT
+        SUBTTL  ASYNC DRIVER CODE -- ASCII HALF-DUPLEX
+
+        IF      .2HD
+
+
+:               *   * ****         ***   ***   ***
+:               *   * *   *       *   * *   * *   *
+:               ***** *   * *****    *  *   *    *
+:               *   * *   *         *   *   *   *
+:               *   * ****        *****  ***  *****
+
+:       Initial state for HD202 terminals.  Eat input until get EOT (4),
+:               ETX(3), or CR.  Set this for TRNCH(RP).
+ZHDUX   JAL     RCH,AGETCH              :get the char
+         J      0,RLINK                 :ignor control-signals
+        LHI     R0,7F
+        NR      R0,RBC                  :check out the character
+        SIS     R0,3                    :ETX?
+        JEFS    ZHDUX1                  :yes
+        SIS     R0,4-3                  :EOT?
+        JEFS    ZHDUX1                  :yes
+        SIS     R0,0D-4                 :CR?
+        JNR     RLINK                   :ignor all others
+        SBT     RP,CARR                 :CR...make note of it
+ZHDUX1  STB     RBC,TRNCH,RP            :success...set this as turn-around char
+        LA      R0,VHDUX                :set subsequent execution address
+        ST      R0,.VSTAT,RPI
+        J       VHD1                    :and skip to finish taking the line
+
+:       HALF-DUPLEX ASCII terminal receiver.
+:       =========== ===== ======== ========
+VHDUX   JAL     RCH,AGETCH              :Assemble char
+         J      VAESC                   :control-signal
+        LBR     R9,RBC
+        NHI     RBC,7F
+        CLB     R9,TRNCH,RP             :line turn-around?
+        JN      VHD2
+        SIS     RBC,0D                  :yes...CARRET?
+        JNFS    VHD1                    :skip if not
+        L       RBP,.FTBUF,RPI          :else send it on
+        LR      RBC,R9
+        JAL     RCH,PUTCHR
+        SBT     RP,CARR                 :record CR passage
+
+VHD1    SBT     RP,RTS                  :take the line...
+        JAL     RBF,A.RS.U              :bring RS up
+        SBT     RP,DEM                  :force new green-ball handshaking
+        RBT     RP,ATTN
+        JR      RLINK
+
+VHD2    SIS     RBC,0D                  :CARRET?
+        JNFS    VHD3
+        SBT     RP,CARR                 :make note of it
+        J       VASEND
+
+VHD3    AIS     RBC,0D-0A               :LINE FEED?
+        JNFS    VHD4                    :no, send off character
+        RBT     RP,CARR                 :yes, ignore if after a CARRET
+        JNR     RLINK
+        AIS     R9,0D-0A                :else change to CARRET
+        J       VASEND                  :and send it off
+
+VHD4    RBT     RP,CARR
+        J       VASEND
+
+
+:       HALF-DUPLEX ASCII Transmitter.
+:       =========== ===== ===========
+
+:       Initial handler to set up states for login
+YHDUX   JAL     RBF,A.RS.U              :initially, bring RS up!
+        SBT     RP,RTS                  :record it on
+        L       RBP,.TTBUF,RPI          :place a green-ball at end of TID...
+         LO     SIGNAL
+        LIS     R4,GBSIG                :...message to insure line turn-around
+         FO     SIGNAL
+        JAL     RCH,PUTSIG
+        SBT     RP,DEM                  :record that it's there
+        J       XHD4                    :...then go set up
+
+
+:       normal transmitter
+XHDUX   TBT     RP,XMTF                 :Do we have the line?
+        JEFS    XHD1                    :no...check further
+        RBT     RP,ATTN                 :is there a reverse-channel request?
+        JEFS    XHD2                    :no...go service char
+        RBT     RP,GBO                  :yes...ignore future green-balls
+        J       XHD6                    :turn line around
+
+XHD1    JAL     RCH,CPEEK               :check if control-signal pending
+         J      XHD3                    :no
+
+:       Get next element to service
+XHD2    JAL     RCH,GETCHR
+         J      SIG.HD                  :control signal
+        J       XAS0                    :data...use normal handler to send
+
+:       No control-signals pending, and we can't transmit (yet).
+XHD3    TBT     RP,RTS                  :did line just turn around?
+        JEFS    XHD5                    :no, delay awhile longer
+        LIS     R5,8                    :yes, delay 0.25 sec
+        JAL     RCH,ADELAY
+        JAL     R0,XHSTAT
+
+XHD4    SBT     RP,XMTF                 :now we can transmit
+XHD5    LIS     R5,3                    :3 character times
+        JAL     RCH,ADELAY
+        J       XHD9                    :restore XSTATE and defer output
+
+:       send ETX and/or EOT to turn line around (back to input from terminal).
+XHD6    LB      R5,TRNCH,RP
+        NHI     R5,7F
+        SIS     R5,4
+        JEFS    XHD7                    :turn-around char is EOT, don't send ETX
+        LIS     RBC,3                   :ETX
+        JAL     RCH,APUTCH              :send it...
+        JAL     R0,XHSTAT               :...and dismiss
+
+        LB      R5,TRNCH,RP
+        NHI     R5,7F
+        SIS     R5,4
+XHD7    AIS     R5,4-3
+        JEFS    XHD8                    :turn-around is ETX, don't send EOT
+        LHI     RBC,84                  :EOT with parity
+        JAL     RCH,APUTCH              :send it...
+        JAL     R0,XHSTAT               :...and dismiss
+
+XHD8    LIS     R5,1                    :delay until entire char transmitted
+        JAL     RCH,ADELAY
+        JAL     R0,XHSTAT               :...and dismiss
+
+        JAL     RBF,A.RS.D              :drop request-to-send
+        RBT     RP,RTS
+        RBT     RP,XMTF                 :we can transmit no more
+
+:       Restore to normal transmitter function
+XHD9    LA      R0,XHDUX                :restore XSTATE to normal
+XHSTAT  ST      R0,.XSTAT,RPI
+        J       XDEF                    :defer further output
+
+
+:       SIG.HD: Signal Processor for half-duplex ASYNC
+:       ======
+
+:       Called from Half-duplex ASYNC transmitter to process control signals
+:       RLINK - Link register
+:       R5 -    Signal to examine
+SIG.HD  SIGBGN(ETMSIG,LTMSIG,EADSIG,LADSIG)
+        SIGEXC(GBSIG,XHDGB)             :Green-ball
+        SIGEXC(SIRSIG,SIBRAT)           :Set input baud-rate
+        SIGEXC(SORSIG,SOBRAT)           :Set output baud-rate
+        SIGEXC(SPASIG,SFPSIG)           :Set Parameter A
+        SIGEXC(SPBSIG,SFPSIG)           :Set Parameter B
+        SIGEXC(SPCSIG,SFPSIG)           :Set Parameter C
+        SIGEXC(SPDSIG,SFPSIG)           :Set Parameter D
+        SIGEXC(SECSIG,SECHO)            :Set echo-control
+        SIGEXC(QECSIG,QECHO)            :Query echo-control
+        SIGEND
+
+         LO     SIGNAL
+:       Green-ball
+XHDGB   RBT     RP,DEM                  :check DEM
+        JER     RLINK                   :ignor if none expected
+        RBT     RP,GBO
+        SBT     RP,NBO
+        LIS     R4,LDMSIG               :send LDEC to prevent echo
+        L       RBP,.FTBUF,RPI          :from-terminal buffer-pointer
+        JAL     RCH,PUTSIG              :send LDEC
+        L       RBP,.TTBUF,RPI          :to-terminal buffer-pointer
+        LIS     R4,GBSIG                :stuff green-ball back...
+         FO     SIGNAL
+        JAL     RCH,PUTSIG              :...to insure activation
+        J       XHD6                    :turn line around
+
+        EI      :.2HD
+        SUBTTL  ASYNC 2741 DRIVER CODE
+
+
+:        ***  ***** *  *   **        *  ***  *****  ***  *****
+:       *   *    *  *  *    *       *  *   *    *  *        *
+:          *    *   *****   *      *      *    *   ****    *
+:         *    *       *    *     *    *   *  *    *   *  *
+:       ***** *        *  *****  *      ***  *      ***  *
+
+:       Symbolic names for 2741 control characters (8-bit)
+.27CR   EQ      0ED                     :CR (New-Line)
+.27LF   EQ      0EE                     :LF
+.27SPC  EQ      0C0                     :space
+.27TAB  EQ      0AF                     :HT
+.27DUM  EQ      082                     :dummy char (meaningless)
+.27EOA  EQ      0B4                     :EOA
+.27EOT  EQ      0FC                     :EOT
+.27LC   EQ      09F                     :lower-case
+.27UC   EQ      09C                     :upper-case
+.27BS   EQ      0DD                     :Back-space
+.27IDL  EQ      0BD                     :IDLE
+
+
+:       Initial state for 2741-type terminals if not identified with CR.
+:               Then must scan (and eat) input until CR arrives.  Only
+:               then can we proceed with normal initialization.
+Z2741   JAL     RCH,AGETCH              :Get the next character input
+         J      0,RLINK                 :control-signal...ignore
+        NHI     RBC,3F                  :Reduce to 6-bits
+        SHI     RBC,.27CR&3F            :looking for C/R
+        JNR     RLINK                   :exit if not
+
+:       Got a CR...set up new receive driver
+        LA      R3,V2741                :set new address
+        ST      R3,.VSTAT,RPI           :...into state-vector
+        JR      RLINK                   :and exit
+
+
+:       2741 Receiver.
+:       ==== ========
+V2741   JAL     RCH,AGETCH              :assemble character
+         J      V27BRK                  :control signal (BREAK begin or end)
+        RBT     RP,EOAF                 :if we're expecting EOA,
+        JN      VEOA                    :this must be it
+        LB      R9,VTBA,RP              :translate - table start displacement
+        NHI     RBC,3F                  :strip stop and parity bits
+        AR      R9,RBC
+        RBT     RP,SCF                  :special-case is good for only one char
+        JEFS    V27A
+        AHI     R9,80                   :set special-case table address
+        JFS     V27B
+V27A    TBT     RP,UCF                  :should this be upper case?
+        JEFS    V27B
+        AHI     R9,40                   :yes...bias pointer to alternate table entry
+V27B    LB      R9,T27VC,R9
+        THI     R9,80                   :high-bit of byte =0 means entry is
+V27C    JE      V27C,R9                 :       relative...address of special
+                                        :       character processor
+        LBR     RBC,R9                  :transmit the character
+V27D    JAL     RCH,PUTCHR
+V27E    LIS     RBC,3                   :increment carriage position count
+        AHM     RBC,MARGE,RP2           :       (by 3, so we won't have to div)
+        JR      RLINK
+
+:       Special character processors:
+VSPC    SBT     RP,SCF                  :Special (+/-)-case shift
+        JBS     V27E                    :inc carriage pos on this one
+
+:       CARRET
+VCRC    LH      R5,MARGE,RP2            :compute delay
+        SRLS    R5,5                    :DELAY=((3*#CHAR)/32)+2
+        AIS     R5,2
+        JAL     RCH,ADELAY
+        LHI     RBC,8D                  :send a CARRET
+        J       V27D
+
+:       BREAK
+V27BRK  TBT     RP,XMTF                 :are we transmitting?
+        JER     RLINK                   :no...just ignore breaks
+         LO     SIGNAL
+        SIS     R5,BESIG                :this must be ATTN request..
+         FO     SIGNAL
+        JNR     RLINK                   :wait until it's over (BREAK-end)
+        SBT     RP,ATTN                 :and set flag for transmitter
+        JFS     VXCAL
+
+VEOT    SBT     RP,EOTF                 :EOT - tell X2741 that CONSAT
+        SBT     RP,XMTF                 :can now transmit
+VXCAL   L       RBP,.TTBUF,RPI          :to-terminal buffer-pointer
+        LHI     RBC,.27DUM              :put a dummy char into the buffer
+        JAL     RCH,PUTCHR              :       ...to insure X2741 is called
+
+VEOA    RBT     RP,SCF                  :EOA...reset this just in case
+
+VLCC    RBT     RP,UCF                  :Lower-case shift
+
+VNUL    JR      RLINK
+
+
+VUCC    SBT     RP,UCF                  :Upper-case shift
+        JR      RLINK
+
+
+
+:       2741 transmitter.
+:       ==== ===========
+X2741   TBT     RP,XMTF                 :can we transmit?
+        JNFS    X27A                    :yes...proceed
+        JAL     RCH,CPEEK               :no...any signals pending?
+         J      XDEF                    :no...just defer for now
+        JFS     X27B                    :yes...go get it
+
+X27A    RBT     RP,ATTN                 :ATTN request?
+        JN      X27ATN                  :yes
+        RBT     RP,EOTF                 :was an EOT received?
+        JEFS    X27B
+        SBT     RP,DEM                  :start the green-ball stuff
+        LHI     RBC,.27EOA              :transmit EOA
+        J       X27F                    :and transmit it
+
+X27B    JAL     RCH,GETCHR              :none of the above - get a char
+         J      SIG.27                  :control signal
+        NHI     RBC,7F                  :mask to 7-bit
+        LB      R4,XTBA,RP              :get translate-table start displacement
+        LB      RBC,T27XC,RBC,R4        :2741 char now in RBC
+        JER     RLINK                   :don't output null characters
+        CLHI    RBC,.27CR&7F            :is it a CARRET?
+        JE      X27CR
+        RBT     RP,CARR                 :ignor  LF's after CR's
+        JEFS    X27C
+        CLHI    RBC,.27LF&7F            :LF?
+        JER     RLINK
+X27C    CLHI    RBC,.27LF&7F            :not CARRET...
+        JE      X27LF                   :LF not following CR!
+        CLHI    RBC,.27SPC&7F           :don't shift case on spaces
+        JE      X27E
+        CLHI    RBC,.27TAB&7F           : ...or tabs
+        JE      X27E
+        LHI     R0,9C1F                 :test for, and (if needed)...
+        TBT     RP,UCF                  :...shift to the correct case
+        JEFS    X27D
+        EXBR    R0,R0                   :bit 24 now equals UCF
+                                        :...bits 17-23 contain shift-code
+                                        :       we might need to output
+X27D    XR      R0,RBC
+        THI     R0,80                   :if it's 0, case is right
+        JEFS    X27E
+        LR      R9,RBC                  :else save char...
+        EXBR    RBC,R0                  :output a case shift
+        OHI     RBC,80                  :(remembering to set high bit)
+        JAL     RCH,APUTCH
+        CBT     RP,UCF                  :complement current case
+        LR      RBC,R9                  :restore the character
+
+X27E    LIS     R5,3                    :inc position
+        AHM     R5,MARGE,RP2
+        OHI     RBC,80                  :Hi-order bit always=1
+X27F    JAL     RCH,APUTCH              :...on chars sent to terminal
+        JR      RLINK
+
+
+:       Special character processors:
+X27LF   LIS     R5,1                    :Line-feed...preceed with 1 delay,
+        JAL     RCH,ADELAY
+        LHI     RBC,.27LF               :...then line-feed
+        JAL     RCH,APUTCH
+        LIS     R5,2                    :follow with 2-char delay
+        JAL     RCH,ADELAY
+        J       XDEF                    :...and defer further output for now
+
+X27CR   LHI     RBC,.27CR               :CARRET
+        JAL     RCH,APUTCH
+        SBT     RP,CARR                 :and remember it happened
+        LB      R5,MARGE+1,RP2          :compute delay
+        SRLS    R5,3
+        AIS     R5,2
+        JAL     RCH,ADELAY              :else set delay
+        J       XDEF                    :and defer output this go-roundie
+
+:       SIG.27: Signal Processor for 2741-transmitter
+:       =====
+
+:       Called from X2741 transmitter to process control signals
+:       RLINK - Link register
+:       R5 -    Signal to examine
+SIG.27  SIGBGN(LTMSIG,EADSIG-LADSIG,SPASIG-QQMSIG)
+        SIGEXC(ZAPSIG,XZAP)             :zapper...alternate entry
+        SIGEXC(GBSIG,X27GB)             :Green-ball
+        SIGEXC(SHGSIG,HANGUP)           :Super-hang...just hang
+        SIGEXC(ETMSIG,X27ETM)           :Enter transparency
+        SIGEND
+
+X27ATN  RBT     RP,GBO                  :ignore future green-balls
+        JFS     X27GB1
+
+:       Green-ball
+X27GB   RBT     RP,DEM                  :check DEM
+        JER     RLINK                   :no...ignore it
+        RBT     RP,GBO
+        SBT     RP,NBO
+        L       RBP,.FTBUF,RPI          :From-terminal buffer-pointer
+         LO     SIGNAL
+        LIS     R4,LDMSIG
+         FO     SIGNAL
+        JAL     RCH,PUTSIG              :send LDEC to host
+X27GB1  LHI     RBC,.27EOT              :transmit EOT
+        L       RBP,.TTBUF,RPI          :...toward terminal
+        JAL     RCH,APUTCH
+        RBT     RP,XMTF                 :CONSAT can no longer transmit
+        SBT     RP,EOAF                 :tell receiver to expect an EOA
+        LIS     R5,7
+        JAL     RCH,ADELAY              :delay 7 times after EOT
+        JR      RLINK
+
+:       Enter-Transparency-Mode
+X27ETM  LA      R0,VGLASS
+        LA      R1,XGLASS
+        RBT     RP,SCF
+        ST      R0,.VSTAT,RPI
+        ST      R1,.XSTAT,RPI
+        JR      RLINK
+
+
+
+
+
+
+
+
+:       2741 transparency-mode receiver.
+:       ==== ================= ========
+VGLASS  JAL     RCH,AGETCH              :assemble the character
+         J      VGBRK                   :control signal (BREAK begin or end)
+        L       RBP,.FTBUF,RPI          :From-terminal buffer-pointer
+        OHI     RBC,80                  :always set Hi-order bit..
+        LR      R9,RBC                  :save copy of character sent
+        JAL     RCH,PUTCHR
+        RBT     RP,EOAF                 :if we're expecting EOA,
+        JN      VLCC                    :...this must be it
+        CLHI    R9,.27EOT               :keep track of terminal state..
+        JNFS    VGLAS1
+        SBT     RP,XMTF                 :we can transmit now
+        SBT     RP,EOTF
+        J       VLCC
+
+VGLAS1  CLHI    R9,.27UC                :...and case-shifts
+        JE      VUCC
+        CLHI    R9,.27LC                :down-shift?
+        JE      VLCC
+        JR      RLINK
+
+:       ATTN request (BREAK begin or end) detected.
+VGBRK   TBT     RP,XMTF                 :bit set if CONSAT is transmitting,
+        JER     RLINK                   :       zero if terminal transmitting
+                                        :       (CONSAT receiving)
+        LO      SIGNAL
+        SIS     R5,BESIG                :ignor until get BREAK-end
+        JNR     RLINK                   :not ATTN, discard noise
+        L       RBP,.FTBUF,RPI          :From-terminal buffer-pointer
+        TBT     RP,TSNBRK               :toss-data on BREAK enabled?
+        JEFS    VGBRK1                  :not enabled, handle ATTN request
+                                        :       normally
+        SBT     RP,TOSING               :alert transmitter to start tossing
+                                        :       output
+VGBRK1  SBT     RP,ATTN                 :and set bit for transmitter
+        JNR     RLINK                   :if not first BREAK char, don't send
+                                        :       BREAK to host
+        LIS     R4,BBSIG                :send BREAK-begin signal into TYMNET
+        JAL     RCH,PUTSIG
+        LIS     R4,BBSIG                :...twice!
+        FO      SIGNAL
+        JAL     RCH,PUTSIG
+        JR      RLINK                   :done
+
+:       2741 transparency-mode transmitter.
+:       ==== ================= ===========
+XGLASS  JAL     RCH,GETCHR              :get the character
+         J      SIG.XG                  :normal return...control signal
+        TBT     RP,TOSING               :are we tossing output?
+        JNR     RLINK                   :yes - TOSING reset by receipt of
+                                        :       gobbler
+        OHI     RBC,80                  :set stop-bit
+        LR      R9,RBC                  :save character
+        JAL     RCH,APUTCH              :transmit character to terminal
+        RBT     RP,EOTF                 :only needed in non-transparency mode
+        CLHI    R9,.27EOT               :EOT transmitted?
+        JN      VGLAS1                  :no, keep track of shifts
+        RBT     RP,ATTN                 :if ATTN req pending, it's satisfied
+        RBT     RP,XMTF                 :terminal now in transmit mode
+        SBT     RP,EOAF                 :and receiver should expect EOA
+        JR      RLINK
+
+:       SIG.XG: Signal Processor for 2741-Transparency
+:       ======
+:       Called from XGLASS transmitter to process control signals
+:       RLINK - Link register
+:       R5 -    Signal to examine
+SIG.XG  SIGBGN(ETMSIG,EADSIG-LADSIG,SPASIG-QQMSIG)
+        SIGEXC(GBSIG,XGGB)              :green-ball
+        SIGEXC(SHGSIG,HANGUP)           :Super-hang...just hang
+        SIGEXC(ZAPSIG,XGZAP)            :Zapper
+        SIGEXC(LTMSIG,XGLTM)            :Leave transparency-mode
+        SIGEND
+
+:       Green-ball
+XGGB    RBT     RP,DEM                  :just turn off DEM
+        JR      RLINK                   :...and ignore
+
+:       Zapper
+XGZAP   LA      RLINK,XZAP              :exit via 2741 zapper
+
+:       Leave-Transparency-Mode
+XGLTM   LA      R0,V2741
+        LA      R1,X2741
+        ST      R0,.VSTAT,RPI
+        ST      R1,.XSTAT,RPI
+        JR      RLINK
+
+
+
+
+
+
+
+
+:       2741 Receiver conversion tables:
+
+:       Three tables for each terminal type (EBCD or CORRESPONDANCE).
+:       Single byte per entry.  Entries with high-order bit on are
+:       ASCII code for character, others are P-relative addresses of
+:       routines that handle special characters (i.e., case shifts).
+
+
+        RA      8                       :tables are in octal
+
+NUL     EQ      VNUL-V27C               :define relative addresses..
+CAR     EQ      VCRC-V27C               :of character processors
+UCS     EQ      VUCC-V27C
+LLS     EQ      VLCC-V27C
+SPS     EQ      VSPC-V27C
+ETS     EQ      VEOT-V27C
+
+:       CORRESPONDENCE code:
+
+:       Lower case
+T27VC   BC      240,241,364,352,264,357,354,257,265,247,345,360
+        BC      NUL,NUL,NUL,NUL,262,256,356,275,372,NUL,NUL,NUL
+        BC      266,351,353,361,UCS,210,NUL,LLS,261,355,370,347
+        BC      260,363,350,371,267,362,344,273,NUL,CAR,212,211
+        BC      263,366,365,346,271,367,342,255,270,341,343,254
+        BC      ETS,NUL,NUL,NUL
+:       Upper case:
+        BC      240,335,324,312,244,317,314,277,245,242,305,320
+        BC      NUL,NUL,NUL,NUL,300,256,316,253,332,NUL,NUL,NUL
+        BC      333,311,313,321,UCS,210,NUL,LLS,SPS,315,330,307
+        BC      251,323,310,331,246,322,304,272,NUL,CAR,212,211
+        BC      243,326,325,306,250,327,302,337,252,301,303,254
+        BC      ETS,NUL,NUL,NUL
+:       Special (+/-) case
+        BC      NUL,336,224,212,234,217,214,334,235,340,205,220
+        BC      NUL,NUL,NUL,NUL,NUL,374,216,373,232,NUL,NUL,NUL
+        BC      236,211,213,221,UCS,NUL,NUL,LLS,NUL,215,230,207
+        BC      276,223,210,231,237,222,204,377,NUL,NUL,NUL,NUL
+        BC      233,226,225,206,274,227,202,376,375,201,203,NUL
+        BC      ETS,NUL,NUL,NUL
+
+:       EBCD code:
+
+:       Lower case:
+T27VE   BC      240,255,300,246,270,361,371,350,264,355,365,344
+        BC      NUL,NUL,NUL,NUL,262,353,363,342,260,NUL,NUL,NUL
+        BC      266,357,367,346,UCS,210,NUL,LLS,261,352,257,341
+        BC      271,362,372,351,265,356,366,345,NUL,CAR,212,211
+        BC      263,354,364,343,243,244,254,256,267,360,370,347
+        BC      ETS,NUL,NUL,NUL
+:       Upper case:
+        BC      240,337,SPS,253,252,321,331,310,272,315,325,304
+        BC      NUL,NUL,NUL,NUL,274,313,323,302,251,NUL,NUL,NUL
+        BC      247,317,327,306,UCS,210,NUL,LLS,275,312,277,301
+        BC      250,322,332,311,245,316,326,305,NUL,CAR,212,211
+        BC      273,314,324,303,242,241,374,336,276,320,330,307
+        BC      ETS,NUL,NUL,NUL
+:       Special (+/-) case
+        BC      NUL,376,NUL,037,375,221,231,210,234,215,225,204
+        BC      NUL,NUL,NUL,NUL,333,213,223,202,335,NUL,NUL,NUL
+        BC      236,217,227,206,UCS,NUL,NUL,LLS,373,336,334,201
+        BC      333,222,232,211,235,216,226,205,377,CAR,NUL,NUL
+        BC      233,214,224,203,340,336,377,334,237,220,230,207
+        BC      ETS,NUL,NUL,NUL
+
+:       2741 Transmitter conversion tables:
+
+:       ASCII to 2741 code conversion.  One byte per entry.  High-order
+:       bit on indicates character is upper case.
+
+:       CORRESPONDENCE code:
+T27XC   BC      000,000,000,000,000,000,000,040,135,057,156,000
+        BC      000,155,000,000,000,000,000,000,000,000,000,000
+        BC      000,000,000,000,000,000,000,000,100,001,311,360
+        BC      204,210,350,111,364,344,270,223,273,067,121,007
+        BC      144,040,020,160,004,010,130,150,070,064,353,153
+        BC      264,023,344,207
+
+        BC      220,371,366,372,252,312,363,243,246,231,303,232
+        BC      306,341,322,305,213,333,251,245,202,262,261,365
+        BC      342,347,324,330,007,201,001,267,111,171,166,172
+        BC      052,112,163,043,046,031,103,032,106,141,122,105
+        BC      013,133,051,045,002,062,061,165,142,147,124,264
+        BC      001,344,000,075
+
+:       EBCD code:
+T27XE   BC      000,000,000,000,000,000,000,040,135,057,156,000
+        BC      000,155,000,000,000,000,000,000,000,000,000,000
+        BC      000,000,000,000,000,000,000,000,100,365,264,064
+        BC      165,350,103,130,344,324,204,303,166,001,067,142
+        BC      124,040,020,160,010,150,130,070,004,144,210,360
+        BC      220,240,270,342
+
+        BC      202,243,223,363,213,353,333,273,207,347,341,321
+        BC      261,311,251,231,371,305,245,322,262,312,252,232
+        BC      372,306,246,344,142,324,166,201,330,043,023,163
+        BC      013,153,133,073,007,147,141,121,061,111,051,031
+        BC      171,105,045,122,062,112,052,032,172,106,046,344
+        BC      166,124,267,075
+
+        RA      0                       :back to Hex radix
+
+TEBC    EQ      (T27VE-T27VC)^8!(T27XE-T27XC)   :kludge for byte forward refs
+         IF     BAUDA
+        SUBTTL  ASYNC BAUDOT
+
+:       Half-Duplex BAUDOT ASYNC
+
+:               ****    *   *   * ****   ***  *****
+:               *   *  * *  *   * *   * *   *   *
+:               ****  ***** *   * *   * *   *   *
+:               *   * *   * *   * *   * *   *   *
+:               ****  *   *  ***  ****   ***    *
+
+:       Half-Duplex BAUDOT ASYNC Input Routine
+:       =========== ====== ===== =====
+:       Register assignments for this driver
+:       RBP -   From-port buffer index
+:       R7 -    Character from ASYNC driver
+:       R8 -    8-word index
+:       R9 -    Pointer to ASYNC character
+:       RPI -   Pointer to port-table entry
+:       RP -    port number
+:       RP2 -   port number*2
+VHBAD   JAL     RCH,AGETCH              :get the next character
+         J      VAESC                   :service BREAK
+        NHI     RBC,1F                  :mask it down
+        TBT     RP,BICF                 :which case to use
+        JEFS    VHBA1                   :letter
+        OHI     RBC,(B.CCIT+1)*20       :number...USE CCITT TRANSLATION TABLE!
+VHBA1   LB      R9,BAUD.A,RBC           :get the ASCII character
+        THI     R9,80                   :is this real data?
+        JN      VASEND                  :yes...send it
+        SIS     R9,1                    :special character...
+        JGFS    VHBA2                   :letter-shift
+        JLR     RLINK                   :0...ignor
+        SBT     RP,BICF                 :number-case
+        JR      RLINK
+VHBA2   RBT     RP,BICF                 :letter-case
+        JR      RLINK
+
+
+:       Half-Duplex BAUDOT ASYNC Output Routine
+:       =========== ====== ====== ====== =======
+XHBAD   JAL     RCH,GETCHR              :get the character
+         J      XHBAC                   :Control-signal...go process it
+        NHI     RBC,7F                  :mask the character
+        LB      R9,A.BAUD,RBC           :get the BAUDOT character
+        JER     RLINK                   :ignor nulls
+        THI     R9,80                   :check for case-independence
+        JN      XHBA2                   :send immediately if so
+        LHI     RBC,(.BADLC^8)!.BADNC!20 :set up case-shift constant
+        TBT     RP,BOCF                 :check current case
+        JNFS    XHBA1
+        EXBR    RBC,RBC                 :letter case...swap
+XHBA1   XR      RBC,R9                  :check the shift required
+        THI     RBC,20                  :check if same case as current
+        JEFS    XHBA2                   :skip if OK
+        CBT     RP,BOCF                 :else change case
+        EXBR    RBC,RBC                 :RBC contains case-shift to send
+        OHI     RBC,-20                 :set high-bits
+        JAL     RCH,APUTCH              :send case-shift
+XHBA2   LR      RBC,R9                  :send data-character
+        OHI     RBC,-20                 :set high-bits
+        JAL     RCH,APUTCH
+        JR      RLINK
+
+:       Control-signal in stream
+:       RLINK - Link register
+:       R5 -    Signal to examine
+XHBAC   SIGBGN(EADSIG,LADSIG,SHGSIG,SEXSIG-QQMSIG)
+        SIGEXC(ETMSIG,XHBETM)           :enter-transparency-mode
+        SIGEND
+
+:       Enter-Transparency-Mode
+XHBETM  LA      R0,VHBGD
+        LA      R1,XHBGD
+        ST      R0,.VSTAT,RPI
+        ST      R1,.XSTAT,RPI
+        JR      RLINK
+
+
+
+
+
+
+
+
+:       Transparent (glass) Half-Duplex BAUDOT ASYNC
+
+:       Half-Duplex BAUDOT ASYNC Input Routine
+:       =========== ====== ===== =====
+:       Register assignments for this driver
+:       RBP -   From-port buffer index
+:       R7 -    Character from ASYNC driver
+:       R8 -    8-word index
+:       R9 -    Pointer to ASYNC character
+:       RPI -   Pointer to port-table entry
+:       RP -    port number
+:       RP2 -   port number*2
+VHBGD   JAL     RCH,GETCHR              :get the next character
+         J      VAESC                   :break
+        NHI     RBC,1F                  :mask down the character
+        CLHI    RBC,.BADLC              :letter-case?
+        JNFS    VHBG1                   :no
+        RBT     RP,BICF                 :yes...set letter-case
+        JFS     VHBG2                   :go send it
+VHBG1   CLHI    RBC,.BADNC              :number-case?
+        JNFS    VHBG2                   :no
+        SBT     RP,BICF                 :yes...set number-case
+VHBG2   OHI     RBC,0E0,RBC             :insure high-order bits are set
+        J       VASEND                  :send it along
+
+
+:       Half-Duplex BAUDOT ASYNC Output Routine
+:       =========== ====== ====== ====== =======
+XHBGD   JAL     RCH,GETCHR              :get the character
+         J      XHBGC                   :Control-signal...go process it
+        NHI     RBC,1F                  :mask the character
+        CLHI    RBC,.BADLC              :record case-shifts
+        JNFS    XHBG1
+        RBT     RP,BOCF
+        JFS     XHBG2
+XHBG1   CLHI    RBC,.BADNC              :record case-shifts
+        JNFS    XHBG2
+        SBT     RP,BOCF
+XHBG2   OHI     RBC,-20                 :set high-order bits
+        JAL     RCH,APUTCH              :...and send data
+        JR      RLINK
+
+:       Control-signal in stream
+:       RLINK - Link register
+:       R5 -    Signal to examine
+XHBGC   SIGBGN(ETMSIG,EADSIG,LADSIG,SHGSIG,SEXSIG-QQMSIG)
+        SIGEXC(ZAPSIG,XHBZAP)           :Zapper
+        SIGEXC(LTMSIG,XHBLTM)           :leave transparency
+        SIGEND
+
+:       Zapper
+XHBZAP  LA      RLINK,ZAPPER            :exit via zapper
+
+:       Leave-Transparency-Mode
+XHBLTM  LA      R0,VHBAD
+        LA      R1,XHBAD
+        ST      R0,.VSTAT,RPI
+        ST      R1,.XSTAT,RPI
+        JR      RLINK
+
+         EI     :BAUDA
+        SUBTTL  PRINTER-DRIVER CODE
+
+         IF     NUMPRN
+
+
+:       ****  ****  ***** *   * ***** ***** ****
+:       *   * *   *   *   **  *   *   *     *   *
+:       ****  ****    *   * * *   *   ****  ****
+:       *     *  *    *   *  **   *   *     *  *
+:       *     *   * ***** *   *   *   ***** *   *
+
+        GL      SETPRN,PCHAR,PFLUSH
+
+:       SIG.P:  Signal Processor for PRINTER
+:       =====
+
+:       Called from PRINTER transmitter to process control signals
+:       RLINK - Link register
+:       R5 -    Signal to examine
+SIG.P   SIGBGN(ETMSIG,LTMSIG,EADSIG)
+        SIGEXC(ZAPSIG,PRZAP)            :zapper
+        SIGEXC(GOBSIG,PRLAOD)           :gobbler
+        SIGEXC(LADSIG,PRLAOD)           :Leave alternate-output-device
+        SIGEXC(SIRSIG,SIBRAT)           :Set input baud-rate
+        SIGEXC(SORSIG,SOBRAT)           :Set output baud-rate
+        SIGEXC(SECSIG,SECHO)            :Set echo-control
+        SIGEXC(QECSIG,QECHO)            :Query echo-control
+        SIGEXC(SKKSIG,PRSKK)            :Set KATAKANA
+        SIGEXC(QKKSIG,PRQKK)            :Query KATAKANA
+        SIGEND
+
+:       Leave alternate-output-device mode
+PRLAOD  JAL     RBF,PFLUSH              :Flush output (if any)
+         NOP    0                       :in case skip return
+        LA      R0,XASCI                :restore normal handler
+        ST      R0,.XSTAT,RPI
+        JR      RLINK                   :then exit
+
+:       Zapper
+PRZAP   JAL     RBF,PFLUSH              :Flush output (if any)
+         NOP    0                       :in case skip return
+        LA      R0,XASCI                :restore normal handler
+        ST      R0,.XSTAT,RPI
+        J       ZAPPER                  :then proceed with zapper logic
+
+:       Set KATAKANA
+PRSKK   SBT     RP,KTKANA               :turn it on
+        NHI     RBC,1                   :test new state
+        JNFS    PRQKK                   :Done...report it back
+        RBT     RP,KTKANA               :Else turn it off again
+
+:       Query KATAKANA
+PRQKK   LCS     R4,2                    :Make even
+        NR      R4,R5
+        LIS     RBC,0                   :Expect to return a zero
+        TBT     RP,KTKANA               :is bit on?
+        JE      SIGRSP                  :no...skip
+        LIS     RBC,1                   :yes...return a 1
+        J       SIGRSP
+
+
+
+:               PRINTER Driver
+:       Copy output from buffer to printer until:
+:       1.      Hit a signal,
+:       2.      Hit a CR,
+:       3.      or Fill a buffer.
+:       RP -    Printer (port) number
+:       RP2 -   Printer (port) number*2
+:       RLINK - Link register
+XPRINT  JAL     RBF,SETPRN              :get current rotor entry
+         J      PRINT1                  :output not busy
+        JAL     RCH,CPEEK               :Output is busy...
+         J      XDEF                    :defer if not a signal pending
+                                        :...else process it!! (may be zapper)
+
+:       Proceed with printing
+PRINT1  TBT     RP,TOPORT               :any more data?
+        JER     RLINK                   :no, exit
+        JAL     RCH,GETCHR              :get a character
+         J      SIG.P                   :Control-signal
+        CLHI    RBC,83                  :return-to-terminal-output command (^C)?
+        JE      PRLAOD                  :yes...leave alternate-output-device mode
+        TBT     RP,KTKANA               :KATAKANA printer?
+        JEFS    PRINT2                  :no...skip
+        CLHI    RBC,0E0                 :yes...blank compression?
+        JGE     PRINT5                  :yes
+        JFS     PRINT3                  :no...skip normal test
+
+PRINT2  CLHI    RBC,80                  :is this a blank compression?
+        JL      PRINT6                  :jump if so
+PRINT3  CLHI    RBC,8D                  :carriage return?
+        JNFS    PRINT4                  :jump if not
+        LIS     RBC,0                   :<CR> converts to 0 in new format
+        JAL     RBF,PCHAR               :and send it
+         J      XDEF                    :defer for now
+        J       XDEF                    :skip return...defer for now
+
+:       Data char...print it
+PRINT4  JAL     RBF,PCHAR               :send it
+         J      PRINT1                  :and go on to next char
+        J       XDEF                    :skip exit...quit for now
+
+:       Blank compression
+:       KATAKANA compression
+PRINT5  SHI     RBC,0E0-8               :convert to standard form
+
+:       normal compression
+PRINT6  SIS     RBC,8                   :bias because 09 really means one blank
+        LHI     R7,-40,RBC              :how many blanks to compress?
+        JLFS    PRINT7                  :less than 40..send it
+        AIS     R7,1                    :more than 40...
+        LHI     RBC,3F                  :send this many first...
+        JAL     RBF,PCHAR
+         NOP    0                       :don't care about skip returns
+        LR      RBC,R7                  :this many more
+PRINT7  JAL     RBF,PCHAR               :send it
+         NOP    0                       :don't care about skip returns
+        J       XRET                    :skip exit...quit for now
+
+         EI     :NUMPRN
+        SUBTTL  ASYNC ANSWER/HANG CODE
+
+
+:                           *    **** *   * *   *  ***
+:                          * *  *      * *  **  * *   *
+:                         *****  ***    *   * * * *
+:                         *   *     *   *   *  ** *   *
+:                         *   * ****    *   *   *  ***
+
+:       *   *   *   *   *  ***          *   *   *  **** *   * ***** ****
+:       *   *  * *  **  * *   *        * *  **  * *     *   * *     *   *
+:       ***** ***** * * * *     ***** ***** * * *  ***  * * * ****  ****
+:       *   * *   * *  ** *  **       *   * *  **     * ** ** *     *  *
+:       *   * *   * *   *  ****       *   * *   * ****  *   * ***** *   *
+
+:       This is the environment-independent portion of ASYNC ANSWER/HANG --
+:       It performs the following sequence of functions (by port-group):
+:       1       Compute new value of CP,
+:       2       Compute new value of DSR,
+:       3       Compute new value of DTR,
+:       4       detects changes to RLA,
+:                       does Answer and Hang as necessary.
+
+:       Working registers for HANG/ANSWER module
+WDTR    EQ      9                       :Data Terminal Ready
+WDSR    EQ      8                       :Data Set Ready
+WCP     EQ      7                       :Carrier Present
+WRLA    EQ      WDTR                    :Receiver line active
+
+AHNGAN  ST      R0,QRET                 :save return
+        LHI     RPOL,(NAGRP-1)*2        :start with last group
+
+:       Note -  in the following, TRUE = 0, FALSE = 1
+
+:       CP=(((CP0&CP1&CP2&CP3)!OLDCP)&(CP0!CP1!CP2!CP3))!@HD202
+QHA1    LH      WCP,CPSAMP,RPOL
+        OH      WCP,NAGRP*2+CPSAMP,RPOL
+        OH      WCP,NAGRP*4+CPSAMP,RPOL
+        OH      WCP,NAGRP*6+CPSAMP,RPOL :TRUE if TRUE for all
+        NH      WCP,CP,RPOL             :...OR if CPold TRUE
+        LH      R1,CPSAMP,RPOL
+        NH      R1,NAGRP*2+CPSAMP,RPOL
+        NH      R1,NAGRP*4+CPSAMP,RPOL
+        NH      R1,NAGRP*6+CPSAMP,RPOL  :TRUE if TRUE for any
+        OR      WCP,R1
+        NH      WCP,.NO.CP,RPOL         :or if CP not supported
+
+:       DSR updated, old used
+        LH      WDSR,DSR,RPOL
+        LH      R1,NEWDSR,RPOL          :copy new value to current
+        STH     R1,DSR,RPOL
+
+:       DTR=(((HANGWT&OLDDTR)!@DSR)&(CP!@OLDCP))
+        LCS     WDTR,1
+        XR      WDTR,WDSR               :TRUE only for active line
+        LH      R1,HANGWT,RPOL          :TRUE waiting for hanging
+        OH      R1,DTR,RPOL             :...OR previously hung
+        NR      WDTR,R1
+        LCS     R1,1
+        XH      R1,CP,RPOL              :@ CPold
+        NR      R1,WCP                  :...OR CPnew
+        OR      WDTR,R1
+
+:       HANGWT=(@DTRnew!HANGWT)
+        LCS     R1,1
+        XR      R1,WDTR                 :FALSE if DTRnew FALSE
+        NH      R1,HANGWT,RPOL          :OR HANGWT FALSE
+        STH     R1,HANGWT,RPOL          :disable HANGWT
+         IF     SLODTR                  :Hold DTR down for 1, not .5 sec
+        LH      R1,DTR1,RPOL
+        STH     WDTR,DTR1,RPOL          :set pipeline
+        OR      WDTR,R1                 :insure immediate false state
+         EI     :SLODTR
+        STH     WDTR,DTR,RPOL
+        STH     WCP,CP,RPOL
+        OR      WRLA,WDSR
+        OR      WRLA,WCP                :RLAnew=@(DTR&DSR&CP)
+        XHI     WRLA,-1
+        STH     WRLA,AHATMP             :save this
+
+:       detect changes to RLA
+QHA2    LHL     R0,AHATMP               :any changes in Receiver Line Active?
+        XH      R0,RLA,RPOL
+        JFFOH   R0,QHA3                 :Anything there?
+        SIS     RPOL,2                  :for next group
+        JGE     QHA1
+        L       R0,QRET
+        JR      R0                      :and exit
+
+:       change to RLA detected for port...
+:       figure out which port, change RLA to new value
+:       ...then decide if answer or hang.
+QHA3    LR      RP,RPOL                 :Compute port number
+        SLLS    RP,3
+        AR      RP,R1
+        LR      RP2,RP
+        AR      RP2,RP2                 :2*port
+:       LHL     RPI,.PTP.,RP,RP         :Set up pointer to port table
+        GETPTP(RPI,RP,RP)
+        L       RBP,.FTBUF,RPI          :empty the buffers
+        JAL     RCH,EMPTY,,
+        L       RBP,.TTBUF,RPI
+        JAL     RCH,EMPTY,,
+        CBT     RP,RLA
+        JN      QHA6                    :Line no longer active...
+
+:       RLA was FALSE (=0...we're back to 1=true)
+:       Initialize new port
+        SBT     RP,ASYNC                :flag as an ASYNC port
+        RBT     RP,BRK                  :make sure BREAK off
+        SBT     RP,NEWLOG               :set new logon
+        SBT     RP,LGECHO               :assume LOGON echoing desired
+        RBT     RP,RXON                 :reverse X-ON off
+        SBT     RP,XONOUT               :init XON already out
+         IF     NPAPRT
+        JAL     R0,PA.SL                :set limbo if required
+        GL      PA.SL
+         EI     :NPAPRT
+        LHI     R3,100                  :Initialize the port
+        STH     R3,MARGE,RP2
+        JAL     RLINK,IZ.PRT            :let Tymnet-II set up buffers
+         IF     PVC
+        GL      AIDPVC
+        JAL     RLINK,AIDPVC            :Check if PVC Auto-ID port
+         J      QHA4                    :normal return...NON-AID...proceed
+:       PVC-AID port...
+        JAL     R9,A.VID                :set up the port according to TID
+        J       QHA2
+
+QHA4     EI     :PVC
+        SBT     RP,TIDTO1               :initiate TID timeout
+        LHI     R4,TID30                :assume 30 cps port
+        TBT     RP,T120                 :Should this be 1200 baud port?
+        JEFS    QHA5                    :...no
+        LHI     R4,TID120               :Yes...set that up
+QHA5    JAL     R5,IZPORT               :Initialize the port parameters
+        JAL     RLINK,A.ANS             :go answer the port
+        JAL     RBF,A.TID               :set up to look for TID
+        L       RBP,.TTBUF,RPI          :to-terminal buffer-pointer
+        LA      R6,LSMS0                :"Please type your..."
+        JAL     R9,MSG                  :send message to identify terminal
+        J       QHA2
+
+:       RLA went FALSE (=1)...
+:       Circuit Disconnected
+QHA6    JAL     RBF,A.DSC               :disconnect port
+        JAL     RLINK,DT.PRT
+:       JAL     RLINK,CIRDIS            :...and disconnect circuit
+        RBT     RP,TIDTO
+        RBT     RP,TIDTO1               :cancel timeouts
+        RBT     RP,C.ACP                        :no longer active
+        J       QHA2
+
+LSMS0   TIDMM                           :"please type..." or equivalent
+
+         EI     :NAPORT
+        SUBTTL  SIO STORAGE
+         IF     NSPORT                  :SIO-Mother Board optional
+
+:                **** *****  ***
+:               *       *   *   *
+:                ***    *   *   *
+:                   *   *   *   *
+:               ****  *****  ***
+
+:       SIO data area is composed of command blocks (ICMSIO, OCMSIO)
+:       data blocks (OUTSIO, INPSIO), a bit array set if SIO port is
+:       configured and connected (GOTSIO).
+:       Certain access to the SIO data areas is done with an index register
+:       which is a function of the global CONSAT port-index, thus all data
+:       labels are defined with a virtual offset since all SIO ports start
+:       at .SPORT ports.
+
+        SEG     A.DATA
+
+BSTORAG(LUNSIO,NSPORT,(CSBASE+.SPORT))          :label relative to actual port number
+BSTORAG(CHRSIO,1,CSBASE)                :current SIO character
+HSTORAG(ECOSIO,1,CSBASE)                :echo possible if 0
+
+HSTORAG(GOTSIO,NSGRP,(CSBASE+(.SPORT/8)))               :Offset by .SPORT
+HSTORAG(D.PAS1,NSGRP,(CSBASE+(.SPORT/8)))               :Offset by .SPORT
+HSTORAG(D.PAS2,NSGRP,(CSBASE+(.SPORT/8)))               :Offset by .SPORT
+HSTORAG(SIOSTD,NSGRP,(CSBASE+(.SPORT/8)))               :Offset by .SPORT
+HSTORAG(XINSIO,NSPORT,(CSBASE+(.SPORT*2)))      :points to current in-buffer
+
+
+        BND     10                      :SIO requires this boundary
+HSTORAG(LOWSIO,0,CSBASE)
+
+WSTORAG(HNGSIO,8,CSBASE)                :SIO hang (DTR drop)
+
+WSTORAG(ENASIO,8,CSBASE)                :SIO enable (DTR up)
+
+WSTORAG(SAVSIO,8,CSBASE)                :save area for ASCII Init program
+         IF     BAUDY
+WSTORAG(SAVSIB,8,CSBASE)                :save area for BAUDOT Init program
+         EI     :BAUDY
+WSTORAG(XONSIO,4,CSBASE)                :XON-command
+WSTORAG(XOFSIO,4,CSBASE)                :XOFF-command
+
+WSTORAG(OCMSIO,NSPORT*8,CSBASE)         :This area has output-command lists
+
+STASIO   EQ     OCMSIO+10               :Status-words for each port
+
+        BND     NSIOBF*8
+WSTORAG(ICMSIO,NSPORT*2*NSIOBF,CSBASE)  :This area has input-command lists
+
+WSTORAG(OUTSIO,NSPORT*8,CSBASE)         :32d-bytes output-area per port
+
+        BND     NSIOBF*10
+WSTORAG(INPSIO,NSPORT*NSIOBF*4,CSBASE):Input, NSIOBF blocks, 10 bytes/block, NSPORT ports
+HSTORAG(HIHSIO,0,CSBASE)
+
+
+         IF     SHIST
+        SEG     A.DATA
+:       History buffer:
+:       SHISX - HW cursor for next entry (relative to SHISD)
+:       entry - BC      Character,
+:               BC      port number (RP)
+:               HC      SIO input buffer index (on input)
+:               WC      R0 - caller
+        DEFAULT(SHSIZ,400)
+HSTORAG(SHISPT,0,(CSBASE+(.SPORT/8)))   :if bit on, port traced
+        RE      NSGRP
+        HC      -1
+        ER                              :start by tracing all
+HSTORAG(SHISX,1,CSBASE)
+HSTORAG(SHISD,SHSIZ/2,CSBASE)
+
+        SEG     A.CODE
+:       Keep history
+:       R0 -    Link
+:       R1 -    Character
+:       R3 -    Scratch
+SHISTY  LH      R3,SHISX                :tracing enabled?
+        JLR     R0                      :no trace
+        TBT     RP,SHISPT               :tracing this port?
+        JER     R0                      :no...just exit
+        STB     R1,SHISD,R3             :save char
+        STB     RP,SHISD+1,R3           :save port #
+        STH     R9,SHISD+2,R3           :save caller
+        ST      RBF,SHISD+4,R3          :save caller
+        AIS     R3,8                    :advance cursor and save
+        NHI     R3,SHSIZ-1
+        STH     R3,SHISX
+        JR      R0
+         EI     :SHIST
+
+        SEG     A.CODE
+
+:       Array of halfwords to indicate offset into INPSIO for a port
+INPSOF  HS      0
+Q       EQ      0
+        RE      NSPORT
+        HC      Q
+Q       EQ      Q+NSIOBF*10             :buffers are 10x bytes in length
+        ER
+
+:       Make a list of initialization commands
+S.HNG   HC      3,0015                  :null, reset interrupt, pt to reg. 5
+        HC      3,0000                  :DTR and RTS down
+        HC      0,0                     :end-of-command
+
+S.ENA   HC      3,0015                  :null, reset interrupt, pt to reg. 5
+        HC      3,8200                  :DTR and RTS up
+        HC      0,0                     :end-of-command
+
+S.ASCI  HC      3,0018                  :send a do-nothing command
+        HC      3,0444                  :set 1 stop-bit
+                                        :1000 = reset interrupt. Do in pairs (ref: ex-Ziloger)
+        HC      3,13C1                  :rx 8 bits/char rx-enable
+        HC      3,15EA                  :DTR and RTS on, tx 8 bits/char, tx-enable
+        HC      0,0                     :end-of-command
+        SUBTTL  SIO CODE
+
+:       SIO ASCII Input Routine
+:       === ===== ===== =======
+:       Register assignments for this driver
+:       RBP -   From-port buffer index
+:       R9 -    Pointer to SIO character
+:       RPI -   Pointer to port-table entry
+:       RP -    port number
+:       RP2 -   port number*2
+VSIO    LHL     R9,XINSIO,RP2           :get pointer to current buffer
+        LH      RBC,0,R9                :Look at first character
+        JGE     VSIO1                   :SIO's been here, left a char?
+
+        LR      R8,R9                   :nothing here, perhaps in next buffer?
+        AHI     R9,10                   :   /
+        NHI     R9,-10                  : wrap to next buffer (10 = bufsiz)
+        THI     R9,(NSIOBF-1)*10        :if on, not yet time to wrap
+        JNFS    VSIOA                   :to first buffer for this port
+        SHI     R9,NSIOBF*10            : time to wrap
+VSIOA   LH      RBC,0,R9                : anything in next buffer?
+        JL      VDEF                    :no, try next foreground time...
+
+        LH      R0,0,R8                 :yes, did SIO sneak them in between
+        JLFS    VSIO1                   : these instructions? (no...)
+
+        LR      R9,R8                   :yes, read chars from orig. pointer
+        LR      RBC,R0                  :and get correct character in RBC
+VSIO1   EQ      .
+        LHI     R8,-.SPORT,RP           :make offset (relative to start of SIO)
+        SLLS    R8,5                    :make port-pointer into buffer offset
+        JAL     RCH,VSECCK              :check if echo will be possible
+        J       VSIO3A                  :and skip
+
+
+
+:       Check for buffer-end
+VSIO2   THI     R9,(NSIOBF-1)*10!0F
+        JNFS    VSIO3                   :not at buffer end, continue...
+
+        SHI     R9,NSIOBF*10            : yes, reset pointer
+VSIO3   LH      RBC,0,R9                : get next item
+        JGE     VSIO3A                  :found something other than -1
+
+        STH     R9,XINSIO,RP2           :store index away
+        J       VDEF                    : found all the input for now
+
+:       Now process all characters in buffer
+VSIO3A  EQ      .
+        TS      0,R9                    :Reset cell to -1
+         IF     SHIST;  JAL     R0,SHISTY               :trace;  EI
+        AIS     R9,2                    :bump pointer to next character
+        THI     RBC,100                 :test for BREAK
+        JEFS    VSIO4                   :normal character...skip
+        JAL     RCH,SIOBRK              :See if time for BREAK
+        J       VSIO2
+
+:       Service normal data-character
+:               ...Echo character if possible
+VSIO4   RBT     RP,D.PAS2               :cancel any break in progress
+        RBT     RP,D.PAS1
+        STB     RBC,CHRSIO              :save the data-character
+        LHI     R5,7F                   :make a mask
+        NR      R5,RBC                  :reduce character to 7-bits
+        CLHI    R5,13                   :Check for XOFF
+        JE      VSXOFF                  :Do XOFF function
+        CLHI    R5,11                   :Check for XON
+        JE      VSXON                   :yes, do XON function
+        TBT     RP,ECHO                 :echo-able character...Echoing?
+        JE      VSNOE1                  :no...do ball-logic
+        LH      R0,ECOSIO               :is echo permitted?
+        JN      VSAED                   :can't echo if output present
+        TBT     RP,RXON                 :backpressured?
+        JN      VSAED                   :can't echo if backpressured
+        L       RBP,.TTBUF,RPI          :set echo buffer in case needed
+        TBT     RP,HAFDUX               :half-duplex?
+        JN      VHSCHK                  :special tests if so
+        TBT     R5,PABLE                :is it printable?
+        JN      VSCHK                   :no...special processing
+
+:       echo the character
+VSIO5   JAL     RCH,PUTCHR              :else echo the character
+        J       VSSND                   :and go send it
+
+:       Non-echoable character
+VSNOEC  TBT     RP,ECHO                 :are we echoing?
+        JNFS    VSAED                   :yes, go enter DEM
+
+VSNOE1  RBT     RP,GBO                  :not echoing...
+        JEFS    VSSND                   :no green balls out
+        L       RBP,.FTBUF,RPI          :set from-terminal buffer-pointer
+        RBT     RP,TBOA
+        RBT     RP,TBOB                 :reset red-ball timeouts
+         LO     SIGNAL
+        LIS     R4,RBSIG                :Send a RED BALL
+         FO     SIGNAL
+        JAL     RCH,PUTSIG              :send RED-BALL to cancel GREEN-BALL
+        JFS     VSSND1                  :and send character
+
+:       Enter DEM
+VSAED   JAL     RCH,GO.EDM              :Enter Defered-Echo-Mode
+        JFS     VSSND1                  :and skip to send char
+
+:       Pass the character into the network
+VSSND   L       RBP,.FTBUF,RPI          :set from-terminal buffer-pointer
+VSSND1  LB      RBC,CHRSIO              :get the character
+        JAL     RCH,PUTCHR              :...and send it
+        J       VSIO2
+
+
+:       Handler for "Q"-mode
+:       Echo "~" and "}"
+:       Don't echo LF
+:       Echo Cr (with LF) if Echo_on_LF set...
+:               THEN ENTER DEM!!!
+VSQ     LHI     R0,-7D,R5               :is it "}"?
+        JE      VSIO5                   :yes...echo it
+        SIS     R0,7E-7D                :is it "~"?
+        JE      VSIO5                   :yes...echo it
+        LHI     R0,-0A,R5               :LF?
+        JE      VSAED                   :yes...enter DEM
+        SIS     R0,0D-0A                :CR?
+        JN      VSCHK1                  :no...treat as non-Q char
+        TBT     RP,ELF.CR               :CR...should we echo?
+        JE      VSAED                   :no...enter DEM
+        JAL     RCH,PUTCHR              :echo CR
+        TBT     RP,ECR.LF               :Line-feed needed too?
+        JEFS    VSQ1                    :no
+        LIS     RBC,0A                  :yes...do it too
+        JAL     RCH,PUTCHR
+VSQ1    L       RBP,.FTBUF,RPI          :set from-terminal buffer-pointer
+        LB      RBC,CHRSIO              :and send the CR
+        JAL     RCH,PUTCHR
+        JAL     RCH,GO.EDM              :go enter EDM
+        J       VSIO2                   :and go service next element
+
+
+:       echo on, non-printable (?) char...
+VSCHK   TBT     RP,Q.MODE               :"non-printable"...is port in "Q"-mode?
+        JN      VSQ                     :yes...perform necessary services
+VSCHK1  TBT     R5,SPABLE               :does it require special tests?
+        JE      VSAED                   :no...just enter DEM
+        LHI     R0,-0D,R5               :is it CR?
+        JNFS    VSCHK2                  :not a CR
+        JAL     RCH,PUTCHR              :echo the CR
+        TBT     RP,ECR.LF               :need LF?
+        JE      VSSND                   :no...send it
+        LIS     RBC,0A                  :yes...echo LF
+        J       VSIO5                   :Echo LF and proceed
+VSCHK2  AIS     R0,0D-0A                :check for LF
+        JNFS    VSCHK3                  :not a LF
+        TBT     RP,ELF.CR               :echo CR|RUB too?
+        JE      VSIO5                   :Echo LF for LF
+        JAL     RCH,PUTCHR              :echo LF...
+        LIS     RBC,0D
+        JAL     RCH,PUTCHR              :echo CR...
+        LCS     RBC,1                   :...and RUB
+        J       VSIO5                   :Echo LF/CR/RUBOUT
+VSCHK3  AIS     R0,0A-9
+        JNFS    VSCHK4                  :not a tab (^I)
+        TBT     RP,ECTLI
+        JE      VSAED                   :Enter DEM, Don't echo tabs
+        J       VSIO5                   :Echo it
+VSCHK4  SIS     R0,9-8
+        JN      VSAED                   :Unprintable char, enter DEM
+        TBT     RP,ECTLH
+        JE      VSAED                   :Enter DEM for control-H
+        J       VSIO5                   :Echo it
+
+:       half Duplex
+VHSCHK  TBT     R5,SPABLE               :is it special?
+        JE      VSSND                   :no...just send it
+        LHI     R0,-0D,R5               :un-echoable character
+        JNFS    VHSCK0                  :not a CR
+        TBT     RP,ECR.LF
+        JE      VSSND                   :just send it
+        LIS     RBC,0A
+        J       VSIO5                   :Echo LF for CR
+
+VHSCK0  AIS     R0,0D-0A
+        JN      VSSND                   :not a LF
+        TBT     RP,ELF.CR
+        JE      VSSND
+        LHI     RBC,8D                  :echo CR
+        JAL     RCH,PUTCHR
+        LCS     RBC,1                   :follow with RUB
+        J       VSIO5                   :send it and continue
+
+:       X-ON
+VSXON   RBT     RP,RXON                 :were they in Wait-State?
+        JE      VSNOEC                  :no...non-echoable character
+        L       R0,.XSAVE,RPI           :get previous state
+        ST      R0,.XSTAT,RPI           :and set it
+        J       VSIO2                   :then process next character
+
+:       X-OFF
+VSXOFF  TBT     RP,YONENA               :X-OFF...is it enabled?
+        JE      VSNOEC                  :no, non-echoable character
+        SBT     RP,RXON                 :yes...set wait-state
+        JN      VSNOEC                  :already set...non-echoable character
+        L       R0,.XSTAT,RPI           :else save current state
+        ST      R0,.XSAVE,RPI
+        LA      R0,XSXOFF               :...and set new state
+        ST      R0,.XSTAT,RPI
+        J       VSIO2                   :then go service next character
+
+
+:       SIO Output Routines
+:       === ====== ========
+
+:       Delay Routine for SIO (Different than Async!!)
+XSXOFF  JAL     RCH,CPEEK               :signal pending?
+         J      XDEF                    :no, just defer output
+        JAL     RCH,GETCHR              :get the character (signal)
+         J      SIG.SI                  :should exit here
+        ABORT(R5,0F)                    :expected signal, didn't get one
+
+XSIO    LHI     R9,-.SPORT,RP           :port-number relative to start of SIO
+        SLLS    R9,5                    :Make an 8-word index
+        LHL     R0,OCMSIO,R9            :check command there
+        JEFS    XSIO1                   :If 0 then not busy
+        SIS     R0,4                    :if = 4 then busy
+        JE      XDEF                    :if so, defer output and exit
+        LIS     R0,0
+XSIO1   STH     R0,OUTSIO,R9            :reset character count
+        RBT     RP,SIOSTD               :is there something to do?
+        JE      XSIO3                   :no...proceed with output
+        TBT     RP,YONENA               :yes...is reverse-XON enabled?
+        JEFS    XSIO2                   :no...turn it off
+        SIOIO(R2,XONSIO)                :yes...turn it on
+        J       XDEF                    :...and defer
+XSIO2   SIOIO(R2,XOFSIO)                :no...turn it off
+        J       XDEF                    :...and defer
+XSIO3   JAL     RCH,GETCHR              :get the character
+         J      SICNT                   :Control-signal...go process it
+        TBT     RP,TOSING               :Data...Are we tossing data?
+        JNR     RLINK                   :do this until gobbler resets
+        LR      R0,RBC                  :make another copy of data-char
+        NHI     R0,7F                   :Remove MSB
+        TBT     RP,PARITY               :Parity enabled?
+        JEFS    XSIO4
+        LR      RBC,R0                  :yes...set char with parity-bit off
+        TBT     R0,PARBIT               :lookup parity
+        JEFS    XSIO4
+        OHI     RBC,80                  :turn parity-bit on if appropriate
+XSIO4   LHL     R7,OUTSIO,R9            :get cursor
+         IF     SHIST;  JAL     R0,SHISTY               :trace;  EI
+        STB     RBC,OUTSIO+2,R7,R9      :put it away
+        AIS     R7,1                    :bump character count
+        STH     R7,OUTSIO,R9            :save cursor
+        TBT     RP,TOPORT               :any more?
+        JEFS    XSIOX                   :no...just terminate
+        CLHI    R7,1E                   :...any more room?
+        JL      XSIO3                   :yes...just continue
+XSIOX   JAL     R0,X.SIO                :send as appropriate
+        J       XRET                    :...then exit
+
+:       Control-signal in stream...close output first
+SICNT   JAL     R0,X.SIO                :send data as appropriate
+
+:       SIG.SI: Signal Processor for SIO
+:       =====
+:       Called from SIO transmitter to process control signals
+:       RLINK - Link register
+:       R5 -    Signal to examine
+SIG.SI  SIGBGN(ETMSIG,LTMSIG,EADSIG,LADSIG,SHGSIG)
+        SIGEXC(SPASIG,QFPSIG)           :Set parameter A
+        SIGEXC(SPBSIG,QFPSIG)           :Set parameter B
+        SIGEXC(SPCSIG,QFPSIG)           :Set parameter C
+        SIGEXC(SPDSIG,QFPSIG)           :Set parameter D
+        SIGEXC(SECSIG,SECHO)            :Set echo-control
+        SIGEXC(QECSIG,QECHO)            :Query echo-control
+        SIGEXC(SRXSIG,SIO.RX)           :Set Reverse X-enable
+        SIGEND
+
+
+:       Set XON
+SIO.RX  SBT     RP,SIOSTD               :set "something-to-do"
+        J       SBPSIG                  :...then go to common code
+
+         IF     BAUDY
+
+
+
+
+
+
+
+
+:       Half-Duplex BAUDOT SIO
+
+:       make a list of initialization commands
+S.BADO  HC      3,0018                  :do nothing command
+        HC      3,0448                  :1.5 stop bits, no parity
+                                        :1000 = reset interrupt
+        HC      3,1301                  :rx 5 bit/char, rx-enable
+        HC      3,158A                  :DTR and RTS on, tx 5 bit/char, tx-enable
+        HC      0,0                     :end-of-command
+
+:       Half-Duplex BAUDOT SIO Input Routine
+:       =========== ====== === ===== =======
+:       Register assignments for this driver
+:       RBP -   From-port buffer index
+:       R7 -    Character from SIO driver
+:       R9 -    Pointer to SIO character
+:       RPI -   Pointer to port-table entry
+:       RP -    port number
+:       RP2 -   port number*2
+VHSBAD  LHL     R9,XINSIO,RP2           :get pointer to current buffer
+        LH      R7,0,R9                 :Look at first character
+        JGE     VHSBA4                  :SIO's been here, left a char?
+
+        LR      R8,R9                   :nothing here, perhaps in next buffer?
+        AHI     R9,10                   :   /
+        NHI     R9,-10                  : wrap to next buffer (10 = bufsiz)
+        THI     R9,(NSIOBF-1)*10        :if on, not yet time to wrap
+        JNFS    VHSBA1
+
+        SHI     R9,NSIOBF*10            : time to wrap
+VHSBA1  LH      R7,0,R9                 : anything in next buffer?
+        JL      VDEF                    :no, try next foreground time...
+
+        LH      R0,0,R8                 :yes, did SIO sneak them in between
+        JL      VHSBA4                  : these instructions? (no...)
+
+        LR      R9,R8                   :yes, read chars from orig. pointer
+        LR      R7,R0                   :and get correct character in R7
+        JFS     VHSBA4                  :found a char, now process it
+
+VHSBA2  THI     R9,(NSIOBF-1)*10!0F     :is it time to wrap?
+        JNFS    VHSBA3
+
+        SHI     R9,NSIOBF*10            :wrap...
+VHSBA3  LH      R7,0,R9                 :get the next character
+        JGE     VHSBA4                  :there is character there
+
+        STH     R9,XINSIO,RP2           :no, found a -1
+        J       VDEF                    :'til next foreground!
+
+:       Now process all characters in buffer
+VHSBA4  TS      0,R9                    :reset cell to -1
+         IF     SHIST;  JAL     R0,SHISTY               :trace;  EI
+        AIS     R9,2                    :bump pointer to next character
+        THI     R7,100                  :test for BREAK
+        JEFS    VHSBA5                  :normal character...skip
+        JAL     RCH,SIOBRK              :See if time for BREAK
+        J       VHSBA2                  :next char...
+
+:       Service normal data-character
+VHSBA5  RBT     RP,D.PAS2               :cancel any break in progress
+        RBT     RP,D.PAS1
+        NHI     R7,1F                   :mask down the character
+        TBT     RP,BICF                 :which case to use
+        JEFS    VHSBA6                  :letter
+        OHI     R7,(B.
+     ] Bé
