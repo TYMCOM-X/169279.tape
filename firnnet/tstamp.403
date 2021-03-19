@@ -1,0 +1,71 @@
+PATCH(861031,1330,JL,PA0PTR,,0C0E)
+TRCBFR   BS        0C00               :BUFFER FOR TIMESTAMP TRACING
+CURINX   BS        2                  :INDEX INTO BUFFER
+TEMPR3   BS        4
+TEMPR5   BS        4
+TEMPR6   BS        4
+CONPATCH(RMBL15+0A,,6)
+         J         RMBL17,,
+CONPATCH(RMBL30,,6)
+         J         RMBL32,,
+CONPATCH(RTD120+20,,6)
+         J         RTD126,,
+CONPATCH(PA1PTR,,106)
+RMBL17   ST        R3,TEMPR3,,
+         ST        R5,TEMPR5,,
+         LIS       R5,1               :START TRACE ENTRY, FLAG OUTPUT FROM US
+         LIS       R3,1               :FASTC ENTRY NEEDED
+         JAL       R4,TRCPUT,,
+         LIS       R3,0
+         LR        R5,R0
+         JAL       R4,TRCPUT,,        :LCN
+         STB       R0,,R8
+         AIS       R8,1
+         L         R3,TEMPR3,,
+         L         R5,TEMPR5,,
+         J         RMBL15+10,,
+RMBL32   ST        R3,TEMPR3,,
+         ST        R5,TEMPR5,,
+         LIS       R3,0
+         LR        R5,R0
+         JAL       R4,TRCPUT,,        :PACKET TYPE
+         STB       R0,,R8
+         AIS       R8,1
+         L         R3,TEMPR3,,
+         L         R5,TEMPR5,,
+         J         RMBL30+6,,
+RTD126   ST        R5,TEMPR5,,
+         ST        R3,TEMPR3,,
+         LIS       R5,2               :FLAG INPUT PACKET
+         LIS       R3,1               :WITH TIMESTAMP NEEDED
+         JAL       R4,TRCPUT,,
+         LIS       R3,0
+         LB        R5,ELCN,,
+         JAL       R4,TRCPUT,,        :LCN
+         LB        R5,PACKET,,
+         JAL       R4,TRCPUT,,        :PACKET TYPE
+         STH       RL,IPORT,,
+         L         R5,TEMPR5,,
+         L         R3,TEMPR3,,
+         CLHI      R0,YRSTRT
+         J         RTD120+28,,
+TRCPUT   ST        R6,TEMPR6,,
+         LH        R6,CURINX,,
+         STH       R5,TRCBFR,R6,      :STORE R5 INTO TRACE BUFFER
+         AIS       R6,2               :BUMP INDEX AND CHECK FOR WRAP
+         CLHI      R6,0BF8
+         JL        TRCPA
+         LIS       R6,0
+TRCPA    STH       R6,CURINX,,
+         LR        R3,R3              :CHECK IF NEED TO INCLUDE TIMESTAMP
+         JE        TRCPB
+         LH        R5,FASTC,,         :INCLUDE FASTC (2 HALFWORDS)
+         STH       R5,TRCBFR,R6,
+         AIS       R6,2
+         LH        R5,FASTC+2,,
+         STH       R5,TRCBFR,R6,
+         AIS       R6,2
+         STH       R6,CURINX,,
+TRCPB    L         R6,TEMPR6,,
+         JR        R4
+ENDPATCH(TIMESTAMPS PACKETS COMING IN AND GOING OUT WITH FASTC CLOCK)
