@@ -1,0 +1,38 @@
+:---------------------------------------------------------------------
+: Patch name: dstckp.trp             Product and Version: cmti07:04 
+:     Author: anil thakur                   Organization:  mmgmt
+:   Customer:  morgen                            Date Written:  3103091
+: Description of Problem:  The slot crashed due to invalid stk pointer
+:			   this trap patch will keep a record of the 
+:		           stack pointer associated with each dcb . This
+:			   will help in evaluating the problem if the slot
+:			   crashes again
+:---------------------------------------------------------------------
+	LO	TP
+PATCH(103091,1000,A/THAKUR,BUFA50,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,64)
+	ST	R2,TREG
+	LH	R2,DSTINX	:INDEX FOR DSTCKP
+	ST	R0,STKDST,R2,
+	ST	R1,STKDST+4,R2,
+	ST	R4,STKDST+8,R2,
+	ST	R5,STKDST+0C,R2,
+	ST	R11,STKDST+10,R2,	
+	ST	R12,STKDST+14,R2,
+	ST	R13,STKDST+18,R2,
+	AHI	R2,1C
+	CHI	R2,DTKSIZ
+	JN	DTKCHK
+	LIS	R2,0
+DTKCHK	STH	R2,DSTINX
+	L	R2,TREG
+	ST	R13,DSTCKP,R12,	:FROM SOURCE
+	ST	R1,DUSR,R12,	:FROM SOURCE
+	J	BUFA50+8,,
+CONPATCH(PA0PTR,,400)
+TREG	WS	1
+DSTINX	HC	0
+DTKSIZ	EQ	100
+STKDST	WS	DTKSIZ/4
+ENDPATCH(TRAP FOR DSTCKP)
