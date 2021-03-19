@@ -1,0 +1,56 @@
+
+         lo status
+         lo cbkdef
+         lo gbldef
+         lo cmdlst
+         lo frntnd
+         lo giix
+         lo gdsp
+         lo nio
+         lo bsub
+patch(890317,1600,bpc,pa0ptr,,36)
+RPTCNT   hc    0
+ACITAB   hc    3031,3233,3435,3637,3839,4142,4344,4500
+RPTMSG   sc    /"8d"8a report soft shut count : /
+CNTMSG   sc    /     "8d"8a/
+conpatch(rpths4-0a,,6)
+         j     pa1ptr,,
+conpatch(pa1ptr,,24)
+         lhl   4,hostab+hstfpt,7,
+         jle   rpths7,,
+         lis   0,1
+         j     rpths4,,
+rpths7   lis   0,1
+         ahm   0,rptcnt,,
+         lis   0,0
+         j     rpths4,,
+conpatch(DDTHLP,,6)
+        j       pa1ptr,,
+conpatch(pa1ptr,,42)
+        lhl     r1,rptcnt,,
+        nhi     r1,000f
+        lb      r1,acitab,r1,
+        stb     r1,cntmsg+2,,
+        svc     0b,rptmsg,,
+        svc     0b,cntmsg,,
+        la      r1,hlpdat,,
+ddthl5  lb      0,0,r1
+        je      ddthl9,,
+        svc     out,0,r1
+        ar      r1,r0
+        ais     r1,1
+        j       ddthl5
+ENDPATCH(trap how many times of sending soft shut msg)
+         fo cbkdef
+         fo gbldef
+         fo cmdlst
+         fo frntnd
+         fo giix
+         fo gdsp
+         fo nio
+         fo bsub
+         fo status
+
+ 
+ 
+
