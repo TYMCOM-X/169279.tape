@@ -1,0 +1,3084 @@
+;
+;---------------------------------------------------------------------
+;                                                                    ;
+; HDLC MICRO ENGINE SIO MICROCODE VERSION V2                         ;
+;                                                                    ;
+; Copyright (c) 1986 by TYMNET/McDonnell Douglas Network Systems Co. ;
+; All Rights Reserved.                                               ;
+;                                                                    ;
+;                                                                    ;
+; Part Number: 790158 through 790162 for PROMS at 9B, 9C, 9E, 9F, 9H ;
+;                                                                    ;
+;                                                                    ;
+;---------------------------------------------------------------------
+;                                                                    ;
+; PROGRAM STARTS HERE ON POWER UP OR CARD RESTART COMMAND            ;
+; FIRST 8 BITS OF FIRST FOUR WORDS MUST HAVE EVEN PARITY             ;
+;                                                                    ;
+;---------------------------------------------------------------------
+;
+;---------------------------------------
+; INITIALIZE SIO CARD                  ;
+;---------------------------------------
+;
+        M A1+COUNTD,CONQ,0        ;START COUNTER AT PORT 0
+        M A1,CONST+DZ+EXNOR+QREG,0FFDD*
+        M A1,ALU+ZQ+OR+RAMF,BE    ;SET SYNC DCD STATUS REGISTER,INIT STATUS CTR
+        M A1,CONST+DZ+EXNOR+QREG,0FFC0*
+        M A1,ALU+ZQ+OR+RAMF,BF    ;SET SYNC CTS STATUS REGISTER
+        M A1,CONQ,0F00            ;MASK FOR CHAN NUM
+        M A1,ZQ+OR+RAMF,BD        ;PUT MASK IN REG D
+        M A1,ZQ+AND+RAMF,B6       ;CLR CHN CNTR FOR MUX-OUT SERVICE
+        M A1,ZQ+AND+RAMF,B7       ;CLR CHN CNTR FOR SIO SERVICE
+        M A1,ZQ+AND+RAMF,B8       ;CLR LAST INTERRUPT CODE SAVED
+        M A1,ZQ+AND+RAMF,BA       ;CLR LAST VALID CHN NUMBER
+ILOOP:  M SIOD,CONST,18FF         ;ISSUE RESET CHANNEL, SEE IF CHIP IS THERE
+        M ,,460                   ;RESET CHN, FORCE LINES HIGH, READ STATUS
+        M ,CONQ,CMERIL            ;WILL READ FF IF NO SIO AT THIS ADDR
+        M RAMD,OUTQ,CMERPC        ;INIT I/O CMD OR CCW ERROR SERVER
+        M ,CONQ,8                 ;TURN ON STATUS REQUEST COMPLETION BIT
+        M RAMD,OUTQ,ABORT
+        M RAMD,ALU+DZ+AND+QREG,ROVCNT ;CLEAR RX OVERRUN COUNTER
+        M RAMD,ALU+ZQ+EXNOR,STAT  ;SET Z80-SIO STATUS TO -1
+        M RAMD,ALU+DZ+AND,RICHCK  ;ZERO IDLE LINE CTR AND CRC ERR CTR
+        M ,CONQ,TXERIL
+        M RAMD,OUTQ,TXERPC        ;INIT TRANSMITTER ERROR SERVER
+        M ,CONQ,IDLEPC
+        M RAMD,OUTQ,TXSIPC        ;INIT TRANSMITTER SIO SERVER
+        M RAMD,OUTQ,RXSIPC        ;INIT RECEIVER SIO SERVER
+        M RAMD,ALU+DZ+AND+QREG,RELOC ;PRESET RELOCATION MAGNITUDE TO 0
+        M RAMD,OUTQ,TXRXFG        ;CLR FLAGS1
+        M RAMD,OUTQ,LWLIM         ;PRESET LOW LIMIT TO 0
+        M ,CONQ,1000
+        M RAMD,OUTQ,WINDOW        ;PRESET WINDOW SIZE TO 1000
+        M RAMD,OUTQ,RBSIZE        ;PRESET RECEIVE BUFFER SIZE TO 1000
+        M ,CONQ,100
+        M RAMD,OUTQ,RRSIZE        ;PRESET RECORD SIZE TO 100
+        M CJS,,TRUE+LIDLE         ;RESET CHANNELS
+ILOOP0: M CJP,SIO+DZ+EXNOR,SIOBY+ILOOP0 ;MAKE SURE 460 SEQUENCE IS DONE
+        M CJP+COUNT,,FE0+ILOOP1   ;BRANCH IF NO SIO AT THIS ADDR
+        M ,COUNT+DZ+SUBS+RAMF,BA  ;REG A HAS NUM OF LINES TO POLL
+ILOOP1: M ,COUNT+DZ+OR
+        M CJP,,FE0+ILOOP2         ;DONE WITH INITIALIZATION, GO SET CHAN MASK
+        M JMAP,,ILOOP             ;CONTINUE INITIALIZATION
+;
+; GENERATE ADDRESS OF HIGHEST EXISTING CHANNEL
+;
+ILOOP2: M AA,CONST+DA+AND+QREG,000F ;CHAN NUM IS 4 BITS ONLY
+        M ,CONST+DQ+SUBS,CARRY+000D ;MORE THAN 14 CHANNELS?
+        M CJS,,F3+ILOOP4          ;BRANCH IF MORE THAN 14 CHANNELS
+        M ,ALU+ZQ+OR+RAMF,B0      ;PUT CHANNEL NUMBER IN R0
+        M PUSH,,TRUE+0007
+        M RFCT+A0,ALU+ZA+OR+RAMU,B0 ;SHIFT CHAN NUM LEFT 8 BITS
+        M A0,ALU+AQ+OR+RAMF,BA    ;GENERATE CHAN NUMBER MASK
+        M JMAP,,MLOOP             ;DONE WITH INITIALIZATION, EXECUTE MAIN LOOP
+;
+ILOOP4: M ,CONQ,000D              ;ONLY 14 CHANNELS MAX
+        M CRTN,,TRUE
+EJECT
+;
+;---------------------------------------------------------------------
+;                                                                    ;
+; QUAD WORD QUALIFIER                                                ;
+;                                                                    ;
+; ENTRY POINT QWQ IS CALLED WITH VIRTUAL QUAD ADDRESS IN R2 AND Q=0  ;
+;                                                                    ;
+; RETURNS WITH NEGATIVE R5 (AND F3 SET) IF:                          ;
+;    (VIRTUAL QUAD ADDRESS - LOW LIMIT) IS NEGATIVE OR               ;
+;    (WINDOW SIZE - VIRTUAL QUAD ADDRESS - 1) IS NEGATIVE            ;
+; ELSE R5 HAS NUMBER OF QUAD WORDS LESS ONE REMAINING                ;
+;                                                                    ;
+; Q HAS HIGH ORDER 4 BITS OF RELOCATED ADRESS                        ;
+; R3 HAS HIGH ORDER 4 BITS OF RELOCATED ADDRESS SHIFTED LEFT         ;
+;    ONE POSITION AND WITH LEAST SIGNIFICANT BIT SET TO ONE          ;
+;                                                                    ;
+; R4 HAS REMAINING 16 (LOW ORDER 4 BITS WILL BE ZERO)                ;
+;                                                                    ;
+;---------------------------------------------------------------------
+;
+QWQ:    M A2,RAM+DA+SUBR+RAMF,CARRY+LWLIM+B5 ;R5 = VIRT QAUD ADDR - LOW LIMIT
+        M CRTN+A5,ZA+OR,F3        ;RET IF <LOW LIM
+        M A5,RAM+DA+SUBS+RAMF,WINDOW+B5 ;(W-REL-1)->R5
+        M CRTN+A5,ZA+OR,F3        ;RET IF >WINDOW
+        M A2,RAM+DA+ADD+RAMQU,RELOC+B4 ;RELOCATED ADDR IN R4
+        M A4,ZA+OR+RAMQU,B4
+        M A4,ZA+OR+RAMQU,B4
+        M A4,ZA+OR+RAMQU,B4
+        M ,ZQ+OR+RAMU,B3
+        M CRTN+A3,ZA+ADD+RAMF,CARRY+TRUE+B3
+EJECT
+;---------------------------------------------------------------------
+;                                                                    ;
+; MAIN LOOP                                                          ;
+;                                                                    ;
+; THE MAIN LOOP PERFORMS THE FOLLOWING THREE TASKS:                  ;
+;   1. PROCESS MUX INPUT FROM CPU                                    ;
+;   2. PROCESS SIO OUTPUT TO CPU VIA MUX BUS                         ;
+;   3. TRANSMIT DATA TO AND RECEIVE DATA FROM Z80-SIO                ;
+;                                                                    ;
+; MUX INPUT FROM THE CPU IS DECODED AND PROCESSED ACCORDING TO       ;
+; THE COMMAND TYPE SPECIFIED. THREE NEW COMMAND TYPES ARE RESERVED:  ;
+;    COMMAND TYPE 'B' -- RESERVED FOR DIAGNOSTIC FOR BOARD           ;
+;                        IDENTIFICATION (GET ILLEGAL COMMAND INTRPT  ;
+;    COMMAND TYPE 'E' -- CPU RESPONSE FOR THE RECEIVER               ;
+;    COMMAND TYPE 'F' -- CPU RESPONSE FOR THE TRANSMITTER            ;
+;                                                                    ;
+; SIO OUTPUT TO CPU IS PROCESSED BY DISPATCHING TO THE TASK          ;
+; SPECIFIED IN ONE OF THE FIVE PROGRAM COUNTERS. SINCE THERE         ;
+; IS ONLY ONE MUX INTERFACE PATH TO THE CPU, IF MORE THAN ONE        ;
+; PROGRAM COUNTER SPECIFIES MUX OUTPUT TASK, ONLY ONE OF THE         ;
+; TASKS IS PROCESSED EACH TIME THE MUX INTERFACE IS FREE.            ;
+;                                                                    ;
+; THE FIVE PROGRAM COUNTERS ARE ASSIGNED THE FOLLOWING PRIORITY:     ;
+;   1. CMERPC -- FOR I/O COMMAND OR CCW ERROR                        ;
+;   2. TXERPC -- FOR TRANSMIT ERROR STATUS INTERRUPT                 ;
+;   3. RXCPPC -- FOR RECEIVER CPU REQUESTS                           ;
+;   4. TXCPPC -- FOR TRANSMITTER CPU REQUESTS                        ;
+;   5. RDSTPC -- FOR RESPONSE TO READ STATUS COMMAND FROM CPU        ;
+;                                                                    ;
+; INFORMATION TO BE TRANSFERRED TO THE CPU IS LOADED INTO EACH OF    ;
+; THE TWO INTERFACE DATA REGISTERS BY SPECIFYING 'MUXDL' OR 'MUXD'   ;
+; AS B-BUS DESTINATION. SPECIFYING 'MUXD' ALSO GENERATES AN          ;
+; INTERRUPT TO THE CPU. THE FORMAT OF THE DATA LOADED BY 'MUXD' IS   ;
+; AS FOLLOWS:                                                        ;
+;                                                                    ;
+;  ------------------------------------------------------            ;
+;  | FUNCTION   |    LINE    | STATUS FOR | LINE NUMBER |            ;
+;  |   CODE     |   NUMBER   | 'SSR' INST | FOR 'SSR'   |            ;
+;  ------------------------------------------------------            ;
+;   0            4            8            12                        ;
+;                                                                    ;
+; THE BYTES ARE SWAPPED BY THE HARDWARE BEFORE BEING TRANSFERRED TO  ;
+; THE CPU.                                                           ;
+;                                                                    ;
+; FUNCTION CODES TO THE CPU ARE DEFINED AS FOLLOWS:                  ;
+;           (0):  NORMAL INTERRUPT                                   ;
+;   FIBUFA  (1):  DATA IS ADDRESS OF INPUT BUFFER                    ;
+;   FPIBFD  (2):  STORE DATA INTO INPUT BUFFER                       ;
+;   FPOCCW  (3):  GET NEXT OUTPUT CCW & MARK CURRENT CCW WITH 100/200;
+;   FGOBFD  (4):  GET DATA FROM OUTPUT BUFFER                        ;
+;   FOBUFA  (5):  DATA IS ADDRESS OF OUTPUT BUFFER                   ;
+;   FGOCCW  (6):  GET OUTPUT CCW                                     ;
+;   FOCCWA  (7):  DATA IS ADDRESS OF OUTPUT CCW                      ;
+;   FGICCW  (8):  GET INPUT CCW                                      ;
+;   FICCWA  (9):  DATA IS ADDRESS OF INPUT CCW                       ;
+;   FSTATA  (A):  DATA IS ADDRESS WHERE STATUS IS TO BE STORED       ;
+;   FSTATD  (B):  STORE STATUS INFORMATION                           ;
+;   FSYNPD  (C):  STORE DATA INTO SYNC INPUT RING                    ;
+;   FSYNGD  (D):  GET DATA FROM SYNC OUTPUT RING                     ;
+;   FPSINT  (E):  ISSUE SOFTWARE INTERRUPT FROM PSEUDO DEVICE        ;
+;                                                                    ;
+; Z80-SIO IS SERVICED BY CHECKING FOR TRANSMITTER EMPTY PRIOR TO     ;
+; LOADING IT WITH NEW DATA AND CHECKING FOR RECEIVE DATA AVAILABLE   ;
+; PRIOR TO FETCHING THE DATA FROM THE RECEIVER. THE MICRO CODE       ;
+; MAINTAINS A FOUR HALFWORD BUFFER FOR TRANSMIT DATA AND A FOUR      ;
+; HALFWORD BUFFER FOR RECEIVE DATA. (THIS IS IN ADDITION TO THE      ;
+; BUFFERS PROVIDED BY THE SIO CHIP.)                                 ;
+;                                                                    ;
+; THE MICRO CODE USES THE REGISTERS IN 2901 FOR GLOBAL VALUES        ;
+; AS FOLLOWS:                                                        ;
+;   REGISTER 6 HAS THE CHANNEL TO BE SERVICED NEXT WHEN THE MUX      ;
+;              INTERFACE TO THE CPU IS FREE.                         ;
+;   REGISTER 7 HAS THE CHANNEL WHOSE Z80-SIO INTERFACE IS TO BE      ;
+;              SERVICED NEXT TIME THROUGH THE MAIN LOOP.             ;
+;   REGISTER 8 HAS THE LAST INTERRUPT CODE SENT TO CPU.              ;
+;   REGISTER A HAS THE CHANNEL NUMBER OF LAST CHANNEL PRESENT        ;
+;   REGISTER E HAS DCD STATUS OF EMULATED SYNC I/O CHANNELS IN       ;
+;              BITS 0-9. BITS 11-15 IS A COUNTER AND WHEN THE VALUE  ;
+;              IN THE COUNTER IS 0, THE STATUS OF THE EMUALTED SYNC  ;
+;              I/O CHANNELS WILL BE UPDATED IN REGISTERS E AND F.    ;
+;   REGISTER F HAS CTS STATUS OF EMULATED SYNC I/O CHANNELS IN       ;
+;              BITS 0-9. BIT 12 INDICATES THE PRIORITY OF MUX        ;
+;              INTERFACE TASKS. WHEN BIT 12 = 0, RECEIVE CHANNEL     ;
+;              TASKS HAVE HIGHER PRIORITY. WHEN BIT12 = 1, TRANSMIT  ;
+;              CHANNEL TASKS HAVE HIGHER PRIORITY.                   ;
+;                                                                    ;
+; EACH CHANNEL HAS A FLAG WORD DEFINED AS FOLLOWS:                   ;
+;   TXRXFG:                                                          ;
+;   (8000)  BIT 0:  1 = SYNC I/O EMULATION                           ;
+;   (4000)  BIT 1:  1 = ALL RX DATA RECEIVED                         ;
+;   (2000)  BIT 2:  1 = SYNC TX IN PROGRESS                          ;
+;   (1000)  BIT 3:  1 = NOT USED                                     ;
+;   (0800)  BIT 4:  1 = PROCESSING OUTPUT CCW 7: OUTPUT CMD PAIR     ;
+;   (0400)  BIT 5:  1 = ASYNC RX                                     ;
+;   (0200)  BIT 6:  1 = PROCESSING OUTPUT CCW 6: OUTPUT CMD PAIR     ;
+;   (0100)  BIT 7:  1 = ASYNC TX                                     ;
+;   (0080)  BIT 8:  1 = NOT USED                                     ;
+;   (0040)  BIT 9:  1 = SIO STATUS READ                              ;
+;   (0020)  BIT 10: 1 = TRANSMIT RAM BUFFER (OBUF) FULL              ;
+;   (0010)  BIT 11: 1 = I/O COMMAND 8 STATUS UPDATE REQUESTED        ;
+;   (0008)  BIT 12: 1 = RECEIVE RAM BUFFER (IBUF) FULL               ;
+;   (0004)  BIT 13: 1 = SYNC STATUS READY FOR CPU UPDATE             ;
+;       BITS 14-15:   = INDEX OF LAST DATA HALFWORD IN RCV RAM BUFFER;
+;                                                                    ;
+;---------------------------------------------------------------------
+EJECT
+;
+;---------------------------------------------------------------------
+; PROCESS MUX OUTPUT TO CPU                                          ;
+;---------------------------------------------------------------------
+;
+MUXOUT: M REGD,RAM,CMERPC         ;I/O COMMAND OR CCW ERROR
+        M JRP+REGD,RAM,FALSE+TXERPC ;TRANSMITTER ERROR STATUS
+CMERIL: M JRP+REGD,RAM,FALSE+TXCPPC ;DO TRANSMIT ERROR TASK
+TXERIL: M JRP+REGD,RAM,FALSE+RXCPPC ;DO TRANSMIT TASK
+TXCPIL: M JRP+REGD,RAM,FALSE+RXCFPC ;DO RECEIVER TASK
+RXCPIL: M JRP+REGD,RAM,FALSE+TXCFPC ;DO SHORT RECEIVE TASK
+RXCFIL: M JRP+REGD,RAM,FALSE+RDSTPC ;DO SHORT TRANSMIT TASK
+TXCFIL: M JRP,,FALSE                ;DO STATUS UPDATE TASK
+;
+;-----------------------------------------------------------
+;                                                          ;
+; BEGINNING OF MAIN LOOP                                   ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+MLOOP:  M PUSH
+        M CJS,,MUXR+MUXIN         ;IF THERE IS MUX INPUT, PROCESS IT
+MLOOP1:	M CJP,,SIOBY+MLOOP1	  ;END OF TEST	 
+        M CJP+A7+COUNTD,ALU+ZA+OR,IPEND+MLOOP2 ;BRANCH IF MUX OUTPUT NOT FREE
+        M CJS+A6+COUNTD,ALU+ZA+OR,TRUE+MUXOUT ;ELSE,TRY MUX OUT FOR NEXT CHAN
+        M A6,CONST+DA+SUBR+QREG,CARRY+0101 ;GET NEXT CHAN NUM
+        M CJS,,F3+MLOOPS          ;BRANCH TO RESET CTR TO LAST CHAN
+        M ,ALU+ZQ+OR+RAMF,B6      ;SAVE CHN NUM FOR NEXT TIME THROUGH THE LOOP
+        M CJP+A7+COUNTD,ALU+ZA+OR,IPEND+MLOOP2 ;BRANCH IF MUX OUTPUT NOT FREE
+        M CJS+A6+COUNTD,ALU+ZA+OR,TRUE+MUXOUT ;ELSE,TRY MUX OUT FOR NEXT CHAN
+        M A6,CONST+DA+SUBR+QREG,CARRY+0101 ;GET NEXT CHAN NUM
+        M CJS+A7+COUNTD,ALU+ZA+OR,F3+MLOOPS ;BRANCH TO RESET CTR TO LAST CHAN
+        M ,ALU+ZQ+OR+RAMF,B6      ;SAVE CHN NUM FOR NEXT TIME THROUGH THE LOOP
+MLOOP2: M SIOD,CONST,11           ;START SIO SEQ TO GET SIO STATUS
+        M ,,440
+        M CJP,,IPEND+MLOOP3       ;BRANCH IF MUX OUTPUT NOT FREE
+        M A6,ALU+ZA+OR+RAMF,B5    ;SAVE NEXT MUX OUT CHANNEL NUMBER
+        M REGD+A7,RAM+ZA+OR+RAMF,RXCFPC+B6 ;CHN NUM->R6, DO SHORT MUX OUT TASKS
+        M CJS,,TRUE+RXCPIL        ;TRY MUX OUT FOR THIS CHANNEL
+        M A5,ALU+ZA+OR+RAMF,B6    ;RESTORE NEXT MUX OUT CHANNEL NUMBER
+MLOOP3: M REGD,RAM,TXSIPC         ;LOAD MICRO CTR WITH XMIT SRV ROUTINE
+        M ,CONQ,IPUTIB            ;R9 = ADDR OF RCV BUFFER STORE INSTRUCTION
+        M ,RAM+DQ+ADD+RAMF,IBIPTR+B9
+        M ,CONQ,IGETOB            ;RB = ADDR OF XMIT BUF FETCH INSTRUCTION
+        M ,RAM+DQ+ADD+RAMF,OBOPTR+BB
+        M ,RAM+LOADQ,TXRXFG       ;MARK SIO STATUS NOT YET READ
+        M ,CONST+DQ+NOTRS+QREG,0040
+        M JSRP+RAMD,ALU+ZQ+OR+RAMF,FALSE+TXRXFG+BC ;RC = FLAGS, SERVICE XMITTER
+        M CJS+AC,ALU+ZA+OR,TRUE+RXSISV ;SERVICE RECEIVER
+        M AE,ALU+ZA+SUBR+RAMF,BE  ;UPDATE SYNC STATUS UPDATE COUNTER
+        M AE,CONST+DA+AND,001F    ;29TH TIME THROUGH THE LOOP ?
+        M CJS,,FE0+STSYNC         ;IF YES, UPDATE SYNC LINE STATUS
+        M A7+DMAH,CONST+DA+SUBR+QREG,CARRY+0101 ;SET NEXT CHAN TO BE PROCESSED
+        M CJS,,F3+MLOOP4          ;BRANCH TO RESTART FROM LAST CHANNEL PRESENT
+        M LOOP,ALU+ZQ+OR+RAMF,FALSE+B7 ;SAVE FOR NEXT LOOP
+;
+;---------------------------------------
+; RESET CHANNEL NUMBER TO LAST CHANNEL ;
+; PRESENT FOR SIO SERVICE TASK         ;
+;---------------------------------------
+;
+MLOOP4: M CJP,,SIOBY+MLOOP4
+        M SIOD
+        M CRTN+AA,ALU+ZA+OR+QREG,TRUE+428 ;SET CHN NUM TO LAST CHANNEL PRESENT
+;
+MLOOPS: M AA,CONST+DA+AND+QREG,000F ;GET HIGHEST CHANNEL NUMBER
+        M A1,CONST+DQ+SUBS,CARRY+0009 ;MORE THAN 10 CHANNELS?
+        M CRTN+AA,ALU+ZA+OR+QREG,F3 ;RET IF > 10, USE HIGHEST CHAN NUM
+        M ,CONQ,0909                ;ELSE SCAN 10 CHANNELS
+        M CRTN,,TRUE                ;RETURN TO SAVE CHN NUM
+;
+;---------------------------------------
+; UPDATE DCD AND CTS OF EMULATED SYNC  ;
+;---------------------------------------
+;
+STSYNC: M AE,CONST+DA+OR+QREG,001D ;PUT 29(DECIMAL) BACK IN COUNTER
+        M AC,ALU+ZA+EXNOR         ;IS IT EMULATING SYNC?
+        M CRTN,ALU+ZQ+OR+RAMF,BUS0+BE ;RETURN IF NOT, CTR->RE(11-15)
+        M ,CONST+DZ+OR+QREG,SYNCHM ;GET MASK TABLE ADDR
+        M ,COUNT+DZ+OR+RAMF,B0    ;CHN NUM -> R0
+        M A0+REGD,ALU+AQ+ADD      ;SET UP TO GET THE MASK
+        M JSRP,RAM+DZ+OR+RAMF,FALSE+TXRXFG+BC ;FLAGS IN RC,GET MASK INTO R0
+        M AC,CONST+DA+OR+QREG,0004 ;SET SYNC STATUS UPDATED FLAG
+        M LOOP+RAMD,ALU+ZQ+OR+RAMF,TRUE+TXRXFG+BC ;CLEAN STACK, SAVE FLAGS
+        M ,RAM+DZ+OR+RAMF,STAT+B2 ;GET STATUS
+        M A2,CONST+DA+AND,2000    ;CCTS
+        M CJP,,FE0+STSYN1         ;BRANCH IF CTS NOT ACTIVE
+        M A0,ALU+AB+NOTRS+RAMF,BF ;CLEAR CTS NOT ACTIVE BIT IN STATUS HALFWORD
+        M JMAP,,STSYN2
+STSYN1: M A0,ALU+AB+OR+RAMF,BF    ;SET CTS NOT ACTIVE BIT IN STATUS HALFWORD
+STSYN2: M A2,CONST+DA+AND,0800    ;CHECK DCD
+        M CJP,,FE0+STSYN3         ;BRANCH IF DCD ACTIVE
+        M CRTN+A0,ALU+AB+NOTRS+RAMF,TRUE+BE ;CLR DCD ACTIVE BIT IN STATUS HW
+STSYN3: M CRTN+A0,ALU+AB+OR+RAMF,TRUE+BE ;SET DCD NOT ACTIVE BIT IN STATUS HW
+;
+;---------------------------------------
+; Z80-SIO RECEIVER SERVICE             ;
+;---------------------------------------
+;
+RXSISV: M CJP,,BUS12+RXSIS3       ;BRANCH IF RAM RECEIVE BUFFER FULL
+        M REGD,RAM,RXSIPC         ;SET UP RECEIVE SERVICE ROUTINE BRANCH ADDR
+RXSIS1: M CJP+AC,ALU+ZA+OR,SIOBY+RXSIS1 ;WAIT TILL SIO SEQUENCE DONE
+        M CJP,,BUS9+RXSIS2        ;BRANCH IF SIO STATUS READ
+        M JRP+RAMD,SIO+DZ+OR+RAMF,FALSE+STAT+B1 ;UPDATE SIO STATUS,SERVICE SIO
+;
+RXSIS2: M JRP,RAM+DZ+OR+RAMF,FALSE+STAT+B1 ;BRANCH TO SERVICE ROUTINE VIA U CTR
+;
+RXSIS3: M CJP+AC,ALU+ZA+OR,SIOBY+RXSIS3 ;WAIT TILL SIO SEQUENCE DONE
+        M CRTN,,BUS9              ;RETURN IF SIO STATUS ALREADY UPDATED
+        M CRTN+RAMD,SIO+DZ+OR+RAMF,TRUE+STAT+B1 ;UPDATE SIO STATUS
+;
+;---------------------------------------
+; EXTENDED COMMAND TYPES 'E', 'F'      ;
+; 'E' -- CPU RESPONSE TO RECEIVER      ;
+; 'F' -- CPU RESPONSE TO TRANSMITTER   ;
+;                                      ;
+; UNEXPECTED RESPONSES ARE IGNORED     ;
+;---------------------------------------
+;
+IOCMEF: M CJP+A2,ZA+OR+QREG,BUS10+IOCMF ;BRANCH IF COMMAND 'F'
+        M REGD,RAM+DZ+OR,MXRXPC   ;IDLE RECEIVER MUX INPUT SERVER AND
+        M CRTN+RAMD,ALU+ZQ+AND,FE0+MXRXPC ;RETURN IF RESPONSE NOT EXPECTED
+        M JRP,RAM+DZ+OR+RAMF,FALSE+TXRXFG+BC ;EXECUTE RTN FOR CPU RESPONSE
+;
+IOCMF:  M REGD,RAM+DZ+OR,MXTXPC   ;IDLE TRANSMITTER MUX INPUT SERVER AND
+        M CRTN+RAMD,ALU+ZQ+AND,FE0+MXTXPC ;RETURN IF RESPONSE NOT EXPECTED
+        M JRP,RAM+DZ+OR+RAMF,FALSE+TXRXFG+BC ;EXECUTE RTN FOR CPU RESPONSE
+EJECT
+;
+;---------------------------------------
+; PROCESS MUX INPUT FROM CPU           ;
+;---------------------------------------
+;
+MUXIN:  M ,MUXLN+DZ+OR+RAMF,B3    ;SAVE MUX INPUT TYPE
+        M ,MUX+DZ+OR+RAMF,B2      ;SAVE MUX INPUT, CLR MUX QUICKLY
+MUXIN1: M CJP+A3,ALU+ZA+OR+QREG,SIOBY+MUXIN1 ;WAIT TILL SIO SEQ DONE
+        M CJP+COUNTD,OUTQ,BUS8+IOCM8F ;BRANCH IF COMMAND TYPES 8 THRU F
+        M CJP+A3,ALU+AQ+ADD+QREG,BUS9+IOCM47 ;JMP IF CMDS 4,5,6,7; Q=2*CMD_CODE
+        M CJP,OUTQ,BUS9+IOCM23    ;BRANCH IF COMMAND TYPES 2, 3
+        M CJP,,BUS10+IOCM1        ;BRANCH IF COMMAND TYPE 1, FALLS THRU FOR 0
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPE 0: START INPUT                          ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+        M CJS,ZQ+AND+QREG,TRUE+QWQ ;RELOCATE ADDR OF CCW
+        M CJP,,F3+MICMER          ;BRANCH IF ADDR OUT OF RANGE, ERROR
+        M A3+RAMD,ALU+ZA+OR,RCADDH ;SAVE CCW ADDR
+        M A4+RAMD,ALU+ZA+OR,RCADDL
+        M CJS,,TRUE+INIRX         ;INITIALIZE VARIABLES FOR INPUT
+        M ,CONQ,RXOCCH            ;NEXT, OUTPUT HIGH ORDER CCW ADDR
+        M CRTN+RAMD,OUTQ,TRUE+RXCFPC
+;
+;---------------------------------------
+; OUTPUT HIGH ORDER CCW ADDR TO CPU    ;
+; (RXOCCH)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; OUTPUT LOW ORDER CCW ADDRESS TO CPU  ;
+; (RXOCCL)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; REQUEST HIGH ORDER PART OF CCW       ;
+;---------------------------------------
+;
+RXOGCH: M A6,CONST+DA+AND+QREG,0F00 ;MERGE CHAN NUM, FCN CODE(8), LAST STATUS
+        M ,CONST+DQ+EXNOR+QREG,8000*
+        M A8+MUXD,ALU+AQ+OR       ;DATA INTO MUX OUT REG A, ISSUE ATN
+RXOGC1: M ,CONQ,RXCPIL
+        M RAMD,OUTQ,RXCPPC        ;NO MORE REQUEST UNTIL CCW IS RETURNED
+        M ,CONQ,RXICCH
+        M CRTN+RAMD,OUTQ,TRUE+MXRXPC ;NEXT, GET HIGH ORDER CCW FROM MUX INPUT
+;
+;---------------------------------------
+; GET HIGH ORDER CCW FROM MUX INPUT    ;
+; (RXICCH)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; REQUEST LOW ORDER CCW FROM CPU       ;
+; (RXOGCL)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; GET LOW ORDER CCW FROM CPU           ;
+; PROCESS CCW                          ;
+; (RXICCL)                             ;
+;---------------------------------------
+EJECT
+;
+;-------------------------------------------------
+;                                                ;
+; INPUT CCW COMMAND CODE 0: STOP                 ;
+;                                                ;
+; TERMINATE RECEIVER PROCESSING,                 ;
+;                                                ;
+; BRANCH TO CLEAR RECEIVER PROCESSING FROM       ;
+; INPUT CCW DECODE                               ;
+;                                                ;
+;-------------------------------------------------
+;
+EJECT
+;
+;-------------------------------------------------
+;                                                ;
+; INPUT CCW COMMAND CODE 1: INPUT TO BUFFER      ;
+;                                                ;
+;-------------------------------------------------
+;
+;---------------------------------------
+; RELOCATE INPUT BUFFER ADDRESS        ;
+;---------------------------------------
+;
+RXCW1A: M CJS,ZQ+AND+QREG,TRUE+QWQ ;RELOCATE INPUT BUFFER ADDRESS
+        M CJP+AC,ALU+ZA+OR,F3+RCCWER ;BRANCH IF OUT OF RANGE, ERROR
+        M CJP,ZQ+AND+QREG,BUS0+RCCWER ;BRANCH IF EMULATING SYNC, INVALID CCW
+        M A3+RAMD,ALU+ZA+OR,RDADDH ;SAVE RELOCATED ADDRESS
+        M A4+RAMD,ALU+ZA+OR,RDADDL 
+        M ,CONST+DZ+OR+RAMF,B2
+        M A2+RAMD,ALU+AB+ADD,RCDADL+B4
+        M CJS,,FE0+RXOIBB
+        M A3+RAMD,ALU+ZA+OR,RCDADH ;SAVE BEGINNING OF DATA ADDR (SKIP BYTE CNT)
+        M ,RAM+DZ+SUBS+RAMD,RBSIZE+B2 ;CHECK IF END OF RECORD IS IN RANGE
+        M A2,ZA+OR+RAMD,B2
+        M A2,ZA+OR+RAMD,B2
+        M A2,ZA+OR+RAMD,B2
+        M A5,ALU+AB+SUBS,CARRY+B2
+        M CJP,,F3+RCCWER          ;BRANCH IF OUT OF RANGE, ERROR
+        M ,CONQ,RXOIBH
+        M RAMD,OUTQ,RXCFPC        ;NEXT, SEND INPUT BUF ADDR TO CPU
+        M ,CONQ,RXSIOA
+        M CRTN+RAMD,OUTQ,TRUE+RXSIPC ;ALSO, CHECK SIO FOR INPUT DATA
+;
+RXOIBB: M CRTN+A2,AB+ADD+RAMF,TRUE+B3 ;INCR HIGH ORDER ADDR
+;
+;---------------------------------------
+; INPUT CCW ERROR                      ;
+; ISSUE INTERRUPT TO CPU (CODE 20)     ;
+;---------------------------------------
+;
+RCCWER: M ,CONQ,20                ;SET ERROR CODE FOR CCW ERROR
+        M CJS,,TRUE+MIERR         ;GO ISSUE INTERRUPT TO CPU
+        M JMAP,,INIRX             ;TERMINATE ALL RX OPERATION
+;
+;---------------------------------------
+; OUTPUT HIGH ORDER INPUT BUFFER       ;
+; ADDRESS TO CPU                       ;
+; (RXOIBH)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; OUTPUT LOW ORDER INPUT BUFFER        ;
+; ADDRESS TO CPU                       ;
+; (RXOIBL)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; SIO RECEIVE SERVICE                  ;
+; CLEAN OUT BUFFER, RESET OVERRUN FLAG ;
+;---------------------------------------
+;
+RXSIOA: M CJP,,BUS7+RXSIOC        ;BRANCH IF RX CHAR AVAILABLE
+RXSIOB: M SIOD,CONST,30           ;ISSUE ERROR RESET TO SIO
+        M AC,ALU+ZA+EXNOR,435     ;SEND OUT ONE COMMAND
+        M CJP,,F3+RXNREC          ;BRANCH IF NOT EMULATING SYNC, GET NEXT REC
+        M ,CONQ,RXSNL
+        M CRTN+RAMD,OUTQ,TRUE+RXSIPC ;NEXT, GET FIRST SIO INPUT CHAR
+;
+RXSIOC: M SIOD                    ;FLUSH THE CHARACTER
+        M CRTN,,TRUE+420          ;WAIT TO ISSUE ERROR RESET
+;
+;---------------------------------------
+; RECEIVE FIRST CHARACTER              ;
+;---------------------------------------
+;
+RXRSF:  M CJP+SIOD,ALU+DZ+AND,BUS7+RXRSF1 ;BRANCH IF RX CHAR AVAILABLE
+        M ,,42C                   ;GET SPECIAL CUSTOM CHIP STATUS
+        M ,RAM+DZ+OR+RAMF,RICHCK+B4 ;INCR IDLE LINE COUNT
+        M A4,CONST+DA+ADD+RAMF,100
+        M ,CONST+DZ+OR+RAMF,2
+RXRSF0: M CJP+A2,SIO+DA+AND,SIOBY+RXRSF0 ;WAIT FOR SIO PROM SEQ COMPLETE
+        M CRTN,,FE0               ;WAIT IF LINE NOT IDLING
+        M ,CONQ,RXIDLN
+        M RAMD,OUTQ,RXSIPC        ;IDLE LINE DETECTED, PREPARE TO SHUT OFF SIO
+        M CRTN+A0+RAMD,ALU+ZA+OR,TRUE+RICHCK ;SAVE NEW IDLE COUNT IN COUNTER
+;
+;---------------------------------------
+; IDLE LINE                            ;
+;---------------------------------------
+;
+RXIDLN: M CJP+SIOD,ALU+DZ+AND,BUS7+RXRSF1 ;BRANCH IF RX CHAR AVAILABLE
+        M CRTN,,TRUE+0                 ;IDLE LINE, SHUT OFF SIO
+;
+;---------------------------------------
+; GET FIRST CHARACTER -- LEFT CHAR     ;
+;---------------------------------------
+;
+RXRSF1: M ,,418                   ;GET LEFT CHARACTER, ZERO FOR RIGHT CHAR
+        M ,RAM+LOADQ,RRSIZE
+        M RAMD,ALU+ZQ+SUBR,RECNT  ;INITIALIZE RECORD COUNT IN HALFWORDS
+        M ,CONQ,RXRSR             ;NEXT, GET RIGHT CHARACTER
+        M RAMD,OUTQ,RXSIPC
+RXRSF2: M CJP,,SIOBY+RXRSF2       ;WAIT TILL SIO SEQ DONE
+        M CRTN+RAMD,SIO,TRUE+RDBUF ;PUT LEFT CHAR IN BUFFER AND EXIT
+;
+;---------------------------------------
+; RECEIVE RIGHT CHARACTER              ;
+; (RXRSR)                              ;
+;---------------------------------------
+;
+;---------------------------------------
+; RIGHT CHARACTER AVAILABLE            ;
+;---------------------------------------
+;
+RXRSR1: M SIOD,CONST,0            ;START SIO SEQ TO GET RIGHT CHAR
+        M A1,ZA+OR,420            ;READ RIGHT CHARACTER, ZERO IN LEFT
+        M CJP+A1,ALU+ZA+OR,F3+RXRSR2 ;BRANCH IF BREAK/ABORT
+        M CJP+A1,ALU+ZA+OR,BUS8+RXRSR4 ;BRANCH IF END OF FRAME
+        M ,RAM+LOADQ,RECNT        ;UPDATE RECORD COUNT
+        M RAMD,ALU+ZQ+SUBR,RECNT
+        M CJP,,F3+RXBIG0          ;BRANCH IF RECORD COUNT TOO BIG
+        M ,CONQ,RXRSL
+RXRSR5: M RAMD,OUTQ,RXSIPC        ;NEXT, GET LEFT CHARACTER
+        M ,CONQ,3                 ;UPDATE RECEIVE BUFFER IN-POINTER
+        M ,RAM+DZ+ADD+RAMF,CARRY+IBIPTR+B2
+        M A2+RAMD,ALU+AQ+AND+QREG,IBIPTR
+        M ,RAM+DQ+SUBR,CARRY+IBOPTR
+        M CJS,,FE0+RXBFUL         ;IF RECEIVE BUFFER FULL, GO SET FLAG
+RXRSR0: M CJP+AC,ALU+ZA+OR,SIOBY+RXRSR0 ;WAIT TILL CABLE PROM DONE
+        M CJP,SIO+DZ+OR+QREG,BUS0+RXRSR6 ;BRANCH IF SYNC EMULATION
+        M A9+REGD,ALU+ZA+OR       ;SET UP TO INSERT IN RCV BUF
+        M JRP,RAM+DQ+OR+QREG,FALSE+RDBUF ;MERGE IN RIGHT CHAR,INSERT IN RCV BUF
+;
+;---------------------------------------
+; SYNC EMULATION, REORDER RECEIVED BITS;
+;---------------------------------------
+;
+RXRSR6: M ,CONST+DQ+ADD+QREG,XLATRB ;Q=ADDR OF INSTRUCTION IN TRANSLATION TABLE
+        M REGD,ALU+ZQ+OR        ;SET UP TO BRANCH TO THE INSTRUCTION
+        M JRP+REGD,CONST,FALSE+RXRSR7 ;GET RE-ORDERED BYTE AND CONTINUE
+RXRSR7: M A9+REGD,ALU+ZA+OR       ;SET UP TO INSERT IN RCV BUF
+        M JRP,RAM+DQ+OR+QREG,FALSE+RDBUF ;MERGE RT CHAR, INSERT IN RCV BUF
+;
+;---------------------------------------
+; ABORT DETECTED                       ;
+;---------------------------------------
+;
+RXRSR2: M ,CONQ,10                ;INCR ABORT COUNT
+        M ,RAM+DQ+ADD+QREG,ABORT
+        M RAMD,OUTQ,ABORT
+        M JMAP+AC,ALU+ZA+OR,RXRST ;RESTART RECEIVER
+;
+;---------------------------------------
+; END OF FRAME DETECTED                ;
+;---------------------------------------
+;
+RXRSR4: M CJP,ZA+AND+QREG,BUS9+RXRSL4 ;BRANCH IF CRC/FRAMING ERROR
+        M ,RAM+DZ+OR+RAMF,RECNT+B2 ;COMPUTE BYTE COUNT
+        M A2,RAM+DA+SUBS+RAMU,RRSIZE+B2 ;(RRSIZE-RECNT-1)*2
+        M RAMD+A2,ALU+ZA+OR,RECNT
+RXALL:  M AC,ALU+ZA+OR            ;IS ALL INPUT DATA RECEIVED FLAG ALREADY SET?
+RXALL2: M CJP,,BUS1+RXALL1        ;BRANCH IF FLAG ALREADY SET, WAIT
+        M ,RAM+DZ+OR+QREG,RECNT   ;GET BYTE COUNT OF RECEIVED RECORD
+        M RAMD,ALU+ZQ+OR,RRECNT   ;SAVE BYTE COUNT FOR OUTPUT TO CPU
+        M AC,CONST+DA+OR+QREG,4000      ;MARK ALL INPUT DATA RECEIVED
+        M ,CONST+DQ+NOTRS+QREG,0003 ;CLR BITS 14-15
+        M ,RAM+DQ+OR+QREG,IBIPTR  ;SAVE RAM BUF INDEX OF LAST RECEIVED DATA
+        M RAMD,ALU+ZQ+OR+RAMF,TXRXFG+BC ;UPDATE FLAGS
+RXNREC: M ,CONQ,RXRSF             ;NEXT, GET FIRST CHAR OF NEXT RECORD
+        M CRTN+RAMD,OUTQ,TRUE+RXSIPC
+;
+RXALL1: M ,CONQ,RXALL
+        M CRTN+RAMD,OUTQ,TRUE+RXSIPC ;WAIT UNTIL PREVIOUS RECORD PROCESSED
+;
+;---------------------------------------
+; SET RECEIVE BUFFER FULL FLAG         ;
+;---------------------------------------
+;
+RXBFUL: M AC,CONST+DA+OR+QREG,0008
+        M CRTN+RAMD,ALU+ZQ+OR+RAMF,TRUE+TXRXFG+BC
+;
+;---------------------------------------
+; RECEIVE LEFT CHARACTER               ;
+;---------------------------------------
+;
+RXRSL:  M CJP,,BUS7+RXRSL1        ;BRANCH IF RX CHAR AVAILABLE
+RXRSL6: M A1,CONST+DA+AND,1000
+        M CRTN,,FE0               ;OK IF SYNC MAINTAINED, RETURN   
+        M JMAP+AC,ALU+ZA+OR,RXRST ;LOST SYNC, CLEAN UP & RESTART
+;
+;---------------------------------------
+; LEFT CHARACTER AVAILABLE             ;
+;---------------------------------------
+;
+RXRSL1: M SIOD,CONST,0            ;START SIO SEQ TO READ LEFT CHAR
+        M A1,ZA+OR,418            ;READ LEFT CHARACTER, ZERO RIGHT
+        M CJP+A1,ALU+ZA+OR,F3+RXRSR2 ;BRANCH IF BREAK/ABORT
+        M CJP+A1,ALU+ZA+OR,BUS8+RXRSL3 ;BRANCH IF END OF FRAME
+        M ,CONQ,RXRSR
+        M RAMD,OUTQ,RXSIPC        ;NEXT, RECEIVE RIGHT CHAR
+RXRSL2: M CJP,,SIOBY+RXRSL2       ;WAIT TILL SIO SEQ DONE
+        M CRTN+RAMD,SIO,TRUE+RDBUF ;READ LEFT CHAR
+;
+;---------------------------------------
+; END OF FRAME DETECTED                ;
+;---------------------------------------
+;
+RXRSL3: M CJP,ZA+AND+QREG,BUS9+RXRSL4 ;BRANCH IF CRC/FRAMING ERROR
+        M ,RAM+DZ+OR+RAMF,RECNT+B2 ;COMPUTE BYTE COUNT
+        M A2,RAM+DA+SUBS+RAMU,RRSIZE+B2 ;(RRSIZE-RECNT-1)*2-1
+        M A2+RAMD,ALU+ZA+SUBR,RECNT
+        M JMAP+AC,ALU+ZA+OR,RXALL2 ;MARK ALL INPUT DATA RECEIVED
+;
+;---------------------------------------
+; CRC/FRAMING ERROR DETECTED           ;
+;---------------------------------------
+;
+RXRSL4: M ,RAM+DZ+OR+RAMF,RICHCK+B0 ;PUT ERROR COUNTER IN R0
+        M A0,ALU+ZA+ADD+QREG,CARRY  ;INCR CRC ERROR COUNT
+        M ,CONST+DQ+AND+QREG,00FF ;USE ONLY BITS 8-15
+        M ,ALU+ZQ+OR+RAMF,B1      ;SAVE UPDATED ERROR COUNT IN R1
+        M A0,CONST+DA+NOTRS+QREG,00FF ;PUT IDLE COUNT IN Q BITS 0-7
+        M A1+RAMD,ALU+AQ+OR,RICHCK ;MERGE IDLE COUNT AND CRC ERROR COUNT
+        M JMAP+AC,ALU+ZA+OR,RXRST ;CLEAN UP AND LOOK FOR FIRST CHAR AGAIN
+;
+;---------------------------------------
+; RECORD TOO BIG                       ;
+;---------------------------------------
+;
+RXBIG0: M ,CONQ,RXBIG             ;NEXT, HANDLE RECORD TOO BIG PROBLEM
+        M CRTN+RAMD,OUTQ,TRUE+RXSIPC
+;
+;---------------------------------------
+; HANDLE RECORD TOO BIG PROBLEM        ;
+; (RXBIG)                              ;
+;---------------------------------------
+;
+; RX CHAR AVAILABLE
+;
+RXBIG1: M A1,ZA+OR,420            ;DISCARD CHARACTER QUICKLY
+        M CJP+A1,ALU+ZA+OR,F3+RXRSR2 ;BRANCH IF BREAK/ABORT
+        M CJP+AC,ALU+ZA+OR,BUS8+RXRST ;BRANCH IF END OF FRAME,CLEAN UP RESTART
+IDLEPC: M CRTN,,TRUE
+;
+;---------------------------------------
+; RESET FLAGS AND RESTART THE RECEIVER ;
+;---------------------------------------
+;
+RXRST:  M CJP,,BUS1+RXRST1        ;BRANCH IF ALL RX DATA RECEIVED FLAG SET
+        M RAMD,ALU+ZQ+AND,IBIPTR  ;RESET RAM INPUT BUFFER PTRS
+        M RAMD,ALU+ZQ+AND,IBOPTR
+        M JMAP,,RXRST2            ;GOTO RESET FLAGS
+;
+RXRST1: M AC,CONST+DA+AND+QREG,0003 ;GET IN-BUF PTR OF LAST HW IN LAST RECORD
+        M ,RAM+DZ+OR+RAMF,IBIPTR+B0 ;GET CURRENT INPUT BUF PTR
+        M RAMD,ALU+ZQ+OR,IBIPTR   ;PUT INPUT BUF PTR BACK TO LAST RECORD
+        M A0,ALU+AQ+SUBS,CARRY    ;IS CURRENT PTR SAME AS LAST HW PTR?
+        M CJP,,FE0+RXRST3   ;BRANCH IF SAME, DON'T RESET FLAGS IN CASE BUF FULL
+RXRST2: M AC,CONST+DA+NOTRS+QREG,0008 ;RESET RAM BUF FULL FLAG
+        M RAMD,OUTQ,TXRXFG        ;UPDATE FLAGS
+        M ,CONQ,RXOIBH            ;RESET INPUT RECORD PTR
+        M RAMD,OUTQ,RXCFPC
+RXRST3: M ,CONQ,RXSIOA            ;RESTART SIO SERVER
+        M CRTN+RAMD,OUTQ,TRUE+RXSIPC
+;
+;---------------------------------------
+; SEND RECEIVED DATA TO CPU TO BE      ;
+; STORED INTO MEMORY                   ;
+;---------------------------------------
+;
+RXODAT: M ,RAM+DZ+OR+RAMF,IBOPTR+B2
+        M ,RAM+DZ+OR+RAMF,TXRXFG+BC ;PUT FLAGS IN RC
+        M CJP,,BUS12+RXODA2       ;BRANCH IF RAM RECEIVE BUF FULL
+        M A2,RAM+DA+SUBR,CARRY+IBIPTR
+        M CJP+AC,ALU+ZA+OR,FE0+RXODA3 ;BRANCH IF BUF EMPTY
+RXODA1: M ,CONQ,IGETIB
+        M A2+REGD,ALU+AQ+ADD      ;FETCH INST ADDR INTO U REG
+        M A6,CONST+DA+AND+QREG,0F00 ;GET CHN NUM
+        M ,RAM+DZ+OR+RAMF,TXRXFG+BC ;SYNC EMULATION? (PUT FLAGS IN RC)
+        M CJP,,BUS0+RXODA5        ;BRANCH IF EMULATING SYNC
+        M ,CONST+DQ+OR+QREG,FPIBFD ;MERGE CHN NUM, FCN CODE(2), LAST STATUS
+RXODA6: M JSRP+A8+MUXD,ALU+AQ+OR,FALSE ;DATA TO MUX REG A, ISSUE ATN
+        M ,CONQ,3
+        M A2,RAM+ZA+ADD+RAMF,CARRY+TXRXFG+B2 ;UPDATE RAM RCV BUF OUT-POINTER
+        M CRTN+A2+RAMD,ALU+AQ+AND,BUS0+IBOPTR ;RETURN IF EMULATING SYNC
+        M AC,ALU+ZA+EXNOR
+        M CRTN,,BUS1          ;RETURN IF MORE RX DATA TO RECEIVE IN THIS RECORD
+        M AC,CONST+DA+AND+QREG,0003 ;GET RAM BUF INDEX OF LAST DATA IN THIS REC
+        M ,RAM+DQ+SUBR,CARRY+IBOPTR ;JUST SENT TO CPU?
+        M CJP,,FE0+RXODA7         ;BRANCH IF JUST SENT
+        M CRTN,,TRUE              ;ELSE, WAIT UNTIL IT IS SENT
+;
+RXODA3: M CJP,,BUS1+RXENDR        ;IF ALL DATA RECEIVED, GO TO MARK RECORD
+        M JRP+REGD,RAM,FALSE+RDSTPC ;ELSE, DO NEXT MUX OUT TASK
+;
+RXODA5: M ,CONST+DQ+EXNOR+QREG,0C000* ;MERGE FCN CODE (C) TO STORE SYNC DATA
+        M JMAP,,RXODA6            ;GO ISSUE ATN TO CPU
+;
+RXODA7: M ,CONQ,RXENDR
+        M CRTN+RAMD,OUTQ,TRUE+RXCFPC ;NEXT, MARK END OF RECORDS
+;
+RXODA2: M AC,CONST+DA+NOTRS+QREG,0008   ;CLEAR RAM RCV BUFFER FULL FLAG
+        M RAMD,ALU+ZQ+OR+RAMF,TXRXFG+BC
+        M JMAP,,RXODA1
+;
+;---------------------------------------
+; ALL RX DATA RECEIVED                 ;
+;---------------------------------------
+;
+RXENDR: M ,RAM+DZ+OR+RAMF,TXRXFG+BC ;GET FLAGS
+        M CJP,,BUS5+RXOADN        ;BRANCH IF ASYNC INPUT
+        M AC,CONST+DA+NOTRS+QREG,4000 ;CLEAR ALL RX DATA RECEIVED FLAG
+        M RAMD,OUTQ,TXRXFG
+        M A2+MUXDL,ALU+AB+SUBS,B2 ;PUT -1 AT END OF RECORD
+        M A6,CONST+DA+AND+QREG,0F00 ;MERGE CHAN NUM, FCN CODE(2), LAST STATUS
+        M ,CONST+DQ+OR+QREG,FPIBFD
+        M A8+MUXD,ALU+AQ+OR       ;DATA TO MUX REG A, ISSUE ATN
+        M ,CONQ,RXOBCC
+        M CRTN+RAMD,OUTQ,TRUE+RXCFPC ;NEXT, INSERT BYTE COUNT
+;
+;---------------------------------------
+; ALL ASYNC INPUT RECEIVED, SIGNAL CPU ;
+;---------------------------------------
+;
+RXOADN: M AC,CONST+DA+NOTRS+QREG,4400 ;CLR ASYNC INPUT, ALL RX DATA REC'D FLAGS
+        M RAMD,OUTQ,TXRXFG        ;UPDATE FLAGS
+        M ,CONQ,10                ;ALL ASYNC INPUT RECEIVED, INTERRUPT CPU
+        M ,COUNT+DQ+OR+QREG       ;MERGE IN CHAN NUM
+        M MUXD,ALU+ZQ+OR+RAMF,B8  ;ISSUE ATN TO CPU
+        M ,CONQ,RXCFIL            ;IDLE RXCFPC
+        M RAMD,OUTQ,RXCFPC
+        M JMAP,,RXCON1            ;GET NEXT CCW
+;
+;---------------------------------------
+; OUTPUT BYTE COUNT TO CPU             ;
+; (RXOBCC)                             ;
+;---------------------------------------
+;
+;
+RXOBC2: M ,RAM+DZ+OR+RAMF,RDADDH+B3 ;NO ROOM FOR ANOTHER RECORD
+        M A2,RAM+DA+ADD+RAMF,RDADDL+B4 ;RESTART FROM BEG OF RX BUF
+        M CJS,,FE0+RXOIBB         ;SKIP OVER BYTE COUNT
+        M A3+RAMD,ALU+ZA+OR,RCDADH
+        M A4+RAMD,ALU+ZA+OR,RCDADL ;UPDATE RECORD POINTERS
+        M ,CONQ,RXOIBH
+        M CRTN+RAMD,OUTQ,TRUE+RXCFPC ;NEXT, SENT NEW BUF ADDR TO CPU
+;
+RXOBC3: M ,CONQ,RXODAT
+        M CRTN+RAMD,OUTQ,TRUE+RXCFPC ;NEXT, OUTPU RECEIVED DATA TO CPU
+EJECT
+;
+;-------------------------------------------------
+;                                                ;
+; INPUT CCW COMMAND CODE 2: JUMP                 ;
+;                                                ;
+;-------------------------------------------------
+;
+RXCW2A: M CJS,ZQ+AND+QREG,TRUE+QWQ ;RELOCATE NEW CCW ADDRESS
+        M CJP,,F3+RCCWER          ;BRANCH IF OUT OF RAMGE, ERROR
+        M A3+RAMD,ALU+ZA+OR,RCADDH ;UPDATE CCW ADDRESS
+        M A4+RAMD,ALU+ZA+OR,RCADDL
+        M ,CONQ,RXOCCH
+        M CRTN+RAMD,OUTQ,TRUE+RXCFPC ;NEXT, OUTPUT NEW CCW ADDRESS TO CPU
+EJECT
+;
+;-------------------------------------------------
+;                                                ;
+; INPUT CCW COMMAND CODE 3: SET BUFFER AND       ;
+;                           MAXIMUM RECORD SIZE  ;
+;                                                ;
+;-------------------------------------------------
+;
+RXCW3A: M A2,CONST+DA+NOTRS,1FFF
+        M CJP+A2,ZA+OR+QREG,FE0+RXCW3B ;BRANCH IF BUFFER SIZE LESS THAN 2000
+        M JMAP,,RCCWER            ;ERROR, BUFFER SIZE GREATER THAN 2000
+RXCW3B: M ,CONST+DQ+NOTRS,1F
+        M CJP+AC,ALU+ZA+OR,FE0+RCCWER ;BRANCH IF BUFFER SIZE LESS THAN 20,ERROR
+        M CJP,,BUS0+RCCWER        ;BRANCH IF EMULATING SYNC, INVALID CCW
+        M A2+RAMD,ALU+AQ+ADD+RAMQD,RBSIZE+B0 ;UPDATE BUFFER SIZE IN BYTES
+        M ,DZ+AND+RAMQD,B0        ;COMPUTE RECORD SIZE
+        M ,DZ+AND+RAMQD,B0
+RXCONT: M RAMD,OUTQ,RRSIZE        ;UPDATE RECORD SIZE
+RXCON1: M ,RAM+LOADQ,RCADDL       ;GET ADDRESS OF NEXT CCW    
+        M A1,CONST+DQ+ADD+QREG,4
+        M RAMD,OUTQ,RCADDL
+        M ,CONST+DQ+AND,0FF
+        M CJP,,FE0+RCCWER         ;BRANCH IF CCW ADDR CROSS 100, ERROR
+        M ,CONQ,RXOGCH
+        M CRTN+RAMD,OUTQ,TRUE+RXCPPC ;NEXT, GET HIGH ORDER PART OF CCW
+EJECT
+;
+;-------------------------------------------------
+;                                                ;
+; INPUT CCW COMMAND CODE 4: INPUT ASYNC          ;
+;                                                ;
+;-------------------------------------------------
+;
+RXCW4A: M CJS,ZQ+AND+QREG,TRUE+QWQ
+        M CJP+AC,ALU+ZA+OR,F3+RCCWER ;BRANCH IF OUT OF RANGE, ERROR   
+        M CJP,,BUS0+RCCWER        ;BRANCH IF EMULATING SYNC, INVALID CCW
+        M A3+RAMD,ALU+ZA+OR,RCDADH ;SAVE INPUT BUFFER ADDRESS
+        M A4+RAMD,ALU+ZA+OR,RCDADL
+        M AC,CONST+DA+OR+QREG,0400
+        M RAMD,ALU+ZQ+OR,TXRXFG   ;MARK ASYNC INPUT
+        M ,CONQ,8
+        M RAMD,OUTQ,RECNT         ;INITIALIZE CHAR COUNT, RCV 8 CHAR MAX
+        M ,CONQ,RXARSF
+        M RAMD,OUTQ,RXSIPC        ;NEXT, RECEIVE 1ST CHAR OF ASYNC INPUT
+        M ,CONQ,RXOIBH
+        M CRTN+RAMD,OUTQ,TRUE+RXCFPC ;ALSO, SEND INPUT BUFFER ADDR TO CPU
+;
+;---------------------------------------
+; RECEIVE FIRST ASYNC INPUT CHARACTER  ;
+;---------------------------------------
+;
+RXARSF: M CJP+A1,ZA+EXNOR,BUS7+RXARF1 ;BRANCH IF RX CHAR AVAILABLE
+        M CRTN,,F3                ;IF NOT BREAK, WAIT FOR CHAR
+RXABRK: M ,CONQ,RXABK1
+        M CRTN+RAMD,OUTQ,TRUE+RXSIPC ;WAIT FOR END OF BREAK
+;
+;---------------------------------------
+; GET FIRST ASYNC CHAR                 ;
+;---------------------------------------
+;
+RXARF1: M ,CONQ,RXARSC
+        M RAMD,OUTQ,RXSIPC        ;NEXT, GET REMAINING 7 CHAR
+RXARS1: M SIOD,CONST,0            ;START SIO SEQ TO GET CHAR 
+        M A9+REGD,ALU+ZA+OR,420
+RXARS2: M ,CONQ,200
+        M RAMD,OUTQ,RRSIZE        ;SET UP 20 MILLISECOND TIMEOUT
+        M ,RAM+DZ+OR+RAMF,XOFF+B0
+        M ,CONQ,3
+        M ,RAM+DZ+ADD+RAMF,CARRY+IBIPTR+B2 ;INCR RCV BUF IN-PTR FOR NEXT CHAR
+        M A2+RAMD,ALU+AQ+AND+QREG,IBIPTR
+        M ,RAM+DQ+SUBR,CARRY+IBOPTR
+        M CJS,,FE0+RXBFUL         ;IF RAM BUF FULL, SET FLAG, SUSPEND RX SRV
+        M ,RAM+LOADQ,RECNT        ;COUNT NUMBER OF CHAR RECEIVED
+        M RAMD,ALU+ZQ+SUBR,RECNT  ;UPDATE CHAR RECEIVE COUNT
+        M CJS,,FE0+RXARAL         ;BRANCH IF 8 CHAR RECEIVED, DONE
+        M ,CONQ,7F
+        M RAMD,SIO+DQ+AND+QREG,RDBUF
+        M ,RAM+DQ+EXOR,XON
+        M CJP+A0,AQ+EXOR,FE0+RXAXON ;BRANCH IF XON CHAR
+        M CJS,,FE0+RXAXOF         ;BRANCH IF XOFF CHAR
+        M JRP,RAM+LOADQ,FALSE+RDBUF ;STORE CHAR IN BUFFER
+;
+RXAXON: M RAMD,ALU+DZ+AND,TSTOP
+        M JRP,RAM+LOADQ,FALSE+RDBUF
+;
+RXAXOF: M CRTN+RAMD,ALU+ZQ+ADD,CARRY+TRUE+TSTOP ;PUT NON ZERO INTO TSTOP
+;
+RXARAL: M AC,CONST+DA+OR+QREG,4000      ;MARK ALL INPUT DATA RECEIVED
+        M ,CONST+DQ+NOTRS+QREG,0003 ;CLR BITS 14-15
+        M ,RAM+DQ+OR+QREG,IBIPTR  ;SAVE RAM BUF INDEX OF LAST RECEIVED DATA
+        M RAMD,ALU+ZQ+OR+RAMF,TXRXFG+BC ;UPDATE FLAGS
+        M ,CONQ,IDLEPC            ;DONE WITH ASYNC INPUT
+        M CRTN+RAMD,OUTQ,TRUE+RXSIPC
+;
+;---------------------------------------
+; RECEIVE REMAINING 7 CHARACTERS       ;
+; (RXARSC)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; WAIT TILL END OF BREAK,              ;
+; THEN INPUT WITH BREAK FLAG           ;
+;---------------------------------------
+;
+RXABK1: M CJP,,BUS7+RXABK2        ;BRANCH IF RX CHAR AVAILABLE
+        M CRTN,,TRUE              ;WAIT TILL END OF BREAK
+RXABK2: M SIOD,CONST,101          ;GET NULL CHARACTER PLUS BREAK FLAG
+        M A9+REGD,ALU+ZA+OR,420   ;SIO INTERFACE WILL ECHO BREAK FLAG
+        M ,CONQ,RXARSC
+        M RAMD,OUTQ,RXSIPC
+        M JMAP,,RXARS2            ;CONTINUE AS FOR NORMAL CHARACTER
+EJECT
+;
+;-------------------------------------------------
+;                                                ;
+; INPUT CCW COMMAND CODE 5: RECORD SIZE          ;
+;                                                ;
+; USED ONLY IN VERSION E AND HIGHER OF SIO MICRO ;
+; CODE PUTS HALFWORD OF DATA FROM DMA TO RRSIZE  ;
+; THE ONLY CHECKING DONE IS TO TEST THAT         ;
+; RBSIZE - 2*RRSIZE > 0                          ;
+;                                                ;
+;-------------------------------------------------
+;
+RXCW5A: M A2,ALU+AB+ADD+QREG,B2   ;GET 2*RRSIZE AND STORE IN Q
+        M ,RAM+DQ+SUBS,RBSIZE     ;CALC RBSIZE-2*RRSIZE-1
+        M CJP+AC,ALU+ZA+OR,F3+RCCWER ;ERROR IF NEGATIVE
+        M CJP,,BUS0+RCCWER        ;BRANCH IF EMULATING SYNC, INVALID CCW
+        M JMAP+A2,ZA+OR+QREG,RXCONT ;ELSE PUT RECORD SIZE IN Q AND STORE IT
+EJECT
+;
+;-------------------------------------------------
+;                                                ;
+; INPUT CCW COMMAND CODE 6: EMULATE SYNC INPUT   ;
+;                                                ;
+;-------------------------------------------------
+;
+RXCW6A: M CJP,,F3+RCCWER          ;BRANCH IF NOT EMULATING SYNC, CCW ERROR
+        M ,CONQ,RXSYNI
+        M RAMD,OUTQ,RXCFPC        ;NEXT SIGNAL CPU TO GENERATE INTERRUPT
+        M ,CONQ,RXSIOA            ;START SIO SERVICE TASK
+        M CRTN+RAMD,OUTQ,TRUE+RXSIPC
+;
+;---------------------------------------
+; SIGNAL CPU TO ISSUE INTERRUPT FROM   ;
+; PSEUDO DEVICE ADDRESS                ;
+; (RXSYNI)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; RECEIVE LEFT BYTE                    ;
+; (RXSNL)                              ;
+;---------------------------------------
+;
+;---------------------------------------
+; LEFT BYTE AVAILABLE, REORDER BITS    ;
+;---------------------------------------
+;
+RXSNL1: M SIOD,CONST+ZB+AND+RAMF,B0 ;START SIO SEQ TO READ LEFT CHAR, CLR R0
+        M ,,420                   ;READ LEFT CHAR INTO RIGHT BYTE, ZERO LEFT
+        M ,CONQ,RXSNR             ;NEXT RECEIVE RIGHT CHAR
+        M RAMD,OUTQ,RXSIPC
+RXSNL2: M CJP,SIO+DZ+OR+QREG,SIOBY+RXSNL2 ;WAIT TILL SIO SEQ DONE,RCV BYTE IN Q
+        M A1,CONST+DQ+ADD+QREG,XLATLB ;Q=INSTRUCTION ADDR IN TRANSLATION TABLE
+        M REGD,ALU+ZQ+OR          ;SET UP TO BRANCH TO THE INSTRUCTION
+        M JSRP,,FALSE             ;GET RE-ORDERED BYTE
+        M LOOP,,TRUE              ;CLEAN UP THE STACK
+        M CRTN+RAMD,ALU+ZQ+OR,TRUE+RDBUF ;STORE LEFT CHAR IN BUFFER
+;
+;---------------------------------------
+; RECEIVE RIGHT BYTE                   ;
+; (RXSNR)                              ;
+;---------------------------------------
+;
+;---------------------------------------
+; RIGHT BYTE AVAILABLE, REORDER BITS   ;
+;---------------------------------------
+;
+RXSNR1: M SIOD,CONST+ZB+AND+RAMF,B0 ;START SIO SEQ TO GET RIGHT CHAR, CLR R0
+        M ,,420                   ;READ RIGHT CHARACTER, ZERO IN LEFT
+        M ,CONQ,RXSNL             ;NEXT GET LEFT CHARACTER
+        M JMAP,,RXRSR5            ;INCR BUF PTR AND INSERT CHAR IN RCV BUF
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPE 1: START OUTPUT                         ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+IOCM1:  M CJS,ZQ+AND+QREG,TRUE+QWQ ;RELOCATE CCW ADDR
+        M CJP,,F3+MICMER          ;BRANCH IF OUT OF RANGE, ERROR
+        M A3+RAMD,ALU+ZA+OR,TCADDH ;SAVE CCW ADDR
+        M A4+RAMD,ALU+ZA+OR,TCADDL
+        M CJS,,TRUE+INITX         ;INIT VARIABLES FOR TRANSMITTER
+        M ,CONQ,TXOCCH
+        M CRTN+RAMD,OUTQ,TRUE+TXCFPC ;NEXT, SEND CCW ADDR TO CPU
+;
+;---------------------------------------
+; OUTPUT HIGH ORDER CCW ADDR TO CPU    ;
+; (TXOCCH)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; OUTPUT LOW ORDER CCW ADDRESS TO CPU  ;
+; (TXOCCL)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; MAKE SURE CCW ADDR DOES NOT CROSS 100;
+; (TXOGCC)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; REQUEST HIGH ORDER PART OF CCW       ;
+; (TXOGCH)                             ;
+;---------------------------------------
+;
+TXOGC1: M ,CONQ,TXCPIL
+        M RAMD,OUTQ,TXCPPC        ;NO MORE REQUEST UNTIL CCW IS RETURNED
+        M ,CONQ,TXICCH
+        M CRTN+RAMD,OUTQ,TRUE+MXTXPC ;NEXT, GET HIGH ORDER CCW FROM MUX INPUT
+;
+;---------------------------------------
+; GET HIGH ORDER CCW FROM MUX INPUT    ;
+;---------------------------------------
+;
+TXICCH: M AC,CONST+DA+AND,0800
+        M CJP,,FE0+TXEIN1         ;BRANCH IF NOT PROCESSING CCW 7
+;
+; PROCESSING CCW 7
+;
+        M RAMD,ALU+ZQ+SUBR,TCOM   ;SAVE HIGH ORDER PART OF NEXT CCW - 1
+        M CJP+AC,ALU+ZA+OR,F3+TXEIN2 ;BRANCH IF NEXT CCW = 0
+        M AC,CONST+DA+NOTRS+QREG,0800 ;CLR PROCESSING CCW 7 FLAG
+        M RAMD,OUTQ,TXRXFG        ;UPDATE FLAGS
+        M ,CONQ,TXOGCL            ;GET LOW ORDER PART OF NEXT CCW
+        M CRTN+RAMD,OUTQ,TRUE+TXCPPC
+;
+TXEIN2: M CJP,,BUS0+TXEIN3        ;BRANCH IF EMULATING SYNC I/O
+        M CJS,,TRUE+INITX         ;ELSE, TERMINATE TRANSMISSION
+        M ,CONQ,00A0              ;INTERRUPT CPU WITH STATUS CODE 'A'
+        M JMAP,,MIERR
+;
+TXEIN3: M ,CONQ,TXCW7I            ;NEXT, SIGNAL CPU TO ISSUE INTERRUPT
+        M CRTN+RAMD,OUTQ,TRUE+TXCFPC
+;
+TXEIN1: M RAMD,ALU+ZQ+SUBR,TCOM   ;SAVE CCW COMMAND CODE -1 IN TCOM
+        M CJP,,F3+INITX           ;IF CCW COMMAND CODE IS 0, TERMINATE TX
+        M ,CONQ,TXOGCL
+        M CRTN+RAMD,OUTQ,TRUE+TXCPPC ;NEXT, REQUEST LOW ORDER CCW
+;
+;---------------------------------------
+; REQUEST LOW ORDER CCW FROM CPU       ;
+; (TXOGCL)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; GET LOW ORDER CCW FROM CPU           ;
+; PROCESS CCW                          ;
+; (TXICCL)                             ;
+;---------------------------------------
+EJECT
+;
+;-------------------------------------------------
+;                                                ;
+; OUTPUT CCW COMMAND CODE 0: STOP                ;
+;                                                ;
+; TERMINATE ALL TRANSMIT PROCESSING              ;
+;                                                ;
+; THIS CCW IS PROCESSED BY INITX ROUTINE         ;
+;-------------------------------------------------
+;
+;---------------------------------------
+; TRANSMIT CCW ERROR                   ;
+; ISSUE INTERRUPT TO CPU (CODE 20)     ;
+;---------------------------------------
+;
+TCCWER: M ,CONQ,20                ;SET ERROR CODE FOR CCW ERROR
+        M CJS,,TRUE+MIERR         ;GO ISSUE INTERRUPT TO CPU
+        M JMAP,,INITX             ;TERMINATE ALL TX OPERATION
+EJECT
+;
+;-------------------------------------------------
+;                                                ;
+; OUTPUT CCW COMMAND CODE 1: OUTPUT HDLC RECORD  ;
+;                                                ;
+;-------------------------------------------------
+;
+TXCW1A: M CJS,ZQ+AND+QREG,TRUE+QWQ ;RELOCATE OUTPUT BUFFER ADDR
+        M CJP+AC,ALU+ZA+OR,F3+TCCWER ;BRANCH IF OUT OF RANGE, ERROR
+        M CJP,,BUS0+TCCWER        ;BRANCH IF EMULATING SYNC, CCW ERROR
+        M A3+RAMD,ALU+ZA+OR,TDADDH ;SAVE OUTPUT BUFFER ADDR
+        M A4+RAMD,ALU+ZA+OR,TDADDL
+        M A5+RAMD,ALU+ZA+OR,TDBUF
+        M ,CONQ,TXOOBH
+        M CRTN+RAMD,OUTQ,TRUE+TXCFPC ;NEXT, SEND OUTPUT BUFFER ADDR TO CPU
+;
+;---------------------------------------
+; SEND HIGH ORDER OUTPUT BUFFER        ;
+; ADDRESS TO CPU                       ;
+; (TXOOBH)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; SEND LOW ORDER OUTPUT BUFFER ADDRESS ;
+; TO CPU                               ;
+; (TXOOBL)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; REQUEST OUTPUT BYTE COUNT FROM CPU   ;
+; (TXGCNT)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; GET OUTPUT BYTE COUNT FROM MUX INPUT ;
+; (TXICNT)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; REQUEST OUTPUT DATA FROM CPU         ;
+; (TXOGDA)                             ;
+;---------------------------------------
+;
+; GET FUNCTION CODE FOR SYNC DATA REQUEST
+;
+TXSYNG: M A6,CONST+DA+AND+QREG,0F00 ;MERGE CHN NUM, FCN CODE(D), LAST STATUS
+        M ,CONST+DQ+EXNOR+QREG,0D000*
+        M A8+MUXD,ALU+AQ+OR       ;ISSUE ATN
+TXOGD1: M ,CONQ,TXCPIL
+        M RAMD,OUTQ,TXCPPC        ;IDLE TXCPPC
+        M ,CONQ,TXIDAT
+        M CRTN+RAMD,OUTQ,TRUE+MXTXPC ;NEXT, GET OUTPUT DATA FROM MUX
+;
+;---------------------------------------
+; GET OUTPUT DATA FROM CPU             ;
+;---------------------------------------
+;
+TXIDAT: M ,CONST+DZ+SUBS+QREG,IPUTOB ;TABLE ADDR - 1 -> Q
+        M ,RAM+DZ+ADD+RAMF,CARRY+OBIPTR+B3
+        M A3+REGD,ALU+AQ+ADD      ;SET UP TO STORE CHAR IN BUF
+        M ,CONQ,3
+        M A3+RAMD,ALU+AQ+AND+QREG,OBIPTR ;UPDATE XMIT BUF IN-PTR
+        M ,RAM+DQ+SUBR,CARRY+OBOPTR
+        M CJS+AC,ALU+ZA+OR,FE0+TXBFUL ;BRANCH IF RAM XMIT BUF FULL, SET FLAG
+        M CJP,,BUS0+TXIDA1        ;BRANCH IF EMULATING SYNC, NO BYTE COUNT
+        M ,RAM+DZ+SUBS+QREG,TDCNT ;DECR NUMBER OF HALFWORDS TO FETCH
+        M RAMD,ALU+ZQ+OR,TDCNT
+        M CJP+AC,ALU+ZA+OR,FE0+TXIALL ;BRANCH IF ALL OUTPUT DATA FETCHED
+TXIDA1: M ,CONQ,TXOGDA
+        M JRP+RAMD,OUTQ,FALSE+TXCPPC ;INSERT CHARS IN BUF, REQUEST FOR CHAR
+;
+TXIALL: M ,CONQ,TXCPIL
+        M JRP+RAMD,OUTQ,FALSE+TXCPPC ;INSERT CHARS IN BUF, NO MORE CHAR REQUEST
+;
+;---------------------------------------
+; RAM BUFFER FOR OUTPUT DATA FULL,     ;
+; SET FLAG                             ;
+;---------------------------------------
+;
+TXBFUL: M AC,CONST+DA+OR+QREG,0020 ;MARK BUF FULL
+        M CRTN+RAMD,ALU+ZQ+OR+RAMF,TRUE+TXRXFG+BC
+;
+;---------------------------------------
+; TRANSMIT FIRST CHARACTER             ;
+;---------------------------------------
+;
+TXTSF:  M CJP,SIO,BUS10+TXTSF1    ;BRANCH IF RAM BUF FULL
+        M ,RAM+DZ+OR+RAMF,OBOPTR+B0
+        M A0,RAM+DA+SUBR,CARRY+OBIPTR
+        M CRTN,SIO,FE0            ;WAIT IF RAM BUF EMPTY, ELSE FALL THRU
+;
+;---------------------------------------
+; CHECK Z80-SIO STATUS                 ;
+;---------------------------------------
+;
+TXTSF1: M CJP,,BUS5+TXTSF2        ;BRANCH IF TX EMPTY
+        M CRTN,,TRUE              ;WAIT FOR TX EMPTY
+;
+;---------------------------------------
+; TRANSMIT BUFFER EMPTY                ;
+;---------------------------------------
+;
+TXTSF2: M AB+REGD,ALU+ZA+OR       ;SET UP TO FETCH OUTPUT CHAR
+        M ,CONQ,0040
+        M JSRP+AC+RAMD,ALU+AQ+OR+RAMF,FALSE+TXRXFG+BC ;MARK STATUS READ,GET CHR
+        M ,RAM+ZQ+AND+RAMF,TXRXFG+B0 ;CLR R0 AND CHECK FLAGS
+        M CJS,,BUS0+TXSYL0        ;BRANCH IF EMULATING SYNC, REORDER BITS
+        M ,CONST+DQ+NOTRS+QREG,00FF ;DISCARD RIGHT CHARACTER
+        M ,CONST+DQ+OR+QREG,00C0  ;MERGE IN RESET UNDERRUN COMMAND
+TXTSF3: M CJP,,SIOBY+TXTSF3       ;WAIT FOR SIO STATUS
+        M RAMD,SIO+DZ+OR+RAMF,STAT+B1 ;SAVE SIO STAT
+        M SIOD,OUTQ
+        M AC,ALU+ZA+OR,450        ;OUTPUT LEFT CHARACTER, THEN RIGHT COMMAND
+TXSYF1: M CJP,,BUS0+TXTSF5        ;BRANCH IF SYNC EMULATION, NO BYTE COUNT
+        M ,RAM+LOADQ,TXDCNT       ;UPDATE BYTE COUNT
+        M RAMD,ALU+ZQ+SUBR,TXDCNT
+        M CJP+AC,ALU+ZA+OR,FE0+TXDONE ;BRANCH IF ALL DATA TRANSMITTED
+TXTSF5: M ,CONQ,TXTSR
+        M CRTN+RAMD,OUTQ,TRUE+TXSIPC ;NEXT, OUTPUT RIGHT CHARACTER
+;
+TXDONE: M CJP,,BUS7+TXCRC1        ;BRANCH IF ASYNC OUTPUT, DON'T WAIT FOR CRC
+        M ,CONQ,TXCRC             ;FOR HDLC, WAIT FOR CRC
+        M CRTN+RAMD,OUTQ,TRUE+TXSIPC
+;
+;---------------------------------------
+; TRANSMIT LEFT CHAR                   ;
+;---------------------------------------
+;
+TXTSL:  M CJP,SIO,BUS10+TXTSL1    ;BRANCH IF RAM BUF FULL
+        M ,RAM+DZ+OR+RAMF,OBOPTR+B0 ;PUT RAM BUF OUT POINTER IN R0
+        M A0,RAM+DA+SUBR,CARRY+OBIPTR
+        M CJP,SIO,FE0+TXTSL0      ;BRANCH IF RAM BUF EMPTY, ELSE, FALL THRU
+;
+;---------------------------------------
+; CHECK Z80-SIO STATUS                 ;
+;---------------------------------------
+;
+TXTSL1: M CJP+AC,ALU+ZA+EXNOR,BUS5+TXTSL4 ;BRANCH IF TX EMPTY
+        M CRTN,,BUS7              ;WAIT FOR TX EMPTY IF NOT ASYNC OUTPUT
+        M ,RAM+LOADQ,TSTOP
+        M CRTN,,FE0               ;RETURN IF ASYNC OUTPUT ENABLED
+        M ,CONQ,TXTSL3            ;ELSE, CHECK IF ASYNC OUTPUT RE-ENABLED
+TXTSL2: M CRTN+RAMD,OUTQ,TRUE+TXSIPC
+;
+;---------------------------------------
+; RAM BUFFER EMPTY, CHECK FOR UNDERRUN ;
+;---------------------------------------
+;
+TXTSL0: M CJS+AC,ALU+ZA+OR,BUS1+TXUNDR ;BRANCH IF TX UNDERRUN
+        M CRTN,,TRUE              ;ELSE, WAIT
+;
+;---------------------------------------
+; CHECK IF ASYNC OUTPUT RE-ENABLED     ;
+; (TXTSL3)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; TRANSMIT BUFFER EMPTY                ;
+;---------------------------------------
+;
+TXTSL4: M AB+REGD,ALU+ZA+OR
+        M ,CONQ,0040
+        M JSRP+AC+RAMD,ALU+AQ+OR+RAMF,FALSE+TXRXFG+BC ;MARK STATUS READ,GET CHR
+        M ,RAM+ZQ+AND+RAMF,TXRXFG+B0 ;CLR R0 AND CHECK FLAGS
+        M CJS,,BUS0+TXSYL0        ;BRANCH IF EMULATING SYNC, REORDER BITS
+TXTSL5: M CJP,,SIOBY+TXTSL5       ;WAIT FOR SIO SEQ DONE
+        M RAMD,SIO+DZ+OR+RAMF,STAT+B1 ;SAVE SIO STAT
+        M CJS+AC,ALU+ZA+OR,BUS1+TXUNDR ;BRANCH IF TX UNDERRUN
+        M SIOD,OUTQ
+        M ,,410                   ;SEND LEFT CHAR
+        M JMAP+AC,ALU+ZA+OR,TXSYF1 ;GO HANDLE BYTE COUNT
+;
+TXUNDR: M CRTN+AC,ALU+ZA+OR,BUS7  ;RETURN IF ASYNC, NO TX UNERRRUN
+TXUND2: M CJP+AC,ALU+ZA+OR,SIOBY+TXUND2 ;WAIT FOR SIO SEQ DONE
+        M CJP,,BUS0+TXUND1        ;BRANCH IF EMULATING SYNC, DO NOT RESET CHN
+        M SIOD,CONST,0008         ;HDLC OUTPUT, SEND ABORT
+        M ,,435
+        M CJS,,TRUE+INITX         ;TERMINATE OUTPUT IF NOT EMULATING SYNC
+TXUND1: M ,CONQ,60
+        M LOOP+RAMD,OUTQ,TRUE+TINTFG ;TX UNDERRUN INTERRUPT CODE, POP STACK
+TXUND3: M ,CONQ,TXERIL
+        M ,RAM+DQ+SUBR,CARRY+TXERPC ;IS TXERPC FREE?
+        M CJP,,FE0+TXUND4         ;BRANCH IF FREE
+        M ,CONQ,TXUND3
+        M CRTN+RAMD,OUTQ,TRUE+TXSIPC ;WAIT TO USE TXERPC
+;
+TXUND4: M ,CONQ,TXINT
+        M RAMD,OUTQ,TXERPC        ;WAIT TO INTERRUPT CPU,RETURN IF NOT SYNC
+        M AC,ALU+ZA+EXNOR
+        M CJP,,BUS0+INITX2        ;BRANCH IF NOT EMULATING SYNC, DONE
+        M ,CONQ,TXTSF
+        M CRTN+RAMD,OUTQ,TRUE+TXSIPC ;RESTART TRANSMITTER FOR SYNC EMULATION
+;
+;---------------------------------------
+; SYNC EMULATION, REORDER BITS         ;
+; ASSUME R0 = 0                        ;
+;---------------------------------------
+;
+TXSYL0: M PUSH,,TRUE+0007         ;DO 8 BITS
+        M RFCT,ALU+ZQ+AND+RAMQD,B0 ;SHIFT BYTE INTO QREG BITS 8-15,CLR BITS 0-7
+        M A1,CONST+DQ+ADD+QREG,XLATLB ;Q=INSTRUCTION ADDR IN TRANSLATION TABLE
+        M REGD,ALU+ZQ+OR          ;SET UP TO BRANCH TO THE INSTRUCTION
+        M JSRP,,FALSE             ;GET RE-ORDERED BYTE
+        M LOOP,,TRUE              ;CLEAN UP THE STACK
+        M CRTN,,TRUE              ;RETURN WITH RE-ORDERED BYTE IN Q BITS 0-7
+;
+;---------------------------------------
+; TRANSMIT RIGHT CHARACTER             ;
+;---------------------------------------
+;
+TXTSR:  M ,SIO                    ;GET Z80-SIO REG 0 STATUS
+        M CJP,,BUS5+TXTSR2        ;BRANCH IF TX EMPTY
+        M CRTN,,TRUE              ;WAIT FOR TX EMPTY
+;
+;---------------------------------------
+; TRANSMIT BUFFER EMPTY                ;
+;---------------------------------------
+;
+TXTSR2: M ,CONQ,0040
+        M AB+REGD,ALU+ZA+OR
+        M JSRP+AC+RAMD,ALU+AQ+OR+RAMF,FALSE+TXRXFG+BC ;MARK STAT READ,GET CHR
+        M ,RAM+ZQ+AND+RAMF,TXRXFG+B0 ;CLR R0 AND CHECK FLAGS
+        M CJP,,BUS0+TXSYR0        ;BRANCH IF EMULATING SYNC, REORDER BITS
+TXTSR3: M CJP,,SIOBY+TXTSR3       ;WAIT TILL SIO SEQ DONE
+        M RAMD,SIO+DZ+OR+RAMF,STAT+B1 ;SAVE SIO STATUS
+        M CJS+AC,ALU+ZA+OR,BUS1+TXUNDR ;BRANCH IF TX UNDERRUN
+        M SIOD,OUTQ               ;SEND RIGHT CHARACTER
+        M ,,43A
+        M ,CONQ,3                 ;UPDATE RAM XMIT BUFFER OUT-POINTER
+        M ,RAM+DZ+ADD+RAMF,CARRY+OBOPTR+B2
+        M A2+RAMD,ALU+AQ+AND+QREG,OBOPTR
+        M AC,CONST+DA+NOTRS+QREG,0020 ;CLEAR RAM XMIT BUF FULL FLAG IF SET
+        M RAMD,ALU+ZQ+OR+RAMF,TXRXFG+BC
+        M CJP,,BUS0+TXTSR5        ;BRANCH IF EMULATING SYNC, NO BYTE COUNT
+        M ,RAM+LOADQ,TXDCNT       ;UPDATE BYTE COUNT
+        M RAMD,ALU+ZQ+SUBR,TXDCNT
+        M CJP+AC,ALU+ZA+OR,FE0+TXDONE ;BRANCH IF ALL OUTPUT SENT
+TXTSR5: M ,CONQ,TXTSL
+        M CRTN+RAMD,OUTQ,TRUE+TXSIPC ;NEXT, OUTPUT LEFT CHAR
+;
+;---------------------------------------
+; SYNC EMULATION, REORDER BITS         ;
+;---------------------------------------
+;
+TXSYR0: M ,CONST+DQ+AND+QREG,00FF ;PUT BYTE IN Q REG BITS 8-15
+        M ,CONST+DQ+ADD+QREG,XLATRB ;Q=ADDR OF INSTRUCTION IN TRANSLATION TABLE
+        M REGD,ALU+ZQ+OR          ;SET UP TO BRANCH INTO THE TABLE
+        M JRP+REGD,CONST,FALSE+TXTSR3 ;GET RE-ORDERED BYTE AND GOTO TXTSR3
+;
+;---------------------------------------
+; ALL DATA SENT, WAIT FOR CHECKSUM     ;
+; (TXCRC)                              ;
+;---------------------------------------
+;
+; TX UNDERRUN, CRC BEING SENT, WAIT FOR CRC TO BE SENT
+;
+TXCRC1: M ,CONQ,IDLEPC
+        M RAMD,OUTQ,TXSIPC        ;IDLE TRANSMITTER TASK
+        M ,CONQ,TXEGNC
+        M CRTN+RAMD,OUTQ,TRUE+TXCPPC ;NEXT, GET NEXT CCW
+;
+;---------------------------------------
+; REQUEST NEXT CCW FROM CPU            ;
+; (TXEGNC)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; REQUEST HIGH ORDER PART OF NEXT CCW  ;
+; MARK CURRENT CCW WITH 100 OR 200     ;
+; (TXEODA)                             ;
+;---------------------------------------
+EJECT
+;
+;-------------------------------------------------
+;                                                ;
+; OUTPUT CCW COMMAND CODE 2: JUMP                ;
+;                                                ;
+;-------------------------------------------------
+;
+TXCW2A: M CJS,ZQ+AND+QREG,TRUE+QWQ ;RELOCATE CCW ADDRESS
+        M CJP,,F3+TCCWER          ;BRANCH IF OUT OF RANGE, ERROR
+        M A3+RAMD,ALU+ZA+OR,TCADDH ;UPDATE CCW ADDR
+        M A4+RAMD,ALU+ZA+OR,TCADDL
+        M ,CONQ,TXOCCH
+        M CRTN+RAMD,OUTQ,TRUE+TXCFPC ;NEXT, OUTPUT CCW ADDR TO CPU
+EJECT
+;
+;-------------------------------------------------
+;                                                ;
+; OUTPUT CCW COMMAND CODE 3: OUTPUT COMMAND PAIR ;
+;                                                ;
+;-------------------------------------------------
+;
+TXCW3A: M A2+RAMD,ALU+ZA+OR,TDADDL ;SAVE COMMAND PAIR
+        M ,CONQ,TXCW3B
+        M CRTN+RAMD,OUTQ,TRUE+TXSIPC ;NEXT, OUTPUT COMMAND PAIR
+;
+;---------------------------------------
+; OUTPUT COMMAND PAIR TO Z80-SIO       ;
+;---------------------------------------
+;
+TXCW3B: M ,CONQ,0040
+        M AC+RAMD,ALU+AQ+OR+RAMF,TXRXFG+BC ;MARK SIO STATUS READ
+TXCW3C: M CJP,,SIOBY+TXCW3C ;WAIT TILL SIO SEQ DONE
+        M RAMD,SIO+DZ+OR+RAMF,STAT+B1 ;SAVE SIO STATUS
+        M SIOD,RAM,TDADDL         ;LOAD COMMAND PAIR
+        M ,,430                   ;OUTPUT LEFT AND RIGHT COMMAND
+        M ,CONQ,IDLEPC
+        M RAMD,OUTQ,TXSIPC        ;IDLE TXSIPC
+        M ,CONQ,TXOGCC
+        M CRTN+RAMD,OUTQ,TRUE+TXCPPC ;NEXT, REQUEST NEXT CCW
+EJECT
+;
+;-------------------------------------------------
+;                                                ;
+; OUTPUT CCW COMMAND CODE 4: OUTPUT ASYNC RECORD ;
+;                                                ;
+;-------------------------------------------------
+;
+TXCW4A: M AC,CONST+DA+OR+QREG,0100
+        M RAMD,ALU+ZQ+OR+RAMF,TXRXFG+BC ;MARK ASYNC OUTPUT
+        M JMAP,,TXCW1A            ;USE, HDLC ROUTINES
+EJECT
+;
+;-------------------------------------------------
+;                                                ;
+; OUTPUT CCW COMMAND CODE 5: SPECIFY XON/XOFF    ;
+;                                                ;
+;-------------------------------------------------
+;
+TXCW5A: M ,RAM,TXRXFG
+        M CJP,,BUS0+TCCWER        ;BRANCH IF EMULATING SYNC, ERROR
+        M RAMD,ALU+DZ+AND,TSTOP   ;CLEAR XON/XOFF CONTROL FLAG
+        M ,CONQ,0FF
+        M A2+RAMD,ALU+AQ+AND,XOFF ;STORE XOFF CHAR
+        M A2,ZA+NOTRS+RAMD,B2     ;GET XON CHAR
+        M A2,ZA+NOTRS+RAMD,B2
+        M A2,ZA+NOTRS+RAMD,B2
+        M A2,ZA+NOTRS+RAMD,B2
+        M A2,ZA+NOTRS+RAMD,B2
+        M A2,ZA+NOTRS+RAMD,B2
+        M A2,ZA+NOTRS+RAMD,B2
+        M A2,ZA+NOTRS+RAMD,B2
+        M A2+RAMD,ALU+AQ+AND,XON   ;STORE XON CHAR
+        M ,CONQ,TXOGCC
+        M CRTN+RAMD,OUTQ,TRUE+TXCPPC ;NEXT, GET NEXT CCW
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; OUTPUT CCW COMMAND CODE 6: OUTPUT COMMAND PAIR           ;
+;                                                          ;
+; USED IN VERSION E OF SIO MICRO CODE AND ABOVE            ;
+;                                                          ;
+; CODE 6  MODIFIED COMMAND PAIR                            ;
+; SAME AS CODE 3 BUT WITH 2 DIFFERENCES:                   ;
+; 1. WAITS UNTIL TRANSMIT BUFFER OF Z80-SIO                ;
+;    IS EMPTY OR TIMEOUT AND THEN OUTPUTS                  ;
+;    THE COMMAND PAIR (TO PREVENT XMT DISABLE              ;
+;    BEFORE CRC WAS TRANSMITTED)                           ;
+; 2. MODIFIES COMMAND CODE TO 100 OR 200                   ;
+;    SIMILAR TO CODE 1                                     ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+TXCW6A: M AC,CONST+DA+OR+QREG,0200 ;MARK PROCESSING OUTPUT CCW 6
+TXCW6G: M RAMD,ALU+ZQ+OR+RAMF,TXRXFG+BC
+        M A2+RAMD,ALU+ZA+OR,TDADDL ;SAVE COMMAND PAIR
+        M ,CONQ,1000              ;INIT TIMEOUT COUNTER (APPROX. 150 MS)
+        M RAMD,ALU+ZQ+SUBS,CARRY+TDCNT ;STORE NEG COUNTER IN RAM
+        M ,CONQ,TXCW6E
+        M CRTN+RAMD,OUTQ,TRUE+TXSIPC ;SET UP NEXT TASK ADDRESS
+;
+;---------------------------------------
+; OUTPUT COMMAND PAIR TO Z80-SIO       ;
+;---------------------------------------
+;
+TXCW6E: M ,SIO
+        M CJP,,BUS5+TXCW6C        ;BRANCH IF TX EMPTY
+        M AA,CONST+DA+AND+QREG,000F ;GET (DECR AMOUNT - 1)
+        M ,RAM+DQ+ADD+QREG,CARRY+TDCNT ;ADD DECR AMT TO NEG TIMEOUT COUNTER
+        M CRTN+RAMD,OUTQ,F3+TDCNT ;RETURN TO WAIT,FALLS THRU IF WAITED TOO LONG
+TXCW6C: M ,CONQ,0040
+        M AC+RAMD,ALU+AQ+OR+RAMF,TXRXFG+BC ;MARK SIO STATUS READ
+TXCW6D: M CJP,,SIOBY+TXCW6D       ;WAIT TILL SIO SEQ DONE
+        M RAMD,SIO+DZ+OR+RAMF,STAT+B1 ;SAVE SIO STATUS
+        M SIOD,RAM,TDADDL         ;LOAD COMMAND PAIR
+        M ,,430                   ;OUTPUT LEFT AND RIGHT COMMAND
+        M AC,CONST+DA+AND+QREG,0A00 ;GET COMMAND FLAGS
+        M ,CONST+DQ+EXOR+RAMQD,0A00 ;PROCESSING I/O COMMAND 'A'?
+        M CJP,ALU+ZQ+OR,FE0+IOCMA1 ;BRANCH IF PROCESSING I/O COMMAND 'A'
+        M CJP,,BUS5+TXCW7B        ;BRANCH IF PROCCESSING CCW '7'
+        M ,CONQ,IDLEPC
+        M RAMD,OUTQ,TXSIPC        ;FREE UP TXSIPC
+        M AC,CONST+DA+NOTRS+QREG,0200 ;CLEAR PROCESSING CCW '6' FLAG
+        M RAMD,OUTQ,TXRXFG
+        M ,CONQ,TXEODA
+        M CRTN+RAMD,OUTQ,TRUE+TXCPPC ;NEXT, GET NEXT CCW AND MARK CURRENT CCW
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; OUTPUT CCW COMMAND CODE 7: OUTPUT COMMAND PAIR           ;
+;                                                          ;
+; CODE 7 IS SIMILAR TO CODES 3 AND 6 EXCEPT :              ;
+;  1. IT WAITS UNTIL TRANSMIT BUFFER OF Z80-SIO IS EMPTY   ;
+;     OR TIMEOUT AND THEN OUTPUTS THE COMMAND PAIR (TO     ;
+;     PREVENT DISABLING THE TRANSMITTER BEFORE TRANSMISSION;
+;     OF CRC). THIS IS SAME AS CODE 6.                     ;
+;  2. IF THE NEXT CCW IS NON ZERO (NOT A STOP CODE),       ;
+;     PROCESSING OF THE CCW'S CONTINUES. THE COMMAND CODE  ;
+;     IS NOT MODIFIED. THIS IS SAME AS CODE 3.             ;
+;  3. IF THE NEXT CCW IS ZERO (STOP CODE), TWO ACTIONS ARE ;
+;     POSSIBLE:                                            ;
+;     A. IF THE CHANNEL IS EMULATING SYNC I/O, A           ;
+;        CONVENTIONAL INTERRUPT IS ISSUED TO THE CPU USING ;
+;        PSEUDO DEVICE ADDRESS.                            ;
+;        THE STATUS CODE IS NOT CHANGED.                   ;
+;     B. IF THE CHANNEL IS NOT EMULATING SYNC I/O, A       ;
+;        CONVENTIONAL INTERRUPT IS ISSUED TO THE CPU USING ;
+;        THE MOTHERBOARD ADDRESS 80X. A STATUS CODE OF 'A' ;
+;        IS POSTED WHICH CAN BE READ BY A SSR INSTRUCTION. ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+TXCW7A: M AC,CONST+DA+OR+QREG,0800 ;MARK PROCESSING OUTPUT CCW 7
+        M JMAP,,TXCW6G            ;MERGE TO USE CCW 6 ROUTINES
+;
+TXCW7B: M ,CONQ,IDLEPC
+        M RAMD,OUTQ,TXSIPC        ;FREE UP TXSIPC
+        M ,CONQ,TXOGCC
+        M CRTN+RAMD,OUTQ,TRUE+TXCPPC ;NEXT, GET NEXT CCW
+;
+;---------------------------------------
+; SIGNAL CPU TO ISSUE INTERRUPT FROM   ;
+; PSEUDO DEVICE ADDRESS                ;
+; (TXCW7I)                             ;
+;---------------------------------------
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; OUTPUT CCW COMMAND CODE 8: PAUSE                         ;
+;                                                          ;
+; THIS CCW CAUSES THE PROCESSING OF NEXT OUTPUT CCW TO BE  ;
+; DELAYED BY A MINIMUM OF THE SPECIFIED NUMBER OF 250 US.  ;
+; THE DELAY FACTOR SPECIFIED MUST BE LESS THAN 400 HEX FOR ;
+; A MINIMUM 255.75 MS. THE ACTUAL DELAY TIME CAN BE TWICE  ;
+; THE REQUESTED MINIMUM VALUE. HOWEVER, THE EXPECTED DELAY ;
+; TIME IS BETWEEN THE SPECIFIED VALUE AND 50% MORE THAN THE;
+; REQUESTED VALUE.                                         ;
+;                                                          ;
+; TO ADJUST FOR BEST CASE LOOP TIME, THE DEALY VALUE IS    ;
+; ADJUSTED AS FOLLOWS:                                     ;
+; LOOP COUNT =DELAY SPECIFIED + (DELAY SPECIFIED/32)       ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+TXCW8A: M A2,CONST+DA+AND+QREG,03FF ;MASK OFF UNALLOWED BITS
+        M ,ALU+ZQ+OR+RAMF,B2      ;1 X DELAY FACTOR IN R2
+        M CJP,ALU+ZQ+AND+QREG,FE0+TXCW8C ;CLEAR Q, DONE IF ZERO DELAY
+        M A2,ALU+ZA+OR+RAMD,B3    ;(DELAY/2) IN R3
+        M A3,ALU+ZA+OR+RAMD,B3    ;(DELAY/4) IN R3
+        M A3,ALU+ZA+OR+RAMD,B3    ;(DELAY/8) IN R3
+        M A3,ALU+ZA+OR+RAMD,B3    ;(DELAY/16) IN R3        
+        M A3,ALU+ZA+OR+RAMD,B3    ;(DELAY/32) IN R3        
+        M A3,ALU+AB+ADD+QREG,B2   ;Q=ADJUSTED LOOP COUNT
+        M ,ALU+ZQ+OR+RAMQU,B0     ;2 X LOOP COUNT IN R0, QREG
+        M A0,ALU+AQ+ADD+RAMQU,B1  ;4 X LOOP COUNT IN QREG, 8 X LOOP COUNT IN R1
+        M A1,ALU+AQ+ADD+QREG      ;12 X LOOP COUNT IN Q
+        M A0,ALU+AQ+ADD+QREG      ;14 X LOOP COUNT IN QREG
+        M RAMD,ALU+ZQ+SUBS,CARRY+TDCNT  ;SAVE NEGATIVE LOOP COUNT
+        M ,CONQ,TXCW8B
+        M CRTN+RAMD,OUTQ,TRUE+TXSIPC ;NEXT, WAIT FOR LOOP COUNT TO EXPIRE
+;
+TXCW8B: M AA,CONST+DA+AND+QREG,000F ;GET (DECR AMOUNT - 1)
+        M ,RAM+DQ+ADD+QREG,CARRY+TDCNT ;ADD DECR AMT TO NEGATIVE LOOP COUNT
+        M CRTN+RAMD,OUTQ,F3+TDCNT ;UPDATE LOOP COUNT, WAIT IF STILL NEGATIVE
+        M ,CONQ,IDLEPC
+        M RAMD,OUTQ,TXSIPC        ;FREE UP TXSIPC
+TXCW8C: M ,CONQ,TXEODA
+        M CRTN+RAMD,OUTQ,TRUE+TXCPPC ;NEXT, MARK CURRENT CCW & PROCESS NEXT CCW
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPE 2: RELOCATION MAGNITUDE                 ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+IOCM23: M CJP,,BUS10+IOCM3        ;BRANCH IF I/O COMMAND TYPE 3
+        M A2+RAMD,ALU+ZA+OR,RELOC ;UPDATE RELOCATION MAGNITUDE, FALL THRU
+;
+;---------------------------------------
+; IF EMULATING SYNC I/O, SIGNAL CPU    ;
+; TO ISSUE INTERRUPT FROM PSEUDO       ;
+; DEVICE ADDRESS AFTER COMPLETING      ;
+; THE I/O COMMAND                      ;
+;---------------------------------------
+;
+GINTRP: M ,RAM+DZ+EXNOR,TXRXFG    ;GET FLAGS
+        M CRTN,,F3                ;RETURN IF NOT EMULATING SYNC, DONE
+        M ,CONQ,00A0              ;SIGNAL COMMAND COMPLETION TO CPU (CODE A)
+        M JMAP,,MIERR
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPE 3: LOWER LIMIT                          ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+IOCM3:  M A2+RAMD,ALU+ZA+OR,LWLIM ;UPDATE LOWER LIMIT
+        M JMAP,,GINTRP            ;SIGNAL COMMAND COMPLETION IF EMULATING SYNC
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPE 4: WINDOW SIZE                          ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+IOCM47: M CJP,OUTQ,BUS9+IOCM67    ;BRANCH IF I/O COMMAND TYPES 6, 7
+        M CJP,,BUS10+IOCM5        ;BRANCH IF I/O COMMAND TYPE 5
+        M A2,CONST+DA+NOTRS,1FFF
+        M CJP,,FE0+IOCM4A    ;BRANCH IF SIZE < 2000, OTHERWISE ERROR, FALL THRU
+;
+;---------------------------------------
+; MUX INPUT ERROR                      ;
+;---------------------------------------
+;
+MICMER: M ,CONQ,80
+MIERR:  M RAMD,OUTQ,CMERFG        ;SAVE ERROR CODE 
+        M ,CONQ,MOCMER
+        M CRTN+RAMD,OUTQ,TRUE+CMERPC ;NEXT, OUTPUT ERROR CODE TO CPU
+;
+;---------------------------------------
+; UPDATE WINDOW SIZE                   ;
+;---------------------------------------
+;
+IOCM4A: M A2+RAMD,ALU+ZA+OR+QREG,WINDOW ;UPDATE WINDOW SIZE
+        M JMAP,,GINTRP            ;SIGNAL COMMAND COMPLETION IF EMULATING SYNC
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPE 5: READ STATUS                          ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+IOCM5:  M CJS,ZQ+AND+QREG,TRUE+QWQ ;RELOCATE ADDR TO STORE STATUS
+        M CJP,,F3+MICMER          ;BRANCH IF ADDR OUT OF RANGE, ERROR
+        M A3+RAMD,ALU+ZA+OR,RDSTAH ;SAVE THE ADDR TO STORE STATUS
+        M A4+RAMD,ALU+ZA+OR,RDSTAL
+        M ,RAM+LOADQ,TXRXFG       ;CLR SYNC STATUS UPDATE FLAG
+        M ,CONST+DQ+NOTRS+QREG,0010
+        M RAMD,OUTQ,TXRXFG
+        M ,CONQ,RSTOAH
+        M CRTN+RAMD,OUTQ,TRUE+RDSTPC ;NEXT, OUTPUT HIGH ORDER ADDR
+;
+;---------------------------------------
+; SEND HIGH ORDER ADDR FOR             ;
+; STORING STATUS                       ;
+; (RSTOAH)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; SEND LOW ORDER ADDR FOR              ;
+; STORING STATUS                       ;
+; (RSTOAL)                             ;
+;---------------------------------------
+;
+; CHECK TO USE TXERPC SO WE CAN RUN SIO PROM PROGRAM
+;
+RSTOAW: M ,CONQ,TXERIL
+        M ,RAM+DQ+SUBR,CARRY+TXERPC ;IS TXERPC FREE?
+        M CJP,,FE0+RSTOA1         ;BRANCH IF FREE
+        M ,CONQ,RSTOAW
+        M CRTN+RAMD,OUTQ,TRUE+RDSTPC ;ELSE, WAIT TO USE TXERPC
+;
+RSTOA1: M ,CONQ,IDLEPC
+        M RAMD,OUTQ,RDSTPC        ;IDLE RDSTPC
+        M ,CONQ,RSTOS1
+        M CRTN+RAMD,OUTQ,TRUE+TXERPC ;NEXT,GET CUSTOM CHIP STATUS & SEND STATUS
+;
+;---------------------------------------
+; SEND STATUS --  SIO READ REG 0 & 1   ;
+; (RSTOS1)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; SEND IDLE LINE COUNTER AND           ;
+; CRC ERROR COUNTER                    ;
+; (RSTOS2)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; SEND ABORT COUNTER AND               ;
+; CUSTOM CHIP STATUS                   ;
+; (RSTOS3)                             ;
+;---------------------------------------
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPE 6: BOARD RESET                          ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+IOCM67: M CJP,,BUS10+IOCM7        ;BRANCH IF I/O COMMAND TYPE 7
+        M JZ
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPE 7: LINE RESET -- STOP ANY CURRENT       ;
+;                                   CHANNEL PROGRAMS       ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+;
+;---------------------------------------
+; VERSION E OF SIO MICROCODE RESTORES  ;
+; INTERRUPT PROGRAM COUNTERS           ;
+;---------------------------------------
+;
+IOCM7:  M ,CONQ,TXERIL            ;GET ADDR OF IDLE XMT INTER
+        M RAMD,OUTQ,TXERPC        ;STORE IT IN XMT INTER PGM COUNT
+        M ,CONQ,CMERIL            ;GET ADDR OF IDLE I/O CMD OR CCW ERR INTER
+        M RAMD,OUTQ,CMERPC        ;STORE IN I/O CMD OR CCW ERR PGM COUNTER
+        M JMAP,,LIDLE
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPES 8 THROUGH F                            ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+IOCM8F: M CJP+A3,ALU+AQ+ADD+QREG,BUS9+IOCMCF ;BRANCH IF I/O CMDS 'C' THRU 'F'
+        M CJP,OUTQ,BUS9+IOCMAB    ;BRANCH IF I/O COMMANDS 'A' OR 'B'
+        M CJP,,BUS10+IOCM9        ;BRANCH IF I/O COMMAND '9'
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPE 8: STORE DCD AND CTS STATUS,            ;
+;                     EMULATE SYNC I/O,                    ;
+;                     TERMINATE SYNC I/O EMULATION         ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+        M A2,ALU+ZA+SUBR          ;CHECK COMMAND PARAMETER
+        M CJP+A2,ALU+ZA+SUBR,F3+TESYNC ;BRANCH TO TERMINATE SYNC EMUL (PAR=0)
+        M CJP,,FE0+DOSYNC         ;BRANCH IF CMD PAR = 1, EMULATE SYNC
+        M ,RAM+DZ+EXNOR,TXRXFG    ;GET FLAGS
+        M CJP,,F3+MICMER   ;CMD IS STORE STATUS, BRANCH IF NOT EMUL SYNC, ERROR
+        M CJS,ZQ+AND+QREG,TRUE+QWQ ;RELOCATE STATUS BUFFER ADDR
+        M CJP,,F3+MICMER          ;BRANCH IF ADDR OUT OF RANGE, ERROR
+        M A3+RAMD,ALU+ZA+OR,RDSTAH ;SAVE THE ADDR TO STORE STATUS
+        M A4+RAMD,ALU+ZA+OR,RDSTAL
+        M ,CONQ,0010
+        M ,RAM+DQ+OR+QREG,TXRXFG  ;MARK STATUS UPDATE REQUESTED
+        M RAMD,OUTQ,TXRXFG        ;UPDATE FLAGS
+        M ,CONQ,SSYNST            ;WAIT TO UPDATE STATUS WORD
+        M RAMD,OUTQ,RDSTPC
+IOCM81: M ,CONQ,CMPINT            ;SIGNAL COMMAND COMPLETION TO CPU
+        M CRTN+RAMD,OUTQ,TRUE+CMERPC
+;
+;---------------------------------------
+; TERMINATE SYNC EMULATION             ;
+;---------------------------------------
+;
+TESYNC: M ,RAM+DZ+EXNOR,TXRXFG    ;CHECK IF EMULATING SYNC
+        M CJP,,F3+MICMER          ;BRANCH IF NOT EMULATING SYNC, I/O CMD ERROR
+        M CJS,,TRUE+IOCM7         ;ELSE, RESET LINE
+        M JMAP,,IOCM81            ;SIGNAL COMMAND COMPLETION TO CPU
+;
+;---------------------------------------
+; EMULATE SYNC                         ;
+;---------------------------------------
+;
+DOSYNC: M CJS,,TRUE+IOCM7         ;GO RESET THE LINE
+        M ,CONST+DZ+OR+QREG,SYNCHM ;GET MASK TABLE ADDR
+        M ,COUNT+DZ+OR+RAMF,B0    ;CHANNEL NUMBER -> R0
+        M A0+REGD,ALU+AQ+ADD      ;SET UP TO GET MASK TO CLR DCD AND CTS
+        M ,CONST+DZ+OR+RAMU,4000+B0 ;GET MASK FOR SYNC EMULATION FLAG
+        M A0,RAM+DA+OR+RAMF,TXRXFG+B0 ;SET SYNC EMULATION FLAG
+        M JSRP+A0+RAMD,ALU+ZA+OR,FALSE+TXRXFG ;UPDATE FLAG, GET MASK INTO R0
+        M LOOP+A0,ALU+AB+NOTRS+RAMF,TRUE+BE ;CLEAN STACK, CLR DCD
+        M A0,ALU+AB+NOTRS+RAMF,BF ;CLR CTS
+        M JMAP,,IOCM81            ;SIGNAL COMMAND COMPLETION TO CPU
+;
+;---------------------------------------
+; SEND UPDATED SYNC STATUS HALFWORDS TO;
+; CPU IF READY                         ;
+; (SSYNST)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; SEND STATUS : DCD STATUS HALFWORD    ;
+; (SSYN01)                             ;
+;---------------------------------------
+;
+;---------------------------------------
+; SEND STATUS : CTS STATUS HALFWORD    ;
+; (SSYN02)                             ;
+;---------------------------------------
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPE 9: OUTPUT DATA TO SYNC I/O              ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+IOCM9:  M ,RAM+DZ+OR+RAMU,TXRXFG+BC ;CHECK FLAGS
+        M CJP+AC,ALU+ZA+OR,BUS0+IOCM9A ;BRANCH IF EMULATING SYNC I/O
+        M JMAP,,MICMER            ;ELSE, COMMAND ERROR
+IOCM9A: M CJP,,BUS1+IOCM9B        ;BRANCH IF TX OPERATION ALREADY IN PROGRESS
+        M CJS,,TRUE+INITX         ;ELSE, INIT TX CHANNEL
+        M ,RAM+LOADQ,TXRXFG       ;GET FLAGS
+        M ,CONST+DQ+OR+QREG,2000  ;SET SYNC TX IN PROGRESS
+        M RAMD,ALU+ZQ+OR,TXRXFG   ;UPDATE FLAGS
+        M A2+RAMD,ALU+ZA+OR,OBUF0 ;INSERT DATA HALFWORD IN RAM TX BUF
+        M ,RAM+DZ+ADD+QREG,CARRY+OBIPTR ;UPDATE OUTPUT BUF PTR
+        M RAMD,OUTQ,OBIPTR
+        M ,CONQ,TXOGDA
+        M RAMD,OUTQ,TXCPPC        ;NEXT REQUEST DATA FROM CPU
+        M ,CONQ,TXTSF
+        M CRTN+RAMD,OUTQ,TRUE+TXSIPC ;ALSO START TRANSMITTER SERVICE ROUTINE
+;
+IOCM9B: M ,RAM+DZ+OR+RAMF,TXRXFG+BC ;GET FLAGS FOR USE BY TXIDAT
+        M ,CONQ,TXIDAT
+        M ,RAM+DQ+SUBR,CARRY+MXTXPC ;WAITING FOR DATA FROM CPU?
+        M CJP,,FE0+TXIDAT         ;IF WAITING FOR DATA, BRANCH TO PROCESS DATA
+        M CRTN,,TRUE              ;ELSE, IGNORE THE DATA
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPES 'A' OR 'B'                             ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+IOCMAB: M CJP,,BUS10+IOCMB        ;BRANCH IF I/O COMMAND 'B'
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPE 'A': OUTPUT ONE COMMAND PAIR TO SIO     ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+        M ,RAM+LOADQ,TXSIPC       ;GET CURRENT TX ROUTINE
+        M RAMD,OUTQ,SVTXSI        ;SAVE IT SO WE CAN USE TXSIPC
+        M ,CONQ,0A00              ;SET FLAG FOR PROCESSING COMMAND 'A'
+        M ,RAM+DQ+OR+QREG,TXRXFG
+        M JMAP,,TXCW6G            ;BRANCH TO USE CCW 6 ROUTINE
+;
+IOCMA1: M AC,CONST+DA+NOTRS+RAMF,0A00 ;CLEAR PROCESSING I/O COMMAND 'A' FLAG
+        M ,RAM+LOADQ,SVTXSI       ;GET PREVIOUS TXSIPC
+        M RAMD,OUTQ,TXSIPC        ;RESTORE TXSIPC
+        M A0+RAMD,ALU+ZA+OR+RAMF,TXRXFG+BC ;UPDATE FLAGS
+        M CJP,,BUS0+IOCM81        ;BRANCH IF EMULATING SYNC
+        M ,CONQ,00A0
+        M JMAP,,MIERR             ;SIGNAL COMMAND COMPLETION TO CPU (CODE A)
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPE 'B': INVALID COMMAND                    ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+IOCMB:  M JMAP,,MICMER            ;INVALID COMMAND, ERROR
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPES 'C' THROUGH 'F'                        ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+IOCMCF: M CJP,OUTQ,BUS9+IOCMEF    ;BRANCH IF EXTENDED COMMANDS 'E' OR 'F'
+        M CJP,,BUS10+IOCMDA       ;BRANCH IF I/O COMMAND 'D'
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPE 'C'                                     ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+        M JMAP,,MICMER            ;INVALID COMMAND, ERROR
+;
+;-----------------------------------------------------------
+;                                                          ;
+; I/O COMMAND TYPE 'D'                                     ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+IOCMDA: M JMAP,,MICMER            ;INVALID COMMAND, ERROR
+EJECT
+;
+;---------------------------------------
+; RESET LINE                           ;
+;---------------------------------------
+;
+LIDLE:  M ,CONQ,IDLEPC
+        M RAMD,OUTQ,RDSTPC        ;INIT STATUS RESPONSE TASK
+        M CJS,,TRUE+INITX1        ;INIT TRANSMITTER TASKS
+        M CJS,,TRUE+INIRX1        ;INIT RECEIVER TASKS
+        M RAMD,ALU+ZQ+AND,TXRXFG  ;UPDATE FLAGS
+        M RAMD,ALU+DZ+AND+QREG,TSTOP ;CLEAR ASYNC OUTPUT CONTROL
+        M CRTN+RAMD,ALU+ZQ+EXNOR,TRUE+XOFF ;SET XOFF TO -1
+;
+;---------------------------------------
+; INITIALIZE RECEIVER TASKS            ;
+;---------------------------------------
+;
+INIRX:  M ,RAM+LOADQ,TXRXFG       ;CLEAR RECEIVER FLAGS
+        M ,CONST+DQ+NOTRS+QREG,4408
+        M RAMD,OUTQ,TXRXFG
+INIRX1: M RAMD,ALU+ZQ+AND+QREG,IBIPTR ;CLEAR RAM RCV BUFFER IN/OUT POINTERS
+        M RAMD,OUTQ,IBOPTR
+        M RAMD,OUTQ,MXRXPC        ;INIT RECEIVER EXTENDED COMMAND SERVER
+        M ,CONQ,RXCPIL
+        M RAMD,OUTQ,RXCPPC        ;INIT RECEIVER CPU REQUEST TASK
+        M ,CONQ,RXCFIL
+        M RAMD,OUTQ,RXCFPC        ;INIT SHORT RECEIVER CPU REQUEST TASK
+        M ,CONQ,IDLEPC
+        M CRTN+RAMD,OUTQ,TRUE+RXSIPC ;INIT RECEIVER TASK
+;
+;---------------------------------------
+; INITIALIZE TRANSMITTER TASKS         ;
+;---------------------------------------
+;
+INITX:  M ,RAM+LOADQ,TXRXFG       ;CLEAR TRANSMITTER FLAGS
+        M ,CONST+DQ+NOTRS+QREG,2B20
+        M RAMD,OUTQ,TXRXFG
+INITX1: M RAMD,ALU+ZQ+AND+QREG,OBIPTR ;CLEAR RAM XMIT BUFFER IN/OUT POINTERS
+        M RAMD,OUTQ,OBOPTR
+        M RAMD,OUTQ,MXTXPC        ;INIT TRANSMITTER EXTENDED COMMAND SERVER
+        M ,CONQ,TXCPIL
+        M RAMD,OUTQ,TXCPPC        ;INIT TRANSMITTER CPU REQUEST TASK
+        M ,CONQ,TXCFIL
+        M RAMD,OUTQ,TXCFPC        ;INIT SHORT TRANSMITTER CPU REQUEST TASK
+INITX2: M ,CONQ,IDLEPC
+        M CRTN+RAMD,OUTQ,TRUE+TXSIPC ;INIT TRANSMITTER SIO TASK
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; THE FOLLOWING CODE RESIDES BEYOND THE FIRST 1K OF THE    ;
+; PROM ADDRESS SPACE                                       ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+        ORG H#400
+;
+;---------------------------------------
+; THE FOLLOWING INSTRUCTIONS ARE USED  ;
+; TO STORE RECEIVED DATA INTO THE FOUR ;
+; HALFWORD RCV BUFFER IN THE SIO RAM   ;
+;---------------------------------------
+;
+IPUTIB: M CRTN+RAMD,OUTQ,TRUE+IBUF0
+        M CRTN+RAMD,OUTQ,TRUE+IBUF1
+        M CRTN+RAMD,OUTQ,TRUE+IBUF2
+        M CRTN+RAMD,OUTQ,TRUE+IBUF3
+;
+;---------------------------------------
+; THE FOLLOWING INSTRUCTIONS ARE USED  ;
+; TO RETRIEVE DATA FROM THE FOUR       ;
+; HALFWORD RCV BUFFER IN SIO RAM FOR   ;
+; TRANSFER TO MEMORY VIA CPU           ;
+;---------------------------------------
+;
+IGETIB: M CRTN+MUXDL,RAM,TRUE+IBUF0
+        M CRTN+MUXDL,RAM,TRUE+IBUF1
+        M CRTN+MUXDL,RAM,TRUE+IBUF2
+        M CRTN+MUXDL,RAM,TRUE+IBUF3
+;
+;---------------------------------------
+; THE FOLLOWING INSTRUCTIONS ARE USED  ;
+; TO STORE OUTPUT DATA FETCHED FROM    ;
+; THE MEMORY VIA CPU INTO THE FOUR     ;
+; HALFWORD XMIT BUFFER IN THE SIO RAM  ;
+;---------------------------------------
+;
+IPUTOB: M CRTN+A2+RAMD,ALU+ZA+OR,TRUE+OBUF0
+        M CRTN+A2+RAMD,ALU+ZA+OR,TRUE+OBUF1
+        M CRTN+A2+RAMD,ALU+ZA+OR,TRUE+OBUF2
+        M CRTN+A2+RAMD,ALU+ZA+OR,TRUE+OBUF3
+;
+;---------------------------------------
+; THE FOLLOWING INSTRUCTIONS ARE USED  ;
+; TO RETRIEVE OUTPUT DATA FROM THE     ;
+; FOUR HALFWORD XMIT BUFFER IN THE     ;
+; SIO RAM                              ;
+;---------------------------------------
+;
+IGETOB: M CRTN,RAM+LOADQ,TRUE+OBUF0
+        M CRTN,RAM+LOADQ,TRUE+OBUF1
+        M CRTN,RAM+LOADQ,TRUE+OBUF2
+        M CRTN,RAM+LOADQ,TRUE+OBUF3
+;
+;---------------------------------------
+; TABLE OF MASK BITS FOR SYNC STATUS HW;
+; RETURN WITH MASK IN R0               ;
+; (ASSUME MSB OF Q = 0)                ;
+;                                      ;
+; RETURN ADDRESS IS ON THE TOP OF THE  ;
+; STACK, STACK MUST BE POPED UPON      ;
+; RETURN                               ;
+;---------------------------------------
+;
+SYNCHM: M RFCT,CONST+DZ+OR+RAMU,4000 ;MASK FOR CHANNEL 0
+        M RFCT,CONST+DZ+OR+RAMU,2000 ;MASK FOR CHANNEL 1
+        M RFCT,CONST+DZ+OR+RAMU,1000 ;MASK FOR CHANNEL 2
+        M RFCT,CONST+DZ+OR+RAMU,0800 ;MASK FOR CHANNEL 3
+        M RFCT,CONST+DZ+OR+RAMU,0400 ;MASK FOR CHANNEL 4
+        M RFCT,CONST+DZ+OR+RAMU,0200 ;MASK FOR CHANNEL 5
+        M RFCT,CONST+DZ+OR+RAMU,0100 ;MASK FOR CHANNEL 6
+        M RFCT,CONST+DZ+OR+RAMU,0080 ;MASK FOR CHANNEL 7
+        M RFCT,CONST+DZ+OR+RAMU,0040 ;MASK FOR CHANNEL 8
+        M RFCT,CONST+DZ+OR+RAMU,0020 ;MASK FOR CHANNEL 9
+EJECT
+;
+;---------------------------------------
+; OUTPUT COMMAND ERROR CODE TO CPU     ;
+;---------------------------------------
+;
+MOCMER: M ,RAM+LOADQ,CMERFG       ;GET ERROR CODE
+        M ,COUNT+DQ+OR+QREG       ;MERGE IN CHAN NUM
+        M MUXD,ALU+ZQ+OR+RAMF,B8  ;ISSUE ATN TO CPU
+        M ,CONQ,CMERIL
+        M CRTN+RAMD,OUTQ,TRUE+CMERPC ;NO MORE COMMAND ERROR TO OUTPUT
+;
+;---------------------------------------
+; OUTPUT TRANSMITTER INTERRUPT CODE    ;
+; TO CPU                               ;
+;---------------------------------------
+;
+TXINT:  M ,RAM+LOADQ,TINTFG       ;GET INTERRUPT CODE
+        M ,COUNT+DQ+OR+QREG       ;MERGE IN CHAN NUM
+        M MUXD,ALU+ZQ+OR+RAMF,B8  ;ISSUE ATN TO CPU
+        M ,CONQ,TXERIL
+        M CRTN+RAMD,OUTQ,TRUE+TXERPC ;NO MORE INTERRUPT CODE TO OUTPUT
+EJECT
+;
+;---------------------------------------
+; OUTPUT HIGH ORDER CCW ADDR TO CPU    ;
+;---------------------------------------
+;
+RXOCCH: M A6+MUXDL,RAM+AB+AND+QREG,RCADDH+BD ;HIGH ORDER ADDR IN MUX OUT REG B
+        M ,CONST+DQ+EXNOR+QREG,9000* ;MERGE CHN NUM, FCN CODE(9), LAST STATUS
+        M A8+MUXD,ALU+AQ+OR       ;PUT IN MUX OUT REG A, ISSUE ATN
+        M ,CONQ,RXCFIL
+        M RAMD,OUTQ,RXCFPC        ;IDLE SHORT RECEIVER MUX OUTPUT TASK
+        M ,CONQ,RXOCCL            ;NEXT, OUTPUT LOW ORDER CCW ADDR & GET CCW
+        M CRTN+RAMD,OUTQ,TRUE+RXCPPC
+;
+;---------------------------------------
+; OUTPUT LOW ORDER CCW ADDRESS TO CPU  ;
+;---------------------------------------
+;
+RXOCCL: M A6+MUXDL,RAM+AB+AND+QREG,RCADDL+BD ;LOW CCW ADDR INTO MUX OUT REG B
+        M ,CONST+DQ+EXNOR+QREG,9000* ;MERGE CHN NUM, FCN CODE(9), LAST STATUS
+        M JMAP+A8+MUXD,ALU+AQ+OR,RXOGC1 ;PUT IN MUX OUT REG A, ISSUE ATN
+;
+;---------------------------------------
+; GET HIGH ORDER CCW FROM MUX INPUT    ;
+;---------------------------------------
+;
+RXICCH: M RAMD,ALU+ZQ+SUBR,RCOM   ;SAVE CCW COMMAND CODE - 1 IN RCOM
+        M CJP,,F3+INIRX           ;IF CCW = 0 TERMINATE INPUT
+        M ,CONQ,RXOGCL
+        M CRTN+RAMD,OUTQ,TRUE+RXCPPC ;NEXT, REQUEST LOW ORDER CCW
+;
+;---------------------------------------
+; REQUEST LOW ORDER CCW FROM CPU       ;
+;---------------------------------------
+;
+RXOGCL: M A6,CONST+DA+AND+QREG,0F00 ;MERGE CHAN NUM, FCN CODE(8), LAST STATUS
+        M ,CONST+DQ+EXNOR+QREG,8000*
+        M A8+MUXD,ALU+AQ+OR       ;DATA INTO MUX OUT REG A, ISSUE ATN
+        M ,CONQ,RXCPIL
+        M RAMD,OUTQ,RXCPPC        ;NO MORE REQUEST UNTIL LOW ORDER CCW RETURNED
+        M ,CONQ,RXICCL
+        M CRTN+RAMD,OUTQ,TRUE+MXRXPC ;NEXT, GET LOW ORDER CCW FROM MUX INPUT
+;
+;---------------------------------------
+; GET LOW ORDER CCW FROM CPU           ;
+; PROCESS CCW                          ;
+;---------------------------------------
+;
+RXICCL: M ,RAM+DZ+SUBS+QREG,RCOM  ;DECODE INPUT CCW COMMAND CODE (0 PROCESSED)
+        M CJP,ZQ+SUBR+QREG,F3+RXCW1A ;BRANCH IF CCW COMMAND CODE 1
+        M CJP,ZQ+SUBR+QREG,F3+RXCW2A ;BRANCH IF CCW COMMAND CODE 2
+        M CJP,ZQ+SUBR+QREG,F3+RXCW3A ;BRANCH IF CCW COMMAND CODE 3
+        M CJP,ZQ+SUBR+QREG,F3+RXCW4A ;BRANCH IF CCW COMMAND CODE 4
+        M CJP,ZQ+SUBR+QREG,F3+RXCW5A ;BRANCH IF CCW COMMAND CODE 5
+        M CJP+AC,ZA+EXNOR,F3+RXCW6A  ;BRANCH IF CCW COMMAND CODE 6
+        M JMAP,,RCCWER               ;BRANCH TO SET ERROR CODE FOR CCW ERROR
+;
+;---------------------------------------
+; OUTPUT HIGH ORDER INPUT BUFFER       ;
+; ADDRESS TO CPU                       ;
+;---------------------------------------
+;
+RXOIBH: M A6+MUXDL,RAM+AB+AND+QREG,RCDADH+BD ;HIGH RX BUF ADR TO MUX OUT REG B
+        M ,CONST+DQ+OR+QREG,FIBUFA ;MERGE IN CHN NUM, FCN CODE(1), LAST STATUS
+        M A8+MUXD,ALU+AQ+OR       ;DATA TO MUX REG A, ISSUE ATN
+        M ,CONQ,RXOIBL
+        M CRTN+RAMD,OUTQ,TRUE+RXCFPC ;NEXT, OUTPUT LOW ORDER INPUT BUF ADDR
+;
+;---------------------------------------
+; OUTPUT LOW ORDER INPUT BUFFER        ;
+; ADDRESS TO CPU                       ;
+;---------------------------------------
+;
+RXOIBL: M A6+MUXDL,RAM+AB+AND+QREG,RCDADL+BD ;LOW RX BUF ADDR TO MUX OUT REG B
+        M ,CONST+DQ+OR+QREG,FIBUFA ;MERGE IN CHN NUM, FCN CODE(1), LAST STATUS
+        M JMAP+A8+MUXD,ALU+AQ+OR,RXOBC3 ;NEXT, SEND RECEIVED DATA TO CPU
+;
+;---------------------------------------
+; RECEIVE RIGHT CHARACTER              ;
+;---------------------------------------
+;
+RXRSR:  M CJP+A1,ALU+ZA+EXNOR,BUS7+RXRSR1 ;BRANCH IF RX CHAR AVAILABLE
+        M CJP,,BUS10+RXRSL6       ;BRANCH IF NO RX OVERRUN, ELSE FALL THRU
+;
+;---------------------------------------
+; RECEIVE OVERRUN                      ;
+;---------------------------------------
+;
+        M ,CONQ,0100              ;INCREMENT RX OVERRUN COUNTER
+        M ,RAM+DQ+ADD+QREG,ROVCNT
+        M RAMD,OUTQ,ROVCNT        ;UPDATE RX OVERRUN COUNTER
+        M ,CONQ,RXWEOF            ;ELSE, WAIT FOR END OF FRAME
+        M CRTN+RAMD,OUTQ,TRUE+RXSIPC
+;
+;---------------------------------------
+; WAIT FOR END OF FRAME                ;
+;---------------------------------------
+;
+RXWEOF: M CJP+AC,ALU+ZA+OR,BUS8+RXRST ;BRANCH IF END OF FRAME, RESTART RECEIVER
+        M CRTN,,TRUE              ;ELSE, WAIT SOME MORE
+;
+;---------------------------------------
+; HANDLE RECORD TOO BIG PROBLEM        ;
+;---------------------------------------
+;
+RXBIG:  M CJP+SIOD,,BUS7+RXBIG1   ;BRANCH IF RX CHAR AVAILABLE
+        M CRTN,,TRUE+0            ;SHUT OFF SIO
+;
+;---------------------------------------
+; OUTPUT BYTE COUNT TO CPU             ;
+;---------------------------------------
+;
+RXOBCC: M A6+MUXDL,RAM+AB+AND+QREG,RRECNT+BD ;BYTE COUNT TO CPU
+        M ,CONST+DQ+OR+QREG,FPOCCW ;MERGE IN CHN NUM, FCN CODE(3), LAST STATUS
+        M A8+MUXD,ALU+AQ+OR       ;ISSUE ATN
+        M ,CONST+DZ+OR+RAMF,B2
+        M ,RAM+DZ+OR+RAMF,RCDADH+B3
+        M ,RAM+DZ+ADD+RAMD,CARRY+RRECNT+B1 ;COMPUTE ADDR FOR NEXT RECORD
+        M ,RAM+DZ+OR+RAMD,RCDADL+B4
+        M A1,ALU+AB+ADD+RAMU,CARRY+B4 ;NEXT DATA RECORD ADDR (SKIP BYTE CNT)
+        M CJS,,F3+RXOIBB
+        M A3+RAMD,ALU+ZA+OR,RCDADH ;SAVE HIGH ORDER NEXT RECORD ADDR
+        M A4+RAMD,ALU+ZA+OR+RAMD,RCDADL+B4 ;SAVE LOW NEXT RECORD ADR,HW ADR->R4
+        M A4,RAM+DA+ADD+RAMU,RRSIZE+B4 ;COMPUTE END OF NEXT BUF ADDR(INCL FFFF)
+        M A4,RAM+DA+SUBR+RAMF,CARRY+RDADDL+B4 ;COMPUTE INPUT BUF SIZE NEEDED
+        M A4,RAM+DA+SUBR,CARRY+RBSIZE ;BUF NEEDED - MAX BUF SIZE
+        M CJP,,F3+RXOBC3          ;IF NEXT BUF INSIDE INP BUF, OK
+        M JMAP,,RXOBC2            ;WRAP AROUND IF BUF NEEDED >= MAX BUF SIZE
+;
+;---------------------------------------
+; RECEIVE REMAINING 7 CHARACTERS       ;
+; (ASYNC INPUT)                        ;
+;---------------------------------------
+;
+RXARSC: M CJP+A1,ZA+OR,BUS7+RXARS1 ;BRANCH IF RX CHAR AVAILABLE
+        M CJP,,F3+RXABRK          ;BRANCH IF BREAK
+        M AA,CONST+DA+AND+QREG,000F ;GET DECR AMOUNT
+        M ,RAM+DQ+SUBS+QREG,RRSIZE ;DECR 20 MILLISECOND TIMER
+        M RAMD,ALU+ZQ+OR,RRSIZE
+        M CJP,,F3+RXARAL          ;BRANCH IF TIMED OUT, DONE
+        M CRTN,,TRUE
+;
+;---------------------------------------
+; RECEIVE RIGHT BYTE                   ;
+; (EMULATE SYNC INPUT)                 ;
+;---------------------------------------
+;
+RXSNR:  M CJP+A1,ALU+ZA+EXNOR,BUS7+RXSNR1 ;BRANCH IF RX CHAR AVAILABLE
+        M CRTN,,BUS10             ;RETURN IF NO RX OVERRUN
+        M JMAP,,RXSIOB            ;RESET ERROR, LOOK FOR FIRST CHAR AGAIN
+;
+;---------------------------------------
+; SIGNAL CPU TO ISSUE INTERRUPT FROM   ;
+; PSEUDO DEVICE ADDRESS                ;
+;---------------------------------------
+;
+RXSYNI: M A6,ALU+AB+AND+QREG,BD   ;MERGE CHN NUM, FCN CODE(E), LAST STATUS
+        M ,CONST+DQ+EXNOR+QREG,0E000*
+        M JMAP+A8+MUXD,ALU+AQ+OR,RXOBC3 ;ISSUE ATN TO CPU
+;
+;---------------------------------------
+; RECEIVE LEFT BYTE                    ;
+;---------------------------------------
+;
+RXSNL:  M CJP,,BUS7+RXSNL1        ;BRANCH IF RX CHAR AVAILABLE
+        M CRTN,,TRUE              ;ELSE, RETURN
+EJECT
+;
+;---------------------------------------
+; OUTPUT HIGH ORDER CCW ADDR TO CPU    ;
+;---------------------------------------
+;
+TXOCCH: M A6+MUXDL,RAM+AB+AND+QREG,TCADDH+BD ;HIGH ORDER ADDR IN MUX OUT REG B
+        M ,CONST+DQ+OR+QREG,FOCCWA ;MERGE IN CHN NUM, FCN CODE(7), LAST STATUS
+        M A8+MUXD,ALU+AQ+OR       ;PUT IN MUX OUT REG A, ISSUE ATN
+        M ,CONQ,TXCFIL
+        M RAMD,OUTQ,TXCFPC        ;IDLE SHORT TRANSMITTER CPU REQUEST TASK
+        M ,CONQ,TXOCCL            ;NEXT, OUTPUT LOW ORDER CCW ADDR & GET CCW
+        M CRTN+RAMD,OUTQ,TRUE+TXCPPC
+;
+;---------------------------------------
+; OUTPUT LOW ORDER CCW ADDRESS TO CPU  ;
+;---------------------------------------
+;
+TXOCCL: M A6+MUXDL,RAM+AB+AND+QREG,TCADDL+BD ;LOW CCW ADDR INTO MUX OUT REG B
+        M ,CONST+DQ+OR+QREG,FOCCWA ;MERGE IN CHN NUM, FCN CODE(7), LAST STATUS
+        M JMAP+A8+MUXD,ALU+AQ+OR,TXOGC1 ;PUT IN MUX OUT REG A, ISSUE ATN
+;
+;---------------------------------------
+; MAKE SURE CCW ADDR DOES NOT CROSS 100;
+;---------------------------------------
+;
+TXOGCC: M ,CONQ,4
+        M ,RAM+DQ+ADD+QREG,TCADDL
+        M RAMD,OUTQ,TCADDL        ;SAVE ADDR OF NEXT CCW
+        M ,CONST+DQ+AND,0FF
+        M CJP,,FE0+TCCWER         ;BRANCH IF CROSSED 100, ERROR, ELSE FALL THRU
+;
+;---------------------------------------
+; REQUEST HIGH ORDER PART OF CCW       ;
+;---------------------------------------
+;
+TXOGCH: M A6,CONST+DA+AND+QREG,0F00 ;MERGE CHAN NUM, FCN CODE(6), LAST STATUS
+        M ,CONST+DQ+OR+QREG,FGOCCW
+        M JMAP+A8+MUXD,ALU+AQ+OR,TXOGC1 ;DATA INTO MUX OUT REG A, ISSUE ATN
+;
+;---------------------------------------
+; REQUEST LOW ORDER CCW FROM CPU       ;
+;---------------------------------------
+;
+TXOGCL: M A6,CONST+DA+AND+QREG,0F00 ;MERGE CHAN NUM, FCN CODE(6), LAST STATUS
+        M ,CONST+DQ+OR+QREG,FGOCCW
+        M A8+MUXD,ALU+AQ+OR       ;DATA INTO MUX OUT REG A, ISSUE ATN
+        M ,CONQ,TXCPIL
+        M RAMD,OUTQ,TXCPPC        ;WAIT TILL LOW ORDER CCW RETURNED
+        M ,CONQ,TXICCL
+        M CRTN+RAMD,OUTQ,TRUE+MXTXPC ;NEXT, GET LOW ORDER CCW FROM MUX INPUT
+;
+;---------------------------------------
+; GET LOW ORDER CCW FROM CPU           ;
+; PROCESS CCW                          ;
+;---------------------------------------
+;
+TXICCL: M ,RAM+DZ+SUBS+QREG,TCOM  ;DECODE INPUT CCW COMMAND CODE (0 PROCESSED)
+        M CJP,ZQ+SUBR+QREG,F3+TXCW1A ;BRANCH IF CCW COMMAND CODE 1
+        M CJP,ZQ+SUBR+QREG,F3+TXCW2A ;BRANCH IF CCW COMMAND CODE 2
+        M CJP,ZQ+SUBR+QREG,F3+TXCW3A ;BRANCH IF CCW COMMAND CODE 3
+        M CJP,ZQ+SUBR+QREG,F3+TXCW4A ;BRANCH IF CCW COMMAND CODE 4
+        M CJP,ZQ+SUBR+QREG,F3+TXCW5A ;BRANCH IF CCW COMMAND CODE 5
+        M CJP,ZQ+SUBR+QREG,F3+TXCW6A ;BRANCH IF CCW COMMAND CODE 6
+        M CJP,ZQ+SUBR+QREG,F3+TXCW7A ;BRANCH IF CCW COMMAND CODE 7
+        M CJP,ZQ+SUBR+QREG,F3+TXCW8A ;BRANCH IF CCW COMMAND CODE 8
+        M JMAP,,TCCWER            ;NONE OF THE ABOVE, ERROR
+;
+;---------------------------------------
+; SEND HIGH ORDER OUTPUT BUFFER        ;
+; ADDRESS TO CPU                       ;
+;---------------------------------------
+;
+TXOOBH: M A6+MUXDL,RAM+AB+AND+QREG,TDADDH+BD ;HIGH TX BUF ADR TO MUX OUT REG B
+        M ,CONST+DQ+OR+QREG,FOBUFA ;MERGE IN CHN NUM, FCN CODE(5), LAST STATUS
+        M A8+MUXD,ALU+AQ+OR       ;DATA TO MUX REG A, ISSUE ATN
+        M ,CONQ,TXCFIL
+        M RAMD,OUTQ,TXCFPC        ;IDLE SHORT TRANSMITTER CPU REQUEST TASK
+        M ,CONQ,TXOOBL
+        M CRTN+RAMD,OUTQ,TRUE+TXCPPC ;NEXT,SEND LOW OUT BUF ADDR & GET BYTE CNT
+;
+;---------------------------------------
+; SEND LOW ORDER OUTPUT BUFFER ADDRESS ;
+; TO CPU AND GET XMIT BYTE COUNT       ;
+;---------------------------------------
+;
+TXOOBL: M A6+MUXDL,RAM+AB+AND+QREG,TDADDL+BD ;LOW TX BUF ADR TO MUX OUT REG B
+        M ,CONST+DQ+OR+QREG,FOBUFA ;MERGE IN CHN NUM, FCN CODE(5), LAST STATUS
+        M A8+MUXD,ALU+AQ+OR       ;DATA TO MUX REG A, ISSUE ATN
+        M ,CONQ,TXICNT
+        M RAMD,OUTQ,MXTXPC        ;NEXT, GET BYTE COUNT FROM MUX INPUT
+        M ,CONQ,TXCPIL
+        M CRTN+RAMD,OUTQ,TRUE+TXCPPC ;IDLE TXCPPC
+;
+;---------------------------------------
+; GET OUTPUT BYTE COUNT FROM MUX INPUT ;
+;   ERROR IF END OF OUTPUT BUFFER IS   ;
+;   OUTSIDE THE WINDOW                 ;
+;   i.e. (W - V - 1 - (C + 1) / 8) < 0 ;
+;    W = WINDOW SIZE                   ;
+;    V = VIRT QUAD ADDR OF OUTPUT BUF  ;
+;    C = BYTE COUNT (IN 1ST HW OF BUF) ;
+;---------------------------------------
+;
+TXICNT: M RAMD,ALU+ZQ+OR+RAMF,TXDCNT+B1 ;SAVE OUTPUT BYTE COUNT FOR SIO SERVER
+        M ,CONQ,TXOGDA
+        M RAMD,OUTQ,TXCPPC        ;NEXT, REQUEST OUTPUT DATA FROM CPU
+        M ,ZQ+AND+QREG            ;CLEAR Q REG
+        M A1,ZA+ADD+RAMD,CARRY+B1 ;MAKE SURE BUFFER SIZE WITHIN RANGE
+        M A1+RAMD,ALU+ZA+OR+RAMD,TDCNT+B1 ;NUM OF HW TO FETCH FOR CPU SERVER
+        M A1,ZA+OR+RAMD,B1
+        M A1,ZA+OR+RAMD,B1
+        M A1,RAM+DA+SUBS,CARRY+TDBUF
+        M CJP+AC,ALU+ZA+OR,F3+TCCWER ;BRANCH IF OUT OF RANGE, ERROR
+        M CJP,,BUS7+TXTSR5        ;BRANCH IF ASYNC OUTPUT
+        M ,CONQ,TXTSF
+        M CRTN+RAMD,OUTQ,TRUE+TXSIPC ;ALSO, SERVICE TRANSMITTER
+;
+;---------------------------------------
+; REQUEST OUTPUT DATA FROM CPU         ;
+;---------------------------------------
+;
+TXOGDA: M ,RAM+LOADQ,TXRXFG
+        M CJP,OUTQ,BUS10+TXCPIL   ;BRANCH IF RAM XMIT BUF FULL,DO NEXT MUX TASK
+        M CJP,,BUS0+TXSYNG        ;BRANCH IF EMULATING SYNC
+        M A6,CONST+DA+AND+QREG,0F00 ;MERGE CHN NUM, FCN CODE(4), LAST STATUS
+        M ,CONST+DQ+OR+QREG,FGOBFD
+        M JMAP+A8+MUXD,ALU+AQ+OR,TXOGD1 ;ISSUE ATN, GET OUTPUT DATA FROM MUX
+;
+;---------------------------------------
+; CHECK IF ASYNC OUTPUT RE-ENABLED     ;
+;---------------------------------------
+;
+TXTSL3: M ,CONQ,TXTSL             ;ASYNC OUTPUT DISABLED, CHECK IF RE-ENABLE
+        M ,RAM+DZ+OR,TSTOP
+        M CJP,,FE0+TXTSL2         ;BRANCH IF ASYNC OUTPUT RE-ENABLED
+        M CRTN,,TRUE
+;
+;---------------------------------------
+; ALL DATA SENT, WAIT FOR CHECKSUM     ;
+;---------------------------------------
+;
+TXCRC:  M ,SIO                    ;GET Z80-SIO STATUS IN REG 0
+        M CJP,,BUS1+TXCRC1        ;BRANCH IF TX UNDERRUN
+        M CRTN,,TRUE              ;WAIT FOR TX UNDERRUN
+;
+;---------------------------------------
+; REQUEST NEXT CCW FROM CPU            ;
+;   ERROR IF CCW ADDRESS CROSS x100    ;
+;   i.e.  ((TCADDL + 4) .AND. xFF) = 0 ;
+;---------------------------------------
+;
+TXEGNC: M ,RAM+DZ+OR+RAMF,TCADDL+B2 ;ENSURE CCW ADDR DOES NOT CROSS 100
+        M A2,CONST+DA+ADD+RAMF,4  ;NEXT CCW ADDR INTO R4
+        M A4,CONST+DA+AND,00FF
+        M CJP,,FE0+TCCWER         ;BRANCH IF CROSS 100, ERROR
+        M A4+RAMD,ALU+ZA+OR,TCADDL ;UPDATE CCW ADDR
+        M RAMD,ALU+ZQ+AND,OBOPTR  ;CLR RAM OUTPUT BUFFER PTRS
+        M RAMD,ALU+ZQ+AND,OBIPTR
+        M ,CONST+DZ+EXNOR+QREG,0120 ;CLR XMIT FLAGS
+        M ,RAM+DQ+AND+QREG,TXRXFG
+        M RAMD,OUTQ,TXRXFG        ;UPDATE FLAGS
+        M ,CONQ,TXEODA
+        M CRTN+RAMD,OUTQ,TRUE+TXCPPC ;NEXT, MARK CURRENT CCW, GET NEXT CCW
+;
+;---------------------------------------
+; REQUEST HIGH ORDER PART OF NEXT CCW  ;
+; MARK CURRENT CCW WITH 100 OR 200     ;
+;---------------------------------------
+;
+TXEODA: M MUXDL,ALU+ZA+AND
+        M A6,CONST+DA+AND+QREG,0F00 ;MERGE CHN NUM, FCN CODE(3), LAST STATUS
+        M ,CONST+DQ+OR+QREG,FPOCCW
+        M JMAP+A8+MUXD,ALU+AQ+OR,TXOGC1
+;
+;---------------------------------------
+; SIGNAL CPU TO ISSUE INTERRUPT FROM   ;
+; PSEUDO DEVICE ADDRESS                ;
+;---------------------------------------
+;
+TXCW7I: M A6,ALU+AB+AND+QREG,BD   ;MERGE CHN NUM, FCN CODE(E), LAST STATUS
+        M ,CONST+DQ+EXNOR+QREG,0E000*
+        M JMAP+A8+MUXD,ALU+AQ+OR,INITX ;SIGNAL CPU, DONE WITH CCW PROCESSING
+;
+;---------------------------------------
+; SIGNAL CPU TO ISSUE INTERRUPT FROM   ;
+; PSEUDO DEVICE ADDRESS                ;
+;---------------------------------------
+;
+CMPINT: M A6,ALU+AB+AND+QREG,BD   ;MERGE CHN NUM, FCN CODE(E), LAST STATUS
+        M ,CONST+DQ+EXNOR+QREG,0E000*
+        M A8+MUXD,ALU+AQ+OR       ;SIGNAL CPU
+        M ,CONQ,CMERIL
+        M CRTN+RAMD,OUTQ,TRUE+CMERPC ;DONE WITH MUX OUT TASK
+EJECT
+;
+;---------------------------------------
+; SEND LOW ORDER ADDR FOR              ;
+; STORING STATUS                       ;
+;---------------------------------------
+;
+RSTOAL: M A6+MUXDL,RAM+AB+AND+QREG,RDSTAL+BD
+        M ,CONST+DQ+EXNOR+QREG,0A000* ;MERGE CHN NUM, FCN CODE(A), LAST STATUS
+        M A8+MUXD,ALU+AQ+OR       ;ISSUE ATN
+        M ,RAM+DZ+EXNOR+RAMF,TXRXFG+BC ;CHECK FLAGS
+        M AC,ALU+AB+ADD,BC
+        M CJP,,BUS10+RSTOAW       ;BRANCH IF NOT DOING SYNC STATUS UPDATE
+        M ,CONQ,SSYN01
+        M CRTN+RAMD,OUTQ,TRUE+RDSTPC ;NEXT, SEND DCD STATUS HALFWORD
+;
+;---------------------------------------
+; SEND STATUS --  SIO READ REG 0 & 1   ;
+;---------------------------------------
+;
+RSTOS1: M SIOD,CONQ,000F
+        M ,,42C                   ;READ CUSTOM CHIP STATUS
+        M A6+MUXDL,RAM+AB+AND+QREG,STAT+BD ;SEND SIO REG 0 & 1
+        M ,CONST+DQ+EXNOR+QREG,0B000* ;MERGE CHN NUM,FCN CODE(B),LAST STATUS
+        M A8+MUXD,ALU+AQ+OR       ;ISSUE ATN
+        M ,RAM+DZ+OR+QREG,RICHCK  ;GET IDLE LINE CTR AND CRC ERR CTR
+        M RAMD,OUTQ,RSTAT1        ;SAVE IDLE COUNT AND CRC ERR COUNT
+        M ,RAM+DZ+OR+QREG,ROVCNT  ;GET RX OVERRUN COUNTER
+        M RAMD,OUTQ,RDSTAL        ;SAVE RX OVERRUN COUNT
+        M ,SIO+DZ+OR+QREG         ;GET CUSTOM CHIP STATUS
+        M ,CONST+DQ+AND+QREG,000F ;USE ONLY LEAST SIGNIFICANT 4 BITS
+        M ,RAM+DQ+OR+QREG,ABORT   ;MERGE IN ABORT COUNT
+        M RAMD,ALU+ZQ+OR,RDSTAH   ;SAVE ABORT COUNT AND CUSTOM CHIP STATUS
+        M ,CONQ,TXERIL
+        M RAMD,OUTQ,TXERPC        ;IDLE TXERPC
+        M ,CONQ,RSTOS2
+        M CRTN+RAMD,OUTQ,TRUE+RDSTPC ;NEXT, SEND IDLE LINE CTR AND CRC ERR CTR
+;
+;---------------------------------------
+; SEND IDLE LINE COUNTER AND           ;
+; CRC ERROR COUNTER                    ;
+;---------------------------------------
+;
+RSTOS2: M A6+MUXDL,RAM+AB+AND+QREG,RSTAT1+BD
+        M ,CONST+DQ+EXNOR+QREG,0B000* ;MERGE CHN NUM,FCN CODE(B),LAST STATUS
+        M A8+MUXD,ALU+AQ+OR       ;ISSUE ATN
+        M ,CONQ,RSTOS3
+        M CRTN+RAMD,OUTQ,TRUE+RDSTPC ;NEXT, SEND ABORT CTR AND CUSTOM CHIP STAT
+;
+;---------------------------------------
+; SEND ABORT COUNTER AND               ;
+; CUSTOM CHIP STATUS                   ;
+;---------------------------------------
+;
+RSTOS3: M A6+MUXDL,RAM+AB+AND+QREG,RDSTAH+BD
+        M ,CONST+DQ+EXNOR+QREG,0B000* ;MERGE CHN NUM,FCN CODE(B),LAST STATUS
+        M A8+MUXD,ALU+AQ+OR       ;ISSUE ATN
+        M ,CONQ,RSTOS4
+        M CRTN+RAMD,OUTQ,TRUE+RDSTPC ;NEXT, SEND RX OVERRUN COUNT
+;
+;---------------------------------------
+; SEND RECEIVE OVERRUN COUNT           ;
+;---------------------------------------
+;
+RSTOS4: M A6+MUXDL,RAM+AB+AND+QREG,RDSTAL+BD
+        M ,CONST+DQ+EXNOR+QREG,0B000* ;MERGE CHN NUM,FCN CODE(B),LAST STATUS
+        M A8+MUXD,ALU+AQ+OR       ;ISSUE ATN
+        M ,CONQ,IDLEPC
+        M RAMD,OUTQ,RDSTPC        ;DONE WITH THIS I/O COMMAND
+        M JMAP,,GINTRP            ;SIGNAL COMMAND COMPLETION TO CPU
+;
+;---------------------------------------
+; SEND UPDATED SYNC STATUS HALFWORDS TO;
+; CPU IF READY                         ;
+;---------------------------------------
+;
+SSYNST: M ,RAM+DZ+OR+RAMU,TXRXFG+BC ;GET FLAGS
+        M AC,ALU+ZA+EXNOR         ;IS IT TIME TO UPDATE STATUS?
+        M CRTN,,BUS12             ;WAIT SOMEMORE IF NOT READY, ELSE, FALL THRU
+;
+;---------------------------------------
+; SEND HIGH ORDER ADDR FOR             ;
+; STORING STATUS                       ;
+;---------------------------------------
+;
+RSTOAH: M A6+MUXDL,RAM+AB+AND+QREG,RDSTAH+BD
+        M ,CONST+DQ+EXNOR+QREG,0A000* ;MERGE CHN NUM, FCN CODE(A), LAST STATUS
+        M A8+MUXD,ALU+AQ+OR       ;ISSUE ATN
+        M ,CONQ,RSTOAL
+        M CRTN+RAMD,OUTQ,TRUE+RDSTPC ;NEXT, SEND LOW ORDER ADDR
+;
+;---------------------------------------
+; SEND STATUS : DCD STATUS HALFWORD    ;
+;---------------------------------------
+;
+SSYN01: M AE,CONST+DA+NOTRS+QREG,003F ;MASK OFF LAST 6 BITS
+        M MUXDL,ALU+ZQ+ADD,CARRY  ;SET BIT 15 TO 1 AND SEND TO CPU
+        M A6,ALU+AB+AND+QREG,BD   ;MERGE CHN NUM, FCN CODE(B), LAST STATUS
+        M ,CONST+DQ+EXNOR+QREG,0B000*
+        M A8+MUXD,ALU+AQ+OR       ;ISSUE ATN
+        M ,CONQ,SSYN02
+        M CRTN+RAMD,OUTQ,TRUE+RDSTPC ;NEXT, OUTPUT CTS STATUS HALFWORD
+;
+;---------------------------------------
+; SEND STATUS : CTS STATUS HALFWORD    ;
+;---------------------------------------
+;
+SSYN02: M AF,CONST+DA+NOTRS+QREG,003F ;MASK OFF LAST 6 BITS
+        M MUXDL,ALU+ZQ+ADD,CARRY  ;SET BIT 15 TO 1 AND SEND TO CPU
+        M A6,ALU+AB+AND+QREG,BD   ;MERGE CHN NUM, FCN CODE(B), LAST STATUS
+        M ,CONST+DQ+EXNOR+QREG,0B000*
+        M A8+MUXD,ALU+AQ+OR       ;ISSUE ATN
+        M ,RAM+DZ+OR+RAMF,TXRXFG+BC ;GET FLAGS
+        M AC,CONST+DA+NOTRS+QREG,0004 ;CLEAR SYNC STATUS READY FOR UPDATE FLAG
+        M RAMD,ALU+ZQ+OR+RAMF,TXRXFG+BC ;UPDATE FLAGS
+        M ,CONQ,SSYNST
+        M CRTN+RAMD,OUTQ,TRUE+RDSTPC ;NEXT, WAIT TO UPDATE STATUS HALFWORDS
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; THE FOLLOWING ENTRY IS THE VERSION CODE OF THE PROMS     ;
+; EACH OF THE FIVE PROMS IS CODED WITH DATE, MONTH, YEAR,  ;
+; PROM LOCATION CODE, CPU CODE COMPATIBILITY CODE, AND     ;
+; I/O MICROCODE VERSION CODE.                              ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+        ORG H#5FA
+;
+        M CJS+A9+UNUSE1,SIO+ZA+OR,1919                    ;DATE: 19
+        M JZ+A9+UNUSE0,SIO+ZA+SUBR,CARRY+0909            ;MONTH: 09
+        M RFCT+A6+MUXD,MUX+ZQ+ADD+RAMQU,CARRY+0686        ;YEAR: 86
+        M JZ+A0+UNUSE0,CONST+ZA+ADD+RAMA,0304    ;LOCATION CODE: 00,01,02,03,04
+        M JZ+A2+UNUSE0,ALU+AQ+ADD+RAMA,0202 ;COMPATIBILITY CODE: 02
+        M JZ+A5+UNUSE0,COUNT+ZA+ADD+RAMD,CARRY+0505    ;VERSION: 05
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; TABLE FOR RE-ORDERING THE BITS IN A BYTE                 ;
+;                                                          ;
+; INDEX INTO THE TABLE USING THE BYTE TO BE RE-ORDERED     ;
+; REUTRN WITH THE RE-ORDERED BYTE IN BITS 8-15 OF Q REG    ;
+;                                                          ;
+; ASSUME RETURN ADDRESS IN THE HOLDING REGISTER OF 2910    ;
+;                                                          ;
+; CAUTION: !!!!!!!                                         ;
+;     IF THE FOLLOWING TRANSLATION TABLES ARE RELOCATED    ;
+;     MICRO INSTRUCTION REFERENCING THE LABEL              ;
+;     'XLATRB' OR 'XLATLB' MAY HAVE TO BE RECODED          ;
+;-----------------------------------------------------------
+;
+        ORG H#600
+;
+XLATRB: M JRP,CONQ,FALSE+0000        ;0000 0000 -> 0000 0000
+        M JRP,CONQ,FALSE+0080        ;0000 0001 -> 1000 0000
+        M JRP,CONQ,FALSE+0040        ;0000 0010 -> 0100 0000
+        M JRP,CONQ,FALSE+00C0        ;0000 0011 -> 1100 0000
+        M JRP,CONQ,FALSE+0020        ;0000 0100 -> 0010 0000
+        M JRP,CONQ,FALSE+00A0        ;0000 0101 -> 1010 0000
+        M JRP,CONQ,FALSE+0060        ;0000 0110 -> 0110 0000
+        M JRP,CONQ,FALSE+00E0        ;0000 0111 -> 1110 0000
+        M JRP,CONQ,FALSE+0010        ;0000 1000 -> 0001 0000
+        M JRP,CONQ,FALSE+0090        ;0000 1001 -> 1001 0000
+        M JRP,CONQ,FALSE+0050        ;0000 1010 -> 0101 0000
+        M JRP,CONQ,FALSE+00D0        ;0000 1011 -> 1101 0000
+        M JRP,CONQ,FALSE+0030        ;0000 1100 -> 0011 0000
+        M JRP,CONQ,FALSE+00B0        ;0000 1101 -> 1011 0000
+        M JRP,CONQ,FALSE+0070        ;0000 1110 -> 0111 0000
+        M JRP,CONQ,FALSE+00F0        ;0000 1111 -> 1111 0000
+;
+        M JRP,CONQ,FALSE+0008        ;0001 0000 -> 0000 1000
+        M JRP,CONQ,FALSE+0088        ;0001 0001 -> 1000 1000
+        M JRP,CONQ,FALSE+0048        ;0001 0010 -> 0100 1000
+        M JRP,CONQ,FALSE+00C8        ;0001 0011 -> 1100 1000
+        M JRP,CONQ,FALSE+0028        ;0001 0100 -> 0010 1000
+        M JRP,CONQ,FALSE+00A8        ;0001 0101 -> 1010 1000
+        M JRP,CONQ,FALSE+0068        ;0001 0110 -> 0110 1000
+        M JRP,CONQ,FALSE+00E8        ;0001 0111 -> 1110 1000
+        M JRP,CONQ,FALSE+0018        ;0001 1000 -> 0001 1000
+        M JRP,CONQ,FALSE+0098        ;0001 1001 -> 1001 1000
+        M JRP,CONQ,FALSE+0058        ;0001 1010 -> 0101 1000
+        M JRP,CONQ,FALSE+00D8        ;0001 1011 -> 1101 1000
+        M JRP,CONQ,FALSE+0038        ;0001 1100 -> 0011 1000
+        M JRP,CONQ,FALSE+00B8        ;0001 1101 -> 1011 1000
+        M JRP,CONQ,FALSE+0078        ;0001 1110 -> 0111 1000
+        M JRP,CONQ,FALSE+00F8        ;0001 1111 -> 1111 1000
+;
+        M JRP,CONQ,FALSE+0004        ;0010 0000 -> 0000 0100
+        M JRP,CONQ,FALSE+0084        ;0010 0001 -> 1000 0100
+        M JRP,CONQ,FALSE+0044        ;0010 0010 -> 0100 0100
+        M JRP,CONQ,FALSE+00C4        ;0010 0011 -> 1100 0100
+        M JRP,CONQ,FALSE+0024        ;0010 0100 -> 0010 0100
+        M JRP,CONQ,FALSE+00A4        ;0010 0101 -> 1010 0100
+        M JRP,CONQ,FALSE+0064        ;0010 0110 -> 0110 0100
+        M JRP,CONQ,FALSE+00E4        ;0010 0111 -> 1110 0100
+        M JRP,CONQ,FALSE+0014        ;0010 1000 -> 0001 0100
+        M JRP,CONQ,FALSE+0094        ;0010 1001 -> 1001 0100
+        M JRP,CONQ,FALSE+0054        ;0010 1010 -> 0101 0100
+        M JRP,CONQ,FALSE+00D4        ;0010 1011 -> 1101 0100
+        M JRP,CONQ,FALSE+0034        ;0010 1100 -> 0011 0100
+        M JRP,CONQ,FALSE+00B4        ;0010 1101 -> 1011 0100
+        M JRP,CONQ,FALSE+0074        ;0010 1110 -> 0111 0100
+        M JRP,CONQ,FALSE+00F4        ;0010 1111 -> 1111 0100
+;
+        M JRP,CONQ,FALSE+000C        ;0011 0000 -> 0000 1100
+        M JRP,CONQ,FALSE+008C        ;0011 0001 -> 1000 1100
+        M JRP,CONQ,FALSE+004C        ;0011 0010 -> 0100 1100
+        M JRP,CONQ,FALSE+00CC        ;0011 0011 -> 1100 1100
+        M JRP,CONQ,FALSE+002C        ;0011 0100 -> 0010 1100
+        M JRP,CONQ,FALSE+00AC        ;0011 0101 -> 1010 1100
+        M JRP,CONQ,FALSE+006C        ;0011 0110 -> 0110 1100
+        M JRP,CONQ,FALSE+00EC        ;0011 0111 -> 1110 1100
+        M JRP,CONQ,FALSE+001C        ;0011 1000 -> 0001 1100
+        M JRP,CONQ,FALSE+009C        ;0011 1001 -> 1001 1100
+        M JRP,CONQ,FALSE+005C        ;0011 1010 -> 0101 1100
+        M JRP,CONQ,FALSE+00DC        ;0011 1011 -> 1101 1100
+        M JRP,CONQ,FALSE+003C        ;0011 1100 -> 0011 1100
+        M JRP,CONQ,FALSE+00BC        ;0011 1101 -> 1011 1100
+        M JRP,CONQ,FALSE+007C        ;0011 1110 -> 0111 1100
+        M JRP,CONQ,FALSE+00FC        ;0011 1111 -> 1111 1100
+;
+        M JRP,CONQ,FALSE+0002        ;0100 0000 -> 0000 0010
+        M JRP,CONQ,FALSE+0082        ;0100 0001 -> 1000 0010
+        M JRP,CONQ,FALSE+0042        ;0100 0010 -> 0100 0010
+        M JRP,CONQ,FALSE+00C2        ;0100 0011 -> 1100 0010
+        M JRP,CONQ,FALSE+0022        ;0100 0100 -> 0010 0010
+        M JRP,CONQ,FALSE+00A2        ;0100 0101 -> 1010 0010
+        M JRP,CONQ,FALSE+0062        ;0100 0110 -> 0110 0010
+        M JRP,CONQ,FALSE+00E2        ;0100 0111 -> 1110 0010
+        M JRP,CONQ,FALSE+0012        ;0100 1000 -> 0001 0010
+        M JRP,CONQ,FALSE+0092        ;0100 1001 -> 1001 0010
+        M JRP,CONQ,FALSE+0052        ;0100 1010 -> 0101 0010
+        M JRP,CONQ,FALSE+00D2        ;0100 1011 -> 1101 0010
+        M JRP,CONQ,FALSE+0032        ;0100 1100 -> 0011 0010
+        M JRP,CONQ,FALSE+00B2        ;0100 1101 -> 1011 0010
+        M JRP,CONQ,FALSE+0072        ;0100 1110 -> 0111 0010
+        M JRP,CONQ,FALSE+00F2        ;0100 1111 -> 1111 0010
+;
+        M JRP,CONQ,FALSE+000A        ;0101 0000 -> 0000 1010
+        M JRP,CONQ,FALSE+008A        ;0101 0001 -> 1000 1010
+        M JRP,CONQ,FALSE+004A        ;0101 0010 -> 0100 1010
+        M JRP,CONQ,FALSE+00CA        ;0101 0011 -> 1100 1010
+        M JRP,CONQ,FALSE+002A        ;0101 0100 -> 0010 1010
+        M JRP,CONQ,FALSE+00AA        ;0101 0101 -> 1010 1010
+        M JRP,CONQ,FALSE+006A        ;0101 0110 -> 0110 1010
+        M JRP,CONQ,FALSE+00EA        ;0101 0111 -> 1110 1010
+        M JRP,CONQ,FALSE+001A        ;0101 1000 -> 0001 1010
+        M JRP,CONQ,FALSE+009A        ;0101 1001 -> 1001 1010
+        M JRP,CONQ,FALSE+005A        ;0101 1010 -> 0101 1010
+        M JRP,CONQ,FALSE+00DA        ;0101 1011 -> 1101 1010
+        M JRP,CONQ,FALSE+003A        ;0101 1100 -> 0011 1010
+        M JRP,CONQ,FALSE+00BA        ;0101 1101 -> 1011 1010
+        M JRP,CONQ,FALSE+007A        ;0101 1110 -> 0111 1010
+        M JRP,CONQ,FALSE+00FA        ;0101 1111 -> 1111 1010
+;
+        M JRP,CONQ,FALSE+0006        ;0110 0000 -> 0000 0110
+        M JRP,CONQ,FALSE+0086        ;0110 0001 -> 1000 0110
+        M JRP,CONQ,FALSE+0046        ;0110 0010 -> 0100 0110
+        M JRP,CONQ,FALSE+00C6        ;0110 0011 -> 1100 0110
+        M JRP,CONQ,FALSE+0026        ;0110 0100 -> 0010 0110
+        M JRP,CONQ,FALSE+00A6        ;0110 0101 -> 1010 0110
+        M JRP,CONQ,FALSE+0066        ;0110 0110 -> 0110 0110
+        M JRP,CONQ,FALSE+00E6        ;0110 0111 -> 1110 0110
+        M JRP,CONQ,FALSE+0016        ;0110 1000 -> 0001 0110
+        M JRP,CONQ,FALSE+0096        ;0110 1001 -> 1001 0110
+        M JRP,CONQ,FALSE+0056        ;0110 1010 -> 0101 0110
+        M JRP,CONQ,FALSE+00D6        ;0110 1011 -> 1101 0110
+        M JRP,CONQ,FALSE+0036        ;0110 1100 -> 0011 0110
+        M JRP,CONQ,FALSE+00B6        ;0110 1101 -> 1011 0110
+        M JRP,CONQ,FALSE+0076        ;0110 1110 -> 0111 0110
+        M JRP,CONQ,FALSE+00F6        ;0110 1111 -> 1111 0110
+;
+        M JRP,CONQ,FALSE+000E        ;0111 0000 -> 0000 1110
+        M JRP,CONQ,FALSE+008E        ;0111 0001 -> 1000 1110
+        M JRP,CONQ,FALSE+004E        ;0111 0010 -> 0100 1110
+        M JRP,CONQ,FALSE+00CE        ;0111 0011 -> 1100 1110
+        M JRP,CONQ,FALSE+002E        ;0111 0100 -> 0010 1110
+        M JRP,CONQ,FALSE+00AE        ;0111 0101 -> 1010 1110
+        M JRP,CONQ,FALSE+006E        ;0111 0110 -> 0110 1110
+        M JRP,CONQ,FALSE+00EE        ;0111 0111 -> 1110 1110
+        M JRP,CONQ,FALSE+001E        ;0111 1000 -> 0001 1110
+        M JRP,CONQ,FALSE+009E        ;0111 1001 -> 1001 1110
+        M JRP,CONQ,FALSE+005E        ;0111 1010 -> 0101 1110
+        M JRP,CONQ,FALSE+00DE        ;0111 1011 -> 1101 1110
+        M JRP,CONQ,FALSE+003E        ;0111 1100 -> 0011 1110
+        M JRP,CONQ,FALSE+00BE        ;0111 1101 -> 1011 1110
+        M JRP,CONQ,FALSE+007E        ;0111 1110 -> 0111 1110
+        M JRP,CONQ,FALSE+00FE        ;0111 1111 -> 1111 1110
+;
+        M JRP,CONQ,FALSE+0001        ;1000 0000 -> 0000 0001
+        M JRP,CONQ,FALSE+0081        ;1000 0001 -> 1000 0001
+        M JRP,CONQ,FALSE+0041        ;1000 0010 -> 0100 0001
+        M JRP,CONQ,FALSE+00C1        ;1000 0011 -> 1100 0001
+        M JRP,CONQ,FALSE+0021        ;1000 0100 -> 0010 0001
+        M JRP,CONQ,FALSE+00A1        ;1000 0101 -> 1010 0001
+        M JRP,CONQ,FALSE+0061        ;1000 0110 -> 0110 0001
+        M JRP,CONQ,FALSE+00E1        ;1000 0111 -> 1110 0001
+        M JRP,CONQ,FALSE+0011        ;1000 1000 -> 0001 0001
+        M JRP,CONQ,FALSE+0091        ;1000 1001 -> 1001 0001
+        M JRP,CONQ,FALSE+0051        ;1000 1010 -> 0101 0001
+        M JRP,CONQ,FALSE+00D1        ;1000 1011 -> 1101 0001
+        M JRP,CONQ,FALSE+0031        ;1000 1100 -> 0011 0001
+        M JRP,CONQ,FALSE+00B1        ;1000 1101 -> 1011 0001
+        M JRP,CONQ,FALSE+0071        ;1000 1110 -> 0111 0001
+        M JRP,CONQ,FALSE+00F1        ;1000 1111 -> 1111 0001
+;
+        M JRP,CONQ,FALSE+0009        ;1001 0000 -> 0000 1001
+        M JRP,CONQ,FALSE+0089        ;1001 0001 -> 1000 1001
+        M JRP,CONQ,FALSE+0049        ;1001 0010 -> 0100 1001
+        M JRP,CONQ,FALSE+00C9        ;1001 0011 -> 1100 1001
+        M JRP,CONQ,FALSE+0029        ;1001 0100 -> 0010 1001
+        M JRP,CONQ,FALSE+00A9        ;1001 0101 -> 1010 1001
+        M JRP,CONQ,FALSE+0069        ;1001 0110 -> 0110 1001
+        M JRP,CONQ,FALSE+00E9        ;1001 0111 -> 1110 1001
+        M JRP,CONQ,FALSE+0019        ;1001 1000 -> 0001 1001
+        M JRP,CONQ,FALSE+0099        ;1001 1001 -> 1001 1001
+        M JRP,CONQ,FALSE+0059        ;1001 1010 -> 0101 1001
+        M JRP,CONQ,FALSE+00D9        ;1001 1011 -> 1101 1001
+        M JRP,CONQ,FALSE+0039        ;1001 1100 -> 0011 1001
+        M JRP,CONQ,FALSE+00B9        ;1001 1101 -> 1011 1001
+        M JRP,CONQ,FALSE+0079        ;1001 1110 -> 0111 1001
+        M JRP,CONQ,FALSE+00F9        ;1001 1111 -> 1111 1001
+;
+        M JRP,CONQ,FALSE+0005        ;1010 0000 -> 0000 0101
+        M JRP,CONQ,FALSE+0085        ;1010 0001 -> 1000 0101
+        M JRP,CONQ,FALSE+0045        ;1010 0010 -> 0100 0101
+        M JRP,CONQ,FALSE+00C5        ;1010 0011 -> 1100 0101
+        M JRP,CONQ,FALSE+0025        ;1010 0100 -> 0010 0101
+        M JRP,CONQ,FALSE+00A5        ;1010 0101 -> 1010 0101
+        M JRP,CONQ,FALSE+0065        ;1010 0110 -> 0110 0101
+        M JRP,CONQ,FALSE+00E5        ;1010 0111 -> 1110 0101
+        M JRP,CONQ,FALSE+0015        ;1010 1000 -> 0001 0101
+        M JRP,CONQ,FALSE+0095        ;1010 1001 -> 1001 0101
+        M JRP,CONQ,FALSE+0055        ;1010 1010 -> 0101 0101
+        M JRP,CONQ,FALSE+00D5        ;1010 1011 -> 1101 0101
+        M JRP,CONQ,FALSE+0035        ;1010 1100 -> 0011 0101
+        M JRP,CONQ,FALSE+00B5        ;1010 1101 -> 1011 0101
+        M JRP,CONQ,FALSE+0075        ;1010 1110 -> 0111 0101
+        M JRP,CONQ,FALSE+00F5        ;1010 1111 -> 1111 0101
+;
+        M JRP,CONQ,FALSE+000D        ;1011 0000 -> 0000 1101
+        M JRP,CONQ,FALSE+008D        ;1011 0001 -> 1000 1101
+        M JRP,CONQ,FALSE+004D        ;1011 0010 -> 0100 1101
+        M JRP,CONQ,FALSE+00CD        ;1011 0011 -> 1100 1101
+        M JRP,CONQ,FALSE+002D        ;1011 0100 -> 0010 1101
+        M JRP,CONQ,FALSE+00AD        ;1011 0101 -> 1010 1101
+        M JRP,CONQ,FALSE+006D        ;1011 0110 -> 0110 1101
+        M JRP,CONQ,FALSE+00ED        ;1011 0111 -> 1110 1101
+        M JRP,CONQ,FALSE+001D        ;1011 1000 -> 0001 1101
+        M JRP,CONQ,FALSE+009D        ;1011 1001 -> 1001 1101
+        M JRP,CONQ,FALSE+005D        ;1011 1010 -> 0101 1101
+        M JRP,CONQ,FALSE+00DD        ;1011 1011 -> 1101 1101
+        M JRP,CONQ,FALSE+003D        ;1011 1100 -> 0011 1101
+        M JRP,CONQ,FALSE+00BD        ;1011 1101 -> 1011 1101
+        M JRP,CONQ,FALSE+007D        ;1011 1110 -> 0111 1101
+        M JRP,CONQ,FALSE+00FD        ;1011 1111 -> 1111 1101
+;
+        M JRP,CONQ,FALSE+0003        ;1100 0000 -> 0000 0011
+        M JRP,CONQ,FALSE+0083        ;1100 0001 -> 1000 0011
+        M JRP,CONQ,FALSE+0043        ;1100 0010 -> 0100 0011
+        M JRP,CONQ,FALSE+00C3        ;1100 0011 -> 1100 0011
+        M JRP,CONQ,FALSE+0023        ;1100 0100 -> 0010 0011
+        M JRP,CONQ,FALSE+00A3        ;1100 0101 -> 1010 0011
+        M JRP,CONQ,FALSE+0063        ;1100 0110 -> 0110 0011
+        M JRP,CONQ,FALSE+00E3        ;1100 0111 -> 1110 0011
+        M JRP,CONQ,FALSE+0013        ;1100 1000 -> 0001 0011
+        M JRP,CONQ,FALSE+0093        ;1100 1001 -> 1001 0011
+        M JRP,CONQ,FALSE+0053        ;1100 1010 -> 0101 0011
+        M JRP,CONQ,FALSE+00D3        ;1100 1011 -> 1101 0011
+        M JRP,CONQ,FALSE+0033        ;1100 1100 -> 0011 0011
+        M JRP,CONQ,FALSE+00B3        ;1100 1101 -> 1011 0011
+        M JRP,CONQ,FALSE+0073        ;1100 1110 -> 0111 0011
+        M JRP,CONQ,FALSE+00F3        ;1100 1111 -> 1111 0011
+;
+        M JRP,CONQ,FALSE+000B        ;1101 0000 -> 0000 1011
+        M JRP,CONQ,FALSE+008B        ;1101 0001 -> 1000 1011
+        M JRP,CONQ,FALSE+004B        ;1101 0010 -> 0100 1011
+        M JRP,CONQ,FALSE+00CB        ;1101 0011 -> 1100 1011
+        M JRP,CONQ,FALSE+002B        ;1101 0100 -> 0010 1011
+        M JRP,CONQ,FALSE+00AB        ;1101 0101 -> 1010 1011
+        M JRP,CONQ,FALSE+006B        ;1101 0110 -> 0110 1011
+        M JRP,CONQ,FALSE+00EB        ;1101 0111 -> 1110 1011
+        M JRP,CONQ,FALSE+001B        ;1101 1000 -> 0001 1011
+        M JRP,CONQ,FALSE+009B        ;1101 1001 -> 1001 1011
+        M JRP,CONQ,FALSE+005B        ;1101 1010 -> 0101 1011
+        M JRP,CONQ,FALSE+00DB        ;1101 1011 -> 1101 1011
+        M JRP,CONQ,FALSE+003B        ;1101 1100 -> 0011 1011
+        M JRP,CONQ,FALSE+00BB        ;1101 1101 -> 1011 1011
+        M JRP,CONQ,FALSE+007B        ;1101 1110 -> 0111 1011
+        M JRP,CONQ,FALSE+00FB        ;1101 1111 -> 1111 1011
+;
+        M JRP,CONQ,FALSE+0007        ;1110 0000 -> 0000 0111
+        M JRP,CONQ,FALSE+0087        ;1110 0001 -> 1000 0111
+        M JRP,CONQ,FALSE+0047        ;1110 0010 -> 0100 0111
+        M JRP,CONQ,FALSE+00C7        ;1110 0011 -> 1100 0111
+        M JRP,CONQ,FALSE+0027        ;1110 0100 -> 0010 0111
+        M JRP,CONQ,FALSE+00A7        ;1110 0101 -> 1010 0111
+        M JRP,CONQ,FALSE+0067        ;1110 0110 -> 0110 0111
+        M JRP,CONQ,FALSE+00E7        ;1110 0111 -> 1110 0111
+        M JRP,CONQ,FALSE+0017        ;1110 1000 -> 0001 0111
+        M JRP,CONQ,FALSE+0097        ;1110 1001 -> 1001 0111
+        M JRP,CONQ,FALSE+0057        ;1110 1010 -> 0101 0111
+        M JRP,CONQ,FALSE+00D7        ;1110 1011 -> 1101 0111
+        M JRP,CONQ,FALSE+0037        ;1110 1100 -> 0011 0111
+        M JRP,CONQ,FALSE+00B7        ;1110 1101 -> 1011 0111
+        M JRP,CONQ,FALSE+0077        ;1110 1110 -> 0111 0111
+        M JRP,CONQ,FALSE+00F7        ;1110 1111 -> 1111 0111
+;
+        M JRP,CONQ,FALSE+000F        ;1111 0000 -> 0000 1111
+        M JRP,CONQ,FALSE+008F        ;1111 0001 -> 1000 1111
+        M JRP,CONQ,FALSE+004F        ;1111 0010 -> 0100 1111
+        M JRP,CONQ,FALSE+00CF        ;1111 0011 -> 1100 1111
+        M JRP,CONQ,FALSE+002F        ;1111 0100 -> 0010 1111
+        M JRP,CONQ,FALSE+00AF        ;1111 0101 -> 1010 1111
+        M JRP,CONQ,FALSE+006F        ;1111 0110 -> 0110 1111
+        M JRP,CONQ,FALSE+00EF        ;1111 0111 -> 1110 1111
+        M JRP,CONQ,FALSE+001F        ;1111 1000 -> 0001 1111
+        M JRP,CONQ,FALSE+009F        ;1111 1001 -> 1001 1111
+        M JRP,CONQ,FALSE+005F        ;1111 1010 -> 0101 1111
+        M JRP,CONQ,FALSE+00DF        ;1111 1011 -> 1101 1111
+        M JRP,CONQ,FALSE+003F        ;1111 1100 -> 0011 1111
+        M JRP,CONQ,FALSE+00BF        ;1111 1101 -> 1011 1111
+        M JRP,CONQ,FALSE+007F        ;1111 1110 -> 0111 1111
+        M JRP,CONQ,FALSE+00FF        ;1111 1111 -> 1111 1111
+EJECT
+;
+;-----------------------------------------------------------
+;                                                          ;
+; TABLE FOR RE-ORDERING BITS IN A BYTE                     ;
+;                                                          ;
+; INDEX THE TABLE WITH THE BYTE TO BE RE-ORDERED           ;
+; RETURN WITH THE RE-ORDERED BYTE IN BITS 0-7 OF Q REG     ;
+;                                                          ;
+; ASSUME RETURN ADDRESS ON THE TOP OF THE STACK            ;
+; UPON RETURN, THE STACK MUST BE POPED TO CLEAN UP THE     ;
+; RETURN ADDRESS                                           ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+XLATLB: M RFCT,CONQ,0000                  ;0000 0000 -> 0000 0000
+        M RFCT,CONST+DZ+EXNOR+QREG,08000* ;0000 0001 -> 1000 0000
+        M RFCT,CONQ,4000                  ;0000 0010 -> 0100 0000
+        M RFCT,CONST+DZ+EXNOR+QREG,0C000* ;0000 0011 -> 1100 0000
+        M RFCT,CONQ,2000                  ;0000 0100 -> 0010 0000
+        M RFCT,CONST+DZ+EXNOR+QREG,0A000* ;0000 0101 -> 1010 0000
+        M RFCT,CONQ,6000                  ;0000 0110 -> 0110 0000
+        M RFCT,CONST+DZ+EXNOR+QREG,0E000* ;0000 0111 -> 1110 0000
+        M RFCT,CONQ,1000                  ;0000 1000 -> 0001 0000
+        M RFCT,CONST+DZ+EXNOR+QREG,09000* ;0000 1001 -> 1001 0000
+        M RFCT,CONQ,5000                  ;0000 1010 -> 0101 0000
+        M RFCT,CONST+DZ+EXNOR+QREG,0D000* ;0000 1011 -> 1101 0000
+        M RFCT,CONQ,3000                  ;0000 1100 -> 0011 0000
+        M RFCT,CONST+DZ+EXNOR+QREG,0B000* ;0000 1101 -> 1011 0000
+        M RFCT,CONQ,7000                  ;0000 1110 -> 0111 0000
+        M RFCT,CONST+DZ+EXNOR+QREG,0F000* ;0000 1111 -> 1111 0000
+;
+        M RFCT,CONQ,0800                  ;0001 0000 -> 0000 1000
+        M RFCT,CONST+DZ+EXNOR+QREG,08800* ;0001 0001 -> 1000 1000
+        M RFCT,CONQ,4800                  ;0001 0010 -> 0100 1000
+        M RFCT,CONST+DZ+EXNOR+QREG,0C800* ;0001 0011 -> 1100 1000
+        M RFCT,CONQ,2800                  ;0001 0100 -> 0010 1000
+        M RFCT,CONST+DZ+EXNOR+QREG,0A800* ;0001 0101 -> 1010 1000
+        M RFCT,CONQ,6800                  ;0001 0110 -> 0110 1000
+        M RFCT,CONST+DZ+EXNOR+QREG,0E800* ;0001 0111 -> 1110 1000
+        M RFCT,CONQ,1800                  ;0001 1000 -> 0001 1000
+        M RFCT,CONST+DZ+EXNOR+QREG,09800* ;0001 1001 -> 1001 1000
+        M RFCT,CONQ,5800                  ;0001 1010 -> 0101 1000
+        M RFCT,CONST+DZ+EXNOR+QREG,0D800* ;0001 1011 -> 1101 1000
+        M RFCT,CONQ,3800                  ;0001 1100 -> 0011 1000
+        M RFCT,CONST+DZ+EXNOR+QREG,0B800* ;0001 1101 -> 1011 1000
+        M RFCT,CONQ,7800                  ;0001 1110 -> 0111 1000
+        M RFCT,CONST+DZ+EXNOR+QREG,0F800* ;0001 1111 -> 1111 1000
+;
+        M RFCT,CONQ,0400                  ;0010 0000 -> 0000 0100
+        M RFCT,CONST+DZ+EXNOR+QREG,08400* ;0010 0001 -> 1000 0100
+        M RFCT,CONQ,4400                  ;0010 0010 -> 0100 0100
+        M RFCT,CONST+DZ+EXNOR+QREG,0C400* ;0010 0011 -> 1100 0100
+        M RFCT,CONQ,2400                  ;0010 0100 -> 0010 0100
+        M RFCT,CONST+DZ+EXNOR+QREG,0A400* ;0010 0101 -> 1010 0100
+        M RFCT,CONQ,6400                  ;0010 0110 -> 0110 0100
+        M RFCT,CONST+DZ+EXNOR+QREG,0E400* ;0010 0111 -> 1110 0100
+        M RFCT,CONQ,1400                  ;0010 1000 -> 0001 0100
+        M RFCT,CONST+DZ+EXNOR+QREG,09400* ;0010 1001 -> 1001 0100
+        M RFCT,CONQ,5400                  ;0010 1010 -> 0101 0100
+        M RFCT,CONST+DZ+EXNOR+QREG,0D400* ;0010 1011 -> 1101 0100
+        M RFCT,CONQ,3400                  ;0010 1100 -> 0011 0100
+        M RFCT,CONST+DZ+EXNOR+QREG,0B400* ;0010 1101 -> 1011 0100
+        M RFCT,CONQ,7400                  ;0010 1110 -> 0111 0100
+        M RFCT,CONST+DZ+EXNOR+QREG,0F400* ;0010 1111 -> 1111 0100
+;
+        M RFCT,CONQ,0C00                  ;0011 0000 -> 0000 1100
+        M RFCT,CONST+DZ+EXNOR+QREG,08C00* ;0011 0001 -> 1000 1100
+        M RFCT,CONQ,4C00                  ;0011 0010 -> 0100 1100
+        M RFCT,CONST+DZ+EXNOR+QREG,0CC00* ;0011 0011 -> 1100 1100
+        M RFCT,CONQ,2C00                  ;0011 0100 -> 0010 1100
+        M RFCT,CONST+DZ+EXNOR+QREG,0AC00* ;0011 0101 -> 1010 1100
+        M RFCT,CONQ,6C00                  ;0011 0110 -> 0110 1100
+        M RFCT,CONST+DZ+EXNOR+QREG,0EC00* ;0011 0111 -> 1110 1100
+        M RFCT,CONQ,1C00                  ;0011 1000 -> 0001 1100
+        M RFCT,CONST+DZ+EXNOR+QREG,09C00* ;0011 1001 -> 1001 1100
+        M RFCT,CONQ,5C00                  ;0011 1010 -> 0101 1100
+        M RFCT,CONST+DZ+EXNOR+QREG,0DC00* ;0011 1011 -> 1101 1100
+        M RFCT,CONQ,3C00                  ;0011 1100 -> 0011 1100
+        M RFCT,CONST+DZ+EXNOR+QREG,0BC00* ;0011 1101 -> 1011 1100
+        M RFCT,CONQ,7C00                  ;0011 1110 -> 0111 1100
+        M RFCT,CONST+DZ+EXNOR+QREG,0FC00* ;0011 1111 -> 1111 1100
+;
+        M RFCT,CONQ,0200                  ;0100 0000 -> 0000 0010
+        M RFCT,CONST+DZ+EXNOR+QREG,08200* ;0100 0001 -> 1000 0010
+        M RFCT,CONQ,4200                  ;0100 0010 -> 0100 0010
+        M RFCT,CONST+DZ+EXNOR+QREG,0C200* ;0100 0011 -> 1100 0010
+        M RFCT,CONQ,2200                  ;0100 0100 -> 0010 0010
+        M RFCT,CONST+DZ+EXNOR+QREG,0A200* ;0100 0101 -> 1010 0010
+        M RFCT,CONQ,6200                  ;0100 0110 -> 0110 0010
+        M RFCT,CONST+DZ+EXNOR+QREG,0E200* ;0100 0111 -> 1110 0010
+        M RFCT,CONQ,1200                  ;0100 1000 -> 0001 0010
+        M RFCT,CONST+DZ+EXNOR+QREG,09200* ;0100 1001 -> 1001 0010
+        M RFCT,CONQ,5200                  ;0100 1010 -> 0101 0010
+        M RFCT,CONST+DZ+EXNOR+QREG,0D200* ;0100 1011 -> 1101 0010
+        M RFCT,CONQ,3200                  ;0100 1100 -> 0011 0010
+        M RFCT,CONST+DZ+EXNOR+QREG,0B200* ;0100 1101 -> 1011 0010
+        M RFCT,CONQ,7200                  ;0100 1110 -> 0111 0010
+        M RFCT,CONST+DZ+EXNOR+QREG,0F200* ;0100 1111 -> 1111 0010
+;
+        M RFCT,CONQ,0A00                  ;0101 0000 -> 0000 1010
+        M RFCT,CONST+DZ+EXNOR+QREG,08A00* ;0101 0001 -> 1000 1010
+        M RFCT,CONQ,4A00                  ;0101 0010 -> 0100 1010
+        M RFCT,CONST+DZ+EXNOR+QREG,0CA00* ;0101 0011 -> 1100 1010
+        M RFCT,CONQ,2A00                  ;0101 0100 -> 0010 1010
+        M RFCT,CONST+DZ+EXNOR+QREG,0AA00* ;0101 0101 -> 1010 1010
+        M RFCT,CONQ,6A00                  ;0101 0110 -> 0110 1010
+        M RFCT,CONST+DZ+EXNOR+QREG,0EA00* ;0101 0111 -> 1110 1010
+        M RFCT,CONQ,1A00                  ;0101 1000 -> 0001 1010
+        M RFCT,CONST+DZ+EXNOR+QREG,09A00* ;0101 1001 -> 1001 1010
+        M RFCT,CONQ,5A00                  ;0101 1010 -> 0101 1010
+        M RFCT,CONST+DZ+EXNOR+QREG,0DA00* ;0101 1011 -> 1101 1010
+        M RFCT,CONQ,3A00                  ;0101 1100 -> 0011 1010
+        M RFCT,CONST+DZ+EXNOR+QREG,0BA00* ;0101 1101 -> 1011 1010
+        M RFCT,CONQ,7A00                  ;0101 1110 -> 0111 1010
+        M RFCT,CONST+DZ+EXNOR+QREG,0FA00* ;0101 1111 -> 1111 1010
+;
+        M RFCT,CONQ,0600                  ;0110 0000 -> 0000 0110
+        M RFCT,CONST+DZ+EXNOR+QREG,08600* ;0110 0001 -> 1000 0110
+        M RFCT,CONQ,4600                  ;0110 0010 -> 0100 0110
+        M RFCT,CONST+DZ+EXNOR+QREG,0C600* ;0110 0011 -> 1100 0110
+        M RFCT,CONQ,2600                  ;0110 0100 -> 0010 0110
+        M RFCT,CONST+DZ+EXNOR+QREG,0A600* ;0110 0101 -> 1010 0110
+        M RFCT,CONQ,6600                  ;0110 0110 -> 0110 0110
+        M RFCT,CONST+DZ+EXNOR+QREG,0E600* ;0110 0111 -> 1110 0110
+        M RFCT,CONQ,1600                  ;0110 1000 -> 0001 0110
+        M RFCT,CONST+DZ+EXNOR+QREG,09600* ;0110 1001 -> 1001 0110
+        M RFCT,CONQ,5600                  ;0110 1010 -> 0101 0110
+        M RFCT,CONST+DZ+EXNOR+QREG,0D600* ;0110 1011 -> 1101 0110
+        M RFCT,CONQ,3600                  ;0110 1100 -> 0011 0110
+        M RFCT,CONST+DZ+EXNOR+QREG,0B600* ;0110 1101 -> 1011 0110
+        M RFCT,CONQ,7600                  ;0110 1110 -> 0111 0110
+        M RFCT,CONST+DZ+EXNOR+QREG,0F600* ;0110 1111 -> 1111 0110
+;
+        M RFCT,CONQ,0E00                  ;0111 0000 -> 0000 1110
+        M RFCT,CONST+DZ+EXNOR+QREG,08E00* ;0111 0001 -> 1000 1110
+        M RFCT,CONQ,4E00                  ;0111 0010 -> 0100 1110
+        M RFCT,CONST+DZ+EXNOR+QREG,0CE00* ;0111 0011 -> 1100 1110
+        M RFCT,CONQ,2E00                  ;0111 0100 -> 0010 1110
+        M RFCT,CONST+DZ+EXNOR+QREG,0AE00* ;0111 0101 -> 1010 1110
+        M RFCT,CONQ,6E00                  ;0111 0110 -> 0110 1110
+        M RFCT,CONST+DZ+EXNOR+QREG,0EE00* ;0111 0111 -> 1110 1110
+        M RFCT,CONQ,1E00                  ;0111 1000 -> 0001 1110
+        M RFCT,CONST+DZ+EXNOR+QREG,09E00* ;0111 1001 -> 1001 1110
+        M RFCT,CONQ,5E00                  ;0111 1010 -> 0101 1110
+        M RFCT,CONST+DZ+EXNOR+QREG,0DE00* ;0111 1011 -> 1101 1110
+        M RFCT,CONQ,3E00                  ;0111 1100 -> 0011 1110
+        M RFCT,CONST+DZ+EXNOR+QREG,0BE00* ;0111 1101 -> 1011 1110
+        M RFCT,CONQ,7E00                  ;0111 1110 -> 0111 1110
+        M RFCT,CONST+DZ+EXNOR+QREG,0FE00* ;0111 1111 -> 1111 1110
+;
+        M RFCT,CONQ,0100                  ;1000 0000 -> 0000 0001
+        M RFCT,CONST+DZ+EXNOR+QREG,08100* ;1000 0001 -> 1000 0001
+        M RFCT,CONQ,4100                  ;1000 0010 -> 0100 0001
+        M RFCT,CONST+DZ+EXNOR+QREG,0C100* ;1000 0011 -> 1100 0001
+        M RFCT,CONQ,2100                  ;1000 0100 -> 0010 0001
+        M RFCT,CONST+DZ+EXNOR+QREG,0A100* ;1000 0101 -> 1010 0001
+        M RFCT,CONQ,6100                  ;1000 0110 -> 0110 0001
+        M RFCT,CONST+DZ+EXNOR+QREG,0E100* ;1000 0111 -> 1110 0001
+        M RFCT,CONQ,1100                  ;1000 1000 -> 0001 0001
+        M RFCT,CONST+DZ+EXNOR+QREG,09100* ;1000 1001 -> 1001 0001
+        M RFCT,CONQ,5100                  ;1000 1010 -> 0101 0001
+        M RFCT,CONST+DZ+EXNOR+QREG,0D100* ;1000 1011 -> 1101 0001
+        M RFCT,CONQ,3100                  ;1000 1100 -> 0011 0001
+        M RFCT,CONST+DZ+EXNOR+QREG,0B100* ;1000 1101 -> 1011 0001
+        M RFCT,CONQ,7100                  ;1000 1110 -> 0111 0001
+        M RFCT,CONST+DZ+EXNOR+QREG,0F100* ;1000 1111 -> 1111 0001
+;
+        M RFCT,CONQ,0900                  ;1001 0000 -> 0000 1001
+        M RFCT,CONST+DZ+EXNOR+QREG,08900* ;1001 0001 -> 1000 1001
+        M RFCT,CONQ,4900                  ;1001 0010 -> 0100 1001
+        M RFCT,CONST+DZ+EXNOR+QREG,0C900* ;1001 0011 -> 1100 1001
+        M RFCT,CONQ,2900                  ;1001 0100 -> 0010 1001
+        M RFCT,CONST+DZ+EXNOR+QREG,0A900* ;1001 0101 -> 1010 1001
+        M RFCT,CONQ,6900                  ;1001 0110 -> 0110 1001
+        M RFCT,CONST+DZ+EXNOR+QREG,0E900* ;1001 0111 -> 1110 1001
+        M RFCT,CONQ,1900                  ;1001 1000 -> 0001 1001
+        M RFCT,CONST+DZ+EXNOR+QREG,09900* ;1001 1001 -> 1001 1001
+        M RFCT,CONQ,5900                  ;1001 1010 -> 0101 1001
+        M RFCT,CONST+DZ+EXNOR+QREG,0D900* ;1001 1011 -> 1101 1001
+        M RFCT,CONQ,3900                  ;1001 1100 -> 0011 1001
+        M RFCT,CONST+DZ+EXNOR+QREG,0B900* ;1001 1101 -> 1011 1001
+        M RFCT,CONQ,7900                  ;1001 1110 -> 0111 1001
+        M RFCT,CONST+DZ+EXNOR+QREG,0F900* ;1001 1111 -> 1111 1001
+;
+        M RFCT,CONQ,0500                  ;1010 0000 -> 0000 0101
+        M RFCT,CONST+DZ+EXNOR+QREG,08500* ;1010 0001 -> 1000 0101
+        M RFCT,CONQ,4500                  ;1010 0010 -> 0100 0101
+        M RFCT,CONST+DZ+EXNOR+QREG,0C500* ;1010 0011 -> 1100 0101
+        M RFCT,CONQ,2500                  ;1010 0100 -> 0010 0101
+        M RFCT,CONST+DZ+EXNOR+QREG,0A500* ;1010 0101 -> 1010 0101
+        M RFCT,CONQ,6500                  ;1010 0110 -> 0110 0101
+        M RFCT,CONST+DZ+EXNOR+QREG,0E500* ;1010 0111 -> 1110 0101
+        M RFCT,CONQ,1500                  ;1010 1000 -> 0001 0101
+        M RFCT,CONST+DZ+EXNOR+QREG,09500* ;1010 1001 -> 1001 0101
+        M RFCT,CONQ,5500                  ;1010 1010 -> 0101 0101
+        M RFCT,CONST+DZ+EXNOR+QREG,0D500* ;1010 1011 -> 1101 0101
+        M RFCT,CONQ,3500                  ;1010 1100 -> 0011 0101
+        M RFCT,CONST+DZ+EXNOR+QREG,0B500* ;1010 1101 -> 1011 0101
+        M RFCT,CONQ,7500                  ;1010 1110 -> 0111 0101
+        M RFCT,CONST+DZ+EXNOR+QREG,0F500* ;1010 1111 -> 1111 0101
+;
+        M RFCT,CONQ,0D00                  ;1011 0000 -> 0000 1101
+        M RFCT,CONST+DZ+EXNOR+QREG,08D00* ;1011 0001 -> 1000 1101
+        M RFCT,CONQ,4D00                  ;1011 0010 -> 0100 1101
+        M RFCT,CONST+DZ+EXNOR+QREG,0CD00* ;1011 0011 -> 1100 1101
+        M RFCT,CONQ,2D00                  ;1011 0100 -> 0010 1101
+        M RFCT,CONST+DZ+EXNOR+QREG,0AD00* ;1011 0101 -> 1010 1101
+        M RFCT,CONQ,6D00                  ;1011 0110 -> 0110 1101
+        M RFCT,CONST+DZ+EXNOR+QREG,0ED00* ;1011 0111 -> 1110 1101
+        M RFCT,CONQ,1D00                  ;1011 1000 -> 0001 1101
+        M RFCT,CONST+DZ+EXNOR+QREG,09D00* ;1011 1001 -> 1001 1101
+        M RFCT,CONQ,5D00                  ;1011 1010 -> 0101 1101
+        M RFCT,CONST+DZ+EXNOR+QREG,0DD00* ;1011 1011 -> 1101 1101
+        M RFCT,CONQ,3D00                  ;1011 1100 -> 0011 1101
+        M RFCT,CONST+DZ+EXNOR+QREG,0BD00* ;1011 1101 -> 1011 1101
+        M RFCT,CONQ,7D00                  ;1011 1110 -> 0111 1101
+        M RFCT,CONST+DZ+EXNOR+QREG,0FD00* ;1011 1111 -> 1111 1101
+;
+        M RFCT,CONQ,0300                  ;1100 0000 -> 0000 0011
+        M RFCT,CONST+DZ+EXNOR+QREG,08300* ;1100 0001 -> 1000 0011
+        M RFCT,CONQ,4300                  ;1100 0010 -> 0100 0011
+        M RFCT,CONST+DZ+EXNOR+QREG,0C300* ;1100 0011 -> 1100 0011
+        M RFCT,CONQ,2300                  ;1100 0100 -> 0010 0011
+        M RFCT,CONST+DZ+EXNOR+QREG,0A300* ;1100 0101 -> 1010 0011
+        M RFCT,CONQ,6300                  ;1100 0110 -> 0110 0011
+        M RFCT,CONST+DZ+EXNOR+QREG,0E300* ;1100 0111 -> 1110 0011
+        M RFCT,CONQ,1300                  ;1100 1000 -> 0001 0011
+        M RFCT,CONST+DZ+EXNOR+QREG,09300* ;1100 1001 -> 1001 0011
+        M RFCT,CONQ,5300                  ;1100 1010 -> 0101 0011
+        M RFCT,CONST+DZ+EXNOR+QREG,0D300* ;1100 1011 -> 1101 0011
+        M RFCT,CONQ,3300                  ;1100 1100 -> 0011 0011
+        M RFCT,CONST+DZ+EXNOR+QREG,0B300* ;1100 1101 -> 1011 0011
+        M RFCT,CONQ,7300                  ;1100 1110 -> 0111 0011
+        M RFCT,CONST+DZ+EXNOR+QREG,0F300* ;1100 1111 -> 1111 0011
+;
+        M RFCT,CONQ,0B00                  ;1101 0000 -> 0000 1011
+        M RFCT,CONST+DZ+EXNOR+QREG,08B00* ;1101 0001 -> 1000 1011
+        M RFCT,CONQ,4B00                  ;1101 0010 -> 0100 1011
+        M RFCT,CONST+DZ+EXNOR+QREG,0CB00* ;1101 0011 -> 1100 1011
+        M RFCT,CONQ,2B00                  ;1101 0100 -> 0010 1011
+        M RFCT,CONST+DZ+EXNOR+QREG,0AB00* ;1101 0101 -> 1010 1011
+        M RFCT,CONQ,6B00                  ;1101 0110 -> 0110 1011
+        M RFCT,CONST+DZ+EXNOR+QREG,0EB00* ;1101 0111 -> 1110 1011
+        M RFCT,CONQ,1B00                  ;1101 1000 -> 0001 1011
+        M RFCT,CONST+DZ+EXNOR+QREG,09B00* ;1101 1001 -> 1001 1011
+        M RFCT,CONQ,5B00                  ;1101 1010 -> 0101 1011
+        M RFCT,CONST+DZ+EXNOR+QREG,0DB00* ;1101 1011 -> 1101 1011
+        M RFCT,CONQ,3B00                  ;1101 1100 -> 0011 1011
+        M RFCT,CONST+DZ+EXNOR+QREG,0BB00* ;1101 1101 -> 1011 1011
+        M RFCT,CONQ,7B00                  ;1101 1110 -> 0111 1011
+        M RFCT,CONST+DZ+EXNOR+QREG,0FB00* ;1101 1111 -> 1111 1011
+;
+        M RFCT,CONQ,0700                  ;1110 0000 -> 0000 0111
+        M RFCT,CONST+DZ+EXNOR+QREG,08700* ;1110 0001 -> 1000 0111
+        M RFCT,CONQ,4700                  ;1110 0010 -> 0100 0111
+        M RFCT,CONST+DZ+EXNOR+QREG,0C700* ;1110 0011 -> 1100 0111
+        M RFCT,CONQ,2700                  ;1110 0100 -> 0010 0111
+        M RFCT,CONST+DZ+EXNOR+QREG,0A700* ;1110 0101 -> 1010 0111
+        M RFCT,CONQ,6700                  ;1110 0110 -> 0110 0111
+        M RFCT,CONST+DZ+EXNOR+QREG,0E700* ;1110 0111 -> 1110 0111
+        M RFCT,CONQ,1700                  ;1110 1000 -> 0001 0111
+        M RFCT,CONST+DZ+EXNOR+QREG,09700* ;1110 1001 -> 1001 0111
+        M RFCT,CONQ,5700                  ;1110 1010 -> 0101 0111
+        M RFCT,CONST+DZ+EXNOR+QREG,0D700* ;1110 1011 -> 1101 0111
+        M RFCT,CONQ,3700                  ;1110 1100 -> 0011 0111
+        M RFCT,CONST+DZ+EXNOR+QREG,0B700* ;1110 1101 -> 1011 0111
+        M RFCT,CONQ,7700                  ;1110 1110 -> 0111 0111
+        M RFCT,CONST+DZ+EXNOR+QREG,0F700* ;1110 1111 -> 1111 0111
+;
+        M RFCT,CONQ,0F00                  ;1111 0000 -> 0000 1111
+        M RFCT,CONST+DZ+EXNOR+QREG,08F00* ;1111 0001 -> 1000 1111
+        M RFCT,CONQ,4F00                  ;1111 0010 -> 0100 1111
+        M RFCT,CONST+DZ+EXNOR+QREG,0CF00* ;1111 0011 -> 1100 1111
+        M RFCT,CONQ,2F00                  ;1111 0100 -> 0010 1111
+        M RFCT,CONST+DZ+EXNOR+QREG,0AF00* ;1111 0101 -> 1010 1111
+        M RFCT,CONQ,6F00                  ;1111 0110 -> 0110 1111
+        M RFCT,CONST+DZ+EXNOR+QREG,0EF00* ;1111 0111 -> 1110 1111
+        M RFCT,CONQ,1F00                  ;1111 1000 -> 0001 1111
+        M RFCT,CONST+DZ+EXNOR+QREG,09F00* ;1111 1001 -> 1001 1111
+        M RFCT,CONQ,5F00                  ;1111 1010 -> 0101 1111
+        M RFCT,CONST+DZ+EXNOR+QREG,0DF00* ;1111 1011 -> 1101 1111
+        M RFCT,CONQ,3F00                  ;1111 1100 -> 0011 1111
+        M RFCT,CONST+DZ+EXNOR+QREG,0BF00* ;1111 1101 -> 1011 1111
+        M RFCT,CONQ,7F00                  ;1111 1110 -> 0111 1111
+        M RFCT,CONST+DZ+EXNOR+QREG,0FF00* ;1111 1111 -> 1111 1111
+        END
+Z@Z
