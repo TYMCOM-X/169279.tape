@@ -1,0 +1,929 @@
+gfd lwolf
+ 
+-type som.doc
+ 
+ 
+ 
+ 
+              3.4.1  Logging into the System Monitor
+ 
+ 
+ 
+  A  unique host  number is  used  in each  SDLC interface  for  the system
+  monitor.  Users with the appropriate network validation can log into this
+  host number and  access the system  monitor. Do not  use NAD to  log into
+  system monitor. When using Nad  a double echo appears at  users terminal.
+  Either log  in directly, or  use MUX or  AUXIO.  The system  monitor will
+  initially prompt the user with:
+ 
+ 
+  SDLC Interface Monitor
+ 
+           Enter Terminal Type, 0TY, 1P, 2DM.
+ 
+           >_
+ 
+ 
+ 
+  Three types of terminals are  supported by the system monitor,  low speed
+  hard-copy  terminals, Tymshare  Model 444  (HP), and  Tymshare  Model 425
+  (ADM-1A).  The 0TY mode is LINE mode which will display the slot status
+  by scrolling.  Even with  a Tymshare  Model 444  (HP) terminal,  the user
+  still can select 0 if the users prefers to have line mode.   However, the
+  selection  of  1  or 2  must  be  for that  paticular  type  of terminal,
+  otherwise the displayed  information will not  be readable.  To  select a
+  terminal type, the user enters  the terminal type followed by  a carriage
+  return.  The  system monitor  then outputs  the Interface  Status Display
+  until a command is issued or the operator logs off.  The Interface Status
+  Display consists of:
+ 
+ 
+     o  header line, with SDLC interface ID, Node number, and Slot number
+ 
+ 
+  70                   SDLC External Reference Manual            ERSDLC.DOC
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  OPERATIONS                                               October 24, 1986
+ 
+ 
+     o  detail line,  with interface version  number, time either  the slot
+         was first initialized or the  time of the last crash  (Halting the
+         slot will  not update the  crash time), the  crash count,  and the
+         last crash code
+ 
+     o  the command prompt ">"
+ 
+        > The system monitor uses ">" for the command prompt.
+        > Commands can be entered in either upper or lower case.
+        > Command abreviations may be entered.
+        > Control A can be used to delete the last character entered.
+        > Control Q or Escape can be used to delete the whole line.        > A command is executed when a carriage return is entered. 
+        > To terminate a display, escape is entered to redisplay prompt.
+ 
+ 
+ 
+ 
+ 
+              3.4.2  DISPLAY Commands
+ 
+ 
+ 
+  3.4.2.1  DISPLAY HOST
+ 
+ 
+  SYNTAX: DISPLAY HOST(cr)
+ 
+ 
+  ABBREVIATED SYNTAX: D H(cr)
+ 
+ 
+       This command lists the status  of all hosts in this  interface.  For
+  each host, this includes:
+ 
+   o HOST     host number
+   o TYPE     host type (monitor or SDLC)
+   o STATUS   host status,
+              values for STATUS are as follows:
+                 > HANS  host answered
+                 > HDWN  host down
+                 > HSHT  host shut
+   o HMPT     total number of ports available
+   o HSPT     number of ports in shut state
+   o HUPT     number of ports in use
+   o HAPT     number of ports in active state
+   o HFPT     number of free ports
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  71                   SDLC External Reference Manual            ERSDLC.DOC
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  OPERATIONS                                               October 24, 1986
+ 
+ 
+  3.4.2.2  DISPLAY CONFIG
+ 
+ 
+       SYNTAX: DISPLAY CONFIG [line](cr)
+ 
+ 
+       ABBREVIATED SYNTAX: D CONF [line](cr)
+ 
+ 
+       This command lists the configuration data for all or a  single line.
+  If the line number is not  specified, then all lines are listed  with the
+  following information:
+ 
+   o LINE #    line number
+   o STATUS    line status,
+               values for STATUS are as follows:
+                  > TINI   terminal at initialization state
+                  > TDWN   terminal at down state
+                  > TWUP   watch DTR up for specified period,
+                            waiting for DSR up
+                  > TRDY   line is up and ready to place call
+                  > TPVC   PVC terminal line waiting for
+                            circuit(s) up
+                  > TACT   terminal line active
+                  > TTRM   terminal line in terminated state
+                  > TACV   terminal line active (virtual call)
+                  > TSHT   terminal line shut
+                  > TRNL   terminal line at shut transition state
+                  > HINI   host line at initialization state
+                  > HDWN   host line at down state
+                  > HWUP   watch DTR up for specified period
+                  > HRDY   host line ready to accept logon
+                  > HACT   host line active
+                  > HTRM   host line in terminated state
+                  > HSHT   host line in shut state
+                  > HTRN   host line in shut transition state
+   o HOST #    host number (if any)
+   o MSTN      total number of stations
+   o SSTN      current number of shut stations
+   o ASTN     current number of active stations
+   o PVC       PVC/VC available
+   o ACLNK     link type,
+               values for ACLNK are as follows:
+                  > HP  half-duplex, point-to-point
+                  > HM  half-duplex, multi-point
+                  > FP  full-duplex, point-to-point
+                  > FM  full-duplex, multi-point
+   o MFM       maximum frame size
+   o WDW       maximum window size
+   o DT/SR     DTR/DSR signalling option
+   o R/CTS     RTS/CTS signalling option
+   o VTAM      use VTAM
+ 
+ 
+  72                   SDLC External Reference Manual            ERSDLC.DOC
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  OPERATIONS                                               October 24, 1986
+ 
+ 
+  3.4.2.3  DISPLAY STAT Command
+ 
+       SYNTAX: DISPLAY STAT [line] [station](cr)
+ 
+ 
+       ABBREVIATED SYNTAX: D STAT [line] [station](cr)
+ 
+ 
+       This  command  displays   statistical  information  for   lines  and
+  stations.   If the  station number  is omitted,  then statistics  for all
+  stations on the  specified line is displayed.   If both line  and station
+  numbers  are  omitted, then  statistics  for all  lines  and  stations is
+  displayed, including:
+ 
+   o LINE #       line number
+   o LINE STATUS  line status,
+                  values for LINE STATUS are as follows:
+ 
+                     > TINI   terminal at initialization state
+                     > TDWN   terminal at down state
+                     > TWUP   watch DTR up for specified period,
+                              waiting for DSR up
+                     > TRDY   line is up and ready to place call
+                     > TPVC   PVC terminal line waiting for
+                              circuit(s) up
+                     > TACT   terminal line active
+                     > TTRM   terminal line in terminated state
+                     > TACV   terminal line active (virtual call)
+                     > TSHT   terminal line shut
+                     > TRNL   terminal line at shut transition state
+                     > HINI   host line at initialization state
+                     > HDWN   host line at down state
+                     > HWUP   watch DTR up for specified period
+                     > HRDY   host line ready to accept logon
+                     > HACT   host line active
+                     > HTRM   host line in terminated state
+                     > HSHT   host line in shut state
+                     > HTRN   host line in shut transition state
+ 
+   o RCV          total number of received frames since starting
+   o XMT          total number of transmitted frames since starting
+   o REJ          number of frames rejected since starting
+   o TIMOUT       number of timeouts occurring since starting
+   o STATION #    station address
+   o CKT_STS      station circuit status,
+                  values for CKT_STS are as follows:
+ 
+                     > SHUT  host/terminal port shut
+                     > CLRD  host/terminal port cleared
+                     > REDY  terminal port ready to build circuit, or
+                           host port ready for Needle
+                     > CLRN  host/terminal port clearing
+                     > WPND  terminal port waiting for pseudo-needle
+ 
+  73                   SDLC External Reference Manual            ERSDLC.DOC
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  OPERATIONS                                               October 24, 1986
+ 
+ 
+                     > NTLG  terminal port network logon
+                     > DLHS  host/terminal dialect handshaking
+                     > CLHS  host/terminal call handshaking
+                     > DTXR  host/terminal port data transfer
+ 
+   o LINK_STS     link protocol status,
+                  values for LINK_STS are as follows:
+ 
+                     > PNRR  protocol in NRM rcv state
+                     > PNRX  protocol in NRM xmt state
+                     > PNRS  protocol in NRM supervisor state
+                     > PNDM  protocol in NDM
+                     > PWNR  protocol in waiting NRM state
+                     > PWND  protocol in waiting NDM state
+                     > PHLT  protocol in halt state
+                     > PCLR  protocol in clear state
+                     > PTER  protocol in terminate state
+ 
+ 
+ 
+  3.4.2.4  DISPLAY LOGON Command
+ 
+       SYNTAX: DISPLAY LOGON [line] [stations](cr)
+ 
+ 
+       ABBREVIATED SYNTAX: D LOGON [line] [stations](cr)
+ 
+ 
+       This command display PVC  logon information for lines  and stations.
+  If the station number is  omitted, then PVC information for  all stations
+  on the line is  displayed.  If the line  number is omitted, then  all PVC
+  information is displayed, including:
+ 
+   o LINE #     line number
+   o STN #      station number
+   o CU_ADDR    physical control unit address
+   o MAP_ADDR   mapping control unit address
+   o USER-NAME  username
+   o HOST-ID    host number
+   o PASSWORD   password
+   o DLN        destination line number
+ 
+ 
+ 
+  3.4.2.5  DISPLAY EIA Command or DISPLAY RSC Command
+ 
+       SYNTAX: DISPLAY EIA (or RSC) [line](cr)
+ 
+ 
+       ABBREVIATED SYNTAX: D EIA  (or RSC) [line](cr) This  command display
+  EIA RS-232-C exectrical signal  status - on or  off - for lines.   If the
+  line number is  omitted, then the  EIA/RSC-232-C information for  all the
+  lines within this slot is displayed, including:
+ 
+  74                   SDLC External Reference Manual            ERSDLC.DOC
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  OPERATIONS                                               October 24, 1986
+ 
+ 
+   o  LINE    line number
+   o  DTR     Data Terminal Ready (DTR) signal ON or OFF
+   o  DSR     Data Set Ready (DSR) signal ON or OFF
+   o  RTS     Request To Send (RTS) signal ON or OFF
+   o  CTS     Clear To Send (CTS) signal ON or OFF
+   o  TX      Transmit Data ON or OFF
+   o  RX      Receive Data ON or OFF
+ 
+ 
+ 
+  3.4.2.6  DISPLAY PARAMETER Command
+ 
+       SYNTAX: DISPLAY PARAMETR(cr)
+ 
+ 
+       ABBREVIATED SYNTAX: D P(cr)   or D PRM(cr)
+ 
+ 
+       This command displays the values of the internal function parameters
+  of  this  slot monitor.   Currently,  the displayable  parameters  are as
+  follows:
+ 
+   o  REFRESH    refresh mode is either ON or OFF
+ 
+   o  INTERVAL   the current setting for the refresh interval
+ 
+ 
+ 
+ 
+ 
+              3.4.3  SHUT Command
+ 
+ 
+       SYNTAX: SHUT [line] [station](cr)
+ 
+ 
+       ABBREVIATED SYNTAX: S [line] [station](cr)
+ 
+ 
+       This command is used to shut a station on a particular line.   If no
+  station is specified then all stations on a line are shut.  I no line is
+  specified then all stations on all lines are shut.
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  75                   SDLC External Reference Manual            ERSDLC.DOC
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  OPERATIONS                                               October 24, 1986
+ 
+ 
+              3.4.4  RSHUT Command
+ 
+ 
+ 
+       SYNTAX: RSHUT [line] [station](cr)
+ 
+ 
+       ABBREVIATED SYNTAX: R [line] [station](cr)
+ 
+ 
+       This command  is used to  remove a shut  station.  If no  station is
+  specified then all shut stations on the specified line are activated.  If
+  no line is specified then all shut stations on all lines are activated.
+ 
+ 
+ 
+ 
+ 
+              3.4.5  CHANGE Commands
+ 
+ 
+ 
+  3.4.5.1  CHANGE LOGON Command
+ 
+ 
+       SYNTAX: CHANGE LOGON [line] [station](cr)
+ 
+ 
+       ABBREVIATED SYNTAX: C L [line] [station](cr)
+ 
+ 
+       This  command is  used to  change the  PVC logon  information  for a
+  particular station.  The line and station number must be specified.  Once
+  the  command is  executed, the  system monitor  will display  the current
+  logon information (see DISPLAY LOGON) and prompt for the new logon string
+  records. The format of each logon string record is: USERID:HOST#;PASSWORD
+  or  USERID:HOST#  or  USERID.   For  logon  going  through  gateways, the
+  appropriate number of  logon string records  must be entered.   Once this
+  information is  entered, the  system monitor will  display the  new logon
+  information.
+ 
+ 
+ 
+  3.4.5.2  CHANGE STATION POLLING ADDRESS Command
+ 
+ 
+       SYNTAX: CHANGE ADDR [line] [station] [address](cr)
+ 
+ 
+       ABBREVIATED SYNTAX: C A [line] [station] [address](cr)  This command
+  is used  to assign a  new polling address  for a station  on a  link. The
+  address must be entered in hexadecimal format.
+ 
+ 
+  76                   SDLC External Reference Manual            ERSDLC.DOC
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  OPERATIONS                                               October 24, 1986
+ 
+ 
+       The  same  interface port  can  be connected  to  different external
+  system  (but the  primary/secondary stations  relationship must  be still
+  preserved) without re-assembling (i.e. re-system-generation) of  the slot
+  code.
+ 
+ 
+ 
+  3.4.5.3  CHANGE DESTINATION STATION's ADDRESS Command
+ 
+ 
+       SYNTAX: CHANGE DADDR [line] [station] [address](cr)
+ 
+ 
+       ABBREVIATED SYNTAX: C DA [line] [station] [address](cr)
+ 
+ 
+       This command is used to assign a new destination station address for
+  a particular station. This information is required after the PVC is built
+  from the originating interface to the destination interface to attach the
+  PVC to the desired station on the destination interface,  especially when
+  the PVC  logon information  is changed and  a different  destination port
+  which may have a different station address is desired.
+ 
+ 
+       The line and station number must be specified.  The address  must be
+  entered in hexadecimal format.
+ 
+ 
+ 
+  3.4.5.4  CHANGE LOGON DESTINATION LINE Command
+ 
+ 
+       SYNTAX: CHANGE DLINE [line] [station] [desti. line](cr)
+ 
+ 
+       ABBREVIATED SYNTAX: C DL [line] [station] [dest. line](cr)
+ 
+ 
+       This  command  is  used  to assign  a  new  destination  line  for a
+  particular station. This information  is required after the PVC  is built
+  from the originate interface  to the destination interface to  attach the
+  PVC  to the  desired  station on  a  particular line  on  the destination
+  interface, especially  when the  PVC logon information  is changed  and a
+  different destination port which may be associated with a particular line
+  is desired.
+ 
+ 
+       The line and station number must be specified.  The destination line
+  # must be entered in hexadecimal format.
+ 
+ 
+ 
+ 
+ 
+  77                   SDLC External Reference Manual            ERSDLC.DOC
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  OPERATIONS                                               October 24, 1986
+ 
+ 
+  3.4.5.5  CHANGE WINDOW Command
+ 
+ 
+       SYNTAX: CHANGE WINDOW [line] [value](cr)
+ 
+ 
+       ABBREVIATED SYNTAX: C W [line] [value](cr)
+ 
+ 
+       This command can be used to change the outstanding window frame size
+  to a value less  than or equal to  the sysgen parameter value.   The line
+  number  must  be specified.   Once  the command  is  entered,  the system
+  monitor will display the new value (see DISPLAY CONFIG).
+ 
+ 
+ 
+  3.4.5.6  CHANGE MAXFRAME Command
+ 
+ 
+       SYNTAX: CHANGE MAXFRAME [line] [value](cr)
+ 
+ 
+       ABBREVIATED SYNTAX: C M [line] [value](cr)
+ 
+ 
+       This  command  is  used  to  change  the  maximum  frame  size  on a
+  particular line.  The new value must be less than or equal to  the sysgen
+  parameter value.  The line number must be specified.  Once the command is
+  entered,  the system  monitor  will display  the new  value  (see DISPLAY
+  CONFIG).
+ 
+ 
+ 
+ 
+ 
+              3.4.6  EXIT Command
+ 
+ 
+       SYNTAX: EXI(cr), EXIT(cr), or BYE(cr)
+ 
+ 
+       This  command is  used to  log off  from the  SDLC  interface system
+  monitor.
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  78                   SDLC External Reference Manual            ERSDLC.DOC
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  OPERATIONS                                               October 24, 1986
+ 
+ 
+              3.4.7  REFRESH Command
+ 
+ 
+       SYNTAX: REFRESH [ON][OFF](cr)
+ 
+       or REFRESH [MIN]/[SEC] [value](cr)
+ 
+ 
+       This command controls whether the current display will  refresh with
+  new information automatically, according to the amount of  time specified
+  in the  sysgen parameter. The  refresh interval can  also be  modified by
+  using the second format.  The [MIN] can be  used to set up  interval with
+  units in minutes. The [SEC] can be used to set up interval with  units in
+  seconds. Both accept positiva intergers as the value of  refresh interval
+  in  minutes or  seconds  respectively.  Entering  REFRESH  OFF suppresses
+  automatic updating of information.
+ 
+ 
+ 
+ 
+ 
+              3.4.8  LOGTABLE Command
+ 
+ 
+       SYNTAX: LOGTABLE [value](cr)
+ 
+ 
+       ABBREVIATED SYNTAX:  LOG [value](cr)
+ 
+ 
+       This command is used to  display the contents of the slot  log file.
+  The slot  log file  contains exceptional events  occurred since  the slot
+  initially started.   Parameter [value]  is to specify  thber  of the
+  lattest events want to dispaly.  It is optional and the new value must be
+  less  than  or  equal  to  the sysgen  parameter  value.   If  it  is not
+  specified,  all information  in  the log  table will  be  displayed.  The
+  information displayed from this slot log file includes:
+ 
+   o  time
+   o  PRODID (for SDLC , 70 in decimal)
+   o  event code
+   o  other information
+   o  simple explanation text
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  79                   SDLC External Reference Manual            ERSDLC.DOC
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  OPERATIONS                                               October 24, 1986
+ 
+ 
+              3.4.9  WHO Command
+ 
+ 
+       SYNTAX: WHO(cr)
+ 
+ 
+       This  command  is  used  to  display  those  user's  names  that are
+  authorized to log into this  slot monitor host.  Each name listed  on the
+  display is marked with proper character to indicate whether this  user is
+  currently login into this monitor.
+ 
+ 
+ 
+ 
+ 
+              3.4.10  RESET Comand
+ 
+ 
+       SYNTAX: RESET [LINE] [STATION](cr)
+ 
+ 
+       This command is used  to reset transmit counter and  receive counter
+  of a  station, a  line or  all lines.  If  no line  is specifed  then all
+  transmit and receive counters of all stations and all lines will be reset
+  to 0.
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  80                   SDLC External Reference Manual            ERSDLC.DOC
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  OPERATIONS                                               October 24, 1986
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+                         3.5  Extended DDT Commands
+ 
+ 
+ 
+ 
+ 
+ 
+              3.5.1  Logging into Extended DDT
+ 
+ 
+       SYNTAX: ::?STATUS (cr)
+ 
+ 
+       The SDLC Extended DDT is  similar to Extended DDT packages  in other
+  interfaces.  The user must first log into DDT before issuing the Extended
+  DDT  command  '::?STATUS'.  Once  this  command  has  been  entered,  the
+  acknowledgement  header will  be displayed  along with  the  Extended DDT
+  prompt ':>'.
+ 
+ 
+       For a display of all possible commands available at this  point, the
+  user need only type in '::?' or '::HELP'. Before entering any of the menu
+  commands, '::' must be typed in first.
+ 
+ 
+ 
+ 
+ 
+              3.5.2  Extended DDT Display Ring Commands
+ 
+ 
+       The commands  used to  display ISIS  Input and  Output Rings  are as
+  follows:
+ 
+      ::DIR <ARG>      Display Dispatcher Input Ring from the
+                       starting address <ARG>, or if no <ARG>
+                       is defined display starts from the begin-
+                       ning of the ring.
+ 
+      ::DOR <ARG>      Display Dispatcher Output Ring from the
+                       starting address <ARG>, or if no <ARG>
+                       is defined display starts from the begin-
+                       ning of the ring.
+ 
+      ::DR             Display Dispatcher Input and Output rings
+                       continuously, until user types in `\`.
+ 
+ 
+  81                   SDLC External Reference Manual            ERSDLC.DOC
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  OPERATIONS                                               October 24, 1986
+ 
+ 
+              3.5.3  Extended DDT Symbol Address Display
+ 
+ 
+       Some  symbol addresses,  commonly needed  for testing  purposes, are
+  available using the following command:
+ 
+      ::SYM            Prints a list of symbol addresses, such as IRING
+                       and ORING.
+ 
+ 
+ 
+ 
+ 
+              3.5.4  Extended DDT Real Time SDLC Line Display
+ 
+ 
+       The  SCOPE  command  is  used to  display  real  time  SDLC protocol
+  information,  being both  transmitted and  received on  any  user defined
+  line. The format for this command is as follows:
+ 
+      ::SCOPE <ARG>    Display transmit and receive SDLC protocol
+                       information for the line specified by
+                       <ARG>. To stop the continuous display type
+                       in `\`.
+ 
+      Example Display:
+ 
+      ::SCOPE 1       
+ 
+      **********PRIMARY LINE**********
+      MNE          ADDRESS    CONTROL     FASTC
+      X SNRM         40         93        6CE141C9
+      R UA           40         73        6CE14241
+      X RR           40         11        6CE1425F
+      R INF          40         10        6CE1427D
+      * R SNRM       40         93        6CE1445D
+ 
+ 
+       If the line defined  by <ARG> in the  SCOPE command is defined  as a
+  primary line in the TYMFILE the header will appear as in the example. For
+  a  secondary  line the  header  will display  SECONDARY  LINE  instead of
+  PRIMARY LINE.
+ 
+ 
+       The first field of the display is for the SDLC mneumonic. The prefix
+  of X indicates transmit frame, prefix R indicates receive frame, and an *
+  prefix indicates  this frame does  not follow the  SDLC protocol.  In the
+  example,  the last  frame is  `* R  SNRM`. This  is an  error,  because a
+  secondary  station is  never suppose  to transmit  command frames  to the
+  primary station. The second field  of the display is SDLC  address field.
+  The third field  of the display is  SDLC control field. The  fourth field
+  specified the fast clock of ISIS.
+ 
+ 
+  82                   SDLC External Reference Manual            ERSDLC.DOC
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  OPERATIONS                                               October 24, 1986
+ 
+ 
+              3.5.5  Extended DDT Menu Display
+ 
+ 
+       There are  two commands  available to display  the menu  of possible
+  Extended DDT commands:
+ 
+      ::?         Display menu of commands
+ 
+      ::HELP      Display menu of commands
+ 
+ 
+ 
+ 
+ 
+              3.5.6  Terminate Extended DDT Mode
+ 
+ 
+       The user  can either terminate  Extended DDT by  logging off,  or by
+  returning to operator monitor.
+ 
+      ::Q        Return to DDT
+ 
+      ::ZZ       Log Off
+ 
+      ::EXI      Log Off
+ 
+ 
+ 
+-
+.
+    =
