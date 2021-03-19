@@ -1,0 +1,37 @@
+
+: Patch for version 3.01
+: discard '0D/8D' after we receive transmit limit
+
+Patch(860602,1300,JWANG,PA0PTR,,NDPORT*2)
+CRFLG   HS      NDPORT
+CONPATCH(ICTLM+0E,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        STB     R0,TMTLIM,R1,
+        SBT     R1,CRFLG,,
+        J       ICTLM+14,,     :SET THE FLAG ON WHEN WE GET B9 MSG
+CONPATCH(DAT120+4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,2C)
+        LR      R8,R0
+        NHI     R8,7F
+        LHL     R4,DPORT
+        TBT     R4,CRFLG,,
+        JE      DAT120+0A,,
+        RBT     R4,CRFLG,,
+        CLHI    R8,0D
+        JE      DAT120+20,,     :DISCARD CR
+        J       DAT120+0A,,
+CONPATCH(DAT160+4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,2C)
+        LR      R8,R0
+        NHI     R8,7F
+        LHL     R4,DPORT
+        TBT     R4,CRFLG,,
+        JE      DAT160+0A,,
+        RBT     R4,CRFLG,,
+        CLHI    R8,0D
+        JE      DATA04+12,,     :DISCARD CR
+        J       DAT160+0A,,
+ENDPATCH(DISCARD CR AFTER WE RECEIVE TRANSMIT LIMIT)
