@@ -1,0 +1,93 @@
+O BASE4 BASE1.
+DBSET BASE1.
+DEFINE TEXT 2 DM$.
+DEFINE TEXT 3 CNN$.
+DEFINE REAL STRT.
+DEFINE REAL STP.
+DEFINE REAL TOTGL1 TOTGL2 TOTGL3.
+SET FMSG OFF.
+SET FERR OFF.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "Please Enter START Date (X22 Format) ".
+ACCEPT STRT.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "Please Enter STOP Date (X22 Format) ".
+ACCEPT STP.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "Assure Printer Echo is ON and Depress ENTER <continue> ".
+ACCEPT DM$.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+DPL START.
+TYPE "MCI Data Services".
+TYPE "Quality Assurance Report".
+TYPE "Prodigy MTTR".
+TYPE "=====================================================================".
+TYPE "   ".
+DBSET BASE4.
+
+F DUP GE STRT AND LE STP cnam eq 'PRODIGY'.
+SAVE prod.
+f sver eq 1 file prod.
+type "Severity I".
+type "          ".
+TYPE 'Tick #     Customer        Prod        Reptd Prob  COC         Len (hrs)'.
+TYPE '------     --------        ----        ----------  ---         ---------'.
+TYPE  TNUM CNAM PROD RE COC ELM/60 FORMAT I8 3X A15 3X A10 2X A10 2X A10 2X 
+F8.1 END.
+type "---------------------------------------------------------------".
+type "MEAN".
+TYPE "----".
+TYPE MEAN elm/60.
+TYPE "    ".
+
+
+f sver eq 2 file prod.
+type "Severity II".
+type "          ".
+TYPE 'Tick #     Customer        Prod        Reptd Prob  COC         Len (hrs)'.
+TYPE '------     --------        ----        ----------  ---         ---------'.
+TYPE  TNUM CNAM PROD RE COC ELM/60 FORMAT I8 3X A15 3X A10 2X A10 2X A10 2X 
+F8.1 END.
+type "---------------------------------------------------------------".
+type "MEAN".
+TYPE "----".
+TYPE MEAN elm/60.
+TYPE "    ".
+
+
+f sver eq 3 file prod.
+type "Severity III".
+type "          ".
+TYPE 'Tick #     Customer        Prod        Reptd Prob  COC         Len (hrs)'.
+TYPE '------     --------        ----        ----------  ---         ---------'.
+TYPE  TNUM CNAM PROD RE COC ELM/60 FORMAT I8 3X A15 3X A10 2X A10 2X A10 2X I8 END.
+type "---------------------------------------------------------------".
+type "MEAN".
+TYPE "----".
+TYPE MEAN elm/60.
+TYPE "    ".
+
+f sver eq 4 file prod.
+type "Severity IV".
+type "          ".
+TYPE 'Tick #     Customer        Prod        Reptd Prob  COC         Len (hrs)'.
+TYPE '------     --------        ----        ----------  ---         ---------'.
+TYPE  TNUM CNAM PROD RE COC ELM/60 FORMAT I8 3X A15 3X A10 2X A10 2X A10 2X I8 END.
+type "---------------------------------------------------------------".
+type "MEAN".
+TYPE "----".
+TYPE MEAN elm/60.
+TYPE "    ".
+
+CLOSE.
+DPL END.
+QUIT.
+
