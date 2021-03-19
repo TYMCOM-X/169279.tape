@@ -1,0 +1,76 @@
+O (TNT)BASE4.
+DEFINE TEXT 2 DM$.
+DEFINE REAL STRT.
+DEFINE REAL STP.
+DEFINE REAL TOTPR.
+DEFINE REAL TPR15 TPR112 TPR124.
+DEFINE REAL MPR.
+
+DEFINE REAL TOTPR2.
+DEFINE REAL TPR152 TPR1122 TPR1242.
+DEFINE REAL MPR2.
+
+
+SET FMSG OFF.
+SET FERR OFF.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "Please Enter START Date (X22 Format) ".
+ACCEPT STRT.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "Please Enter STOP Date (X22 Format) ".
+ACCEPT STP.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "Assure Printer Echo is ON and Depress ENTER <continue> ".
+ACCEPT DM$.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+DPL START.
+TYPE "BT Tymnet".
+TYPE "Quality Assurance Report".
+TYPE "MTTR Report".
+TYPE "Severity Level I & II Closeout Times".
+TYPE "=====================================================================".
+TYPE "   ".
+F SVER EQ 1 OR 2 DUP GE STRT AND LE STP HN EQ 7 OR 10 OR 12.
+SAVE XXXXX.
+EV TOTPR EQ MAX SYSRECNO.
+EV MPR EQ MEAN ELM/60.
+TYPE "   ".
+TYPE "---------------------------------------------------------------------".
+TYPE "   ".
+TYPE "Mean ELM   --------------------------------> " MPR.
+TYPE "   ".
+SORT ELM.
+GETREC RPR1 TOTPR/2.
+RPR1: TYPE "Median ELM --------------------------------> " ELM/60.
+TYPE "   ".
+TYPE "---------------------------------------------------------------------".
+TYPE "   ".
+
+F ELM LE 300 FILE XXXXX.
+EV TPR15 EQ MAX SYSRECNO.
+F ELM GT 300 AND LE 720 FILE XXXXX.
+EV TPR112 EQ MAX SYSRECNO.
+F ELM GT 720 AND LE 1440 FILE XXXXX.
+EV TPR124 EQ MAX SYSRECNO.
+TYPE "   ".
+TYPE "Total Tickets Found -----------------------> " TOTPR.
+TYPE "   ".
+TYPE "% Closed <= 5 hours  -----------------------> " (TPR15/TOTPR)*100 "%".
+TYPE "   ".
+TYPE "% Closed >  5 hours <= 12 hours ------------> " (TPR112/TOTPR)*100 "%".
+TYPE "   ".
+TYPE "% Closed > 12 hours <= 24 hours ------------> " (TPR124/TOTPR)*100 "%".
+TYPE "   ".
+
+CLOSE.
+DPL END.
+QUIT.
+
