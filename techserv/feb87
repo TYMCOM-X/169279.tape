@@ -1,0 +1,2437 @@
+                                                               January 28, 1987
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TTTTTTTTTTT EEEEEEEEE  CCCCCCCC  HHH    HHH TTTTTTTTTTT IIIIIIIIIII  PPPPPPP
+TTTTTTTTTTT EEEEEEEEE CCCCCCCCCC HHH    HHH TTTTTTTTTTT IIIIIIIIIII PPPPPPPPP
+    TTT     EEE       CCC     CC HHH    HHH     TTT         III     PPP    PPP
+    TTT     EEEEE     CCC        HHHHHHHHHH     TTT         III     PPP    PPP
+    TTT     EEEEE     CCC        HHHHHHHHHH     TTT         III     PPPPPPPPP
+    TTT     EEE       CCC     CC HHH    HHH     TTT         III     PPP
+    TTT     EEEEEEEEE CCCCCCCCCC HHH    HHH     TTT     IIIIIIIIIII PPP
+    TTT     EEEEEEEEE  CCCCCCCC  HHH    HHH     TTT     IIIIIIIIIII PPP
+
+
+
+
+
+
+
+
+
+
+                               February 01, 1987
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     MMDDYY.TIP
+                                                               January 28, 1987
+
+
+
+
+
+
+
+                                   TABLE OF CONTENTS
+
+        Section                                                            Page
+
+
+
+        1.   Extracting Slot Dump From A Full Engine Dump                     1
+          1.1   Overview                                                      1
+             1.1.1    Dumping all of memory instead of slot                   1
+
+          1.2   Interpreting the dump file directly                           2
+             1.2.1    Obtaining a Merlin map                                  2
+             1.2.2    Reading the nib file                                    4
+
+          1.3   Extracting a slot from a dump                                 5
+             1.3.1    Some notes from the Tools and Utilities document        5
+             1.3.2    Procedure for extracting a slot nib file                6
+
+
+        2.   TTE Challenge Test Procedure                                     8
+
+
+        3.   SDLC PVCTIMER Macro                                             10
+
+
+        4.   New PIR Submission Procuedures                                  12
+
+
+        5.   UTS 40 Communications Protocol                                  14
+
+
+        6.   CSX Technology--General Questions                               17
+
+
+        7.   Probe Log Messages You Can Control                              18
+
+
+        8.   When Display Time-Stamp is Off                                  20
+
+
+        9.   SYNC Ports and Signaling                                        22
+
+
+        10.  Description of Superhang Messages                               24
+
+
+        11.  Warning Message--Inconsistency on Speed & Timers                26
+
+
+                                                                     MMDDYY.TIP
+                                                               January 28, 1987
+
+
+        12.  SNA Link Drop Problem                                           27
+
+
+        13.  Betatest Patches that have been replaced by SOURCE              29
+
+
+        14.  Sense Status Messages for the 3270 Interfaces                   31
+
+
+        15.  Oldsup Option                                                   32
+
+
+        16.  Delection of 3270 Code and Mandatory Upgrade                    33
+
+
+        17.  Tymnet I2G1 Gateway Still Supported Under ISIS V 7.00           34
+
+
+        18.  HWM for Physical Link Characters Shows High                     36
+
+
+        19.  Tymnet Support for NCR Printer                                  37
+
+
+        20.  Beta Test of SNA/CMT                                            38
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     MMDDYY.TIP
+        Extracting Slot Dump From A Full Engine Dump           January 28, 1987
+
+
+
+
+
+
+                   1 -  Extracting Slot Dump From A Full Engine Dump
+
+
+
+
+
+
+
+        Written by : Dan Lasater, NTD Mgr.
+              Date : December 31, 1986
+
+
+
+
+
+
+
+
+
+
+
+
+                                     1.1  Overview
+
+
+
+
+
+
+                    1.1.1  Dumping all of memory instead of slot
+
+        This will describe two methods to deal with software dumps.  The choice
+        depends upon your needs and perhaps the nature of your patience.
+
+
+
+
+
+
+                       1.2  Interpreting the dump file directly
+
+
+
+
+
+
+
+
+
+
+                                           1
+        Extracting Slot Dump From A Full Engine Dump           January 28, 1987
+
+
+                    1.2.1  Obtaining a Merlin map
+
+        For either  of these two  methods it  is necessary to  obtain a  map of
+        where,  in physical  memory, your  slot and  its segments  are located.
+        This is most conveniently done using MERLIN.  First, some terms  that I
+        will try to use consistently:
+
+
+        Physical  memory.  The  engine has  contiguous memory  from hexadecimal
+        address 00000 to 0FFFFF. (This  presumes a one meg machine.   I suppose
+        there  might  be  some  smaller  machines  still  in  existence)  These
+        addresses are physical memory addresses and are the addresses that ISIS
+        will use internal and are the addresses that data in a full engine dump
+        will be relative to.
+
+
+        Virtual  memory.  The  engine has  a device  known as  a MAC.   The MAC
+        allows a  program to think  it is addressing,  say location  10000, and
+        actually address location 3F00.   A detailed discussion of how  it does
+        this  is  beyond the  scope  of  this document.   Please  refer  to the
+        discussion on the MAC in the engine document.  Slots in ISIS are always
+        executed under the control of the MAC, hence the code is  assembled for
+        a  slot  into  virtual  addresses  very  different  than  the  physical
+        addresses that the slot  actually resides in. In normal  operation this
+        is not a problem since DDT conveniently lies to you.   When you  ask it
+        to read memory  location 10000 it will  actually give you the  value at
+        the appropriate physical address and tell you it was at 10000.  (Unless
+        you run DDT in slot FF in which case all addresses are physical.)
+
+
+        Engine dump.  This is the dump obtained from LOADII by means of the "D"
+        command.  The  addresses given to  LOADII are physical  addresses.  The
+        machine to be dumped must be running the bootstrap.  The result  of the
+        dump is much like  a .BND file.  It is  a binary image file that  has a
+        copy of the engine memory as seen with physical addresses.
+
+
+        Slot dump.  This is the dump  obtained from LOADII by means of  the "U"
+        command.   The addresses  dumped are  usually obtained  by  LOADII from
+        reading the CTA table.  The addresses are always virtual  addresses and
+        will match the addresses in the "NIB" file assembled with the slot.
+
+
+        The problem with an engine dump is that the addresses are  physical and
+        do not match  the symbols in  the slot nib  file.  They will  match the
+        symbols in the ISIS nib file should you be looking for an ISIS problem.
+
+
+        What is  needed then  is a means  of translating  the address  from the
+        symbol in the slot's nib file into the physical address that is  in the
+        dump file.  The procedure for this follows:
+
+
+
+                                           2
+        Extracting Slot Dump From A Full Engine Dump           January 28, 1987
+
+
+        Obtain a map of physical  memory to virtual memory using MERLIN.  To do
+        this you will need to have  the ISIS nib file and the slot's  nib file.
+        Current policy seems to not  preserve the ISIS nib file.  In  that case
+        you can use the BND file just as well.  Since that is current  policy I
+        will use that for the example.
+         
+        -R MERLIN
+        MERGE AND LINK ISIS SLOTS
+        VERSION 2.10
+        * nd2703.bnd=(tymnet)nd2703.bnd,,(tymnet)nd2703.n01
+         
+         
+                  SLOT MAP
+         
+        SLOT  BEGINS ENDS
+         0    14C00  4BC00
+         1    4DA00  5F1FF
+         
+         
+         
+            MAP OF SLOT   1
+         
+        SEG  BEGINS ENDS
+         0   4DC00  4F4D3
+         1   4F500  539EF
+         2   53A00  56283
+         3   56300  56AFF
+        14   4DA00  4DB1F
+
+
+        This example is from the real problem mentioned in the beginning.  Note
+        that I did not bother to  bind in the node code. I was  only interested
+        in slot one (a  CONSAT) and hence left  slot 0 out.  The  technique can
+        work for any slot.  Take care  to destroy the bnd file that  you create
+        with this and do not destroy the master copy in the TYMNET directory.
+
+
+        The section of  the map under the  heading SLOT MAP gives  the physical
+        addresses that are allocated for  each slot.  A given slot may  not use
+        all of this area.
+
+
+        The section of the map under the heading MAP OF SLOT  1 gives a  map of
+        where each segment is located  in physical memory.  This is the  key to
+        translating virtual addresses into physical addresses.
+
+
+
+
+
+
+
+
+
+                                           3
+        Extracting Slot Dump From A Full Engine Dump           January 28, 1987
+
+
+                    1.2.2  Reading the nib file
+
+        Once you have a map of  segments into physical memory you are  ready to
+        look at the  dump file.  I will  describe one technique. With  a little
+        imagination I'm sure  you can think of  other techniques that  might be
+        more useful for your situation.
+
+
+        The dump file created  by LOADII is the same  as a nib file  created by
+        NAD.  The intent is that it  be read into nad directly.  Once  you have
+        read the  dump file  into nad  you can  display physical  addresses and
+        their contents by  techniques that should  already be familiar  to you.
+        The problem then is to know what physical addresses to examine  to find
+        a desired virtual  address.  It is entirely  possible to open  the slot
+        nib file from nad and read  in the symbols from there.  (take  care not
+        to read in  the object from  the nib file)   This is no  different than
+        what you  would do  if you  had a slot  dump and  wished to  append the
+        symbol table.  Of course the symbols will not match the object.   To do
+        that you will need to do some translation.  For example:
+
+
+        Suppose that there was a location with the label "ORING" in the example
+        used above.   You could find  the virtual address  of this  location as
+        follows:
+
+
+        ORING=21000
+
+
+        (note: you enter ORING= and nad tells you 21000.)  Now comes the tricky
+        part.  Remember that a virtual address is composed of a  segment number
+        followed by 8  bits of page number  followed by 8 bits  of displacement
+        from the beginning of the page.  For this purpose the low order 16 bits
+        of the  virtual address can  be thought of  as a displacement  from the
+        beginning of the segment defined by the high order 4 bits.
+         
+           _________________Segment number
+           |  
+           |  ______________Displacement from the beginning of the 
+           |  |             segment.
+           | /\
+           |/  \
+           21000
+
+
+        To  convert to  a  physical address,  use  the segment  portion  of the
+        virtual address to  select a segment from  the map supplied  by merlin.
+        In this case the segment number  is two.  Next to the segment 2  in the
+        map of slot one  is the physical start  address of segment 2.   In this
+        case the  address is 53A00.   Add the displacement  to 53A00.   In this
+        case 53A00+1000.  You can get nad to do this arithmetic for you by:
+
+
+
+                                           4
+        Extracting Slot Dump From A Full Engine Dump           January 28, 1987
+
+
+        53A00+1000[
+
+
+        The "[" command will cause nad to display the location  addressed after
+        the arithmetic is done thereby saving a step.  You could  terminate the
+        entry with "="  and simply get the  translated address.  Hence  in this
+        case, virtual address 21000 known by the symbol "ORING" is the  same as
+        physical address 54A00.  For your convenience it is possible  to define
+        your  own local  symbols  that provide  the beginning  address  of each
+        segment and hence shorten the time required for entry.  For example:
+
+
+        53A00:S2
+
+
+        Would define a symbol "S2" with a value of 53A00.  You could then use
+
+
+        S2+1000[
+
+
+        to translate  and read  virtual address 21000.   Be careful.   An error
+        will have very confusing results and may not be immediately obvious.
+
+
+
+
+
+
+                          1.3  Extracting a slot from a dump
+
+
+
+
+
+
+                    1.3.1  Some notes from the Tools and Utilities document
+
+        For those of you willing to make use of an obscure feature of nad it is
+        possible to extract a  slot from an engine  dump and create a  nib fill
+        with all of the addresses  relocated from physical to virtual.   If you
+        are desperate  enough, it  is even  possible to  use this  technique to
+        extract a slot nib file from a bnd file.
+
+
+        To describe this  technique I will  paraphrase some information  in the
+        Tools and Utilities document.  This  is in reference to the  section on
+        NAD Image  Binary File Usage.  (section 4 in  my somewhat  ancient copy
+        dated Oct 19, 1982)
+
+
+        The ";G" command has three optional parameters. They are:
+
+
+                                           5
+        Extracting Slot Dump From A Full Engine Dump           January 28, 1987
+
+
+        pad,vad,cnt;G
+        \ / \ / \ /\|_______The familiar part that we all know and love
+         |   |   |__________The count of the number of bytes you wish to
+         |   |              read.
+         |   |______________The virtual address that you want nad to use
+         |                  to represent this area within nad!
+         |__________________The physical address as it appears in the
+                            open nib file.
+
+
+
+
+
+                    1.3.2  Procedure for extracting a slot nib file
+
+        To extract a slot nib file and translate it into virtual addresses from
+        a physical address file such as an engine dump file do the following:
+
+
+        Obtain a slot map from merlin.
+
+
+        Run nad and open the dump file.
+
+
+        Using the information in the map from merlin, create ";G"  commands for
+        each segment of the slot you want to extract.
+        Example:
+         
+        R NAD
+        %F  ND2703.DMP
+          ________________________Physical address for start of segment 0
+          |     __________________Virtual address for start of segment 0
+          |     |     ____________Physical end of segment 0
+          |     |     |     ______Physical start of segment 0
+          |     |     |     |                               
+          |     |     |     |
+         / \   / \   / \   / \
+        /   \ /   \ /   \ /   \
+        4DC00,00000,4F4D3-4DC00+1;G
+                    \___________/   
+                         |________Byte count to read segment 0
+
+
+        The above is repeated for each  of the segments in the merlin  map.  At
+        this point, you can open the slot nib file and read the symbols.  Since
+        we just  had nad translate  physical into virtual  now the  symbols and
+        virtual addresses will match.
+
+
+        You could do this  with a .bnd file as  well if you already have  a map
+        from merlin.  It is possible  to extract a map without using  merlin if
+
+
+                                           6
+        Extracting Slot Dump From A Full Engine Dump           January 28, 1987
+
+
+        you have a good knowledge of how ISIS works.  An explanation  is beyond
+        the scope of this document however.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                           7
+        TTE Challenge Test Procedure                           January 28, 1987
+
+
+
+
+
+
+                           2 -  TTE Challenge Test Procedure
+
+
+
+
+
+
+
+        Written by : Tymnet Training and Education
+              Date : December 23, 1986
+
+
+
+
+
+
+
+        The  TTE  curriculum is  highly  structured with  each  course assuming
+        completion of prerequisites.   Only students who have  the prerequisite
+        knowledge are able  to get the full  benefit of the course.   We cannot
+        permit students without prerequisites to enroll in courses because this
+        is not fair to them or to the other students.  However, we do recognize
+        that employees  may have  gained the required  knowledge in  ways other
+        than  completing  the  pererquisite TTE  class  (i.e.  outside courses,
+        experience).
+
+
+        In our continuing drive to make TTE Training relevant to each students'
+        job requirements, we are  revising and reemphasizing the  procedure for
+        students to demonstrate mastery  of course material without  taking the
+        TTE course.
+
+
+        We are developing  challange tests for  each of the  major prerequisite
+        courses.  If the student passes the exam, his/her transcript is updated
+        to show that the course was passed by exam.  The procedure to challenge
+        a course is as follows:
+
+                Step 1                                  Responsibility
+               ________                                 ________________
+         
+        1.  Determine course content and                Student and Student's
+            objectives by seeing the course             Manager
+            dption in the catalog or
+            EXEC *** TTE.ENROLL
+        2.  Request a test fron the TTE Registrar       Student's Manager
+            via Ontyme EXEC *** TTE.ENROLL
+            or phone 408/942-5042
+        3.  Send test and instructions to the           TTE Registrar
+
+                                           8
+        TTE Challenge Test Procedure                           January 28, 1987
+
+
+            student's manager and record the request
+        4.  Administer test to the student              Student's Manager
+        5.  Return test to TTE Registrar at             Student's Manager
+            2665 North First Street,
+            San Jose, CA  95134
+            Test must be returned to TTE within 2
+            weeks or the test will not be accepted
+        6.  Grade the test                              TTE Instructor
+        7.  Notify student's manager of results and     TTE Registrar
+            update transcript
+
+
+        For example suppose an employee  wants to take TTE 400  Introduction to
+        ISIS but has  not taken the prerequisite  course TTE 100, 101,  and 102
+        yet feels that he knows  the material.  The manager should  contact the
+        TTE  registrar for  the  TTE 100  challenge test,  administer  the test
+        following the instructions, and return the test to TTE.  If the student
+        passed, the manager can request the TTE 101 challenge exam.   After the
+        student has passes  all prerequisite course  by exam his  enrollment in
+        the TTE 400 will be confirmed.
+
+
+        This  process will  take time  so  you need  to plan  ahead.   TTE will
+        respond to requests  for tests within 24  hours and will send  the test
+        via ontyme if there are no graphics or by mail.
+
+
+        The returned test must be mailed and must indicate both the student and
+        manager's  signature.   We will  notify  you of  the  results  within 1
+        business day, upon receipt of the completed test.
+
+
+        Challenge tests are currently available for the following courses:
+
+                        TTE 100
+                        TTE 101
+                        TTE 102
+                        TTE 110
+                        TTE 200
+                        TTE 210
+                        TTE 220
+                        TTE 300
+                        TTE 400
+
+
+        There will be a $50.00 fee for each test administered.
+
+
+        Each student may take only 1 test at a time.  Each challenge  test will
+        be administered to the same  student only once.  If the  student fails,
+        he must satisfy the requirement by attending class.
+
+
+
+                                           9
+        SDLC PVCTIMER Macro                                    January 28, 1987
+
+
+
+
+
+
+                               3 -  SDLC PVCTIMER Macro
+
+
+
+
+
+
+
+        Original Question by : Elaine Espouy, TNSC Technical Service
+                 Response by : Adela Lee, HQ Network Staff Consultant
+                        Date : December 29, 1986
+
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+
+        Could you advise as to which events the TIF uses the PVCTIMER paramter?
+
+
+        The documentation states that it is 'the time to wait before the PVC is
+        rebuilt'.  However, looking into the code, I noticed the timer (lgintv)
+        ID decremented each halfsecond (in HSEC1...) . Therefore, does PVCTIMER
+        parameter represent the  time to wait in  seconds or does  it represent
+        the double time to wait for rebuilding the PVC.
+
+
+
+
+
+
+        RESPONSE:
+
+
+
+        You have  caught another  error in  the SYSGEN  manual. In  this macro,
+        PVCTIMER(t), it should be specified as half-seconds, not in  seconds as
+        described in the manual.
+
+
+        In the case where R SHUT monitor command, DETACH or ZAP ISIS message is
+        received,  the  slot  does  take  the  value  't'  as  the  real timing
+        measurement for PVC rebuilding  interval. However, this is not  true in
+
+
+                                          10
+        SDLC PVCTIMER Macro                                    January 28, 1987
+
+
+        the other cases.   During logon failure  state (for example  a DETACH)n
+        ZAP or LOGON  FAILURE ISIS message, being  received at logon  mode, the
+        slot takes  the value 't'  and doubles it  as PVC  rebuilding interval.
+        Futhermore, once the  logon retry limit  reaches 0, the  PVC rebuilding
+        interval will be 10 times  the value 't' as defined in  PVCTIMER macro.
+        (in LGFAIL routine)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          11
+        New PIR Submission Procuedures                         January 28, 1987
+
+
+
+
+
+
+                          4 -  New PIR Submission Procuedures
+
+
+
+
+
+
+
+        Written by : Rob Albertson
+              Date : December 31, 1986
+
+
+
+
+
+
+
+        The Public  and Private  Network marketing  departments are  pleased to
+        announce new PIR submission procedures.  We hope this will make it even
+        easier  for  you  to  get  your  new  feature/product  ideas submitted,
+        examined, and acted upon.
+
+
+        There are two ways to submit a PIR:
+
+            1.   Using OnTyme's EXEC Capability
+         
+                 Type :EXEC *** FORMS.SUBMITPIR.  The program will prompt
+                 you for all the information needed to submit a PIR.
+                 Please do not leave any required sections blank.
+                 Incomplete PIRs will be rejected and returned to the
+                 requestor.
+         
+         
+         
+            2.   Using Your Personal Computer
+         
+                 If you are lucky enough to have access to a PC, you may
+                 want to create the PIR on your PC and upload it to
+                 OnTyme.  The PIR form can be captured onto your PC disk
+                 by typing :REA *** FORMS.PIR with the PC comm software
+                 record option on.  After editing the form, use your PC
+                 comm software to upload it into OnTyme.  Send the PIR to
+                 NETS.NSPIRS.
+         
+
+        Please  call  the  appropriate  Product  Manager  at  HQ  if  you  need
+        assistance completing the form.  If the PIR is for a specific customer,
+
+
+                                          12
+        New PIR Submission Procuedures                         January 28, 1987
+
+
+        verify  your  request  with  the  customer.   If  you  have  additional
+        information, send it by mail or  fax it.  Our fax number is  (408) 942-
+        5082.
+
+
+        Once  the PIR  is submitted,  it will  be reviewed  by  the appropriate
+        product manager.  Marketing  will respond to  all PIRs within  30 days,
+        either  to  accept  or   reject  the  PIR  or  to   request  additional
+        information.   If  your  PIR  is  accepted  by  marketing,  it  will be
+        submitted to the JPPC for disposition.
+
+
+        The PIR must be submitted by the 15th of each month to be  processed in
+        that month.
+
+
+        You must use one of these convenient methods to submit your PIR.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          13
+        UTS 40 Communications Protocol                         January 28, 1987
+
+
+
+
+
+
+                          5 -  UTS 40 Communications Protocol
+
+
+
+
+
+
+
+        Written by : John Burrough, HQ Network Staff Consultant
+              Date : January 5, 1987
+
+
+
+
+
+
+        The UTS 40 (Univac terminal) provides interactive communication  with a
+        host processor over a communications line.  Interchange between the UTS
+        40 and the  host processor consists of  a sequence of messages  and the
+        message  interchange  is  governed  by a  series  of  rules  that allow
+        information to be conveyed in either direction in a standard manner.
+
+
+        The basic element  in the UTS 40  communications protocal is  an error-
+        free poll from the host processor.   A poll is a message from  the host
+        processor that  requests a response  from the UTS  40.  The UTS  40 can
+        send  a message  to the  host processor  only when  polled by  the host
+        processor.
+
+
+        After sending text to a UTS 40 station, the host processor  must always
+        send  a poll  to  verify that  the  station received  the  text message
+        correctly.   If  the  poll  response  from  the  station   contains  an
+        acknowledgment, then  the text was  received correctly by  the station.
+        If the poll response does  not contain an acknowledgment, the  the text
+        was not received correctly by the station.  The basic  message sequence
+        required to send text from the host processor to a UTS 40 station is as
+        follows.  The host processor sends text to the UTS 40 station  and then
+        polls to determine whether or not the text was received correctly (that
+        is, with good character and block parity).  The station responds to the
+        poll  with  an   acknowledgment,  indicating  it  re-ceived   the  text
+        correctly.  The  host processor  then signifies  proper receipt  of the
+        station acknowledgment by including an acknowledgment in the  next poll
+        to that station.  The station then responds with a  no-traffic message,
+        indicating that it received the acknowledgment and has  nothing further
+        to send.
+
+
+
+
+                                          14
+        UTS 40 Communications Protocol                         January 28, 1987
+
+
+        Stations on a communications line are distinguished from one another by
+        an addressing  scheme that  identifies the  intended recipient(s)  of a
+        host processor message and,  in like manner, identifies  the responding
+        station.
+
+
+        The UTS 40 addressing scheme utilizes a 3-character sequence consisting
+        of  a  remote  identifier  (RID),  a  station  identifier  (SID)  and a
+        peripheral  device identifier  (DID).  The  possible RID,  SID  and DID
+        characters are as follows.  Of  the possible 48 RID's, 47  are specific
+        (assigned to  specific stations)  and 1 (the  SP character)  is general
+        (recognized by all  stations).  Of the 32  SIDs, 31 are specific  and 1
+        (the P character) is  general.  Of the 95  DIDs, 94 are specific  and 1
+        (the p character) is general.
+
+
+        Each  station on  a  communications line  is uniquely  identified  by a
+        specific  RID and  specific SID  combination.  Thus,  the address  of a
+        station  is sym-bolized  by  RID SID.   Each peripheral  accessed  by a
+        station is uniquely id-entified by a specific DID.
+
+
+        All  messages  (except  no-traffic)  contain  the  3-character  address
+        symbolized  by RID  SID DID  immediately following  the start-of-header
+        (SOH) character.
+
+
+        A poll group is defined as all stations on the communications line that
+        recog-nize the RID and SID of  a poll message.  Each station in  such a
+        group will recognize a general RID as its RID address and a general SID
+        as its SID address.  A  poll containing a general RID, general  SID and
+        general DID is called a general poll.  Another form of general  poll is
+        one containing a specific RID, general a specific RID, general  SID and
+        general DID.
+
+
+        A  poll containing  a specific  RID, specific  SID and  general  DID is
+        called a specific poll.
+
+
+        A typical UTS 40 with screen-bypass would be assigned 2 SIDS.   All the
+        stations in a poll group addressed by a general poll are  candidates to
+        furnish the response.  A UTS 40 with screen-bypass performs  a function
+        similar to  that of  the terminal multiplexer  in terms  of determining
+        priority of response between the station and the screen-bypass memory.
+
+
+        No two drops on a multidrop line can be members of the same poll group,
+        since both drops would try to respond at once because there is no means
+        to resolve the contention for  the line.  Note however, that  more than
+        one  poll  group may  be  associated with  a  terminal  multiplexer (if
+        multiple RIDs are assigned) Hence, providing multiple poll groups  at a
+        physical drop.
+
+                                          15
+        UTS 40 Communications Protocol                         January 28, 1987
+
+
+        In my next TECH-TIP article, I will discuss Poll Message Types.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          16
+        CSX Technology--General Questions                      January 28, 1987
+
+
+
+
+
+
+                        6 -  CSX Technology--General Questions
+
+
+
+
+
+
+
+        Original Question by : Rajib Sarmah, Tymnet Communications Consultant
+                 Response by : Norman Chin, HQ Network Staff Consultant
+                        Date : January 05, 1987
+
+
+
+
+
+
+        1. What's the difference between the "HOME" key and the "HOME CURSOR" 
+           key?
+
+           The difference between a "HOME" function and a "HOME CURSOR" 
+           function is that "HOME" takes the user to the first unprotected 
+           position on the screen while "HOME CURSOR" takes you to the first 
+           position, protected or not.
+
+        2. Is there a "HOME" key defined for TTY type terminals? If not, how is
+           cursor movement achieved?
+
+           The "HOME" key, for TTY, is defined as an "ESC H" or "ESC h".
+
+        3. To be able to use the "PA1", "PA2", etc. keys, is it necessary to 
+           define system request keys in the CMT slot?  What version of SNA 
+           supports that function?
+
+           It is not required to define a system request key for your terminal
+           when you are creating new terminal macros; However, I do not see 
+           how defining or not defining it will affect the use of the PA keys. 
+
+           Both SNA 1.06 and 2.01 support the "system request" key.
+
+
+
+
+
+
+
+
+
+
+
+                                          17
+        Probe Log Messages You Can Control                     January 28, 1987
+
+
+
+
+
+
+                        7 -  Probe Log Messages You Can Control
+
+
+
+
+
+
+
+        Original Question by: Dan Upthegrove, MDIS P/L Australia
+                 Response by: Gail Bubsey, HQ Network Staff Consultant
+                       Date : January 07, 1987
+
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+        Can you  please clarify  the following  from the  release documentation
+        file PRB35.Y04.  What is the actual macro name, or are there two (NDLOG
+        or/and NDESC)?
+        *
+
+                B.26  Node Descriptor Statistics - Error Log Message #390
+                           .
+                           .
+                           .
+                By default, this data is logged every 30 minutes, but this 
+                can be altered via the NDLOG macro in the tymfile.  The 
+                format is:
+                
+                    NDLOG(m)
+                
+                where "m" is the number of minutes between log entries.  For
+                example, "NDESC(10)" would cause the data to be logged every 10
+                minutes.  Also, this log message can be disabled by specifying
+                "NDESC(0)". 
+
+
+
+
+
+
+        RESPONSE:
+
+
+
+                                          18
+        Probe Log Messages You Can Control                     January 28, 1987
+
+
+        The macro name  in question is NDLOG.   The references to NDESC  in the
+        PRB35.Y04 file are incorrect.  I  am attaching some more info  on which
+        Probe log messages you can control.
+
+        =======================================================================
+        NDLOG(n)    this controls the frequency, in minutes, of message type
+                    390.  This message is to help keep track of node descriptor
+                    space and looks like:
+
+                    NODE DESCRIPTORS:
+                      ACTIVE: ____    RESERVED: ____            EXPIRED: __
+                      COMPACTIONS: _  ACCUM TIME: _.___ (SEC)   FREE SPACE: __%
+
+                    to turn this display off entirely, try NDLOG(0).
+
+        MSGLOG      this is an equate statement which defaults on and can be
+                    turned off with MSGLOG EQ 0.  This parameter controls the
+                    display of messages 358 and 360.
+
+                    #358 looks like:
+
+                    AVERAGE QUEUE SIZE.    INPUT: __   OUTPUT: __
+
+                    #360 is controlled by some message table flags which can
+                    be set through DDT and all default off.  It look like:
+
+                    INPUT MSG COUNT.  MSG#: __  COUNT: __  MSG#: __  COUNT: __
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          19
+        When Display Time-Stamp is Off                         January 28, 1987
+
+
+
+
+
+
+                          8 -  When Display Time-Stamp is Off
+
+
+
+
+
+
+
+        Original Question by: Marcia Hopkins, Tymnet Communications Consultant
+                  Written by: Shiao-Ming Tsui, HQ Network Staff Consultant
+                       Date : January 09, 1987
+
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+        CUSTOMER CALLED TO  INDICATE THAT THE DISPLAY  TIME STAMP WAS  1/2 HOUR
+        OFF AND WAS NOT  UPDATING ON A REGULAR  BASIS.  NEXT TO THE  TIME STAMP
+        WAS  A NEGATIVE  NUMBER THAT  APPEARED TO  INCREMENT WHILE  THE DISPLAY
+        COMMAND WAS ISSUED REPEATEDLY.
+
+        THE PROBLEM APPEARED TO HAVE CLEARED ITSELF.  WAS THIS DUE TO A CIRCUIT
+        TO PROBE GETTING ZAPPED OR PERHAPS THE TMCS DISK GOING OFFLINE?  SHOULD
+        THERE NOT HAVE BEEN AN ERROR MESSAGE TO INDICATE AN ANOMALY?  WHAT DOES
+        THE INCREMENTING NEGATIVE NUMBER DO?   DOES IT COUNT OFF THE  NUMBER OF
+        SECONDS THAT THE DISPLAY FUNCTION HAS NOT BEEN REFRESHED BY ANY CHANCE?
+
+
+
+
+
+
+        RESPONSE:
+
+
+        TMCS DISPLAY  information is  updated by  the circuit,  to NEM,  at the
+        interval set by  the SET DISPLAY command  (default is 120  seconds).  A
+        negative  number in  the time  stamp means  the number  of  seconds the
+        display is behind  the most current  information (if greater  than five
+        minutes).   An  increased  negative number  counts  the  time  that the
+        display has not been updated since the last interval set.
+
+        The main cause for the TMCS display being delayed, is  network traffic.
+
+
+                                          20
+        When Display Time-Stamp is Off                         January 28, 1987
+
+
+        TMCS DISPLAY can usually catch  up and the negative number in  the time
+        stamp clears when the traffic is slow, e.x., at night.  This is  not an
+        anomaly.  The negative  number in the time  stamp is the  indication of
+        the delay, consequently, there should not be an error message reported.
+
+
+
+
+        The following is an OnTyme  from NTD which has more inforamtion  on the
+        negative number in the Display command:
+
+
+
+
+        Another  cause for  the negative  number in  the Display  command  is a
+        network with no activity. The time in the Display command header is the
+        time of the last message received. The Display command is  only reading
+        the following events
+
+            event 6      lost node
+            event 8.29   report node resources: links on used lines
+            event 19     link status on tymnet-II node
+            event 32     host status
+            event 43     link unshut
+            event 47     line unshut
+            event 54     end of takeover
+            event 58     sync port request response
+            event 74     log circuit length message
+
+
+        If the network is functioning without problems, none of these messages,
+        except event 74, will be  received and the Display command  will appear
+        to be behind. Event 74  is only sent if requested in  Supervisor systen
+        generation.
+
+        Romolo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          21
+        SYNC Ports and Signaling                               January 28, 1987
+
+
+
+
+
+
+                             9 -  SYNC Ports and Signaling
+
+
+
+
+
+
+
+        Original Question by: John Reilly, Tymnet Communications Consultant
+                 Written by : DeeJong Tsao, HQ Network Staff Consultant
+                       Date : January 12, 1987
+
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+        CUSTOMER HAS SOME  GENERAL QUESTIONS CONCERNING PHYSICAL  INTERFACE FOR
+        RJE INTERFACE, SPECIFICALLY 3780:
+
+        1. CAN 2780/3780 RUN  ON ANY SYNC PORT  OR ARE THEY RESTRICTED  TO NON-
+        PRIMITIVE PORTS? (2,3,6,7,ETC.)
+
+        2. HOW IS THE RTS SIGNALLING AFFECTED BY WHETHER THE PORT  IS PRIMITIVE
+        OR NON-PRIMITIVE (IF PRIMITIVE IS ALLOWABLE).
+
+        3.  HOW IS  RTS SIGNALLING  AFFECTED  BY WHETHER  THE PORT  IS  HOST OR
+        TERMINAL, SWITCHED OR LEASED, AND THE SETTING OF THE "BRTS" PARAMETER.
+
+
+
+
+
+
+        RESPONSE:
+
+
+        1.  The  Engine  Sync  board provides  two  kinds  of  ports  which are
+        Primitive  ports  and  Non-Primitive  (also  called  BSC   ports).  The
+        difference between  these two  types is  that the  former ones  have no
+        modem control  signals. These  signals are  DTR, DSR,  RTS, and  CTS. I
+        would suggest  you use non-primitive  ports because these  signals will
+        usually be utilized one way or another. If the customer has a  need for
+        these signals, then just arrange the proper macros in the tymfile.
+
+
+                                          22
+        SYNC Ports and Signaling                               January 28, 1987
+
+
+        2.  Since  primitive  ports  do  not  support  RTS,  half-duplex modems
+        (require RTS/CTS handshaking) can not be used. Full-duplex  (no RTS/CTS
+        handshake required) is OK.
+
+
+        3. RTS has nothing to do with whether the port is terminal or host.  If
+        RTS/CTS handshaking is required, then the sender will raise  RTS first,
+        prior to  transmitting data, and  wait for CTS  high (raised  by modem)
+        indicating that receiver is ready to receive data. But before  data can
+        be  XMTed and  RCVed back  and forth,  there must  already  be physical
+        connections.  Switched  lines use  DTR and  DSR signals  to set  up the
+        connections.  Only switched lines can have dial-up access. Non-switched
+        (leased) connections do not  use DTR/DSR. So switched, or  not, depends
+        on if you  need to play DTR/DSR  handhake to make the  connections. RTS
+        has  nothing  to do  with  it either.   BBXS  defaults so  that  RTS is
+        required whether you are host/terminal ports or  leased/switched lines.
+        So if the  customer does not need  RTS/CTS handshake, then you  can use
+        BRTS option with value 0, to disable it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          23
+        Description of Superhang Messages                      January 28, 1987
+
+
+
+
+
+
+                        10 -  Description of Superhang Messages
+
+
+
+
+
+
+
+        Original Question by : Stephane Fisbein, TNSC
+                 Response by : Gail Bubsey, HQ Network Staff Consultant
+                        Date : January 13, 1987
+
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+        What are the reasons behind a Super hang-up message when expecting a B6
+        from slot 0 ?
+
+
+
+
+
+
+        RESPONSE:
+
+        The following is a description of Superhang messages and when  they are
+        sent:
+
+        Host interface slots may send Hang and Superhang  messages   when  they
+        want  to  disconnect  the  user's terminal from the Tymsat  and require
+        that the user dial again (or reconnect the  terminal  if   a  hardwired
+        connection).   When this is done,  it is common to send a  text message
+        to the user to explain why.  The proper way for the slot to do  this is
+        to  first  send  a Superhang message,  then the text,  and then  a Hang
+        message.   The reason is that on half duplex terminals it may   not  be
+        possible  to send the text because the terminal is not in  the "output"
+        mode, but you do not want the hang-up operation to wait until  the user
+        gets around to allowing the terminal to output,  so the  Superhang mes-
+        sage tells the Tymsat to hang the terminal immediately if it is  a half
+        duplex terminal (without printing the message, not nice, but  what else
+        can you do?).   The Superhang message is ignored for full  duplex  ter-
+        minals and the Hang message tells the Tymsat to hang the terminal.
+
+
+
+                                          24
+        Description of Superhang Messages                      January 28, 1987
+
+
+        Terminal  interface  slots  should  only  receive  Hang   and Superhang
+        messages.   They need to do something equivalent  to   the  description
+        above  for  the Tymsat on whatever terminal they are  interfacing.   In
+        addition,  it is very important that they respond to a  Hang   (or  un-
+        ignored  Superhang) with a Zapper message.   The Hang message  does not
+        tear down the circuit, it only hangs up the terminal.   It  is expected
+        that a Zapper will be sent back to tear down the circuit.   If  this is
+        not done, the circuit will continue to tie up resources,   the account-
+        ing will not be closed, and related hardships will result.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          25
+        Warning Message--Inconsistency on Speed & Timers       January 28, 1987
+
+
+
+
+
+
+                11 -  Warning Message--Inconsistency on Speed & Timers
+
+
+
+
+
+
+
+        Original Question by : Yomi Olatunde, Tymnet Communication Consultant
+                 Response by : Adeal Lee, HQ Network Staff Consultant
+                        Date : January 7, 1987
+
+
+
+
+
+
+
+        During assembly,  two timers  will be checked  to see  if they  are set
+        adequately or not:
+
+        1) Receive timer -- its corresponding macro is REPLYTO and the default
+                            value is 3 seconds.
+
+        2) Transmit timer --  Its corresponding macro is LOPTION(l#,TXR., t) 
+                              where l# is line number and t is the transmit 
+                              timout value in seconds. The default value is 
+                              3 seconds.
+
+
+        The proper way to calculate these two timers is the following:
+                Timer = (framesize*(Windowsize+1))/(speed/8)
+
+
+        In your case, receive and transmit timers will be like this:
+                Timer = ((270*(7=1))/(2400/8) = 6.3  or 7 seconds.
+
+
+        If these two timers are specified less than it should be, the interface
+        will give out warning message -- INCONSISTENT DEFINITION ON  TIMERS AND
+        SPEED.
+
+
+
+
+
+
+
+
+
+                                          26
+        SNA Link Drop Problem                                  January 28, 1987
+
+
+
+
+
+
+                              12 -  SNA Link Drop Problem
+
+
+
+
+
+
+
+        Original Question by : Frank Libe, Tymnet Communications Consultant
+                 Response by : Adela Lee, HQ Network Staff Consultant
+                        Date : January 13, 1987
+
+
+
+
+
+
+
+        These three VTAM error messages indicate a link problem:
+
+        1) IST 259 -- An inoperative RU has been recieved for nodenm. The 
+                      reason code of 02 means a link failure.
+
+        2) IST 619 -- ACF/VTAM recognized a failure condition for nodenm and is
+                      attempting to recover the node.
+
+        3) IST 129 -- AN irrecoverable error occurred in a communication, 
+                      physical unit, or logical unit.
+
+            suggented action:
+
+        1) collect all output from system console and network consoles.
+
+        2) Execute the IFCEREPO service aid program, specifying PARM=(n), to 
+           dump the SYS1.LOGREC data set.
+
+        3) Run OLTEP diagnostics for the problem device.
+
+        4) Refer to the ACF/VTAM Diagnosis Guide for further problem determin-
+           ation information.
+
+
+        The reason why  the host drops DTR  after receiving UA is  unclear. You
+        need to  verify if the  UA goes  into host with  the correct  format. A
+        correct SDLC frame with control code of UA will be like this:
+
+          **byte 1 -- 7E, flag
+          **byte 2 -- C1, SDLC station address
+          **byte 3 -- 73, SDLC command for UA
+
+                                          27
+        SNA Link Drop Problem                                  January 28, 1987
+
+
+          **byte 4,5- checksum
+          **byte 6 -- 7E, flag
+
+
+        It will also  be very interesting to  see whether the  same environment
+        running in  native mode or  not. If  the SNA HIF  sends out  valid SDLC
+        frames and all the proper signals are provided by our ENGINE, then most
+        likely the problem is either at the cable or the customer site.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          28
+        Betatest Patches that have been replaced by SOURCE     January 28, 1987
+
+
+
+
+
+
+               13 -  Betatest Patches that have been replaced by SOURCE
+
+
+
+
+
+
+
+        Written by : Sandra Nilluka, HQ Network Staff Consultant
+              Date : January 19, 1986
+
+
+
+
+
+
+        PRODUCT:  Isis Consat
+
+        VERSION:  3.05
+
+        CHANGES:  The BETATEST patches have now replaced the SOURCE
+                  patches.  The BETATEST patch files have been deleted.
+
+        ACTION:  In your command files and sample command files, if any,
+                 delete any of the following lines:
+                   ;X(BETATEST)ISCS03.H05
+                   ;A(BETATEST)ISCS03.Q05
+                   ;@(BETATEST)ISCS03.Q05
+                 and replace with the following line:
+                   ;X(SOURCE)ISCS03.P05.
+
+                 Reference (BETATEST)MEMO.551, previous memos for this
+                 product, (BASELINE)ISCS03.X05 and .Y05, and (SOURCE)
+                 ISCS03.Q05 for impact.
+
+        WARNING:  Special patches used with the previous Source patch
+                  files probably need to be removed.
+
+
+
+
+
+        PRODUCT:  Solo Consat
+
+        VERSION:  5.11 and special variations
+
+        CHANGES:  The BETATEST patches have now replaced the SOURCE
+                  patches for the Consat (ISCS) portion of the product.
+                  The BETATEST patch files have been deleted.
+
+                                          29
+        Betatest Patches that have been replaced by SOURCE     January 28, 1987
+
+
+
+        ACTION:  In your command files and sample command files, if any,
+                 delete any of the following lines:
+                   ;X(BETATEST)ISCS03.H05
+                   ;A(BETATEST)ISCS03.Q05
+                   ;@(BETATEST)ISCS03.Q05
+                 and replace with the following line:
+                   ;X(SOURCE)ISCS03.P05.
+
+                 Reference (BETATEST)MEMO.551, previous memos for this
+                 product, (BASELINE)ISCS03.X05 and .Y05, and (SOURCE)
+                 ISCS03.Q05.  There is no impact, as SOURCE now contains
+                 what was previously in BETATEST.
+
+
+
+
+
+        PRODUCT:  Isis Consat
+
+        VERSION:  6.02  (BETATEST)
+
+        CHANGES:  Reference (BETATEST)MEMO.552.  A new BETATEST patch file
+                  replaces the previous BETATEST patch files.  Also, use of
+                  P and Q files has been simplified to use of only a P file.
+
+        ACTION:  In your command files and sample command files, if any,
+                 delete any of the following lines:
+                   ;X(BETATEST)ISCS06.P02
+                   ;A(BETATEST)ISCS06.Q02
+                   ;@(BETATEST)ISCS06.Q02
+                 and replace with the following line:
+                   ;@(BETATEST)ISCS06.P02.
+
+                 Then, re-gen to incorporate new patches.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          30
+        Sense Status Messages for the 3270 Interfaces          January 28, 1987
+
+
+
+
+
+
+                  14 -  Sense Status Messages for the 3270 Interfaces
+
+
+
+
+
+
+
+        Original Question by : Dayna Meyer, Tymnet Communications Consultant
+                 Response by : Tod Fiste, HQ Network Staff Consultant
+                        Date : January, 1987
+
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+        My customer wants to verify  the exact manner in which  Tymnet supports
+        the sense  status messages for  the 3270 interfaces.   Specifically, we
+        would like to know what would  happen in the case of the CU  being lost
+        during  a  session  at  both  the  pbt  and  pbh.   They  are generally
+        configured as native mode with pvc's.
+
+
+
+
+
+
+        RESPONSE:
+
+
+        Two different  Sense Status  messages are  sent to  the host  under two
+        different conditions. When a device is being logged on, the  PBTI sends
+        SS of Device  End (C240) to  the PBHI. Once the  PBHI knows there  is a
+        circuit, it sends the Device End to the host. The second instance would
+        occur  if the  host were  to send  a select  to a  device for  which no
+        circuit is built (as when the CU has been lost, per your  question). We
+        would send  an RVI  so that  the host  would send  us a  specific poll,
+        allowing us  to send SS  of Intervention Required  (4050). We  will not
+        send an Intervention  Required message in  response to a  general poll.
+        All SS messages received from the CU are simply passed on to the host.
+
+
+
+
+
+                                          31
+        Oldsup Option                                          January 28, 1987
+
+
+
+
+
+
+                                  15 -  Oldsup Option
+
+
+
+
+
+
+
+        Written by : Gail Bubsey, HQ Network Staff Consultant
+              Date : January 23, 1987
+
+
+
+
+
+
+
+        Now that version 5.10 is in full release and 5.06 is leaving support, I
+        would like to  remind all you 'private-netters'  that a 5.10 node  in a
+        network with version 41.01 or older sup must have the  parameter OLDSUP
+        EQ 1 in the .TYM file.
+
+
+        If you  do not include  this you  will see all  sorts of  complaints on
+        trying to bring the 5.10 node  into the net.  There will be  probe msgs
+        indicating Invalid Sup  Msg type 1A and  you will also see  Invalid Sup
+        Msg in TMCS.
+
+
+        The 1A  is important  since it  is the new  msg type  for the  new host
+        status message.  The Oldsups can only handle type 11.  So, if  you have
+        just upgraded and see complaints with 1A's in them, this is most likely
+        your problem.
+
+
+        This has been discussed in section D.4 of (Baseline)Tii05.Y10.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          32
+        Delection of 3270 Code and Mandatory Upgrade           January 28, 1987
+
+
+
+
+
+
+                  16 -  Delection of 3270 Code and Mandatory Upgrade
+
+
+
+
+
+
+
+        Written by : Diana Houge, Software Distribution
+              Date : January 23, 1987
+
+
+
+
+
+
+
+        THE FOLLOWING  VERSIONS OF  THESE BETATEST  PRODUCTS ARE  SCHEDULED FOR
+        DELETION:
+                       PBH (3270 HOST INTERFACE)          8.02
+                       PBH                               10.00
+                       PBT (3270 TERMINAL INTERFACE)      6.01
+                       PBT                                9.00
+
+             PLEASE UPGRADE TO:
+                       PBH (3270 HOST INTERFACE)         10.01
+                       PBT (3270 TERMINAL INTERFACE)      9.01
+
+          ***   THIS UPGRADE MUST BE COMPLETE BY 15 FEBRUARY 1987.   ***
+
+
+
+        THE   FOLLOWING   VERSIONS   OF  THESE   FULL   RELEASE   PRODUCTS  ARE
+        SCHEDULED FOR DELETION:
+                       PBH (3270 HOST INTERFACE)          7.02
+                       PBH                                7.03
+                       PBT (3270 TERMINAL INTERFACE)      5.02
+                       PBT                                5.03
+
+             PLEASE UPGRADE TO:
+                       PBH (3270 HOST INTERFACE)          7.05
+                       PBT (3270 TERMINAL INTERFACE)      5.05 - full release
+                                                          as of 15 JAN 87
+
+          ***   THIS UPGRADE MUST BE COMPLETE BY 15 FEBRUARY 1987   ***
+
+
+
+
+
+                                          33
+        Tymnet I2G1 Gateway Still Supported Under ISIS V 7.00  January 28, 1987
+
+
+
+
+
+
+              17 -  Tymnet I2G1 Gateway Still Supported Under ISIS V 7.00
+
+
+
+
+
+
+
+        Original Question by : Marcia Hopkins, Tymnet Communications Consultant
+                 Respones by : Gail Bubsey, HQ Network Staff Consultant
+                        Date : January 26, 1987
+
+
+
+
+
+
+
+        ORIGINAL QUESTION :
+
+
+        IS THE TYMNET I2G1 GATEWAY  STILL SUPPORTED UNDER ISIS V. 7.00  AND TII
+        V. 5.10?  THE ISIS.INF DOCUMENT INDICATES THAT "TYMNET-I" IS  NO LONGER
+        SUPPORTED--TO WHAT EXTENT DOES THIS APPLY?
+
+
+
+
+
+
+        RESPONSE :
+
+
+        The reference to  T1 not being supported  means that you can  no longer
+        configure  a  node to  run  as Tymnet  I  under this  version  of Isis,
+        something I doubt anyone has been doing anyway.
+
+
+        A few words  to the wise:   by using the  sample .tym file  for version
+        7.00, I have found that you do need to include either TII EQ 1  or ISIS
+        EQ 1 in your .tym  file or else node code  does not seem to be  able to
+        figure out that this is an Isis node.
+
+
+        Second, since the parameter CONSAT is no longer used, if your  good guy
+        list has the option  IF CONSAT EQ 1 in  it, you will get an  error.  If
+        you want  to keep that  username in  the good guy  list, I  suggest you
+        either include it  all the time,  or do an if  on NASYNG or  some other
+        async parameter.
+
+                                          34
+        Tymnet I2G1 Gateway Still Supported Under ISIS V 7.00  January 28, 1987
+
+
+        Third, the memory requirements have been corrected for this  version so
+        that you  can have  your gen total  1024k instead  of 1020k.   The boot
+        option is now taken into account for this calculation.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          35
+        HWM for Physical Link Characters Shows High            January 28, 1987
+
+
+
+
+
+
+                   18 -  HWM for Physical Link Characters Shows High
+
+
+
+
+
+
+
+        Original Question by : Dayna Meyer, Tymnet Communications Consultant
+                 Response by : Gail Bubsey, HQ Network Staff Consultant
+                        Date : January 26, 1987
+
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+        With the KS command in Xray we are seeing the HWM for the Physical Link
+        Characters as high as  1216 on a 9.6  link.  This converts to  9728 bps
+        (1216 x 8) which is 100+% utilization of the line.  Would like  to know
+        how this  is possible (or  if we are  figuring this  incorrectly).  The
+        link does show saturated.
+
+
+
+
+
+
+        RESPONSE:
+
+
+        One possible explanation  that I was given  for this phenomena  is that
+        these fields are averages of  60 samples taken over one minute.   It is
+        possible that on  occasion, instead of  adding together 60  samples and
+        dividing by 60, we  get 61 samples and  divide by 60.  This  would skew
+        the average slightly as you are seeing.
+
+
+
+
+
+
+
+
+
+
+                                          36
+        Tymnet Support for NCR Printer                         January 28, 1987
+
+
+
+
+
+
+                         19 -  Tymnet Support for NCR Printer
+
+
+
+
+
+
+
+        Written by : Paul Chu, Mgr. NTD Async/Consat Support
+              Date : January 20, 1987
+
+
+
+
+
+
+
+        The current implementations of CONSAT do not support the  hardware flow
+        control by the RTS/CTS signalling, so the signals are useless.
+
+
+        TYMCOM  betatest  release  2.06  supports  flow  control  to  the  host
+        direction by crossing pin 25 on the TYMCOM side to the host side on the
+        CTS pin.
+
+
+        TYMCOM, whenever it  is busy, lowers the  BUSY pin to flow  control the
+        host from sending more data.  However, TYMCOM does not look at  the CTS
+        pin from  the host.   Host must use  the XON/XOFF  to flow  control the
+        TYMCOM.
+
+
+        The flow control  is limited by the  hardware and the driver  to handle
+        the signalling.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          37
+        Beta Test of SNA/CMT                                   January 28, 1987
+
+
+
+
+
+
+                              20 -  Beta Test of SNA/CMT
+
+
+
+
+
+
+
+        Written by : Mary Chalmers, HQ Product Marketing
+              Date : January 27, 1987
+
+
+
+
+
+
+        ****************************************************************
+         
+                      HOW MANY DEVICES CAN A SNA/CMT SUPPORT?
+         
+        ****************************************************************
+
+        Many of you have expressed  concern that our SNA/CMT product  cannot be
+        configured for  one-to-one security  addressing for  a large  number of
+        users  without  ordering multiple  interfaces.   We plan  to  have some
+        solutions available to this problem in 1987.
+
+
+        At the present time, a Beta Test is being conducted on a  special patch
+        that may allow more  devices to be loaded  into a single SNA  slot.  If
+        this test is successful I will announce new guidelines for you  to use;
+        IN THE MEANTIME, you must follow the following guidelines or your order
+        will be  placed on hold  and/or your escalations  to QSATS will  not be
+        worked on  unless you have  prior Beta Test  approval thru  the regular
+        channels.
+
+
+        Use :EXEC *** BETA.REQUEST if you have a customer who would like  to be
+        a Beta Site for this patch.
+
+        GUIDELINES FOR ORDERING SNA/CMT
+
+
+        A standard  SNA/CMT can  be loaded into  an Engine  to handle  about 45
+        devices depending upon the  configuration.  This means you can  have up
+        to 45 CRT's without printer (DON'T FORGET RESPONSE TIME ON  THE NETWORK
+        CONNECTION) or about 23 users if they use CRT's and printers.   You can
+        use the information in  *** SNA/CMT.SIZE to help figure  your customers
+        configuration.
+
+                                          38
+        Beta Test of SNA/CMT                                   January 28, 1987
+
+
+        A special configuration that runs the CMT on a MicroEngine hardwired to
+        the Engine with SNA  can support about 75 devices.   This configuration
+        should only be used when a customer requires One-to-one  addressing for
+        Security or because they are using CRT's and Printer.  And remember, to
+        figure  the  number  of simultaneous  users  your  customer  expects to
+        correspond to  the kind  of Response  Time they  want.  Most  3270 full
+        screen applicatons  handle somewhere between  10 (heavy traffic)  to 32
+        (light  traffic) simultaneous  users before  the response  time  on the
+        Network Connection begins to be impacted.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          39
+[@I
