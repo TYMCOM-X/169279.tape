@@ -1,0 +1,142 @@
+:   THE FOLLOWING FOUR PATCHES ARE USED FOR GATEWAY DOWNLINE LOADING,
+:   SLOT LOADING,DUMP. USED ONLY IN ALL IRC's X75 SLOTS. (ON TYMNET SIDE).
+:   NOW THESE FOUR PATCHES ARE ALREADY IN HOST 2850 (RCA) AND HOST 371
+:   (WUI).
+:   1[PBLCNT: NEEDED IN COMMAND FILE
+:
+   IF    \PBLCNT
+PATCH(840719,1000,JWANG,PA0PTR,,NDGRPS*4+14)
+LOAD    HS      NDGRPS          :BIT ARRAY  A,SET IF THIS DPORT IS FOR LOADING
+SEND    HS      NDGRPS          :SET IF LOAD,RESET IF QBIT PKT HAS BEEN SENT
+GAT.F   HC      0,0             :VALUE SET TO FE00000000 IF SLOT LOADING
+GATE    BC      47,41,54,45,57,41,59,0      :GATEWAY
+        HC      0,0,0,0
+CONPATCH(DDONE+0A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1e)
+        RBT     R1,DBKPR,,
+        RBT     R1,DFLUSH,,
+        RBT     R1,LOAD,,               :CLEAN UP  FLAG
+        RBT     R1,SEND,,
+        J       DDONE+12,,
+CONPATCH(NDLST1+8,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,18)
+        RBT     R1,LOAD,,       :INITIALIZE LOAD FOR THE NEW DPORT
+        RBT     R1,SEND,,       :INITIALIZATION
+        SLLS    R1,2
+        AHI     R1,DIBIA
+        J       NDLST1+0E,,
+CONPATCH(NST118-0A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,14)
+        ST      R0,RPODNC,R1,
+        LHL     R9,LO7,,
+        LIS     R5,0            :COUNT USED BY COMPARE USERNAME  GATE/DLOD
+        J       NST118,,
+CONPATCH(NST122,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,20)
+        CLB     R0,GATE,R5,
+        JN      NEX1            :IF MATCH,SET BIT
+        SBT     R5,GAT.F,,
+NEX1    AIS     R5,1
+        SIS     R9,1
+        JLE     NST150,,
+        J       NST122+6,,
+CONPATCH(NDL060+8,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,2E)
+        LHL     R1,DPORT,,
+        LHI     R0,0FE
+        CLB     R0,GAT.F,,              :USERNAME IS GATEWAY?
+        JN      NEX2                    :IF MATCHED,SET LOADING FLAG ON
+        SBT     R1,LOAD,,               :SET BIT IF THIS PORT IS FOR LOADING
+        SBT     R1,SEND,,
+NEX2    LIS     R0,0
+        ST      R0,GAT.F,,              :REINITIALIZE TO ZERO
+        J       NDL060+0E,,
+CONPATCH(DAT080+4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+        LB      R7,XMTMSK,R4,
+        TBT     R4,LOAD,,       :LOADING?
+        JE      NEX3
+PADCHR  LHI     R7,0            :FORCE PADFORWARDING CHAR VALUE TO 0
+NEX3    J       DAT080+0A,,
+CONPATCH(DAT170+0A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+        TBT     R4,LOAD,,       :LOADING?
+        JE      NEX4
+PADIDL  LHI     R0,2            :FORCE PADIDLETIMER VALUE TO 2
+NEX4    STB     R0,DATIME,R4,
+        J       DAT170+10,,
+ENDPATCH(MODIFY PAD FORWARD CHAR/TIDLETIMER TO 0/2 IF NEEDLE INDICATES LOADING)
+   EI    PBLCNT
+
+
+   IF    \PBLCNT
+
+PATCH(840820,1540,JWANG,PA0PTR,,9)
+QBPK    BC      7,0,6,80,6,3,0,4,2
+CONPATCH(DATM30+0C,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,4A)
+        TBT     R8,LOAD,,               :THIS PORT IS FOR GATEWAY LOADING?
+        JE      COPYQ+1C
+        TBT     R8,SEND,,
+        JE      COPYQ+1C
+        LHL     R1,IPORT,,
+        SLLS    R1,2
+        AHI     R1,IEDBIA               :R1 CONTAIN THE IEDBUF VALUE OF THIS
+                                        :IPORT
+        LIS     R5,0                    :COUNT FOR STORE Q-BIT PACKET QBPK
+COPYQ   LB      R0,QBPK,R5,
+        JAL     R4,WCI,,                :STORE INTO IEDBUF
+        AIS     R5,1                    :INCREMENT COUNT
+        CLHI    R5,9                    :END OF PACKET?
+        JL      COPYQ
+        RBT     R8,SEND,,
+        JAL     R9,APPBKP,,
+        J       DATM10,,
+ENDPATCH(SEND QBIT SET PKT WITH 03000402 TO THE LINK IF GATEWAY LOADING)
+    EI   PBLCNT
+
+    IF   \PBLCNT
+PATCH(840820,1300,JWANG,CRQ420+2,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,34)
+        LB      R9,CUDSAV,,
+        JE      CRQ460,,
+        LHL     R1,DPORT,,
+        TBT     R1,LOAD,,       :IS GATEWAY LOADING/DUMP?
+        JE      CRQ430,,        :IF YES, ADD ^D IN CUD AREA
+CS      LHI     R0,84           :CIRCUIT SPEED ^D
+        LHL     R1,IECBUF,,
+        JAL     R4,WCI,,        :STORE INTO IECBUF
+        J       CRQ430,,
+ENDPATCH(ADD ^D IN CUD AREA OF CALL REQ PACKET IF GATEWAY LOADING/DUMP)
+    EI   PBLCNT
+
+
+      IF    \PBLCNT
+PATCH(850110,1250,JWANG,BCLG40+1E,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,22)
+        LHL     R9,DPORT,,      :GET THE DPORT #
+        TBT     R9,LOAD,,       :IS THIS A GATEWAY LOADING/DUMP?
+        JNFS    .+0E            :IF NOT ,JUMP
+        JAL     R9,GETBCD,,     :GET ORIGINATION PORT #
+        J       BCLG40+24,,
+        LIS     R0,0A           :USE THE LENGTH OF TEN AS CALLING ADDR
+        J       BCLG98,,
+ENDPATCH(CUT DOWN THE CLG ADDR TO HAVE LEN LESS THAN 14 WHEN GATEWY LOADING)
+      EI     PBLCNT
+:
+:********************************************************
+
+PATCHREPORT                     :REPORT BYTES OF PATCH AREAS USED
+FINPATCH                        :MAKE FINAL REPORT ON SEGMENT USAGE
+
+
