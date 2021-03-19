@@ -1,0 +1,28 @@
+:*****
+:   Patch to module:	XCOMOM.F43
+:   Patch by:		Louisa Hsu
+:   Description:	Change XOM routine XMCSWI to accept the
+:			parameter value 'ffff' for switch options.
+:			When a XOM user enters the value 'ffff' for a 
+:			specific parameter, the internal value of this
+:			parameter (ON or OFF) will not be changed.
+:   Related NSR:	None
+:
+PATCH(871125,1500,LOUISA,XMCSW2+6,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,20)
+	LHL	R2,XOMPAR,R5,
+	CI	R2,0FFFF
+	JE	XMCSW3+6,,
+	CLHI	R2,2
+	JL	XMCSW3,,
+	J	BREXOM,,
+ENDPATCH(FIX XOM TO ACCEPT FFFF PARAMETER VALUE FOR SWITCH OPTIONS)
+:*****
+:***************
+:***********************************************************************
+
+:**** end of patch area*****************************************************
+
+ PATCHREPORT			:REPORT BYTES OF PATCH AREAS USED
+ FINPATCH			:MAKE FINAL REPORT ON SEGMENT USAGE
