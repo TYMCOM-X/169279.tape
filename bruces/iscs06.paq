@@ -1,0 +1,87 @@
+:***********************************************************************
+:
+        REMARK  % Patched for port-to-port connectivity
+:
+:***********************************************************************
+:       This set of patches has been set up for forcing a CONSAT to
+:       suppress some "terminal" default functions in order to support
+:       a Consat to Consat connection.
+:
+:  (1)  Change SIGRSP to inhibit response to set parameter signals if
+:       initiated from within CONSAT.  If we are still in login mode,
+:       assume that message is from within and shouldn't generate a
+:       return signal.
+:	This stops the initiation, and subsequent ping-ponging of
+:	ISIS B1 messages.
+:
+  LO	CONSAT
+  LO	DATA
+PATCH(870919,0000,UPTHEGROVE,SIGRSP,SIGRSP+6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        L       RBP,.FTBUF,RPI,
+        TBT     RP,LOGING,,
+        JNR     RLINK
+        JAL     RCH,PUTSIG,,
+        JR      RLINK
+ENDPATCH(Disable Signal Responses if still LOGING in)
+  IF    PVC
+  LO    PVC
+:  (2)  Set YONENA specifically at PVCSOP.  
+:	This parameter was not set at PVCSOP, but relied on the LOGGER
+:	to set it at a later stage.  For addressable ports, this would
+:	not occur if circuit built to it.  This insures that flow control
+:	set correctly in either case.
+:
+PATCH(870919,0001,UPTHEGROVE,PVCSO1-8,PVCSO1)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        SBT     RP,YONENA,,
+        LHI     RBC,12
+        JAL     RCH,PUTCHR,,
+        J       PVCSO1,,
+ENDPATCH(Set YONENA specifically if PVC)
+:  (3)  Allow setting of XONENA for port as an option.  Otherwise this can
+:	ony be set with Ctrl-X at login, which does not allow setting on
+:	address port.
+:	As it is not possible to add a new PVC option within a patch, we
+:	have to set through other means.  Flow control on data from device
+:	to CONSAT can be set for ports using the following bit map format:
+:
+:	PXBP{group}	EQ	$2 bbbbbbbbbbbbbbbb
+:		group=	port group
+:		bbb..=	binary port map
+:
+:	To set flow control on ports 2 and 24 the values would be:
+:
+:	PXBP0	EQ	$2 0010000000000000	:port 2
+:	PXBP1	EQ	$2 0000000010000000	:port 24
+:
+:	These parameters can be added to the .Tnn parameter file.
+:
+PATCH(870919,0002,UPTHEGROVE,PA0PTR,,NGRP*2)
+PXBPTB	HS	0
+QQ	EQ	0
+	RE	NGRP
+ 	 IF	\PXBP|QQ|
+		HC	PXBP|QQ|
+	 ELSE
+		HC	0000
+	 EI
+QQ	EQ	QQ+1
+	ER
+:
+CONPATCH(PVCS08,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,28)
+	TBT	RP,PXBPTB,,		:test if option set
+	JEFS	PAXPT7
+	SBT	RP,XONENA,,		:if yes, set X-enable
+	LHI	RBC,18			: and place Ctrl-X in buffer
+	JAL	RCH,PUTCHR,,
+PAXPT7	TI	R6,POUPC,		:uppercase test
+	JER	R9
+	SBT	RP,KATUPC,,
+	JR	R9
+ENDPATCH(Enable Backpressure setting as PVC Option)
+   EI    PVC
