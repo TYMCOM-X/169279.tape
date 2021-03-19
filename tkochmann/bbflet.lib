@@ -1,0 +1,461 @@
+	SUBTTL	Big Bufferlet Package	BBFLET.LIB
+:******************************************************************
+:
+:	This program is the sole property and confidential
+:	information of Tymshare, Inc., and may not be copied
+:	in whole or in part or disclosed to any third party
+:	without the prior written consent of Tymshare.
+:
+:*******************************************************************
+	RA	0		mfr 08/2/81
+
+:	This package contains all code and storage allocation needed for
+:	dynamic allocation of big bufferlets.  It contains no routines
+:	which manage data in big bufferlets.  Such routines are left to
+:	be written by the user.
+
+:	This is the two level re-entrant version (all routines can be called
+:	by both foreground and background).
+
+
+:	the following parameters MUST be defined before assembly:
+:	NBBFLT	the number of big bufferlets to create.  Two of them will
+:		"never" be allocated, to avoid possible race conditions
+:		and unraveling of the free list.  This can't be
+:		counted on, however, since it is possible for one of the
+:		unusable 2 to get allocated if things are timed in just the
+:		right order.
+:	BBFLSZ	the size (in bytes) of a big bufferlet, MUST be even
+
+:	If more than one segment (64K) of bufferlets are being
+:	defined, the symbol FWBBF must be globally defined and set
+:	to 1.  This will cause all bufferlet pointers to be a fullword.
+:	All external references to the bufferlet pointers must reflect this.
+:	By using the macros BBLOAD and BBSTOR this choice of halfword
+:	or fullword will be automatic for the accesses.
+
+:	the following parameters are defined for the user:
+:	BBUFER	base address of big bufferlet storage area
+:	BBFPSZ	The size in bytes of a bufferlet pointer
+
+:	the following external routines are used:
+:	CRASH	JAL R10,CRASH performed if catistrophic theoretically
+:		impossible conditions occur
+
+:	The big bufferlets are kept in a double linked free list
+:	from which they are allocated when needed.  The pointers
+:	used are relative to BBUFER.
+
+:	The package contains both utility and primitive routines:
+
+:	utility routines are called with link on RLINK1
+:	PBBC   -Put Big Bufferlet Chain
+:		RCH = pointer to 1st big bufferlet in chain
+:		PBBC will return a chain of big bufferlets to the dynamic pool
+
+
+:	primitive routines are called with link on RLINK
+:	IZBB   -Initialize Big Bufferlets
+:		initializes big bufferlet double linked list used to
+:		dynamically allocate big bufferlets.
+:	GBB    -Get Big Bufferlet
+:		Return	       -No Big Bufferlet is available
+:		Skip return    -RCH has pointer to big bufferlet, chain
+:				half-word in big bufferlet set to zero
+:	PBB    -Put Big Bufferlet
+:		RCH has pointer to big bufferlet to return to dynamic pool
+:
+:	The package also contains macros for ease in accessing the
+:	buferlets. Both BBLOAD and BBSTOR will generate halfword/fullword
+:	load or store instructions as appropriate.
+
+:       Debugging modes:  (active if symbol defined as a positive number)
+:               BBF.D1  Count GBB and RBB calls in global cell 'BUFCNT'.
+:                       When all bufferlets put back, BUFCNT=0.  Crash if
+:                       BUFCNT<0.
+:
+:               BBF.D2  Software crash when no bufferlets available on
+:                       GBB call.  This fixes lost bufferlet problem.
+:
+:               BBF.D3  On all returns of BB to chain, check BB addr. range.
+:			CRASHES IF NOT VALID RANGE.
+:
+:		BBF.D4	On all gets and puts to the bufferlet pool
+:			an indicator is set to indicate the status of the
+:			bufferlet. If a bufferlet in use is reused or an
+:			unused bufferlet is released it will crash.
+:			This switch also causes allocation of a table for
+:			lower halfword of the address of the caller for
+:			bufferlet get.
+:
+
+
+	GL	NBBFLT,BBFLSZ
+	MO	.,BBUFER
+	GL	IZBB,GBB,PBB,PBBC,BBUFER	:PROVIDED TO USER
+	GL	CRASH				:EXTERNAL ROUTINES NEEDED
+
+	GL	BBFPSZ,FWBBF
+  IF \FWBBF
+  ELSE
+FWBBF	EQ	0	:IF NOT SET, DEFAULT TO OFF
+  EI
+  IF FWBBF
+BBFPSZ	EQ	4	:POINTER IS FULLWORD
+BBLOAD	MACRO(d)[L]	:LOAD AND STORE FOR FULLWORDS
+BBSTOR	MACRO(d)[ST]
+  ELSE
+BBFPSZ	EQ	2	:POINTER IS HALFWORD
+BBLOAD	MACRO(d)[LHL]	:LOAD AND STORE FOR HALWORDS
+BBSTOR	MACRO(d)[STH]
+  EI
+
+
+:	REGISTER USAGE DEFINITION
+RCH	EQ	R3		:REG WITH BUFFERLET ADDR
+RLINK	EQ	R4		:LINKAGE FOR IZBB,GBB,PBB
+RLINK1	EQ	R5		:LINKAGE FOR PBBC
+RW1	EQ	R6		:WORK REG FOR IZBB,GBB,PBB
+RW2	EQ	R7		:WORK REG FOR IZBB,GBB,PBB
+RW3	EQ	R2		:WORK REG FOR PBBC
+
+
+:       DEBUGGING OPTIONS
+  IF	\SNOBUF
+  ELSE
+SNOBUF	EQ	0		:DON'T SIMULATE NO BUFFERLETS EVER
+  EI
+
+  IF \BBF.D1
+  ELSE
+BBF.D1	EQ	0
+  EI
+
+  IF \BBF.D2
+  ELSE
+BBF.D2	EQ	0
+  EI
+
+  IF \BBF.D3
+  ELSE
+BBF.D3	EQ	0
+  EI
+
+ IF \BBF.D4
+  IF BBF.D3
+  ELSE
+	REMARK	%%BBF.D4 CANNOT BE USED WITHOUT BBF.D3 SET.%%
+  EI
+ ELSE
+BBF.D4	EQ	0
+ EI
+
+:	DATA AREA
+	SEG	A.DATA
+FREE1	WC	0		:INDEX OF HEAD OF LIST 1
+FREE2	WC	0		:INDEX OF HEAD OF LIST 2
+LOCK1	HC	0		:8000 = LIST 1 LOCKED DUE TO RE-ENTRANTCY
+LOCK2	HC	0		:8000 = LIST 2 LOCKED DUE TO RE-ENTRANTCY
+  IF BBF.D1
+        GL        BUFCNT
+BUFCNT  HC      0       :Used bufferlet counter
+  EI
+
+:	BUFFERLET AREA
+Q	EQ	A.BUFF
+QQ	EQ	NBBFLT*BBFLSZ
+
+	SEG	A.BUFF		:ALLOCATE IN BUFFER AREA
+	HS	0		:ALLIGN TO HALF-WORD
+BBUFER	EQ	.-2		:BASE ADDRESS OF BUFFERLET AREA
+	RE
+	SEG	Q
+  IF QQ-10000
+	BS	10000
+  ELSE
+	BS	QQ
+  EI
+QQ	EQ	QQ-10000
+Q	EQ	Q+1
+	ER	QQ	:STOP WHEN QQ <= 0
+A.BUFF	EQ	Q-1
+CHAIN1	EQ	BBUFER+BBFLSZ-BBFPSZ
+CHAIN2	EQ	CHAIN1-BBFPSZ
+	SEG	A.CODE
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::			 S U B R O U T I N E   I Z B B			     ::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+IZBB	LIS	RCH,2		:RCH = RELATIVE ADDR OF BUFFERLET
+	ST	RCH,FREE1	:INIT FREE CHAIN
+	LHI	RW1,NBBFLT	:RW1 = NO. BUFLETS IN FREE LIST
+	LIS	RW2,0		:CLEAR THE REGISTER
+
+IBB10	SIS	RW1,1		:DEC BUFFERLET CNT
+	JEFS	IBB20
+ IF BBF.D4
+	RBT	RW1,BBFLAG	:CLEAR BUFFERLET IN USE INDICATOR
+	STH	RW2,BBUSER,RW1,RW1	:CLEAR THE USER POINTER
+ EI
+		:JUMP TO TERMINATE CHAIN
+  IF FWBBF
+	ST	RCH,CHAIN2+BBFLSZ,RCH,	:BACKWARD LINK IN NEXT BB
+	AHI	RCH,BBFLSZ	:FIND NEXT BUFFERLET START
+	ST	RCH,BBUFER-4,RCH,	:SET CHAIN TO IT
+  ELSE
+	STH	RCH,CHAIN2+BBFLSZ,RCH,	:BACKWARD LINK IN NEXT BB
+	AHI	RCH,BBFLSZ	:FIND NEXT BUFFERLET START
+	STH	RCH,BBUFER-2,RCH,	:SET CHAIN TO IT
+  EI
+	JBS	IBB10
+IBB20	ST	RCH,FREE2	:HEAD OF LIST 2
+
+          IF BBF.D1
+            STH     RW1,BUFCNT      :Start with zero used
+          EI
+          IF BBF.D3
+            STH     RW1,BBCKLK      :Init stack pointer
+          EI
+ IF	BBF.D4
+	RBT	RW1,BBFLAG	:CLEAR BUFFERLET IN USE INDICATOR
+	STH	RW1,BBUSER	:CLEAR USER POINTER
+ EI
+	LIS	RW1,0		:SET BIT POINTER
+	RBT	RW1,LOCK1	:RESET LIST 1 LOCK
+	RBT	RW1,LOCK2	:RESET LIST 2 LOCK
+	JR	RLINK
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::			  S U B R O U T I N E	G B B			     ::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+GBB	LIS	RW1,0		:INIT FOR BIT TESTS
+                IF      SNOBUF          :SIMULATE NO BUFFER AVAILABLE
+                :-:-:-:-:-:-:-:-:-:-:-:  ERROR SIMULATE :-:-:-:-:-:-:-:-:-:-:-:
+                LCS     RW2,1           :COUNT ENTRY                          :
+                AHM     RW2,SNOBCT                                            :
+                JGFS    SNOBRT          :JUMP NOT TIME TO SIMULATE            :
+                LHI     RW2,SNOBUF      :RESET ERROR SIMULATE CNTR            :
+                STH     RW2,SNOBCT                                            :
+                JR      RLINK           :TAKE NO BUFFERLET AVAILABLE RETURN   :
+                SEG     A.DATA
+SNOBCT		HC	SNOBUF		:ERROR COUNTER
+		SEG	A.CODE
+SNOBRT          EQ      .                                                     :
+                :-:-:-:-:-:-:-:-:-:-:-:  ERROR SIMULATE :-:-:-:-:-:-:-:-:-:-:-:
+                EI      :SNOBUF
+	SBT	RW1,LOCK1	:LIST 1 LOCKED ?
+	JN	GBB20		:JUMP IF SO, TRY LIST 2
+	L	RCH,FREE1	:GET INDEX TO NEXT FREE BUFFERLET
+	CL	RCH,FREE2	:COMPARE WITH OTHER PTR
+	JE	NOBBF1		:EQUAL - LIST EMPTY
+
+  IF FWBBF
+	L	RW2,CHAIN1,RCH, :GET CHAIN TO NEXT FREE BUFFERLET
+  ELSE
+	LHL	RW2,CHAIN1,RCH, :GET CHAIN TO NEXT FREE BUFFERLET
+  EI
+	CL	RW2,FREE2	:COMPARE WITH OTHER LIST PTR
+	JE	NOBBF1		:EQUAL - TREAT LIST AS EMPTY
+	ST	RW2,FREE1	:PUT IN FREE POINTER
+  IF FWBBF
+	ST	RW1,CHAIN1,RCH, :ZERO CHAIN FOR BUFFERLET FETCHED
+	ST	RW1,CHAIN2,RCH, :ZERO CHAIN FOR BUFFERLET FETCHED
+  ELSE
+	STH	RW1,CHAIN1,RCH, :ZERO CHAIN FOR BUFFERLET FETCHED
+	STH	RW1,CHAIN2,RCH, :ZERO CHAIN FOR BUFFERLET FETCHED
+  EI
+          IF BBF.D1
+              LIS       RW1,1
+              AHM       RW1,BUFCNT      :Increment BUFCNT
+	      LIS	RW1,0		:RESET THE REGISTER
+          EI
+ IF	BBF.D4
+	LHI	RW1,-2,RCH	:SUBTRACT OFFSET
+	DH	RW1,BBCKD	:DETERMINE BUFFERLET NUMBER
+	SBT	RW2,BBFLAG	:SET INDICATOR FOR BUFFERLET IN USE
+	JN	BBFLCR		:CRASH IF BUFFERLET WAS IN USE
+	STH	RLINK,BBUSER,RW2,RW2	:SET USER POINTER
+ EI
+	RBT	RW1,LOCK1	:UNLOCK LIST 1
+	J	4,RLINK 	:SKIP RETURN (BUFFERLET FOUND)
+
+:	LIST 1 WAS LOCKED OR EMPTY, TRY LIST 2.
+:	IF LIST 2 EMPTY OR LOCKED, RETURN.  THEORETICALLY, BOTH
+:	LISTS WILL NEVER BE LOCKED (IF THEY ARE, IT
+:	IS A DESIGN ERROR THAT PBB WILL DETECT AND CRASH).
+
+GBB20	SBT	RW1,LOCK2	:LIST 2 LOCKED ?
+        JN      NOBBUF          :Jump if  can't provide bufferlet
+	L	RCH,FREE2	:GET INDEX TO NEXT BUFFERLET
+	CL	RCH,FREE1	:COMPARE WITH OTHER PTR
+	JNFS	GBB30		:JUMP BUFFERLET AVAILABLE
+NOBBF2	RBT	RW1,LOCK2	:UNLOCK LIST 2 (EMPTY)
+NOBBUF	EQ	.
+          IF BBF.D2
+            JAL       R10,CRASH,,       :No bufferlet crash
+            BC        0,0,4*RLINK,0D2
+          EI
+	JR	RLINK		:RETURN (CAN'T PROVIDE BUFFERLET)
+
+NOBBF1	RBT	RW1,LOCK1	:UNLOCK
+	JBS	NOBBUF
+
+  IF FWBBF
+GBB30	L	RW2,CHAIN2,RCH, :GET CHAIN TO NEXT BUFFERLET
+  ELSE
+GBB30	LHL	RW2,CHAIN2,RCH, :GET CHAIN TO NEXT BUFFERLET
+  EI
+	CL	RW2,FREE1	:COMPARE WITH OTHER PTR
+	JE	NOBBF2		:EQUAL - TREAT LIST AS EMPTY
+	ST	RW2,FREE2	:PUT AT HEAD OF LIST 2
+  IF FWBBF
+	ST	RW1,CHAIN1,RCH, :ZERO CHAIN FOR BUFFERLET FETCHED
+	ST	RW1,CHAIN2,RCH, :ZERO CHAIN FOR BUFFERLET FETCHED
+  ELSE
+	STH	RW1,CHAIN1,RCH, :ZERO CHAIN FOR BUFFERLET FETCHED
+	STH	RW1,CHAIN2,RCH, :ZERO CHAIN FOR BUFFERLET FETCHED
+  EI
+          IF BBF.D1
+            LIS       RW1,1
+            AHM       RW1,BUFCNT      :Increment BUFCNT
+	    LIS       RW1,0		:RESET THE REGISTER
+          EI
+ IF	BBF.D4
+	LHI	RW1,-2,RCH	:SUBTRACT OFFSET
+	DH	RW1,BBCKD	:DETERMINE BUFFERLET NUMBER
+	SBT	RW2,BBFLAG	:SET INDICATOR FOR BUFFERLET IN USE
+	JN	BBFLCR		:CRASH IF BUFFERLET WAS IN USE
+	STH	RLINK,BBUSER,RW2,RW2	:SET USER POINTER
+ EI
+	RBT	RW1,LOCK2	:UNLOCK LIST 2
+	J	4,RLINK 	:SKIP RETURN (BUFFERLET FOUND)
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::			  S U B R O U T I N E	P B B			     ::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+PBB     EQ      .               :Start of routine PBB
+
+	  IF BBF.D1
+            LCS       RW1,1
+            AHM       RW1,BUFCNT      :Decrement BUFCNT
+	    JGEFS	PBB01		:Jump if ok
+            JAL       R10,CRASH,,       :Crash if too many put back
+            BC        0,0,4*RLINK,0D1
+          EI
+
+PBB01	LIS	RW1,0		:INIT FOR BIT TESTS
+	SBT	RW1,LOCK1	:LIST 1 LOCKED ?
+	JN	PBB20		:JUMP IF SO, TRY LIST 2
+
+PBB10	EQ	.
+	  IF BBF.D3
+	    JAL	RW2,BBCK	:Check BB range
+	  EI
+	L	RW2,FREE1	:GET INDEX TO 1ST FREE BUFFERLET
+  IF FWBBF
+	ST	RW2,CHAIN1,RCH, :ONE WE'RE PUTTING BACK CHAINS TO IT
+	ST	RCH,CHAIN2,RW2, :AND VICE VERSA
+  ELSE
+	STH	RW2,CHAIN1,RCH, :ONE WE'RE PUTTING BACK CHAINS TO IT
+	STH	RCH,CHAIN2,RW2, :AND VICE VERSA
+  EI
+	ST	RCH,FREE1	:ONE PUTTING BACK NOW 1ST FREE
+PBB15	RBT	RW1,LOCK1	:UNLOCK LIST 1
+	JR	RLINK		:RETURN
+
+:	LIST 1 LOCKED, TRY LIST 2.  IF IT IS LOCKED ALSO,
+:	IT IS CONCEIVABLE THAT IT IS DUE TO A RACE CONDITION, SO CHECK
+:	LIST 1 AGAIN.  IF ITS LOCKED, THAT'S INCONCEIVABLE, CRASH.
+
+PBB20	SBT	RW1,LOCK2	:LIST 2 LOCKED ?
+	JEFS	PBB30		:JUMP IF NOT, PUT ON IT
+	SBT	RW1,LOCK1	:LIST 1 STILL LOCKED ?
+	JE	PBB10		:JUMP IF NOT, PUT ON LIST 1
+	JAL	R10,CRASH,,	:LISTS LOCKED UP TIGHT, CRASH,,
+	BC	0,0,4*RLINK,0D0	:CRASH CODE
+
+PBB30	EQ	.
+	  IF BBF.D3
+	    JAL	RW2,BBCK	:Check BB range
+	  EI
+	L	RW2,FREE2	:GET INDEX TO 1ST BUFFERLET IN LIST 2
+  IF FWBBF
+	ST	RW2,CHAIN2,RCH, :ONE WE'RE PUTTING BACK CHAINS TO IT
+	ST	RCH,CHAIN1,RW2, :AND VICE VERSA
+  ELSE
+	STH	RW2,CHAIN2,RCH, :ONE WE'RE PUTTING BACK CHAINS TO IT
+	STH	RCH,CHAIN1,RW2, :AND VICE VERSA
+  EI
+	ST	RCH,FREE2	:ONE PUTTING BACK NOW AT HEAD OF LIST 2
+PBB40	RBT	RW1,LOCK2	:UNLOCK LIST 2
+	JR	RLINK		:RETURN
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::			 S U B R O U T I N E   P B B C			     ::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+  IF FWBBF
+PBBC	L	RW3,CHAIN1,RCH, :GET INDEX OF NEXT BUFFERLET IN CHAIN
+  ELSE
+PBBC	LHL	RW3,CHAIN1,RCH, :GET INDEX OF NEXT BUFFERLET IN CHAIN
+  EI
+	JAL	RLINK,PBB	:PUT THIS BUFFERLET BACK
+PBBCC	LR	RCH,RW3 	:GET NEXT IN CHAIN
+	JNBS	PBBC		:PUT IT BACK TOO
+	JR	RLINK1		:END OF CHAIN (0), RETURN
+
+
+:Check range of BB address  (Only defined if BBF.D3 on)
+
+  IF BBF.D3
+BBCK	SBT	RW1,BBCKLK	:SET LOCK FOR REENTRANCY
+	JEFS	BBCK1
+	LIS	RW1,8		:CHOSE OTHER LOCK
+	SBT	RW1,BBCKLK
+	JNFS	BBCK2		:CRASH IF SET, CAN'T HAPPEN
+BBCK1	STM	R14,BBCKSV,RW1
+	LHI	R14,-2,RCH	:DON'T ALLOW NEGATIVE
+	JL	BBCKCR
+	CI	R14,(NBBFLT-1)*BBFLSZ	:CHECK MAX ADDR
+	JG	BBCKCR
+	DH	R14,BBCKD	:ADDR MUST BE MULTIPLE OF SIZE
+	LR	R14,R14
+BBCK2	JN	BBCKCR		:REM NOT 0, NOT EXACT MULTIPLE
+ IF	BBF.D4
+	RBT	R15,BBFLAG	:CLEAR BUFFERLET IN USE INDICATOR
+	JE	BBFLCR		:CRASH IF BUFFERLET WAS NOT IN USE
+	CI	RLINK,PBBCC	:CHECK IF CALLED BY PBBC
+	JNFS	BBCK3		:SKIP IF SO
+	STH	RLINK1,BBUSER,R15,R15	:SET USER POINTER
+	JFS	BBCK4		:SKIP
+BBCK3	STH	RLINK,BBUSER,R15,R15	:SET USER POINTER
+BBCK4	EQ	.
+ EI
+	LM	R14,BBCKSV,RW1	:RESTORE REGS STACKED
+	RBT	RW1,BBCKLK	:RELEASE LOCK
+	LIS	RW1,0		:RESTORE RW1
+	JR	RW2
+BBCKCR	JAL	R10,CRASH,,	:RCH=BAD CHAIN ADDR
+	BC	0,0,4*RLINK,0D3	:CRASH CODE
+ IF	BBF.D4
+BBFLCR	JAL	R10,CRASH,,
+	BC	0,0,4*RLINK,0D4
+	SEG	A.DATA
+BBFLAG	HS	(NBBFLT+0F)/10	:BUFFERLET IN USE INDICATORS
+BBUSER	HS	NBBFLT		:USER POINTERS FOR EACH BUFFERLET
+ EI
+BBCKD	HC	BBFLSZ
+	SEG	A.DATA
+BBCKSV	HS	(2*2)*2
+BBCKLK	HC	0		:STACK PNTR
+	SEG	A.CODE
+  EI
+
+	EM
+
+   
