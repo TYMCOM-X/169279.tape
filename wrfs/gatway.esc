@@ -1,0 +1,405 @@
+
+INTERFACE: T-201 GATEWAY
+
+CUSTOMER NAME: TRW DATA-LINK
+
+NODES: ON TYMNET SIDE= ND4017 AND ND2504, ON TRW SIDE= 2016 AND 2017
+
+HOST: ND4017 KERNAL HOST 3747 AND ND2504 KERNAL HOST 387
+
+SLOT: ND4017 SLOT 1 AND ND2504 SLOT 3
+
+KERNAL HOST: ND4017 SLOT 1 KERNAL 632 AND ND2504 SLOT 3 KERNAL 633
+
+VERSION: ISIS 5.08 AND GATEWAY CODE 4.05 (RECENT BETATEST RELEASE)
+
+FILES: LOCATED ON SYSTEM 37 IN THE WRFS DIRECTORY.
+
+       ND4017              CKSUM            ND2504              CKSUM
+       -------------------------------      ----------------------------------
+       (WRFS)ND4017.T01    QONYON           (WRFS)ND2504.T03    KUGBEC
+       (WRFS)ND4017.C01    QURBOJ           (WRFS)ND2504.C03    TIZZIQ
+       (WRFS)ND4017.N01    CICWAB           (WRFS)ND2504.N03    GOLMAP
+       (WRFS)ND4017.ADT    LISTAX           (WRFS)ND2504.ADT    VUZBOD
+       (WRFS)RF4017.DM1    DOCPAG           (WRFS)RF2504.DM1    GEBJOF
+       
+PROBLEM DESCRIPTION: 
+
+TWO HUNG OR FROZEN GATEWAYS CONNECTING TRWNET AND TYMNET. 
+IT SHOULD BE NOTED THAT AT THIS TIME I DO NOT THINK IT LOOKS LIKE
+A SUPERVISOR PROBLEM, MORE SPECIFICALLY NOT A 2002 SUP PROBLEM.
+
+STEPS TAKEN TO RESOLVE PROBLEM:
+
+THE PROBLEM DESCRIBED HEREIN IS THE ONLY PROBLEM ACTUALLY SEEN BY
+MYSELF WHILE AT THE CUSTOMER SITE. A LITTLE BACKGROUND IS NEEDED
+TO CLARIFY THINGS. TRW HAS HAD SUP 2002 SLOT CORRUPTION PROBLEMS
+FOR SOME TIME, AND A RECENT RE-GEN OF THE BOX CORRECTED IT. SO IT
+LOOKED LIKE A GEN RELATED PROBLEM. SO TRW NEEDED TO VERIFY THE
+INTEGRITY OF 2002 BY CONTROLLING THE NET FOR TWO WEEKS. SO THEY
+SWAP TO SUP 2002, AND THEY EXPERIENCE SOME KIND OF PROBLEM WITH
+USERS GETTING THROUGH THIER GATEWAYS. THEY WERE UNCLEAR AS TO 
+WHERE THE USERS WERE COMING FROM AND GOING TO. WEDNESDAY 3/3 I
+WAS AT THE CUSTOMER SITE AND DID THE FOLLING :
+
+1) VERIFIED SUP 2001 IN CONTROL, ALL GATEWAY HOSTS UP AND ANSWERED
+   BOTH GATEWAYS WERE FUNCTIONING IN BOTH DIRECTIONS.
+2) SWAPPED TO 2002 IN CONTROL, ALL NODES TAKEN AND HOSTS FOR GATEWAY
+   UP AND EVERYBODY IS HAPPY.
+3) TRIED TO LOG INTO TRW-DATALINK FROM TYMNET AND GOT "INTERLINK 
+   ESTABLISHED FROM PUBLIC TYMNET TO TRWNET" AND THEN THE PLEASE
+   LOG IN WAS SENT TO MY TERMINAL FROM THE TRW SUP. 
+4) TRIED TO LOG INTO 20-20 IN TRWNET AND THERE WAS NO RESPONSE, THE 
+   GATEWAY OR THE PORT WAS FROZEN. (APEARED TO BE SAME BUG THAT 4.05 
+   BETATEST T-201 GATEWAY CODE RELEASE HAD CORRECTED)
+5) TRIED TO HALT AND RESTART FIRST GATEWAY SLOT IN PUBLIC TYMNET
+   NODE 4017 SLOT 1, BUT DIDNT CLEAR PROBLEM.
+6) TRIED A RELOAD OF SLOT AND PROBLEM CLEARED. TOOK IMMEDIATE DUMP OF
+   SECOND GATEWAY FROM PUBLIC TYMNET NODE 2504, SLOT 3.
+   RELOADED SECOND GATEWAY.
+7) BOTH GATEWAYS ACTIVE NOW ON 2002, SWAP BACK TO SUP 2001 AND SAME
+   EXACT PROBLEM OCCURS.
+8) TOOK IMMEDIATE DUMP OF ND4017, SLOT 1, AND THEN RELOADED BOTH SLOTS.
+   IM NOW BACK WERE I STARTED.
+
+
+
+
+
+RTC RESPONSIBLE: RONALD FOX (408)942-5351
+SALES REPRESENTATIVE: RUSTY HOGE (714)863-9350
+
+-TYP ND4017.ADT
+
+
+SYS
+TYMSHARE D37-P034/K-13 1-28-82
+-DATE
+MAR 29, 1985    13:11
+-TYP (WRFS)ND4017.T01
+
+:***********************************************************************
+:
+:            FILE:  GATEWAY - TYMNET I
+:   CUSTOMER NAME:  TRW
+:     NODE NUMBER:  4017
+:     KERNAL HOST:  3747
+:     SLOT NUMBER:  1
+: TRW NODE NUMBER:  536                           LOCATION:  NEWPORT BEACH, CA
+:        TRW HST0:  632
+:        TRW HST1:  82
+:         CIRCUIT:
+:         VERSION:  4.05
+:        INITIALS:  MICHELLE KLEIN                    DATE:  17-JUL-84
+:************************************************************************
+:>>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+: * CHANGED NUMWS8 FROM ZERO (0) TO ONE (1) ON 7/17/84 BY MSK
+: * UPDATED TO VERN. 4.05 TO CLEAR HUNG PORT PROBLEM.   REF  1-16-85
+: * CHANGED PASSTHROUGHS TO 0.  REF  3-28-85
+:************************************************************************
+:       STAND-ALONE ISIS-II - NODE DEFINITION PARAMETERS - R04.03
+
+:               NODE CONFIGURATION
+ENGINE  EQ      1               :1 IF ENGINE
+MICRO   EQ      2               :ASYNC &SYNC ENHANCED
+MACHNM  EQ      $8 536          :NODE NUMBER
+HST0    EQ      $A 632          :ISIS KERNEL HOST NUMBER
+HST1    EQ      $A 82           :HOST NUMBER ON <<OTHER>> NETWORK
+NLINES  EQ      1               :NUMBER OF LINES (FOR <<OTHER>> NETWORK)
+NUMWS8  EQ      1               :NUM OF  WINDOW SIZE 8 LINES (FOR <<OTHER>> NET
+NHPORT  EQ      $A 32           :NUMBER OF HOST PORTS
+PTHRU   EQ      0               :0 PERMITS PASSTHROUGHS, 1 INHIBITS THEM
+SPGLAS  EQ      0               :1 ENABLES TRANSPARENT LOGINS FROM SECONDARY
+                                :(GATEWAY SLOT) TO PRIMARY NET
+
+:               NETWORK CONFIGURATION (FOR <<OTHER>> NETWORK)
+        TYMNET(0,2016,3)
+
+
+
+
+:       DEFINE INTER-LINK DESCRIPTIONS
+NETNAME EQ      1
+P.NAME  MACRO[SC        /PUBLIC TYMNET/]
+S.NAME  MACRO[SC        /TRWNET/]
+        END
+
+-TYP (WRFS)ND4017.C01
+;;************************************************************************
+;;
+;;            FILE:  GATEWAY - TYMNET 1
+;;   CUSTOMER NAME:  TRW
+;;     NODE NUMBER:  4017
+;;     KERNEL HOST:  3747
+;;     SLOT NUMBER:  1
+;;        TRW HST0:  632                         LOCATION:  NEWPORT BEACH, CA
+;;        TRW HST1:  82
+;;         VERSION:  4.05
+;;        INITIALS:  MICHELLE KLEIN                  DATE:  17-JUL-84
+;;************************************************************************
+;;>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+;; * COPIED SOURCE CODE INTO WRFSCODE DIRECTORY AND MADE DIRECTORY 
+;;   CHANGES IN THIS FILE.  
+;; * UPDATED TO VERN. 4.05 TO CLEAR HUNG PORT PROBLEM.   REF   1-16-85
+;; * CHANGED (WRFSCODE) TO (BETATEST) CODE.  REF 3-29-85
+;;************************************************************************
+;;TRW GATEWAY HOST 632
+;@(BETATEST)I2G104.I05
+;@ND4017.T01
+;@(BETATEST)I2G104.R05
+;X(BETATEST)I2G104.P05
+1;FND4017.N01
+CTA,CTASIZ;PSEG0,S0SIZE;PSEG1,S1SIZE;P%P%Q
+
+-R NAD
+1.1
+;X   (WRFS)ND4017.C01
+
+;;************************************************************************
+;;
+;;            FILE:  GATEWAY - TYMNET 1
+;;   CUSTOMER NAME:  TRW
+;;     NODE NUMBER:  4017
+;;     KERNEL HOST:  3747
+;;     SLOT NUMBER:  1
+;;        TRW HST0:  632                         LOCATION:  NEWPORT BEACH, CA
+;;        TRW HST1:  82
+;;         VERSION:  4.05
+;;        INITIALS:  MICHELLE KLEIN                  DATE:  17-JUL-84
+;;************************************************************************
+;;>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+;; * COPIED SOURCE CODE INTO WRFSCODE DIRECTORY AND MADE DIRECTORY 
+;;   CHANGES IN THIS FILE.  
+;; * UPDATED TO VERN. 4.05 TO CLEAR HUNG PORT PROBLEM.   REF   1-16-85
+;; * CHANGED (WRFSCODE) TO (BETATEST) CODE.  REF 3-29-85
+;;************************************************************************
+;;TRW GATEWAY HOST 632
+;@   (BETATEST)I2G104.I05
+
+End of assembly
+;@   ND4017.T01
+
+End of assembly
+;@   (BETATEST)I2G104.R05
+
+NODE 0 14094
+STATUS 14094 1471F
+.............................................
+
+
+
+        ***  ISIS-II  ***
+    ISIS-II/TYMNET-I GATEWAY
+        Version 1704.5
+        SLOT host is 632
+        NODE host is 82 (32 ports)
+    node 536 has 1 sync line
+    enhanced sync microcode
+
+        Configuration:
+link 0  neighbor 2016, 3 group, --WS8--
+
+SEGMENT 0 - length 3825d, requires 3900x bytes of core.
+SEGMENT 1 - length 4720d, requires 4800x bytes of core.
+SEGMENT 2 - length 2FF4d, requires 3000x bytes of core.
+SEGMENT 0E - length 300d, requires 400x bytes of core.
+
+46d K-bytes of core
+
+
+.............................................
+
+  703d bufferlets allocated to node code
+End of assembly
+;X   (BETATEST)I2G104.P05
+
+;; THERE ARE NO PATCHES FOR I2G1 VERSION 04.05
+1;F   ND4017.N01
+
+CTA,CTASIZ;P
+SEG0,S0SIZE;P
+SEG1,S1SIZE;P
+%P
+%Q
+EXIT
+
+-DIR (WRFS)ND4017.#01
+
+ND4017  N01      19  29-MAR-85 1313    ALL RD  NO   29-MAR-85(A)
+ND4017  C01       2  29-MAR-85 1217    ALL RD  NO   29-MAR-85(A)
+ND4017  T01       2  28-MAR-85 1728    ALL RD  NO   29-MAR-85(A)
+
+-R CKSUM
+INPUT: (WRFS)ND4017.#01
+QONYON (WRFS)ND4017.T01
+QURBOJ (WRFS)ND4017.C01
+CICWAB (WRFS)ND4017.N01
+INPUT: 
+
+-
+-
+
+-TYP ND2504.ADT
+SYS
+TYMSHARE D37-P034/K-13 1-28-82
+-DATE
+APR 1, 1985     13:02
+-TYP (WRFS)ND2504.T03
+:******************************************************************************
+:
+:               FILE:  GATEWAY - TYMNET I
+:      CUSTOMER NAME:  TRW                      LOCATION:
+:        NODE NUMBER:  2504
+:        KERNAL HOST:  387
+:        SLOT NUMBER:  3
+:    TRW NODE NUMBER:  537
+:            TRWHST0:  633
+:            TRWHST1:  83
+:            VERSION:  4.05
+:           INITIALS:  REF                           DATE:  1-17-85
+:******************************************************************************
+:>>>>>>>>>>>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+: * UPDATED TO VERN. 4.05 TO CLEAR HUNG PORT PROBLEM.  REF  1-17-85
+: * ADDED NHPORTS  EQ 32 FOR REVERSE LOGON.  REF  3-28-85
+: * SET PTHRU TO 0 FOR PASSTHROUGHS.  REF  3-28-85
+:******************************************************************************
+:       STAND-ALONE ISIS-II - NODE DEFINITION PARAMETERS - R04.03
+
+:               NODE CONFIGURATION
+ENGINE  EQ      1               :1 IF ENGINE
+MICRO   EQ      2               :ASYNC &SYNC ENHANCED
+MACHNM  EQ      $8 537          :NODE NUMBER
+HST0    EQ      $A 633          :ISIS KERNEL HOST NUMBER
+HST1    EQ      $A 83           :HOST NUMBER ON <<OTHER>> NETWORK
+NLINES  EQ      1               :NUMBER OF LINES (FOR <<OTHER>> NETWORK)
+NUMWS8  EQ      1               :NUM OF WINDOW SIZE 8 LINES (FOR <<OTHER>> NET
+NHPORT  EQ      $A 32           :PERMITS REVERSE LOGONS THROUGH GATEWAY
+PTHRU   EQ      0               :0 PERMITS PASSTHROUGHS, 1 INHIBITS THEM
+SPGLAS  EQ      0               :1 ENABLES TRANSPARENT LOGINS FROM SECONDARY
+                                :(GATEWAY SLOT) TO PRIMARY NET
+
+
+:               NETWORK CONFIGURATION (FOR <<OTHER>> NETWORK)
+        TYMNET(0,2017,8)
+
+
+
+
+:       DEFINE INTER-LINK DESCRIPTIONS
+NETNAME EQ      1
+P.NAME  MACRO[SC        /PUBLIC TYMNET/]
+S.NAME  MACRO[SC        /TRWNET/]
+        END
+
+-TYP (WRFS)ND2504.C03
+;;*****************************************************************************
+;;
+;;              FILE: GATEWAY - TYMNET I
+;;     CUSTOMER NAME:  TRW                      LOCATION:  
+;;       NODE NUMBER:  2504
+;;       KERNAL HOST:  387
+;;       SLOT NUMBER:  3
+;;          TRW HST0:  633
+;;          TRW HST1:  83
+;;           VERSION:  4.05
+;;          INITIALS:  REF                         DATE:  1-17-85
+;;*****************************************************************************
+;;>>>>>>>>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+;;  * UPDATED TO VERN. 4.05 TO CLEAR HUNG PORT PROBLEM.  REF  1-17-85
+;;  * CHANGED THIS FILE TO REFERENCE (BETATEST) DIRECTORY.  REF  3-28-85
+;;*****************************************************************************
+;;TRW GATEWAY HOST 633
+;@(BETATEST)I2G104.I05
+;@ND2504.T03
+;@(BETATEST)I2G104.R05
+;X(BETATEST)I2G104.P05
+1;FND2504.N03
+CTA,CTASIZ;PSEG0,S0SIZE;PSEG1,S1SIZE;P%P%Q
+
+-R NAD
+1.1
+;X   (WRFS)ND2504.C03
+
+;;*****************************************************************************
+;;
+;;              FILE: GATEWAY - TYMNET I
+;;     CUSTOMER NAME:  TRW                      LOCATION:  
+;;       NODE NUMBER:  2504
+;;       KERNAL HOST:  387
+;;       SLOT NUMBER:  3
+;;          TRW HST0:  633
+;;          TRW HST1:  83
+;;           VERSION:  4.05
+;;          INITIALS:  REF                         DATE:  1-17-85
+;;*****************************************************************************
+;;>>>>>>>>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+;;  * UPDATED TO VERN. 4.05 TO CLEAR HUNG PORT PROBLEM.  REF  1-17-85
+;;  * CHANGED THIS FILE TO REFERENCE (BETATEST) DIRECTORY.  REF  3-28-85
+;;*****************************************************************************
+;;TRW GATEWAY HOST 633
+;@   (BETATEST)I2G104.I05
+
+End of assembly
+;@   ND2504.T03
+
+End of assembly
+;@   (BETATEST)I2G104.R05
+
+NODE 0 14094
+STATUS 14094 1471F
+.............................................
+
+
+
+        ***  ISIS-II  ***
+    ISIS-II/TYMNET-I GATEWAY
+        Version 1704.5
+        SLOT host is 633
+        NODE host is 83 (32 ports)
+    node 537 has 1 sync line
+    enhanced sync microcode
+
+        Configuration:
+link 0  neighbor 2017, 8 group, --WS8--
+
+SEGMENT 0 - length 398Dd, requires 3A00x bytes of core.
+SEGMENT 1 - length 4720d, requires 4800x bytes of core.
+SEGMENT 2 - length 33F4d, requires 3400x bytes of core.
+SEGMENT 0E - length 300d, requires 400x bytes of core.
+
+47d K-bytes of core
+
+
+.............................................
+
+  767d bufferlets allocated to node code
+End of assembly
+;X   (BETATEST)I2G104.P05
+
+;; THERE ARE NO PATCHES FOR I2G1 VERSION 04.05
+1;F   ND2504.N03
+
+CTA,CTASIZ;P
+SEG0,S0SIZE;P
+SEG1,S1SIZE;P
+%P
+%Q
+EXIT
+
+-DIR (WRFS)ND2504.#03
+
+ND2504  N03      19   1-APR-85 1304    ALL RD  NO    1-APR-85(A)
+ND2504  T03       2   1-APR-85 1259    ALL RD  NO    1-APR-85(A)
+ND2504  C03       2  28-MAR-85 1752    ALL RD  NO    1-APR-85(A)
+
+-R CKSUM
+INPUT: (WRFS)ND2504# .#03
+KUGBEC (WRFS)ND2504.T03
+TIZZIQ (WRFS)ND2504.C03
+GOLMAP (WRFS)ND2504.N03
+INPUT: 
+
+-
+-
+-
+    
