@@ -1,0 +1,150 @@
+        INTEGER IDATE,SM,SD,SY, LCV, TNUM, CCOD, PROD, NET(2)
+        INTEGER PCOUNT, FCOUNT, LCV1, SEV
+        INTEGER LABEL
+        REAL PELM, FELM, ELM, POFTIM, POFTOT, MTTR, TMPELM
+        DIMENSION PCOUNT (1/11), FCOUNT(1/11), LABEL(1/22)
+        DIMENSION PELM (1/11), FELM(1/11)
+        DATA LABEL / 'UNUSE','D    ','HARDW','ARE  ','SOFTW',
+     2   'ARE  ','OEM  ','     ','CUST.',' IND ','TELCO',
+     3   '     ','CONFI','G    ','POWER','     ','PROJE',
+     4   'CT   ','RELOA','D/NTF','TOTAL','     ' /
+
+C  START 1022
+
+        CALL DBSTRT(-1,1,-4,0,1,0,5,0,-1,0,-4,1,1,1,5,1)
+
+C GET DATE TO LOOK FOR AND CONVERT TO 1022 FORMAT
+
+        TYPE 20
+20      FORMAT(/5X,'ENTER YESTERDAY''S DATE (MM/DD/YY) :  ',$)
+        ACCEPT 21,SM,SD,SY
+21      FORMAT(I2,1X,I2,1X,I2)
+        SY=SY+1900
+        CALL DBDATN(IDATE,SM,SD,SY)
+        SY=SY-1900
+
+        TYPE 50,SM,SD,SY,IDATE
+50      FORMAT (/1X,'LOOKING FOR TICKETS FROM ',
+     2     I2,'/',I2,'/', I2, 1X, '1022 DATE = ', I5 )
+ 
+        DO 2000 SEV = 1,3
+        DO 60 LCV = 1,11
+           PCOUNT(LCV) = 0
+           FCOUNT(LCV) = 0
+           PELM(LCV) = 0.0
+           FELM(LCV) = 0.0
+60      CONTINUE
+
+        CALL DBERR($100,IERT,IERC,0)
+        GOTO 101
+100     IF (IERT.NE.7) GOTO 9000
+        TYPE 103
+103     FORMAT(/1X,'DATABASE BUSY, PLEASE WAIT.')
+        CALL WAIT(5.0)
+101     CALL DBOPEN('(TNT)BASE4')
+        IF ( SEV .LT. 3 ) GOTO 1021
+           CALL DBFIND('DUP','EQ',IDATE,'AND','HN','LT',5,
+     2     'AND','SVER','LT',3)
+1021    CONTINUE
+        IF ( SEV .EQ. 3 ) GOTO 1022
+           CALL DBFIND('DUP','EQ',IDATE,'AND','SVER','EQ',SEV,
+     2        'AND','HN','LE',4)
+1022    CONTINUE
+        CALL DBNREC(NUMBER)
+
+        DO 200 I=1,NUMBER
+           CALL DBGREC($9000,I)
+           CALL DBVAL(1,TNUM,54,ELM,'CCOD',CCOD,'NET',NET,'PROD',PROD)
+           IF (( NET(1) .EQ. 'FRAME' ) .OR. ( PROD .EQ. 'FRE' ))
+     2        GOTO 1000
+              DO 1100 LCV1 = 1,10
+                 IF (( CCOD .LT. (LCV1 * 10)) .AND.
+     2              ( CCOD .GE. ((LCV1-1) * 10 )))
+     3              PCOUNT(LCV1) = PCOUNT(LCV1) + 1
+                 IF (( CCOD .LT. (LCV1 * 10)) .AND.
+     2              ( CCOD .GE. ((LCV1-1) * 10 )))
+     3              PELM(LCV1) = PELM(LCV1) + ELM
+1100          CONTINUE
+              IF (CCOD .GT. 99) PCOUNT(10) = PCOUNT(10) + 1
+              IF (CCOD .GT. 99) PELM(10) = PELM(10) + ELM
+              PCOUNT(11) = PCOUNT(11) + 1
+              PELM(11) = PELM(11) + ELM
+           GOTO 200
+1000       CONTINUE
+              DO 1200 LCV1 = 1,10
+                 IF (( CCOD .LT. (LCV1 * 10)) .AND.
+     2              ( CCOD .GE. ((LCV1-1) * 10 )))
+     3              FCOUNT(LCV1) = FCOUNT(LCV1) + 1
+                 IF (( CCOD .LT. (LCV1 * 10)) .AND.
+     2              ( CCOD .GE. ((LCV1-1) * 10 )))
+     3              FELM(LCV1) = FELM(LCV1) + ELM
+1200          CONTINUE
+              IF (CCOD .GT. 99) FCOUNT(10) = FCOUNT(10) + 1
+              IF (CCOD .GT. 99) FELM(10) = FELM(10) + ELM
+              FCOUNT(11) = FCOUNT(11) + 1
+              FELM(11) = FELM(11) + ELM
+200     CONTINUE
+ 
+        IF ( SEV .EQ. 3 ) GOTO 205
+           TYPE 1345, SEV
+205     IF ( SEV .LT. 3 ) GOTO 210
+           TYPE 1343
+210     CONTINUE
+        TYPE 1350
+        TYPE 1360
+        TYPE 1320
+        DO 1300 LCV = 2,11
+         MTTR = 0.0
+         IF ( PCOUNT ( LCV ) .EQ. 0 ) GOTO 1330
+            MTTR = PELM(LCV) / FLOAT(PCOUNT(LCV))
+            MTTR = MTTR / 60.0
+1330     CONTINUE
+         TMPELM = PELM(LCV) / 60.0
+         POFTOT = 0.0
+         POFTIM = 0.0
+         IF ( FCOUNT (11) .EQ. 0 ) GOTO 1340
+            POFTOT = FLOAT(PCOUNT(LCV)) / FLOAT(PCOUNT(11)) * 100.0
+            POFTIM = PELM(LCV)/PELM(11) * 100.0
+1340     CONTINUE
+         IF ( LCV .EQ. 11 ) TYPE 1320
+         TYPE 1310, LABEL((2*LCV)-1),LABEL(2*LCV),
+     2      PCOUNT(LCV), TMPELM, MTTR, POFTOT, POFTIM
+1300    CONTINUE 
+
+        TYPE 1450
+        TYPE 1360
+        TYPE 1320
+        DO 1400 LCV = 2,11
+         MTTR = 0.0
+         IF ( FCOUNT ( LCV ) .EQ. 0 ) GOTO 1430
+            MTTR = FELM(LCV) / FLOAT(FCOUNT(LCV))
+            MTTR = MTTR / 60.0
+1430     CONTINUE
+         TMPELM = FELM(LCV) / 60.0
+         POFTOT = 0.0
+         POFTIM = 0.0
+         IF ( FCOUNT (11) .EQ. 0 ) GOTO 1440
+            POFTOT = FLOAT(FCOUNT(LCV)) / FLOAT(FCOUNT(11)) * 100.0
+            POFTIM = FELM(LCV)/FELM(11) * 100.0
+1440     CONTINUE
+         IF ( LCV .EQ. 11 ) TYPE 1320
+         TYPE 1310, LABEL((2*LCV)-1),LABEL(2*LCV),
+     2      FCOUNT(LCV), TMPELM, MTTR, POFTOT, POFTIM
+1400    CONTINUE 
+2000    CONTINUE
+
+1310    FORMAT (1X, 2(A5), 1X, I3, 4X, F8.2, 4X, F8.2, 4X, F8.2, 4X,
+     2     F8.2 )
+1320    FORMAT (1X, 75('-'))
+1343    FORMAT (1X, //, 1X, 'SEVERITY 1 & 2 COMBINED' )
+1345    FORMAT (1X,//,1X 'SEVERITY = ', I2)
+1350    FORMAT (1X,//,1X, 'DAILY PACKET STATISTICS' )
+1360    FORMAT (1X, 'CLOSED', 5X, 'TOTAL', 4X, 'TOTAL ELM', 4X,
+     2     'MTTR', 4X, '% OF VOLUME', 4X, '% OF TIME' )
+1450    FORMAT (1X,//,1X, 'DAILY FRAME STATISTICS' )
+1001    FORMAT ( 1X, I3, 1X, I8, 1X, I5 )
+9000    CONTINUE
+9990    CALL DBCLOSE
+        CALL DBEND
+        STOP
+        END
