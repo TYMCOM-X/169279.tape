@@ -1,0 +1,119 @@
+O (TNT)BASE4.
+DEFINE TEXT 2 DM$.
+DEFINE REAL STRT.
+DEFINE REAL STP.
+DEFINE REAL TOTPR.
+DEFINE REAL TPR15 TPR112 TPR124.
+DEFINE REAL MPR.
+DEFINE REAL TOTPR2.
+DEFINE REAL TPR152 TPR1122 TPR1242.
+DEFINE REAL MPR2.
+SET FMSG OFF.
+SET FERR OFF.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "Please Enter START Date (X22 Format) ".
+ACCEPT STRT.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "Please Enter STOP Date (X22 Format) ".
+ACCEPT STP.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+T "SWITCH PRINTER ON AND PRESS RETURN TO CONTINUE".
+ACCEPT DM$.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+DPL START.
+t "FAULTS CLOSED WITHIN DATE RANGE".
+T "REPORT NAME 'JOHN' - See Caroline Richards".
+T "SEVERITY I & II RESOLUTION TIMES".
+TYPE "=====================================================================".
+TYPE "   ".
+T "ASIA PACIFIC NMC (SEVERITY I)".
+F SVER 1 CDAT GE STRT AND LE STP HN 29.
+SAVE XXXXX.
+EV TOTPR EQ MAX SYSRECNO.
+EV MPR EQ MEAN ELM/60.
+TYPE "   ".
+TYPE "---------------------------------------------------------------------".
+TYPE "   ".
+TYPE "Mean ELM   --------------------------------> " MPR.
+TYPE "   ".
+GETREC RPR1 TOTPR/2.
+RPR1: TYPE "Median ELM --------------------------------> " ELM/60.
+TYPE "   ".
+TYPE "---------------------------------------------------------------------".
+TYPE "   ".
+F ELM LE 300 FILE XXXXX.
+EV TPR15 EQ MAX SYSRECNO.
+F ELM GT 300 AND LE 720 FILE XXXXX.
+EV TPR112 EQ MAX SYSRECNO.
+F ELM GT 720 AND LE 1440 FILE XXXXX.
+EV TPR124 EQ MAX SYSRECNO.
+TYPE "   ".
+TYPE "Total Tickets Found -----------------------> " TOTPR.
+TYPE "   ".
+T "% RESOLVED <= 5 HOURS --------------------> " (TPR15/TOTPR)*100 "%".
+TYPE "   ".
+T "% RESOLVED > 5 HOURS <= 12 HOURS ---------> " (TPR112/TOTPR)*100 "%".
+TYPE "   ".
+T "% RESOLVED > 12 HOURS <= 24 HOURS --------> " (TPR124/TOTPR)*100 "%".
+TYPE "   ".
+TYPE "   ".
+TYPE "   ".
+T "TICKET REPORTED   CLOSURE     ELAPSED  NETWORK    DEF NODE SLOT VER CLOSED-BY
+".
+F TNUM NE 0 FILE XXXXX.
+SORT COC.
+T TNUM RE COC ELM/60 NET V6 " " NODE " " SLOT VER CBY.
+TYPE "   ".
+TYPE "   ".
+TYPE "------------------".
+T "ASIA PACIFIC NMC (SEVERITY II)".
+TYPE "------------------".
+F SVER 2 CDAT GE STRT AND LE STP HN 29.
+SAVE YYYYY.
+EV TOTPR2 EQ MAX SYSRECNO.
+EV MPR2 EQ MEAN ELM/60.
+TYPE "   ".
+TYPE "---------------------------------------------------------------------".
+TYPE "   ".
+TYPE "Mean ELM   --------------------------------> " MPR2.
+TYPE "   ".
+GETREC RPR2 TOTPR2/2.
+RPR2: TYPE "Median ELM --------------------------------> " ELM/60.
+TYPE "   ".
+TYPE "---------------------------------------------------------------------".
+TYPE "   ".
+F ELM LE 300 FILE YYYYY.
+EV TPR152 EQ MAX SYSRECNO.
+F ELM GT 300 AND LE 720 FILE YYYYY.
+EV TPR1122 EQ MAX SYSRECNO.
+F ELM GT 720 AND LE 1440 FILE YYYYY.
+EV TPR1242 EQ MAX SYSRECNO.
+TYPE "   ".
+TYPE "Total Tickets Found -----------------------> " TOTPR2.
+TYPE "   ".
+T "% RESOLVED <= 5 HOURS --------------------> " (TPR152/TOTPR2)*100 "%".
+TYPE "   ".
+T "% RESOLVED > 5 HOURS <= 12 HOURS ---------> " (TPR1122/TOTPR2)*100 "%".
+TYPE "   ".
+T "% RESOLVED > 12 HOURS <= 24 HOURS --------> " (TPR1242/TOTPR2)*100 "%".
+TYPE "   ".
+TYPE "   ".
+TYPE "   ".
+T "TICKET REPORTED   CLOSURE     ELAPSED  NETWORK    DEF NODE SLOT VER CLOSED-BY
+".
+F TNUM NE 0 FILE YYYYY.
+SORT COC.
+T TNUM RE COC ELM/60 NET V6 " " NODE " " SLOT VER CBY.
+TYPE "   ".
+CLOSE.
+DPL END.
+QUIT.
+
