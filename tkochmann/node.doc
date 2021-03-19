@@ -1,0 +1,565 @@
+
+
+     
+     
+     
+                                               Network Node Troubleshooting
+
+
+
+                              .-----------------------.
+                              | INFORMATION GATHERING |
+                              `-----------------------`
+
+
+
+           A. About The Problem
+
+
+                - What is it, what are the symptoms?
+
+                - Who reported it?
+
+                - How critical is it?
+
+                - How long has it existed?
+
+                   Sources:  OPS, Network Control
+
+
+           B. About The Node
+
+
+                - What is the node number?
+
+                - Where is it located?
+
+                - Is it on the project list?
+
+                - What are its neighbors?
+
+                - Who is the customer contact?
+
+                - Site access information
+
+                   * Procedures
+
+                   * Site hours
+
+                   Sources:  MENTRY, TYMFILE, Network Profile Database
+
+
+
+
+
+
+
+
+
+
+                                         1 
+
+
+
+
+
+
+
+
+
+
+                                .------------------.
+                                |  REMOTE TESTING  |
+                                `------------------`
+
+
+
+           A.  Software Aids
+
+
+                1. TYMFILE
+
+                   - To log in:
+
+                      username:25 or 70;password
+
+
+                   - Check the hardware configuration:
+
+                      -typ (tymnet)nd####.tym  or
+
+                      -typ (tym4000)nd####.tym  (if node # is over 4000)
+
+
+                   - Pull neighbor's Tymfile to find its kernal host number
+                     for LOADII
+
+
+                2. DIRECTORY
+
+                   - To log in:
+
+                      username:25 or 70;password
+
+
+                   - Check the code; if new code is in node, compare
+                     Tymfile to old code Tymfile:
+
+                      -dir (tymnet)##node.*  or
+                      -dir (tym4000)##node.*  (if node # is over 4000)
+
+
+                3. PROBE (on neighbor found in Tymfile)
+
+                   - To log in:
+
+                      probe:*;password
+
+                      username:
+
+                      password:
+
+
+
+
+                                         2
+
+
+
+                                               Network Node Troubleshooting
+
+
+
+                   - Obtain the node status:
+
+                      :n ####
+
+
+                   - Obtain the line number for loading 
+                     and log information
+
+                      :rnode ####
+
+                      :synprt ####
+
+                      :log 60e
+
+
+                4. XRAY (on neighbor found in Tymfile)
+
+                   - To log in:
+
+                      xray:khost;password
+
+
+                   - Obtain the line number for loading:
+
+                      >nd
+
+
+                   - Obtain log information:
+
+                      >cl 60
+
+
+                5. DDT (node has to be up)
+
+                   - To log in:
+
+                      username:khost;password
+
+                      SLOT #: ! (puts you in slot ff)
+
+
+                   - Check for crash IDs:
+
+                      *r,6c,4 (should be 1300 or 144c for start of crash
+                      table)
+
+                      *r,1300 or 144c,100 (depends on start of crash
+                      tables)
+
+
+                   - Check for parity errors:
+
+                      *r,348,4
+
+
+                                         
+
+
+                                         3
+
+
+
+
+          Tymnet Network Field Engineering
+
+
+
+                6. LOADII
+
+                   - To log in:
+
+                      username:25 or 70;password
+
+                      -o rf
+
+                      -read file name
+
+                      -read file password
+
+
+                   - Dump and/or reload:
+
+                      -r loadii
+
+
+           B. Site Contact
+
+
+                1. Check for power outage at site
+
+                2. Check front console
+
+                   - Is console display halted?
+
+                   - Read console display
+
+
+                3. Boot the machine
+
+
+           C.  Decision Making
+
+
+                1. Turn over to:
+
+                   - CC if software problem
+
+                   - TELCO if line problem
+
+                   - NTS if problem had previously been escalated
+
+                   - Network control if down until morning
+
+
+                2. Dump and/or reload
+
+                3. Dispatch to site
+
+
+
+                                         4
+
+
+
+                                               Network Node Troubleshooting
+
+
+
+
+
+
+
+                                .-------------------.
+                                |  ON-SITE TESTING  |
+                                `-------------------`                
+
+
+     NOTE: (write down  all information)
+
+
+          A. Visual Check
+
+
+                1. Console display
+
+                2. Check LEDs
+
+                   - Microcode parity on ROM board
+
+                   - Power fail LED on multifunction board (left LED)
+
+                   - System clear LED on multifunction board (middle LED)
+
+                   - Double-bit parity LED on semi-memory board
+
+                   - Look at any LEDs on DMA boards
+
+
+                3. Check back plane for:
+
+                   - Burnt traces
+
+                   - Bent pins
+
+                   - Loose jumpers
+
+                   - Paddle board and terminator configuration
+
+
+                4. Check board configuration
+
+                   - Are boards in correct slots?
+
+                   - Is cabling to boards correct?
+
+                   - Are boards addressed properly?
+
+                   Reference: Maintenance Manual 1, Installation Section
+
+
+
+
+
+
+                                         
+
+
+                                         5
+
+
+          Tymnet Network Field Engineering
+
+
+
+
+
+          B. Console Tests
+
+
+                1. Hit PSW/write down console display (may contain ISIS
+                   halt display)
+
+                2. Read addresses 6C and 6E to find start of crash tables
+
+                   - 6C should be 0000 for plane 0; 6E should be 1300 or
+                     144C for the address on plane 0
+
+                   - If start address is 1300, check 1310 for crash ID:
+
+                      [DTA] [SET] [1310] [ADR] [RD]
+
+
+                   - If start address is 144C, check 145C for crash ID
+
+
+                3. Boot node
+
+                4. Hit PSW to halt boot
+
+                   - Console should indicate boot is running in last memory
+                     plane (far left nibble will display plane)
+
+
+                5. Check for parity error before and after writing to
+                   memory
+
+                   - Read addresses 348 and 34A with MAC off:
+
+                      [DTA] [SET] [DTA] [348] [ADR] [RD] [INC]
+
+
+                   The far right nibble of 348 will display the plane of
+                   the last parity error; 34A will show the address on that
+                   plane
+
+
+                6. Write and read memory
+
+                   - To write memory:
+
+                      [DTA] [SET] [DTA] [0] [ADR] [F] [F] [F] [F] [WRT]
+                      [INC] [RPT]
+
+                      (hold repeat through all memory addresses)
+
+
+                   - To read memory:
+
+                      [RD] [DEC] [RPT]
+
+
+
+                                         6 
+                                             NETWORK NODE TROUBLESHOOTING
+
+
+
+                   - Check to see if FFFF is written in all memory
+                     addresses in node, stop reading in plane 0
+
+
+                7. Check for parity error again
+
+                   - Addresses 348, 34A should contain 1st address of 1st
+                     plane out of core, i.e., readings for 1/2 MEG
+
+                   MAC I 348:0008      MAC II  348:7FC8
+                         34A:0000              34A:00##
+
+                    (disregard #'s in these locations for MAC II)
+
+
+                8. Do [RD] [INC] [RPT] and stop in plane 1
+
+                9. Check for parity again
+
+                   - Address 348 should now be plane F while 34A should
+                     contain address FFFE, unless a full MEG is in node
+                     then 348 and 34A should contain all zeros
+
+
+                10. Zero memory out with MAC off:
+
+                   [DTA] [SET] [DTA] [WRT] [INC] [RPT]
+
+                   (hold through all memory addresses)
+
+
+          C. Diagnostics
+
+
+                1. Run diagnostics if no solution can be found from console
+                   tests (use diagnostic manual for procedures)
+
+                2. Files are memory.nib, cpu.nib, mac.nib in ENGDIAG
+                   directory; they are to be run in that order 
+
+   
+          D. Board Testing
+
+
+                1. Using all information gathered up to this point, swap out
+                   the most likely bad board with a labled, known good board;
+                   if problem clears put back in original bd to verify problem   
+
+
+
+
+
+
+
+
+                                         7
+
+
+
+
+
+
+
+                 a. Tips
+                   1) parity error in addresses 348, 34A
+                      **********************************
+                      points toward bad mac board or towards bad memory
+                      board containing plane addressed in 348; can determine 
+                      which one by putting another memory bd in that plane,
+                      if parity clears because original memory bd is removed
+                      or if it follows original memory bd because bd is still
+                      in the node, then probably bad memory bd, but, if parity
+                      stays in the same plane then probably bad mac bd; other
+                      possible causes of a memory parity error would be 5 volt
+                      dc output being low or bad backplane terminaters.
+                      
+                   2) cannot use console at all
+                      *************************
+                     - check console cabling, (follow red stripe if console 
+                       plugs into rom i/o bd, reverse it if console plugs into
+                       mini's console or micro-engine)
+
+                     - swap these boards, one at a time, in this order with
+                       known good and labled bds: rom, cpu, mac
+
+                     - swap, one at a time, the console ribbon cable, the
+                       console power cable, the console itself
+
+                   3) will not boot
+                      *************
+                    - remove all bds not needed to run boot program
+                      (bds needed are cpu, rom, mac, multi-function
+                       and 64k of memory)              
+
+                    - using info from previous steps, swap out the most
+                      likely bd (one that is a common denominater to all
+                      symptons)
+
+                   4) 1E9DEAD on console
+                      ******************
+                   - check to see sync bd is installed in the right slot
+                     (use installation section of maint. manual)
+
+                   - swap out sync bd with known good one
+
+                   5) 60 DEAD on console
+                      ******************
+                   - reseat terminators and circuit bds
+        
+                   - check power supply dc outputs and cabling
+
+                   - swap, one at a time, memory bd, mac bd, multi-funcion bd
+                     (use other symtoms to determine which one first)
+
+
+
+                2. Reseat chips and boards, clear memory and reload node
+                   with replacement board in; wait 20 minutes before
+                   leaving the site and check software aids while waiting
+
+
+
+
+                                         8 
+
+
+
+          Tymnet Network Field Engineering
+
+
+
+                                   .-------------.
+                                   |  FOLLOW-UP  |
+                                   `-------------`
+
+
+
+             Trouble Status
+
+
+               A. Notify concerned parties (before leaving site)
+
+                   - Network Field Operations
+
+                   - Network Control
+
+                   - Site Contact
+
+
+               B. Do paperwork, i.e., ontyme message, MAR, vital
+
+               C. Check on node the following day using software aids
+                  ie. PROBE, XRAY, DDT
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                         9 
+ 
