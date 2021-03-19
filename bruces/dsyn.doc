@@ -1,0 +1,3945 @@
+                                                               February 28, 1986
+
+
+
+
+
+
+
+
+
+
+                                  Tymnet Engine
+
+                            Diagnostics User's Guide
+
+                         Enhanced Synchronous Diagnostic
+
+                                   Version 3.0
+
+
+
+
+
+
+
+
+                Diagnostic Unit, Network Systems and Architecture
+
+
+                                     TYMNET
+                         NETWORK TECHNOLOGY DEVELOPMENT
+                                February 28, 1986
+
+
+
+
+
+
+      ********************************************************************
+      ***                  PROPRIETARY INFORMATION                     ***
+      ***                                                              ***
+      ***  TYMNET,  Inc.'s  proprietary  rights are included  in the   ***
+      ***  information disclosed herein.  The recipient, by receiving  ***
+      ***  this document,  agrees that neither this document nor  the  ***
+      ***  information disclosed herein nor any part thereof shall be  ***
+      ***  reproduced  or  transferred to other documents or used  or  ***
+      ***  disclosed  to  others for manufacturing or for  any  other  ***
+      ***  purpose  except as specifically authorized in  writing  by  ***
+      ***  TYMNET, Inc.                                                ***
+      ********************************************************************
+
+
+
+
+    Copyright 1986 by Tymnet -- The McDonnell Douglas Network Systems Company
+
+
+                   Enhanced Synchronous Diagnostic User Guide             DSYN03
+                                                               February 28, 1986
+
+
+
+
+
+
+
+                               TABLE OF CONTENTS
+
+Section                                                                     Page
+
+
+
+1.   OVERVIEW                                                                  1
+
+
+2.   APPLICABLE DOCUMENTS                                                      3
+
+
+3.   DEDICATED MEMORY ALLOCATIONS                                              4
+
+
+4.   EQUIPMENT                                                                 5
+  4.1   Loopback Plugs - Engine and Mini-Engine                                5
+  4.2   Loopback Plugs - Micro-Engine                                          6
+
+
+5.   CONFIGURATION CONSTRAINTS                                                12
+
+
+6.   LOADING PROCEDURES                                                       15
+
+
+7.   OPERATING PROCEDURES                                                     17
+  7.1   Preliminary Procedure                                                 17
+  7.2   Start Procedure                                                       18
+  7.3   Testing Procedure                                                     19
+     7.3.1    Default Tests                                                   20
+     7.3.2    Non-default Tests                                               23
+     7.3.3    Testing Individual Ports                                        24
+
+
+8.   COMMAND DESCRIPTIONS                                                     26
+  8.1   Operating Commands                                                    27
+     8.1.1    Run                                                             27
+     8.1.2    Cancel Command Entry                                            28
+     8.1.3    Abort Testing                                                   28
+     8.1.4    Set Loop Count                                                  29
+     8.1.5    Halt on Error                                                   30
+     8.1.6    No Halt on Error                                                30
+
+  8.2   Option Commands                                                       30
+     8.2.1    Help                                                            31
+     8.2.2    Print Options                                                   31
+     8.2.3    No Options                                                      31
+
+                   Enhanced Synchronous Diagnostic User Guide             DSYN03
+                                                               February 28, 1986
+
+
+  8.3   Line Commands                                                         32
+     8.3.1    Add a Line                                                      32
+     8.3.2    Delete a Line                                                   33
+
+  8.4   Terminal Message Commands                                             33
+     8.4.1    No Message                                                      34
+     8.4.2    Error Message                                                   34
+     8.4.3    Message                                                         34
+     8.4.4    Dump                                                            35
+     8.4.5    No Dump|                                                        35
+
+  8.5   Memory Location Commands                                              35
+     8.5.1    Bias                                                            36
+     8.5.2    Examine Memory                                                  36
+     8.5.3    Modify Memory                                                   37
+
+
+9.   TEST DESCRIPTIONS                                                        38
+  9.1   Test 1                                                                39
+  9.2   Test 2                                                                40
+  9.3   Test 3                                                                40
+  9.4   Test 4                                                                41
+  9.5   Test 5                                                                41
+  9.6   Test 6                                                                42
+  9.7   Test 7                                                                43
+  9.8   Test 8                                                                43
+  9.9   Test 9                                                                45
+  9.10  Test 10                                                               45
+
+
+10.  ERROR DESCRIPTIONS                                                       46
+  10.1  Unexpected System Errors                                              47
+  10.2  Test 1                                                                47
+  10.3  Test 2                                                                48
+  10.4  Test 3                                                                49
+  10.5  Test 4                                                                49
+  10.6  Test 5                                                                50
+  10.7  Test 6                                                                53
+  10.8  Test 7                                                                54
+  10.9  Test 8                                                                55
+  10.10 Test 9                                                                55
+  10.11 Test 10                                                               56
+
+
+11.  DATA PATTERNS                                                            57
+  11.1  Test 1                                                                57
+  11.2  Test 2                                                                57
+  11.3  Test 3                                                                57
+  11.4  Test 4                                                                58
+  11.5  Test 5                                                                58
+  11.6  Test 6                                                                58
+  11.7  Test 7                                                                59
+  11.8  Test 8                                                                59
+
+                   Enhanced Synchronous Diagnostic User Guide             DSYN03
+                                                               February 28, 1986
+
+
+  11.9  Test 9                                                                59
+  11.10 Test 10                                                               60
+
+
+                             APPENDICES
+                             ==========
+
+
+I.   COMMAND SUMMARY                                                          62
+
+
+II.  TEST PLUG ORDERING CHART                                                 64
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                   Enhanced Synchronous Diagnostic User Guide             DSYN03
+OVERVIEW                                                       February 28, 1986
+
+
+
+
+
+
+                                 1 -  OVERVIEW
+
+
+            This diagnostic comprehensively examines the synchronous inter-
+            face board(s) of an Engine  or Mini-Engine using the unenhanced
+            Input/Output (I/O) and enhanced interrupt-handling capabilities
+            of each machine.  It checks the equivalent synchronous logic on
+            the I/O board  of the Micro-Engine  and verifies  enhanced syn-
+            chronous  interrupt handling  in  the  Central Processing  Unit
+            (CPU) of  all three machines.  However,  it does not  check the
+            special enhanced synchronous CPU instructions.
+
+            The Enhanced  Synchronous Diagnostic  can serve  to verify  the
+            working  condition of  the hardware  under  test or  to aid  in
+            troubleshooting hardware problems.
+
+            The operating procedure  requires both a display  console and a
+            terminal for input of commands and  control functions, and out-
+            put of messages.  The commands  allow the operator considerable
+            flexibility in controlling the diagnostic, including the selec-
+            tion  of tests  and  test iterations,  selection  of data,  and
+            selection of synchronous lines to be tested.  Terminal messages
+            provide error codes, data, and information relating to the sta-
+            tus of  the diagnostic.   In some  cases, the  messages provide
+            extensive additional information when errors are encountered.
+
+            The  diagnostic performs  ten  individual  tests, as  shown  in
+            Table 1-1.  Within specified limits, each  test can be selected
+            and  run individually.   Tests  1, 2, 5, 6, and 7 comprise  the
+            default test group,  which, when run  together, perform  a com-
+            plete verification of  the  enhanced  capabilities of the hard-
+            ware.  To  verify  unenhanced synchronous features, Tests 3 and
+            4 must be run following the  execution of Tests 1 and 2.  Tests
+            8, 9, and 10 are intended for use as scope loops.
+
+            Throughout this chapter, the terms "line pair" and "synchronous
+            line" are  used synonymously  to refer  to the  clocked receive
+            data  and transmit  data lines  associated  with an  individual
+            port.   The term  "line" refers  to a  specific transmit  line,
+            receive  line, or  control  line, each  having  its own  device
+            address.  For  testing purposes, the two  lines of a  line pair
+            are  connected together  through a  loopback plug.   Individual
+            lines can  be added  to or deleted  from testing  by specifying
+            their respective device  addresses as parameters in  the appro-
+            priate command.
+
+
+
+
+
+1                  Enhanced Synchronous Diagnostic User Guide             DSYN03
+OVERVIEW                                                       February 28, 1986
+
+
+                        Table 1-1.  Individual Diagnostic Tests
+                        _____ ___   __________ __________ _____
+
+                 Number         Test Name
+                 ______         _________
+
+                   1      Miscellaneous Test
+
+                   2      Line Presence Test
+
+                   3      Unenhanced Alternating Data Test
+
+                   4      Unenhanced Incrementing/Decrementing Data Test
+
+                   5      Enhanced Buffer Test
+
+                   6      Enhanced Alternating Data Test
+
+                   7      Enhanced Incrementing/Decrementing Data Test
+
+                   8      Unenhanced Selectable Data Test
+
+                   9      Enhanced Selectable Data Test
+
+                  10      Control Line Selectable Data Test
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2                  Enhanced Synchronous Diagnostic User Guide             DSYN03
+APPLICABLE DOCUMENTS                                           February 28, 1986
+
+
+
+
+
+
+                           2 -  APPLICABLE DOCUMENTS
+
+
+
+            The user may find it useful to refer to the following documents
+            when running this diagnostic:
+
+                 Diagnostics User's Guide - Introduction
+                 ___________ ______ _____
+
+                 Engine Maintenance Manual - Functional Description,
+                 ______ ___________ ______
+                                             Synchronous I/O Board
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3                  Enhanced Synchronous Diagnostic User Guide             DSYN03
+DEDICATED MEMORY ALLOCATIONS                                   February 28, 1986
+
+
+
+
+
+
+                       3 -  DEDICATED MEMORY ALLOCATIONS
+
+
+
+            This diagnostic  uses the  following  dedicated memory  alloca-
+            tions:
+
+                 A00 - Diagnostic start address
+
+                 A08 - Terminal Read Command (RCMD)
+
+                 A0A - Terminal Write Command (WCMD)
+
+                 A10 - Device Address of the Terminal (ADDR)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+4                  Enhanced Synchronous Diagnostic User Guide             DSYN03
+EQUIPMENT                                                      February 28, 1986
+
+
+
+
+
+
+                                 4 -  EQUIPMENT
+
+
+
+            This diagnostic requires the following equipment:
+
+              o  Engine display console
+
+              o  terminal (a hard-copy terminal is recommended)
+
+              o  synchronous interface board(s) (Engine or Mini-Engine)
+
+              o  64K bytes of memory (minimum)
+
+              o  test (loopback) plugs
+
+                                         NOTE
+                                         ____
+                 When ordering loopback plugs  from Tymnet Manufactur-
+                 ing or  from World-Wide Parts,  see Appendix  II, Test
+                 Plug Ordering Chart.
+
+
+
+
+
+
+
+                  4.1  Loopback Plugs - Engine and Mini-Engine
+
+
+            Two types of loopback plugs are available:
+
+              o  P/N 630009-001 (AST 5-1)
+
+              o  P/N 160100-001 (AST 7-1)
+
+            The first type, test plug set  P/N 630009-001, AST 5-1, is con-
+            nected directly to  the Synchronous I/O board.   This test plug
+            set consists of four synchronous  test plugs for connectors X4,
+            X6, X7, and X9 and four clock  plugs for connectors X3, X5, X8,
+            and X10, all of which are located on the front edge of the Syn-
+            chronous I/O board  (see Figures 4-1 and 4-4).   When this type
+            of loopback plug is  used, the diagnostic checks  only the Syn-
+            chronous I/O board(s).
+
+            The second type, test plug set P/N 160100-001, AST 7-1, is con-
+            nected at  the connector panel of  the machine under  test (see
+            Figures 4-2 and  4-5).  This set consists of  four 37-pin plugs
+
+5                  Enhanced Synchronous Diagnostic User Guide             DSYN03
+EQUIPMENT                                                      February 28, 1986
+
+
+            for the  synchronous connectors, together  with the  four clock
+            plugs (from AST 5-1) for connectors X3,  X5, X8, and X10 on the
+            Engine Synchronous  I/O board.   This second  type of  loopback
+            plug  permits  the  diagnostic to  check  the  Synchronous  I/O
+            board(s), the connector panel, and the board-to-panel cabling.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                       4.2  Loopback Plugs - Micro-Engine
+
+
+            The Micro-Engine requires the  following special loopback plugs
+            (see Figures 4-3 and 4-6):
+
+              o  P/N 630030-001 (1 plug each for ports 2, 3, 6, and 7)
+
+              o  P/N 630025-001 (1 plug, ports 10, 11, 14, and 15)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6                  Enhanced Synchronous Diagnostic User Guide             DSYN03
+EQUIPMENT                                                      February 28, 1986
+
+
+               (Figure 4-1 is available only in the published document.)
+                 Figure 4-1.  Loopback Plugs, P/N 630009-001 (AST 5-1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+7                  Enhanced Synchronous Diagnostic User Guide             DSYN03
+EQUIPMENT                                                      February 28, 1986
+
+
+               (Figure 4-2 is available only in the published document.)
+                 Figure 4-2.  Loopback Plugs, P/N 160100-001 (AST 7-1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+8                  Enhanced Synchronous Diagnostic User Guide             DSYN03
+EQUIPMENT                                                      February 28, 1986
+
+
+               (Figure 4-3 is available only in the published document.)
+                       Figure 4-3.  Loopback Plugs, Micro-Engine
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+9                  Enhanced Synchronous Diagnostic User Guide             DSYN03
+EQUIPMENT                                                 February 28, 1986
+
+
+               (Figure 4-4 is available only in the published document.)
+                     Figure 4-4.  Synchronous I/O Board Connectors
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+10                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+EQUIPMENT                                                      February 28, 1986
+
+
+               (Figure 4-5 is available only in the published document.)
+                    Figure 4-5.  Engine/Mini-Engine Connector Panel
+
+
+
+
+
+
+
+               (Figure 4-6 is available only in the published document.)
+                         Figure 4-6.  Micro-Engine Rear Panel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+11                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+CONFIGURATION CONSTRAINTS                                      February 28, 1986
+
+
+
+
+
+
+                         5 -  CONFIGURATION CONSTRAINTS
+
+
+            Both a terminal and a display  console must be connected to the
+            machine under  test.  Proper connections  for a terminal  and a
+            console are described in Diagnostics Introduction.
+
+            Except for the synchronous I/O circuitry  under test, the hard-
+            ware must  be in known  working order.   If there is  any doubt
+            regarding the condition of the hardware, run the Memory and CPU
+            diagnostics first.
+
+            A complete set  of test (loopback) plugs must  be connected for
+            each Synchronous I/O board in  an Engine or Mini-Engine system,
+            or for all  available synchronous lines on  a Micro-Engine.  If
+            these plugs are not connected, errors will occur in all tests.
+
+            A clock must be provided for  each synchronous line under test.
+
+            For an Engine or Mini-Engine, this  is accomplished by means of
+            the four clock  plugs in the loopback plug  set P/N 630009-001.
+
+            For a Micro-Engine, appropriate jumpers must  be set at J-14 of
+            the I/O board (see Figure 6-1).
+
+            All synchronous  lines on a Micro-Engine  may be set  for 19.2K
+            baud clocks, or slower, without  causing false errors to occur.
+
+            However, on an  Engine or a Mini-Engine, the  higher baud rates
+            restrict the number of synchronous lines  that can be tested at
+            one time without overloading the CPU.  Table 5-1 shows the max-
+            imum number  of lines which the  diagnostic is able to  test at
+            each baud rate.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+12                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+CONFIGURATION CONSTRAINTS                                      February 28, 1986
+
+
+                            Table 5-1.  Clock Restrictions
+                            ------------------------------
+
+                                          Maximum Number of Lines
+                                          ------------------------
+                 Clock Rate                   Engine     Micro
+                 ----------                   -------    ------
+
+                    4800                        64         8
+
+                    9600                        32         8
+
+                    *19.2K                      24         8
+
+                 *(19.2K clocks are an available  strap option only on
+                 Revision H  (ECO 82-83)  and subsequent  revisions of
+                 the Engine Synchronous I/O  Board: Option 1 (normal),
+                 2D and 1D = 4.8  KHz and  9.6 KHz;  Option 2, 2D  and
+                 3D = 9.6 KHz and 19.2 KHz.)
+
+
+                                         NOTE
+                                         ____
+
+                 When running the diagnostic on  an Engine or Mini-En-
+                 gine at 19.2K baud, all  synchronous lines except the
+                 line(s)  under  test  must be  deleted  from  testing
+                                       ____
+                 (see Section 7.3.3, Testing Individual Ports).
+
+
+
+                                        NOTE
+                                        ____
+
+            When testing an Engine or  Mini-Engine at 9600 baud with two
+            Synchronous I/O boards  present in the system, do one of the
+            following:
+                                             ___
+              1. Connect loopback plugs to both Synchronous I/O boards
+                 and set all clocks  to  9600 baud.  Run  Test 1,  and
+                 then  use  the   Delete  command (DEL [xx,yy],...) to
+                 delete from testing all lines  on the second Synchro-
+                 nous  I/O   board.   Remove  all clock plugs from the
+                 second   board.   Then  run  Test  2  and  any  other
+                 desired tests.  After verifying  the operation of the
+                 first Synchronous  I/O board, reverse  the procedure,
+                 using the  Delete command  and the  Add command  (ADD
+                 [xx,yy],...) to  specify the synchronous lines  to be
+                 tested on the second board.  Remove all  clock  plugs
+                 in the first  board and  plug  them  into  the second
+                 board.
+
+
+13                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+CONFIGURATION CONSTRAINTS                                      February 28, 1986
+
+
+              2. If two sets of loopback plugs are not available, con-
+                 nect one  set of plugs  to the first  Synchronous I/O
+                 board, remove the  second board from the  system, and
+                 run  the  desired  tests.  Then  install  the  second
+                 board, connect  the loopback  plugs, and  restart the
+                 diagnostic.   After running  Test 1,  use the  Delete
+                 command (DEL [xx,yy],...) to delete  all lines on the
+                 first board.  Then  run Test 2 and  the other desired
+                 tests.
+
+                                         NOTE
+                                         ____
+
+                 The diagnostic can  be used  to check two Synchronous
+                 I/O boards at the same time only  if all  clocks  are
+                 set to 4800 baud (situation 1 above).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+14                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+LOADING PROCEDURES                                             February 28, 1986
+
+
+
+
+
+
+                            6 -  LOADING PROCEDURES
+
+
+            The  Enhanced Synchronous  Diagnostic can  be  loaded into  the
+            machine under test  using any one of the  four standard loading
+            procedures described in Diagnostics Introduction.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+15                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+LOADING PROCEDURES                                             February 28, 1986
+
+
+               (Figure 6-1 is available only in the published document.)
+                       Figure 6-1.  J-14, Micro-Engine I/O Board
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+16                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+OPERATING PROCEDURES                                           February 28, 1986
+
+
+
+
+
+
+                           7 -  OPERATING PROCEDURES
+
+
+            This  section  covers  only  the  basic  operating  procedures.
+            Because of the extensive flexibility  available to the operator
+            in running this diagnostic, this section should be read in con-
+            junction with  Sections 8 and 9  before attempting to  load and
+            run the program.
+
+            The use  of both an  Engine display  console and a  terminal is
+            required.   The terminal  must  be  connected to  the  terminal
+            interface  port on  the  Multifunction board  of  an Engine  or
+            Mini-Engine, or to the Multifunction  port (labeled MULTIFN) on
+            the rear panel of a Micro-Engine.
+
+
+                                         NOTE
+                                         ____
+                 The setting of the baud-rate  selector switch for the
+                 terminal interface (SWT-9 on the Engine Multifunction
+                 board or S-2 on the Micro-Engine I/O board) must cor-
+                 respond to the terminal baud rate.
+
+
+
+
+
+
+
+                           7.1  Preliminary Procedure
+
+
+            The following preliminary steps must  be taken prior to running
+            the diagnostic.
+
+              1. Connect a  terminal to the  machine under  test.  Set
+                 the baud-rate selector switch for the terminal inter-
+                 face to match the terminal baud rate.
+
+              2. If  the machine  under  test is  a  Mini-Engine or  a
+                 Micro-Engine, connect  an Engine  display console  as
+                 described in the Diagnostics Introduction.
+                                  ________________________
+
+              3. Load the  diagnostic by one  of the  standard methods
+                 described in the Diagnostics Introduction.
+                                  ________________________
+
+              4. Connect the appropriate set of  loopback plugs to the
+
+17                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+OPERATING PROCEDURES                                           February 28, 1986
+
+
+                 machine under test, after  first checking that cables
+                                     _____
+                 are labeled to facilitate easy reconnection.
+
+              5. If the machine  under test is a  Micro-Engine, ensure
+                 that the  necessary clock  for each  synchronous line
+                 under test is  provided by means of a  jumper at J-14
+                 on the I/O board (see Figure 6-1).
+
+
+
+
+
+
+
+
+
+                              7.2  Start Procedure
+
+
+            Unless a  downline load was  performed using LOADII,  start the
+            diagnostic by pressing the  following keys on the  display con-
+            sole:
+
+                 DTA, A, 0, 0, ADR, RUN
+
+            The program will  initialize itself and determine  what type of
+            Engine system  it is  running in.   (The program  distinguishes
+            between only  two system  types: REGULAR  ENGINE and  MICRO.  A
+            "regular engine"  will be  reported for either  an Engine  or a
+            Mini-Engine; a "micro engine" will be  reported for a Micro-En-
+            gine.  If the  program finds a "regular engine,"  it checks for
+            the number  of Synchronous  I/O boards  present.)  The  program
+            then  displays a  message on  the terminal,  consisting of  the
+            diagnostic title,  engine type  determined, and  the diagnostic
+            prompt (*).  The prompt indicates that  the program is ready to
+            accept commands.
+
+            Example:
+
+                 ENHANCED SYNC DIAGNOSTIC   VERSION 3.0
+                 SYSTEM TYPE FOUND = REGULAR ENGINE
+                 *
+
+            If LOADII was  used to load the  program, and if a  terminal is
+            attached to the  terminal interface,  the diagnostic  will ini-
+            tialize itself automatically after loading.  It will then check
+            for the system type and display the title message and a prompt.
+
+            If a terminal is not attached,  however, and LOADII was used to
+            load the program,  the diagnostic will hang,  waiting for input
+            from a terminal.   Once a terminal is  attached, the diagnostic
+            can be  started by  entering the normal  start sequence  on the
+
+18                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+OPERATING PROCEDURES                                           February 28, 1986
+
+
+            console:
+
+                 DTA, A, 0, 0, ADR, RUN
+
+
+
+                                         NOTE
+                                         ____
+                 The program checks three  hardware items to determine
+                 what system  type ("regular" Engine  or Micro-Engine)
+                 it is running in:  the  primary ac voltage level, the
+                 type of  Memory Access Controller (MAC)  present, and
+                 the number  of synchronous  l ines  present.  When  a
+                 hardware malfunction produces  incompatible responses
+                 for one  or more of  these items, the  message SYSTEM
+                 TYPE  FOUND = UNKNOWN!!!  will  be  displayed on  the
+                 terminal.  As  far as  this diagnostic  is concerned,
+                 this message can be ignored when it occurs in testing
+                 an Engine or Mini-Engine.  If  it occurs in testing a
+                 Micro-Engine, however,  the ADD command must  be used
+                 to specify every line pair that is to be tested.  The
+                 ADD command  must be  entered after  Test 1  has been
+                                               _____
+                 run, but before  Test 2 and any other  tests are run;
+                          ______
+                 otherwise, no lines will be tested.
+
+
+
+
+
+
+
+
+                             7.3  Testing Procedure
+
+
+            When the diagnostic prompt is  displayed, the command processor
+            is ready  to accept  commands and  cause the  program to  begin
+            testing.  Upon completing a function, test, or series of tests,
+            the program  returns to the  command processor and  prompts for
+            further commands.
+
+            The testing procedure  can be varied by  the operator according
+            to the requirements of a given testing situation.  For example,
+            if only  routine verification  of the  hardware is  needed, the
+            default   test  group  (Tests 1, 2, 5, 6, 7) can be executed by
+            entering  the  RUN command on  the terminal.  The default  test
+            group performs a complete verification of  the hardware without
+            operator  intervention,  and the enhanced synchronous microcode
+            is enabled in the  Program  Status  Word (PSW).  To perform the
+            same  verification  with  unenhanced  synchronous   interrupts,
+            Tests 1, 2, 3,  and 4  can  be selected  using the RUN command.
+
+19                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+OPERATING PROCEDURES                                           February 28, 1986
+
+
+            There  is  a   useful  command  "RUN MOST"  for   running  both
+            enhanced   and  unenhanced  Tests  (1-7)  to perform a complete
+            verification.
+
+            To troubleshoot a suspected problem associated with an individ-
+            ual port, the  Delete Lines command (DEL)  can be used  in con-
+            junction with the  Add Lines command (ADD) to  isolate and test
+            only the synchronous line pair for  that port.  If a problem is
+            intermittent, a large number  of test iterations can  be speci-
+            fied by using the Set Loop Count command (LOP).
+
+
+
+                                         NOTE
+                                         ____
+                 When either  the Halt on  Error command (HLT)  or the
+                 Set Loop Count command (LOP)  is enabled, the program
+                 may not  return to  the command  processor.  In  this
+                 case,  the   diagnostic  must  be  halted   and  then
+                 restarted from the console at address A00.
+
+
+
+            If an error is detected during testing, the program displays an
+            error message on the terminal.  Five different terminal message
+            commands are  available which either  increase or  decrease the
+            amount of  information that will  be displayed on  the terminal
+            (see Table 7-1).
+
+            If a Synchronous I/O  board is installed or  removed, the diag-
+            nostic should be  restarted from the console  at memory address
+            A00; otherwise, false errors may be reported.
+
+
+
+
+
+
+            7.3.1  Default Tests
+
+            The default test group (Tests 1, 2, 5, 6, 7) can be executed by
+            entering this command on the terminal (in either upper or lower
+            case):
+
+                 RUN<CR>
+
+            The program will  then  execute  Tests 1,  2,  5,  6,  and 7 in
+            numerical order.
+
+            With the Message  Command (MSG) enabled (the  default condition
+            of the program) the following  information will be displayed on
+            the terminal as each test is executed:
+
+
+20                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+OPERATING PROCEDURES                                           February 28, 1986
+
+
+              o  test number
+
+              o  data concerning  the test (as  indicated in  the test
+                 description)
+
+              o  error codes and  device lines relating to  any errors
+                 found during testing
+
+              o  end-of-test message with pass count and error count
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+21                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+OPERATING PROCEDURES                                           February 28, 1986
+
+
+               (Table 7-1 is available only in the published document.)
+                                Table 7-1.  Addressing
+                                _____ ___   __________
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+22                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+OPERATING PROCEDURES                                           February 28, 1986
+
+
+            The approximate time required to run  the  default  test  group
+            with 300 baud terminal is as follows:
+
+            Engine or Mini-Engine
+            _____________________
+
+                 32 lines, 4800 baud - 14.5 minutes
+
+                 32 lines, 9600 baud - 11.0 minutes
+
+                 24 lines, 19.2K baud - 7.0  minutes
+
+
+            Micro-Engine
+            ____________
+
+                 16 lines, 4800 baud - 10.8 minutes
+
+                 16 lines, 9600 baud -  7.7 minutes
+
+                 16 lines, 19.2K baud - 5.8 minutes
+
+                  8 lines, 4800 baud -  9.5 minutes
+
+                  8 lines, 9600 baud -  6.0 minutes
+
+                  8 lines, 19.2K baud - 4.5 minutes
+
+
+            Note that each sync mother board has 32 lines.
+
+
+
+
+
+
+            7.3.2  Non-default Tests
+
+            If tests other than, or in  addition to, the default test group
+            are to be run, the appropriate  test numbers must be entered as
+            parameters in the RUN command string.
+
+            Example:
+
+                 RUN 1,2,3,4<CR>
+
+            Whenever test numbers  are included in the  RUN command string,
+            only the  specified tests  will be  run.  Test  numbers may  be
+            entered in any  order, but tests will be  executed in numerical
+            order.
+
+            In order to execute Tests 3 through 7, the program uses some of
+            the results of Tests  1 and 2.  For this reason,  Tests 1 and 2
+
+23                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+OPERATING PROCEDURES                                           February 28, 1986
+
+
+            must always  be run  whenever one  of the  following conditions
+            prevails:
+
+              o  Any of  Tests 3  through 7  are to  be run  after the
+                 diagnostic  has been  started or  restarted from  the
+                 console.
+
+              o  The No Options command (NOOPT) has been entered.
+
+              o  One or  more loopback  plugs have  been installed  or
+                 removed.
+
+                                         NOTE
+                                         ____
+                 If Tests 1 and 2 are not  run in each of these cases,
+                 the diagnostic may report false  errors and/or incor-
+                 rect results.
+
+
+
+
+
+
+
+            7.3.3  Testing Individual Ports
+
+            Each synchronous port can be  isolated and tested individually,
+            as, for example, when testing two  19.2K baud lines.  To verify
+            the hardware  with respect to  only one  port, or a  few ports,
+            perform the following procedure.
+
+              1. With  loopback plugs  installed to  the tested  ports
+                 (all loopback plugs of untested ports should be  dis-
+                 connected),  start  or  restart  the   diagnostic  by
+                 entering  the  start  command sequence on the  system
+                 console:
+
+                     DTA, A, 0, 0, ADR, RUN
+
+              2. Delete all lines by entering:
+
+                     DEL<CR>
+
+              3. At the prompt (*) enter:
+
+                     ADD xx,yy,bf
+
+                 where xx and yy correspond to the device addresses of
+                 the synchronous line pair(s) to  be tested, and bf is
+                 the  synchronous  status/control  line  address  (see
+                 Table 7-1).
+
+              4. At the  prompt (*)  enter the  Print Options  command
+
+24                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+OPERATING PROCEDURES                                           February 28, 1986
+
+
+                 (OPT) to  confirm that only  the specified  lines are
+                 available for testing.
+
+              5. Run Test 2, the line presence test.
+
+              6. Run Tests 5, 6, and 7 and/or the desired  non-default
+                 tests.  DO NOT rerun Tests 1 at this point.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+25                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+COMMAND DESCRIPTIONS                                           February 28, 1986
+
+
+
+
+
+
+                           8 -  COMMAND DESCRIPTIONS
+
+
+            Operator control  of this  diagnostic is  provided by  means of
+            commands entered on the terminal.  These commands are described
+            in subsequent sections according to the following categories:
+
+              o  Operating Commands
+
+              o  Option Commands
+
+              o  Line Commands
+
+              o  Terminal Message Commands
+
+              o  Memory Location Commands
+
+            A special portion of the program, called the command processor,
+            interprets operator  input from the  terminal and  passes valid
+            commands to  the program  for execution.   When the  diagnostic
+            prompt (*) is displayed on  the terminal, the command processor
+            is ready  to accept a command  (which may be entered  in either
+            upper  or lowercase).   If the  command  processor receives  an
+            unrecognizable command, it displays this  message on the termi-
+            nal:  COMMAND NOT RECOGNIZED OR INVALID, followed by the prompt
+            (*).  If  it receives an  otherwise valid command  containing a
+            syntax error, it responds with a  question mark (?) and another
+            prompt  (*).  See  the Diagnostics Introduction  for a  general
+                                   ________________________
+            discussion of command format and syntax.
+
+            Note that  a Carriage Return <CR>  must be entered  to indicate
+            the end of  a command word or command string.   A Question Mark
+            (?)  entered before  the  <CR> cancels  that  command line  and
+            causes a new prompt (*) to be displayed.
+
+                                         NOTE
+                                         ____
+                     A Command Summary is presented in Appendix I.
+
+
+
+
+
+
+
+
+
+
+
+26                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+COMMAND DESCRIPTIONS                                           February 28, 1986
+
+
+                            8.1  Operating Commands
+
+
+            The operating commands initiate testing (RUN), cancel a command
+            entry (?),  cause the program  to loop (LOP)  or to halt  on an
+            error (HLT), or abort the execution of a test (Escape key).
+
+
+
+
+
+
+            8.1.1  Run
+
+            Syntax:  RUN [n],...
+
+            Default: Tests 1, 2, 5, 6, 7
+
+            This command  starts execution  of tests, where  n is   operand
+            which  could  be  either the  test  number  (in decimal) of the
+            individual test(s) to be run or the parameter "MOST".
+
+
+            Test  numbers  may be  entered  in any   order,  but  tests are
+            executed in numerical  order.  Test  numbers must  be separated
+            by commas in the command string.  If n is MOST, all  Tests from
+            1 through 7 are executed in numerical order.
+
+
+
+                                         NOTE
+                                         ____
+                 After starting  the diagnostic,  Tests 1 and 2 should
+                 be run  first.  Any  line that  does not  pass Test 1
+                 will not be tested  by the other tests  unless speci-
+                 fied by the ADD command.  If Test 1 is not run first,
+                 Tests 3 - 7 will get false error messages.  Any lines
+                 failing Test 2 will fail all  other tests, because no
+                 alignment factor will have  been computed.  If Test 2
+                 is not run,  false errors will occur  in Tests 3 - 7.
+                 Tests 8, 9, and 10 are not affected by Tests 1 and 2.
+
+
+
+
+
+
+
+
+
+
+
+
+
+27                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+COMMAND DESCRIPTIONS                                           February 28, 1986
+
+
+            8.1.2  Cancel Command Entry
+
+            Syntax:  ?
+
+            Default: None
+
+            A ?  entered in  the command string  cancels the  command being
+            entered and  causes the command processor  to prompt for  a new
+            command.  The  ? may  be entered  at any  point in  the command
+            string before the <CR>.  Once a <CR> has been entered, however,
+            a command cannot  be cancelled.  (No data in  memory is changed
+            if the ? is used to cancel a Modify Memory (MOD) command.)
+
+
+
+
+
+
+
+
+            8.1.3  Abort Testing
+
+            Syntax:  Escape key  (usually labeled ESC on the terminal)
+
+            Default: None
+
+            Pressing the  terminal Escape  key (ESC) while  any of  Tests 1
+            through 7 or  Test 10 are running, aborts the  test in progress
+            and restarts the  program.  Tests 1 and 2 should  then be rerun
+            before running tests  3 through 7; otherwise,  false errors may
+            occur.
+
+            Pressing the  Escape key during execution  of Tests 8 or  9 has
+            one of the following effects.
+
+              o  halts testing and returns a  prompt if the loop count
+                 is 1,  and no other tests  were specified in  the RUN
+                 command
+
+              o  halts and then  repeats the current test  if the loop
+                 count is other than 1, and no other tests were speci-
+                 fied in the RUN command
+
+              o  halts the current test and  begins the next test that
+                 was specified in  the RUN command, regardless  of the
+                 loop count value
+
+            Note  that   the  program  is   not  restarted   when  aborting
+            Test 8 or 9 (situation 1  above).  It is not  necessary, there-
+            fore, to rerun Tests 1 and 2 after aborting Test 8 or 9.
+
+
+
+
+28                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+COMMAND DESCRIPTIONS                                           February 28, 1986
+
+
+            8.1.4  Set Loop Count
+
+
+            Syntax:  LOP [n]
+
+            Default: 1
+
+            This command specifies  the number of times (n) that  a test or
+            series of  tests will  be repeated,  where n  is the  number of
+                                                       _
+            iterations (in  hexadecimal) ranging from  0 to  7FFFFFFF.  The
+            program executes  each test (or  series of tests)  specified by
+            the RUN  command before  going to  the next  pass of  the loop.
+
+            When a loop value of 0 is  specified, Tests 1 - 7 will run con-
+            tinuously until halted by pressing the terminal Escape key.  If
+            a loop value greater than 1 is specified, Tests 1 - 7 will loop
+            n times unless  halted by the Escape key.  For  Tests 8, 9, and
+            _
+            10, a loop  value of 1 should be specified  because these three
+            Tests  automatically  repeat  themselves until  halted  by  the
+            Escape key.
+
+            The LOP command is overridden by  the HLT command when an error
+            is  detected and,  therefore,  may  be particularly  useful  in
+            detecting intermittent  hardware failures.   When both  the LOP
+            and HLT commands are enabled, the program will halt if an error
+            occurs or loop  the specified number of times if  an error does
+            not occur.
+
+                                         NOTE
+                                         ____
+                 If a loop value other than 1  is in effect while run-
+                 ning Tests 8, 9, or 10, the program will merely go to
+                 the next  iteration when the  Escape key  is pressed.
+
+                 To abort Test  8, 9, or 10 in such a  case, press the
+                 PSW key on  the console and then  restart the program
+                 at  address  A00.   Entering LOP<CR>  at  the  prompt
+                 restores the loop value to 1; otherwise, the previous
+                 loop count remains in effect.
+
+
+
+
+
+
+
+
+
+
+
+
+
+29                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+COMMAND DESCRIPTIONS                                           February 28, 1986
+
+
+            8.1.5  Halt on Error
+
+            Syntax:  HLT
+
+            Default: Disabled
+
+            This command causes the program to halt  on an error after dis-
+            playing an  error message on  the terminal.  The  error message
+            will consist of the error  code only; no additional information
+            will be  displayed.  Press  RUN on the  console to  restart the
+            program.
+
+            Note that the HLT command will  override the LOP command.  When
+            both commands are enabled, the  program will loop the specified
+            number of times unless halted by an error.
+
+
+
+
+
+
+            8.1.6  No Halt on Error
+
+            Syntax:  NOHLT
+
+            Default: Enabled
+
+            This command  causes the  diagnostic not to  halt on  an error.
+            The HLT and NOHLT commands are mutually exclusive.
+
+
+
+
+
+
+
+                              8.2  Option Commands
+
+
+            The option commands are used to list valid commands, tests, and
+            lines available for testing, and to reset command parameters.
+
+
+
+
+
+
+
+
+
+
+
+
+
+30                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+COMMAND DESCRIPTIONS                                           February 28, 1986
+
+
+            8.2.1  Help
+
+            Syntax:  HELP
+
+            Default: None
+
+            This command displays a list of all valid commands and tests.
+
+
+
+
+
+
+
+
+
+
+
+            8.2.2  Print Options
+
+            Syntax:  OPT
+
+            Default: None
+
+            This command displays the current state of all commands and the
+            device addresses of all lines available for testing.
+
+
+
+
+
+
+            8.2.3  No Options
+
+            Syntax:  NOOPT
+
+            Default: None
+
+            This command resets all commands to their default values.
+
+                                        CAUTION
+                                        _______
+                 This command also  deletes all lines from  testing if
+                 it is  entered immediately  after the  diagnostic has
+                 been started  or restarted.  In  such a  case, always
+                 run  Tests 1  and 2  before  proceeding with  further
+                 testing.
+
+
+
+
+
+
+
+31                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+COMMAND DESCRIPTIONS                                           February 28, 1986
+
+
+                               8.3  Line Commands
+
+
+            The  line commands  add or  delete  lines as  specified by  the
+            device address.
+
+
+
+
+
+
+            8.3.1  Add a Line
+
+            Syntax:  ADD [xx],...
+
+            Default: No parameter = all lines
+
+            This command  adds lines to be  tested, where xx is  the device
+            address (in hexadecimal) of the added line(s).  As many parame-
+            ters (addresses) as will fit on one  command line may be speci-
+            fied with each entry of this command.  The parameters are sepa-
+            rated by  commas.  If  no parameter is  entered, all  lines are
+            added, that is, lines 20 - 5F, BF, and FF (see Table 7-1).
+
+
+
+                                         NOTE
+                                         ____
+                 Use of this  command modifies the table  of available
+                 lines that is created in memory by Test 1.  The table
+                 determines which lines  will be tested.  If  both the
+                 receive line and the transmit line of a line pair are
+                 not listed  in this table,  errors will occur  in all
+                 subsequent tests.   The safest  procedure to  follow,
+                 therefore, when using the ADD  command, is to specify
+                 both lines of a line pair  in the ADD command string.
+
+                 To confirm which lines are available for testing, use
+                 the OPT command.
+
+                 Note also that if the added lines have not previously
+                 been tested by Test 2, then Test 2 must be run before
+                 proceeding  with  Tests 3 - 7;  otherwise,  incorrect
+                 results will be reported.   Note that this precaution
+                 does not contradict  the procedure described  in Sec-
+                 tion 7.3.3, Testing Individual Ports.
+
+
+
+
+
+
+
+
+32                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+COMMAND DESCRIPTIONS                                           February 28, 1986
+
+
+            8.3.2  Delete a Line
+
+            Syntax:  DEL [xx],...
+
+            Default: No parameter = all lines
+
+            This command deletes lines from testing, where xx is the device
+            address (in hexadecimal)  of each line to be  deleted.  As many
+            parameters (device addresses)  as will fit on  one command line
+            may be specified.  The parameters  must be separated by commas.
+            If no parameter is entered, this command deletes all lines (see
+            Table 7-1).
+
+
+
+
+
+
+
+
+                         8.4  Terminal Message Commands
+
+
+            The  terminal message  commands (Message,  MSG; Error  Message,
+            ERRMSG; No Message,  NOMSG; Dump, DMP; No  Dump, NODMP) control
+            the amount of information displayed on the terminal.  They have
+            no effect on  the system console.  Table 8-1 shows  the type of
+            information corresponding to each command.
+
+            The  MSG command  is in  effect  when the  diagnostic is  first
+            started after loading, and is re-enabled when the NOOPT command
+            is entered.   Entering the  DMP command,  when MSG  is enabled,
+            provides the maximum  amount of information.  The  MSG, ERRMSG,
+            and NOMSG commands  are mutually exclusive.  The  DMP and NODMP
+            commands are also mutually exclusive.
+
+                             Table 8-1.  Terminal Messages
+                             _____ ___   ________ ________
+                                    Type of Message
+                                    ____ __ _______
+                      Prompt or                     Start/End
+                      Response to                   of Test     Extra Error
+            Command   Commands      Error Message   Messages    Information
+            _______   ________      _____ _______   ________    ___________
+            NOMSG        yes            no             no           no
+            ERRMSG       yes            yes            no           no
+            MSG  *       yes            yes            yes          no
+            NODMP        yes            yes            yes          no
+            DMP          yes            yes            yes          yes
+
+                                         NOTE
+                                         ____
+                 The NOMSG and ERRMSG commands  take priority over the
+
+33                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+COMMAND DESCRIPTIONS                                           February 28, 1986
+
+
+                 DMP and  NODMP commands.  The asterisk  (*) indicates
+                 the default condition.
+
+
+
+
+
+
+
+
+            8.4.1  No Message
+
+            Syntax:  NOMSG
+
+            Default: Disabled
+
+            This command allows only prompts, question marks, and responses
+            to all  commands except  RUN to be  displayed on  the terminal.
+            This inhibits the transmission of  error messages.  The command
+            may be  disabled by the MSG  or ERRMSG commands.   This command
+            disables the DMP command.
+
+
+
+
+
+
+            8.4.2  Error Message
+
+            Syntax:  ERRMSG
+
+            Default: Disabled
+
+            This command  allows only  prompts, question  marks, and  error
+            messages to be displayed on the  terminal.  The suppressed mes-
+            sages include the test titles  and the end-of-testing notifica-
+            tion.  The  Error Message command is  disabled by the  NOMSG or
+            the MSG commands.  This command disables the DMP command.
+
+
+
+
+
+
+            8.4.3  Message
+
+            Syntax:  MSG
+
+            Default: Enabled
+
+            This command  allows all  messages to be  sent to  the terminal
+            upon error detection except extended information, which is con-
+            trolled by the DMP command.  The Message command is disabled by
+
+34                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+COMMAND DESCRIPTIONS                                           February 28, 1986
+
+
+            the ERRMSG or NOMSG commands.
+
+
+
+
+
+
+
+
+            8.4.4  Dump
+
+            Syntax:  DMP
+
+            Default: Disabled
+
+            This command allows data dumps or other extra information to be
+            displayed on the terminal if an error occurs.  The Dump command
+            may cause a considerable amount of information to be displayed.
+            This command  is disabled  by ERRMSG,  NOMSG, NODMP,  and NOOPT
+            commands.  If  the HLT  command is enabled,  no data  dump will
+            occur.
+
+
+
+
+
+
+            8.4.5  No Dump|
+
+            Syntax:  NODMP
+
+            Default: Enabled
+
+            This command disables the DMP command and prevents data dumps.
+
+
+
+
+
+
+
+
+
+                         8.5  Memory Location Commands
+
+
+            These commands are  used to examine and modify  data in memory.
+            Care should  be taken  with these  commands to  prevent serious
+            alteration of the diagnostic.
+
+                                         NOTE
+                                         ____
+                 A copy of the diagnostic listing is required in order
+
+35                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+COMMAND DESCRIPTIONS                                           February 28, 1986
+
+
+                 to use these commands effectively.
+
+
+
+
+
+
+            8.5.1  Bias
+
+            Syntax:  BI [xxxxxx]
+
+            Default: 0
+
+            This command sets the bias for the Examine Memory (EXA) and MOD
+            commands.  It has one parameter, a  hexadecimal number of up to
+            six digits.  This  number is added to the address  given in the
+            MOD or EXA commands before a  memory location is accessed.  (If
+            more than six digits are entered, only the last six entered are
+            used.)  If no parameter is given, the program displays the cur-
+            rent bias on the terminal.
+
+
+
+
+
+
+            8.5.2  Examine Memory
+
+            Syntax:  EXA xxxxxx,[yyyy]
+
+            Default: yyyy = 0001
+
+            This command displays  the contents  of specified  memory loca-
+            tions on the terminal  as hexadecimal, decimal, and  ASCII val-
+            ues.  The EXA  command has two parameters.   The first, xxxxxx,
+            is a six digit hexadecimal number that, when added to the bias,
+            becomes the address from  which the program will  start to dis-
+            play the contents of memory.  The  second parameter, yyyy, is a
+            four digit hexadecimal number that  specifies how many halfword
+            locations will be read and displayed on the terminal.  The max-
+            imum value  of this  second parameter  is FFFF.   If no  second
+            parameter is entered, the  contents of only one  halfword loca-
+            tion will be displayed.
+
+
+
+
+
+
+
+
+
+
+
+36                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+COMMAND DESCRIPTIONS                                           February 28, 1986
+
+
+            8.5.3  Modify Memory
+
+            Syntax:  MOD [x],yyyyyy,zzzz,[zzzz],...
+
+            Default:      x = hexadecimal
+                     yyyyyy = none
+                       zzzz = none
+
+            This command writes data to the memory location specified.  The
+            x   parameter    determines   the    format   of    the   data:
+            H = hexadecimal, A = ASCII, D = decimal.   The yyyyyy parameter
+            is a hexadecimal  number of up to  six digits that is  added to
+            the bias to determine the  starting address of memory locations
+            to be modified.   The zzzz  parameter(s) are  decimal or  hexa-
+            decimal numbers or ASCII characters that  specify data by half-
+            words.  The  halfwords of  data are  separated by  commas.  The
+            data is  written to memory,  starting at location  yyyyyy.  The
+            location is  incremented by  two as  each halfword  of data  is
+            written to memory.
+
+            If the number zzzz is too large, or is more than two characters
+            (ASCII format  only), the memory  location is not  changed, and
+            the command is aborted.  Previous parameters are stored in mem-
+            ory.  The EXA command can be used to verify the contents of any
+            memory location.
+
+            Two ASCII characters are stored  in a halfword memory location.
+            If a  zzzz parameter  is less  than two  ASCII characters,  the
+            remainder of the  halfword memory location will  be filled with
+            zeros.  Commas (,)  and Carriage Returns <CR>  cannot be stored
+            in a  location (ASCII).  If no  format parameter (x)  is given,
+            the format will be  the last used, and a comma  must be entered
+            before  the yyyyyy  parameter.  When  the  diagnostic is  first
+            started, the data format is hexadecimal.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+37                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+TEST DESCRIPTIONS                                              February 28, 1986
+
+
+
+
+
+
+                             9 -  TEST DESCRIPTIONS
+
+
+            The ten individual  tests performed by this  diagnostic and the
+            specific operations which they verify are described in the fol-
+            lowing sections.
+
+            Tests 1,2,5,6, and 7 make up the default test group.   In Tests
+            5, 6, and 7, the  enhanced  synchronous  microcode  is  enabled
+            (that is,  bit  6  of  the  PSW  is   set).  They  are executed
+            automatically when the  RUN command is entered  on the terminal
+            following the diagnostic prompt.  If no commands other than the
+            RUN command have been entered, Tests 1,2,5,6 and 7 will perform
+            a complete  verification  of  the  hardware  under test without
+            operator intervention.
+
+            Tests 3 and 4  check  the  hardware  with  enhanced synchronous
+            interrupts  disabled in the PSW.   When  Tests 3 and 4 are run,
+            the program returns to the command processor upon completion of
+            the last test specified by the RUN command.  Tests 8, 9, and 10
+            are scope loop tests and will  run indefinitely until halted by
+            pressing the terminal Escape key.
+
+
+            Tests  1 through  7  are executed  by command  "RUN  MOST" that
+            verifies both enhanced and unenhanced synchronous interrupt.
+
+
+                                         NOTE
+                                         ____
+                 If either the Loop command (LOP) or the Halt on Error
+                 command (HLT) has  been enabled, the program  may not
+                 return to the command  processor.  When this happens,
+                 halt the  diagnostic by pressing  the PSW key  on the
+                 console and restart the program at address A00.
+
+            The time required for the program to execute each test is indi-
+            cated at  the end of  the individual test  description.  Except
+            for Tests  5, 8, 9,  and 10, these  times will double  when two
+            Synchronous  I/O  boards  are being  tested.   When  testing  a
+            Micro-Engine with eight synchronous lines,  the test times will
+            be one-half what  is stated; if the Micro-Engine  has only four
+            synchronous lines, then  the times will be  one-quarter what is
+            stated.
+
+
+
+
+
+
+38                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+TEST DESCRIPTIONS                                              February 28, 1986
+
+
+                                  9.1  Test 1
+
+
+            This is the  miscellaneous test and should always  be the first
+            test run after  starting or restarting the  diagnostic.  Test 1
+            performs the following:
+
+              o  verifies  that Synchronous  I/O board(s)  are at  the
+                 expected addresses
+
+              o  displays on the terminal which boards are present (if
+                 the MSG command is enabled)
+
+              o  verifies synchronous return for these instructions:
+
+                 RDR (Read Data Register)
+                 WDR (Write Data Register)
+                 SSR (Sense Status Register)
+
+              o  verifies that each synchronous line will interrupt
+
+              o  verifies that bit 6 of the PSW can be set and reset
+
+              o  performs an incrementing data test on the synchronous
+                 status/control line(s) at addresses BF and/or FF.
+
+              o  sets up a table in  memory indicating for Tests 2 - 7
+                 which lines are available for testing.  The table can
+                 be modified by the ADD and DEL commands.
+
+            Time required: 16 line pairs, 4800 or 9600 baud - 7 seconds
+
+                                         NOTE
+                                         ____
+                 On a  Micro-Engine with four synchronous  lines, this
+                 test will  display a message  stating that  lines 34,
+                 35, 36, 37,  3C, 3E, and 3F did  not interrupt.  This
+                 is normal and does not indicate an error.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+39                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+TEST DESCRIPTIONS                                              February 28, 1986
+
+
+                                  9.2  Test 2
+
+
+            This is the line presence test  and should always be the second
+            test run.   It verifies  that each  line transmits  or receives
+            data with interrupts enabled, using the data pattern 0001.
+
+            This test computes the  alignment factor for each  receive syn-
+            chronous line under  test.  The alignment factor  is the number
+            of bits that the  received data must be shifted to  the left to
+            align it  with the  data output  by the  corresponding transmit
+            line.  The alignment factor is used by Tests 3 - 7.
+
+            Time required: 16 line pairs, 4800 or 9600 baud - 2 seconds
+
+
+
+
+
+
+
+                                  9.3  Test 3
+
+
+            This is the unenhanced alternating data  test.  With I/O inter-
+            rupts enabled, it checks all  synchronous lines under test with
+            the following data patterns:
+
+                 0000FFFF
+                 AAAAAAAA
+                 55555555
+                 AAAA5555
+                 0000 - odd line pairs, FFFF - even line pairs
+                 FFFF - odd line pairs, 0000 - even line pairs
+                 AAAA - odd line pairs, 5555 - even line pairs
+                 5555 - odd line pairs, AAAA - even line pairs
+
+            Time required: 16 line pairs, 4800 or 9600 baud - 3 seconds
+
+                                         NOTE
+                                         ____
+                 "Odd line pairs"  are line pairs having  odd synchro-
+                 nous line numbers, such as line 1, 9, 13, etc.  "Even
+                 line pairs" have even  synchronous line numbers, such
+                 as 0, 2, 8, etc. (see Table 7-1, Addressing).
+
+
+
+
+
+
+
+
+
+40                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+TEST DESCRIPTIONS                                              February 28, 1986
+
+
+                                  9.4  Test 4
+
+
+            This  is the  unenhanced  incrementing/decrementing data  test.
+            With I/O  interrupts enabled, it  checks all  synchronous lines
+            under test with  both incrementing  and decrementing  data pat-
+            terns (in two passes) as follows:
+
+                 0000 to FFFF incrementing by 1 - even line pairs
+                 FFFF to 0000 decrementing by 1 - odd line pairs
+                 FFFF to 0000 decrementing by 1 - even line pairs
+                 0000 to FFFF incrementing by 1 - odd line pairs
+
+            While the test is running,  every 128th halfword of transmitted
+            data is displayed on the console.  The left half of the console
+            displays decrementing data, while the right half of the console
+            displays incrementing data.
+
+            Time required: 16 line pairs, 4800 baud - 12.5 minutes
+            Time required: 16 line pairs, 9600 baud -  9.0 minutes
+
+
+
+
+
+
+
+
+
+                                  9.5  Test 5
+
+
+            This  is the  enhanced buffer  test.  With  I/O interrupts  and
+            enhanced synchronous interrupts  enabled, it performs  the fol-
+            lowing operations on one synchronous line:
+
+              o  flushes the line under test with all zeros
+
+              o  verifies data transfer when the output index is 0 and
+                 the input index is negative
+
+              o  verifies data transfer when the output index is posi-
+                 tive and the input index is negative
+
+              o  verifies data transfer when the  input index is nega-
+                 tive and the output index is negative
+
+              o  verifies data transfer when the output index is nega-
+                 tive and the input index is positive
+
+            If an error  occurs in  Test 5, an error  message will  be dis-
+            played on the  terminal, and the program will  restart the test
+            using the next  available line pair.  If none  of the available
+
+41                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+TEST DESCRIPTIONS                                              February 28, 1986
+
+
+            line pairs passes the test, a message is displayed stating that
+            Tests 6, 7, and 9 may also fail.
+
+            Time required: 16 line pairs, 4800 or 9600 baud - 3 seconds
+
+
+
+
+
+
+
+
+
+
+
+                                  9.6  Test 6
+
+
+            This is the  enhanced synchronous alternating data  test.  This
+            test  is similar  to Test 3  except  that enhanced  synchronous
+            microcode  is enabled  in  the PSW.   With  I/O interrupts  and
+            enhanced synchronous interrupts enabled, it checks all synchro-
+            nous lines under test with the following data patterns:
+
+                 0000FFFF
+                 AAAAAAAA
+                 55555555
+                 AAAA5555
+                 FFFF - even line pairs, 0000 - odd line pairs
+                 0000 - even line pairs, FFFF - odd line pairs
+                 AAAA - even line pairs, 5555 - odd line pairs
+                 5555 - even line pairs, AAAA - odd line pairs
+
+            Time required: 16 line pairs, 4800 baud - 8 seconds
+
+            Time required: 16 line pairs, 9600 baud - 6 seconds
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+42                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+TEST DESCRIPTIONS                                              February 28, 1986
+
+
+                                  9.7  Test 7
+
+
+            This  is  the  enhanced  synchronous  incrementing/decrementing
+            test.  This test is similar to Test 4 except that enhanced syn-
+            chronous microcode is enabled in  the PSW.  With I/O interrupts
+            and enhanced synchronous interrupts enabled, it checks all syn-
+            chronous lines  under test with the  same data pattern  (in two
+            passes) used in Test 4:
+
+                 0000 to FFFF, incrementing by 1 - even line pairs
+                 FFFF to 0000, decrementing by 1 - odd line pairs
+                 FFFF to 0000, decrementing by 1 - even line pairs
+                 0000 to FFFF, incrementing by 1 - odd line pairs
+
+            While the test is running,  every 128th halfword of transmitted
+            data used on the even line pairs is displayed on the right side
+            of the console.
+
+            Time required: 16 line pairs, 4800 baud - 14.2 minutes
+            Time required: 16 line pairs, 9600 baud - 10.5 minutes
+
+
+
+
+
+
+
+                                  9.8  Test 8
+
+
+            This is  the unenhanced selectable  data test.  It  is intended
+            for use as  a scope loop, and  the data are not  checked.  With
+            I/O interrupts enabled, this test does the following:
+
+              o  requests the  operator to enter  on the  terminal one
+                 device address (either transmit  or receive) for each
+                 synchronous line pair to be tested
+
+              o  requests the operator to enter on the terminal one of
+                 three optional data patterns to be used
+
+              o  runs the specified data through the specified lines
+
+            The test is halted  by pressing the Escape key if  a loop value
+            of 1 is in effect (see Section 8.1.3, Abort Testing).
+
+            To specify which lines are to be tested, enter on the terminal:
+
+                 xx,yy,...,zz
+
+            where  xx, yy,  and zz  are  the two  digit hexadecimal  device
+            addresses of the  lines.  Any number of lines  can be selected.
+
+43                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+TEST DESCRIPTIONS                                              February 28, 1986
+
+
+            Only one address for each pair of lines need be specified (that
+            is, one transmit or one receive).   To specify the data pattern
+            to be used in this test, enter  one of  the  following  options
+            (upper case characters) on the terminal:
+            -----------------------
+
+              1. XXXXXXXXXXXXXXXX
+              2. N
+              3. P
+
+            The first option, XXXXXXXXXXXXXXXX  (16 hexadecimal digits), is
+            the operator-specified  data pattern.  All  lines are  sent the
+            first quarter of the data (one  halfword), followed by the sec-
+            ond,  third, and  fourth quarters.   This  routine is  repeated
+            until the test is halted.
+
+            The second  option, N,  specifies a  decrementing data  pattern
+                                _
+            which starts  at FFFF  and decrements  by 1  to 0000.   This is
+            repeated until the test is halted.
+
+            The third  option, P,  specifies an  incrementing data  pattern
+                               _
+            which starts  at 0000  and increments  by 1  to FFFF.   This is
+            repeated until the test is halted.
+
+            Test 8 will run until halted by  pressing the Escape key on the
+            terminal (when a loop value of 1  is in effect).  If either the
+            N or the  P option is selected,  the program will take  about 6
+            _         _
+            minutes to cycle through all the  data patterns.  If the opera-
+            tor-selected data pattern is used,  the program will take about
+            14  milliseconds to  cycle through  the  data patterns.   These
+            times are  for 16  synchronous lines at  4800 baud.   Note that
+            when  the last  data pattern  is  used, the  test is  repeated,
+            starting with the first data pattern.
+
+
+            Note  that the  scope will  show a  up and  down  flushing data
+            pattern on the tested lines about one second  before displaying
+            the operator selected test pattern.
+
+
+
+
+
+
+
+
+
+
+
+
+
+44                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+TEST DESCRIPTIONS                                              February 28, 1986
+
+
+                                  9.9  Test 9
+
+
+            This is the  enhanced selectable data test.  It is  the same as
+            Test 8, except that  both I/O interrupts and  enhanced synchro-
+            nous  interrupts are  enabled.  See  Section  9.8, Test 8,  for
+            details.
+
+            The test  will run until halted  by pressing the Escape  key on
+            the terminal, if  a loop value of  1 is in effect  (see Section
+            8.1.3, Abort Testing).  If either the N or the P option is used
+                                                  _        _
+            in selecting  the test data,  it will  take about 6  minutes to
+            cycle through all the data patterns.  If the 16-digit operator-
+            selected data pattern is used, then the program will take about
+            14  milliseconds to  cycle through  the  data patterns.   These
+            times are  for 16  synchronous lines at  4800 baud.   Note that
+            when the  last data  pattern is used,  the test  repeats itself
+            using the first data pattern.
+
+
+            Note  that the  scope will  show a  up and  down  flushing data
+            pattern on the tested lines about one second  before displaying
+            the operator selected test pattern.
+
+
+
+
+
+
+
+                                 9.10  Test 10
+
+
+            This is  the control line selectable  data test.  This  test is
+            intended for  use as  a scope loop  and is  the same  as Test 8
+            except for the following:
+
+              o  I/O interrupts are not enabled.
+
+              o  Only  the control  lines (addresses  BF  and FF)  are
+                 tested.
+
+              o  The program asks for each  control line address sepa-
+                 rately.  A response of either upper character YES  (Y)
+                 or NO (N) must be entered at the  terminal  (without a
+                 <CR>).
+
+            Test 10  will run  continuously until  halted  by pressing  the
+            Escape key on  the terminal if a  loop value of 1  is in effect
+            (see Section 8.1.3, Abort Testing).
+
+
+
+45                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+TEST DESCRIPTIONS                                              February 28, 1986
+
+
+
+
+
+
+                            10 -  ERROR DESCRIPTIONS
+
+
+            If the program  detects an  error, an error  code will  be dis-
+            played on the terminal (with the MSG or ERRMSG command, and the
+            NOHLT command enabled), while the test continues to run.  Addi-
+            tional information may be sent to the  terminal if the DMP com-
+            mand is enabled.   If the HLT command is  enabled, however, the
+            program halts, awaits operator intervention,  and will not con-
+            tinue testing.  The program must  then be restarted by pressing
+            the RUN key on the console.  A  prompt will be displayed on the
+            terminal.
+
+            Error codes are  defined in the following  sections.  The error
+            code format is as follows:
+
+                 nnyy
+
+            where nn  is the number of  the test that failed  (in decimal),
+                  __
+            and yy is the code for the  specific error.  If the value of nn
+                __
+            is 00, no test was running when the error occurred.
+
+            If an  error occurs  and both  the DMP  and NOHLT  commands are
+            enabled, additional information may be  displayed on the termi-
+            nal.  For data errors, the data  received (the full contents of
+            the receive buffer) and the  data expected are displayed.  Note
+            that the  receive buffer  will contain  several halfwords  that
+            were received before  the transmitted data was  received.  This
+            is  because the  receive and  transmit  interrupts are  enabled
+            simultaneously.  The expected  data should appear by  the sixth
+            halfword received.   If not, it is  an error (that is,  this is
+            what caused the error message).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+46                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+ERROR DESCRIPTIONS                                             February 28, 1986
+
+
+                         10.1  Unexpected System Errors
+
+
+            Unexpected system error messages are displayed on the terminal.
+            The program halts after reporting the error and is restarted by
+            pressing RUN  on the console.  A  prompt will be output  to the
+            terminal.
+
+            Error codes F0 to FF are reserved for unexpected system errors,
+            which are as follows:
+
+                 nnF2  illegal instruction interrupt
+
+                 nnF3  machine malfunction parity interrupt
+
+                 nnF5  Memory Access Controller (MAC) interrupt
+
+                 nnF7  unexpected SVC instruction (Supervisor Call)
+                       executed
+
+                 nnF8  unexpected I/O interrupt
+
+                 nnF9  trace subroutine interrupt
+
+                 nnFA  terminal not available when started at A00
+
+                 nnFB  unrecoverable program error
+
+
+
+
+
+
+
+
+
+
+
+
+                                  10.2  Test 1
+
+
+            Error
+            Number                       Cause
+            ______                       _____
+
+             0101     read instruction timeout
+
+             0102     sense status instruction timeout
+
+             0103     write instruction timeout
+
+             0104     sense status instruction timeout to control line
+
+47                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+ERROR DESCRIPTIONS                                             February 28, 1986
+
+
+             0105     could not set bit 6 of the PSW
+
+             0106     could not reset bit 6 of the PSW
+
+             0107     not used
+
+             0108     not used
+
+             0109     not used
+
+             010A     write instruction timeout to control line
+
+             010B     read instruction timeout to control line
+
+             010C     invalid data read back from control line
+
+             010D     data transfer timeout (I/O interrupts enabled)
+
+             010E     read or  write instruction  timeout during  interrupt
+                      routine (I/O interrupts enabled)
+
+
+
+
+
+
+
+
+                                  10.3  Test 2
+
+
+            Error
+            Number                       Cause
+            ______                       _____
+
+             0201     no valid data received while  flushing the lines with
+                      all zeros
+
+             0202     not  enough data  received while  flushing the  lines
+                      with all zeros
+
+             0203     write instruction timeout during interrupt routine
+
+             0204     read instruction timeout during interrupt routine
+
+             0205     data transfer timeout (I/O interrupts enabled)
+
+             0206     invalid data found  in the receive buffer  after data
+                      transfer completed
+
+
+
+
+
+48                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+ERROR DESCRIPTIONS                                             February 28, 1986
+
+
+                                  10.4  Test 3
+
+
+            Error
+            Number                       Cause
+            ______                       _____
+
+             0301     no valid data received while flushing the lines
+
+             0302     not enough data received while flushing the lines
+
+             0303     write instruction  timeout during  transmit interrupt
+                      routine (I/O interrupts enabled)
+
+             0304     read  instruction  timeout during  receive  interrupt
+                      routine (I/O interrupts enabled)
+
+             0305     data transfer timeout (I/O interrupts enabled)
+
+             0306     invalid data found  in the receive buffer  after data
+                      transfer completed (I/O interrupts enabled)
+
+             0307     more  than  six receive  interrupts  occurred  before
+                      expected  data   pattern  received   (I/O  interrupts
+                      enabled)
+
+
+
+
+
+
+
+
+
+
+
+                                  10.5  Test 4
+
+
+            Error
+            Number                       Cause
+            ______                       _____
+
+             0401     no valid data received while  flushing the lines with
+                      all ones on the even line  pairs and all zeros on the
+                      odd line pairs
+
+             0402     not  enough data  received while  flushing the  lines
+                      with all ones on the even line pairs and all zeros on
+                      the odd line pairs
+
+             0403     write instruction  timeout during  transmit interrupt
+                      routine (I/O interrupts enabled)
+
+49                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+ERROR DESCRIPTIONS                                             February 28, 1986
+
+
+             0404     read  instruction  timeout during  receive  interrupt
+                      routine (I/O interrupts enabled)
+
+             0405     data transfer timeout (I/O interrupts enabled)
+
+             0406     invalid data found  in the receive buffer  after data
+                      transfer completed (I/O interrupts enabled)
+
+             0407     more  than  six receive  interrupts  occurred  before
+                      expected  data   pattern  received   (I/O  interrupts
+                      enabled)
+
+
+
+
+
+
+
+
+
+                                  10.6  Test 5
+
+
+            Error
+            Number                       Cause
+            ______                       _____
+
+             0501     no valid data received while  flushing the lines with
+                      all ones
+
+             0502     not  enough data  received while  flushing the  lines
+                      with all ones
+
+             0503     write instruction  timeout during  transmit interrupt
+                      routine  (I/O  interrupts  and  enhanced  synchronous
+                      interrupts enabled)
+
+             0504     output index was  not zero when a  transmit interrupt
+                      occurred (enhanced synchronous interrupts enabled and
+                      the output index originally set to zero)
+
+             0505     read  instruction  timeout during  receive  interrupt
+                      routine  (I/O  interrupts  and  enhanced  synchronous
+                      interrupts enabled)
+
+             0506     input index was  not minus one during  receive inter-
+                      rupt routine (I/O interrupts and enhanced synchronous
+                      interrupts enabled and the input index originally set
+                      to minus one)
+
+             0507     invalid data  received (I/O  interrupts and  enhanced
+                      synchronous  interrupts  enabled,  the  output  index
+                      originally set to  zero, and  the input  index origi-
+
+50                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+ERROR DESCRIPTIONS                                             February 28, 1986
+
+
+                      nally set to minus one)
+
+             0508     data transfer timeout on a  transmit line (I/O inter-
+                      rupts  and enhanced  synchronous interrupts  enabled,
+                      the  output index  originally set  to  zero, and  the
+                      input index originally set to minus one)
+
+             0509     data transfer timeout  on a receive line  (I/O inter-
+                      rupts  and enhanced  synchronous interrupts  enabled,
+                      the  output index  originally set  to  zero, and  the
+                      input index originally set to minus one)
+
+             050A     output index  was not zero during  transmit interrupt
+                      routine  (I/O  interrupts  and  enhanced  synchronous
+                      interrupts enabled  and the  output index  originally
+                      set to 20)
+
+             050B     write instruction  timeout during  transmit interrupt
+                      routine  (I/O  interrupts  and  enhanced  synchronous
+                      interrupts enabled  and the  output index  originally
+                      set to 20)
+
+             050C     output index failed to decrement  by one between each
+                      transmit interrupt (I/O interrupts  and enhanced syn-
+                      chronous  interrupts  enabled and  the  output  index
+                      originally set to 20)
+
+             050D     read  instruction  timeout during  receive  interrupt
+                      routine  (I/O  interrupts  and  enhanced  synchronous
+                      interrupts enabled)
+
+             050E     not enough  data or  invalid data  received with  all
+                      ones expected (I/O  interrupts and  enhanced synchro-
+                      nous interrupts enabled  and the output  index origi-
+                      nally set to 20)
+
+             050F     data transfer  timeout (I/O  interrupts and  enhanced
+                      synchronous  interrupts  enabled,  the  output  index
+                      originally set to 20, and  the input index originally
+                      set to minus one)
+
+             0510     data of all zeros, as  sent by the transmit interrupt
+                      routine,  was not  received  after  the output  index
+                      became zero (I/O interrupts  and enhanced synchronous
+                      interrupts enabled  and the  output index  originally
+                      set to 20)
+
+             0511     transmit  line did  not  interrupt  after the  output
+                      index became zero  (I/O interrupts and  enhanced syn-
+                      chronous  interrupts  enabled and  the  output  index
+                      originally set to 20)
+
+             0512     output index  was not zero during  transmit interrupt
+
+51                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+ERROR DESCRIPTIONS                                             February 28, 1986
+
+
+                      routine  (I/O  interrupts  and  enhanced  synchronous
+                      interrupts enabled  and the  output index  originally
+                      set to minus 40)
+
+             0513     write instruction  timeout during  transmit interrupt
+                      routine  (I/O  interrupts  and  enhanced  synchronous
+                      interrupts enabled,  and the output  index originally
+                      set to minus 40)
+
+             0514     transmit line did  not interrupt the software  on the
+                      next  interrupt after  the output  index became  zero
+                      (I/O interrupts  and enhanced  synchronous interrupts
+                      enabled and the output index  originally set to minus
+                      40)
+
+             0515     read  instruction  timeout during  receive  interrupt
+                      routine (enhanced synchronous  interrupts enabled and
+                      the input index set to less than zero)
+
+             0516     more  than  six receive  interrupts  occurred  before
+                      expected  data  pattern  received   or  invalid  data
+                      received  (I/O  interrupts and  enhanced  synchronous
+                      interrupts enabled,  the output index  originally set
+                      to minus  40, and the  input index originally  set to
+                      minus one)
+
+             0517     data of all  ones, as sent by  the transmit interrupt
+                      routine,  was not  received  after  the output  index
+                      became zero (I/O interrupts  and enhanced synchronous
+                      interrupts enabled,  the output index  originally set
+                      to minus  40, and the  input index originally  set to
+                      minus one)
+
+             0518     data transfer  timeout (I/O  interrupts and  enhanced
+                      synchronous  interrupts  enabled,  the  output  index
+                      originally set to minus 40, and the input index orig-
+                      inally set to minus one)
+
+             0519     write  instruction timeout  during receive  interrupt
+                      routine  (I/O  interrupts  and  enhanced  synchronous
+                      interrupts enabled,  the output index  originally set
+                      to minus 100,  and the input index  originally set to
+                      80)
+
+             051A     output index  was not zero during  transmit interrupt
+                      routine  (I/O  interrupts  and  enhanced  synchronous
+                      interrupts enabled  and the  output index  originally
+                      set to minus 100)
+
+             051B     timeout while waiting for the transmit interrupt (I/O
+                      interrupts   and  enhanced   synchronous   interrupts
+                      enabled and the output index  originally set to minus
+                      100)
+
+52                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+ERROR DESCRIPTIONS                                             February 28, 1986
+
+
+             051C     unexpected  synchronous  receive  interrupt  occurred
+                      (I/O interrupts  and enhanced  synchronous interrupts
+                      enabled and the input index originally set to 80)
+
+             051D     data  not  received  soon   enough  or  invalid  data
+                      received  (I/O  interrupts and  enhanced  synchronous
+                      interrupts  enabled, the  output index  set to  minus
+                      100, and the input index originally set to 80)
+
+             051E     invalid  data found  in  the  first halfword  of  the
+                      receive buffer after wrapping around  from the end of
+                      the receive buffer (I/O interrupts  and enhanced syn-
+                      chronous interrupts enabled and the input index orig-
+                      inally set to 80)
+
+
+
+
+
+
+
+                                  10.7  Test 6
+
+
+            Error
+            Number                       Cause
+            ______                       _____
+
+             0601     no valid data received while flushing the lines
+
+             0602     not enough data received while flushing the lines
+
+             0603     not used
+
+             0604     data pattern not read before seven receive interrupts
+                      (I/O interrupts enabled)
+
+             0605     timeout  during  data testing  (enhanced  synchronous
+                      interrupts enabled)
+
+             0606     invalid  data found  in  the  first halfword  of  the
+                      receive buffer after wrapping around  from the end of
+                      the receive buffer (I/O interrupts  and enhanced syn-
+                      chronous interrupts enabled and the input index orig-
+                      inally set to zero)
+
+             0607     more than  six data  words read  before the  expected
+                      data  pattern read  (enhanced synchronous  interrupts
+                      enabled)
+
+             0608     data received  not equal  to data  expected (enhanced
+                      synchronous interrupts enabled)
+
+
+53                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+ERROR DESCRIPTIONS                                             February 28, 1986
+
+
+             0609     output index  was not zero during  transmit interrupt
+                      routine (enhanced synchronous interrupts enabled)
+
+             060A     not used
+
+             060B     read  instruction  timeout during  receive  interrupt
+                      routine (I/O interrupts enabled)
+
+             060C     read  instruction  timeout during  receive  interrupt
+                      routine (I/O interrupts enabled)
+
+
+
+
+
+
+
+                                  10.8  Test 7
+
+
+            Error
+            Number                       Cause
+            ______                       _____
+
+             0701     invalid data  received while flushing the  lines with
+                      all fives
+
+             0702     not  enough data  received while  flushing the  lines
+                      with all fives
+
+             0703     not used
+
+             0704     not used
+
+             0705     data transfer  timeout (enhanced  synchronous  inter-
+                      rupts enabled)
+
+             0706     data received  not equal  to data  expected (enhanced
+                      synchronous interrupts enabled)
+
+             0707     write instruction  timeout during  transmit interrupt
+                      routine (enhanced synchronous interrupts enabled)
+
+             0708     output index  on transmit  line was  not zero  during
+                      transmit interrupt  (enhanced synchronous  interrupts
+                      enabled)
+
+             0709     more than  six data  words read  before the  expected
+                      data  pattern read  (enhanced synchronous  interrupts
+                      enabled)
+
+             070A     invalid  data found  in  the  first halfword  of  the
+                      receive buffer after wrapping around  from the end of
+
+54                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+ERROR DESCRIPTIONS                                             February 28, 1986
+
+
+                      the receive  buffer (enhanced  synchronous interrupts
+                      enabled)
+
+             070B     unexpected  interrupt  on  receive  synchronous  line
+                      (enhanced  synchronous  interrupts  enabled  and  the
+                      input index set to a positive value)
+
+
+
+
+
+
+
+                                  10.9  Test 8
+
+
+            Error
+            Number                       Cause
+            ______                       _____
+
+             0801     no valid data received while flushing the lines
+
+             0802     not enough data received while flushing the lines
+
+             0803     not used
+
+             0804     not used
+
+             0805     write instruction  timeout during  transmit interrupt
+                      routine (I/O interrupts enabled)
+
+             0806     read  instruction  timeout during  receive  interrupt
+                      routine (I/O interrupts enabled)
+
+
+
+
+
+
+
+                                 10.10  Test 9
+
+
+            Error
+            Number                       Cause
+            ______                       _____
+
+             0901     no valid data received while flushing the lines
+
+             0902     not enough data received while flushing the lines
+
+             0903     not used
+
+
+55                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+ERROR DESCRIPTIONS                                             February 28, 1986
+
+
+             0904     not used
+
+             0905     not used
+
+             0906     not used
+
+             0907     output index  was not zero during  transmit interrupt
+                      routine (enhanced synchronous interrupts enabled)
+
+             0908     unexpected  interrupt  on  receive  synchronous  line
+                      (enhanced  synchronous  interrupts  enabled  and  the
+                      input index set to a positive value)
+
+
+
+
+
+
+
+
+                                 10.11  Test 10
+
+
+            Error
+            Number                       Cause
+            ______                       _____
+
+             0A01     write or read instruction timeout to address BF
+
+             0A02     write or read instruction timeout to address FF
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+56                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+DATA PATTERNS                                                  February 28, 1986
+
+
+
+
+
+
+                              11 -  DATA PATTERNS
+
+
+            Each test has a separate set of  data patterns, as shown in the
+            following sections.  For Tests 8, 9,  and 10, data patterns are
+            operator-selected.  In each case, the program flushes the lines
+            with a data pattern of all 1's, 5's, or 0's.
+
+
+
+
+
+
+
+                                  11.1  Test 1
+
+
+                 All 1's on data lines, incrementing data on control lines
+
+
+
+
+
+
+
+                                  11.2  Test 2
+
+                 0001
+
+
+
+
+
+
+                                  11.3  Test 3
+
+                 0000FFFF
+                 AAAAAAAA
+                 55555555
+                 AAAA5555
+                 FFFF - even line pairs, 0000 - odd line pairs
+                 0000 - even line pairs, FFFF - odd line pairs
+                 AAAA - even line pairs, 5555 - odd line pairs
+                 5555 - even line pairs, AAAA - odd line pairs
+
+
+
+
+
+
+57                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+DATA PATTERNS                                                  February 28, 1986
+
+
+                                  11.4  Test 4
+
+
+
+                 0000 to FFFF incrementing by 1 - even line pairs
+                 FFFF to 0000 decrementing by 1 - odd line pairs
+                 FFFF to 0000 decrementing by 1 - even line pairs
+                 0000 to FFFF incrementing by 1 - odd line pairs
+
+
+
+
+
+
+
+                                  11.5  Test 5
+
+
+
+                 0000
+                 FFFF
+
+
+
+
+
+
+
+
+
+                                  11.6  Test 6
+
+
+            Same as Test 3:
+
+                 0000FFFF
+                 AAAAAAAA
+                 55555555
+                 AAAA5555
+                 0000 - odd line pairs, FFFF - even line pairs
+                 FFFF - odd line pairs, 0000 - even line pairs
+                 5555 - odd line pairs, AAAA - even line pairs
+                 AAAA - odd line pairs, 5555 - even line pairs
+
+
+
+
+
+
+
+
+
+
+
+58                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+DATA PATTERNS                                                  February 28, 1986
+
+
+                                  11.7  Test 7
+
+
+            Same as Test 4:
+
+                 0000 to FFFF, incrementing by 1 - even line pairs
+                 FFFF to 0000, decrementing by 1 - odd line pairs
+
+                 FFFF to 0000, decrementing by 1 - even line pairs
+                 0000 to FFFF, incrementing by 1 - odd line pairs
+
+
+
+
+
+
+
+                                  11.8  Test 8
+
+
+            Operator-selected, one of three options:
+
+                 xxxxxxxxxxxxxxxx  (16 hexadecimal digits,
+                                    operator-specified)
+
+                 N  (FFFF decrementing by 1 to 0000)
+
+                 P  (0000 incrementing by 1 to FFFF)
+
+
+
+
+
+
+
+                                  11.9  Test 9
+
+
+            Operator-selected, one of three options:
+
+                 xxxxxxxxxxxxxxxx  (16 hexadecimal digits,
+                                    operator-specified)
+
+                 N  (FFFF decrementing by 1 to 0000)
+
+                 P  (0000 incrementing by 1 to FFFF)
+
+
+
+
+
+
+
+
+59                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+DATA PATTERNS                                                  February 28, 1986
+
+
+                                 11.10  Test 10
+
+
+            Operator-selected, one of three options:
+
+                 xxxxxxxxxxxxxxxx  (16 hexadecimal digits,
+                                    operator-specified)
+
+                 N  (FFFF decrementing by 1 to 0000)
+
+                 P  (0000 incrementing by 1 to FFFF)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+60                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+                                                               February 28, 1986
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                  *   ****  ****  ***** *   * ****  ***** *   *
+                 * *  *   * *   * *     **  * *   *   *    * * 
+                ***** ****  ****  ****  * * * *   *   *     *  
+                *   * *     *     *     *  ** *   *   *    * * 
+                *   * *     *     ***** *   * ****  ***** *   *
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+61                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+COMMAND SUMMARY                                                February 28, 1986
+
+
+
+
+
+
+                         APPENDIX I.   COMMAND SUMMARY
+
+
+
+            Valid commands for  this diagnostic are summarized  here.  Some
+            commands have parameters, and some  do not.  For those commands
+            which have parameters,  a default condition will  be assumed if
+            no parameters  are entered.  A  <CR> must always  terminate the
+            command line.  See Section 8 for detailed command descriptions.
+
+            Command Syntax                    Function
+            ______________                    ________
+
+            ?                                 cancels  the   command  being
+                                              entered
+
+            ADD [xx],...                      adds  device   lines  to   be
+                                              tested
+              default: All lines
+
+            BI [xxxxxx]                       sets  bias  for EXA  and  MOD
+                                              commands
+              default: 0
+
+            DEL [xx],...                      deletes  device   lines  from
+                                              testing
+              default: All lines
+
+            DMP                               enables data dumps upon error
+                                              detection
+
+            ERRMSG                            displays only question marks,
+                                              prompts, and error messages
+
+            Escape Key                        halts  current  test,  starts
+                                              next test or restarts program
+
+            EXA xxxxxx,[yyyy]                 examines   memory,   displays
+                                              contents of specified memory
+              default: yyyy = 0001            location(s)
+
+            HELP                              lists all valid  commands and
+                                              test numbers
+
+            HLT                               causes program to  halt after
+                                              displaying an error message
+
+            LOP [n]                           sets  number   of  iterations
+                                              executed by the RUN command
+
+62                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+COMMAND SUMMARY                                                February 28, 1986
+
+
+              default: n = 1
+
+            MSG                               enables  all messages  except
+                                              data dumps
+
+            MOD [x],yyyyyy,zzzz,[zzzz],...    modifies memory, writes spec-
+                                              ified data to specified
+              default: x = hexadecimal        memory location(s)
+
+            NODMP                             prevents data dumps, disables
+                                              DMP command
+
+            NOHLT                             disables HLT command
+
+            NOMSG                             inhibits error messages, dis-
+                                              ables DMP command
+
+            NOOPT                             resets all commands  to their
+                                              default  values; deletes  all
+                                              lines from testing
+
+            OPT                               displays current commands and
+                                              lines selected
+
+            RUN [n],...                       starts execution of specified
+                                              tests.  If n is "MOST", Tests
+              default: Tests 1, 2, 5, 6, 7    1 through 7 are executed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+63                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+TEST PLUG ORDERING CHART                                       February 28, 1986
+
+
+
+
+
+
+                    APPENDIX II.   TEST PLUG ORDERING CHART
+
+
+
+            Ordering the  quantity shown  for each  respective part  number
+            will result in a complete set of loopback plugs to test a given
+            machine type.
+
+                                                               Quantity
+                                                               ________
+            Part Number and Description              ENGINE/MINI      MICRO
+            ____ ______ ___ ___________              ___________      _____
+
+            630009-001  (AST 5-1),  PCB Edge
+            Connectors, 4  each synchronous,
+            4  each  clocks  (a full  set, 4              1
+            synchronous  and 4  clock,  will
+            be shipped for this part number)
+
+            160100-001 (AST 7-1),  Connector
+            Panel, synchronous, 37-pin  test              4
+            plug (one each of this plug will
+            be shipped for this part number)
+
+            630030-001,  Rear Panel,  synch-
+            ronous  25-pin  test  plug  (one                            4
+            each of this plug  will be ship-
+            ped for this part number)
+
+            630025-001,  Rear Panel,  synch-
+            ronous  37-pin  test  plug  (one                            1
+            each of this plug  will be ship-
+            ped for this part number)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+64                 Enhanced Synchronous Diagnostic User Guide             DSYN03
+ 67[¾
