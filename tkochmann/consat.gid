@@ -1,0 +1,814 @@
+                            CONsolidated tymSAT -- GID      August 27, 1981
+
+
+
+
+
+
+
+     ***   ***  *   *  ****  ***  *     ***** ****    *   ***** ***** **** 
+    *   * *   * **  * *     *   * *       *   *   *  * *    *   *     *   *
+    *     *   * * * *  ***  *   * *       *   *   * *****   *   ****  *   *
+    *   * *   * *  **     * *   * *       *   *   * *   *   *   *     *   *
+     ***   ***  *   * ****   ***  ***** ***** ****  *   *   *   ***** **** 
+
+
+                      ***** *   * *   *  ****   *  *****
+                        *    * *  ** ** *      * *   *  
+                        *     *   * * *  ***  *****  *  
+                        *     *   *   *     * *   *  *  
+                        *     *   *   * ****  *   *  *  
+
+
+                                ***  ***** **** 
+                               *   *   *   *   *
+                               *       *   *   *
+                               *  **   *   *   *
+                                **** ***** **** 
+                               =================
+
+
+
+                              Consolidated Tymsat
+                            General Internal Design
+
+
+                                   John Kopf
+                            DATA NETWORKS DIVISION
+                                August 27, 1981
+
+
+
+
+
+
+
+
+
+
+     ====================================================================
+     |       THIS DOCUMENT IS THE SOLE PROPERTY AND CONFIDENTIAL        |
+     |       INFORMATION  OF  TYMSHARE,  INC.,  AND  MAY  NOT BE        |
+     |       COPIED  IN  WHOLE OR IN PART  OR  DISCLOSED  TO ANY        |
+     |       THIRD PARTY  WITHOUT THE PRIOR  WRITTEN  CONSENT OF        |
+     |       TYMSHARE.                                                  |
+     ====================================================================
+
+
+                                                                 CONSAT GID
+                            CONsolidated tymSAT -- GID      August 27, 1981
+
+
+
+
+                                 TABLE OF CONTENTS
+
+        1.   Assumptions                                                  1
+
+        2.   Main-stream Processes                                        2
+          2.1   Polling process                                           3
+          2.2   Terminal output processes                                 4
+                      Data-getter                                         4
+                      Data-filter                                         4
+                      Driver                                              5
+                      Control filter                                      5
+          2.3   Terminal input processes                                  5
+                      Receiver                                            6
+                      Filter                                              6
+                      Buffer-driver                                       6
+                      Echo-driver                                         7
+
+        3.   Internal control-signal conventions                          7
+
+        4.   Logon processing                                             9
+
+        5.   Configuration and Code Generation                           10
+          5.1   TYMFILE Parameters                                       10
+          5.2   INIT file                                                11
+          5.3   CONfiguration file                                       11
+                      General features                                   11
+                      PVC features                                       11
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                 CONSAT GID
+                            CONsolidated tymSAT -- GID      August 27, 1981
+
+
+                                CONsolidate tymSAT
+
+                              General Internal Design
+                                     John Kopf
+
+              The purpose of  this project is  to develop an  Engine TYMSAT
+        code module  set which  can act  as a  vehicle for  maintaining the
+        TYMSAT  in  both  the  ISIS  and  TYMNET-II   (Solo)  environments.
+        Additional  objectives  include the  creation  of  highly efficient
+        code, and a design which will be readily expandable in the future.
+
+              The final product should perform as efficiently  as possible,
+        in  terms of  effort (e.g.  memory cycles)  required to  transfer a
+        character between the buffer and the terminal.
+
+
+
+
+
+
+                                 1.   Assumptions
+
+
+
+            0!!  The end product is indistinguishable (to  the terminal
+                 user) from existing TYMSATs!!
+            1.   The  predominance  of  traffic  is  data  (rather than
+                 control functions).
+            2.   The predominant  direction of  traffic will  be toward
+                 the terminal.
+            3.   The individual  sub-processes may be  partitioned into
+                 two  classes:   environment-dependent  (buffer access,
+                 physical  device  drivers,  etc.);   and  environment-
+                 independent (i.e.  terminal-specific).
+            4.   In  particular, the  class  of environment-independent
+                 sub-processes  need  have  only  minimal  knowledge of
+                 global  configuration constraints  (e.g.  printer code
+                 may be  left out  if there  are no  printers;  printer
+                 code should not care how many printers there are!).
+            5.   Conventions may be  set up for inter-class  and intra-
+                 class  communications,  in  terms  of  register usage,
+                 common data structures, calling sequences,  and common
+                 symbols.
+            6.   A  sacrifice in  the efficiency  of low-usage  code is
+                 acceptable if it permits an increase in the efficiency
+                 of high-usage code.
+            7.   The  cleanest way  to  produce generality  is  to make
+                 extensive use of tables.
+            8.   Common functional  sequences should be  performed once
+                 in a centralized position.
+            9.   The  code may  also be  partitioned  functionally into
+                 "main-steam"  (normal  data  and  control   flow)  and
+
+
+                                         1                       CONSAT GID
+        GID                         Assumptions             August 27, 1981
+
+
+                 "ancillary" (e.g.  answer/hang logic,  periodic logic)
+                 processes.  Processes  classed as  main-stream require
+                 the most attention to insure efficiency.
+            10.  The  end  product  should  have  minimal  impact  upon
+                 current configuration rules and procedures.
+
+
+
+
+
+
+                            2.   Main-stream Processes
+
+
+
+              The  primary  function  performed  here  is  the  interaction
+        between the individual ports, and their associated buffers.
+
+              Each  such  interaction can  be  modeled on  the  basis  of a
+        generalized interaction process, shown in Figure 1.
+
+                          Figure 1.  Generalized process:
+                                 +---------+
+                                 | Polling |
+                                 | Process |<--------------------------+
+                                 +---------+                           |
+                                     |                                 |
+                          - - - - - - - - - - - - - - - -              |
+                         /           |                   \             |
+                        /            v                    \            |
+           +--------+<-/         +--------+        +-------------+     |
+           | Source |<---------->| Filter |------->| Destination |- - >|
+           +--------+         /->+--------+        +-------------+     |
+                      \      /   |*|               |*|                 |
+                       \    /    +---------+       +-------------+     |
+        +-------------+ \--/---->| Control |------>|   Control   |---->|
+        |    "Echo"   |   /      | Filter  |       | Destination |
+        | Destination |<-/    /->+---------+       +-------------+
+        +-------------+      /
+        |*|                 /
+        +-------------+    /
+        |    "Echo"   |   /
+        |   Control   |<-/
+        | Destination |
+        +-------------+
+
+              In  general,  a  polling  process selects  one  of  a  set of
+        "filters",  based  upon   some  criteria  of   attention  required.
+        Normally, each filter will perform some set (perhaps empty  set) of
+        initial  operations,  and  then  invoke  a  "source"  to  provide a
+        character.  The source process will either return a data character,
+        or control information.  Either  type of element will take  more or
+
+
+                                         2                       CONSAT GID
+        GID                    Main-stream Processes        August 27, 1981
+
+
+        less parallel paths through coupled processes (shown by "|*|"), the
+        operations performed  will depend upon  the type.  The  filter will
+        transform the  element according  to some  filter-dependent schema,
+        and (normally) deliver it  to the destination.  It may  also choose
+        to return the element to the alternate destination  associated with
+        the source.
+
+              There are several problems associated with this model:
+
+            []   Not all paths are associated with all filters.
+            []   Some types of source  may be able to  deliver multiple
+                 elements;  some types  of destination  may be  able to
+                 receive multiple elements.   It would be  desirable to
+                 detect these conditions, permitting the alternate path
+                 from destination back  to source to get  more elements
+                 --  this  would  avoid  the  overhead  of  polling and
+                 initial filtering for recursive operations.
+            []   The destination  for one process  may be  identical to
+                 the   alternate  destination   for   another  process;
+                 alternate destinations should NOT optionally return to
+                 the source for more elements.
+            []   For  a  specific flow-stream,  the  actual  source and
+                 destination  processes  may  differ  wildly, depending
+                 upon the environment.
+            []   The filter/control-filter process may, at any time, be
+                 changed to a different process;  this may  occur based
+                 upon decisions made by the filter, or by some external
+                 process.
+            []   The reason for using a centralized filter organization
+                 is to  provide decoupling between  the function  to be
+                 performed, and  the devices  being addressed  (and the
+                 driver implementation).
+            []   The   reason  that   the  source   process   is  shown
+                 distinguishing  between data  and control  elements is
+                 because  the  representation  of  these   elements  is
+                 environment-dependent.  The  same argument  applies to
+                 the  need  for  having  distinct,  coupled destination
+                 processes.
+
+              This design attempts to address these problems.
+
+
+
+
+                               2.1  Polling process
+
+              The highest level function performs the function of "polling"
+        -- the determination of  ports which require attention,  setting up
+        of specific common parameters,  and the transfer of control  to the
+        appropriate code to perform the required interaction.
+
+              In general, terminal input  is polled first;  when  all input
+
+
+                                         3                       CONSAT GID
+        GID                    Main-stream Processes        August 27, 1981
+
+
+        is  exhausted,  all pending  output  (to terminal)  is  polled, and
+        performed.  Finally, some devices may (potentially) require special
+        attention on a  demand basis (e.g. intermediate  buffer conditions,
+        such as for checksumed block transfers).  When all interactions are
+        exhausted, control is returned to the calling code.
+
+              The polling  code is configuration  dependent;  it  must have
+        knowledge of  the number  and types of  devices to  perform polling
+        upon.   Specific  information  as to  which  handler  to  invoke is
+        provided by tables which are initialized elsewhere.
+
+
+
+
+                          2.2  Terminal output processes
+
+              The output  process can be  partitioned into  four functional
+        families of  processes:  data-getter,  data-filter, control-filter,
+        and  driver.   The  control-filter  is  further   partitioned  into
+        immediate (environment-independent  controls --  e.g. transparency)
+        processing,   and   driver-dependent   control    functions   (e.g.
+        alternate_output_device control).
+
+
+        Data-getter
+
+              The data-getter is an environment-dependent module;  it needs
+        to know the environment-defined definition of control  signals.  It
+        is  called by  the  data-filter (initially),  and may  also  be re-
+        invoked by the driver.  It  gets the next element from  the buffer,
+        and distinguishes between data  and control information --  data is
+        returned to  the data-filter directly,  but control  information is
+        passed to the  appropriate control-filter according to  a transfer-
+        vector provided by the data-filter.
+
+
+        Data-filter
+
+              There are a family of data-filters, according to the specific
+        terminal  requirements.   The  appropriate one  is  invoked  by the
+        polling-process.   It   performs  appropriate   initialization  and
+        testing, and  then invokes the  data-getter in a  re-entrant manner
+        (such  that  subsequent  invocations  to  the  data-getter,  by the
+        driver, may retrace the path through the data-filter).
+
+              Upon  return  of  the next  data  character,  the appropriate
+        filtering  operations   are  performed  (e.g.   parity  generation,
+        character translation, delay  generation, etc.), and  the resulting
+        data character  is passed  to the appropriate  driver (via  a table
+        entry).   It  may  also option  to  "short-circuit"  further serial
+        processing by the driver, if desirable.
+
+
+
+                                         4                       CONSAT GID
+        GID                    Main-stream Processes        August 27, 1981
+
+
+        Driver
+
+              There  are  a  family  of  drivers,  which  are  environment-
+        dependent (e.g.  async ports, SIO  ports, Printer).   These perform
+        the  necessary  actions  to  output  the  data  character  and may,
+        depending upon  the specific device  constraints, choose  to either
+        return to the polling logic, or to "short-circuit" the  polling and
+        perhaps reenter the loop from the data-getter through the filter.
+
+
+        Control filter
+
+              The control filter is a collection of processes; the specific
+        set of  processes assigned to  a particular data-filter  is filter-
+        specific (e.g. a filter for ASCII terminals would honor requests to
+        "change_output_baudrate";   a  filter for  2741  would  ignore such
+        requests).
+
+              All  control-filter  processes  unconditionally  exit  to the
+        poller logic;  They may, however, have cause to address  the "data-
+        putter" (see below,  under terminal input)  in order to  respond to
+        queries.
+
+              Control-filter  processes are  invoked as  an  alternate exit
+        from the data-getter;  individual CF-processes may choose to ignore
+        the  particular signal,  honor it  immediately, or  pass it  to the
+        control-driver  to be  honored  -- that  driver would  exit  to the
+        poller.
+
+            Note.  In  the TYMNET-II  environment, the  driver  is just
+                 that...the  physical device  driver.  However,  in the
+                 ISIS environment,  the output processes  described run
+                 in the  background, and the  "driver" consists  of the
+                 background-foreground  communications,  the foreground
+                 processes,  and the  ISIS drivers.   These differences
+                 would  be reflected  in the  particular  state tables,
+                 rather than directly in the code.
+
+
+
+
+                           2.3  Terminal input processes
+
+              The  input process  can be  partitioned into  four functional
+        families of processes:  receiver, filter, buffer-driver,  and echo-
+        driver.  a particular process (e.g. echo-driver) may either  be the
+        same process as is used for some other function, or may be a unique
+        process --  this depends upon  the environment;  the  invocation of
+        the particular  process must therefore  be either table  driven, or
+        hard-wired   into   the   code   (e.g.,   by  environment-dependent
+        definitions  of  macros)  --  this  is  a  constraint   on  calling
+        sequences, requiring that all possible processes which  remove data
+        from the Tymsat have identical calling sequences.
+
+                                         5                       CONSAT GID
+        GID                    Main-stream Processes        August 27, 1981
+
+
+        Receiver
+
+              Receiver  modules  may  originate  not  only  data,  bso
+        control information (e.g. break-detected).  While all data received
+        must pass through  a filter process  (e.g. to handle  echoing), the
+        control  information must  also pass  through a  control-filter for
+        potential  special  cases (e.g.  flush  output  on break-detected).
+        Thus the calling sequence must reflect this -- the determination of
+        filter selection should be done  by the driver, rather than  by the
+        filter.
+
+              The  individual receiver  modules  are environment-dependent.
+        However, the filter should not  need to know this fact,  nor should
+        they need  to know  the specific  characteristics of  the interface
+        (async, SIO).
+
+
+        Filter
+
+              The filter is invoked by the poller, and in turn  invokes the
+        appropriate  receiver.  Each  filter  nominally exits  back  to the
+        poller, but may choose to perform multiple receiver  invocations if
+        that is  desirable (e.g. if  it is probable  that the  receiver has
+        multiple data elements input, such as record input).
+
+              As  noted, each  filter must  have an  aspect  for processing
+        control information received from the receiver.  This  is nominally
+        (but not unconditionally) a simple passing of the control signal to
+        the standard output.  There may, however, be specific signals which
+        change the  state for  a particular port  and process,  which might
+        need be processed.
+
+              Filters  may  be  device  and  terminal  dependent,  but  are
+        environment-independent.
+
+
+        Buffer-driver
+
+              The  buffer-driver  is  environment-dependent,  and  has  two
+        aspects: data, and control signals.
+
+              Data  need only  follow the  local escape  conventions before
+        being placed into the buffer.
+
+              Control signals  need to be  mapped from  the Tymsat-internal
+        convention to the form appropriate to the local environment.
+
+              The buffer-driver  is also  responsible for  additional local
+        conventions (e.g. TYMNET-II history buffers).
+
+
+
+
+
+                                         6                       CONSAT GID
+        GID                    Main-stream Processes        August 27, 1981
+
+
+        Echo-driver
+
+              The echo-driver is the collection of drivers which the input-
+        filter  calls  upon to  perform  echoing --  usage  is environment-
+        dependent, but in either environment consists of functional modules
+        already described:  The driver under ISIS;  The buffer-driver under
+        TYMNET-II.  The  selection of the  environment-dependent invocation
+        is either table-driven, or via environment-dependent macros.
+
+              The process of echoing  needs to perform certain  tests (e.g.
+        is  output  buffered?)  which  are   environment-dependent;   these
+        dependencies must be coded as either closed functions or macros.
+
+
+
+
+
+
+                     3.   Internal control-signal conventions
+
+
+
+              This  design is  predicated upon  parallel (yet  still order-
+        sequenced)  paths  for  data  and  control  information.   This  is
+        necessary  because of  different conventions  for data  and control
+        encoding in the two external environments (TYMNET-II or  ISIS), and
+        because  of differences  in the  state-diagram of  these processes,
+        which determine where the control-signals are to be processed.
+
+              As  a  result,  it  is  desirable  to  encode   the  internal
+        representation of the control signals to a standard form.
+
+              The standard  form must  be open-ended  (to allow  for future
+        expansion) and  must map  into a  dense control-function  space, to
+        permit  translations  by   simple  table  look-up.    The  simplest
+        mechanism would be to encode all signals into a  function-code (for
+        table  look-up)  and  a  value  (which  may  be  null  for  certain
+        functions).  Individual function-codes may designate  operations to
+        be performed (e.g. gobbler, enter defered-echo-mode)  or parameters
+        to be set (e.g. output_baud_rate, parity).
+
+                             Internal Control Signals
+
+        Function        Usage
+          Code
+
+                        Control Functions
+         0+[V]  Enter TID mode [V]
+         1+V+C  Baud rate V detected with character C
+         2      Break Begin
+         3      Break End
+         4      Enter Data Mode
+         5      Disconnect
+
+                                         7                       CONSAT GID
+        GID             Internal control-signal conventions August 27, 1981
+
+
+         6+V    Set Delay V
+         7+V+C  Repeat data character C V-times
+         8      Enter DEM
+         9      Leave DEM
+        0A      Hang-up
+        0B      Super Hang-up
+        0C      Zapper
+        0D      Gobbler
+        0E      Red Ball
+        0F      Green Ball
+        10      Orange Ball
+        11      Yellow Ball
+        12      Gray Ball
+        13      Black Ball
+        14      Enter Transparency
+        15      Leave Transparency
+        16      Enter Alternate Output Device Mode
+        17      Leave Alternate Output Device Mode
+        18-1F           Reserved
+
+                        Field parameters
+        20+V    Set Input Baud Rate
+        21      Query Input Baud Rate
+        22+V    Set Output Baud Rate
+        23      Query Output Baud Rate
+        24+V    Set Parameter A
+        25      Query Parameter A
+        26+V    Set Parameter B
+        27      Query Parameter B
+        28+V    Set Parameter C
+        29      Query Parameter C
+        2A+V    Set Parameter D
+        2B      Query Parameter D
+        2C-2F           Reserved
+
+                        Bit parameters
+        30+V    Set Echo Control
+        31      Query Echo Control
+        32+V    Set Echo Control-I
+        33      Query Echo Control-I
+        34+V    Set Echo Control-H
+        35      Query Echo Control-H
+        36+V    Set Echo CR with CR/LF
+        37      Query Echo CR with CR/LF
+        38+V    Set Echo LF with LF/CR/RUB
+        39      Query Echo LF with LF/CR/RUB
+        3A+V    Set CR delay
+        3B      Query CR delay
+        3C+V    Set Parity
+        3D      Query Parity
+        3E+V    Set Half-Duplex
+        3F      Query Half-Duplex
+        40+V    Set X-Enable
+
+                                         8                       CONSAT GID
+        GID             Internal control-signal conventions August 27, 1981
+
+
+        41      Query X-Enable
+        42+V    Set Reverse X-Enable
+        43      Query Reverse X-Enable
+        44+V    Set KATAKANA
+        45      Query KATAKANA
+        46+V    Set Terminate-output on Break
+        47      Query Terminate-output on Break
+        48-4F           Reserved
+
+
+
+
+
+
+                               4.   Logon processing
+
+
+
+              There  are  two  aspects of  logon  processing  which require
+        consideration: The actual interaction with the supervisor,  and the
+        activity with the terminal.
+
+              The  process which  interacts with  the supervisor  is highly
+        dependent upon the particular environment.  Fortunately, it  may be
+        connected  to  to  the actual  port  handler  entirely  through the
+        mechanism  of port  buffers, and  thus needs  very  little detailed
+        knowledge of the ports  themselves.  In particular, it  may perform
+        all port control functions via the local terminal-parameter control
+        signals, placed into the appropriate buffers, along with  text data
+        streams.  All specialized  port-processing for logon may  be pushed
+        into this process,  including conditional (e.g.  password) echoing.
+        There is one constraint which is, however, required.  Certain types
+        of  logons (e.g.  PVC) may  have cause  to originate  logon streams
+        which  should NOT  be  echoed;  these  could easily  be  handled by
+        defining a "quoting" signal, not normally originated by  the TYMSAT
+        (e.g. reuse  "transparency" for this  purpose), and which  could be
+        used to tell  the logon code not  to echo.  Such a  mechanism could
+        make the implementation much cleaner.
+
+              With  the proposed  restrictions  on the  logon  process, the
+        actual handling of the terminal becomes independent of  the process
+        being driven  by the  terminal (logon or  circuit).  Then  the only
+        specialized  processing  for  logon   would  be  in  the   area  of
+        initialization,  and  terminal  identification.   These  should  be
+        relatively  painless to  implement, since  much of  the information
+        would be table driven.
+
+            Note.  Logon processing is the initial  interactive process
+                 to which the terminal will be connected (excluding the
+                 trivial case  of Terminal-IDentification).   There may
+                 be  several different  processes in  this  class (e.g.
+                 Audio Response  ports may need  to perform  an initial
+
+
+                                         9                       CONSAT GID
+        GID                      Logon processing           August 27, 1981
+
+
+                 handshake with the user to determine  the application-
+                 dependent  username  to  generate  for  PVC).   It  is
+                 therefore necessary to allow for multiple processes to
+                 perform "logon" function,  and to structure  things in
+                 such  a  way  that these  can  give  control  to other
+                 processes.
+
+
+
+
+
+
+                      5.   Configuration and Code Generation
+
+
+
+              Each time a  CONSAT is generated, a  number of files  must be
+        assembled together in the  proper order.  Which total set  of files
+        is  used is  environment dependent,  but a  number of  elements are
+        common to all environments.
+
+
+
+
+                              5.1  TYMFILE Parameters
+
+              The first  file must, in  all cases, be  the TYM  file, which
+        specifies the environment and general configuration  parameters.  A
+        fragment  of this  is common  and specific  to the  COMSAT (Format:
+        NAME:value  description, where "value" is the default used  if this
+        parameter is not specified):
+
+            MAXPRT: - Maximum number  of ports available;   defaults to
+                 the maximum number of ports required.  If specified, a
+                 diagnostic  is  generated  each  time  this  number is
+                 exceeded.
+            NAPORT:0  Number of Async ports on this CONSAT;   note that
+                 if this is not a multiple of 16, it will be  FORCED to
+                 the next higher multiple of 16.
+            NSPORT:0  The number of Asynch SIO ports on this CONSAT.
+            NUMPRN:0  The number of printers on this  CONSAT;  Printers
+                 are  assigned  to consecutive  Async  ports, beginning
+                 with Async port 0.
+            NMPVC:0   The  number  of Multiplexed  PVC  pseudo-ports to
+                 allocate.
+            PVC:0     A  switch   to  enable  PVC   (Permanent  Virtual
+                 Circuit)  usage.  Automatically  set if  MPVC  is non-
+                 zero.
+
+
+
+
+
+
+                                        10                       CONSAT GID
+        GID              Configuration and Code Generation  August 27, 1981
+
+
+                                  5.2  INIT file
+
+              The  second file  assembled performs  general initialization.
+        In  particular,  it defines  a  structure of  port  assignments and
+        usage, according to the values specified in the TYM file.
+
+              A second function  provided is to  create a number  of Macros
+        and symbolic parameters, used in the succeeding files.
+
+
+
+
+                              5.3  CONfiguration file
+
+              This  file  specifies  the  particular  constraints  on  this
+        configuration.
+
+
+        General features
+
+            Macro: LTEXT(xxxx,text).   This remains as described in the
+                 TYMSAT reference manual.
+            Macro: HD202(r1,r4,r6-10).   This   macro   specifies  that
+                 Async port  or range  of ports  assigned to  Bell 202S
+                 half-duplex  modems.   May  be  invoked  repeatedly if
+                 necessary to specify more than 16 parameters.
+            Macro: TID120(...).   This macro  specifies the  Async port
+                 or range of ports to send the TID message to  the port
+                 at 120 cps.  Usage is like that of the HD202 macro.
+            Macro: ACHOST(n).   Defines a host number n (in decimal) to
+                 be specified for accounting purposes.  NOT OPTIONAL!
+            Macro: AHRNG(...).   This  macro specifies  those  ports or
+                 ranges  of ports  to be  assigned to  the  last ACHOST
+                 number  specified.  Usage  is like  that of  the HD202
+                 macro.   (NOTE...all  ports not  otherwise  assigned a
+                 host  number for  the  purpose of  accounting  will be
+                 assigned the last value of ACHOST specified!)
+            Macro: SHRNG(...).   Usage just like AHRNG, except that the
+                 ports specified apply to SIO ports only.
+            Macro: MHRNG(...).   Usage just like AHRNG, except that the
+                 ports specified apply to MPVC pseudo-ports only.
+
+
+        PVC features
+
+              These  remain as  described in  the TYMSAT  reference manual.
+        Note, however,  that the  described functions  refer ONLY  to Async
+        ports  --  additional  macros  are  defined  to  provide  the  same
+        functionality for SIO  and MPVC ports, without  requiring knowledge
+        of the internal port-assignment structure:
+
+            Macro: SPVRNG(...).   Like  PVCRNG   except  that  the port
+                 numbers specified apply to SIO ports only.
+
+                                        11                       CONSAT GID
+        GID              Configuration and Code Generation  August 27, 1981
+
+
+            Macro: SPVCEX(...).   Like  PVCEX,   except  that  the port
+                 number specified applies to SIO ports only.
+            Macro: MPVCEX(...).   Like  PVCEX,   except  that  the port
+                 number specified applies to MPVC pseudo-ports only.
+            Macro: SUTXRG(...).   Like  UTXRNG,  except  that  the port
+                 number specified applies to SIO ports only.
+            Macro: MUTXRG(...).   Like  UTXRNG,  except  that  the port
+                 number specified applies to MPVC pseudo-ports only.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                        12                       CONSAT GID
+
+ s
