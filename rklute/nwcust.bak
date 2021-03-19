@@ -1,0 +1,173 @@
+C     BYCUST.FTF
+C     - PROGRAM TO EXTRACT TICKETS BY CUSTOMER/NET
+C     - MODIFIED 7/1/92 ... RDK ... CHANGED END DATE/TIME FROM UP TO CLOSED.
+C     - MODIFIED 8/11/92 .. RDK ... CHANGE DEFAULT TO ALL
+C     - MODIFIED 11/19/93 . RDK ... INCLUDE CHECK OF CALLBACK LISTS ON CUST.
+C
+      DOUBLE PRECISION TYMNET, VNET
+      DATA TYMNET/'TYMNET'/, VNET/'       '/
+
+      REAL RVNET, SNET, TVNET
+      DATA RVNET/'TYMN'/, SNET/'TYMNE'/, TVNET/'TYM'/
+
+      INTEGER CUST(3)
+      DATA CUST/'     ','     ','     '/
+
+      INTEGER CUSTON, VNETON
+      INTEGER IERT, IERC, I, J, X
+      INTEGER NHTYPE, NHNUM
+      INTEGER IM, ID, IY, LOGST, LOGSD, LOGED, LOGET, LOGLT, TEMP(4)
+      INTEGER SM, SD, SY, EM, ED, EY
+      INTEGER TNUM, NT, ONUM
+      INTEGER SDAT,TIME,CDAT,TCLSD,HOST,NODE,CCOD,COC(2),SVER,STAT,PROD
+      INTEGER CNAM(3), NET(2), COMMNT(4), RNAM(3)
+      REAL    ELM
+C------
+C     OK, FIRST LET X22 KNOW ABOUT US.
+C------
+      CALL DBSTRT(-1,1,1,0,5,0,-1,0,1,1,5,1)
+      CALL DBERR($666,IERT,IERC,0)
+C------
+C     NOW SOME INITIALIZATION
+C------
+      CUSTON = 0
+      VNETON = 0
+C------
+C     READ IN LOG START DATE AND TIME
+C             LOG END   DATE AND TIME
+C------
+      CALL DBDATN(LOGSD,1,1,1980)
+      CALL DBDATN(LOGED,12,31,1999)
+100   CONTINUE
+      ACCEPT 10110, NHTYPE, TEMP
+101   CONTINUE
+      IF (NHTYPE .EQ. 'NET  ') GOTO 105
+      IF (NHTYPE .EQ. 'CUST ') GOTO 104
+      IF (NHTYPE .EQ. 'START') GOTO 103
+      IF (NHTYPE .EQ. 'END  ') GOTO 102
+      IF (NHTYPE .EQ. 'GO   ') GOTO 120
+      GOTO 100
+102      DECODE(20,10100,TEMP) IM, ID, IY, LOGET
+         IF (IY .LT. 100) IY = IY + 1900
+         CALL DBDATN(LOGED,IM,ID,IY)
+         GOTO 100
+103   CONTINUE
+         DECODE(20,10100,TEMP) IM, ID, IY, LOGST
+         IF (IY .LT. 100) IY = IY + 1900
+         CALL DBDATN(LOGSD,IM,ID,IY)
+         GOTO 100
+104   CONTINUE
+         DECODE(20,10112,TEMP) CUST
+         CUSTON = 1
+         GOTO 100
+105   CONTINUE
+         DECODE(20,10113,TEMP) VNET
+         VNETON = 1
+         GOTO 100
+110   CONTINUE
+      STOP
+10100 FORMAT(I2,1X,I2,1X,I2,1X,A5)
+10110 FORMAT(A5,4X,4A5)
+10111 FORMAT(I5)
+10112 FORMAT(3A5)
+10113 FORMAT(A10)
+10115 FORMAT(1X,A5,4X,4A5)
+C
+120   CONTINUE
+C------
+C     OK, THAT IS DONE, NOW LET'S FIND SOME TICKETS.
+C------
+      OPEN(8,'BYCUST.OUT',OUTPUT)
+C
+      DO 200 X = 1, 4, 3
+         IF (X .NE. 1) GOTO 130
+            CALL DBOPEN('(TNT)BASE1','ACCESS','RO')
+            IF ((VNETON .EQ. 0))
+     1          CALL DBFIND('SDAT','LE',LOGED)
+            IF ((VNETON .EQ. 1))
+     1          CALL DBFIND('SDAT','LE',LOGED,'AND','NET','EQ',VNET)
+            IF ((CUSTON .EQ. 1))
+     1          CALL DBSRCH('LAST','AND','CNAM','CT',CUST)
+            CALL DBSEL('LAST','AND','DUP','GE',LOGSD,'SAV.',1,
+     1                 'LAST','AND','DUP','EQ',0,'AND',
+     2                 'SDAT','GE',LOGSD,'OR','REF.',1)
+            GOTO 135
+130      CONTINUE
+            CALL DBOPEN('(TNT)BASE4','ACCESS','RO')
+            IF ((VNETON .EQ. 0))
+     1          CALL DBFIND('DUP','GE',LOGSD)
+            IF ((VNETON .EQ. 1))
+     1          CALL DBFIND('NET','EQ',VNET,'AND','DUP','GE',LOGSD)
+            IF ((CUSTON .EQ. 1))
+     1          CALL DBSRCH('LAST','AND','CNAM','CT',CUST)
+            CALL DBSEL('LAST','AND','SDAT','LE',LOGED)
+135      CONTINUE
+C
+140      CALL DBGREC($200)
+         CALL DBVAL('TNUM',TNUM,'NT',NT,
+     1              'SDAT',SDAT,'TIME',TIME,'CDAT',CDAT,'TCLSD',TCLSD,
+     2              'HOST',HOST,'NODE',NODE,'CCOD',CCOD,'COC',COC,
+     3              'ELM',ELM,'SVER',SVER,'STAT',STAT,'PROD',PROD,
+     4              'NET',NET,'CNAM',CNAM,'COMMNT',COMMNT)
+150      CALL DBNDAT(SDAT, SM,SD,SY)
+         IF (SY .GT. 99) SY = SY - 1900
+         CALL DBNDAT(CDAT, EM,ED,EY)
+         IF (EY .GT. 99) EY = EY - 1900
+         WRITE(8,10130) TNUM, SM,SD,SY, TIME, EM,ED,EY, TCLSD, NT,
+     1                  HOST, NODE, CCOD, COC, SVER, STAT, PROD,
+     2                  NET, CNAM, COMMNT
+         GOTO 140
+10130 FORMAT(I8,1X,2(I2,1H/,I2,1H/,I2,1X,A5,1X),I1,
+     1       3(1X,I7),1X,2A5,1X,I2,2(1X,A5),1X,
+     2       2A5,1X,3A5,1X,4A5)
+200   CALL DBCLOSE
+C
+C     Now let's check the call back lists
+C
+      IF (CUSTON .NE. 1) GOTO 300
+        CALL DBOPEN('(TNT)CALBAK','ACCESS','RO',
+     2              '(TNT)OCALBK','ACCESS','RO',
+     3              '(TNT)BASE1', 'ACCESS','RO',
+     4              '(TNT)BASE4', 'ACCESS','RO')
+        ONUM = 0
+        DO 280 X = 1, 2
+          CALL DBSET(X)
+          CALL DBFIND('SDAT','LE',LOGED,'AND','DUP','GE',LOGSD,'AND',
+     1                'RNAM','CT',CUST)
+240       CALL DBGREC($280)
+          CALL DBVAL('TNUM',TNUM,'RNAM',RNAM)
+          IF (ONUM .EQ. TNUM) GOTO 250
+            CALL DBSET(3)
+            CALL DBFIND('TNUM','EQ',TNUM)
+            CALL DBGREC($245)
+            GOTO 246
+245         CALL DBSET(4)
+            CALL DBFIND('TNUM','EQ',TNUM)
+            CALL DBGREC($265)
+246         CALL DBVAL('NT',NT,'SDAT',SDAT,'TIME',TIME,'CDAT',CDAT,
+     1                 'TCLSD',TCLSD,'HOST',HOST,'NODE',NODE,
+     2                 'CCOD',CCOD,'COC',COC,'ELM',ELM,'SVER',SVER,
+     3                 'STAT',STAT,'PROD',PROD,'NET',NET,'CNAM',CNAM,
+     4                 'COMMNT',COMMNT)
+            ONUM = TNUM
+            CALL DBNDAT(SDAT, SM,SD,SY)
+            IF (SY .GT. 99) SY = SY - 1900
+            CALL DBNDAT(CDAT, EM,ED,EY)
+            IF (EY .GT. 99) EY = EY - 1900
+250       IF ((CNAM(1) .NE. RNAM(1)) .OR. (CNAM(2) .NE. RNAM(2)) .OR.
+     1        (CNAM(3) .NE. RNAM(3)) ) WRITE (8,10130) 
+     2                   TNUM, SM,SD,SY, TIME, EM,ED,EY, TCLSD, NT,
+     3                   HOST, NODE, CCOD, COC, SVER, STAT, PROD,
+     4                   NET, RNAM, COMMNT
+265       CALL DBSET(X)
+          GOTO 240
+280     CONTINUE
+300   CONTINUE
+      CLOSE(8)
+      CALL DBEND
+      STOP
+666   CONTINUE
+      TYPE 10140, IERT, IERC
+      STOP
+10140 FORMAT(1X,'1022 ERROR, ERROR TYPE = ',I8,' ERROR CODE = ',I8)
+      END
