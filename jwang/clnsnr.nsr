@@ -1,0 +1,277 @@
+
+
+NSR#:
+
+Subject:   Televerket X.25 escalation 69954
+
+------------------------------------------------------------------------
+
+Escalation history:
+     1. A X.25 link connected to IBM 3600 showed a bad frame exchange
+        sequence:
+               When the line is connected, IBM sent SABM POLL.
+               We response with UA Final.
+               We sent RESTART with nonzero N(S) AND N(R).
+               IBM sent FRMR to reject.
+               We answered FRMR.
+               We sent SABM POLL
+               ......
+               ......
+          (It took a long handshaking to bring up the link. This long
+           time period makes IBM to timeout and send DISC out.)
+
+      2. Since no dump for this problem. We supplied a trap patch
+          (JWANG:22)FRMRTP.300 to catch the problem in order to take
+         a dump.
+
+      3. Same problem was caught under the trap patch FRMRTP.300.
+         Dump file is (JWANG:22)PW2035.DP2 (provided by Televerket).
+         FRMR.300 trap the slot when it transmits a FRMR.
+
+      4. A patch (JWANG:22)CLVSVR.300 was written to fix the bug based
+         on the dump PW2035.DP2. The bug is that our code doesn't
+         clear the value V(S) and V(R). So, The restart packet carries
+         nonzero n(s) and n(R) and then IBM sends FRMR to reject.
+
+      5. the slot regened with patch CLVSVR.300 and without the trap patch
+         FRMR.300. Televerket did three tests by disconnecting the link.
+         Televerket didn't provide a real DDT trace or any dump for
+         the testing result. Only a handwriting notes provided for the
+         frame exchange of link set up sequence. (No frame state provided.)
+         (This hand writing note is attached at end of this file.)
+
+         From the notes, the second test shows the patch CLVSVR.300 fix the
+         problem based on the dump PW2035.DP2.
+
+         But , the first and third tests shows there are some other
+         similiar problem----It looks like that IBM will reset the value
+         of n(s) and n(r) whenever they receives UA for their sending SABM.
+         They would like to see n(s)=N(s)=0 in our Restart packet.
+
+         Dennis Ernst had also spent lot of time to check the handwriting
+         note (see the attached note at the end) and found that there was no
+         way to find out the problem due to no frame state provided.
+
+         Dennis said our code should already clear the values of V(S) and V(R)
+          in some routine such as LNKCTL. But it may be too late for the IBM
+         DTE. 
+
+         Due to no real DDT trace or dump provided. CLNSNR.300 was written
+         to clear the values of V(S) and V(R) right away after we response
+         UA for SABM or DISC. (JWANG:22:37)CLNSNR.300.
+
+      6. CLNSNR.300 has been tested by Televerket to avoid the problem.
+
+
+
+Conclution:
+      We would like NTD to review this patch and check if we need clear
+         V(S) and V(R) right away after we response UA for SABM under some
+         frame states (or all frame states)
+
+         NTD may only review the patch CLNSNR.300 and forget the patch
+         CLVSVR.300.
+
+         We know Televerket problem shows that there is a BUG. But, without
+         real DDT trace (TNSC couldn't provide), we don't real know
+         where we should remove the bug. 
+         If the CLNSNR.300 remove the bug (TNSC has tested this patch
+         successfully) at the right place, please put into the next higher 
+         version. If not at the right place, please develop a similiar patch
+         to fix this bug. Or should TNSC keep this as a special patch???
+
+
+==================================================
+
+Dump PW2035.DP2 is in (JWANG:22)
+CLNSNR.300 is in (JWANG:22:37)
+CLVSVBR.300 is in (JWANG:22:37)
+FRMRTP.300 is in (JWANG:22)
+
+===================================================
+
+FOLLOWING iIS AN ONTYME SENT BY TNSC --A NOTE ABOUT A LINK SET-UP
+FRAME EXCHANGE SEQUENCE. (NO FRAME STATE PROVIDED)
+*****************************
+
+MSG#:A82654
+ IN#:  355
+  TO: J/WANG          
+FROM: TNS      P/BOUCACHARD    
+SENT: 30 MAY 86 07:52:45  
+READ: 30 MAY 86 09:09:42  
+  CC: J/WANG  NTD.D/ERNST  J/LUCAS  B/CHEN 
+
+
+TO      : JAMES WANG
+     
+FROM    :PHILIPPE BOUCACHARD
+     
+DATE    :30 MAY 1986   
+     
+RE      : X25 ESC # 69954
+     
+     
+    James,
+As I told you in the past , it is not allways feasible to organize a  
+test with acustomer of datapak because of their willingness to be
+disturbed.
+Anyhow when I did the testing of the patch clvsvr.300 we had a   
+comstate II on line recording the xechanges on tape and then
+after having it printed on paper.  
+The following comes from that printout you may trust it as close 
+to the reality as an exddt trace coukld have shown.    
+     
+Please let me know if you need anymore info on that topic.  
+     
+P.S : could you tell how comes that we don't try to have the same
+sequence of code ( I mean concerning the reset of xvr and xvs ) for   
+the receipt of SABM in not armed mode , the same way as it's done
+in case of receipt of sabm p/f=1 in INFO transfer (reset of link )    
+in the foreground? (ref SSBINF ).  
+     
+Hope to hear from you soon.   
+     
+     
+ here is the sequences of the tests the disconnection corresponding   
+to "disable" and connection to "enable" commands on the IBM , but
+we had this personn from asea using the IBM talking to us by the phone
+therefore not making things easy to coordonate.   
+     
+     
+     
+**********************************************************  
+     
+     
+     
+     
+     
+                IBM SIDE                                XCOM SLOT               
+     
+                NO FLAGS SENT   -----------        SENDING FLAGS
+     
+   ONE FLAG THEN SABM P/F =1    ---------->  
+     
+                                <--------   UA F=1   
+     
+                                <-------- 3 FLAGS THEN RESTART N(R)=1    
+                                        N(S)=0 AND CAUSE = 07    
+                                                (03201000FB0700)   
+        RESTART IND.N(S)=0 N(R)=0-------->
+     
+                RR N(R)=1       -----------> 
+     
+                                <----------   REJ N(R)=1 !  (0129)  
+     
+                CALL REQUEST   --------->   
+                        (0122100B0B082402025100C2000000)
+                CALL REQUEST   -------->    
+                        (0122100B0B082402025100C2000000) !!!!
+     
+                                <-------   REJ N(R)=2   (0149) 
+                        THEN A WAIT 
+                                <-------- RESTART I  CAUSE =00 N(R)=2    
+                                                N(S)=1 (03421000FB0000) 
+                RESTART CONF     ---------->        
+     
+                                <------------ RESTART I   
+     
+                RESTART CONF   -------->    
+     
+                CALL REQUEST     ------->   
+     
+                                <-----------    CALL ACC. 
+     
+THEN EVERYTHING GOES RIGHT TRANSFER OF DATA. 
+     
+                                <---------    CLEAR REQUEST    
+     
+                CLEAR CONF     ---------->  
+     
+                        DISC (0153)---------> 
+     
+                                <--------------     UA (0173) !
+                THEN A WAIT OF SOME HUNDREDS OF FLAGS 
+                AND THEY SEND A SEEMINGLY ABORTED FRAME WITH    
+                A BAD CHECKSUM (I.E 0241 ) AND THEN NO FLAGS    
+                FOR ABOUT 20 SECS.
+                AND THEN A LOOKING BAD SEQUENCE: 
+     
+        ONE FLAG SABM (013F)  ------>
+                                <--------   UA (0173)
+     
+                                <---------    RESTART N(R)=0 N(S)=0 
+                                                        (03001000FB0034)  
+                RESTART I    ---------->    
+     
+                RR N(R)=1   ------>    
+     
+                CALL REQUEST  -------->
+                N(R)=1 N(S)=0
+                                <--------   RR N(R)=1  (0121)  
+     
+     
+                                <---------    RR N(R)=2 (0141) 
+     
+                                <-------    CALL ACC. N(S)=1 N(R)=1 
+                                                (0342100B0F0000)   
+     
+                RR N(R)=2      ------> 
+     
+                                <-------- INFO PACKET N(R)=2 N(S)=2 
+     
+                RR PACKET 3,2 --------->    
+                (0164100B21) 
+                INFO PACKET 3,3    -------> 
+                (0166100B20) 
+                                <--------   RR N(R)=3 (0161)   
+     
+                                <-------   RR N(R)=4 (0181)    
+     
+                                <------   RR PACKET N(R)=4 N(S)=3   
+                                                (0386100B21)  
+                                <-------- RESTART I N(R)=4 N(S)=4   
+                                                (03881000FB0000)   
+                THEN WE SEND TWO OTHER RESTART WHICH ARE ANSWERED    
+                BY RESTART CONF BY IBM EQUIP.    
+        THEN THE IBM SEND DISC (0153) WE SEND A UA (0173) THEN AFTER    
+                A WHILE IT STOP SENDING FLAG AND THEN WE GO AGAIN    
+                THROUGH THE CONNECTION SCENARIO: 
+     
+     
+                ONE FLAG SABM (013F)  ------->   
+     
+                                <--------     UA (0173) P/F=1  
+     
+                                <----------- RESTART I N(R)=1 N(S)=0
+                                                (03201000FB0700)   
+                RESTART I N(S)=0 N(R)=1 -------->
+                (01001000FB0000)  
+                RR N(R)=1         ------>   
+     
+                                <--------------     REJ N(R)=1 (0129)    
+     
+                CALL REQ (SAME ONE AS BEFORE) -------->    
+                (0122100B0B082402025100C2000000) 
+                CALL REQ (WRONGLY REPEATED !!)------->
+     
+                                <--------------     RR N(R)=2  
+     
+                                <--------- REJ N(R)= 2    
+THOSE EXCHANGE ARE FULL OF IMPORTANT DETAILS BUT IF WE WANT TO GO FURTHER  
+THE SLOT IS SENDDING A RESTART I (WE GET A RESTART CONF)    
+THEN A SVC IS ESTABLISH THGE SLOT IS OUTPUTING A DATA PACKET
+AND RIGHT AFTER A RESTART  WITH CAUSE =1 DIAG = 11 (FOR LPE).    
+     
+BEST REGARDS,  
+                PHILIPPE BOUCACHARD    
+     
+     
+
+
+
+
+
+
+
+
