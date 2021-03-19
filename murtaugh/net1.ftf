@@ -1,0 +1,129 @@
+C**********************************************************************
+C
+C                             NETCON.FTF
+C
+C          GENERATES REPORT ON ELAPSED TIME GOAL FOR BTNA          
+C          (95% < 5 hrs).                                    06/05/92
+C                                                            JLM
+C
+C***********************************************************************
+C
+C
+        INTEGER START,END,TNUM,STDAT,CLDAT,SM,SD,SY,EM,ED,EY
+        INTEGER IERT,IERC,NUMBER,I,ONUM,SDAT,CDAT,B1,OM,OD,OY
+        INTEGER CM,CD,CY,HOST,NODE,TIME,TUP,TNUM,HRGN,SVE
+        INTEGER COC(2),RE(2),RECORD,SDAT,DUP,TUP,V6,TIM1
+        INTEGER LIM(2)
+        REAL OVR(2),UNDR,HOUR,ELM
+        real ov,un
+        real elm,tot
+        
+        CALL DBSTRT(-1,1,-4,0,1,0,5,0,-1,0,-4,1,1,1,5,1)
+        TYPE 10
+        LIM(1)=1
+        LIM(2)=2
+        OVR(1)=300.0
+        OVR(2)=720.0
+10      FORMAT(/5X,'Enter Target Severity Level for Report (#) : ',$)
+        ACCEPT 15,SVE
+15      FORMAT (I1)
+18      TYPE 20
+20      FORMAT(/5X,'ENTER THE STARTING DATE (MM/DD/YY) :  ',$)
+        ACCEPT 21,SM,SD,SY
+21      FORMAT(I2,1X,I2,1X,I2)
+        SY=SY+1900
+        call dbopen('(tnt)base4','(tnt)base1')
+        CALL DBDATN(START,SM,SD,SY)
+        TYPE 30
+30      FORMAT(/5X,'ENTER THE ENDING DATE (MM/DD/YY)   :  ',$)
+        ACCEPT 31,EM,ED,EY
+31      FORMAT(I2,1X,I2,1X,I2)
+        EY=EY+1900
+        CALL DBDATN(END,EM,ED,EY)
+        if (end.gt.start) goto 101
+        type 50
+50      format(/3x,'date range not correct, please reenter')
+        goto 18
+        CALL DBERR($100,IERT,IERC,0)
+        GOTO 101
+100     IF (IERT.NE.7) GOTO 9000
+        TYPE 103
+103     FORMAT(/1X,'DATABASE BUSY, PLEASE WAIT.')
+        CALL WAIT(5.0)
+101     TYPE 102,sve
+102     FORMAT(/2X,'BT North America',/2X,'network operations',
+     1  /2x,'MTTR Quality Report',/2X,'Sver. Lvl. ',I1)
+        OPEN(8,'NETCON.RPT',OUTPUT)
+601     WRITE(8,102)sve
+        call dbset(1)
+        CALL DBFIND(49,6,START,1,49,4,END,1,52,1,svE,1,53,1,2)
+        CALL DBNREC(NUMBER)
+        if (number.eq.0) goto 8000
+        call dbfind(49,6,start,1,49,4,end,1,52,1,sve,1,53,
+     1  1,2,1,54,'GT',ovr(sve))
+        CALL DBNREC(RECORD)
+        UNDR=RECORD
+        IF (RECORD.GT.0) OV=100.0*(UNDR/NUMBER)
+        un=100-ov
+c        (insert formula for computing the percentage over 5 hours)
+        TYPE 202,NUMBER,RECORD,UN,OV
+202     FORMAT(/2X,'----------------------------------------------',
+     1  /2x,'number of tickets for period= ',i4,/2x,'those ',
+     2  'longer than five hours= ',i4,//2X,'--------------------',
+     3  '----------------------------',
+     4  //2X,'PERCENTAGE OF FAULTS CLEARED IN 5 Hrs. =  ',F6.2,
+     5  //2X,'-------------------------------------------------',
+     6  //2X,'% > 5 HRS. = ',F5.2,//2X,'---------------------',
+     7  '-----------------------------')
+        WRITE(8,202)NUMBER,RECORD,UN,OV
+500     WRITE(8,510)
+        TYPE 510
+510     FORMAT(/2X,'Tkt #   ',1X,'Rept Prob ',3X,'Close Code',
+     1  3X,'ELM (hrs)',/2X,'-------- ----------   ----------',
+     2  '   ---------')
+        call dbset(1)
+580     if (z.eq.1) goto 583
+        call dbfind(49,6,start,1,49,4,end,1,53,1,2,1,54,6,ovr(sve),
+     1  1,52,1,sve)
+        goto 587
+583     call dbfind(52,1,sve,1,53,1,2)
+        call dbsrch(54,'GT',ovr(sve),1,49,6,start,1,49,4,end)
+587     CALL DBNREC(NUMBER)
+        IF (NUMBER.EQ.0) GOTO 8000
+590     DO 600 I=1,NUMBER
+        CALL DBGREC($9000,I)
+        CALL DBVAL(1,tnum,54,ELM,55,coc,57,RE)
+C    1  5,SDAT,6,TIM1,35,V6,49,DUP,50,TUP)
+C       IF (ELM.EQ.0.0) CALL MTTR(SDAT,DUP,TIM1,TUP,ELM,HOUR)
+C       HOUR=HOUR-V6
+536     ELM=ELM/60
+C       TYPE 537,ELM,HOUR
+C37     FORMAT(1X,'HOUR= ',F5.2,' ELM= ',F10.3)
+        IF (ELM.LT.5.0) GOTO 600
+        WRITE(8,540)TNUM,RE,COC,ELM
+540     FORMAT(I8,3X,2A5,3X,2A5,F8.1)
+        TYPE 540,TNUM,RE,COC,ELM
+600     CONTINUE
+        if (z.eq.0) type 542
+        IF (Z.EQ.0) WRITE(8,542)
+542     format(/2x,'checking base1 for early warning')
+        if (z.eq.1) goto 9990
+        z=z+1
+        call dbset(2)
+        goto 580
+        GOTO 9990
+8000    TYPE 8001
+        WRITE(8,8001)
+8001    FORMAT(/5X,'NO RECORDS FOUND')
+        GOTO 9990
+9000    TYPE 9001,IERT,IERC
+9001    FORMAT(/3X,'ERROR TYPE = ',I5,4X,'ERROR CODE = ',I5,
+     1  /,/3X,'PLEASE REPORT THIS TO NSSC!')
+9990    TYPE 9995
+9995    FORMAT(/,2X,'>> REPORT GENERATED -- NETCON.RPT <<')
+        CLOSE(8)
+        CALL DBCLOSE
+        call dbclose
+        CALL DBEND
+        STOP
+        END
