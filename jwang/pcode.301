@@ -1,0 +1,238 @@
+:
+:
+: PIR NUMBER:
+:
+: CUSTOMER: ESCONET
+:
+: WRITTEN: JAMES WANG ON SEPT, 1987
+:
+: SUBJECT: XCOM TO XCOM CALL DOES NOT PROVIDE 'PROJECT CODE'
+:          FEATURE. THE TASK OF THIS PROJECT IS TO COLLECT
+:          THE 'PROJECT CODE' UP TO 12 (decimal) CHARACTERS
+:          OR A TERMINATOR IS FOUND FROM THE USER AFTER
+:          CIRCUIT IS BUILT. THIS PROJECT CODE WILL BE ALSO
+:          PASSED TO HOST. THIS FEATURE IS DONE AT DESTINATION
+:          XCOM INTERFACE. VERSION 3.01.
+:
+: TASK: 1. A BUFFER POOL WITH 16 (decimal) BYTES FOR EACH
+:          CIRCUIT IS RESERVED.
+:       
+:         (format)
+:
+:          LEN1/LEN2/PJCODE
+:
+:             where: LEN1 is the length of project code.
+:                         this byte will be reset after report 'B7D0'.
+:                    LEN2 is the length of what we have sent the project code.
+:                         this byte is used for debugging purpose.
+:                    PJCODE is the string of project code. the length can be
+:                         up to 12 (decimal) bytes or a terminator is found.
+:         
+:       2. TERMINATOR 'PJEND' SHOULD BE DEFINED IN COMMAND FILE.
+:            IF PJEND IS DEFINED AS ZERO, TERMINATOR IS NOT USED AND
+:            TOTAL LENGTH OF 12 (decimal) WILL BE COLLECTED.
+:
+:       3. A NEW ROUTINE 'PJCODE' IS DEVELOPPED TO COLLECT PROJECT CODE
+:          FROM IIX 'C094' MESSAGE. AFTER CIRCUIT IS BUILT, USER ADAT WILL
+:          BE TRANSMITTED VIA IIX 'C094' MESAGES  TO ACROSS THE NETWORK.
+:          USER SHOULD ENDTER PROJECT CODE STRING AS THE FIRST USER DATA
+:          SENT TO HOST.
+:          THIS PROJECT CODE STRING WILL BE COLLECTED IN THE BUFFER POOL
+:          CALLED PJTBL. (the format, see item 1.)
+:
+:       4. INSIDE THE ROUTINE 'ESD100', THE INSTRUCTION 'JAL R4,PJCODE,,'
+:          IS INSERTED.
+:
+:       5. WHENEVER THE PROJECT CODE HAS BEEN COLLECTED UP TO 12 (decimal)
+:          CHARACTERS OR A TERMINATOR, THE NEW ROUTINE 'PJSEND' IS EXECUTED
+:          TO BUILD ONE OR MORE (up to 4) ADDENDUM ACCOUNTING 'B7D0' MESSAGES.
+:          THE 'B7D0' MESSAGE HAS 7 BYTES (FIXED LENGTH).
+:
+:          (format)
+:
+:            RPORT(2)/B7/D0/PC1/PC2/PC3
+:
+:           where PC1,PC2,PC3 are the three bytes of project code or
+:                 NULL character '00'.
+:
+:       6. FLAG PCOD.F IS USED TO TELL THE CODE TO START TO COLLECT
+ :         OR STOP COLLECTING PROJECT CODE.
+:          FLAG WILL BE RESET IN DDONE AND SET IN GME100 (RECEIVES 80818083)
+:
+
+:
+:*************************************************************************
+:
+: MAKE SURE THE TERMINATOR 'PJEND' IS DEFINED IN THE COMMAND FILE.
+:
+:**************************************************************************
+:
+: PART 1. DEFINE BUFFER POOL FOR ALL PORTS.
+:
+:-----------------------------------------------------
+
+PA0PTR  EQ      ((PA0PTR+3)/4)*4
+PATCH(870908,1400,JWANG,PA0PTR,,18+10*NDPORT+2*NDGRPS)
+PJREG1  WS      1       :SAVE AREAS FOR REGISTERS
+PJREG2  WS      1
+PJREG3  WS      1
+PJREG4  WS      1
+PJREG5  WS      1
+PJREG6  WS      1
+:
+PJPOOL  WS      NDPORT*4        :16 decimal BYTES FOR EACH PORT
+:
+PCOD.F HS      NDGRPS          :FLAG FOR COLLECTING PROJECT CODE
+:
+:***********************************************************************
+:
+: PART 2. ROUTINE 'PJCODE' TO COLLECT PROJECT.
+:         ROUTINE 'PJSND' TO SEND ADDENDUM ACCOUNTING 'B7D0' FOR
+:                  PROJECT CODE.
+:
+:--------------------------------------------------------------------
+
+CONPATCH(PA1PTR,,11A)
+PJCODE  ST      R1,PJREG1,,
+        ST      R2,PJREG2,,
+        ST      R7,PJREG3,,
+        ST      R4,PJREG4,,
+        ST      R5,PJREG5,,
+        ST      R6,PJREG6,,
+:
+:       check if we need collect this character as project code
+:
+:
+        LHL     R7,DPORT
+        TBT     R7,PCOD.F,,            :IF SET, GO COLLECTING PROJECT CODE
+        JE      PJRTN                   :NOT SET, JUST RETURN
+:
+:       check if maximum length is reached
+:
+        SLLS    R7,4                    :GET OFFSET TO THE POOL PJPOOL
+        LB      R2,PJPOOL,R7,           :GET THE LENGTH OF SAVED PROJECT CODE
+        CLHI    R2,0C                   :MAXIMUM OF 12 IN decimal REACHED?
+        JGE     PJSND                   :IF REACHED, GO SEND B7D0 MESSAGE
+:
+:       less than 12, save this character in pool
+:
+        STB     R0,PJPOOL+1,R7,R2         :SAVE THIS CHAR IN POOL
+        AIS     R2,1
+        STB     R2,PJPOOL,R7,           :UPDATE THE LENGTH OF PROJECT CODE
+:
+:       check if the project code terminator is defined to be nonzero
+:       or not. if zero, no terminator will be used. If nonzero, this
+:       terminator value of 'PJEND' will be compared to see if terminator
+:       if found. Note that this character has been saved (counted) in project
+:       code.
+:
+        LHI     R1,PJEND
+        JE      PJRTN                   :ZERO, NOT TO USE TERMINATOR
+        CR      R0,R1                   :TERMINATOR?
+        JE      PJSND                   : IF TERMINATOR, GO SEND B7D0 MSG
+        J       PJRTN                   :OTHERWISE, JUST RETURN
+:
+:
+:       routine PJSND to send addendum accounting message. (can be up to
+:       4 messages to have up to 12 in decimal bytes of project code.)
+:
+PJSND   LR      R6,R2
+        LIS     R5,0
+PJSND2  LHL     R1,DPORT
+        RBT     R1,PCOD.F,,            :RESET THE FLAG
+        LHI     R2,0B7                  :MESSAGE TYPE
+        JAL     R4,SLOR,,
+        LIS     R0,0
+        JAL     R4,PUTCH,,
+        LHI     R0,0D0
+        JAL     R4,PUTCH,,
+:
+:       followings are the project code data
+:
+        LB      R0,PJPOOL,R7,R5         :GET PROJECT CODE DATA FROM POOL
+        JAL     R4,PUTCH,,
+        AIS     R5,1                    :INCREMENT BY ONE
+        CR      R5,R6                   :END OF PROJECT CODE?
+        JGE     PJSND4                  :YES, ADD NULL CHARACTER
+        LB      R0,PJPOOL,R7,R5         :GET DATA FROM POOL
+        JAL     R4,PUTCH,,              :OUTPUT TO ORING
+        AIS     R5,1                    INCREMENT BY ONE
+        CR      R5,R6                   :END OF PROJECT CODE?
+        JGE     PJSND6                  :YES, ADD NULL CHARACTER
+        LB      R0,PJPOOL,R7,R5         :GET DATA FROM POOL
+        JAL     R4,PUTCH,,
+        AIS     R5,1                    :INCREMENT BY ONE
+        JAL     R4,ELOR,,               :FINISH THIS ISIS ACCOUNTING MESSAGE
+        CR      R5,R6                   :MORE FOR PROJECT CODE?
+        JL      PJSND2                  :YES, GO BUILD ANOTHER ACCOUNTING MSG
+        J       PJSND8                  :OTHERWISE, JUST RETURN
+:
+:
+:       here is to append NULL characters
+:
+PJSND4  LIS     R0,0                    :NULL CHARACTER
+        JAL     R4,PUTCH,,
+PJSND6  LIS     R0,0                    :NULL CHARACTER
+        JAL     R4,PUTCH,,
+        JAL     R4,ELOR,,               :END OF ISIS MESSAGE/PROJECT CODE
+:
+:       return to caller
+:
+PJSND8  STB     R5,PJPOOL+1,R7          :UPDATE THE LENGTH OF WHAT WE SENT
+        LIS     R5,0                    :ZERO OUT THE LENGTH BYTE
+        STB     R5,PJPOOL,R7,
+:
+:
+PJRTN   L       R1,PJREG1,,
+        L       R2,PJREG2,,
+        L       R7,PJREG3,,
+        L       R4,PJREG4,,
+        L       R5,PJREG5,,
+        L       R6,PJREG6,,
+        JR      R4
+:
+:***********************************************************************
+:
+: PART3. AT ESD110, JAL TO PJCODE ROUTINE AND PJSND IF NECESSARY.
+:
+:-----------------------------------------------------------------------
+CONPATCH(ESD110+0C,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1C)
+        TBT     R7,Q1PKT,,              :QBIT SET PACKET?
+        JN      .+8                     :IF YES, DO NOT COLLECT
+        JAL     R4,PJCODE
+        SIS     R6,1
+        JN      ESD110,,
+        J       ESD120,,
+:
+:**************************************************************************
+:
+: PART 4. TURN ON THE FLAG PCOD.F AND ZERO OUT THE TWO LENGTH BYTES
+:         AT PJPOOL.
+:------------------------------------------------------------------------
+CONPATCH(GME100,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,22)
+        CLHI    R0,ID.XCM&0FF
+        JN      GME110,,
+        SBT     R7,PCOD.F,,            :R7 IS DPORT
+        LR      R4,R7
+        SLLS    R4,4
+        LIS     R0,0
+        STB     R0,PJPOOL,R4,           :ZERO OUT THE LENGTH OF PROJECT CODE
+        J       GME100+6,,
+:
+:*********************************************************************************
+:
+: PART 5. RESET RESET FLAG AT DDONE.
+:
+:--------------------------------------------------------------------------
+CONPATCH(DDONE+2E,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        RBT     R1,WIBMCA,,
+        RBT     R1,PCOD.F,,
+        J       DDONE+34,,
+ENDPATCH(SNED ADDENDUM ACCOUNTING B7D0 FOR PROJECT CODE IF XCOM TO XCOM CALL)
+   
