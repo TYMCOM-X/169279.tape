@@ -1,0 +1,1741 @@
+                                                                   July 2, 1987
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TTTTTTTTTTT EEEEEEEEE  CCCCCCCC  HHH    HHH TTTTTTTTTTT IIIIIIIIIII  PPPPPPP
+TTTTTTTTTTT EEEEEEEEE CCCCCCCCCC HHH    HHH TTTTTTTTTTT IIIIIIIIIII PPPPPPPPP
+    TTT     EEE       CCC     CC HHH    HHH     TTT         III     PPP    PPP
+    TTT     EEEEE     CCC        HHHHHHHHHH     TTT         III     PPP    PPP
+    TTT     EEEEE     CCC        HHHHHHHHHH     TTT         III     PPPPPPPPP
+    TTT     EEE       CCC     CC HHH    HHH     TTT         III     PPP
+    TTT     EEEEEEEEE CCCCCCCCCC HHH    HHH     TTT     IIIIIIIIIII PPP
+    TTT     EEEEEEEEE  CCCCCCCC  HHH    HHH     TTT     IIIIIIIIIII PPP
+
+
+
+
+
+
+
+
+
+
+                                 July 01, 1987
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     MMDDYY.TIP
+                                                                   July 2, 1987
+
+
+
+
+
+
+
+                                   TABLE OF CONTENTS
+
+        Section                                                            Page
+
+
+
+        1.   What is the Login Rate Composed Of                               1
+
+
+        2.   Procedure for Loading a DATA I/O from PDP-10                     3
+
+
+        3.   X.121 Address Options for SDLC/QLLC                              4
+
+
+        4.   Disk Allocations/Parameters Used In The .DSC File                6
+
+
+        5.   Sup File Structure and Parameters                                8
+
+
+        6.   SNA Crash Codes                                                 13
+
+
+        7.   Initialization Files                                            15
+
+
+        8.   Patch Policy                                                    17
+
+
+        9.   ISIS Node Tymfile Equate Statements and Macro Calls             20
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     MMDDYY.TIP
+        What is the Login Rate Composed Of                         July 2, 1987
+
+
+
+
+
+
+                        1 -  What is the Login Rate Composed Of
+
+
+
+
+
+
+
+        Original Question by : Dayna Meyer                    
+                 Response by : Gail Bubsey, HQ Network Staff Consultant
+                        Date : June 3, 1987
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+        What  is the  "login rate"  composed of?   Is it  the number  of logins
+        attempted, even if not completed due to error in username  or password,
+        or host  not available.  Does  it include ddt,  xray, or  other utility
+        logins?
+
+
+        The reason for  this question is  that we are  seeing about 2x  as many
+        logins  reported in  Probe than  are being  reported in  the accounting
+        statistics.
+
+
+
+
+
+
+        RESPONSE:
+
+
+        The Login Rate figure is the accumulation of the number of times during
+        the  last minute  that we  went through  the Direct  Routine;  in other
+        words,  calculated  a path  either  for a  regular  circuit,  a rebuilt
+        circuit, or an  aux circuit.  Added to  this is the number  of internal
+        circuits (aux circuits).
+
+
+        Two points about this -- we do not go into the direct routine unless we
+        have somewhere to go.  In other words, the destination host has already
+        been checked to be answered, and the network username and  password has
+
+
+                                           1
+        What is the Login Rate Composed Of                         July 2, 1987
+
+
+        already been validated.  The second thing is that it appears to me that
+        we count  aux circuits  twice, once  simply because  it is  an internal
+        circuit and once when we actually decide which path to take.
+
+
+        I don't  know what your  accounting data shows,  and I don't  know your
+        network configuration, but  remember that to  the Login Rate  figure, a
+        consat to cmt to pbh session is 2 logins.  All ddt, xray, etc. sessions
+        are included.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                           2
+        Procedure for Loading a DATA I/O from PDP-10               July 2, 1987
+
+
+
+
+
+
+                   2 -  Procedure for Loading a DATA I/O from PDP-10
+
+
+
+
+
+
+
+        Written by : Diana Tai, Network Technology Division
+              Date : June 10, 1987
+
+
+
+
+
+
+             Following is the procedure to load an image file from
+        PDP-10 to a DATA I/O:
+
+           1. Connect DATA I/O and terminal with RS232.
+           2. Make sure the baud rates are the same (for example both 1200).
+           3. Power on DATA I/O and enter on front panel the following:
+                 SELECT
+                 81
+                 ENTER
+           4. Login to PDP-10 where the image file resides.
+           5. Enter following command at terminal:
+
+                 R (TOOLS11)BURN
+              Burn is a program on (TOOLS11:39) which down line loads
+              a prom image into a DATA I/O. It goes through a question
+              and answer period and then loads the data into the
+              prom burner.
+           6. For the remaining steps and example, please refer to
+              section 4 of document (TECHREF:38)ATC300.DOC.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                           3
+        X.121 Address Options for SDLC/QLLC                        July 2, 1987
+
+
+
+
+
+
+                       3 -  X.121 Address Options for SDLC/QLLC
+
+
+
+
+
+
+
+        Original Question by: Grace Gilliam
+                 Response by: John Mckiernan, HQ Network Staff Consultant
+                       Date : June 18, 1987
+
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+        I am working on an SDLC/QLLC/X25 betatest and have 2 questions--
+
+
+        1.  Is there  a way to  get the CALLED and  CALLING address to  be less
+        than 14-digits (default).
+
+
+        2.  My SVC is an OUTLN and  does NOT send a CALLING address in  the IIX
+        call setup messages.  I can enter a calling address via the monitor and
+        an IIX message gets sent out (of course, it defaults to 14-digits).  Is
+        there a macro  whereby I can  gen a calling  address into the  code.  I
+        cannot find this in the documentation.
+
+
+
+
+
+
+        RESPONSE:
+
+
+        For SDLC interface lines which originate network circuits, two   macros
+        define the CALLED and CALLING address.  They are -
+
+          SVC.CALLED()  - To define the CALLED  DTE X.121 address   
+          SVC.CLGADR()  - To define the CALLING DTE X.121 address   
+
+
+
+                                           4
+        X.121 Address Options for SDLC/QLLC                        July 2, 1987
+
+
+        Unfortunately, the second macro is not documented in the SDLC    (QLLC)
+        SYSGEN reference manual.  I will discuss this with NTD .
+
+
+        For SDLC interface lines which terminate network circuits, the   second
+        macro is used to  verify the CALLING DTE  address.  If the  two  do not
+        agree, the network circuit is cleared.
+
+
+        Regarding the  optional use of  X.121 address which  are less  than  14
+        digits in length, our  SDLC interface cannot accept a  'short'  address
+        for INCOMING  lines.  This problem  was first identified    by External
+        Network  Services  (ENS) ,  and  NTD is  investigating     the required
+        solution.
+
+
+        Our XCOM interfaces can accept any length CALLED or CALLING  address up
+        through the maximum 14 digits.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                           5
+        Disk Allocations/Parameters Used In The .DSC File          July 2, 1987
+
+
+
+
+
+
+                4 -  Disk Allocations/Parameters Used In The .DSC File
+
+
+
+
+
+
+
+        Original Question by: Dan Upthegrove
+                 Response by: Gail Bubsey, HQ Network Staf Consultant
+                       Date : June 22, 1987
+
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+        I am  in the  process of upgrading  a Supervisor's  disks from  2 10-MB
+        disks to a  300-MB disk.  What I  require, for this and  another future
+        upgrade,  is  a  description of  the  disk  allocation  allocations and
+        parameters used in the .DSC file for 10, 160, and 300 MB disks.
+
+
+
+
+
+
+        RESPONSE:
+
+
+        The main differences, code-wise, between the 10s and the 160s  and 300s
+        are:
+
+
+        1 - The 10s  use the .TYMfile paramter  NDISC to specify the  number of
+        disk drives.  The  160s and 300s use  the .TYMfile parameter  MSCDSK to
+        specify the number of disk controllers.
+
+
+        2 - The 10s  have 2 platters, fixed  and removable.  The 160s  and 300s
+        have just 1 platter.
+
+
+        3  -  The  size  allocations,  i.e.  #sectors  per  track,  #tracks per
+
+
+                                           6
+        Disk Allocations/Parameters Used In The .DSC File          July 2, 1987
+
+
+        cylinder, are defaulted  for the 10s.  You  must set them in  your .DSC
+        file for the 160s and 300s.
+
+
+        Differences in parameters between the 160s and 300s:
+
+
+        1 - MSCTK0 or number of  tracks per cylinder.  For the 160s this  is EQ
+        to $A 10.  For  the 300s it is $A  19.  The difference between  the two
+        drives is  not the  number of cylinders,  but rather  the size  of each
+        cylinder.
+
+
+        Examples:
+
+
+        (UL6CODE:37)ZZ2001.DSC is an example of a 160mb .DSCfile.
+
+
+        (DIALNET:37)DI2001.DSC is an example of a 300mb .DSCfile.  Note however
+        that this file has a mistake.  The USER SPACE should be  332 cylinders,
+        not 335.  Never allocate the cylinder numbers above 332.
+
+
+        Further information:
+
+
+        See next page for an article on further descriptions of .DSC  files and
+        their paramters.
+
+
+        The  basic  procedures  for  determining  the  number  of  cylinders to
+        allocate  remain the  same.  Always  do your  calculations  in decimal,
+        round up, then  convert to hex.  The  number of cylinders =  (number of
+        sectors)  / (number  of  sectors per  track)  * (number  of  tracks per
+        cylinder).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                           7
+        Sup File Structure and Parameters                          July 2, 1987
+
+
+
+
+
+
+                        5 -  Sup File Structure and Parameters
+
+
+
+
+
+
+
+        I.  Sup file structure and parameters
+
+          i.  THE SUP AND UTILITY FILES
+
+        There is only one parameter in the Isis .TYM file which  indicates that
+        a node  is a  supervisor.  That  is SUP  EQ 1.   Setting this  causes a
+        couple of things to happen:
+
+                Isis will check to see that your node number is in the
+                range of 2001-2007, and that your kernal host number is
+                the appropriate one, 121-127.
+
+                Isis will append 7 slots to your highest slot number,
+                NSLOT, and calculates the core size of each.
+
+                These seven slots are added in the following order:
+
+                Slot Number             Product
+                Q = NSLOT + 1           Supervisor
+                Q = Q + 1               Probe
+                Q = Q + 1               Error Log
+                Q = Q + 1               Account
+                Q = Q + 1               Sys Message
+                Q = Q + 1               UN2
+                Q = Q + 1               Utility
+
+        The SUPERVISOR is an Isis slot which, along with its slaves, "controls"
+        the network.   It handles  routing, username  verification, accounting,
+        and network diagnostics/status.
+
+
+        PROBE is the interactive  network monitoring program that serves  as an
+        authorized user's interface to the network.
+
+
+        The ERROR LOG slave has read-only addess to the network  diagnostic log
+        on disk.
+
+
+        The ACCOUNT slave has read-only access to the accounting data stored on
+        disk.
+
+                                           8
+        Sup File Structure and Parameters                          July 2, 1987
+
+
+        The SYS MESSAGE slave provides on-line messages to users  about network
+        conditions.  It  also allows  changes in  the class/group  tables, host
+        messages, and shut  lines for inactive sups  to be communicated  to the
+        other supervisors in the network.
+
+
+        UN2 allows the network user validations program to read and  modify the
+        Master User Directory file on disk.  This slave allows all Sups to have
+        a consistent view of the CUD.
+
+
+        UTILITY handles disk-to-disk and tape-to-disk data transfers.
+
+         ii.    PARAMETER DEFINITIONS
+
+        TYMSTR(n)               Supervisor number (1-7)
+        OPTION(n,n,n,...n)      System options
+                ISIS            On if an Isis node (default is on)
+                MSC             Shared controller support (if Isis is on,
+                                        then this defaults on)
+                NORATE          Disables 1 minute login rate reports to the
+                                        error log (default is off - reports
+                                        will be sent)
+                NOSPAS          Prevents user circuits from passing through
+                                        all sups - command circuits will be
+                                        allowed to pass through sup nodes
+                                        (default is off - user passthrough
+                                        circuits allowed for nodes 2000-2007)
+                OPCIPH          Allows a priviledged Probe user to enter 1
+                                        ADC username in case of emergency
+                                        (default is off)
+                NOPERF          Disables 1 minute performance statistic
+                                        reporting to the error log (default
+                                        follows Norate - if Norate is true,
+                                        then Noperf is true - if Norate is
+                                        false, then Noperf is false)
+                TIGOUG          Supposedly enables 4 levels of gouging for
+                                        T-I circuits - experience shows that
+                                        it should be used for all configur-
+                                        ations until further notice (default
+                                        is off)
+                DEBMON          For use only by system developers (default is
+                                        off)
+                UFAST           Enable user priority circuits - unimplemented
+                                        at this time (default is off)
+        NOTAKE(n,...n)          Declare certain node numbers as illegal in
+                                        the network - usually those on which
+                                        gateway slots reside
+        DEFTIM(n,n1,n2,n3,n4)   Set system time parameters
+                                        lack of a superclock and the declar-
+                                        ation of NOCLOCK, n4, have caused
+                                        problems
+        DEFHST(n,n1,n2)         n = maximum valid host number (destination)
+
+                                           9
+        Sup File Structure and Parameters                          July 2, 1987
+
+
+                                n1 = maximum host number to use 1down messages
+                                        (default = 0)
+                                n2 = sector offset for 1down messages file
+                                        (default = 3 - ignored if n2 = 0)
+        MBHOST(n)               n = number of occurances of multi-based host
+                                        numbers in the net (default = 31)
+        DEFNOD((BASE,n,n1),(REMOTE,n,n1),(TII,n,n1))
+                                n = maximum node number of that type
+                                n1 = maximum number of nodes of that type
+                                all n and n1 fields must be filled in for v.41.
+        DEFMUD(n,n1,n2,n3)      MUD disk characteristics
+                                n = status of file (-1 = non-critical, 0 =
+                                        critical, 1 = super-critical, unused)
+                                n1 = number of sectors in a mud block - must
+                                        match Netval allocation (default = 8)
+                                n2 = unused
+                                n3 = number of MUD blocks - must match Netval
+                                        allocation (default = 2039)
+        DEFACT(n,n1)            n = status (see above)
+                                n1 = number of sectors for the accounting file
+        DEFERR(n,n1)            n = status (see above)
+                                n1 = number of sectors for the error log file
+        DEFSAV(n,n1,n2)         n = sector offset
+                                n1 = number of crash areas
+                                n2 = number of sectors for the save area
+        HISTRY(n)               n = number of sectors for the history file
+        CACHE(n,n1)             n = number of elements in cache
+                                n1 = number of cache segments
+        FENCE(n,n1,n2,n3)       n = maximum class number
+                                n1 = number of sectors for class file 
+                                n2 = maximum group number
+                                n3 = number of sectors for group file
+                                n1 and n3 must match parameters in Netval
+        ADC(n,n1,n2)            requires input from NTD
+        PRBNAM((n,n1,n2),..1,n2))
+                                defines hardcoded internal usernames for probe
+                                n  = username
+                                n1 = password cipher (use pswd command in 
+                                     probe)
+                                n2 = probe status
+        PRBPRM(n,n1,n2,n3,n4,n5,n6)
+                                defines probe parameters
+                                n  = default password cipher for manually 
+                                     entered usernames
+
+        iii.    THE .DSC FILE
+
+        The .DSC file is divided into three general sections:  1. definition of
+        the physical  media, 2. definition  of global units  and sizes,  and 3.
+        definition of local (by slot) units and licenses.
+
+
+        In general, all values are in hex.
+
+                                          10
+        Sup File Structure and Parameters                          July 2, 1987
+
+
+        Section 1, the physical media:
+
+                The following must be defined in the .TYM file. 
+                NDISC  = # 10mb drives
+                NTAPE  = # tape drives
+                MSCDSK = # MSC controllers
+
+                The following should be in the .DSC file.
+                MXGLU  = maximum number of global units as defined in 
+                         Section 2.
+                NMSCx  = number MSC drives on this controller
+                MSCDAx = MSC controller number
+                MSCCYx = cylinders per MSC drive
+                MSCTKx = tracks per MSC cylinders
+                MSCSTx = sectors per MSC track
+
+                The size definitions for the 10mb and the tape drives 
+                default.
+
+                In decimal the various sizes of the disk drives are:
+
+                                    10mb           160mb           300mb
+        cyl/drive (format)       408(198x)       823(337x)       823(337x)
+        cyl/drive (user)         403(193x)       818(332x)       821(335x)
+        sectors/cyl               48( 30x)       530(212x)      1007(3efx)
+
+                Any time cylinder calculations are done, it is safest to do 
+                them in decimal, round up if there is a remainder, and then 
+                convert to hex.
+
+        Section 2, the global definitions, takes the following form:
+
+                SGU.DEF(AA,BB,CC,DD,EE)
+
+                AA = the global unit number
+                BB = the device type (DK, MS, or MT)
+                CC = the device number
+                DD = the starting cylinder address of the unit 
+                EE = the length (in cylinders) of the unit
+
+                all values (except device type) are in hex
+
+        Section 3, the local definitions:
+
+                In this section, the global units assigned above are
+                allocated to certain slots with certain degrees of license.  
+                The format takes the following form:
+
+                NXLUx = maximum number of logical units for slot x.
+                        this must be greater than or equal to the highest 
+                        local unit number as opposed to the actual number of 
+                        units.
+
+
+                                          11
+        Sup File Structure and Parameters                          July 2, 1987
+
+
+                SEG.REF(FF,GG,AA,HH+HH...)
+
+                FF = the slot number, for the utility slots this is set to
+                     equal the previous slot number + 1
+
+                GG = the logical unit number within the slot
+
+                AA = the global unit number defined above
+
+                HH = the various license types summed together.  These are:
+                     RD = read
+                     WR = write
+                     AT = attach
+                     SS = system
+
+                As far as the licenses go, the safest bet is to find a 
+                sample .DSC file and follow what is defined there.
+
+                The following are local unit numbers which must remain
+                constant due to code limitations.  In other words, the
+                global numbering scheme may be whatever you want, but 
+                within the slots themselves the value of FF (see above)
+                must be the following:
+
+                value of FF             area name
+                     0                  Mud/Cud
+                     1                  Accounting
+                     2                  Supervisor Save Area
+                     3                  Class and Group Definitions
+                     4                  Source/Destination File
+                     5                  Error Log
+                     6                  Host Message
+                     7                  Supervisor History
+                     8                  (reserved)
+                     9                  Regional Data Set
+                    10                  Closure Work File
+
+                If some of these areas are unused, the logical units
+                must remain unused.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          12
+        SNA Crash Codes                                            July 2, 1987
+
+
+
+
+
+
+                                 6 -  SNA Crash Codes
+
+
+
+
+
+
+
+        Written by : Ping Chu, HQ Network Staff Consultant
+              Date : June 22, 1987
+
+
+
+
+
+
+        CRASH CODE                     DESCRIPTION    
+        ==========   =====================================================
+
+           20          Invalid port 0 message 
+           21          No activation routine  
+           22          Invalid needle received  
+           23          Invalid message received 
+           24          DCB chains error    
+           25          Invalid host number 
+           26          No device address   
+           27          Invalid output request   
+           28          No buffers available
+           29          Monitor table overflow   
+           2A          No command link found    
+           2B          Device address list problem   
+           2C          Impossible receive state 
+           2D          Invalid output command   
+           2E          Invalid transmit request 
+           2F          Invalid IIX dialect code 
+           30          Bad command list pointer 
+           50          Command list loacked, or all crash locations in the
+                       SNA Dispatcher modules  
+           51          Command list empty, or all crash locations in the 
+                       SSCP.SVC-MGR modules  
+           52          all crash locations in the PU.SVC-MGR modules
+           53          all crash locations in the LU.SVC-MGR modules, or 
+                       wrong signal
+           54          all crash locations in the DFC modules  
+           55          all crash codes in the TC modules   
+           56          all crash locations in the PC modules   
+           57          all crash locations in the High Level Scheduler.  
+           58          No buffers/Command lists/SCB available  
+           59          SNA format error    
+
+                                          13
+        SNA Crash Codes                                            July 2, 1987
+
+
+           5A          all crash locations between SNA layers and Network
+           66          Timeout on an inactive circuit
+           88          all crash locations in the Protocol Manager modules,
+                       and SDLC layer   
+           A0          all crash locations in the DSP handler modules    
+           AA          Host number not found    
+           E1          I/O inquery SVC failure  
+           E2          Device not mother board  
+           E3          SIO input SVC failure    
+           E4          SIO output SVC failure, or failure to build output
+                       sector during re-transmission   
+           E6          Connect SIO SVC failure  
+           FF          all crash locations that are not described above  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          14
+        Initialization Files                                       July 2, 1987
+
+
+
+
+
+
+                               7 -  Initialization Files
+
+
+
+
+
+
+
+        Written by : Rock Anderson
+              Date : June 25, 1987
+
+
+
+
+
+
+
+                                 Initialization Files
+
+
+        An  initialization  file  is a  program  that  runs  automatically upon
+        logging into a system.  The  init file can be programmed to  do various
+        things such as  setting status, sending  commands to the  DEC mainframe
+        such as:
+             TTY LC     lower case letters
+             TTY ERASE  cntrl a does a echoed backspace
+             TTY BSD    cntrl h does a echoed backspace
+              etc.
+
+        The following  is a description  of how to  create an init  file.  This
+        init file is for  System 25, 54 and  like Systems.  Not for  Ontyme.  I
+        believe you will  find it worth the  modest trouble it takes  to create
+        the init file.
+
+        1) Copy (tymnet or tym5)init.tba and init.shr into your directory.
+
+        2) copy (tymnet or tym5)pi into your directory.
+
+        3) Use Peak to modify pi (Editor will not work properly); substitute
+           your status user name for "codegen".
+
+        4) Run the command noname (R Noname) and answer the prompts with the
+           following information:
+                change                     : let's change things
+                13                         : change project code requirements
+                n                          : no project code required
+                y                          : good change
+                y                          : more changes
+                6                          : let's add the init file
+
+                                          15
+        Initialization Files                                       July 2, 1987
+
+
+                y                          : pdp should look for init at 
+                                             login
+                your directory name        : your login name
+                init                       : file name
+                y                          : good change
+                n                          : no more changes
+                q                          : quit noname application
+
+
+        5) That is all.  If everything was done correctly, the next time you 
+           log in, good things will happen to YOU.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          16
+        Patch Policy                                               July 2, 1987
+
+
+
+
+
+
+                                   8 -  Patch Policy
+
+
+
+
+
+
+
+                NETWORK SYSTEMS COMPANY; QULAITY SERVICES & TECHNICAL SUPPORT
+         
+         
+                                        PATCH POLICY
+         
+                                 Issued:  February 10, 1986          
+         
+             
+         
+             A  primary responsibility of both Technical Services and Network 
+             Technology Development is to resolve software anomalies.  One of 
+             the  methods used to resolve an anomaly includes the  generation 
+             of  a  temporary patch.   As Technical Services  does  not  have 
+             responsibility   for   either   source   code   or   maintenance 
+             programming,  the major decisions relating to the methodology of 
+             a  cure lies with the Network Technology Division (NTD).   As  a 
+             result, a close working relationship with NTD is required.  This 
+             memo  attempts to set out the policy by which Technical Services 
+             and NTD will deal with the broad issue of patches.
+         
+             While  Technical  Services may be able to write a  patch  for  a 
+             specific  customer's needs,  their  major responsibility  is  to 
+             ensure that NTD incorporates the change not only in the  version 
+             which  demonstrates  the problem/need,  but all  future  product 
+             releases.
+         
+             Software  patches  can be divided into  two  categories.   Those 
+             required  to  resolve  an  anomaly in  the  software  and  those 
+             required to implement a feature not in the software.
+         
+                  I.  Patches created as the result of a software anomaly are  
+                  considered   as  a  necessary  element  of  the  Field  and  
+                  Technical  Service's function.   The  following  procedures 
+                  apply:
+         
+                      A. All patches will undergo as much testing as possible 
+                         prior to installation in a network interface.
+         
+                      B  All  patches  generated  by the Field  or  Technical 
+                         Services  must  be  delivered  to NTD  via  the  NSR 
+                         process as an anomaly report.
+
+                                          17
+        Patch Policy                                               July 2, 1987
+
+
+         
+                      C. Technical  Services  will support and  maintain  all  
+                         patches in an "ALPHA PATCH FILE" directory until NTD 
+                         issues a new PATCH FILE release.
+         
+                      D. NTD  will incorporate the fix in the next release of 
+                         source software whenever timing allows.
+         
+                      E. NTD   reserves  the  right  to  reject  an  NSR   or  
+                         Escalation  of a problem with an accompanying  patch 
+                         which has not been approved by NTD when NTD suspects 
+                         the anomaly is associated with the patch.
+
+
+                  II. Feature  required  as  the result of  a  Field/customer
+                  request must be submitted to Technical Services for  review 
+                  and  are  not  to  be installed into  a  network  interface 
+                  without  the explicit consent of Technical  Services.   The 
+                  following procedures apply:
+         
+                      A. All  requests  for features submitted  to  Technical 
+                         Services  will  be  submitted  to  NTD  and  Product 
+                         Marketing via the PIR process.
+         
+                      B. All  feature  patches  generated  by  the  Field  or 
+                         Technical Services will be supported and  maintained 
+                         by  Technical  Services  in  the  ALPHA  PATCH  FILE 
+                         directory  until  NTD  accepts or rejects  the  PIR.  
+                         Technical  Services will,  if possible,  obtain  PIR 
+                         approval  from  NTD prior to  installing  a  feature 
+                         patch into a network interface.
+         
+                      C. All   feature  patches  installed  into  a   network 
+                         interface  which  do  not  have  NTD  approval  will 
+                         require   a  letter  from  Sales  to  the   customer 
+                         informing  them  of the special nature of the  patch 
+                         and  its possible removal in the event of the  PIR's 
+                         rejection.
+         
+                      D. All  feature  patches  must  be  tested  in  a   lab 
+                         environment,   if   at   all  possible,   prior   to 
+                         installation.
+         
+                      E. Upon acceptance of the PIR,  NTD will evaluated  the 
+                         request  and  implement  the  feature  in  the  next 
+                         possible release of source software,  as dictated by 
+                         its priority, as set by the JPPC.  NTD may reject an 
+                         associated  patch  that it feels is not  technically 
+                         sound.     NTD's    primary   commitment   is    the 
+                         implementation of features into the source code, not 
+                         via patches.               
+         
+                      F. PIR's  and  feature patches rejected by NTD will  be 
+
+                                          18
+        Patch Policy                                               July 2, 1987
+
+
+                         escalated  to the Vice Presidents of  Marketing  and 
+                         NTD  for resolution.   In the event that the PIR  is 
+                         found unacceptable the customer will be notified via 
+                         a  letter from Sales representative and the  feature 
+                         patch will be de-installed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          19
+        ISIS Node Tymfile Equate Statements and Macro Calls        July 2, 1987
+
+
+
+
+
+
+               9 -  ISIS Node Tymfile Equate Statements and Macro Calls
+
+
+
+
+
+
+
+        Written by : Chris Nicoll, Sandra Nilluka
+              Date : June 1987
+
+
+
+
+
+
+                               ISIS NODE TYMFILE
+
+                       EQUATE STATEMENTS and MACRO CALLS 
+
+         
+
+         
+
+                   Updated 4 June 87 by C Nicoll, S Nilluka.
+         
+
+
+
+
+
+        **  Important Information, Please read before using this document.  **
+
+            This document is not a sysgen manual.  It is designed to give
+            additional information to the person experienced with tymfiles.
+
+            This document refers ONLY to single machines running ISIS.
+
+            Definitions apply to Isis version 7.03 and Nodecode version 5.10:
+              .Statements preceeded by a "*" are no longer used and should
+               be deleted.
+              .Default values may be different for other versions.
+         
+            All equates default to value 0 unless otherwise noted.  It is
+            recommended that statements be left out when the default value
+            applies.
+         
+            All equate values default to radix Hexadecimal, unless otherwise
+            noted.  To use a different radix, precede the value by $0 for hex,
+
+                                          20
+        ISIS Node Tymfile Equate Statements and Macro Calls        July 2, 1987
+
+
+            $A for decimal, $8 for octal.
+
+            In the comments section of a statement, "x" after a number 
+            indicates that the number is hexadecimal.
+
+
+
+
+         
+           "The contents of this manual were produced by Tymnet Training and 
+           Education for the sole purpose of guiding students through TTE 
+           courses.  Any duplication, distribution or use of these materials 
+           without the written consent of Tymnet Training and Education is 
+           prohibited by Law.
+         
+             Copyright 1987 Network Systems Company, McDonnell Douglas Inc."
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          21
+        ISIS Node Tymfile Equate Statements and Macro Calls        July 2, 1987
+
+
+        I.   ENGINE HARDWARE STATEMENTS
+         
+        These define the hardware configuration of an ISIS-II Engine.
+         
+
+        MACHIN  EQ      #       :1 for TYMNET Engine (default), 2 for HDLC 
+                                :Micro
+                                :3 for TSI (future).
+         
+        * ENGINE  EQ    #       :1 specifies TYMNET engine. (Pre-Ver. 7.xx)
+         
+        ZITEL   EQ      #       :Specifies if MAC II or III board is used.
+                                :This value should be 1 if MAC II/III, 0 if 
+                                :MAC I.
+                                :Always set to 0 for a Micro Engine.
+         
+        * MICRO   EQ    #       :Specifies the microcode level of the machine
+                                :   0 - basic Engine
+                                :   1 - async I/O enhancements
+                                :   2 - async/sync enhanced (default). 
+                                :ALL CURRENTLY SHIPPED HARDWARE HAVE BOTH
+                                :ASYNC/SYNC ENHANCED MICROCODE.
+         
+        BAUDR   EQ      #       :Specifies async baud rate range allowed,
+                                :to be matched by the proper strapping
+                                :on the multifunction board.  Choices are
+                                :   0 - range 75 to 1200 BPS
+                                :   1 - range 300 to 2400 BPS, Future use.
+                                :   2 - range 300 to 4800 BPS
+         
+        LOWSPD  EQ      #       :1 indicates very low speed async, 50 baud
+                                :for Telex as example.  Ignored if BAUDR is
+                                :not set to 0.
+         
+        NASYNG  EQ      #       :Specifies the number of async groups used.
+                                :There are two async groups per card; one 
+                                :group on a Micro Engine. If BAUDR is set to
+                                :2, be no more than 4 groups can be declared.
+         
+        N.ADA   EQ      #       :Set to 1, unless using disk or tape. 
+                                :Micro Engines are required to be set to 1.
+                                :0 - address is 091 (old style) 
+                                :1 - address is 0C1, required if using 
+                                :more than 8 async groups. 
+         
+        ESELCH  EQ      #       :1 indicates use of tape or 10 meg disk
+                                :and requires install of Eselch board.
+                                :If not set, and NTAPE OR NDISC > 0, this
+                                :statement will be forced to 1.
+         
+        * XSELCH  EQ      #     :1 Indicates presence of an extra ESELCH 
+                                :card.  This configuration was not
+                                :released, thus do not use this equate.
+
+                                          22
+        ISIS Node Tymfile Equate Statements and Macro Calls        July 2, 1987
+
+
+         
+        XSYNC   EQ      #       :Set to 1 for an EXTRA sync card.
+                                :If Xsync is set to 0, Nsync defaults to 16,
+                                :If Xsync is set to 1, Nsync defaults to 32
+                                :and NASYNG restricted to 14d (7 cards) as 
+                                :the last async card uses the same device
+                                :address as the second sync card.
+         
+        NSYNC   EQ    $A#       :0 indicates there is no sync in the Engine.
+                                :1-16 assumes 1 sync board, 17-32 assumes 2.
+                                :Used to turn off un-necessary sync interrupts.
+                                :For HDLC micro, defines the number of 
+                                :sio ports simulating sync ports, as 
+                                :defined by S.REF's instead of M.REF's. 
+                          
+        MSCDSK  EQ      #       :Number of MSC 1400 Controller BOARDS handling
+                                :160/300 MB disc drives, (NOT the number of
+                                :160/300 MB drives).  Each board will handle
+                                :4 disk drives.  If BAUDR 2, MSCDSK > 0
+                                :will force BAUDR to 0.
+         
+        NDISC   EQ      #       :Number of 10MB disk drives attached.
+                                :Maximum value is 2.
+         
+        NTAPE   EQ      #       :Number of tape drives.  Max of 4.  Note:
+                                :install will require eselch board for tape.
+         
+        NPRINT  EQ      #       :Number of high speed printers attached, up
+                                :to 8.  Printer motherboard will handle 4
+                                :printers, max 2 motherboards in a engine.
+                                :Printer addresses are 60-67.
+
+        LBOOT   EQ      #       :1 reserves 4k in memory for the boot
+                                :program at abs. address 700.  (default
+                                :is 1). Pre-version 5.10/7.03 default = 0.
+         
+        M.NCARD EQ      #       :Number of SIO Mother boards (no more than 4).
+                                :If M.NCARD > 0, the following statements are
+                                :required:
+         
+        M.DAn   EQ      #       :SIO Motherboard number and address.  Numbering
+                                :begins at 0, with address 80x for the first 
+                                :motherboard and continues to address 83x for
+                                :the fourth M/B, by convention.
+                                :Example: M.DA0  EQ  $080.
+         
+        M.NPn   EQ      #       :Number of ports per motherboard, not to
+                                :exceed $A16 per M/B.  "n" is the motherboard
+                                :number as specified above.  Ports must be
+                                :declared in groups of two: 2, 4, 6, etc.
+         
+         
+         
+
+                                          23
+        ISIS Node Tymfile Equate Statements and Macro Calls        July 2, 1987
+
+
+         
+        II.  ISIS CONFIGURATION
+        These statements refer to ISIS software configuration
+        constraints that do not relate to the Engine hardware.
+         
+        NSLOT   EQ      #       :Maximum number of slots to be configured,
+                                :not counting slot 0 or Supervisor slots.
+         
+        NLU     EQ      #       :Specifies the maximum number of logical
+                                :units that may be assigned to any slot.
+         
+        SUP     EQ      #       :Set to 1 to indicate the ISIS-II node
+                                :will contain a Supervisor.
+
+        BGMIN   EQ      #       :$040 default (in FASTC tics), maximum time
+                                :between background cycles to identify BG
+                                :overload conditions.   
+
+        ASYNEW  EQ      #       :Specifies the type of ISIS async driver
+                                :the slots will interface to, with choices -
+                                :   0 - old driver system 
+                                :   1 - new & old driver systems 
+                                :   2 - new driver system - recommended
+                                :Old is used for V.1 Tymcom, V.2 Consat
+         
+        * CONSAT  EQ      #     :Set to 1 to indicate that async will be
+                                :in one of the slots.  In 5.08 of I2IS
+                                :this switch is necessary to activate 
+                                :the new async driver handling.  Not used
+                                :for version 7.xx I2IS.
+         
+         
+         
+        III. NODE CODE (SLOT 0) PARAMETERS
+        These parameters are used to generate slot 0.
+         
+        TII     EQ      #       :Set to 1 to tell node code that it is
+                                :running on an Isis node and not a SOLO
+                                :node.  Still required!!
+
+        MACHNM  EQ    $8#       :The machine number (octal) assigned to this 
+                                :node.
+         
+        HST0    EQ    $A#       :Kernel Host Number in decimal.
+         
+        NDP     EQ      #       :Total number of Dispatcher ports the
+                                :Node Code will process (default 100x).
+                                :Should be > or = to the maximum number
+                                :of simultaneous originating or 
+                                :terminating circuits on this node.
+         
+        PTHRU   EQ      #       :Passthroughs are inhibited when set to 1. 
+         
+
+                                          24
+        ISIS Node Tymfile Equate Statements and Macro Calls        July 2, 1987
+
+
+        NPTHR   EQ      #       :Number of passthroughs permitted, default
+                                :is 100x.
+         
+        NLINES  EQ    $A#       :Number of sync lines defined in slot 0.
+                                :Default is the value of NLUS0 - SILINS.
+         
+        SILINS  EQ    $A#       :Number of SIO lines defined in slot 0.
+                                :Default is 0.
+         
+        IKNRNG  EQ      #       :1 to use Isis Kernel Negative Ring Indexing.
+                                :Set to 0 for 5.xx I2IS code, 1 for 7.xx.
+         
+        LNCKTM  EQ      #       :Number of 4 second intervals without 
+                                :activity allowed before line is dropped
+                                :and reset.  Default is 4, (16 seconds).
+         
+        OLDSUP  EQ      #       :Set to 1 if Sups in the net are version
+                                :41.01 or older.  Default is 0.
+          
+        MEMRMK  EQ      #       :At assembly print out memory requirements for
+                                :1 - node code, 2 - node code and segments.
+          
+        NXUBLK  EQ      #       :The number of simultaneous XRAY network
+                                :logins (default is 3).
+         
+        TIINEW  EQ      #       :Set to 1.  Used by Node Code to assist in 
+                                :XRAY statistic collection.
+         
+        TRKLVx  EQ      #       :Defaults A = 1, B = 2, C = 3, D = 4.
+                                :Mininum number of chracters rec. to
+                                :consider the circuit gushing.  Used to
+                                :effect earlier backpressure release.
+                                :Syntax:  TRKLVA  EQ  3.
+         
+        SQNUMB  EQ      #       :The declared number of characters, in
+                                :powers of 2, establishes the interval 
+                                :between acks sent for characters on a 
+                                :REBUILD enabled circuit.   
+
+        INFLGT   EQ      #      :1 to enable the infinite logon timer.  
+                                :ie, no timeout at the "Please Log In". 
+         
+        DRSZ     EQ      #      :Use to set nodecode i/o rings size.
+                                :Default is $0400.
+         
+
+
+        IV.   NODE CODE OPTIONS
+         
+        OPTION(param1,param2,param3,param4,....)
+              Example: OPTION(REBLD,TLEV,CIRD) [preferred method] or
+                       OPTION(REBLD)
+                       OPTION(TLEV), etc.
+
+                                          25
+        ISIS Node Tymfile Equate Statements and Macro Calls        July 2, 1987
+
+
+                                :Used to set trace, restart and rebuild
+                                :options.  Several options are currently
+                                :available as equates as well.
+         
+             TLEV        :Enables the Xray SIO/SYNC link/line trace code.
+                         :Default is on.
+         
+             NTLV        :Disables the Xray SIO/SYNC link/line trace code. 
+         
+             NxxS        :For Software detected crashes, and
+             NxxH        :For Hardware detected crashes, where
+                         :xx = RS - restart - default for both.
+                         :     HT - halt node
+                         :     BT - go to boot
+                         :     ST - stop nodecode, leave Xray running.
+         
+             CIRD        :Enable circuit display for Xray.
+         
+             REBLD       :Enable circuit rebuild on this node.  Rebuild must
+                         :be in both origination and destination nodes.
+         
+         
+         
+        SLIMIT([slot],[circuits per minute],[slot reports per minute]) where:
+         
+          [slot] is the slot number refered to.
+          [circuits per minute] controls the number of circuit requests
+             that the slot may process to the Supervisor in a minute.
+          [slot reports per minute] controls the number of slot reports
+             to the  Supervisor the slot may send per minute.
+         
+        HLIMIT([host number],[circuits per minute],[slot reports per minute])
+        where the arguments of the macro are identical to SLIMIT but restricted
+        by host number.
+         
+        HSTSLT([host number],[slot #1],[slot #2],[slot #3],..,[slot #8]) 
+        where:
+         
+          [host number] is the host number to be referred to.
+          [slot #1]....[slot #8] are the slots that host number may
+             be allowed to be reported from.
+         
+         
+         
+         
+        V.   NETWORK CONFIGURATION (SLOT 0)
+         
+        These macro calls and equate statements identify how slot 0
+        defines its neighbors.
+        TIILNK([neighbor],[number of groups],[windowsize],[link type],[speed])
+         
+             This macro call sets up definitions for known neighbors.
+             These are all the arguments, in the order of their definition
+
+                                          26
+        ISIS Node Tymfile Equate Statements and Macro Calls        July 2, 1987
+
+
+             within the macro.  Only the neighbor node number is vital; all
+             other parameters may be omitted, if left at default.
+         
+            [neighbor] the octal neighbor number the following definitions
+                 are specified for.  If this neighbor never attaches 
+                 to this node, the following values are never referred to.
+                 All arguments after the node number may be left to default.
+             [number of groups] the number of network channel groups (at 16
+                 channels per group) this link will come up with (default is 8)
+            ** This field is no longer used, but its place must be saved.
+               Numbers in this field are ignored. **
+             [windowsize] the network windowsize for the link, specified in
+                 multiples of 4 to a maximum of 128 per link.  The default is 8
+             [link type] SAT for satellite links; TER (default) for terrestrial
+             [speed] the aggregate speed of all lines comprising the
+                 link to the nearest defined value.  Valid values are:
+         
+                        2 2400 BPS         28 28.8 KBPS      MS >56 KBPS
+                        4 4800 BPS         38 38.4 KBPS
+                        9 9600 BPS         48 48 KBPS
+                       19 19.2 KBPS        56 56 KBPS
+          
+                 If this parameter is not specified or is defined as 
+              less than or equal to 28.8, the Node Code will calculate 
+              the link speed dynamically.  If the speed is greater than
+              28.8 and is defined by this statement, nodecode will use
+              the defined rather than the calculated link speed.  Link
+              speeds in excess of 56 KBPS are considered MS links.
+         
+                 It is recommended that the line speed on multi-line links
+              be the same across each line.  
+
+        Examples:
+                  TIILNK(2010)  :Default the windowsize, TERR link, allow
+                                :the node code to compute the link speed.
+
+                  TIILNK(2010,,12)  :Set the windowsize to 12, default all
+                                    :other values, compute link speed.
+
+                  TIILNK(2010,,12,SAT,56)  :Set the windowsize to 12, define
+                                           : a satellite link at 56kbps.
+
+
+        XLINKS  EQ      #       :Number of neighbors that will be allowed to
+                                :attach as "wild cards" (not predefined by the
+                                :TIILNK macro).  Defaults are Windowsize of 8, 
+                                :Group size of 8, and calculated link speed.
+                                :These values cannot be changed.
+
+         
+
+        VI.   SLOT RESOURCE ALLOCATION
+         
+
+                                          27
+        ISIS Node Tymfile Equate Statements and Macro Calls        July 2, 1987
+
+
+        These tymfile statements allot slot-dependent resources.
+         
+        SnCORE  EQ      $A#     :Where n is the slot number, and # is the  
+                                :kbytes memory reserved for each slot. REQUIRED
+        NLUSn   EQ      #       :Number of logical units assigned to a 
+                                :slot where n = slot number.  NLUSn may be less
+                                :than NLU, but each logical unit must be 
+                                :defined by the following statement.  REQUIRED
+        SnL#    x.REF()         :Where "n" = slot number, 
+                                :"#" is the number of the logical unit 
+                                :assigned, starting at 0 and numbered 
+                                :sequentially.
+                                :"x" refers to the individual references 
+                                :below:
+         
+                        A.REF(a)  identifies which async group is assigned
+                                to this logical unit.  Each async card has
+                                two groups, the first card has groups
+                                0 and 1, the second card groups 2 and 3, 
+                                etc. Group addressing is done at the board
+                                with hardware switches.
+         
+                        S.REF(a) identifies the sync port is defined for
+                                this logical unit. Ports 0-15 are on the   
+                                first sync card, 16-31 on the second.
+         
+                       M.REF(a,b) sets up SIO port assignment.  There are
+                                2 arguments: (a) the motherboard number (0-3) 
+                                and (b) the daughter card or interface card 
+                                (PSM) port number (in Hex).
+         
+                        P.REF(a) sets up a high speed printer assignment:
+                                the argument is the number of the printer
+                                defined.
+         
+        Q.BGn   EQ      #       :Where n slot number, specifies number of
+                                :engine clock tics allotted to the slot for
+                                :a background slice; default is 50ms 
+                                :(1E tics).
+         
+        Q.FGn   EQ      #       :Where n slot number, specifies number of 
+                                :engine clock tics for one foreground service.
+                                :Default is NLUS0/2 + 2 for slot 0.  For other
+                                :slots, it is NLUSn/3 + 5, where n = slot 
+                                :number.
+         
+        SnLIC   EQ      TL.AUX  :Allows the slot to initiate network logins.
+                        TL.SUS  :Suspend license used in APSS/ISRM.  
+                                :Ex. S1LIC  EQ  TL.AUX!TL.SUS  :both licenses.
+
+
+
+
+
+                                          28
+@j8
