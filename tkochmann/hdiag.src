@@ -1,0 +1,805 @@
+;
+;*****************************************************************************
+;*                                                                           *
+;* QUICK PROGRAM TO HELP BRING UP THE HDLC SIO HARDWARE                      *
+;*                                                                           *
+;* THIS SHORT MICROCODE PROGRAM MAY BE USED WITH A SCOPE TO BRING UP         *
+;* THE HDLC MICRO ENGINE I/O HARDWARE. IT WILL RUN WITH POWER APPLIED        *
+;* TO THE I/O BOARD ALONE AND DOES NOT NEED THE CPU AND MEMORY BOARDS.       *
+;* IT TOGGLES THE SIGNALS OF THE CENTRAL PART OF SIO SUBSYSTEM ON THE        *
+;* I/O BOARD. THE MULTIFUNCTION SECTION OF THE CIRCUIT IS NOT EXERCISED      *
+;* NOR IS THE CPU AND SIO INTERFACE.                                         *
+;*                                                                           *
+;* IT IS NOT A DIAGNOSTIC AND IS NOT MEANT TO BE USED AS SUCH.               *
+;*                                                                           *
+;* IT ASSUMES THAT THE CLOCK CIRCUIT IS FUNCTIONING AND CLOCKS ARE PRESENT   *
+;* AND THE MICROINSTRUCTION SEQUENCER 2910 CAN AT LEAST SEQUENCE THE MICRO-  *
+;* INSTRUCTIONS.                                                             *
+;*                                                                           *
+;* PAGE NUMBER IN THE COMMENTS CORRESPONDS TO SCHEMATIC DRAWING NUMBER       *
+;* 440254-001 REV. E.                                                        *
+;*                                                                           *
+;* SCOPE MAY BE SET UP TO SYNC ON 6D-11 (PAGE 3) WHICH OCCURS ONCE EACH TIME *
+;* THROUGH THE LOOP AT INSTRUCTION ADDRESS 0. SYSTEM CLOCK AVAILABLE AT 8A-3 *
+;* (PAGE 3) MAY BE USED AS REFERENCE FOR THE MICRO-INSTRUCTION CYCLES.       *
+;* IF THE BOARD IS FUNCTIONING PROPERLY, EXPECTED EVENTS SHOULD OCCUR AT THE *
+;* APPROPRIATE MICRO-INSTRUCTION TIME.                                       *
+;*                                                                           *
+;* SHOULD THE EXPECTED EVENT DIFFER FROM THE OBSERVED EVENT, DOUBLE CHECK THE*
+;* ACCURACY OF THE COMMENTS FIRST.                                           *
+;*                                                                           *
+;*****************************************************************************
+;*****************************************************************************
+;*                                                                           *
+;*                           DEVELOPMENT LOG                                 *
+;*                                                                           *
+;* 09/15/86  TYHSIEH    RELEASE 1.0                                          *
+;*                                                                           *
+;*****************************************************************************
+;
+;
+;
+;
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* SET SCOPE SYNC                                               *
+;*                                                              *
+;****************************************************************
+;
+        M A1+1                           ;SET SYNC POINT AT 6D-11 (PAGE 3)
+;
+;****************************************************************
+;*                                                              *
+;* The actual operation of this instruction is unimportant.     *
+;* This instruction together with the next instruction toggles  *
+;* the micro instruction bits.                                  *
+;*                                                              *
+;****************************************************************
+;
+        M LDCT+A3+SIOD,MUXLN+ZQ+NOTRS+RAMA,BUS8+330+BC
+                                         ;VERIFY PD0-39, LPD0-39 EVERYWHERE
+                                         ;PD0-39 OCCURS 1 CYCLE BEFORE LPD0-39
+                                         ;EXPECT PD AND LPD 0, 1, 6, 7, 8, 9,
+                                         ;12, 14, 16, 18, 20, 22, 24, 25, 27,
+                                         ;30, 31, 34, 35, 36, 37 TO BE HIGH.
+                                         ;EXPECT PD AND LPD 2, 3, 4, 5, 10, 11,
+                                         ;13, 15, 17, 19, 21, 23, 26, 28, 29,
+                                         ;32, 33, 38, 39 TO BE LOW.
+;
+;****************************************************************
+;*                                                              *
+;* The actual operation of this instruction is unimportant.     *
+;* This instruction together with the previous instruction      *
+;* toggles the micro instruction bits.                          *
+;*                                                              *
+;****************************************************************
+;
+        M LDCT+AC+3,COUNT+DA+SUBS+RAMD,SIOBY+0C0+B3
+                                         ;VERIFY PD0-39, LPD0-39 EVERYWHERE
+                                         ;PD0-39 OCCURS 1 CYCLE BEFORE LPD0-39
+                                         ;EXPECT PD AND LPD 0, 1, 4, 5, 10, 11,
+                                         ;13, 15, 17, 19, 21, 23, 26, 28, 29,
+                                         ;32, 33, 38, 39 TO BE HIGH.
+                                         ;EXPECT PD AND LPD 2, 3, 6, 7, 8, 9,
+                                         ;12, 14, 16, 18, 20, 22, 24, 25, 27,
+                                         ;30, 31, 34, 35, 36, 37 TO BE LOW.
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Generates a constant 0 onto the B-bus and loads Q register   *
+;* in 2901 and channel counter with B-bus data                  *
+;*                                                              *
+;****************************************************************
+;
+        M A1+COUNTD,CONST+DZ+OR+QREG,0
+                                         ;6G,6H (PAGE 3) DRIVES 0 ONTO
+                                         ;B-BUS. EXPECT B0-15 TO BE LOW.
+                                         ;B-BUS DATA CAN BE OBSERVED AT:
+                                         ; PAGE 2 : 11K, 10K, 9K, 6K
+                                         ; PAGE 3 : 6G, 6H
+                                         ; PAGE 8 : 11L, 11N, 11P, 11S, 11U,
+                                         ;          10U, 9S, 7K, 6S
+                                         ; PAGE 9 : 7S, 7P, 7R, 7N
+                                         ; PAGE 10: 6M, 6L, 6R
+                                         ; PAGE 19: 8N, 6P, 6J, 2Y, 2Z
+                                         ;
+                                         ;9S (PAGE 8) LOADS 0 FROM B-BUS 12-15
+                                         ;EXPECT B->COUNTD0 (9S-9) TO BE LOW
+                                         ;LAST HALF OF THE CYCLE AND 9S-11,
+                                         ;9S-12, 9S-13, 9S-14 TO BE LOW THE
+                                         ;NEXT CYCLE.
+                                         ;
+                                         ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE:
+                                         ; PINS 1, 2, 3, 4 = 0001
+                                         ; PINS 14, 13, 12 = 111
+                                         ; PINS 27, 28, 26 = 011
+                                         ; PINS 6, 7, 5    = 000
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Generates constant 5555(hex) onto the B-bus and loads        *
+;* register 5 in 2901 and Z80-SIO interface output registers    *
+;* with 5555(hex).                                              *
+;*                                                              *
+;****************************************************************
+;
+        M A1+SIOD,CONST+DZ+OR+RAMF,5555  ;9L, 9M, 9N (PAGE 9) LOADS 3E5(HEX)
+                                         ;FROM PD29-PD39.
+                                         ;EXPECT 9L-11,12,13,14 = 0111
+                                         ; 9M-11,12,13,14 = 1100
+                                         ; 9N-11,12,13 = 101
+                                         ;
+                                         ;6G, 6H (PAGE 3) DRIVES 5555(HEX)
+                                         ;ONTO B-BUS. EXPECT B0-15 = 5555(HEX)
+                                         ;
+                                         ;7N, 7R (PAGE 9) LOADS 5555(HEX) FROM
+                                         ;B-BUS 0-15. EXPECT B->SIOD0 (7R-10,
+                                         ;7N-10) TO BE LOW LAST HALF OF THE
+                                         ;CYCLE.
+                                         ;
+                                         ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE B-BUS DATA AND ALSO:
+                                         ; PINS 20, 19, 18, 17 = 0101
+                                         ; PINS 1, 2, 3, 4     = 0001
+                                         ; PINS 14, 13, 12     = 111
+                                         ; PINS 27, 28, 26     = 011
+                                         ; PINS 6, 7, 5        = 011
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Adds register 5 in 2901 to itself. Register 5 contents       *
+;* remain unchanged. Register 5 has been loaded with 5555(hex)  *
+;* in the previous instruction and the expected result of the   *
+;* addition is AAAA(hex). This result is output onto the B-bus  *
+;* and written into RAM address 3E(hex).                        *
+;*                                                              *
+;****************************************************************
+;
+        M A5+RAMD,ALU+AB+ADD,3E0+B5      ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE ALU0->B (PIN 40) AND:
+                                         ; PINS 20, 19, 18, 17 = 0101
+                                         ; PINS 1, 2, 3, 4     = 0101
+                                         ; PINS 14, 13, 12     = 001
+                                         ; PINS 27, 28, 26     = 000
+                                         ; PINS 6, 7, 5        = 001
+                                         ;
+                                         ;B-BUS SHOULD HAVE AAAA(HEX)
+                                         ;
+                                         ;11U, 10U (PAGE 8) SHOULD HAVE
+                                         ;B-BUS DATA AND B->RAMD0, ALSO:
+                                         ; PINS 1, 2, 3, 4 = 0000
+                                         ; PINS 5, 6, 7, 8, 22, 23 = 111110
+;
+;****************************************************************
+;*                                                              *
+;* Outputs register 5 contents onto the B-bus and loads the     *
+;* left shifted register 5 contents into register 12.           *
+;* Register 5 has been loaded with 5555(hex) at instruction 4   *
+;* B-bus should have 5555(hex) and register 12 should have      *
+;* AAAA(hex).                                                   *
+;*                                                              *
+;****************************************************************
+;
+        M A5,ALU+ZA+OR+RAMU,BC           ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE ALU0->B, B-BUS DATA AND:
+                                         ; PINS 20, 19, 18, 17 = 1100
+                                         ; PINS 1, 2, 3, 4     = 0101
+                                         ; PINS 14, 13, 12     = 100
+                                         ; PINS 27, 28, 26     = 011
+                                         ; PINS 6, 7, 5        = 111
+                                         ;
+                                         ;B-BUS SHOULD HAVE 5555(HEX)
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Loads Q register in 2901 with register 12 contents, outputs  *
+;* register 12 contents onto the B-bus and writes B-bus data    *
+;* into RAM address 2A(hex). Register 12 should have been       *
+;* loaded with AAAA(hex) in the previous instruction so B-bus   *
+;* should have AAAA(hex).                                       *
+;*                                                              *
+;****************************************************************
+;
+        M A6+RAMD,ALU+ZB+OR+QREG,2A0+BC  ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE ALU0->B, B-BUS DATA AND ALSO:
+                                         ; PINS 20, 19, 18, 17 = 1100
+                                         ; PINS 1, 2, 3, 4     = 0110
+                                         ; PINS 14, 13, 12     = 011
+                                         ; PINS 27, 28, 26     = 011
+                                         ; PINS 6, 7, 5        = 000
+                                         ;
+                                         ;B-BUS SHOULD HAVE AAAA(HEX)
+                                         ;
+                                         ;11U, 10U (PAGE 8) SHOULD HAVE
+                                         ;B-BUS DATA AND B->RAMD0, ALSO:
+                                         ; PINS 1, 2, 3, 4 = 0000
+                                         ; PINS 5, 6, 7, 8, 22, 23 = 101010
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Register 5 is ORed to itself, the result is output onto the  *
+;* B-bus and written into RAM address 15(hex). Register 5       *
+;* should still have 5555(hex) so B-bus should have 5555(hex).  *
+;* State of B-bus bit 5 from the previous instruction is tested *
+;* for a `1' and the result of the test should be false.        *
+;*                                                              *
+;****************************************************************
+;
+        M A5+RAMD,ALU+AB+OR,BUS5+150+B5  ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE ALU0->B, B-BUS DATA AND :
+                                         ; PINS 20, 19, 18, 17 = 0101
+                                         ; PINS 1, 2, 3, 4     = 0101
+                                         ; PINS 14, 13, 12     = 001
+                                         ; PINS 27, 28, 26     = 011
+                                         ; PINS 6, 7, 5        = 001
+                                         ;
+                                         ;B-BUS SHOULD HAVE 5555(HEX)
+                                         ;
+                                         ;11U, 10U (PAGE 8) SHOULD HAVE
+                                         ;B-BUS DATA AND B->RAMD0, ALSO:
+                                         ; PINS 1, 2, 3, 4 = 0000
+                                         ; PINS 5, 6, 7, 8, 22, 23 = 010101
+                                         ;
+                                         ;8J (PAGE 2) SHOULD HAVE:
+                                         ; PINS 11, 13, 14, 15 = 1110
+                                         ; PIN 10 = 1
+                                         ;
+                                         ;11J (PAGE 2) SHOULD HAVE:
+                                         ; PIN 14 = 1
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Subtracts the contents of register 5 from 0, drives the      *
+;* result of the subtraction onto the B-bus and writes B-bus    *
+;* data into RAM address 23(hex). Register 5 should still have  *
+;* 5555(hex) and the expected result of the subtraction is      *
+;* AAAA(hex) so B-bus should have AAAA(hex). A always TRUE      *
+;* condition is tested for a `1' and the test should be true.   *
+;*                                                              *
+;****************************************************************
+;
+        M A5+RAMD,ALU+ZA+SUBS,TRUE+230+B9
+                                         ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE ALU0->B (PIN 40) AND :
+                                         ; PINS 20, 19, 18, 17 = 1001
+                                         ; PINS 1, 2, 3, 4     = 0101
+                                         ; PINS 14, 13, 12     = 000
+                                         ; PINS 27, 28, 26     = 001
+                                         ; PINS 6, 7, 5        = 001
+                                         ;
+                                         ;B-BUS SHOULD HAVE AAAA(HEX)
+                                         ;
+                                         ;11U, 10U (PAGE 8) SHOULD HAVE
+                                         ;B-BUS DATA AND B->RAMD0, ALSO:
+                                         ; PINS 1, 2, 3, 4 = 0000
+                                         ; PINS 5, 6, 7, 8, 22, 23 = 100011
+                                         ;
+                                         ;8J (PAGE 2) SHOULD HAVE:
+                                         ; PINS 11, 13, 14, 15 = 0001
+                                         ; PIN 10 = 0
+                                         ;
+                                         ;11J (PAGE 2) SHOULD HAVE:
+                                         ; PIN 14 = 0
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Outputs the contents of RAM addr 15(hex) onto the B-bus and  *
+;* loads pipeline register in 2910 with the B-bus data.         *
+;* RAM addr 15(hex) has been written with 5555(hex) at          *
+;*ruction 8(hex) so B-bus should have 5555(hex).           *
+;* Register 12 contents is subtracted from Q register. Both     *
+;* register 12 and Q register have been loaded with AAAA(hex)   *
+;* at instruction 7 and the result of the subtraction should be *
+;* zero. This also sets up for the test for zero condition in   *
+;* the next instruction. Result of the 2901 operation in the    *
+;* previous instruction is tested for zero. Since the previous  *
+;* instruction has not produced a zero, the test should be      *
+;* false.                                                       *
+;*                                                              *
+;****************************************************************
+;
+        M AC+REGD,RAM+AQ+SUBR,CARRY+FE0+150
+                                         ;11U, 10U (PAGE 8) SHOULD HAVE
+                                         ;RAMS0->B (PIN 20) AND ALSO:
+                                         ; PINS 1, 2, 3, 4         = 0000
+                                         ; PINS 5, 6, 7, 8, 22, 23 = 010101
+                                         ;
+                                         ;B-BUS SHOULD HAVE 5555(HEX)
+                                         ;
+                                         ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE:
+                                         ; PINS 1, 2, 3, 4 = 1100
+                                         ; PINS 14, 13, 12 = 000
+                                         ; PINS 27, 28, 26 = 001
+                                         ; PINS 6, 7, 5    = 001
+                                         ;
+                                         ;11J (PAGE 2) SHOULD HAVE B->REGD0
+                                         ;ALSO:
+                                         ; PINS 27, 25, 23, 21 = 0101
+                                         ; PINS 19, 17, 4, 2   = 0101
+                                         ; PINS 40, 38, 36, 34 = 0101
+                                         ; PIN 14 = 1
+                                         ;
+                                         ;8J (PAGE 2) SHOULD HAVE:
+                                         ; PINS 11, 13, 14, 15 = 0100
+                                         ; PIN 10 = 1
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Outputs the contents of RAM addr 23(hex) onto the B-bus and  *
+;* loads pipeline register in 2910 with the B-bus data. RAM     *
+;* addr 23(hex) has been loaded with AAAA(hex) at instruction 9 *
+;* so B-bus should have AAAA(hex). B-bus data is EXCLUSIVE-ORed *
+;* with Q register which has been loaded with AAAA(hex) at      *
+;* instruction 7 and the result of the operation should be zero.*
+;* This also sets up for the test for zero condition in the     *
+;* next instruction. Result of the 2901 operation in the        *
+;* previous instruction is tested for zero and the test should  *
+;* be true.                                                     *
+;*                                                              *
+;****************************************************************
+;
+        M REGD,RAM+DQ+EXOR+QREG,FE0+230  ;11U, 10U (PAGE 8) SHOULD HAVE
+                                         ;RAMS0->B (PIN 20) AND ALSO:
+                                         ; PINS 1, 2, 3, 4         = 0000
+                                         ; PINS 5, 6, 7, 8, 22, 23 = 100011
+                                         ;
+                                         ;B-BUS SHOULD HAVE AAAA(HEX)
+                                         ;
+                                         ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE:
+                                         ; PINS 14, 13, 12 = 110
+                                         ; PINS 27, 28, 26 = 110
+                                         ; PINS 6, 7, 5    = 000
+                                         ;
+                                         ;11J (PAGE 2) SHOULD HAVE
+                                         ;B->REGD0 (PIN 15) AND:
+                                         ; PINS 27, 25, 23, 21 = 1010
+                                         ; PINS 19, 17, 4, 2   = 1010
+                                         ; PINS 40, 38, 36, 34 = 1010
+                                         ; PIN 14 = 0
+                                         ;
+                                         ;8J (PAGE 2) SHOULD HAVE:
+                                         ; PINS 11, 13, 14, 15 = 0100
+                                         ; PIN 10 = 0
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Outputs contents of RAM addr 15(hex) onto the B-bus and      *
+;* loads MUX-bus output data register with B-bus data. RAM addr *
+;* 15(hex) has been written with 5555(hex) at instruction 8 so  *
+;* B-bus should have 5555(hex). B-bus data is ORed with         *
+;* contents of Q register and the result of the logical         *
+;* operation is placed in Q register. Q register has been       *
+;* loaded with zero at instruction B(hex) and the result of the *
+;* operation should load Q with 5555(hex). Result of the 2901   *
+;* operation in the previous instruction is tested for zero     *
+;* and the test should be true.                                 *
+;*                                                              *
+;****************************************************************
+;
+        M MUXDL,RAM+DQ+OR+QREG,FE0+150   ;11U, 10U (PAGE 8) SHOULD HAVE
+                                         ;RAMS0->B (PIN 20) AND ALSO:
+                                         ; PINS 1, 2, 3, 4         = 0000
+                                         ; PINS 5, 6, 7, 8, 22, 23 = 010101
+                                         ;
+                                         ;B-BUS SHOULD HAVE 5555(HEX)
+                                         ;
+                                         ;11L, 11N, 11P, 11S (PAGE 8)
+                                         ;SHOULD HAVE:
+                                         ; PINS 14, 13, 12 = 110
+                                         ; PINS 27, 28, 26 = 011
+                                         ; PINS 6, 7, 5    = 000
+                                         ;
+                                         ;8J (PAGE 2) SHOULD HAVE:
+                                         ; PINS 11, 13, 14, 15 = 0100
+                                         ; PIN 10 = 0
+                                         ;
+                                         ;11J (PAGE 2) SHOULD HAVE:
+                                         ; PIN 14 = 0
+                                         ;
+                                         ;2Y, 2Z (PAGE 19) LOADS 5555(HEX)
+                                         ;FROM B-BUS 0-15 AND SHOULD HAVE
+                                         ;B->DATA (PIN 11) LOW THE LAST HALF
+                                         ;OF THE CYCLE
+                                         ;
+                                         ;8L (PAGE 19) SHOULD HAVE
+                                         ;B->DATA (PIN 10) LOW THE LAST HALF
+                                         ;OF THE CYCLE AND:
+                                         ; PIN 9 = 1 THE NEXT CYCLE
+                                         ; PIN 8 = 0 THE NEXT CYCLE
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Outputs contents of RAM addr 3E(hex) onto the B-bus and      *
+;* loads MUX-bus output data register with B-bus data. RAM addr *
+;* 3E(hex) has been written with AAAA(hex) at instruction 5 so  *
+;* B-bus should have AAAA(hex). Contents of register 5 is       *
+;* subtracted from B-bus data and the result is placed in       *
+;* register 3. Register 5 has been loaded with 5555(hex) at     *
+;* instruction 4 so the result of the operation should load     *
+;* 5555(hex) into register 3. The most significant bit of the   *
+;* B-bus data in the previous instruction is tested for a `1'   *
+;* and the test should be false.                                *
+;*                                                              *
+;***************************************************************
+;
+        M A5+MUXDL,RAM+DA+SUBS+RAMF,CARRY+BUS0+3E0+B3
+                                         ;11U, 10U (PAGE 8) SHOULD HAVE
+                                         ;RAMS0->B (PIN 20) AND ALSO:
+                                         ; PINS 1, 2, 3, 4         = 0000
+                                         ; PINS 5, 6, 7, 8, 22, 23 = 111110
+                                         ;
+                                         ;B-BUS SHOULD HAVE AAAA(HEX)
+                                         ;
+                                         ;2Y, 2Z (PAGE 19) LOADS AAAA(HEX)
+                                         ;FROM B-BUS 0-15 AND SHOULD HAVE
+                                         ;B->DATA (PIN 11) LOW THE LAST HALF
+                                         ;OF THE CYCLE
+                                         ;
+                                         ;8L (PAGE 19) SHOULD HAVE
+                                         ;B->DATA (PIN 10) LOW THE LAST HALF
+                                         ;OF THE CYCLE AND:
+                                         ; PIN 9 = 0 THE NEXT CYCLE
+                                         ; PIN 8 = 1 THE NEXT CYCLE
+                                         ;
+                                         ;8J (PAGE 2) SHOULD HAVE:
+                                         ; PINS 11, 13, 14, 15 = 1000
+                                         ; PIN 10 = 1
+                                         ;
+                                         ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE:
+                                         ; PINS 20, 19, 18, 17 = 0011
+                                         ; PINS 1, 2, 3, 4     = 0101
+                                         ; PINS 14, 13, 12     = 101
+                                         ; PINS 27, 28, 26     = 010
+                                         ; PINS 6, 7, 5        = 011
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Outputs contents of RAM addr 15(hex) onto the B-bus and      *
+;* loads MUX-bus output status and command register with B-bus  *
+;* data. RAM addr 15(hex) has been written with 5555(hex) at    *
+;* instruction 8 so B-bus should have 5555(hex). Contents of    *
+;* register 3 and register 12 are ORed and the result is placed *
+;* into register 3. Register 3 has been loaded with 5555(hex)   *
+;* at instruction C(hex) and register 12 has been  loaded  with *
+;* AAAA(hex) at instruction 6(hex) so the result of the         *
+;* operation should load FFFF(hex) into register 3.             *
+;*                                                              *
+;****************************************************************
+;
+        M AC+MUXD,RAM+AB+OR+RAMF,150+B3  ;11U, 10U (PAGE 8) SHOULD HAVE
+                                         ;RAMS0->B (PIN 20) AND ALSO:
+                                         ; PINS 1, 2, 3, 4         = 0000
+                                         ; PINS 5, 6, 7, 8, 22, 23 = 010101
+                                         ;
+                                         ;B-BUS SHOULD HAVE 5555(HEX)
+                                         ;
+                                         ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE:
+                                         ; PINS 20, 19, 18, 17 = 0011
+                                         ; PINS 1, 2, 3, 4,    = 1100
+                                         ; PINS 14, 13, 12     = 001
+                                         ; PINS 27, 28, 26     = 011
+                                         ; PINS 6, 7, 5        = 011
+                                         ;
+                                         ;6J, 6P (PAGE 19) LOADS 5555(HEX)
+                                         ;FROM B-BUS 0-15 AND PIN 11 SHOULD
+                                         ;BE LOW THE LAST HALF OF THE CYCLE
+                                         ;
+                                         ;8L (PAGE 19) SHOULD HAVE:
+                                         ; PIN 5 = 0 THE NEXT CYCLE
+                                         ; PIN 6 = 1 THE NEXT CYCLE
+                                         ;
+                                         ;7C (PAGE 10) PIN 6 SHOULD BE
+                                         ;LOW THE NEXT CYCLE
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Outputs contents of register 12 onto the B-bus and loads     *
+;* MUX-bus output status and command register with B-bus data.  *
+;* Register 12 has been loaded with AAAA(hex) at instruction 6  *
+;* so B-bus should have AAAA(hex)                               *
+;*                                                              *
+;****************************************************************
+;
+        M MUXD,ALU+ZB+OR,BC              ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE ALU0->B (PIN 40) AND:
+                                         ; PINS 20, 19, 18, 17 = 1100
+                                         ; PINS 14, 13, 12     = 011
+                                         ; PINS 27, 28, 26     = 011
+                                         ; PINS 6, 7, 5        = 001
+                                         ;
+                                         ;B-BUS SHOULD HAVE AAAA(HEX)
+                                         ;
+                                         ;6J, 6P (PAGE 19) LOADS AAAA(HEX)
+                                         ;FROM B-BUS 0-15 AND PIN 11 SHOULD
+                                         ;BE LOW THE LAST HALF OF THE CYCLE
+                                         ;
+                                         ;8L (PAGE 19) SHOULD HAVE:
+                                         ; PIN 5 = 1 THE NEXT CYCLE
+                                         ; PIN 6 = 0 THE NEXT CYCLE
+                                         ;
+                                         ;7C (PAGE 10) PIN 6 SHOULD BE
+                                         ;LOW THE NEXT CYCLE
+;
+;****************************************************************
+;*                                                              *
+;* Outputs contents of register 5 onto the B-bus and loads      *
+;* MUX-bus output command register with B-bus data. Register 5  *
+;* has been loaded with 5555(hex) at instruction 4 so B-bus     *
+;* should have 5555(hex).                                       *
+;*                                                              *
+;****************************************************************
+;
+        M 3,ALU+ZB+OR,B5                 ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE ALU0->B (PIN 40) AND:
+                                         ; PINS 20, 19, 18, 17 = 0101
+                                         ; PINS 14, 13, 12     = 011
+                                         ; PINS 27, 28, 26     = 011
+                                         ; PINS 6, 7, 5        = 001
+                                         ;
+                                         ;B-BUS SHOULD HAVE 5555(HEX)
+                                         ;
+                                         ;6J (PAGE 19) LOADS 55(HEX) FROM
+                                         ;B-BUS 0-7 AND PIN 11 SHOULD BE
+                                         ;LOW LAST HALF OF THE CYCLE
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Outputs contents of RAM addr 2A(hex) onto the B-bus and      *
+;* loads the two high order PROM addr latches with the two low  *
+;* order bits of the B-bus. RAM addr 2A(hex) has been loaded    *
+;* with AAAA(hex) at instruction 7 and B-bus should have        *
+;* AAAA(hex). Contents of register 3 is EXCLUSIVE-ORed with Q   *
+;* register contents and the result is placed into register 12. *
+;* Register 3 has been loaded with FFFF(hex) at instruction     *
+;* E(hex) and register Q has been loaded with 5555(hex) at      *
+;* instruction C(hex) and the result of the operation should    *
+;* load AAAA(hex) into register 12.                             *
+;*                                                              *
+;****************************************************************
+;
+        M A3+PROMHI,RAM+AQ+EXOR+RAMF,2A0+BC
+                                         ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE ALU0->B (PIN 40) AND
+                                         ; PINS 20, 19, 18, 17 = 1100
+                                         ; PINS 1, 2, 3, 4     = 0011
+                                         ; PINS 14, 13, 12     = 000
+                                         ; PINS 27, 28, 26     = 110
+                                         ; PINS 6, 7, 5        = 011
+                                         ;
+                                         ;11U, 10U (PAGE 8) SHOULD HAVE
+                                         ;RAMS0->B (PIN 20) AND ALSO:
+                                         ; PINS 1, 2, 3, 4 = 0000
+                                         ; PINS 5, 6, 7, 8, 22, 23 = 011010
+                                         ;
+                                         ;B-BUS SHOULD HAVE AAAA(HEX)
+                                         ;
+                                         ;8N (PAGE 19) LOADS 10(BINARY)
+                                         ;FROM B-BUS 14-15 AND PINS 3 AND 11
+                                         ;SHOULD BE LOW LAST HALF OF THE CYCLE
+                                         ;ALSO:
+                                         ; PIN 9 = 1 THE NEXT CYCLE
+                                         ; PIN 5 = 0 THE NEXT CYCLE
+                                         ;
+                                         ;11K (PAGE 2) PINS 3, 6 = 10
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Outputs contents of register 5 onto the B-bus and loads two  *
+;* high order PROM addr latches with the two low order bits     *
+;* of the B-bus data. Register 5 has been loaded with 5555(hex) *
+;* at instruction 4 so B-bus should have 5555(hex)              *
+;*                                                              *
+;****************************************************************
+;
+        M A5+PROMHI,ALU+ZA+OR            ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE ALU0->B (PIN 40) AND:
+                                         ; PINS 1, 2, 3, 4 = 0101
+                                         ; PINS 14, 13, 12 = 100
+                                         ; PINS 27, 28, 26 = 011
+                                         ; PINS 6, 7, 5    = 001
+                                         ;
+                                         ;B-BUS SHOULD HAVE 5555(HEX)
+                                         ;
+                                         ;8N (PAGE 19) LOADS 01(BINARY)
+                                         ;FROM B-BUS 14-15 AND PINS 3 AND 11
+                                         ;SHOULD BE LOW LAST HALF OF THE CYCLE
+                                         ;ALSO:
+                                         ; PIN 9 = 0 THE NEXT CYCLE
+                                         ; PIN 5 = 1 THE NEXT CYCLE
+                                         ;
+                                         ;11K (PAGE 2) PINS 3, 6 = 01
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Contents of register 5 and register 3 are EXCLUSIVE-ORed.    *
+;* The result is placed in register 3, output onto the B-bus    *
+;* and loaded into Z80-SIO interface output register.           *
+;* Register 5 has been loaded with 5555(hex) at instruction 4   *
+;* and register 3 has been loaded with FFFF(hex) at             *
+;* instruction E(hex) and the result of the EXCLUSIVE-OR should *
+;* be AAAA(hex) so B-bus should have AAAA(hex)                  *
+;*                                                              *
+;****************************************************************
+;
+        M A5+SIOD,ALU+AB+EXOR+RAMF,B3    ;9L, 9M, 9N (PAGE 9) LOADS 42C(HEX)
+                                         ;FROM PD29-PD39, EXPECT:
+                                         ; 9L-11, 12, 13, 14 = 1000
+                                         ; 9M-11, 12, 13, 14 = 0101
+                                         ; 9N-11, 12, 3      = 100
+                                         ;
+                                         ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE ALU0->B (PIN 40) AND:
+                                         ; PINS 20, 19, 18, 17 = 0011
+                                         ; PINS 1, 2, 3, 4     = 0101
+                                         ; PINS 14, 13, 12     = 001
+                                         ; PINS 27, 28, 26     = 110
+                                         ; PINS 6, 7, 5        = 011
+                                         ;
+                                         ;B-BUS SHOULD HAVE AAAA(HEX)
+                                         ;
+                                         ;7N, 7R (PAGE 9) LOADS AAAA(HEX)
+                                         ;FROM B-BUS 0-15 AND SHOULD HAVE
+                                         ;B->SIOD0 (PIN 21) LAST HALF OF THE
+                                         ;CYCLE
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Outputs the result of the EXCLUSIVE-OR of register 3 and     *
+;* register 12 onto the B-bus and loads the two high order PROM *
+;* addr latches with the two low order bits of the B-bus data.  *
+;* Register 3 has been loaded with AAAA(hex) at                 *
+;* instruction 13(hex) and register 12 has been loaded with     *
+;* AAAA(hex) at instruction 11(hex). The result of the          *
+;* EXCLUSIVE-OR should be 0 so B-bus should have 0000.          *
+;*                                                              *
+;****************************************************************
+;
+        M A3+PROMHI,ALU+AB+EXOR,42C      ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE ALU0->B (PIN 40) AND:
+                                         ; PINS 20, 19, 18, 17 = 1100
+                                         ; PINS 1, 2, 3, 4     = 0011
+                                         ; PINS 14, 13, 12     = 001
+                                         ; PINS 27, 28, 26     = 110
+                                         ; PINS 6, 7, 5        = 001
+                                         ;
+                                         ;B-BUS SHOULD HAVE 0000(HEX)
+                                         ;
+                                         ;8N (PAGE 19) LOADS 00(BINARY)
+                                         ;FROM B-BUS 14-15 AND PINS 3 AND 11
+                                         ;SHOULD BE LOW LAST HALF OF THE CYCLE
+                                         ;ALSO:
+                                         ; PIN 9 = 0 THE NEXT CYCLE
+                                         ; PIN 5 = 0 THE NEXT CYCLE
+                                         ;
+                                         ;11K (PAGE 2) PINS 3, 6 = 00
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Outputs the result of logical OR of register 3 and           *
+;* register 5 onto the B-bus and loads the channel counter with *
+;* the least significant four bits of the B-bus data.           *
+;* Register 3 has been loaded with AAAA(hex) at                 *
+;* instruction 13(hex) and register 5 has been loaded with      *
+;* 5555(hex) at instruction 4 so the result of the operation    *
+;* should be FFFF(hex). B-bus should have FFFF(hex). Result of  *
+;* the 2901 operation in the previous instruction is tested for *
+;* a `1' in the most significant bit. The test should be false. *
+;*                                                              *
+;****************************************************************
+;
+        M A3+COUNTD,ALU+AB+OR,F3+B5      ;11L, 11N, 11P, 11S (PAGE 8) SHOULD
+                                         ;HAVE ALU0->B (PIN 40) AND:
+                                         ; PINS 20, 19, 18, 17 = 0101
+                                         ; PINS 1, 2, 3, 4 = 0011
+                                         ; PINS 14, 13, 12 = 001
+                                         ; PINS 27, 28, 26 = 011
+                                         ; PINS 6, 7, 5    = 001
+                                         ;
+                                         ;B-BUS SHOULD HAVE FFFF(HEX)
+                                         ;
+                                         ;9S (PAGE 8) LOADS 1111(BINARY) FROM
+                                         ;B-BUS 12-15 AND B->COUNTD0 (PIN 9)
+                                         ;SHOULD BE LOW LAST HALF OF THE CYCLE
+                                         ;ALSO:
+                                         ; PINS 11,12,13,14=1111 THE NEXT CYCLE
+                                         ;
+                                         ;8J (PAGE 2) SHOULD HAVE:
+                                         ; PINS 11, 13, 14, 15 = 0011
+                                         ; PIN 10 = 1
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Outputs the contents of the channel counter onto the B-bus   *
+;* and increments the channel counter. Channel counter has been *
+;* loaded with F(hex) in the previous instruction so B-bus      *
+;* should have 000F(hex). Results of 2901 operation in the      *
+;* previous instruction is tested for a `1' in the most         *
+;* significant bit and the test should be true.                 *
+;*                                                              *
+;****************************************************************
+;
+        M COUNT,COUNT,F3                 ;7K, 6S (PAGE 8) SHOULD HAVE
+                                         ;COUNTS0->B
+                                         ;
+                                         ;B-BUS SHOULD HAVE 000F(HEX)
+                                         ;                   ______
+                                         ;9S (PAGE 8) PIN 10 COUNT0 SHOULD
+                                         ;BE LOW AND PINS 11, 12, 13, 14
+                                         ;SHOULD GO FROM HIGH TO LOW
+                                         ;
+                                         ;8J (PAGE 2) SHOULD HAVE:
+                                         ; PINS 11, 13, 14, 15 = 0011
+                                         ; PIN 10 = 0
+                                         ;
+                                         ;11J (PAGE 2) SHOULD HAVE:
+                                         ; PIN 14 = 0
+EJECT
+;
+;****************************************************************
+;*                                                              *
+;* Drives the MUX-bus input command register onto the B-bus.    *
+;* Data is unpredictable because MUX-bus input command register *
+;* has not been pre-loaded with known data.                     *
+;*                                                              *
+;****************************************************************
+;
+        M ,MUX                           ;5F-13, 6L-1, 6R-1 (PAGE 10) SHOULD
+                                         ;HAVE MUXS0->B
+;
+;
+;****************************************************************
+;*                                                              *
+;* Drives the MUX-bus input data register onto the B-bus. Data  *
+;* is unpredictable because Mux-bus input data register has     *
+;* not been pre-loaded with known data.                         *
+;*                                                              *
+;****************************************************************
+;
+        M ,MUXLN                         ;6M-1 (PAGE 10) SHOULD HAVE
+                                         ;MUXLNS0->B
+;
+;****************************************************************
+;*                                                              *
+;* Drives Z80-SIO interface input register onto the B-bus.      *
+;* Data is unpredictable because Z80-SIO interface input        *
+;* register has not been pre-loaded with known data.            *
+;*                                                              *
+;****************************************************************
+;
+        M ,SIO                           ;7S-20, 7P-20 (PAGE 9) SHOULD HAVE
+                                         ;SIOS0->B
+;
+;****************************************************************
+;*                                                              *
+;* Go back to the beginning of the loop                         *
+;*                                                              *
+;****************************************************************
+;
+        M JMAP,,0                        ;LOOP THE INSTRUCTIONS
+        END
+M@Gö
