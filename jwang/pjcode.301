@@ -1,0 +1,142 @@
+:
+:
+: XCOM VERSIPN 3.01
+:
+: PROBLEM:  X.25 TO X.25 CALL HAS A PROBLEM TO USE
+:           THE PROJECT CODE FUNCTION. IN THIS
+:           CASE, CUSTOMER HAS NO WAY TO BILL CUSTOMER.
+:           IF SO, CUSTOMER IS SAYING TO CANCEL THE CONTRACT
+:           WITH TYMNET.
+:========================================================================
+:
+: TASK1:     CHANGE THE CODE TO SEND PROJECT CODE BEFORE IIX
+:           80818083 TO THE DESTINATION XCOM.
+:           DESTINATION NEEDS A PATCH TO DISCARD THIS UNACCEPTABLE
+:           ISIS DATA MESSAGE BEFORE IT RECEIVES IIX 80818083.
+:           ECHO BACK PROJECT CODE
+:
+: TASK2:    DISCARD ANY ISIS MESSAGE BEFORE GLOBAL IIX MESSAGE.
+:
+:=====================================================================
+:
+: USAGE:  1. USER SHOULD USE 'TKSUP' OPTION TO GET 'PLEASE LOGIN :' PROMPT.
+:         2. AFTER GETTING THE PROMPT, USER ENTERS
+:       'USERNAME:HOSTNUMBER<semicolon>PASSWORD<semicolon>PROJECTCODE'
+:
+:
+
+:
+:***********************************************************************
+:
+: TASK 1.
+:
+PATCH(870724,1750,JWANG,GME020+4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,0BE)
+        LHL     R6,DPORT
+        LHL     R9,DI.MT,R6,R6          :GET IPORT
+        SLLS    R9,2
+        AHI     R9,IEDBIA               :IEDBUFFER
+        SLLS    R6,2
+        AHI     R6,IDBIA                :IDBUFFER
+        CBCT(R8,R6)                     :R8 WILL AHVE THE SIZE OF IDBUF
+        LR      R8,R8
+        JE      PCEND                   :EMPTY IDBUF,NOTHING TO ECHO
+:
+:
+: HERE IS TO ECHO THE PROJECT CODE BACK TO USER.
+: THIS PROJECT CODE IS ENTERRED AFTER ENTERRING PASSWORD WITHOUT 
+: ECHO. NOW, WE TRY TO ECHO BACK THIS PROJECT CODE HERE.
+:
+        LR      R1,R9
+        LHI     R0,ZDATA
+        JAL     R4,WCI,,
+        LIS     R0,0
+        JAL     R4,WCI,,
+        LR      R0,R8
+        AIS     R0,1
+        JAL     R4,WCI,,                :LENGTH OF THIS DATA PACKET
+        LIS     R0,0
+        JAL     R4,WCI,,                :FLAG
+:
+: START TO COPY ACTUAL DATA
+:
+PCECHO  LR      R1,R6
+        JAL     R4,GCI,,
+        JAL     R4,WCI,,                :COPY TO THE END OF IDBUFFER
+        LR      R1,R9
+        JAL     R4,WCI,,                :COPY TO THE IEDBUFFER
+        SIS     R8,1
+        JN      PCECHO
+:
+: END OF COPING PROJECT CODE TO ECHO BACK
+:
+PCEND   LHL     R1,DPORT
+        CTLMSB(SIX,RX3)
+        LHL     R1,DPORT
+        LIS     R2,4
+        JAL     R4,BSLOR,,
+        LHI     R0,80
+        JAL     R4,BPUTCH,,
+        LHI     R0,81
+        JAL     R4,BPUTCH,,
+        LHI     R0,80
+        JAL     R4,BPUTCH,,
+        LHI     R0,83
+        JAL     R4,BPUTCH,,
+        JAL     R4,BELOR,,
+        J       TURKOK,,
+:
+: DON'T EMPTY IEDBUFFER--IEDBUFFER CONTAINS PROJECT CODE WAITING TO ECHO 
+: BACK.
+:
+CONPATCH(TURKOK+32,,6)
+        NOP     0,0,0,0
+CONPATCH(TOK145+20,,4)
+        J       TOK035          :IDBUFFER CONTAINS PROJECT CODE
+ENDPATCH(PASS THE PROJECT CODE TO DESTINATION XCOM AS FIRST MSG)
+
+:
+:******************************************************************
+:
+: TASK 2.
+:
+PATCH(870727,1500,JWANG,IIXTYP+14,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,20)
+        CLHI    R0,CM.TIX       :COMPARE WITH 0C0
+        JGE     IIXTYP+1A,,
+        CLHI    R0,80
+        JE      IXT010,,
+        JAL     R4,ELIR,,       :FLUSH THE ISIS MESSAGE
+        J       MMFRA,,
+ENDPATCH(DISCARD ISIS MESSAGE BEFORE GLOBAL IIX MESSAGE)
+
+:
+:
+: VERSION 3.01.
+:
+:  PROBLEM: XCOM RECEIVES IIX 80818083 THEN ANOTHER DATA MESSAGE.
+:           IF THE FIRST CHARACTER OF THIS ISIS MESSAGE HAS THE
+:           HIGH ORDER BIT ON, THIS ISIS DATA MESSAGE WILL THEN 
+:           BE TRAETED AS IIX MESSAGE. THIS FAULT MAY CAUSE
+:           THE CODE JUMP TO ANYPLACE IN THE BACKGROUND OR 
+:           FORGROUND. FOR THIS ESCALATION, ISIS DATA MESSAGE
+:           '0021 038EFDC5'. THIS BYTE '8E' CAUSES THE CODE JUMP FROM 
+:           DISPATCHER DIALECT LOGIC TO PCR525 ROUTINE AND THEN
+:           CRASHES AT PCR540.
+:
+:   TASK:      FIX THE BUG ON ESCMSG. IF DNPROG ISN'T SET, WE NEED
+:              FLUS THE DATA. THE SBT INSTRCUTION NEEDS TO BE
+:              CHANGED TO TBT.
+
+
+PATCH(870701,1500,JWANG,ESCMSG+6,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+        TBT     R7,DNPROG,,
+        JN      ESC012,,        :IF ALREADY DONE ONE
+        LR      R0,R5
+        JAL     R4,FLUSH,,      :FLUSH THE REST OF IRING MESSAGE
+        J       MMFRA,,
+ENDPATCH(FLUSH THE NON IIX MESSAGE DURING THE IIX DIALECT EXCHANGE)
