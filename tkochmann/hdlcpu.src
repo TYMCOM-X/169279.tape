@@ -1,0 +1,2659 @@
+	TITLE	HDLC MICRO ENGINE MICROCODE VERSION H2
+	NOLIST M,L
+;------------------------------------------------------------------------------
+;
+;  Copyright (c) 1986 by TYMNET/McDonnell Douglas Network Systems Company
+;  All Rights Reserved.
+;
+;
+; Part Number: 790149 through 790156 for PROMS at 14FF through 7FF
+;
+;
+;------------------------------------------------------------------------------
+;
+; MICROCODE FOR HDLC MICRO ENGINE IS BASED ON VERSION S18 OF ENGINE MICROCODE.
+; THE FOLLOWING MODIFICATIONS HAVE BEEN MADE:
+;
+;  1. ASYNC MICROCODE AND ASYNC INSTRUCTIONS SBOD, XMIT, SPM, GCHAR HAVE BEEN
+;     DELETED. THEY ARE ILLEGAL INSTRUCTIONS FOR THE HDLC MICRO ENGINE.
+;
+;  2. TIO INSTRUCTION HAS BEEN CORRECTED. IOCNTL REGISTER CANNOT BE CHECKED.
+;     TIO INSTRUCTION CHECKS ONLY THE IOBUS.
+;
+;  3. CHECKS FOR UNEXPECTED SYNC HAS BEEN REMOVED FROM SECOND DECODE OF 'RDR'
+;     AND 'SSR' INSTRCUTIONS. THIS UNEXPECTED CONDITION IS CHECKED IN 
+;     THE FIRST DECODE OF ALL I/O INSTRUCTIONS (EXCEPT CIO).
+;
+;  4. I/O INSTRUCTIONS WD, OC, WDR, AND OCR HAVE BEEN MODIFIED SO THAT IF 
+;     THE DEVICE ADDRESS IS HEX '80', IT WAITS FOR UP TO 64 MICROSECONDS 
+;     FOR THE DEVICE TO BE NOT BUSY. IF THE DEVICE IS STILL BUSY, THE
+;     OUTPUT OPERATION IS TERMINATED AND TIME-OUT CONDITION IS INDICATED IN
+;     THE CONDITION CODE.
+;
+;  5. MICROCODE HAS BEEN ADDED TO STORE AND FETCH DATA FROM THE MEMORY
+;     FOR THE SIO TO EMULATE DMA OPERATION.
+;
+;  6. REGISTER SETS 1, 8, 9, A, AND B ARE USED BY THE MICROCODE
+;
+;------------------------------------------------------------------------------
+;
+;      ALU FUNCTIONS NOT HAVING MNEMONICS:
+;
+;      13 = A PLUS A
+;      20 = NOT A
+;      21 = (NOT A) OR B
+;      24 = (NOT A) AND B
+;      2A = NOT B
+;      2E = A AND (NOT B)
+;
+;************************************************************************
+;
+;      MICROCODE STARTS HERE ON POWER UP
+;
+;------------------------------------------------------------------------
+;
+        E 0,,,,CNST,IOCNTL,RESMAC;              ;0->IOCNTL,RESET MAC
+        E 0,,,,CNST,LDMAC+IOBUS,RESPAR          ;0->IOBUS,RESET PARITY,0->MAC
+        E 0FF00,,,,CNST,CNCNTL,RSEPDN           ;"FF00"->CNCNTL,RESET PWR DOWN
+        E 10,,B,WR,CNST,,RSCATN,BUS0;           ;100000->WR,DELAY LOOP 131 MSEC
+        E START2,TRUE                           ;JUMP START2
+START1: E GET2,SYNC,B,WR,ALU,IOBUS              ;0->WR,IOBUS, IF SYNC JUMP GET2
+;
+;      POWER UP INTERRUPT
+;      FETCH PSW FROM 38
+;
+MMF:    E 3A,,B,,CNST,,,BUS3                    ;3A->MC
+        E 8000,,,,,LDMAC,,,LOADMC               ;
+;
+;      LOAD PSW FROM ADDRESS IN MC, OR IN CONDITION CODE IN WR
+;
+        E ,,,,MDR,,MACREQ                       ;READ
+LPSW:   E 8000,,AORB,WR,MDR,,,BUS0+BUS2+BUS3+WR,INCMC;WR OR MDR->WR,MC+2->MC
+        E ,,,,MDR,,MACREQ                       ;READ
+LPSW1:  E 8000,,B,XWR,MDR,,,BUS0,INCMC          ;MDR->HIGH XWR,MC+2->MC
+        E ,,A,,ALU,PSW,MACREQ,WR                ;WR->PSW
+LPSW2:  E 8000,,B,,MDR,,,XWR0+BUS2+BUS3         ;MDR MERGE IN LOW XWR
+        E CNSL,WR0,A,,,,,PC,LOADPC              ;OLD PC->EBUS,XWR->PC,IF WR0 JMP
+;
+EJECT
+;
+;      FETCH NEXT INSTRUCTION
+;
+FETCH:  E 8019,,,,,LDMAC,,,LOADPC+LOADMC; DO NOT TURN ON RELOCATION ON SAME CYCLE AS MACREQ
+FETCH0: E 19,,,,,LDMAC,MACREQ                   ;START FETCH INSTR. FROM MEMORY
+FETCH1: E 8000+STOP,SNGL,,,,,MAPSEL             ;LOAD IR, SEL OPCODE MAPPING
+;
+;      FIRST DECODE DONE ONLY FROM HERE
+;
+FETCH2: E ,TRUE,MAP+B,WR,YS2,,YS,INDEX,INCMC    ;YS->LATCH,2*YS->BBUS,0->WR,
+;                                                 MC+2->MC,JUMP MAP OUTPUT
+;
+;      ILLEGAL INSTRUCTION INTERRUPT
+;
+ILEGAL: E 32,,B,,CNST,,,BUS3                    ;32->EBUS
+;
+;      COMMON FOR ILLEGAL INSTRUCTION AND MAC
+;
+COMINT: E 0,,,,,LDMAC,,,LOADMC                  ;EBUS->MC
+        E ,,B,WR,PSW,,MACREQ,BUS2+BUS3          ;PSW->WR
+        E 8000,,,,MDR,PSW                       ;MDR->PSW
+        E 0E,,A,WR,PSW,,REGWRT+MREG,PC,INCMC    ;WR->RE,PC->WR,MC+2->MC
+        E 0F,,B,WR,PSW,,MACREQ+REGWRT+MREG,BUS0+BUS2+BUS3;WR->RF,PSW->WR
+        E LPSW1,TRUE                            ;JUMP LPSW1
+;
+;      ILLEGAL SECOND DECODE
+;
+        E 1A,,B,XWR,CNST,,,BUS3                 ;1A->XWR
+        E DIE,TRUE                              ;JUMP DIE
+START2: E START2,G,AMIN1,WR,,,,WR;              ;DELAY DURING POWER UP(WR-1->WR)
+        E 5,,,,CNST,IOBUS;                      ;5->IOBUS,CHECK FOR LOCAL STORAGE UNIT
+        E ADRS,,,,CNST,IOCNTL                   ;ADRS->IOCNTL
+        E START3,TRUE;                          ;NOP FOR ADRS TIMING
+       ORG H#20
+;
+;      INTERRUPT 0 SHOULD NEVER HAPPEN
+;
+        E 20,,B,XWR,CNST,,,BUS3;                ;20->XWR,COPY ADDRESS INTO XWR
+;
+;      MICROCODE CRASH  ERROR CODE (MICROCODE ADDRESS) IN XWR
+;
+DIE:    E 0F0,,B,XWR,CNST,,,BUS0+XWR2+XWR3;     ;SCREWY LIGHT BAR CODE
+        E ,,B,WR,PSW,,,BUS2+BUS3;               ;PSW->WR,SET WAIT BIT IN PSW
+        E 8000,,AORB,WR,CNST,,,BUS2+WR          ;WR OR 8000->WR
+        E ,,A,,ALU,PSW,,WR                      ;WR->PSW
+        E 0DEAD,,B,WR,CNST,,,BUS2+BUS3          ;"DEAD"->WR
+        E DISPLA,TRUE                           ;JUMP DISPLA
+;
+EJECT
+;
+;      BOOTSTRAP FROM DEVICE 5
+;      ASSUME FAST RESPONSE FROM DEVICE
+;      EVEN NUMBER OF BYTES ON HALFWORD BOUNDARIES
+;      GET 2 BYTES TO WR RIGHT, RETURN CODE IN WR LEFT
+;
+GET2:   E ,;       NOP TO PREVENT CONSECUTIVE IOCNTL LOADS
+        E DR,,,,CNST,IOCNTL;                    ;DR->IO CONTROL TO READ A BYTE
+        E 4,,,,,LDMAC+YD;                       ;UNRELOCATED WRITE CODE-> MAC
+        E 0,,,,CNST;                            ;0->YD (SEE PREVIOUS INSTRUCTION)
+GET3:   E GET7,CATN;                 ;ABORT THIS LOOP IF CONSOLE SERVICE NEEDED
+        E GET4,SYNC;                 ;COULD STAY IN THIS LOOP A LONG TIME
+        E GET3,TRUE                             ;JUMP GET3
+GET4:   E ,,B,LRWR,IOBUS,,,BUS3;                ;IOBUS->WR, INPUT FIRST BYTE
+        E 0,,,,CNST,IOCNTL;                     ;0->IOCNTL, CLEAR IO CONTROL
+        E ,;                                    ;NOP BETWEEN IOCNTL LOADS
+        E DR,,,RLLONG,CNST,IOCNTL,REGWRT+YD;    ;DR->IOCNTL,WR->YD, BEGIN RETURN DECODE
+GET5:   E GET7,CATN;                 ;ABORT THIS LOOP IF CONSOLE SERVICE NEEDED
+        E GET6,SYNC;                 ;COULD STAY IN THIS LOOP A LONG TIME
+        E GET5,TRUE                             ;JUMP GET5
+GET6:   E ,,,SLLWR;                             ;CONTINUE RETURN DECODE
+        E PCIN,WR0,,SLLWR,,,YD;                 ;YD->LATCH, TO PCIN IF WR0
+        E STADD,WR0,B,WR,IOBUS,,INCYD,L23+BUS3; ;BOTH BYTES TO WR RIGHT, INC YD, TO STADD IF WR0
+        E ENDADD,WR0,B,,ALU,IOCNTL,YD;          ;0->IOCNTL,YD->LAT, TO ENDADD IF WR0
+        E LOOP1,XWR31,A,,ALU,MDR,YD,WR;         ;WR->MDR,YD->LAT, TO LOOP1 IF XWR31
+        E 4000,,B,LLWR,CNST,,,BUS0;             ;4000-> WR LEFT
+        E GET2,TRUE,A,,ALU,PSW,,WR;             ;WR->PSW,JUMP GET2
+PCIN:   E ,,B,,IOBUS,,,L23+BUS3;                ;SET UP FOR PC
+        E 2000,,B,WR,CNST,,,BUS0,LOADPC;        ;2000 RETURN CODE-> WR LEFT
+        E GET2,TRUE,B,,ALU,IOCNTL;              ;0-> IO CONTROL,JUMP GET2
+STADD:  E 1000,,B,WR,CNST,,REGWRT+YD,BUS0,LOADMC;WR->YD, START ADDR INTO MC, 1000 RETURN CODE
+        E GET2,TRUE,B,,ALU,IOCNTL;              ;0->IO CONTROL,JUMP GET2
+ENDADD: E ,,AMINB,WR,,,,L00+L22+L33+WR;         ;WR-LATCH->WR
+LOOP:   E 8000,,B,WR,CNST,,REGWRT+YD,BUS0;      ;8000->WR LEFT, WRITE REMAINING COUNT INTO R1
+        E CONRUN,WR0;                     ;GO EXECUTE BOOTSTRAP IF COUNT NEGATIVE
+        E GET2,TRUE;                            ;GET NEXT HALFWORD OF BOOTSTRAP
+LOOP1:  E 2,,AMINB,WR,CNST,,MACREQ,BUS3+LATCH;  ;WRITE HALFWORD, DECREMENT COUNT
+        E 8000+LOOP,TRUE,,,,,,,INCMC;           ;DO IT AGAIN
+GET7:   E DISPLA,TRUE,B,,ALU,IOCNTL             ;0->IOCNTL
+;
+EJECT
+;
+;DISPLAY PSW
+;
+DISPSW: E ,,B,WR,PSW,,,BUS2+BUS3;               ;PSW->WR
+        E 90,,AORB,XWR,CNST,,,BUS0+PC;          ;900000 OR PC->XWR
+;
+;DISPLAY ROUTINE    EXPECTS RIGHTMOST 16 BITS IN WR16-31, OTHER BITS IN XWR12-31
+;      LIGHTBAR CODE IN XWR8-11
+;
+DISPLA: E 0FF00,,,,CNST,CNCNTL;                 ;INITIALIZE CNCNTL TO ALL ONES
+        E ,,A,,ALU,CONSOL,YS,WR;                ;WR->CONSOLE, YS->LATCH
+        E LA,,A,WR,CNST,CNCNTL,REGWRT+YS,LATCH; ;LA->CNCNTL,WR->YS,LAT->WR
+        E 0FF00,,,,CNST,CNCNTL,YS               ;"FF00"->CNCNTL,YS->LATCH
+        E ,,B,,ALU,CONSOL,,L32                  ;L32->CONSOL
+        E LB,,,,CNST,CNCNTL,REGWRT+YS           ;WR->YS,LB->CNCNTL
+        E 0FF00,,,,CNST,CNCNTL                  ;"FF00"->CNCNTL
+        E ,,B,WR,ALU,CONSOL,YS,XWR0+XWR2+XWR3;  ;XWR->CONSOLE,WR, YS->LATCH
+        E LB,,A,WR,CNST,CNCNTL,REGWRT+YS,LATCH; ;LB->CNCNTL,WR->YS,LAT->WR
+        E 0FF00,,,,CNST,CNCNTL,YS               ;"FF00"->CNCNTL,YS->LATCH
+        E ,,B,,ALU,CONSOL,,L32                  ;L32->CONSOLE
+        E LB,,,,CNST,CNCNTL                     ;LB->CNCNTL
+        E 0FF00,,,,CNST,CNCNTL,YS               ;"FF00"->CNCNTL,YS->LAT
+        E ,,B,,ALU,CONSOL,REGWRT+YS,L31         ;L31->CONSOLE,WR->YS
+        E LB,,,,CNST,CNCNTL                     ;LB->CNCNTL
+WAIT1:  E 0FF00,,,,CNST,CNCNTL;                 ;"FF00"->CNCNTL
+        E 0FF,,,,CNST,CONSOL                    ;"FF"->CONSOLE
+        E SHL,,,,CNST,CNCNTL                    ;SHL->CNCNTL
+        E 1F2,,B,WR,CNST,,,BUS2+BUS3            ;"1F2"->WR
+;
+;      WAIT LOOP
+;
+WAITLP: E 8000+CON1,CATN,,,,,,,LOADMC;          ;TEST CONSOLE ATTENTION, HANG IF MEMORY BUSY
+        E WAITLP,TRUE,A,,,,,WR;                 ;WR->MC,REPEAT LOOP
+;
+EJECT
+;
+;      EARLY POWER DOWN
+;
+       ORG H#60
+        E 60,,B,XWR,CNST,,,BUS3                 ;60->XWR
+        E DIE,TRUE                              ;JUMP DIE
+CON1:   E CONRUN,SNGL,B,XWR,CONSOL,,RSCATN,BUS3 ;CONSOLE->XWR,RESET CONSOLE ATTEN
+        E SHR,,,,CNST,CNCNTL                    ;SHR->CNNCNTL
+CON2:   E CON2,MC11,,RLLONG,,,,,INCMC           ;MC+2->MC,ROTATE XWR,WR LEFT
+        E ,,B,XWR,CONSOL,,,XWR2+BUS3            ;MERE CONSOL INTO XWR
+        E SRG,,,,CNST,CNCNTL                    ;SRG->CNCNTL
+        E 1EE,,B,,CNST,,,BUS2+BUS3              ;"1EE"->MC
+        E ,,,,CONSOL,YD,,,LOADMC                ;CONSOL->YD
+        E 10,,B,WR,CONSOL,LDMAC,,BUS0           ;CONSOL->WR,READ->MAC
+CON3:   E CON3,MC11,,SLWR,,,,,INCMC             ;MC+2->MC,SHIFT L. WR,IF M11 JUMP
+        E F8E,CARRY,,SLWR                       ;SHIFT LEFT WR, IF CARRY JUMP
+        E ADRBAD,CARRY,,,CONSOL                 ;CONOL->BBUS,IF CARRY JMP ADRBAD
+        E BOOT,CARRY                            ;IF CARRY JUMP BOOT
+;
+;      RUN OR SGL BUTTON DECODED  TURN OFF WAIT BIT AND EXECUTE INSTRUCTION
+;
+CONRUN: E 19,,A,,,LDMAC,,PC                     ;PC->MC,FETCH & LD IR->MAC
+        E ,,B,WR,PSW,,,BUS2+BUS3,LOADMC         ;PSW->WR
+        E 7FFF,,AB,WR,CNST,,MACREQ,BUS2+BUS3+WR ;WR AND "7FFF"->WR
+        E 8000+FETCH2,TRUE,A,,ALU,PSW,MAPSEL,WR ;WR->PSW,SELECT 1 DECODE MAPPING
+ADRBAD: E ADR,CARRY,B,,CONSOL,,,BUS0+XWR2+XWR3  ;CONSOL MERGE XWR->EBUS,IF CARRY JUMP
+CONBAD: E 0DEAD,,B,XWR,CNST,,,BUS2+BUS3         ;"DEAD"->XWR
+        E 0BAD,,B,WR,CNST,,,BUS2+BUS3           ;"0BAD"->WR
+        E DISPLA,TRUE                           ;"JUMP DISPLA
+ADR:    E DISPSW,TRUE,,,,,,,LOADPC              ;EBUS->PC,JUMP DISPSW
+F8E:    E WDINC,CARRY,,SLWR                     ;SHIFT LEFT WR,IF CARRY JUMP WDINC
+        E REG,CARRY,,SLWR,CONSOL                ;CONSOL->BBUS,SHIFT L. WR
+        E CONBAD,CARRY,,SLWR                    ;SHIFT LEFT WR, IF CARRY JUMP
+        E CONBAD,CARRY,A,SLWR,,,,PC             ;PC->MC,SHIFT LEFT WR, IF CARRY JMP
+        E SETWRT,CARRY,,SLWR,,,,,LOADMC         ;SHIFT LEFT WR, IF CARRY JUMP
+        E CONBAD,CARRY                          ;IF CARRY JUMP CONBAD
+        E DISPSW,CARRY                          ;IF CARRY JUMP DISPSW
+RD:     E 80,,AORB,XWR,CNST,,MACREQ,BUS0+PC     ;PC OR "80"->XWR
+        E 8000+DISPLA,TRUE,B,WR,MDR,,,BUS2+BUS3 ;MDR->WR,JUMP DIPLA
+SETWRT: E CONBAD,CARRY                          ;IF CARRY JUMP CONBAD
+        E WRT,CARRY,B,WR,,,,XWR2+XWR3           ;XWR->WR, IF CARRY JUMP WRT
+SET:    E 8000,,AORB,WR,CNST,,,BUS2+WR          ;WR OR "8000"->WR
+        E DISPSW,TRUE,A,,ALU,PSW,,WR            ;WR->PSW,JUMP DISPSW
+WRTTST: E CONBAD,G                              ;IF G JUMP CONBAD
+WRT:    E 14,,B,WR,ALU,LDMAC+MDR,,XWR2+XWR3     ;XWR->WR,MDR, STORE->MAC
+        E 80,,AORB,XWR,CNST,,MACREQ,BUS0+PC     ;PC OR "800000"->XWR
+        E DISPLA,TRUE                           ;JUMP DISPLA
+WDINC:  E INC,CARRY                             ;IF CARRY JUMP INC
+        E DEC,CARRY,,,,,YD                      ;YD->LATCH,IF CARRY JUMP DEC
+WRG:    E ,,B,WR,,,,L02+XWR2+XWR3               ;MERGE XWR,LATCH->WR
+        E ,,,,CONSOL,,REGWRT+YD                 ;WR->YD
+REG:    E ,,B,WR,CONSOL,,,BUS0                  ;CONSOL->WR
+        E 0F,,AB,WR,CNST,,YD,BUS0+WR            ;WR AND "F0000"->WR,YD->LATCH
+        E 20,,AORB,XWR,CNST,,YD,BUS0+L20+L31+WR ;WR OR(20.L20.L31)->XWR,YD->LAT
+        E DISPLA,TRUE,A,WR,,,,LATCH             ;LATCH->WR,JUMP DISPLA
+INC:    E DEC1,TRUE,A,,,,,PC,INCPC              ;PC->MC,PC+2->PC,JUMP DEC1
+DEC:    E 0FFFF,,APLUSB,,CNST,,,BUS0+BUS2+BUS3+PC;PC+"0FFFF"->MC,PC
+DEC1:   E 5000,,AEXRB,WR,CNST,,,BUS0+WR,LOADPC+LOADMC;WR EXR "50000000"->WR
+        E WRTTST,G                              ;IF G JUMP WRTTST
+        E RD,TRUE                               ;JUMP RD
+CNSL:   E DISPSW,SNGL                           ;IF SINGLE JUMP DISPSW
+        E WAIT1,TRUE                            ;JUMP WAIT1
+;
+EJECT
+;************************************************************************
+;
+;      AR (FIRST AND ONLY DECODE)
+;
+;------------------------------------------------------------------------
+;
+AR:     E ,,,,,,MACREQ+YS,,INCPC                ;YS->LATCH,PC+2->PC
+        E ,,A,WR,,,YD,LATCH                     ;LATCH->WR,YD->LATCH
+        E YDFLAG,TRUE,APLUSB,WR,,,,WR0+WR2+WR3+LATCH;WR+LATCH->WR,JUMP YDFLAG
+;
+;************************************************************************
+;
+;      SR (FIRST AND ONLY DECODE)
+;
+;------------------------------------------------------------------------
+;
+;SR
+        E ,,,,,,MACREQ+YS,,INCPC                ;YS->LATCH,PC+2->PC
+        E ,,A,WR,,,YD,LATCH                     ;LATCH->WR,YD->LATCH
+        E YDFLAG,TRUE,AMINB,WR,,,,WR0+WR2+WR3+LATCH;LATCH-WR->WR,JUMP YDFLAG
+;
+;************************************************************************
+;
+;      OR (FIRST AND ONLY DECODE)
+;
+;------------------------------------------------------------------------
+;
+OR:     E ,,,,,,MACREQ+YS,,INCPC                ;YS->LATCH,PC+2->PC
+        E ,,A,WR,,,YD,LATCH                     ;LATCH->WR,YD->LATCH
+        E YDFLAG,TRUE,AORB,WR,,,,WR0+WR2+WR3+LATCH;LATCH OR WR->WR,JMP YDFLAG
+;
+EJECT
+;************************************************************************
+;
+;      CONSOLE ATTENTION OR SINGLE
+;
+;------------------------------------------------------------------------
+;
+       ORG H#0A0
+STOP:   E 8000,,B,WR,CNST,,,BUS2;               ;"8000"->WR,TURN ON PSW WAIT BIT
+        E ,,AORB,WR,PSW,,,BUS2+BUS3+WR;         ;WR OR PSW->WR
+        E DISPSW,TRUE,A,,ALU,PSW,,WR;           ;WR->PSW,JUMP DISPSW
+;
+;************************************************************************
+;
+;      LPSWR  FIRST AND ONLY DECODE
+;
+;------------------------------------------------------------------------
+;
+        E ILEGAL,PSW7,,,,YD,YD                  ;YD->LATCH
+        E 0D0,,A,,CNST,PSW,YS,LATCH             ;LATCH->MC,PC,YDPTR,D0->PSW,YS->LAT
+        E 0E,,B,XWRWR,,,MREG,L02+L22+L33,LOADPC+LOADMC;LATCH->XWR,WR,RE->LAT
+        E ,,A,WR,,,,LATCH                       ;LATCH->WR
+        E LPSWR3,WR0                            ;IF WR0 JUMP LPSWR3
+        E LPSWR2,WR0,B,WR,,,,XWR2+XWR3          ;IF WR0 JUMP LPSWR2
+LPSWR1: E ,,B,,ALU,PSW,,XWR2+XWR3               ;XWR->PSW
+        E FETCH0,TRUE;                          ;ALLOW TIME FOR MAC ENABLE
+LPSWR2: E 0F0,,AB,WR,CNST,,REGWRT+MREG,BUS3+WR  ;WR->R0,WR AND "F0"->WR
+        E 0F0,,AEXRB,WR,CNST,,,BUS3+WR          ;WR EXR "F0"->WR
+        E 0F,,A,WR,,,INCYD+MREG,PC              ;PC->WR,RF->LAT,YDPTR+1->YDPTR
+        E LPSWR1,G,A,,,,REGWRT+YD,LATCH         ;WR->YD,LAT->PC,MC,IF G JUMP LPSWR1
+        E FETCH0,TRUE,,,,,,,LOADPC+LOADMC       ;JUMP FETCH0
+LPSWR3: E CNSL,TRUE,B,,ALU,PSW,,XWR2+XWR3       ;XWR->PSW,JUMP CNSL
+;
+EJECT
+;************************************************************************
+;
+;      FIRST DECODE FOR FULLWORD FETCH INSTRUCTIONS (A, S, L, ECT.)
+;
+;------------------------------------------------------------------------
+;
+       ORG H#0B2
+        E 11,,B,WR,MDRA,LDMAC,MACREQ,L00+L22+L33,INCPC;LAT->WR,PC+2->PC,FETCH->MAC
+        E 8000,TRUE,RXADD+APLUSB,XWRWR,MDRA,,,SIGN0+BUS2+BUS3+WR,INCPC
+;                                               ;WR+MDRA->XWR,WR,EBUS,PC+2->PC
+;      GO HERE FOR RX1
+FW1:    E FW2,TRUE,,,,,,,LOADMC                 ;EBUS->MC,JUMP FW2
+;      GO HERE FOR RX3
+        E FWRX3,TRUE,B,WR,MDRA,,SX,INDEX+BUS0,INCPC+INCMC;INCREMENT,PC,MC
+;                                               ;MDRA->HIGH WR,JUMP FERWX3
+;      EITHER OF NEXT 2 FOR RX2
+        E FW1,TRUE,APLUSB,XWRWR,,,,WR0+WR2+WR3+PC;PC+WR->XWR,WR,JUMP FW1
+        E FW1,TRUE,APLUSB,XWRWR,,,,WR0+WR2+WR3+PC;PC+WR->XWR,WR,JUMP FW1
+FWRX3:  E ,,APLUSB,WR,,,MACREQ+YS,INDEX+L00+L22+L33+WR;WR+LAT->WR,YS->LAT
+        E ,,APLUSB,WR,MDR,,,L00+L22+L33+WR      ;WR+LATCH->WR
+        E 8000+FW1,TRUE,APLUSB,XWRWR,MDR,,,BUS2+BUS3+WR;WR+MDR->XWR,WR,JUMP
+FW2:    E 10,,,,MDR,LDMAC,MACREQ                ;FETCH->MAC
+        E 8000,,B,WR,MDR,,,BUS0,INCMC           ;MDR->HIGH WR,MC+2->MC
+        E ,,A,,MDR,,MACREQ,PC                   ;PC->MC
+        E 8019,TRUE,MAP+B,LRWR,MDR,LDMAC,YD,BUS2+BUS3,LOADMC;MDR->WR,YD->LAT
+;
+EJECT
+;************************************************************************
+;
+;      XR (FIRST AND ONLY DECODE)
+;
+;------------------------------------------------------------------------
+;
+XR:     E ,,,,,,MACREQ+YS,,INCPC                ;YT,PC+2->PC
+        E ,,A,WR,,,YD,LATCH                     ;LATCH->WR,YD->LATCH
+        E YDFLAG,TRUE,AEXRB,WR,,,,WR0+WR2+WR3+LATCH;LAT EXR WR->WR,JUMP YDFLAG
+;
+;************************************************************************
+;
+;      FIRST DECODE FOR HALFWORD FETCH INSTRUCTIONS (LH, AH, SH, ECT.)
+;
+;------------------------------------------------------------------------
+;
+       ORG H#0C2
+        E 11,,B,WR,MDRA,LDMAC,MACREQ,L00+L22+L33,INCPC;LAT->WR,PC+2->PC,FETCH->MAC
+        E 8000,TRUE,RXADD+APLUSB,XWRWR,MDRA,,,SIGN0+BUS2+BUS3+WR,INCPC
+;                                               ;WR+MDRA->XWR,WR,PC+2->PC
+HW1:    E HW2,TRUE,,,,,,,LOADMC                 ;EBUS->MC,JUMPHW2
+        E HWRX3,TRUE,B,WR,MDRA,,SX,INDEX+BUS0,INCPC+INCMC;MDRA->H.WR,INC MC,PC
+        E HW1,TRUE,APLUSB,XWRWR,,,,WR0+WR2+WR3+PC;PC+WR->XWR,WR,JUMP HW1
+        E HW1,TRUE,APLUSB,XWRWR,,,,WR0+WR2+WR3+PC;PC+WR->XWR,WR,JUMP HW1
+HWRX3:  E ,,APLUSB,WR,,,MACREQ+YS,INDEX+L00+L22+L33+WR;WR+LAT->WR,YS->LATCH
+        E ,,APLUSB,WR,MDR,,,L00+L22+L33+WR      ;WR+LATCH->WR
+        E 8000+HW1,TRUE,APLUSB,XWRWR,MDR,,,BUS2+BUS3+WR;WR+MDR->XWR,WR
+HW2:    E 10,,A,,MDR,LDMAC,MACREQ,PC            ;PC->MC,READ->MAC
+        E 8019,TRUE,MAP+B,WR,MDR,LDMAC,YD,SIGN0+BUS2+BUS3,LOADMC;MDR->WR,YD->LAT
+;                                               ;FETCH &LD IR->MAC,JUMP FETCH
+;
+;************************************************************************
+;
+;      NR (FIRST AND ONLY DECODE)
+;
+;------------------------------------------------------------------------
+;
+NR:     E ,,,,,,MACREQ+YS,,INCPC                ;YS->LATCH,PC+2->PC
+        E ,,A,WR,,,YD,LATCH                     ;LATCH->WR,YS->LATCH
+        E YDFLAG,TRUE,AB,WR,,,,WR0+WR2+WR3+LATCH;WR AND LATCH->WR,JUMP YDFLAG
+;
+;************************************************************************
+;
+;      LR (FIRST AND ONLY DECODE)
+;
+;------------------------------------------------------------------------
+;
+LR:     E ,,,,,,MACREQ+YS,,INCPC                ;PC+2->PC,YS->LATCH
+        E YDFLAG,TRUE,A,WR,,,,LATCH             ;LATCH->WR,JUMP YDFLAG
+;
+;************************************************************************
+;
+;      FIRST DECODE FOR INSTRUCTIONS REQUIRING ONLY ADDRESS (RX JUMPS, LA, LPSW, ECT.)
+;
+;------------------------------------------------------------------------
+;
+       ORG H#0D2
+        E 11,,B,WR,MDRA,LDMAC,MACREQ,L00+L22+L33,INCPC;LAT->WR,PC+2->PC,FETCH->MAC
+        E 8000,TRUE,RXADD+APLUSB,XWRWR,MDRA,,,SIGN0+BUS2+BUS3+WR,INCPC
+;                                               ;WR+MDRA->XWR,WR,PC+2->PC
+AD1:    E 10,TRUE,MAP+A,,,LDMAC,YD,PC,LOADMC    ;EBUS->MC,YD->LAT,PC->EBUS
+        E ADRX3,TRUE,B,WR,MDRA,,SX,INDEX+BUS0,INCPC+INCMC;MDRA->H.WR,INC PC,MC
+        E AD1,TRUE,APLUSB,XWRWR,,,,WR0+WR2+WR3+PC;PC+WR->XWR,WR,JUMP AD1
+        E AD1,TRUE,APLUSB,XWRWR,,,,WR0+WR2+WR3+PC;PC+WR->XWR,WR,JUMP AD1
+ADRX3:  E ,,B,XWR,,,MACREQ,L00+L22+L33          ;LATCH->XWR
+        E 0FF,,AB,WR,CNST,,,BUS0+WR             ;WR AND "FF0000"->WR
+        E ,,APLUSB,WR,,,YS,INDEX+XWR0+XWR2+XWR3+WR;WR+XWR->WR,YS->LATCH
+        E ,,APLUSB,WR,MDR,,,L00+L22+L33+WR      ;WR+LATCH->WR
+        E 8000+AD1,TRUE,APLUSB,XWRWR,MDR,,,BUS2+BUS3+WR;WR+MDR->XWR,WR,JUMP AD1
+;
+;************************************************************************
+;
+;      CLEAR MAC STATUS REGISTER OF MEANINGLESS GARBAGE
+;
+;------------------------------------------------------------------------
+;
+CMP:    E 342,,B,,CNST,,,BUS2+BUS3              ;"342"->MC
+        E 8000,,,,,LDMAC,,,LOADMC               ;0->MAC
+        E MMF,TRUE,,,,,MACREQ                   ;JUMP MMF
+;
+EJECT
+;************************************************************************
+;
+;      CORE MEMORY PARITY
+;
+;------------------------------------------------------------------------
+;
+       ORG H#0E0
+        E 8020,,B,,CNST,,,BUS3;                 ;20->MC,ADDRESS OF OLD PSW
+        E 0,,,,CNST,LDMAC+MDR,RESMAC,,LOADMC;   ;EBUS->MC,0-> MDR
+        E 4,,A,WR,,LDMAC,MACREQ+YS,PC;          ;PC->WR,4->MAC,YS->LAT,START MEMORY WRITE
+        E 8000,,A,WR,PSW,MDR,REGWRT+YS,LATCH,INCMC;PSW->MDR,LAT->WR, INC MC
+        E ,,,,,,MACREQ+YS;     DO SECOND WRITE, WAIT TILL DONE, READ YS
+        E 8000,,B,,ALU,MDR,,L31,INCMC;         WRITE FIRST PART OF ADDRESS
+        E ,,,,,,MACREQ+YS
+        E 8000,,A,,ALU,MDR,REGWRT+YS,LATCH,INCMC;   WRITE SECOND PART OF ADDRESS
+        E 2,,B,WR,CNST,,MACREQ,BUS3;       PUT ERROR CODE INTO WR, DO LAST WRITE
+        E CMP,TRUE,,,,,RESPAR;             TO MACHINE MALFUNCTION FOR NEW PSW
+;
+EJECT
+;************************************************************************
+;
+;      RBT SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E ,,AB,WR,MDR,,FLAGS,BUS2+BUS3+MASK     ;MDR AND MASK->WR,SETUP FLAGS
+STORE:  E 14,,A,,ALU,LDMAC+MDR,,WR              ;WR->MDR,STORE->MAC
+STORE1: E FETCH,TRUE,A,,,,MACREQ,PC             ;PC->EBUS,JUMP FETCH
+;
+;************************************************************************
+;
+;      SBT SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E STORE,TRUE,21,WR,MDR,,FLAGS,BUS2+BUS3+MASK;(NOT MASK)OR MDR->WR,SET FLAGS
+;
+;************************************************************************
+;
+;      CBT SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E ,,20,WR,,,FLAGS,MASK                  ;NOT MASK->WR,SET FLAGS
+        E STORE,TRUE,AEXRB,WR,MDR,,,BUS2+BUS3+WR;WR EXR MDR->WR JUMP STORE
+;
+;************************************************************************
+;
+;      TBT SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E FETCH,TRUE,A,,,,FLAGS,PC              ;PC->EBUS,JUMP FETCH
+;
+;************************************************************************
+;
+;      FIRST DECODE FOR SBT, RBT, TBT, AND CBT
+;
+;------------------------------------------------------------------------
+;
+       ORG H#0F2
+        E 11,,B,WR,MDRA,LDMAC,MACREQ,L00+L22+L33,INCPC;LAT->WR,PC+2->PC,FETCH->MAC
+        E 8000,TRUE,RXADD+APLUSB,WR,MDRA,,YD,SIGN0+BUS2+BUS3+WR,INCPC
+;                                               ;WR+MDRA->WR,PC+2->PC
+BIT1:   E BIT2,TRUE,APLUSB,,,,,SL00+SL22+SL33+WR;WR+(LAT>>3)->EBUS,JUMP BIT2
+        E BITRX3,TRUE,B,WR,MDRA,,SX,INDEX+BUS0,INCPC+INCMC;MDRA->H.WR,INC PC,MC
+        E BIT1,TRUE,APLUSB,WR,,,YD,WR0+WR2+WR3+PC;PC+WR->WR,YD-.LAT,JUMP BIT1
+        E BIT1,TRUE,APLUSB,WR,,,YD,WR0+WR2+WR3+PC;PC+WR->WR,YD-.LAT,JUMP BIT1
+BITRX3: E ,,APLUSB,WR,,,MACREQ+YS,INDEX+L00+L22+L33+WR;WR+LAT->WR,YS->LATCH
+        E ,,APLUSB,WR,MDR,,,L00+L22+L33+WR      ;WR+LATCH->WR
+        E 8000+BIT1,TRUE,APLUSB,WR,MDR,,YD,BUS2+BUS3+WR;WR+MDR->WR,YD->LAT,JUMP
+BIT2:   E 10,,,,,LDMAC,YD,,LOADMC               ;EBUS->MC,YD->LAT,READ->MAC
+        E ,,20,WR,,,MACREQ,MASK                 ;NOT MASK->WR
+        E 8000,TRUE,MAP+AB,WR,MDR,,YD,BUS2+BUS3+WR;WR AND MDR->WR,YD->LAT,JUMP MAP
+;
+EJECT
+;************************************************************************
+;
+;      CLR (FIRST AND ONLY DECODE)
+;
+;------------------------------------------------------------------------
+;
+;
+CLR:    E ,,,,,,MACREQ+YS,,INCPC                ;YS->LATCH,PC+2->PC
+        E ,,A,WR,,,YD,LATCH                     ;LATCH->WR,YD->LATCH
+        E FLAG,TRUE,AMINB,WR,,,,WR0+WR2+WR3+LATCH;LATCH-WR->WR,JUMP FLAG
+       ORG H#102
+;
+;************************************************************************
+;
+;      RHR   CONSOLE IO   FIRST AND ONLY DECODE
+;
+;------------------------------------------------------------------------
+;
+        E 0FF00,,,,CNST,CNCNTL,YD,,INCPC;  INITIALIZE CONSOLE CONTROL, READ YD
+        E ,,B,,ALU,CONSOL,,L33;                 ;SEND FIRST DATA BYTE TO CONSOLE
+        E LA,,,,CNST,CNCNTL;                    ;LA LINE TO CONSOLE CONTROL
+        E 0FF00,,,,CNST,CNCNTL,YD;              ;REMOVE LA LINE, READ YD
+        E ,,B,,ALU,CONSOL,INCYD,L32;            ;SECOND DATA BYTE, BUMP YD
+        E LB,,,,CNST,CNCNTL                     ;LB->CONSOLE CONTROL
+        E 0FF00,,,,CNST,CNCNTL,YD               ;REMOVE LB LINE,YD->LATCH
+        E ,,B,,ALU,CONSOL,,L33                  ;SEND SECOND DATA BYTE TO CONSOLE
+        E LB,,,,CNST,CNCNTL                     ;LB LINE TO CONSOLE CONTROL
+        E 0FF00,,,,CNST,CNCNTL,YD               ;"FF00"->CNCNTL,YD->LATCH
+        E ,,B,,ALU,CONSOL,,L32                  ;L32->CONSOLE
+        E LB,,,,CNST,CNCNTL                     ;LB->CONSOLE CONTROL
+        E 0FF0F,,B,WR,CNST,CNCNTL,YD,BUS3;      CLEAR CONSOLE CONTROL, PUT F INTO WR, READ YD
+        E ,,AB,,ALU,CONSOL,,L31+WR;             SEND LAST 4 BITS TO CONSOLE BY ANDING REGISTER AGAINST F
+        E LB,,,,CNST,CNCNTL                     ;LB->CONSOLE CONTROL
+        E 0FF00,,,,CNST,CNCNTL;                 REMOVE LB AND CLEAR CONSOLE BEFORE DOING INPUT
+        E 0FF,,,,CNST,CONSOL                    ;"0FF"->CONSOLE
+        E SHL,,,,CNST,CNCNTL;                   NOW SAFE TO DO INPUT
+        E ,;                                    WAIT FOR CONSOLE TO PROCESS SHL
+        E ,
+        E ,,B,WR,CONSOL,,,BUS3;                 GET LEFT DATA BYTE FROM CONSOLE
+        E SHR,,,,CNST,CNCNTL,MACREQ+REGWRT+YS;  ;SET SHR TO CONSOLE CONTROL, WRITE YS
+        E ,
+        E ,,,,,,YS;                             READ YS
+        E ,,B,WR,CONSOL,,,L23+BUS3;             ZERO LEFT WR, ADJUST LEFT DATA BYTE, INPUT RIGHT BYTE
+        E FETCH1,TRUE,,,,,REGWRT+YS;             WRITE YS, ALL DONE
+;
+;************************************************************************
+;
+;      ST SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E 14,,B,,ALU,LDMAC+MDR,,L20+L31         ;H.LAT->MDR,STORE->MAC
+        E ,,,,,,MACREQ+YD                       ;YD->LATCH
+        E ,,A,,ALU,MDR,,LATCH                   ;LATCH->MDR
+        E 8000+STH1,TRUE,,,,,,,INCMC            ;MC+2->MC,JUMP STH1
+;
+;************************************************************************
+;
+;      MAC INTERRUPT
+;
+;------------------------------------------------------------------------
+;
+       ORG H#120
+        E 92,,B,WR,CNST,,RESMAC,BUS3;           ;ADDR OF NEW PSW->WR,RESET MAC
+        E COMINT,TRUE,A,,,,,WR                  ;WR->EBUS,JUMP COMINT
+;
+EJECT
+;************************************************************************
+;
+;      JUMPS
+;
+;------------------------------------------------------------------------
+;
+       ORG H#123
+;
+;      SUCCESSFUL RX JUMPS
+;
+        E 19,,,,,LDMAC,MACREQ                   ;FETCH & LD IR->MAC
+        E TRAP,PSW3,A,,,,,WR                    ;WR->EBUS,IF TRACE JUMP TRAP
+        E FETCH1,TRUE,,,,,,,LOADPC              ;EBUS->PC,JUMP FETCH1
+        E ,
+;
+;      UNSUCCESSFUL RX JUMPS
+;
+        E FETCH0,TRUE,,,,,,,LOADMC              ;EBUS->MC,JUMP FETCH;
+START3: E 0FF,,,,CNST,CONSOL                    ;"0FF"->CONSOLE
+        E START1,TRUE,B,,ALU,IOCNTL             ;0->IOCNTL,JUMP START1
+       ORG H#12A
+;
+;      SUCCESSFUL JFS
+;
+        E TRAP,PSW3,APLUSB,,YS2,,,BUS3+PC       ;PC+2*YS->EBUS,IF TRACE JUMP TRAP
+        E FETCH0,TRUE,,,,,,,LOADPC+LOADMC       ;EBUS->PC,MC, JUMP FETCH0
+        E ,
+        E ,
+;
+;      UNSUCCESSFUL JFS
+;
+        E FETCH1,TRUE,,,,,MACREQ,,INCPC         ;PC+2->PC, JUMP FETCH1
+        E ,
+;
+;      SUCCESSFUL JBS JR
+;
+        E TRAP,PSW3,AMINB,,YS2,,,BUS3+PC        ;PC-2*YS->EBUS,IF TRACE JUMP TRAP
+SJUMP:  E FETCH0,TRUE,,,,,,,LOADPC+LOADMC       ;EBUS->MC,PC,JUMP FETCH0
+        E TRAPR,PSW3,,,,,YS                     ;YS->LATCH,IF TRACE JUMP TRAPR
+        E SJUMP,TRUE,A,,,,,LATCH                ;LATCH->EBUS, JUMP SJUMP
+;
+;      UNSUCCESSFUL JBS JR
+;
+        E FETCH1,TRUE,,,,,MACREQ,,INCPC         ;PC+2->PC, JUMP FETCH1
+        E ,
+        E FETCH1,TRUE,,,,,MACREQ,,INCPC         ;PC+2->PC, JUMP FETCH1
+EJECT
+;************************************************************************
+;
+;      TRACE ROUTINE
+;
+;------------------------------------------------------------------------
+;
+TRAPR:  E ,,A,,,,,LATCH                         ;LATCH->EBUS
+TRAP:   E 12,,B,,CNST,,,BUS3,LOADPC             ;EBUS->PC,12->MC
+        E 8014,,A,WR,PSW,LDMAC+MDR,YS,PC,LOADMC ;PC->WR,PS->LAT,PSW->MDR,STORE->MAC
+        E ,,A,WR,,,MACREQ+REGWRT+YS,LATCH       ;WR->YS,LAT->WR
+        E ,,,,,,YS                              ;YS->LAT
+        E 8000,,B,,ALU,MDR,,L31,INCMC           ;L31->MDR,MC+2->MC
+        E ,,,,,,MACREQ+YS                       ;YS->LAT
+        E 8000,,A,,ALU,MDR,REGWRT+YS,LATCH,INCMC;WR->YS,LAT->MDR,MC+2->MC
+        E 0EFFF,,B,WR,CNST,,MACREQ,BUS2+BUS3    ;WR AND "0EFFF"->WR
+        E 8000,,AB,WR,PSW,,,BUS2+BUS3+WR,INCMC  ;WR AND PSW->WR,MC+2->MC
+        E 10,,,,MDR,LDMAC,MACREQ                ;READ->MAC
+        E 8000,,B,XWR,MDR,,,BUS0,INCMC          ;MDR->H.XWR,MC+2->MC
+        E LPSW2,TRUE,A,,ALU,PSW,MACREQ,WR       ;WR->PSW,JUMP LPSW2
+;
+EJECT
+;************************************************************************
+;
+;      JAL SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E 19,,A,WR,,LDMAC,MACREQ,PC             ;PC->WR,FETCH &LD IR->MAC
+        E TRAP,PSW3,B,,,,REGWRT+YD,XWR0+XWR2+XWR3;WR->YD,XWR->PC,IF TRACE JUMP TRAP
+        E FETCH1,TRUE,,,,,,,LOADPC              ;JUMP FETCH1
+;
+;************************************************************************
+;
+;      JALR
+;
+;------------------------------------------------------------------------
+;
+        E ,,A,WR,,,YS,PC,INCPC                  ;PC->WR,YS->LATCH,PC+2->PC
+        E TRAP,PSW3,A,,,,REGWRT+YD,LATCH        ;WR->YD,LATCH->EBUS,IF TRACE JUMP
+        E FETCH0,TRUE,,,,,,,LOADPC+LOADMC       ;EBUS->PC,MC,JUMP FETCH0
+;
+;************************************************************************
+;
+;      COMPARE LOGICAL
+;
+;------------------------------------------------------------------------
+;
+        E ,,AMINB,WR,,,MACREQ,WR0+WR2+WR3+LATCH ;LATCH-WR->WR
+FLAG:   E FETCH1,TRUE,,,,,FLAGS                 ;STORE FLAG IN PSW
+;
+;************************************************************************
+;
+;      TEST  TI, THI
+;
+;------------------------------------------------------------------------
+;
+        E FLAG,TRUE,AB,WR,,,MACREQ,WR0+WR2+WR3+LATCH;LAT AND WR->WR,JUMP FLAG
+;
+EJECT
+;************************************************************************
+;
+;      COMPARE  C, CH, CHI, CI
+;
+;------------------------------------------------------------------------
+;
+        E ,,A,XWR,,,MACREQ+YD,WR                ;WR->XWR,YD->LATCH
+COMPAR: E ,,AEXRB,WR,,,YD,WR0+LATCH             ;LATCH EXR H.WR->WR,YD->LATCH
+        E 1,,B,WR,CNST,,YD,L00+BUS3             ;H.LAT MERGE "1"->WR,YD->LAT
+        E FETCH1,WR0,AMINB,WR,,,FLAGS,XWR0+XWR2+XWR3+LATCH;LAT-XWR->WR,SET FLAGS
+        E FETCH1,TRUE,,,,,FLAGS                 ;SET FLAGS,JUMP FETCH1
+;
+;************************************************************************
+;
+;      EXHR
+;
+;------------------------------------------------------------------------
+;
+        E ,,,,,,MACREQ+YS,,INCPC                ;YS->LAT,PC+2->PC
+        E YDFLAG,TRUE,B,WR,,,,L02+L20+L31       ;EXCHANG LATCH->WR,JUMP YDFLAG
+;
+;************************************************************************
+;
+;      LBR
+;
+;------------------------------------------------------------------------
+;
+        E ,,,,,,MACREQ+YS,,INCPC                ;PC+2->PC,YS->LATCH
+        E YDFLAG,TRUE,B,WR,,,,L33               ;L33->WR,JUMP YDFLAG
+;
+;************************************************************************
+;
+;      STBR
+;
+;------------------------------------------------------------------------
+;
+        E ,,,,,,MACREQ+YD,,INCPC                ;YD->LAT,PC+2->PC
+        E ,,B,WR,,,YS,L33                       ;L33->WR,YS->LATCH
+        E ,,B,WR,,,,L00+L22+WR3                 ;WR3 MERGE LAT->WR
+        E FETCH1,TRUE,,,,,FLAGS+REGWRT+YS       ;WR->YS,SET FLAGS
+;
+;************************************************************************
+;
+;      EXBR
+;
+;------------------------------------------------------------------------
+;
+        E ,,,,,,MACREQ+YS,,INCPC                ;YS->LATCH,PC+2->PC
+        E ,,B,WR,,,YD,L23+L32                   ;EXCHANGE LOW LAT->WR,YD->LAT
+        E YDFLAG,TRUE,B,LLWR,,,,L00             ;H.LAT->H.WR,JUMP YDFLAG
+;
+;************************************************************************
+;
+;      SECOND DECODE FOR LA
+;
+;------------------------------------------------------------------------
+;
+        E 19,,,,,LDMAC,FLAGS+REGWRT+YD,,LOADMC  ;EBUS->MC,WR-.YD,SET FLAG
+        E FETCH1,TRUE,,,,,MACREQ                ;JUMP FETCH1
+;
+;************************************************************************
+;
+;      ATN0 INTERRUPT
+;
+;------------------------------------------------------------------------
+;
+       ORG H#160
+        E TACK0,,,,CNST,IOCNTL                  ;TACK0->IOCNTL
+        E NOCARD,TRUE,B,XWR,PSW,,,BUS2+BUS3     ;PSW->XWR,JUMP NOCARD
+;
+;************************************************************************
+;
+;      ALL LOADS EXCEPT LM, LHL, LR, LA, LHR, LBR, AND LCS
+;
+;------------------------------------------------------------------------
+;
+        E ,,,,,,MACREQ                          ;
+YDFLAG: E FETCH1,TRUE,,,,,FLAGS+REGWRT+YD       ;WR->YD,SET FLAGS,JUMP FETCH1
+;
+EJECT
+;************************************************************************
+;
+;      LHL
+;
+;------------------------------------------------------------------------
+;
+        E YDFLAG,TRUE,B,LLWR,,,MACREQ           ;0->HIGH WR,JUMP YDFLAG
+;
+;************************************************************************
+;
+;      ALL ADDS EXCEPT AM, AHM
+;
+;------------------------------------------------------------------------
+;
+        E YDFLAG,TRUE,APLUSB,WR,,,MACREQ,WR0+WR2+WR3+LATCH;LAT+WR->WR,JUMP YDFLAG
+;
+;************************************************************************
+;
+;      ALL SUBTRACTS
+;
+;------------------------------------------------------------------------
+;
+        E YDFLAG,TRUE,AMINB,WR,,,MACREQ,WR0+WR2+WR3+LATCH;LAT-WR->WR,JUMP YDFLAG
+;
+;************************************************************************
+;
+;      INCLUSIVE OR
+;
+;------------------------------------------------------------------------
+;
+        E YDFLAG,TRUE,AORB,WR,,,MACREQ,WR0+WR2+WR3+LATCH;LAT OR WR->WR,JUMP YDFLAG
+;
+;************************************************************************
+;
+;      EXCLUSIVE OR
+;
+;------------------------------------------------------------------------
+;
+        E YDFLAG,TRUE,AEXRB,WR,,,MACREQ,WR0+WR2+WR3+LATCH;LAT EXR WR->WR,JUMP
+;
+;************************************************************************
+;
+;      AND
+;
+;------------------------------------------------------------------------
+;
+        E YDFLAG,TRUE,AB,WR,,,MACREQ,WR0+WR2+WR3+LATCH;LAT AND WR->WR,JUMP YDFLAG
+;
+;************************************************************************
+;
+;      AHM
+;
+;------------------------------------------------------------------------
+;
+        E 10,,,,,LDMAC,MACREQ+YD                ;YD->LATCH,READ->MAC
+        E ,,B,WR,MDR,,,L02                      ;LOW LAT->H.WR
+;
+;      TO SET THE CONDITION CODES CORRECTLY, THE FOLLOWING 3 INSTR'S SHOULD BE;
+;      8014,,APLUSB,WR,MDR,LDMAC,YD,BUS0+WR
+;      ,,APLUSB,WR,MDR,,FLAGS,SIGN0+BUS2+BUS3+LATCH
+;      ,,A,,ALU,MDR,,WR
+;
+        E 8014,,APLUSB,WR,MDR,LDMAC,YD,BUS0     ;MDR->H.WR,YD->LAT,STORE->MAC
+        E ,,APLUSB,WR,MDR,,,SIGN0+BUS2+BUS3+LATCH;LAT+MDR->WR
+        E ,,A,,ALU,MDR,FLAGS,WR                 ;WR->MDR,SET FLAGS
+        E FETCH,TRUE,A,,,,MACREQ,PC             ;PC->EBUS,JUMP FETCH
+;
+;************************************************************************
+;
+;      AM
+;
+;------------------------------------------------------------------------
+;
+        E ,,APLUSB,WR,,,YD,WR0+WR2+WR3+LATCH    ;LATCH+WR->WR,YD->LATCH
+        E 14,,A,WR,,LDMAC,FLAGS+REGWRT+YD,LATCH ;WR->YD,LAT->WR,SET FLAGS
+        E ,,B,,,,YD,XWR0+XWR2+XWR3              ;XWR->MC,YD->LATCH
+        E ,,B,,ALU,MDR,,L20+L31,LOADMC          ;HIGH LATCH->MDR
+        E ,,,,,,MACREQ+YD                       ;YD->LATCH
+        E 8000,,A,,ALU,MDR,REGWRT+YD,LATCH,INCMC;WR->YD,LAT->MDR,MC+2->MC
+        E FETCH,TRUE,A,,,,MACREQ,PC             ;PC->EBUS,JUMP FETCH
+;
+EJECT
+;************************************************************************
+;
+;      FIRST DECODE FOR HALFWORD IMMEDIATE
+;
+;------------------------------------------------------------------------
+;
+        E 11,,B,WR,MDR,LDMAC,MACREQ,L00+L22+L33,INCPC;LAT->WR,PC+2->PC,FETCH->MAC
+ E 8019,TRUE,MAP+APLUSB,WR,MDR,LDMAC,YD,SIGN0+BUS2+BUS3+WR,INCPC+INCMC
+;                                               ;WR+MDR,YD->LAT,INC PC,MC, JUMP MAP
+;
+;************************************************************************
+;
+;      FIRST DECODE FOR FULLWORD IMMEDIATE
+;
+;------------------------------------------------------------------------
+;
+        E 11,,B,WR,MDR,LDMAC,MACREQ,L00+L22+L33,INCPC;LAT->WR,PC+2->PC,FETCH->MAC
+        E 8000,,APLUSB,WR,MDR,,,BUS0+WR,INCPC+INCMC;WR+MDR->WR,INC PC,MC
+        E ,,,,MDR,,MACREQ,,INCPC                ;PC+2->PC
+        E 8019,TRUE,MAP+APLUSB,WR,MDR,LDMAC,YD,BUS2+BUS3+WR,INCMC;WR+MDR->WR,
+;                                               ;YD->LAT,MC+2->MC,JUMP MAP
+;
+;************************************************************************
+;
+;      FIRST DECODE FOR REGISTER TO REGISTER
+;
+;------------------------------------------------------------------------
+;
+        E ,,,,,,YS,,INCPC                       ;YS->LAT,PC+2->PC
+;      DO NOT DO MACREQ PRIOR TO SECOND DECODE
+        E ,TRUE,MAP+A,WR,,,MACREQ+YD,LATCH      ;LAT->WR,YD->LAT,JUMP MAP
+;
+;************************************************************************
+;
+;      FIRST DECODE FOR IMMEDIATE SHORT
+;
+;------------------------------------------------------------------------
+;
+        E ,TRUE,MAP+B,WR,YS,,MACREQ+YD,BUS3,INCPC;YS->WR,YD->LAT,PC+2->PC,JUMP MAP
+;
+;************************************************************************
+;
+;      FIRST AND ONLY DECODE FOR LCS
+;
+;------------------------------------------------------------------------
+;
+        E ,,AMINB,WR,YS2,,MACREQ,BUS3+WR,INCPC  ;WR-2*YS->WR,PC+2->PC
+        E YDFLAG,TRUE,,ASRWR                    ;WR/2->WR,JUMP YDFLAG
+;
+;************************************************************************
+;
+;      TS
+;
+;------------------------------------------------------------------------
+;
+        E 12,,,,MDR,LDMAC,MACREQ                ;12->MAC
+        E 8000,,B,WR,MDR,,,SIGN0+BUS2+BUS3      ;MDR->WR
+        E FETCH,TRUE,A,,,,FLAGS,PC              ;PC->EBUS,SET FLAGS,JUMP FETCH
+;
+EJECT
+;************************************************************************
+;
+;      LPSW SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E ILEGAL,PSW7,B,WR,,,,,INCMC            ;0->WR,MC+2->MC,IF NOT PRIVILEGED JUMP
+        E ,,,,MDR,,MACREQ                       ;READ
+        E 8000,,B,WR,MDR,,,BUS0+BUS2+BUS3,INCMC ;MDR->WR,MC+2->MC
+        E ,,,,MDR,,MACREQ                       ;READ
+        E 8000,,B,XWR,MDR,,,BUS0,INCMC          ;MDR->H.XWR,MC+2->MC
+        E ,,,,,,MACREQ                          ;READ
+        E 8000+NLPSW,TRUE,B,,MDR,,,XWR0+BUS2+BUS3;MERGE MDR INTO XWR->EBUS,JUMP NLPSW
+;
+;************************************************************************
+;
+;      EPSR
+;
+;------------------------------------------------------------------------
+;
+        E ILEGAL,PSW7,B,WR,PSW,,,BUS2+BUS3      ;PSW->WR,IF NOT PRIVILEGE JUMP
+        E ,,,,,,REGWRT+YD,,INCPC                ;WR->YD,PC+2->PC
+        E ,,,,,,YS                              ;YS->LATCH
+        E ,,B,WR,ALU,PSW,,L02+L22+L33           ;LATCH->WR,PSW
+        E ,;       ALLOW FOR POSSIBLE PSW5 CHANGE BEFORE MACREQ
+        E CNSL,WR0,,,,,MACREQ                   ;IF WR0 JUMP CNSL
+        E FETCH1,TRUE                           ;JUMP FETCH1
+;
+;************************************************************************
+;
+;      LHR FIRST AND ONLY DECODE
+;
+;------------------------------------------------------------------------
+;
+        E ,,,,,,MACREQ+YS,,INCPC                ;YS->LATCH,PC+2->PC
+        E ,,B,WR,,,YS,L02                       ;L02->WR,YS->LAT
+        E 0FFFF,,B,WR,CNST,,,BUS0+L22+L33;      ;LATCH->WR (H.WR="FFFF")
+        E FETCH1,WR0,B,LLWR,,,FLAGS+REGWRT+YD   ;WR->YD,SET FLAGS,RESET H.WR
+        E FETCH1,TRUE,,,,,FLAGS+REGWRT+YD       ;WR->YD,SET FLAGS,JUMP FETCH1
+;
+;************************************************************************
+;
+;      UPSW SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E 0EFF0,,B,WR,CNST,,,BUS2+BUS3,INCMC    ;"0EFF0"->WR,MC+2->MC
+        E ,,AB,XWR,PSW,,MACREQ,BUS2+BUS3+WR     ;WR AND PSW->XWR
+        E 100F,,B,WR,CNST,,,BUS2+BUS3           ;"100F"->WR
+        E 8000,,AB,WR,MDR,,,BUS2+BUS3+WR,INCMC  ;WR AND MDR->WR,MC+2->MC
+        E ,,AORB,,ALU,PSW,MACREQ,XWR2+XWR3+WR   ;WR OR XWR->PSW
+        E ,,,,MDR                               ;
+        E 8000,,B,XWR,MDR,,,BUS0,INCMC          ;MDR->XWR,MC+20->MC
+        E LPSW2,TRUE,,,,,MACREQ                 ;JUMP LPSW2
+;
+;************************************************************************
+;
+;      ATN1 INTERRUPT
+;
+;------------------------------------------------------------------------
+;
+       ORG H#1A0
+        E 8000+TACK1,,B,WR,CNST,IOCNTL,,BUS2    ;TACK1->IOCNTL, DEV ADDR->WR
+        E ,,B,XWR,PSW,YD,,BUS2+BUS3             ;PSW->XWR
+        E ATN1A,TRUE,AORB,WR,IOBUS,,,WR+BUS3    ;IOBUS(8-15)->WR, (12-15)->YD
+;
+EJECT
+;************************************************************************
+;
+;      CR (FIRST AND ONLY DECODE)
+;
+;------------------------------------------------------------------------
+;
+CR:     E ,,,,,,MACREQ+YS,,INCPC                ;YS->LATCH,PC+2->PC
+        E COMPAR,TRUE,A,XWRWR,,,YD,LATCH        ;LAT->XWR,WR,YD->LAT,JMP COMPAR
+       ORG H#1A6
+;
+;************************************************************************
+;
+;      STH SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E 14,,A,,ALU,LDMAC+MDR,,LATCH           ;LAT->MDR,STORE->MAC
+STH1:   E FETCH,TRUE,A,,,,MACREQ,PC             ;PC->EBUS,JUMP FETCH
+;
+;************************************************************************
+;
+FAIL1:  E FAIL1,,B,XWR,CNST,,,BUS2+BUS3         ;FAIL1->XWR
+;
+;      SYNC UP WHEN IT SHOULD BE DOWN
+;
+        E DIE,TRUE,B,,ALU,IOBUS                 ;0->IOBUS,JUMP DIE
+;
+;************************************************************************
+;
+;      FIRST DECODE FOR ALL IO (WD, OC, WDR, OCR, RDR, SSR) EXCEPT CIO
+;      ADDRESS DEVICE, THEN DO SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E ILEGAL,PSW7,B,WR,PSW,,YD,BUS2+BUS3,INCPC;PSW->WR,YD->LAT,PC+2->PC
+        E FAIL1,SYNC,A,,ALU,IOBUS,,LATCH        ;LAT->IOBUS,IF SYNC JUMP FAIL1
+        E ADRS,,,,CNST,IOCNTL                   ;ADRS-.IOCNTL
+        E 0FFF0,,AB,WR,CNST,,,BUS2+BUS3+WR;     ;CLEAR CONDITION CODE IN PSW
+        E ,,A,,ALU,PSW,,WR                      ;WR->PSW
+        E 1F0,,B,,CNST,,,BUS2+BUS3;             ;PREPARE 2 MICROSECOND DELAY
+        E IO2,SYNC,,,,,,,LOADMC                 ;"1F0"->MC,IF SYNC JUMP IO2
+IO1:    E IO2,SYNC,,,,,,,INCMC                  ;MC+2->MC,IF SYNC JUMP IO2
+        E IO1,MC11                              ;IF MC11 JUMP IO1
+        E 4,,AORB,WR,CNST,,,BUS3+WR;            ;SET TIMEOUT FLAG IN PSW
+        E ,,A,,ALU,PSW,,WR                      ;WR->PSW
+IO2:    E ,TRUE,MAP+B,,ALU,IOCNTL,YS            ;YS->LAT,0->IOCNTL,JUMP MAP
+;
+;************************************************************************
+;
+;      OCR SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+;      MODIFIED FOR HDLC MICRO ENGINE
+;      NEED TO WAIT FOR SIO FREE BEFORE OUTPUT TO SIO (DEV ADDR = 80)
+;
+;
+        E OCRSPC,TRUE,B,,ALU,IOBUS,YD         ;BRANCH FOR MORE SPACE, CLR IOBUS
+;
+EJECT
+;************************************************************************
+;
+;      WDR SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+       ORG H#1B9
+;
+;      MODIFIED FOR HDLC MICRO ENGINE
+;      NEED TO WAIT FOR SIO FREE BEFORE OUTPUT TO SIO (DEV ADDR = 80)
+;
+;
+        E WDRSPC,TRUE,B,,ALU,IOBUS,YD         ;BRANCH FOR MORE SPACE, CLR IOBUS
+        E ,
+WDR1:   E 1F0,,B,,CNST,,,BUS2+BUS3;             ;2 MICROSECOND DELAY CONSTANT
+        E ,,,,,,,,LOADMC                        ;"1F0"->MC
+WDR2:   E WDR3,SYNC,,,,,,,INCMC                 ;MC+2->MC
+        E WDR2,MC11                             ;IF MC11 JUMP WDR2
+WDR3:   E 0,,,,CNST,IOCNTL                      ;0->IOCNTL
+        E 0,,,,CNST,IOBUS                       ;0->IOBUS
+WDR4:   E FETCH,TRUE,A,,,,,PC                   ;PC->EBUS,JUMP FETCH
+;
+;************************************************************************
+;
+;      RDR SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E 0,,,,CNST,IOBUS                       ;0->IOBUS
+        E DR,,,,CNST,IOCNTL                     ;DR->IOCNTL
+        E 1F0,,B,,CNST,,,BUS2+BUS3;             ;2 MICROSECOND DELAY
+        E ,,,,,,,,LOADMC                        ;"1F0"->MC
+RDR1:   E RDR2,SYNC,,,,,,,INCMC                 ;MC+2->MC,IF SYNC JUMP RDR2
+        E RDR1,MC11                             ;IF MC11 JUMP RDR1
+RDR2:   E ,,B,WR,IOBUS,,,BUS2+BUS3              ;IOBUS->WR
+        E WDR4,TRUE,B,,ALU,IOCNTL,REGWRT+YS     ;0->IOCNTL,WR->YS,JUMP WDR4
+WD3:    E 10,,,,,LDMAC,MACREQ                   ;READ->MAC
+;
+;      MODIFIED FOR HDLC MICRO ENGINE
+;      MUST WAIT FOR SIO FREE BEFORE OUTPUT TO SIO (DEV ADDR = 80)
+;
+        E WDSPC2,WR31,B,,ALU,IOBUS,YD           ;IF WR31 JUMP WDSPC2,CLR IOBUS
+        E WDSPC1,TRUE,,,,,YD                  ;BRANCH TO CHECK DEV ADDR FOR SIO
+WD6:    E ,,A,WR,,,REGWRT+YS,LATCH              ;WR->YS,LATCH->WR
+        E ,,,,,,YS                              ;YS->LAT
+        E WD5,TRUE,B,,ALU,IOBUS,REGWRT+YS,L23+L32;WR->YS,LAT->IOBUS,JUMP WD5
+;
+;************************************************************************
+;
+;      WD SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+       ORG H#1D0
+;
+        E ,,A,,,,,PC                            ;PC->MC
+        E DA,,B,XWR,CNST,,YS,INDEX+BUS3,LOADMC  ;DA->WR,YS->LATCH
+WD1:    E 11,,B,WR,MDRA,LDMAC,MACREQ,L00+L22+L33,INCPC;WR=LAT,PC=PC+2,MAC=FETCH
+        E 8000,TRUE,RXADD+APLUSB,WR,MDRA,,,SIGN0+BUS2+BUS3+WR;WR+MDRA->WR
+WD2:    E WD3,TRUE,,,,,,,LOADMC                 ;EBUS->MC,JUMP WD3
+        E WDRX3,TRUE,B,WR,MDRA,,SX,INDEX+BUS0,INCPC+INCMC;MDRA->WR,INC PC,MC
+        E WD2,TRUE,APLUSB,WR,,,,WR0+WR2+WR3+PC  ;PC+WR->WR,JUMP WD2
+        E WD2,TRUE,APLUSB,WR,,,,WR0+WR2+WR3+PC  ;PC+WR->WR,JUMP WD2
+WDRX3:  E ,,APLUSB,WR,,,MACREQ+YS,INDEX+L00+L22+L33+WR;WR+LAT->WR,YS->LATCH
+        E ,,APLUSB,WR,MDR,,,L00+L22+L33+WR      ;WR+LAT->WR
+        E 8000+WD2,TRUE,APLUSB,WR,MDR,,,BUS2+BUS3+WR;WR+MDR->WR,JUMP WD2
+;
+;  MODIFIED FOR HDLC MICRO ENGINE
+;  MUST WAIT FOR SIO FREE BEFORE OUTPUT TO SIO (DEV ADDR = 80)
+;
+WD5:    E WDR1,TRUE,B,,ALU,IOCNTL,,XWR3         ;XWR3->IOCNTL,JUMP WDR1
+;
+EJECT
+;************************************************************************
+;
+;      ATN2 INTERRUPT
+;
+;------------------------------------------------------------------------
+;
+       ORG H#1E0
+        E TACK2,,,,CNST,IOCNTL;                 ;START RACK2-TACK2 DAISY CHAIN
+        E ,,B,WR,PSW,,,BUS2+BUS3;               ;SAVE OLD PSW IN WR
+ATN2A:  E 2000,,,,CNST,PSW;                     ;NEW PSW
+        E 0,,A,WR,,YD,REGWRT+MREG,PC;           ;OLD PSW TO R0 OF NEW REG SET
+        E 1,,,,CNST,,REGWRT+MREG;               ;OLD PC TO R1, LOAD YD WITH 1
+        E ATN2,SYNC,B,WR,IOBUS,,,BUS3;    ;MAYBE SYNC UP WITHIN 375 NANOSECONDS
+ATN2L:  E ATN2,SYNC,B,WR,IOBUS,,INCYD,BUS3;     ;WAIT UP TO 2.25 MICROSECONDS
+        E ATN2L,YDCARY,,,,,INCYD                ;YDPTR+1->YDPTR,IF YDCARY JUMP
+        E 1E9,,B,XWR,CNST,,,BUS2+BUS3;          ;NO SYNC RESPONSE
+        E DIE,TRUE,B,,ALU,IOBUS                 ;JUMP DIE, CLR IOCNTL
+ATN2:   E 2,,B,SLWR,ALU,IOCNTL,REGWRT+MREG;     ;DEVICE NUMBER TO R2, CLEAR IO CONTROL
+        E 0D0,,APLUSB,,CNST,,,BUS3+WR;          ;ADDRESS INTO INTERRUPT VECTOR
+ATN2B:  E 8000,,,,,LDMAC,,,LOADMC               ;LOAD MC
+        E ,,,,,,MACREQ                          ;
+        E 8000,,B,,MDR,,,BUS2+BUS3              ;MDR->MC,PC
+        E 19,,,,,LDMAC,,,LOADPC+LOADMC          ;FETCH & LD IR->MAC
+        E FETCH1,TRUE,,,,,MACREQ                ;JUMP FETCH1
+;
+EJECT
+;************************************************************************
+;
+;      SSR SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E 0,,,,CNST,IOBUS                       ;0->IOBUS
+        E SR,,,,CNST,IOCNTL                     ;SR->IOCNTL
+        E 1F0,,B,,CNST,,,BUS2+BUS3;             ;2 MICROSECOND DELAY
+        E ,,,,,,,,LOADMC                        ;"1F0"->MC
+        E 4,,AB,WR,CNST,,,BUS3+WR               ;WR AND "4"->WR
+SSR1:   E SSR2,SYNC,,,,,,,INCMC                 ;MC+2->MC,IF SYNC JUMP SSR2
+        E SSR1,MC11                             ;IF MC11 JUMP SSR1
+        E 4,,B,WR,CNST,,,BUS3                   ;4->WR
+SSR2:   E ,,AORB,WR,IOBUS,,,BUS2+BUS3+WR        ;WR OR IOBUS->WR
+        E 0F,,AB,WR,CNST,,REGWRT+YS,BUS3+WR;    ;MASK OFF CONDITION CODE FIELD
+        E ,,AORB,WR,PSW,,,BUS2+BUS3+WR          ;WR OR PSW->WR
+        E WDR3,TRUE,A,,ALU,PSW,,WR              ;WR->PSW,JUMP WDR3
+;
+;************************************************************************
+;
+;      OC SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E ,,A,,,,,PC                            ;PC->MC
+        E CMD,,B,XWR,CNST,,,BUS3,LOADMC         ;CMD->XWR
+        E WD1,TRUE,,,,,YS,INDEX                 ;YS->LATCH,JUMP WD1
+       ORG H#202
+;
+;************************************************************************
+;
+;      FIRST DECODE FOR RRL, RLL, SLL, SRL, SLHL, SRHL, SRA
+;
+;------------------------------------------------------------------------
+;
+        E 11,,B,WR,,LDMAC,MACREQ,L33,INCPC      ;PC+2->PC,L33->WR,FETCH->MAC
+        E 8000,TRUE,RXADD+APLUSB,WR,MDR,,,BUS3+WR,INCPC;MDR+WR->WR,PC+2->PC
+SR1:    E SR2,TRUE,20,WR,,,,WR;                 ;COMPLEMENT WR
+        E SRRX3,TRUE,,,,,SX,INDEX,INCPC+INCMC   ;INCREMENT PC,MC, SX->LATCH
+        E SR1,TRUE,APLUSB,WR,,,,WR3+PC          ;PC+WR3->WR,JUMP SR1
+        E SR1,TRUE,APLUSB,WR,,,,WR3+PC          ;PC+WR3->WR,JUMP SR1
+SRRX3:  E ,,B,WR,,,MACREQ+YS,INDEX+L33          ;L33->WR,YS->LAT
+        E ,,APLUSB,WR,,,,L33+WR                 ;WR+LAT->WR
+        E 8000+SR1,TRUE,APLUSB,WR,MDR,,,BUS3+WR ;WR+MDR->WR,JUMP SR1
+SR2:    E SR4,G,APLUS1,WR,,,,WR                 ;WR+1->WR,IF G JUMP SR4
+        E 19,,A,,,LDMAC,YD,PC                   ;PC->MC,YD->LAT,19->MAC
+SR3:    E ,,A,WR,,,,LATCH,LOADMC                ;LAT->WR
+        E YDFLAG,TRUE,,,,,MACREQ                ;JUMP YDFLAG
+SR4:    E 19,,13,,,LDMAC,,WR;                   ;DOUBLE WR FOR MC
+SRS1:   E ,TRUE,MAP,,,,YD,,LOADMC               ;YD->LAT,MAP
+;
+;************************************************************************
+;
+;      FIRST DECODE FOR SLLS, SRLS, SLHLS, SRHLS
+;
+;------------------------------------------------------------------------
+;
+        E ,,AMINB,WR,YS2,,,BUS3+WR,INCPC        ;WR-2*YS->WR,PC+2->PC
+        E ,
+        E SRS1,WR0,A,,,,,WR;               ;DOUBLE NEGATIVE SHIFT COUNT FOR MC
+        E SR3,TRUE,A,,,,YD,PC                   ;PC->EBUS,YD->LATCH
+;
+;************************************************************************
+;
+;      RLL
+;
+;------------------------------------------------------------------------
+;
+        E ,,A,WR,,,,LATCH,INCMC                 ;LATCH->WR,MC+2->MC
+RLL:    E RLL,MC11,A,RLWR,,,,PC,INCMC           ;MC+2->MC, ROTATE WR LEFT
+        E FETCH0,TRUE,,,,,FLAGS+REGWRT+YD,,LOADMC;PC->MC,WR->YD,SET FLAG,JUMP
+;
+;************************************************************************
+;
+;      RRL
+;
+;------------------------------------------------------------------------
+;
+        E ,,A,WR,,,,LATCH,INCMC                 ;LATCH->WR,MC+2->MC
+RRL:    E RRL,MC11,A,RRWR,,,,PC,INCMC           ;MC+2->MC,ROTATE WR RIGHT
+        E FETCH0,TRUE,,,,,FLAGS+REGWRT+YD,,LOADMC;PC->MC,WR->YD,SET FLAG,JUMP
+;
+;************************************************************************
+;
+;      SLL, SLLS
+;
+;------------------------------------------------------------------------
+;
+        E ,,A,WR,,,,LATCH,INCMC                 ;LATCH->WR,MC+2->MC
+SLL:    E SLL,MC11,A,SLWR,,,,PC,INCMC           ;MC+2->MC,SHIFT WR LEFT
+        E FETCH0,TRUE,,,,,FLAGS+REGWRT+YD,,LOADMC;PC->MC,WR->YD,SET FLAGS,JUMP
+;
+;************************************************************************
+;
+;      SRL, SRLS
+;
+;------------------------------------------------------------------------
+;
+        E ,,A,WR,,,,LATCH,INCMC                 ;LATCH->WR,MC+2->MC
+SRL:    E SRL,MC11,A,SRWR,,,,PC,INCMC           ;MC+2->MC,SHIFT WR RIGHT
+        E FETCH0,TRUE,,,,,FLAGS+REGWRT+YD,,LOADMC;PC->MC,WR->YD,SET FLAGS,JUMP
+;
+;************************************************************************
+;
+;      SRA
+;
+;------------------------------------------------------------------------
+;
+        E ,,A,WR,,,,LATCH,INCMC                 ;LATCH->WR,MC+2->MC
+SRA:    E SRA,MC11,A,ASRWR,,,,PC,INCMC          ;MC+2->MC,ARITH SHIFT WR RIGHT
+        E FETCH0,TRUE,,,,,FLAGS+REGWRT+YD,,LOADMC;PC->MC,WR->YD,SET FLAGS,JUMP
+;
+;************************************************************************
+;
+;      SLHL, SLHLS
+;
+;------------------------------------------------------------------------
+;
+        E ,,B,WR,,,,L02,INCMC                   ;L02->WR,MC+2->MC
+SLHL:   E SLHL,MC11,,SLWR,,,YD,,INCMC           ;YD->LAT,MC+2->MC,SHIFT LEFT WR
+        E ,,A,WR,,,FLAGS+REGWRT+YD,LATCH        ;WR->YD,LAT->WR,
+        E ,,A,,,,YD,PC                          ;PC->MC,YD->LATCH
+        E ,,B,LRWR,,,,L20+L31,LOADMC            ;HIGH LAT->LOW WR
+        E FETCH1,TRUE,,,,,MACREQ+REGWRT+YD      ;WR->YD,JUMP FETCH1
+;
+;************************************************************************
+;
+;      SRHL, SRHLS
+;
+;------------------------------------------------------------------------
+;
+        E ,,B,WR,,,,L22+L33,INCMC               ;LATCH->WR,MC+2->MC
+SRHL:   E SRHL,MC11,,SRWR,,,YD,,INCMC           ;MC+2->MC,SHFT R. WR,YD->LAT
+        E ,,A,LLWR,,,FLAGS,LATCH                ;LAT->HIGH WR,SET FLAGS
+        E FETCH,TRUE,A,,,,REGWRT+YD,PC          ;WR->YD,PC->EBUS,JUMP FETCH
+;
+EJECT
+;************************************************************************
+;
+;      LB SECOND DECODE AFTER ADDRESS CALCULATION
+;
+;------------------------------------------------------------------------
+;
+        E LB1,WR31,A,,,,MACREQ,PC               ;PC->MC,IF WR31 JUMP LB1
+        E 8019,,B,WR,MDR,LDMAC,,BUS2+BUS3,LOADMC;MDR->WR,FETCH & LD IR->MAC
+        E ,,,,,,MACREQ+REGWRT+YD                ;WR->YD
+        E ,,,,,,YD                              ;YD->LATCH
+        E YDFLAG,TRUE,B,WR,,,,L32               ;LAT>>8->WR,JUMP YDFLAG
+LB1:    E 8019,,B,WR,MDR,LDMAC,,BUS3,LOADMC     ;MDR->WR,FETCH & LD IR->MAC
+        E YDFLAG,TRUE,,,,,MACREQ                ;JUMP YDFLAG
+;
+;************************************************************************
+;
+;      STB SECOND DECODE AFTER ADDRESS
+;
+;------------------------------------------------------------------------
+;
+STB0:   E STB1,WR31,,,MDR,,MACREQ+YD            ;BYTE->LATCH, IF ODD ADDR,JUMP
+        E 8000+STORE,TRUE,B,WR,MDR,,,L23+BUS3   ;MERGE BYTE INTO HIGH WR, JUMP
+STB1:   E 8000+STORE,TRUE,B,WR,MDR,,,BUS2+L33   ;MERGE BYTE INTO LOW WR, JUMP
+;
+;************************************************************************
+;
+;      CLB SECOND DECODE AFTER ADDRESS
+;
+;------------------------------------------------------------------------
+;
+        E CLB1,WR31,B,WR,,,MACREQ+YD,L33        ;L33->WR,YD->LAT,LOW BYTE JUMP
+        E ,,B,WR,,,,L23                         ;HIGH BYTE, L23->WR
+        E ,,A,,MDR,,,PC                         ;PC->MC
+        E 8019,,AMINB,WR,MDR,LDMAC,,BUS2+WR,LOADMC;WR-BUS2->WR,FETCH&LD IR->MAC
+        E FLAG,TRUE,,,,,MACREQ                  ;JUMP FLAG
+CLB1:   E ,,A,,MDR,,,PC                         ;PC->MC
+        E 8019,,AMINB,WR,MDR,LDMAC,,BUS3+WR,LOADMC;WR-BUS3->WR,FETCH&LD IR->MAC
+        E FLAG,TRUE,,,,,MACREQ                  ;JUMP FLAG
+;
+;************************************************************************
+;
+;      LM SECOND DECODE AFTER ADDRESS
+;
+;------------------------------------------------------------------------
+;
+        E ,,,,MDR,,MACREQ                       ;START READ
+LMLOOP: E 8000,,B,WR,MDR,,INCYD,BUS0,INCMC      ;DATA->WR,MC+2->MC
+        E LMNEXT,YDCARY,A,,,,MACREQ,PC          ;IF YD NOT= "F" JUMP LMNEXT
+        E 8019,,B,LRWR,MDR,LDMAC,DECYD,BUS2+BUS3,LOADMC;PC->MC,DATA->WR
+        E FETCH1,TRUE,,,,,MACREQ+REGWRT+YD      ;WR->YD,JUMP FETCH1
+LMNEXT: E 8000,,B,LRWR,MDR,,DECYD,BUS2+BUS3,INCMC;MC+2->MC,DATA->WR
+        E ,,,,,,MACREQ+REGWRT+YD                ;WR->YD
+        E LMLOOP,TRUE,,,MDR,,INCYD              ;YD+1->YD, JUMP LMLOOP
+;
+;************************************************************************
+;
+;      STM SECOND DECODE AFTER ADDRESS
+;
+;------------------------------------------------------------------------
+;
+        E 14,,B,,ALU,LDMAC+MDR,,L20+L31         ;HIGH LATCH->MDR,STORE->MAC
+STMLOP: E ,,,,,,MACREQ+YD                       ;YD->LATCH,START STORE
+        E 8000,,A,,ALU,MDR,INCYD,LATCH,INCMC    ;LATCH->MDR,INCREMENT YD,MC
+        E STMNXT,YDCARY,,,,,MACREQ+YD           ;YD->LATCH,IF YD NOT=F JUMP STMNXT
+        E FETCH,TRUE,A,,,,,PC                   ;PC->EBUS,JUMP FETCH
+STMNXT: E 8000+STMLOP,TRUE,B,,ALU,MDR,,L20+L31,INCMC;LAT->MDR,MC+2->MC,JUMP STMLOP
+;
+EJECT
+;************************************************************************
+;
+;      FULLWORD MULTIPLY SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E 1C0,,B,,CNST,,INCYD,BUS2+BUS3;        ;LOOP COUNT->MC,YD PTR+1->YD PTR WITH LOOP COUNT
+        E 8000,,B,XWR,,,,,LOADMC;               ;0->XWR
+FMLOOP: E FMADD,WR31,,,,,YD,,INCMC              ;YD->LAT,MC+2->MC
+FMSHFT: E ,,,SRLONG                             ;HIFT RIGHT XWR,WR
+        E FMLOOP,MC11,A,,,,,PC                  ;PC->MC,IF MC11 JUMP FMLOOP
+        E ,,B,WR,,,DECYD+REGWRT+YD,XWR0+XWR2+XWR3,LOADMC;WR-YD,XWR->WR,YDPTR-1
+        E FETCH1,TRUE,,,,,MACREQ+REGWRT+YD      ;WR->YD,JUMP FETCH1
+FMADD:  E FMSHFT,TRUE,APLUSB,XWR,,,,XWR0+XWR2+XWR3+LATCH;XWR+LAT->XWR,JUMP FMSHFT
+;
+;************************************************************************
+;
+;      HALFWORD MULTIPLY SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E ,,B,WR,,,REGWRT+YD,L02                ;WR->YD,LOW LAT->HIGH WR
+        E 1E0,,B,,CNST,,YD,BUS2+BUS3            ;1E0_>MC,YD->LATCH
+        E 8000,,A,WR,,,REGWRT+YD,LATCH,LOADMC   ;WR->YD,LATCH->WR
+        E ,,B,XWR                               ;XWR->MC
+HWLOOP: E HWADD,WR31,,,,,YD,,INCMC              ;YD->LAT,IFWR31 JUMP HWADD
+HWSHFT: E ,,,SRLONG                             ;SHIFT RIGHT XWR,WR
+        E HWLOOP,MC11,A,,,,,PC                  ;PC->MC,IF MC11 JUMP HWLOOP
+        E ,,B,WR,,,,XWR0+XWR2+XWR3,LOADMC       ;XWR->WR
+        E FETCH1,TRUE,,,,,MACREQ+REGWRT+YD      ;WR->YD,JUMP FETCH1
+HWADD:  E HWSHFT,TRUE,APLUSB,XWR,,,,XWR0+XWR2+XWR3+LATCH;XWR+LAT->XWR,JUMP HWSHFT
+;
+EJECT
+;************************************************************************
+;
+;      FULLWORD DIVIDE
+;
+;------------------------------------------------------------------------
+;
+        E 1C2,,B,,CNST,,INCYD,BUS2+BUS3         ;1C2->MC,YD PTR+1->YD PTR
+        E 8000,,,,,,YD,,LOADMC                  ;YD->LATCH
+        E ,,A,XWR,,,DECYD+REGWRT+YD,LATCH       ;LAT->XWR,WR->YD,YDPTR-1->YDPTR
+        E 1,,B,WR,CNST,,YD,BUS3                 ;1->WR,YD->LATCH
+        E ,,A,WR,,,INCYD+REGWRT+YD,LATCH        ;WR->YD,LAT->WR,YDPTR+1->YDPTR
+DLOOP:  E DNTDON,MC11,A,RLLONG,,,YD,PC,INCMC    ;PC->MC,YD->LAT,MC+2->MC,XWR,WR
+        E DSUB1,WR0,AMINB,WR,,,,L00+L22+L33+WR,LOADMC;WR-LAT->WR,IF WR0 JUMP
+        E ,,,,,,MACREQ                          ;
+        E DADD1,CARRY,,,,,DECYD+YD              ;YD->LAT,YDPTR-1->YDPTR
+        E ,,APLUSB,WR,,,,WR0+WR2+WR3+LATCH      ;WR+LAT->WR
+DSUB2:  E ,,B,WR,,,INCYD+REGWRT+YD,XWR0+XWR2+XWR3;WR->YD,XWR->WR,YDPTR+1->YDPTR
+DDONE:  E FETCH1,TRUE,,,,,REGWRT+YD             ;WR->YD,JUMP FETCH1
+DADD1:  E ,,,,,,YD                              ;YD->LATCH
+        E DDONE,TRUE,AORB,WR,,,INCYD+REGWRT+YD,XWR0+XWR2+XWR3+LATCH;XWR+1->WR
+DSUB1:  E ,,,,,,MACREQ                          ;
+        E DSUB2,TRUE,,,,,DECYD                  ;YD PTR-1->YD PTR,JUMP DSUB2
+DNTDON: E DLOOP,WR0,AMINB,WR,,,,L00+L22+L33+WR  ;WR-LAT->WR,IF WR0 JUMP DLOOP
+        E ,
+        E DADD2,CARRY,,,,,DECYD+YD              ;YD->LAT,YDPTR-1->YDPTR
+        E DLOOP,TRUE,APLUSB,WR,,,INCYD,WR0+WR2+WR3+LATCH;WR+LAT->WR,YDPTR+1->YDPTR
+DADD2:  E ,,,,,,INCYD+YD                        ;YD->LAT,YD PTR+1->YD PTR
+        E DLOOP,TRUE,AORB,XWR,,,,XWR0+XWR2+XWR3+LATCH;  XWR PLUS 1 TO XWR
+;
+;************************************************************************
+;
+;      HALFWORD DIVIDE SECOND DECODE
+;
+;------------------------------------------------------------------------
+;
+        E ,,A,XWR,,,INCYD+REGWRT+YD,LATCH       ;WR->YD,LAT->XWR,YDPTR+1->YDPTR
+        E 1,,B,WR,CNST,,,BUS3                   ;1->WR
+        E 1E2,,B,,CNST,,DECYD+REGWRT+YD,BUS2+BUS3;WR->YD,1E2->MC,YDPTR-1->YDPTR
+        E 8000,,,,,,YD,,LOADMC                  ;YD->LATCH
+        E ,,B,WR,,,,L02                         ;L02->WR
+        E ,,B,WR,,,REGWRT+YD,XWR0+XWR2+XWR3     ;YD->LATCH,WR->YD,XWR->WR
+        E ,,B,XWR                               ;LATCH->XWR
+DHLOOP: E DHNTDN,MC11,A,RLLONG,,,YD,PC,INCMC    ;YD->LATCH,PC->MC,RL XWR,WR
+        E DHSUB,WR0,AMINB,WR,,,,L00+L22+L33+WR,LOADMC;WR-LAT->WR
+        E ,
+        E DHADD1,CARRY,,,,,INCYD+YD             ;YD->LAT,YD PTR+1->YD PTR
+        E ,,APLUSB,WR,,,DECYD,WR0+WR2+WR3+LATCH ;WR+LAT->WR,YD PTR-1->YD PTR
+DHSUB:  E ,,,,,,MACREQ+REGWRT+YD                ;WR->YD
+DHDONE: E ,,,,,,YD                              ;YD->LATCH
+        E ,,B,WR,,,,L20+L31                     ;HIGH LATCH->LOW WR
+        E ,,B,WR,,,INCYD+REGWRT+YD,XWR2+XWR3    ;WR->YD,XWR->WR,YDPTR+1->YDPTR
+        E FETCH1,TRUE,,,,,REGWRT+YD             ;WR->YD,JUMP FETCH1
+DHADD1: E ,,,,,,DECYD+YD                        ;YD->LATCH, YD PTR-1->YD PTR
+        E DHDONE,TRUE,AORB,XWR,,,MACREQ+REGWRT+YD,XWR0+XWR2+XWR3+LATCH
+;                                        ;XWR OR LATCH->XWR,WR->YD,JUMP DHDONE
+DHNTDN: E DHLOOP,WR0,AMINB,WR,,,,L00+L22+L33+WR ;WR-LATCH->WR,IF WR0 DHLOOP
+        E ,
+        E DHADD2,CARRY,,,,,INCYD+YD             ;YD->LAT,YDPTR+1->YDPTR
+        E DHLOOP,TRUE,APLUSB,WR,,,DECYD,WR0+WR2+WR3+LATCH;WR+LAT->WR,YDPTR-1->
+DHADD2: E ,,,,,,DECYD+YD                        ;YD->LATCH,YD PTR-1->YD PTR
+        E DHLOOP,TRUE,AORB,XWR,,,,XWR0+XWR2+XWR3+LATCH;LAT OR XWR->XWR, JUMP
+;
+EJECT
+;************************************************************************
+;
+;      BOOTSTRAP ROUTINE FOR LOADING FROM BYTE ORIENTED DEVICE
+;
+;------------------------------------------------------------------------
+;
+;      DEVICE NUMBER IN LEFT SWITCH REGISTER
+;      COMMAND CODE IN RIGHT SWITCH REGISTER
+BOOT:   E SHL,,A,XWR,CNST,CNCNTL,,PC            ;PC->XWR,SHL->CNCNTL
+        E 7E,,B,WR,CNST,,,BUS3                  ;7E->WR,MC
+        E ,,AMINB,XWRWR,,,,XWR0+XWR2+XWR3+WR,LOADMC;WR-XWR->XWR,WR
+        E 282,,APLUSB,WR,CNST,,,BUS2+BUS3+WR    ;WR+282->WR
+        E BOOT0A,WR0                            ;IF WR0 JUMP BOOT0A
+        E CONBAD,TRUE                           ;JUMP CONBAD
+BOOT0A: E CONBAD,WR0,B,,,,,XWR0+XWR2+XWR3       ;XWR->PC,IF WR0 JUMP CONBAD
+        E ,,,,CONSOL,IOBUS,,,LOADPC             ;CONSOL->IOBUS
+        E ADRS,,,,CNST,IOCNTL                   ;ADRS->IOCNTL
+        E SHR,,,,CNST,CNCNTL                    ;SHR->CNCNTL
+        E 0,,,,CNST,PSW                         ;0->PSW
+        E 0,,,,CNST,IOCNTL                      ;0->IOCNTL
+        E ,,B,XWR,CONSOL,,,BUS3                 ;CONSOL->XWR
+        E BOOT1,SYNC,B,,ALU,IOBUS,,XWR3         ;XWR3->IOBUS,IF SYNC JUMP BOOT1
+;      DEAD BAD   IMPROPER SETUP
+;      100 DEAD   NO RESPONSE TO ADDRESS
+;      2XX DEAD   BAD STATUS XX
+BOTBAD: E 100,,B,XWR,CNST,,,BUS2                ;100->XWR
+BOTBD1: E 0,,,,CNST,IOCNTL                      ;0->IOCNTL
+        E DIE,TRUE,B,,ALU,IOBUS                 ;0->IOBUS,JUMP DIE
+BOOT1:  E CMD,,,,CNST,IOCNTL                    ;CMD->IOCNTL
+BOOT1A: E BOTBAD,CATN,2A,,ALU,CNCNTL            ;"FFFF"->CNCNTL,IF CATN JUMP
+        E BOOT2,SYNC                            ;IF SYNC JUMP BOOT2
+        E BOOT1A,TRUE                           ;JUMP BOOT1A
+BOOT2:  E 0,,,,CNST,IOCNTL                      ;0->IOCNTL
+        E 200,,B,XWR,CNST,,,BUS2                ;2000->XWR
+        E SR,,,,CNST,IOCNTL                     ;SR->IOCNTL
+BOOT2A: E BOTBAD,CATN,B,,ALU,IOBUS;             ;LOOP TILL NONZERO BYTE
+        E BOOT2B,SYNC,B,XWRWR,IOBUS,,,XWR2+BUS3 ;IOBUS+XWR2->XWR,WR,IF SYNC JMP
+        E BOOT2A,TRUE                           ;JUMP BOOT2A
+BOOT2B: E 0F,,AB,WR,CNST,,,BUS3+WR              ;WR AND "0F"->WR
+        E 8,,AB,WR,CNST,,,BUS3+WR               ;WR AND "8"->WR
+        E BOOT3,G,B,,ALU,IOCNTL                 ;0->IOCNTL
+        E ,
+        E DR,,,,CNST,IOCNTL                     ;DR->IOCNTL
+BOOT2C: E BOTBAD,CATN                           ;IF CONSEL ATTEN JUMP BOTBAD
+        E BOOT2D,SYNC,B,WR,IOBUS,CONSOL,,BUS3   ;IOBUS->CONSOL,WR,IF SYNC JUMP
+        E BOOT2C,TRUE                           ;JUMP BOOT2C
+BOOT2D: E LA,,,,CNST,CNCNTL                     ;LA->CNCNTL
+        E BOOT4,G,2A,,ALU,CNCNTL,YS             ;"FFFF"->CNCNTL,YS->LATCH,IF G JMP BOOT4
+        E BOOT2,TRUE                            ;JUMP BOOT2
+BOOT3:  E BOOT2,G                               ;IF G JUMP BOOT2
+        E BOTBD1,TRUE                           ;JUMP BOTBD1
+BOOT4:  E 0,,A,WR,CNST,IOCNTL,REGWRT+YS,LATCH   ;WR->YS,LATCH->WR,0->IOCNTL
+        E ,,,,,,YS                              ;YS->LATCH
+        E ,,B,XWR,,,REGWRT+YS,L23               ;WR->YS,L23->XWR
+BOOT5:  E SR,,,,CNST,IOCNTL                     ;SR->IOCNTL
+        E 0F,,B,WR,CNST,,,BUS3                  ;0F->WR
+        E BOTBAD,CATN                           ;IF CONSOL ATTEN JUMP BOTBAD
+        E BOOT5A,SYNC,AB,WR,IOBUS,,,BUS3+WR     ;WR AND IOBUS->WR, IF SYNC JMP
+        E BOOT5,TRUE                            ;JUMP BOOT5
+BOOT5A: E 8,,AB,WR,CNST,,,BUS3+WR               ;WR AND "8"->WR
+        E BOOT7,G,B,,ALU,IOCNTL                 ;0->IOCNTL,IF G JUMP BOOT7
+        E ,,A,WR,,,,PC,INCPC                    ;PC->WR,PC+2->PC
+        E DR,,,,CNST,IOCNTL                     ;DR->IOCNTL
+BOOT5B: E BOTBAD,CATN                           ;IF CONSOL ATTEN JUMP BOTBAD
+        E BOOT5C,SYNC                           ;IF SYNC JUMP BOOT5C
+        E BOOT5B,TRUE                           ;JUMP BACK BOOT5B
+BOOT5C: E 4,,B,XWR,IOBUS,LDMAC+CONSOL,,XWR2+BUS3;IOBUS->CONSOL,XWR3,4->MAC
+        E LA,,,,CNST,CNCNTL                     ;LA->CNCNTL
+        E 0FF00,,,,CNST,CNCNTL                  ;"0FF00"->CNCNTL
+        E ,,B,,ALU,MDR,,XWR2+XWR3,INCMC         ;XWR->MDR,MC+2->MC
+        E BOOT8,G,B,,ALU,IOCNTL,MACREQ          ;0->IOCNTL,IF G JUMP BOOT8
+;      ALL DONE
+BOOT6:  E 80,,B,,CNST,,,BUS3                    ;80->PC
+        E 8000+CONRUN,TRUE,B,,ALU,IOCNTL,,,LOADPC;0->IOCNTL,JUMP CONRUN
+BOOT7:  E BOOT5,G                               ;IF G JUMP BOOT5
+        E BOOT6,TRUE                            ;JUMP BOOT6
+BOOT8:  E 0F,,B,WR,CNST,,,BUS3                  ;"0F"->WR
+        E SR,,,,CNST,IOCNTL                     ;SR->IOCNTL
+        E BOTBAD,CATN                           ;IF CONSOL ATTEN JUMP BOTBAD
+        E BOOT8A,SYNC,AB,WR,IOBUS,,,BUS3+WR     ;WR AND IOBUS->WR,IF SYNC JMP
+        E BOOT8,TRUE                            ;JUMP BOOTS8
+BOOT8A: E 8,,AB,WR,CNST,,,BUS3+WR               ;WR AND "8"->WR
+        E BOOT9,G,B,,ALU,IOCNTL                 ;0->IOCNTL
+        E ,
+        E DR,,,,CNST,IOCNTL                     ;DR->IOCNTL
+BOOT8B: E BOTBAD,CATN                           ;IF CONSOL ATTEN JUMP BOTBAD
+        E BOOT8C,SYNC,B,WR,IOBUS,CONSOL,,BUS3   ;IOBUS->CONSOL,WR3,IF SYNC JMP
+        E BOOT8B,TRUE                           ;JUMP BOOT8B
+BOOT8C: E LA,,,,CNST,CNCNTL                     ;LA->CNCNTL
+        E BOOT4,TRUE,2A,,ALU,CNCNTL,YS          ;"FFFF"->CNCNTL,YS->LATCH,JUMP
+BOOT9:  E BOOT8,G                               ;IF G JUMP BOOT8
+        E BOOT6,TRUE                            ;JUMP BOOT6
+;
+EJECT
+;************************************************************************
+;
+;      SVC FIRST AND ONLY DECODE ; OPCODE E1
+;
+;------------------------------------------------------------------------
+;
+       ORG H#2EB
+        E ,,A,,,,,PC                            ;PC->MC
+        E 0F0,,B,WR,CNST,,,BUS3,LOADMC          ;"0F0"->WR
+        E 11,,,,,LDMAC,MACREQ                   ;FETCH->MAC,START FETCH
+        E 8000,,AB,XWR,MDR,,,BUS3+WR,INCMC      ;MC+2->MC,DATA AND WR->XWR
+        E ,,,SRLONG,,,MACREQ                    ;SHIFT RIGHT XWR,WR
+        E ,,,SRLONG                             ;SHIFT RIGHT XWR,WR
+        E ,,,SRLONG,,,YS,INDEX                  ;SHIFT RIGHT XWR,WR,YS->LAT,
+        E ,,B,WR,MDRA,,,L00+L22+L33,INCPC       ;DATA->WR,PC+2->PC
+        E 8000,TRUE,RXADD+APLUSB,WR,MDRA,,,SIGN0+BUS2+BUS3+WR,INCPC
+                                              ;WR+DATA->WR,PC+2->PC,JUMP RXADD
+SVC1:   E SVC2,TRUE,AEXRB,WR,,,,XWR3+WR         ;WR EXR XWR3->WR,JUMP SVC2
+        E SVCRX3,TRUE,B,WR,MDRA,,SX,INDEX+BUS0,INCPC+INCMC;A2->WR,JUMP SVCRX3
+        E SVC1,TRUE,APLUSB,WR,,,,WR0+WR2+WR3+PC ;PC+WR->WR, JUMP SVC1
+        E SVC1,TRUE,APLUSB,WR,,,,WR0+WR2+WR3+PC;PC+WR->WR, JUMP SVC1
+SVCRX3: E ,,APLUSB,WR,,,MACREQ+YS,INDEX+L00+L22+L33+WR;INDEX+LATCH+WR->WR,YS->LATCH
+        E ,,APLUSB,WR,MDR,,,L00+L22+L33+WR      ;WR+LATCH->WR
+        E 8000+SVC1,TRUE,APLUSB,WR,MDR,,,BUS2+BUS3+WR;DATA+WR->WR,JUMP SVC1
+SVC2:   E 9A,,B,,CNST,,,BUS3                    ;"9A"->MC
+        E 0,,AEXRB,XWR,,LDMAC,,XWR0+XWR2+XWR3+WR,LOADMC;WR EXR XWR->XWR
+        E ,,AEXRB,WR,,,MACREQ,XWR0+XWR2+XWR3+WR ;WR EXR XWR->WR
+        E 9C,,APLUSB,,CNST,,,BUS3+WR            ;WR+"9C"->MC
+        E 8000,,B,WR,PSW,,,BUS2+BUS3,LOADMC     ;PSW->WR
+        E ,,,,MDR,PSW                           ;DATA->PSW
+        E 0E,,B,WR,,,MACREQ+REGWRT+MREG,XWR0+XWR2+XWR3;OLD PSW->RE,XWR->WR
+        E 0FF00,,2E,WR,CNST,,,BUS0+WR;          ;MASK OUT LEFT 8 BITS
+        E 0D,,A,WR,,,REGWRT+MREG,PC             ;SECOND OPERAND ADDR->RD,PC->WR
+        E 800F,,B,,MDR,,REGWRT+MREG,BUS2+BUS3   ;OLD PC->RF,NEW PC->PC,MC
+        E 19,,,,PSW,LDMAC,,,LOADPC+LOADMC       ;FETCH AND LOAD IR->MAC
+        E ,,B,WR,PSW,,MACREQ,BUS0               ;PSW->WR
+        E ,
+        E CNSL,WR0                              ;IF WAIT BIT ON JUMP CNSL
+        E FETCH1,TRUE                           ;JUMP FETCH1
+;
+EJECT
+;************************************************************************
+;
+;      JFFO : Jump Find First One ;  OPCODE 31
+;
+;------------------------------------------------------------------------
+;
+        E ,,APLUSB,XWR,YS2,,YD,BUS3+PC          ;2*YS+PC->XWR, YD->LAT
+        E ,,A,WR,,,,LATCH,INCPC                 ;LAT->WR, PC+2->PC
+JFFO1:  E ,
+        E JFFO2,G,B,,,,,XWR0+XWR2+XWR3          ;IF YD>0 JUMP JFFO2
+        E JFFO2,WR0,B,,,,,XWR0+XWR2+XWR3        ;IF YD<0 JUMP JFFO2
+        E FETCH1,TRUE,,,,,MACREQ                ;YD=0, JUMP FETCH1
+JFFO2:  E ,,B,SLWR,,,,,LOADMC                   ;XWR->MC, 2*WR->WR
+        E JFFO4,WR0,,SLWR,,,MACREQ,,LOADPC      ;0->PC,2*WR->WR,IF WR0 JUMP JFFO3
+JFFO3:  E JFFO3,G,,SLWR,,,,,INCPC               ;PC+2->PC,2*WR->WR,TEST LEFT BIT
+JFFO4:  E ,,A,WR,,,INCYD,PC                     ;PC->WR,YD PTR+1->YD PTR
+        E ,,,SRWR                               ;WR/2->WR (BIT #)
+        E TRAP,PSW3,B,,,,REGWRT+YD,XWR0+XWR2+XWR3;WR->YD, XWR->PC, TEST TRACE
+        E FETCH1,TRUE,,,,,,,LOADPC              ;JUMP FETCH1
+;      JFFOH
+        E ,,APLUSB,XWR,YS2,,YD,BUS3+PC          ;2*YS+PC->XWR,YD->LATCH
+        E JFFO1,TRUE,B,WR,,,,L02,INCPC          ;LAT<<8->WR,PC+2->PC,JMP JFFO1
+;      DIAGNOSE   FIRST AND ONLY DECODE
+        E 800,PSW6,,,,,YD;         POSSIBLE PARITY ERROR IF PROMS NOT THERE
+        E ILEGAL,TRUE
+;
+EJECT
+;************************************************************************
+;
+;      FIRST AND ONLY DECODE FOR TEST IO   OPCODE 19
+;
+;------------------------------------------------------------------------
+;
+;      RETURN FLAGS OF 0 FOR OK, G IF IOBUS FAILURE, L FOR IOCONTROL
+;      REG 0 HAS WHAT WAS SENT, REG 1 HAS EXOR OF WHAT WAS
+;      SENT WITH WHAT WAS RECIEVED ON IOBUS
+        E TIO1,PSW6                             ;SYNC INTERRUPT ENABLED?
+        E ILEGAL,TRUE                           ;NO, JUMP ILLEGAL
+TIO1:   E 8000,,B,XWR,CNST,,MACREQ,BUS2,INCPC   ;8000->XWR, PC+2->PC
+TIO2:   E ,,B,WR,ALU,IOBUS,,XWR2+XWR3           ;XWR->WR,IOBUS (SEND DATA)
+        E 0,,,,,,REGWRT+MREG                    ;WR->R0 (SAVE DATA SENT)
+        E ,,AEXRB,WR,IOBUS,,,BUS2+BUS3+WR       ;WR EXR IOBUS->WR
+        E 1,,,,,,REGWRT+MREG                    ;WR->R1
+        E TIO5,G,B,,ALU,IOBUS                   ;IF RECEIVED NOT= SENT, JUMP
+        E TIO5,XWR31,B,,ALU,IOBUS               ;ALL BITS TESTED? DONE
+        E TIO2,TRUE,,SRLONG                     ;SHIFT XWR,WR RIGHT,JUMP TIO2
+TIO3:   E 80,,B,XWR,CNST,,,BUS3                 ;80->XWR (INITIAL IOCNTL TEST)
+TIO4:   E ,,B,WR,ALU,IOCNTL,,XWR3               ;XWR3->WR,IOCNTL
+        E 0,,,,,,REGWRT+MREG                    ;WR->R0
+        E ,,AEXRB,WR,IOBUS,,,BUS2+BUS3+WR       ;WR EXR IOBUS->WR
+        E 1,,,,,,REGWRT+MREG                    ;WR->R1
+        E TIO6,G,B,,ALU,IOCNTL                  ;IF RECEIVED NOT= SENT, JUMP
+        E TIO5,XWR31                            ;TEST ALL BITS? JUMP TIO5
+        E TIO4,TRUE,,SRLONG                     ; SHIFT XWR,WR RIGHT, REPEAT TEST
+TIO5:   E FETCH1,TRUE,,,,,FLAGS                 ;SET UP FLAGES, JUMP FETCH1
+TIO6:   E TIO5,TRUE,A,WR,,,,MASK                ;SET UP FLAGS FOR IOCNTL,JUMP
+;
+EJECT
+       ORG H#400   ;NO ASYNC SUPPORT, SERVICE TIMER ONLY
+;
+;      REGISTER SET D IS USED BY THE TIMER FUNCTION
+;      R0   PSW SAVE (WHEN SOFTWARE INTERRUPT IS TAKEN)
+;      R1   PC SAVE    "      "         "      "
+;      RE   TIMER COUNT (DEC'D BY 1 IN RNG5, SET UP BY SOFTWARE)
+;      RF   SOFTWARE INTERRUPT ADDR (WHEN RE IS NEGATIVE AND IN REG SET F)
+;
+;      NOTE - REGISTER NOMENCLATURE
+;      REGISTERS MAY BE IDENTIFIED BY "RXY" (X,Y ARE HEX DIGITS)
+;      WHERE X = REGISTER SET AND Y = REGISTER IN THAT SET.
+;      EX.  R12 = REGISTER 2 OF SET 1 (DO NOT CONFUSE WITH REGISTER C)
+;
+;      RING FRAME STRUCTURE
+;      1 FRAME (TIKMEM) = 6 INTERRUPTS (PHASES)
+;      EACH PHASE = 1 HALFWORD/PORT GROUP (1BIT/PORT)
+;      THUS 1 FRAME = 1 TIKMEM = 6PHASES*2BYTES*NGROUPS
+;
+;    DEV ADDR PHASE   BEHIND RGX   AHEAD OF RGX
+;    -------- -----   ----------   ------------
+;       70      0      IN DATA       OUT DATA  DATA OUTPUT ON PHASE 0 & 3 ONLY
+;       71      1      IN DATA          -
+;       72      2      IN DATA          -
+;       73      3      IN DATA       OUT DATA
+;       74      4      IN DATA          -
+;       75      5      IN DATA         TAM     (EVERY 5TH FRAME)
+;                                              OR'ED WITH TAM BITS IN REG SET 3
+;
+;      SENT HERE FROM #160
+;
+;      NO ASYNC CARDS - ONLY DO TIMER FUNCTION ON PHASE 2
+;
+NOCARD: E ,,B,WR,IOBUS,YD,,BUS3          ;GET INTERRUPT DEVICE NUMBER->WR
+        E 0D0,,A,SRWR,CNST,PSW,,PC       ;D0->PSW, 0->YD, SHIFT DEV ADDR RIGHT
+        E REXIT,WR31,B,,ALU,IOCNTL,,,LOADMC ;REXIT IF DEV ADDR ODD, 0->IOCNTL
+        E RNG5D2,WR31;                    ;RNG5D2 IF NEXT LSB =1
+;      RETURN TO SOFTWARE EXECUTION
+REXIT:  E FETCH1,TRUE,B,,ALU,PSW,,XWR2+XWR3 ;OLD PSW->PSW, EXECUTE FETCHED INST
+;
+;      TIMER FUNCTION
+;      DEC REG E OF SET D AND IF NEGATIVE AND IN SET F, TAKE TIMER
+;      INTERRUPT TO ADDR IN REG F OF SET D.
+;      SAVES OLD PSW IN REG 0 OF SET D, OLD PC IN REG 1 OF SET D
+;
+RNG5D2: E 0E,,,,,,MREG;                    ;RDE(TIMER)->LAT
+        E ,,AMIN1,WR,,,,LATCH;             ;REGE-1->WR  DEC TIMER
+        E 0E,,,,,,REGWRT+MREG;             ;...AND WRITE IT BACK
+        E RNG5F,WR0,B,WR,,,,XWR2+XWR3;     ;SKIP IF NEGATIVE, XWR(OLD PSW)->WR
+RNG5E:  E FETCH1,TRUE,B,,ALU,PSW,,XWR2+XWR3 ;XWR(OLD PSW)->PSW, EXECUTE INST
+RNG5F:  E 0F0,,AB,WR,CNST,,INCYD+REGWRT+MREG,BUS3+WR; PSW->RD0,PSW.&.0F0->WR
+        E 0F0,,AEXRB,WR,CNST,,,BUS3+WR;    ;WR.EXOR.0F0->WR  CHECK IF REG SET F
+        E 0F,,A,WR,,,MREG,PC;              ;PC->WR, RDF(TIMER INT ADDR)->LAT
+        E RNG5E,G,A,,,,REGWRT+YD,LATCH;         ;RNG5E IF NOT SET F,
+        E 19,,,,,LDMAC,,,LOADPC+LOADMC ;TAKE A TIMEOUT INTERRUPT
+        E FETCH1,TRUE,,,,,MACREQ
+;
+;      ATTENTION INTERRUPT FROM SIO CARD
+;
+;      INTERRUPT FROM SIO CARD MAYBE NORMAL INTERRUPT OR SPECIAL INTERRUPTS
+;      FOR DMA EMULATION. THE 16-BIT DATA READ FROM THE SIO AS A RESULT OF
+;      INTERRUPT ACKNOWLEDGE ARE DEFINED AS FOLLOWS:
+;        BITS 0-3:   NORMAL INTERRUPT STATUS
+;        BITS 4-7:   ADDR OF THE PORT THAT ISSUED THE NORMAL INTERRUPT
+;        BITS 8-11:  FUNCTION CODE FOR DMA EMULATION
+;        BITS 12-15: ADDR OF PORT THAT ISSUED THE SPECIAL INTERRUPT
+;
+;      THE FUNCTION CODES FOR DMA EMULATION ARE DEFINED AS FOLLOWS:
+;        0:  NORMAL INTERRUPT
+;        1:  DATA IS ADDRESS OF RECEIVE BUFFER
+;        2:  STORE DATA INTO RECEIVE BUFFER
+;        3:  GET NEXT OUTPUT CCW AND MARK CURRENT CCW OR WRITE BYTE COUNT
+;        4:  GET DATA FROM TRANSMIT BUFFER
+;        5:  DATA IS ADDRESS OF TRANSMIT BUFFER
+;        6:  GET OUTPUT CCW
+;        7:  DATA IS ADDRESS OF OUTPUT CCW
+;        8:  GET INPUT CCW
+;        9:  DATA IS ADDRESS OF INPUT CCW
+;        A:  DATA IS ADDRESS WHERE STATUS IS TO BE STORED
+;        B:  STORE STATUS INFORMATION
+;        C:  STORE DATA INTO SYNC INPUT RING
+;        D:  FETCH DATA FROM SYNC OUTPUT RING
+;        E:  TAKE SOFTWARE INTERRUPT USING PSEUDO DEVICE ADDR
+;
+;      REGISTER SETS 1, 8, 9, A, & B ARE USED WITH EACH REGISTER IN THE
+;      SET USED BY THE PORT WITH THE CORRESPONDING NUMBER. I.E. PORT 1
+;      USES REGISTER 1 IN EACH OF THE FIVE REGISTER SETS. THE REGISTER
+;      SETS CONTAIN THE FOLLOWING INFORMATION:
+;        REGISTER SET 1:  ADDRESS FOR STORING STATUS INFORMATION
+;        REGISTER SET 8:  ADDRESS OF INPUT CCW
+;        REGISTER SET 9:  ADDRESS OF RECEIVE BUFFER
+;        REGISTER SET A:  ADDRESS OF OUTPUT CCW
+;        REGISTER SET B:  ADDRESS OF TRANSMIT BUFFER
+;
+;
+ATN1A:  E ,,,RRWR                             ;MOVE FUNCTION CODE TO WR(28-31)
+        E ,,,RRWR
+        E ,,,RRWR
+        E ,,,RRWR
+        E 20B0,,,RRWR,CNST,PSW             ;20B0->PSW (OPTIMIZE FOR XMIT)
+        E ATN1B3,WR31,,ASRWR               ;BRANCH IF FCN CODES 1,3,5,7,9,B,D,F
+        E ATN102,WR31,,ASRWR               ;BRANCH IF FCN CODES 2, 6, A, E
+        E ATN100,WR31,,ASRWR               ;BRANCH IF FCN CODES 4, C
+        E ATN18A,WR31                      ;BRANCH IF FCN CODE 8
+;
+;      FUNCTION CODE 0: NORMAL INTERRUPT
+;
+        E 2000,,,,CNST,PSW                 ;2000->PSW
+        E ,,B,WR,IOBUS,,,BUS2              ;MOTHERBOARD STATUS->WR(16-23)
+        E 80,,AORB,WR,CNST,,,WR+BUS3    ;MOTHERBOARD STATUS.DEV ADDR->WR(16-31)
+        E 2,,B,,ALU,IOCNTL,REGWRT+MREG     ;STATUS.DEV ADDR->R2, 0->IOCNTL
+        E 1D0,,B,,CNST,,,BUS2+BUS3         ;ADDR INTO INTERRUPT VECTOR
+        E 0,,,,,LDMAC,,,LOADMC             ;GET INTERRUPT VECTOR
+        E ,,B,WR,,,MACREQ,XWR2+XWR3        ;OLD PSW->WR
+        E 0,,A,WR,,YD,REGWRT+MREG,PC       ;OLD PSW->R0 OF NEW REG SET, PC->WR
+        E 1,,,,CNST,,REGWRT+MREG           ;OLD PC->R1, 1->YD
+ATN00B: E 8000,,B,,MDR,,,BUS2+BUS3         ;FETCH INSTRUCTION
+        E 19,,,,,LDMAC,,,LOADPC+LOADMC
+        E FETCH1,TRUE,,,,,MACREQ           ;GO SERVICE INTERRUPT
+;
+;      FUNCTION CODE 8: GET INPUT CCW
+;
+ATN18A: E 2080,,,,CNST,PSW                      ;2080->PSW
+        E 0E00F,,B,WR,CNST,,REGWRT+MREG,BUS2 ;E000->WR, FCN.CHN.CARD_ADDR->R8F
+        E ATN1GG,TRUE                           ;GOTO COMMON SECTION OF CODE
+;
+;      FUNCTION CODES 4, C
+;
+ATN100: E ATN1CA,WR31                      ;BRANCH IF FCN CODE C
+;
+;      FUNCTION CODE 4: GET DATA FROM OUTPUT BUFFER FOR TRANSMITTER
+;
+ATN1GF: E 0F00F,,B,WR,CNST,,REGWRT+MREG,BUS2 ;F000->WR, FCN.CHN.CARD_ADDR->RBF
+ATN1GG: E 0F,,B,,ALU,IOCNTL,MREG          ;FCN_CODE.CHN_NUM->LATCH, 0->IOCNTL
+        E 0,,AORB,,ALU,IOBUS+LDMAC,YD,WR+L20+L33 ;FCN.CHN.ADDR->IOBUS
+        E ADRS,,A,WR,CNST,IOCNTL,,LATCH         ;BUF ADDR->WR, SELECT SIO
+        E 2,,APLUSB,WR,CNST,,,WR+BUS2+BUS3,LOADMC ;BUF ADDR->MC,UPDATE BUF ADDR
+        E 0,,,,CNST,IOCNTL,MACREQ+REGWRT+YD  ;UPDATED BUF ADR->RYD, 0->IOCNTL
+ATN1GH: E 0,,,,CNST,IOBUS                       ;0->IOBUS
+        E SR,,B,WR,CNST,IOCNTL,,BUS2+BUS3       ;GET MUX BUS STATUS, WR>0
+ATN14A: E 0008,,B,WR,CNST,,,BUS2+BUS3        ;MASK FOR MUX BUS STATUS BIT->WR
+        E ,,AB,WR,IOBUS,,,WR+BUS2+BUS3      ;CHECK IF MUX BUS BUSY
+        E ,
+        E ATN14A,G                              ;BRANCH IF MUX BUS BUSY, WAIT
+        E 0,,,,CNST,IOCNTL                      ;0->IOCNTL
+        E 8019,,A,,MDR,IOBUS+LDMAC,,PC         ;DATA FETCHED->IOBUS,RESTORE MAC
+        E CMD,,,,CNST,IOCNTL,,,LOADMC        ;TELL SIO DATA FETCHED, RESTORE MC
+        E ,,B,,ALU,PSW,,XWR2+XWR3               ;RESTORE PSW
+        E 0,,,,CNST,IOCNTL                      ;CLEAR IOCNTL
+        E FETCH1,TRUE,B,,ALU,IOBUS              ;CLEAR IOBUS, EXECUTE INSTR
+;
+;      FUNCTION CODE C: STORE DATA INTO SYNC INPUT RING
+;
+ATN1CA: E 6200,,B,WR,CNST,LDMAC+PSW,,XWR2+XWR3  ;6200->PSW,0->MAC,OLD PSW->WR
+        E 0,,B,WR,IOBUS,,REGWRT+MREG,BUS3       ;OLD PSW->R00, LINE # ->WR
+        E 0F,,AB,XWRWR,CNST,,,WR+BUS3           ;ISOLATED LINE # IN WR, XWR
+        E TACK1+DR,,,RLLONG,CNST,IOCNTL      ;2*LINE# ->WR,XWR, SELECT NEXT REG
+        E 20,,APLUSB,WR,CNST,,,WR+BUS3          ;GENERATE PSEUDO DEVICE ADDR
+        E 2,,B,WR,,,REGWRT+MREG,XWR2+XWR3       ;DEV ADDR->R02, 2*LINE#->WR
+        E TACK1,,,RLLONG,CNST,IOCNTL   ;4*LINE#->WR,XWR, NEXT DATA REG SELECTED
+        E ,,,SLWR                               ;8*LINE#->WR
+        E ,,APLUSB,WR,,,,WR+XWR2+XWR3           ;12*LINE#->WR
+;
+;      INPUT DATA FROM SYNC CARD AND WRITE TO INPUT RING
+;
+        E 400,,APLUSB,,CNST,,,BUS2+WR        ;ADD BASE ADDR OF LINE DESCRIPTORS
+        E ,,A,WR,,,,PC,LOADMC           ;MC=ADDR OF 1ST HW OF INPUT PTR, PC->WR
+        E 1,,,,MDR,,MACREQ+REGWRT+MREG     ;READ 1ST HW, PRELOAD B-BUS, PC->R01
+        E 8000,,B,WR,MDR,,,BUS0,INCMC           ;1ST PTR HW->WR(LEFT HALF)
+        E ,,,,,,MACREQ                          ;READ 2ND PTR HW
+        E 8000,,B,XWR,MDR,,,WR0+BUS2+BUS3       ;INPUT PTR(BOTH HW'S)->XWR
+        E ,,B,WR,IOBUS,,,BUS2+BUS3,LOADMC       ;INPUT PTR->MC, INPUT DATA->WR
+        E 3,,,,MDR,,REGWRT+MREG+MACREQ          ;SYNC DATA->R3, GET INPUT PTR
+        E TACK1+DR,,,,CNST,IOCNTL               ;TOGGLE BACK TO 1ST DATA REG
+        E ,
+        E 0,,,,CNST,IOCNTL                      ;1ST DATA REG SELECTED
+        E 8000,,B,WR,MDR,,,SIGN0+BUS2+BUS3      ;INPUT INDEX(SIGN EXT)->WR
+        E 2,,APLUSB,WR,CNST,,,BUS3+WR           ;INDEX+2->WR
+        E SYNTER,WR0,B,WR,ALU,MDR,,WR3          ;WRAP INDEX->MDR,WR
+        E 4,,APLUSB,WR,,LDMAC,MACREQ,XWR0+XWR2+XWR3+WR;UPDATE IDX,PTR+INDEX->WR
+        E 2,,APLUSB,WR,CNST,,,BUS3+WR           ;WR=ADDR IN INPUT RING
+        E 3,,A,,,,MREG,WR                ;GET SYNC DATA(R3)->LAT, RING ADDR->MC
+        E 8000,,A,,ALU,MDR,MREG,LATCH,LOADMC  ;SYNC DATA->MDR, R0(OLD PSW)->LAT
+        E ATN1ST,TRUE,A,,ALU,PSW,MACREQ,LATCH ;OLD PSW->PSW, WRITE SYNC DATA
+;
+;
+;      FUNCTION CODES 2, 6, A, E
+;
+ATN102: E ATN110,WR31,,ASRWR                    ;BRANCH IF FUNCTION CODES 6, E
+        E ATN10A,WR31                           ;BRANCH IF FUNCTION CODE A
+;
+;      FUNCTION CODE 2: STORE DATA FROM RECEIVER INTO INPUT BUFFER
+;
+        E TACK1+DR,,,,CNST,IOCNTL        ;TOGGLE TO NEXT SET OF DATA REGISTERS
+        E 2090,,,,CNST,PSW                      ;2090->PSW
+ATN1SS: E TACK1,,,,CNST,IOCNTL,YD ;NEXT SET OF DATA REG SELECTED, RYD->LATCH
+        E 4,,A,WR,,LDMAC,,LATCH                 ;4->MAC, BUF ADR->WR
+        E ,,,,IOBUS,MDR,,,LOADMC                ;SIO DATA TO MDR, BUF ADR->MC
+        E TACK1+DR,,,,CNST,IOCNTL,MACREQ        ;SELECT 1ST DATA REG,RQST WRT
+        E 2,,APLUSB,WR,CNST,,,WR+BUS2+BUS3      ;UPDATED BUFFER ADDR -> WR
+        E 0,,,,CNST,IOCNTL,REGWRT+YD            ;CLR IOCNTL, NEW BUF ADR->RYD
+        E ,,B,,ALU,PSW,,XWR2+XWR3               ;RESTORE PSW
+ATN1ST: E 8019,,A,,,LDMAC,,PC                   ;PC->MC, PREPARE FOR REFETCH
+        E FETCH1,TRUE,,,,,,,LOADMC         ;DECODE INSTR (ALREADY IN INSTR REG)
+;
+;      FUNCTION CODE A: ADDR TO STORE STATUS OF SIO BOARD
+;
+ATN10A: E TACK1+DR,,,,CNST,IOCNTL        ;TOGGLE TO NEXT SET OF DATA REGISTERS
+        E 2010,,,,CNST,PSW                      ;2010->PSW
+        E TACK1,,,,CNST,IOCNTL                  ;NEXT DATA REGISTERS SELECTED
+        E ,                                     ;MAKE SURE WE HAVE THE DATA
+ATN1ZZ: E ,,B,WR,IOBUS,,,BUS0+BUS2+BUS3         ;IOBUS.IOBUS->WR
+        E TACK1+DR,,A,,CNST,IOCNTL,,PC       ;TOGGLE TO 1ST DATA REG,RESTORE MC
+        E ATN1AA,WR31,,,,,YD,,LOADMC      ;BRANCH IF LSB=1, HIGH ORDER ADDRESS
+        E 0,,B,WR,CNST,IOCNTL,,L00+WR2+WR3      ;0->IOCNTL, NEW BUF ADDR->WR
+        E FETCH1,TRUE,B,,ALU,PSW,REGWRT+YD,XWR2+XWR3 ;SAVE ADDR, RESTORE PSW
+;
+ATN1AA: E ,,,ASRWR,,,YD                         ;ADJ HIGH ADR, RYD->LATCH
+        E 0,,B,WR,CNST,IOCNTL,,WR0+L22+L33      ;0->IOCNTL, NEW BUF ADDR->WR
+        E FETCH1,TRUE,B,,ALU,PSW,REGWRT+YD,XWR2+XWR3 ;SAVE ADDR, RESTORE PSW
+;
+;      FUNCTION CODES 6, E
+;
+ATN110: E ATN1EA,WR31                           ;BRANCH IF FCN CODE E
+;
+;      FUNCTION CODE 6: GET OUTPUT CCW
+;
+        E 20A0,,,,CNST,PSW                      ;20A0->PSW
+        E ATN1GF,TRUE
+;
+;      FUNCTION CODE E: TAKE SOFTWARE INTERRUPT WITH PSEUDO DEVICE ADDR
+;                       SIGNAL COMPLETION OF I/O COMMANDS OR CCW
+;
+ATN1EA: E 6200,,B,WR,CNST,PSW,,XWR2+XWR3        ;6200->PSW,OLD PSW->WR
+        E 0,,A,WR,,,REGWRT+MREG,PC              ;OLD PSW->R00, OLD PC->WR
+        E 1,,B,WR,IOBUS,,REGWRT+MREG,BUS3       ;OLD PC->R01, LINE # ->WR
+        E 0F,,AB,XWRWR,CNST,,,WR+BUS3           ;ISOLATED LINE # IN WR, XWR
+        E 0,,,RLLONG,CNST,IOCNTL                ;2 * LINE# ->WR,XWR, CLR IOCNTL
+        E 21,,APLUSB,XWRWR,CNST,,,WR+BUS3       ;PSEUDO DEVICE ADDR IN WR,XWR
+        E 2,,APLUSB,WR,,,REGWRT+MREG,WR+XWR2+XWR3 ;DEV ADDR->R02, 2*DEV ADR->WR
+        E 00D0,,APLUSB,WR,CNST,,,WR+BUS3        ;INTERRUPT VECTOR ADDR -> WR
+        E 0,,,,,LDMAC,,,LOADMC                  ;INTERRUPT VECTOR ADDR ->MC
+        E ATN00B,TRUE,,,,,MACREQ                ;FETCH INTERRUPT VECTOR
+;
+;      FUNCTION CODES 1, 3, 5, 7, 9, B, D, F
+;
+ATN1B3: E ATN112,WR31,,ASRWR                    ;BRANCH IF FCN CODES 3, 7, B, F
+        E ATN15A,WR31,,ASRWR                    ;BRANCH IF FCN CODE 5, D
+        E ATN19A,WR31                           ;BRANCH IF FCN CODE 9
+;
+;      FUNCTION CODE 1: INPUT BUFFER ADDR
+;
+        E TACK1+DR,,,,CNST,IOCNTL               ;TOGGLE TO NEXT DATA REGISTERS
+        E 2090,,,,CNST,PSW                      ;2090->PSW
+        E TACK1,,,,CNST,IOCNTL                  ;NEXT DATA REGISTERS SELECTED
+        E ATN1ZZ,TRUE
+;
+;      FUNCTION CODES 9: INPUT CCW ADDR & FETCH CCW IF LOW ORDER ADDR
+;
+ATN19A: E TACK1+DR,,,,CNST,IOCNTL               ;TOGGLE TO NEXT DATA REGISTERS
+        E 2080,,,,CNST,PSW                      ;2080->PSW
+        E TACK1,,,,CNST,IOCNTL                  ;NEXT DATA REGISTERS SELECTED
+        E 1000,,AEXRB,WR,CNST,,,WR+BUS0         ;E.CHN_NUM.CARD_ADDR->WR
+        E ATN17C,TRUE
+;
+;-----------------------------------------------------------
+;                                                          ;
+; SBOD                                                     ;
+; THIS ASYNC INSTRUCTION IS NOT SUPPORTED                  ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+        ORG H#48D
+;
+        E ILEGAL,TRUE
+;
+;
+;
+;      FUNCTION CODES 5, D
+;
+ATN15A: E ATN1DA,WR31                           ;BRANCH TO FCN CODE D
+;
+;      FUNCTION CODE 5: OUTPUT BUFFER ADDR & FETCH DATA IF LOW ORDER ADDR
+;
+        E TACK1+DR,,,,CNST,IOCNTL               ;TOGGLE TO NEXT DATA REGISTERS
+        E 20B0,,,,CNST,PSW                      ;20B0->PSW
+        E ATN17B,TRUE
+;
+;      FUNCTION CODE D: GET DATA FROM SYNC OUTPUT RING BUFFER
+;
+ATN1DA: E 0F00F,,B,WR,CNST,,REGWRT+MREG,BUS2 ;F000->WR, FCN.CHN.CARD_ADDR->RBF
+        E 0F,,,,ALU,,MREG                       ;FCN_CODE.CHN_NUM->LATCH
+        E 0,,AORB,,ALU,IOBUS+LDMAC,,WR+L20+L33  ;FCN.CHN.ADDR->IOBUS, 0->MAC
+        E 6200,,B,WR,CNST,PSW,,XWR2+XWR3        ;6200->PSW,OLD PSW->WR
+        E 0,,A,WR,,,REGWRT+MREG,PC              ;OLD PSW->R00, OLD PC->WR
+        E 1,,B,WR,IOBUS,,REGWRT+MREG,BUS3       ;OLD PC->R01, LINE # ->WR
+        E 0F,,AB,XWRWR,CNST,,,WR+BUS3           ;ISOLATED LINE # IN WR, XWR
+        E 0,,,RLLONG,CNST,IOCNTL                ;2 * LINE# ->WR,XWR, CLR IOCNTL
+        E 21,,APLUSB,WR,CNST,,,WR+BUS3          ;GENERATE PSEUDO DEVICE ADDR
+        E 2,,B,WR,,,REGWRT+MREG,XWR2+XWR3       ;DEV ADDR->R02, 2*LINE#->WR
+        E ,,,RLLONG                             ;4*LINE#->WR,XWR
+        E ,,,SLWR                               ;8*LINE#->WR
+        E ADRS,,APLUSB,WR,CNST,IOCNTL,,WR+XWR2+XWR3;12*LINE#->WR,SELECT SIO
+;
+;      OUTPUT TO SYNC CARD
+;
+        E 404,,APLUSB,XWRWR,CNST,,,BUS2+BUS3+WR ;OUTPUT INDEX ADDR->WR,XWR
+        E ,,,,,,,,LOADMC                        ;...AND MC
+        E 0,,,,CNST,IOCNTL,MACREQ               ;READ OUTPUT INDEX, CLR IOCNTL
+        E 8000,,B,WR,MDR,,,SIGN0+BUS2+BUS3,INCMC ;OUTPUT INDEX(SIGN EXT)->WR
+        E 0,,,,CNST,IOBUS,MACREQ                ;READ OUTPUT PTR, CLR IOBUS
+        E SYNREC,WR0,,,MDR                      ;OUTPUT DATA IF INDEX<0
+        E SYNPAD,G                              ;OUTPUT PADS IF INDEX>0
+;
+;      TAKE SOFTWARE INTERRUPT IF OUT INDEX = 0, OR IN INDEX < 0
+;
+SYNTER: E 2,,,,,,MREG                           ;R2(DEV ADDR)->LAT
+        E 68,,APLUSB,WR,CNST,,,BUS3+LATCH       ;0D0/2 + DEV ADDR->WR
+        E ,,,SLWR                               ;WR=0D0+(2*DEVADDR)
+        E ATN2B,TRUE,A,,,,,WR                   ;GET VECTOR FOR INTERRUPT
+;
+;      OUTPUT DATA FROM RECORD
+;
+SYNREC: E 8000,,APLUSB,WR,MDR,,,BUS0+WR,INCMC   ;OUT INDEX+OUT PTR(1ST HW)->WR
+        E 2,,APLUSB,WR,CNST,,MACREQ,BUS3+WR     ;INDEX+2->WR, READ PTR 2ND HW
+        E ,,A,,ALU,MDR,,WR                      ;INC'D INDEX->MDR
+        E 2,,AMINB,WR,CNST,,,BUS3+WR            ;DEC INDEX
+        E 8000,,APLUSB,,MDR,,MREG,BUS2+BUS3+WR  ;ADDR OF OUTPUT DATA->MC
+        E ,,A,,ALU,PSW,,LATCH,LOADMC            ;OLD PSW->PSW
+        E ,,,,,,MACREQ                          ;GET OUT DATA
+ATN1DB: E SR,,B,WR,CNST,IOCNTL,,BUS2+BUS3       ;GET MUX BUS STATUS, WR>0
+ATN1DC: E 0008,,B,WR,CNST,,,BUS2+BUS3          ;MASK FOR MUX BUS STATUS BIT->WR
+        E ,,AB,WR,IOBUS,,,WR+BUS2+BUS3          ;CHECK IF MUX BUS BUSY
+        E ,
+        E ATN1DC,G                              ;BRANCH IF MUX BUS BUSY,WAIT
+        E 0,,,,CNST,IOCNTL                      ;CLR IOCNTL
+        E 8004,,B,,MDR,LDMAC+IOBUS,,XWR0+XWR2+XWR3 ;DATA->IOBUS, INDEX ADDR->MC
+        E CMD,,,,CNST,IOCNTL,,,LOADMC           ;DATA AVAIL, TELL SIO
+        E ,,,,,,MACREQ                          ;WRITE INC'D OUT INDEX
+        E 0,,,,CNST,IOCNTL                      ;LOAD DATA INTO SIO BUFFER
+        E 8019,,A,,,LDMAC,,PC                   ;RESTORE MAC, PC->MC
+        E FETCH1,TRUE,B,,ALU,IOBUS,,,LOADMC     ;CLEAR IOBUS, EXECUTE INSTR
+;
+;      OUTPUT PAD HALFWORD
+;
+SYNPAD: E ,,AMIN1,,ALU,MDR,,WR                  ;PAD CNT - 1 ->MDR
+        E 6,,B,WR,CNST,,,BUS3                   ;PAD HALFWORD OFFSET -> WR
+        E ,,APLUSB,,,,,WR+XWR0+XWR2+XWR3        ;ADDR OF PAD HW -> MC
+        E 8000,,,,,,MREG,,LOADMC                ;GET OLD PSW
+        E ATN1DB,TRUE,A,,ALU,PSW,MACREQ,LATCH   ;GET PAD HALFWORD
+;
+;      FUNCTION CODE 3, 7, B, F
+;
+ATN112: E ATN17A,WR31,,ASRWR                    ;BRANCH IF FCN CODE 7, F
+        E ATN1BB,WR31                           ;BRANCH IF FUNCTION CODE B
+;
+;      FUNCTION CODE 3: PARAMETER = 0: GET NEXT OUTPUT CCW AND MARK CURRENT CCW
+;                       PARAMETER > 0: WRITE BYTE COUNT
+;
+        E TACK1+DR,,,,CNST,IOCNTL               ;SELECT NEXT SET OF DATA REG
+        E 20A0,,,,CNST,PSW                      ;20A0->PSW
+        E TACK1,,,,CNST,IOCNTL
+        E 0F000,,AORB,WR,CNST,,,WR+BUS0         ;FCN.CHN.ADDR->WR
+        E 0F,,B,WR,IOBUS,,REGWRT+MREG,BUS2+BUS3 ;FCN.CHN.ADDR->RAF,PAR->WR
+        E TACK1+DR,,,,CNST,IOCNTL               ;TOGGLE BACK TO 1ST DATA REG
+        E ATN13D,G                              ;BRANCH IF PAR>0,WRITE BYTE CNT
+        E 0F,,B,,ALU,IOCNTL,MREG                ;CLR IOCNTL,FCN.CHN.ADDR->LATCH
+        E 0,,B,,ALU,IOBUS+LDMAC,YD,L20+L33      ;FCN.CHN.ADDR->IOBUS,READ->MAC
+        E ADRS,,A,WR,CNST,IOCNTL,,LATCH         ;BUF ADDR->WR, SELECT SIO
+        E 2,,APLUSB,WR,CNST,,,WR+BUS2+BUS3,LOADMC ;BUF ADDR->MC,UPDATE BUF ADDR
+        E 0,,,,CNST,IOCNTL,MACREQ+REGWRT+YD    ;UPDATED BUF ADR->RYD, 0->IOCNTL
+        E 0,,,,CNST,IOBUS                       ;0->IOBUS
+        E SR,,,,CNST,IOCNTL                     ;GET MUX BUS STATUS
+        E 8004,,B,WR,MDR,LDMAC,YD,BUS2+BUS3     ;NEXT CCW->WR, CCW ADDR->LATCH
+        E 6,,AMINB,,CNST,,,LATCH+BUS3           ;COMPUTE OLD CCW ADDRESS
+        E ATN13A,G,,,,,,,LOADMC                 ;OLD CCW ADDR ->MC,JMP IF CCW>0
+        E 200,,,,CNST,MDR                       ;NEXT CCW=0, MARK WITH 200
+        E 0F,,,,,,REGWRT+MREG+MACREQ            ;200 INTO MEMORY,NEXT CCW->RAF
+        E 0008,,B,WR,CNST,,,BUS2+BUS3        ;MASK FOR MUX BUS STATUS BIT->WR
+        E ATN13C,TRUE,AB,WR,IOBUS,,,WR+BUS2+BUS3 ;CHECK IF MUX BUS BUSY
+;
+ATN13A: E 100,,,,CNST,MDR                       ;NEXT CCW NOT 0, MARK WITH 100
+        E 0F,,,,,,REGWRT+MREG+MACREQ            ;100 INTO MEMORY,NEXT CCW->RAF
+ATN13B: E 0008,,B,WR,CNST,,,BUS2+BUS3         ;MASK FOR MUX BUS STATUS BIT->WR
+        E ,,AB,WR,IOBUS,,,WR+BUS2+BUS3          ;CHECK IF MUX BUS BUSY
+ATN13C: E ,
+        E ATN13B,G                              ;BRANCH IF MUX BUS BUSY, WAIT
+        E 0F,,B,,ALU,IOCNTL,MREG                ;0->IOCNTL,NEXT CCW->LATCH
+        E ,,A,,ALU,IOBUS,,LATCH                 ;NEXT CCW INTO IOBUS
+        E CMD,,A,,CNST,IOCNTL                   ;TELL SIO DATA FETCHED
+        E 8019,,B,,ALU,PSW+LDMAC,,XWR2+XWR3     ;RESTORE PSW,RESTORE MAC
+        E 0,,A,,CNST,IOCNTL,,PC                 ;CLEAR IOCNTL,RESTORE MC
+        E FETCH1,TRUE,B,,ALU,IOBUS,,,LOADMC     ;CLEAR IOBUS, EXECUTE INSTR
+;
+;      STORE BYTE COUNT INTO INPUT BUFFER
+;
+ATN13D: E 2090,,,,CNST,PSW                      ;GET INPUT BUFFER ADDRESSES
+        E ,,A,,ALU,MDR,YD,WR                    ;BYTE CNT->MDR,BUF ADDR->LATCH
+        E 0,,AMINB,WR,CNST,IOCNTL,,LATCH+WR0+WR2+WR3 ;CALC ADDR FOR BYTE CNT
+        E 4,,AMINB,,CNST,LDMAC,,WR+BUS3
+        E 0,,,,CNST,IOBUS,,,LOADMC              ;BYTE CNT ADDR->MC,0->IOBUS
+        E ,,B,,ALU,PSW,MACREQ,XWR2+XWR3         ;RESTORE PSW, WRITE BYTE COUNT
+        E 8019,,A,,,LDMAC,,PC                   ;RESTORE MAC
+        E FETCH1,TRUE,,,,,,,LOADMC              ;RESTORE MC, EXECUTE INSTR
+;
+;      FUNCTION CODE B: STORE STATUS INTO BUFFER
+;
+ATN1BB: E TACK1+DR,,,,CNST,IOCNTL              ;TOGGLE TO NEXT DATA REGISTERS
+        E 2010,,,,CNST,PSW                      ;2010->PSW
+        E ATN1SS,TRUE
+;
+;      FUNCTION CODES 7, F
+;
+ATN17A: E ,                       ;RESERVE FOR BRANCHING TO FCN CODE F
+;
+;      FUNCTION CODE 7: OUTPUT CCW ADDR & FETCH CCW IF LOW ORDER ADDR
+;
+        E TACK1+DR,,,,CNST,IOCNTL               ;TOGGLE TO NEXT DATA REGISTERS
+        E 20A0,,,,CNST,PSW                      ;20A0->PSW
+ATN17B: E TACK1,,,,CNST,IOCNTL                  ;NEXT DATA REGISTERS SELECTED
+        E 0F000,,AORB,WR,CNST,,,WR+BUS0         ;FCN_CODE(F).CHN.CARD_ADDR->WR
+ATN17C: E 0F,,B,WR,IOBUS,,REGWRT+MREG,BUS0+BUS2+BUS3;F.C.C->RAF,IOBUS.IOBUS->WR
+        E TACK1+DR,,A,,CNST,IOCNTL,,PC       ;TOGGLE TO 1ST DATA REG,RESTORE MC
+        E ATN1AA,WR31,,,,,YD,,LOADMC       ;BRANCH IF LSB=1, HIGH ORDER ADDRESS
+        E 0,,B,WR,CNST,IOCNTL,,L00+WR2+WR3      ;0->IOCNTL, NEW BUF ADDR->WR
+        E 2,,APLUSB,WR,CNST,,,WR+BUS3,LOADMC    ;NEW BUF ADDR->MC,NEXT ADDR->WR
+        E 0F,,,,,,MREG                          ;FCN.CHN.CARD_ADDR->LATCH
+        E 0,,B,,ALU,IOBUS+LDMAC,REGWRT+YD,L20+L33 ;F.C.C->IOBUS,SAVE BUF ADDR
+        E ADRS,,,,CNST,IOCNTL,MACREQ        ;FETCH FIRST HW FROM BUF,SELECT SIO
+        E ,
+        E ATN1GH,TRUE,B,,ALU,IOCNTL             ;CLEAR IOCNTL, GOTO COMMON CODE
+;
+;-----------------------------------------------------------
+;                                                          ;
+; XMIT                                                     ;
+; THIS ASYNC INSTRUCTION IS NOT SUPPORTED                  ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+        ORG H#512
+;
+        E ILEGAL,TRUE
+;
+; CONTINUATION OF  OCR  INSTRUCTION
+;
+OCRSPC:	E 00FF,,AB,WR,CNST,,,LATCH+BUS2+BUS3    ;MASK DEVICE ADDR
+        E 0080,,AEXRB,WR,CNST,,,WR+BUS2+BUS3    ;CHECK IF SIO (DEV ADDR=80)
+        E 0000,,B,,CNST,,,BUS2+BUS3            ;SET UP 64 MICROSECOND WAIT LOOP
+        E OCRCOM,G,,,,,YS,,LOADMC          ;BRANCH IF DEV ADDR NOT 80 (NOT SIO)
+        E SR,,,,CNST,IOCNTL                     ;READ SIO STATUS
+OCRWAT: E 0008,,B,WR,CNST,,,BUS2+BUS3           ;MASK FOR SIO BUSY BIT
+        E ,,AB,WR,IOBUS,,,WR+BUS2+BUS3
+        E TIMOUT,MC11,,,,,,,INCMC   ;BRANCH IF WAITED MORE THAN 64 MICROSECONDS
+        E OCRWAT,G                            ;WAIT SOME MORE IF SIO STILL BUSY
+        E 0,,,,CNST,IOCNTL,YS          ;CLEAR IOCNTL, READ COMMAND TO BE OUTPUT
+OCRCOM: E ,,A,,ALU,IOBUS,,LATCH                 ;OUTPUT COMMAND -> IOBUS
+        E CMD,,,,CNST,IOCNTL                    ;LOAD COMMAND INTO SIO
+        E WDR1,TRUE                             ;BRANCH TO OLD CODE
+;
+;  CONTINUATION OF WDR INSTRUCTION
+;
+WDRSPC: E 00FF,,AB,WR,CNST,,,LATCH+BUS2+BUS3    ;MASK DEVICE ADDR
+        E 0080,,AEXRB,WR,CNST,,,WR+BUS2+BUS3    ;CHECK IF SIO (DEV ADDR = 80)
+        E 0000,,B,,CNST,,,BUS2+BUS3            ;SET UP 64 MICROSECOND WAIT LOOP
+        E WDRCOM,G,,,,,YS,,LOADMC ;BRANCH IF DEV ADDR NOT 80 (NOT SIO)
+        E SR,,,,CNST,IOCNTL          ;READ SIO STATUS
+WDRWAT: E 0008,,B,WR,CNST,,,BUS2+BUS3 ;MASK FOR SIO BUSY BIT
+        E ,,AB,WR,IOBUS,,,WR+BUS2+BUS3
+        E TIMOUT,MC11,,,,,,,INCMC   ;BRANCH IF WAITED MORE THAN 64 MICROSECONDS
+        E WDRWAT,G                            ;WAIT SOME MORE IF SIO STILL BUSY
+        E 0,,,,CNST,IOCNTL,YS             ;CLEAR IOCNTL, READ DATA TO BE OUTPUT
+WDRCOM: E ,,A,,ALU,IOBUS,,LATCH                 ;OUTPUT DATA ->IOBUS
+        E DA,,,,CNST,IOCNTL                     ;LOAD DATA INTO SIO
+        E WDR1,TRUE                             ;CONTINUE WITH OLD CODE
+;
+;    CONTINUATION OF WD INSTRUCTION
+;
+WDSPC1: E 00FF,,AB,WR,CNST,,,LATCH+BUS2+BUS3    ;MASK DEVICE ADDR
+        E 0080,,AEXRB,WR,CNST,,,WR+BUS2+BUS3    ;CHECK IF SIO (DEV ADDR = 80)
+        E 0000,,B,,CNST,,,BUS2+BUS3            ;SET UP 64 MICROSECOND WAIT LOOP
+        E 8000+WD1COM,G,,,,,,,LOADMC            ;BRANCH IF NOT SIO
+        E SR,,,,CNST,IOCNTL                     ;READ SIO STATUS
+WD1WAT: E 0008,,B,WR,CNST,,,BUS2+BUS3           ;MASK FOR SIO BUSY BIT
+        E ,,AB,WR,IOBUS,,,WR+BUS2+BUS3
+        E TIMOUT,MC11,,,,,,,INCMC   ;BRANCH IF WAITED MORE THAN 64 MICROSECONDS
+        E WD1WAT,G                            ;WAIT SOME MORE IF SIO STILL BUSY
+        E 0,,,,CNST,IOCNTL                      ;CLEAR IOCNTL
+WD1COM: E WD6,TRUE,B,WR,MDR,,YS,BUS2+BUS3       ;READ DATA TO BE OUTPUT
+;
+;    CONTINUATION OF WD INSTRUCTION
+;
+WDSPC2: E 00FF,,AB,WR,CNST,,,LATCH+BUS2+BUS3    ;MASK DEVICE ADDR
+        E 0080,,AEXRB,WR,CNST,,,WR+BUS2+BUS3    ;CHECK IF SIO (DEV ADDR = 80)
+        E 0000,,B,,CNST,,,BUS2+BUS3            ;SET UP 64 MICROSECOND WAIT LOOP
+        E 8000+WD2COM,G,,,,,,,LOADMC            ;BRANCH IF NOT SIO
+        E SR,,,,CNST,IOCNTL                     ;READ SIO STATUS
+WD2WAT: E 0008,,B,WR,CNST,,,BUS2+BUS3           ;MASK FOR SIO BUSY BIT
+        E ,,AB,WR,IOBUS,,,WR+BUS2+BUS3
+        E TIMOUT,MC11,,,,,,,INCMC   ;BRANCH IF WAITED MORE THAN 64 MICROSECONDS
+        E WD2WAT,G                            ;WAIT SOME MORE IF SIO STILL BUSY
+        E 0,,,,CNST,IOCNTL                      ;CLEAR IOCNTL
+WD2COM: E WD5,TRUE,,,MDR,IOBUS                  ;DATA TO BE OUTPUT TO IOBUS
+;
+;    WAITED TOO LONG FOR SIO TO BE FREE, SET INSTRUCTION TIMEOUT BIT
+;
+TIMOUT: E 0,,,,CNST,IOCNTL                      ;CLR IOCNTL
+        E 0,,,,CNST,IOBUS                       ;CLR IOBUS
+        E ,,B,WR,PSW,,,BUS2+BUS3                ;GET PSW
+        E 4,,AORB,WR,CNST,,,BUS3+WR             ;SET TIMEOUT BIT
+        E ,,A,,ALU,PSW,,WR                      ;RESTORE UPDATED PSW
+        E FETCH,TRUE,A,,,,,PC                   ;FETCH NEXT INSTRUCTION
+;
+;-----------------------------------------------------------
+;                                                          ;
+; SPM                                                      ;
+; THIS ASYNC INSTRUCTION IS NOT SUPPORTED                  ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+        ORG H#578
+;
+        E ILEGAL,TRUE
+;
+;-----------------------------------------------------------
+;                                                          ;
+; GCHAR                                                    ;
+; THIS ASYNC INSTRUCTION IS NOT SUPPORTED                  ;
+;                                                          ;
+;-----------------------------------------------------------
+;
+        ORG H#592
+;
+        E ILEGAL,TRUE
+EJECT
+;
+;************************************************************************
+;
+;      CONTINUE CODE FOR LPSW
+;
+;------------------------------------------------------------------------
+       ORG H#5E0
+;
+NLPSW:  E CNSL,WR0,A,XWR,ALU,PSW,,WR,LOADPC+LOADMC; WR->XWR,PSW
+        E 0F0,,AB,WR,CNST,,,BUS3+WR             ;WR AND "F0"->WR (REGITER SET)
+        E 0F0,,AEXRB,WR,CNST,,,BUS3+WR          ;WR EXR "F0"->WR
+        E 19,,,,,LDMAC                          ;FETCH->MAC
+        E FETCH0,G,,,,YD;                       ;CLEAR YD, CHECK FOR NOT SET F
+        E 0D0,,A,WR,CNST,PSW,,PC;               ;CHECK TIMEOUT IN SET D
+        E 0E,,,,,,MREG                          ;REGDE->LATCH
+        E 1,,A,WR,,,REGWRT+MREG,LATCH;          ;SAVE PC, GET TIMEOUT VALUE
+        E 0F,,B,WR,,,MREG,XWR2+XWR3;            ;GET POINTER FOR BRANCHING
+        E NLPSW1,WR0,A,,,,,LATCH                ;IF TIMEOUT VALUE<0 JUMP NLPSW1
+        E ,,A,,ALU,PSW,,WR;        DO NOT COMBINE THIS INSTRUCTION WITH NEXT
+        E FETCH0,TRUE;             ALLOW TIME FOR RELOCATE BIT TO BE PROCESSED
+NLPSW1: E FETCH0,TRUE,,,,,REGWRT+YD,,LOADPC+LOADMC ;SAVE OLD PSW IN R0,TAKE
+;                                               ; INTERRUPT
+;
+EJECT
+;************************************************************************
+;
+;      SCAN LEAD POINTER/TRAILING POINTER,ADDRESS   OP CODE 35
+;
+;------------------------------------------------------------------------
+       ORG H#650
+;      NONSKIP RETURN FOR HIT, SKIP NORMAL
+        E ,,,,,,INCYD+YD,,INCMC;                ;LEAD PTR->LATCH,YD PTR+1->YD PTR
+        E ,,B,WR,,,YD,L33;                      ;LAT->WR, TRAILING PTR->LATCH
+        E ,,AMINB,WR,,,,L33+WR                  ;LEAD PTR-TRAILING PTR->WR
+        E 10,,AMINB,XWRWR,CNST,,,BUS3+WR        ;WR-10->XWR
+        E SCAN6,WR0                             ;IF TRAILINGPTR>LEAD PTR JUMP
+        E SCAN2,G                               ;IF DEFFERENT >10 JUMP
+        E ,,,,,,MACREQ,,INCPC                   ;PC+2->PC
+SCAN1:  E FETCH1,TRUE,,,,,,,INCPC               ;PC+2->PC,JUMP FETCH1
+SCAN2:  E 0C0,,AB,WR,CNST,,,BUS3+WR             ;WR AND "0C0"->WR
+        E 40,,B,WR,CNST,,,BUS3;                 ;40->WR (UPPER BOUND)
+        E SCAN3,G                               ;IF NOT 0 JUMP
+        E ,,B,WR,,,,XWR3                        ;XWR3->WR
+SCAN3:  E ,,A,XWR,,,YD,WR                       ;WR->XWR(SCAN CNT),TRAIL->LAT
+        E ,,A,WR,,,YS,LATCH                     ;TRAILING PTR->WR, ADDR->LAT
+        E 10,,APLUSB,,,LDMAC,YD,WR3+LATCH       ;ADDR+TRAIL->MC, TRAIL->LAT
+        E ,,APLUSB,WR,,,,XWR3+LATCH,LOADMC      ;TRAIL+SCAN CNT->WR (UPPER BOUND)
+        E ,,B,WR,,,MACREQ,WR3                   ;LOW WR->WR
+        E ,,B,WR,,,REGWRT+YD                    ;WR->YD
+        E ,,AMINB,LRWR,,,,XWR3+WR               ;WR-XWR3->WR
+        E ,,A,XWR,,,,PC                         ;PC->XWR (SAVE PC)
+        E ,,A,,,,,WR                            ;WR->PC (NEGATIVE COUNT)
+        E 8000,,2A,LRWR,MDR,,,BUS2+BUS3,LOADPC+INCMC;COMPLEMENT MDR TO WR RIGHT
+        E ,,A,LRWR,,,MACREQ,PC,INCPC            ;PC->WR, PC+2->PC
+SCAN4:  E 8000+SCAN5,G,2A,LRWR,MDR,,YD,BUS2+BUS3,INCMC;SCAN FOR "FFFF",YD->LAT
+        E SCAN4,G,A,LRWR,,,MACREQ,PC,INCPC      ;REPEAT UNTIL COUNTER=0
+        E FETCH,TRUE,B,,,,,XWR0+XWR2+XWR3       ;NO FOUND, SAVED PC->EBUS JMP
+SCAN5:  E ,,APLUSB,WR,,,,L33+PC                 ;FOUND, PC+LATCH->WR
+        E 19,,B,,,LDMAC,,XWR0+XWR2+XWR3         ;SAVED PC->MC,PC
+        E 2,,AMINB,WR,CNST,,,BUS3+WR,LOADPC+LOADMC;WR-2->WR
+        E ,,B,WR,,,,WR3,INCPC+INCMC             ;WR->LATCH, INCREMENT MC,PC
+        E FETCH1,TRUE,,,,,MACREQ+REGWRT+YD      ;LATCH->YD,JUMP FETCH1 (NO HIT)
+SCAN6:  E 100,,APLUSB,XWRWR,CNST,,YD,BUS2+WR    ;WR+100->XWR,TRAIL->LATCH
+        E 100,,AMINB,WR,CNST,,,BUS2+LATCH       ;TRAIL-100->WR
+        E SCAN7,G,APLUSB,WR,,,,XWR0+XWR2+XWR3+WR;XWR+WR->WR IF XWR>0 JUMP SCAN7
+        E SCAN1,TRUE,,,,,MACREQ,,INCPC          ;ELSE XWR=0 NOTHING TO SCAN
+SCAN7:  E ,,AMINB,WR,,,,XWR0+XWR2+XWR3+WR       ;WR-XWR->WR
+        E SCAN8,G                               ;IF XWR+WR>0 JUMP SCAN8
+        E SCAN2,TRUE,B,WR,,,,XWR3               ;LOW XWR->WR,JUMP SCAN2
+SCAN8:  E ,,20,WR,,,,WR;                        ;COMPLEMENT WR->WR
+        E SCAN2,TRUE,APLUS1,XWRWR,,,,WR         ;WR+1->XWR,JUMP SCAN2
+;
+EJECT
+;************************************************************************
+;
+;      ALIGN AND CHECKSUM  OPCODE 36
+;
+;------------------------------------------------------------------------
+;
+;      YS TRAILING POINTER, 1 IS COUNT, YD SOURCE ADDRESS, 3 HAS FIRST 
+;      HALFWORD, 5 IS VERTICAL CHECKSUM, 7 DIAGONAL, 8 IS DESTINATION OR
+;      NEGATIVE FOR NO STORE, 0A IS SHIFT COUNT
+ALIGN:  E 8010,,,,,LDMAC,YS                     ;TRAIL->LATCH, READ->MAC
+        E ,,A,WR,,,YD,LATCH                     ;TRAIL->WR, START ADDR->LATCH
+        E ,,APLUSB,,,,YS,WR3+LATCH              ;SA+TRAIL->MC, TRAIL->LATCH
+        E 2,,APLUSB,WR,CNST,,,BUS3+LATCH,LOADMC ;TRAIL+2->WR
+        E ,,B,WR,,,MACREQ,WR3                   ;LOW WR->WR, START READ
+        E ,,,,,,REGWRT+YS                       ;WR->YS,TRAIL->LATCH
+        E 0A,,B,WR,,,MREG                       ;TRAIL->WR, SHIFT COUNT->LATCH
+        E ,,AMINB,WR,,,,L33+WR                  ;WR-LATCH->WR
+        E 3,,APLUSB,,,,MREG,WR2+WR3+WR          ;WR+LOW WR->MC, FIRST HW->LAT
+        E 8000,,B,WR,MDR,,,L02+BUS2+BUS3,LOADMC ;MERGE DATA->WR
+        E 3,,,,,,REGWRT+MREG                    ;WR->R3
+ALIGN1: E ALIGN1,MC11,,SRWR,,,,,INCMC           ;WR/2->WR, MC+2->MC,IF M11 JMP
+        E 8,,A,XWR,ALU,MDR,MREG,WR              ;WR->XWR,MDR, INPUT ADDR->LATCH
+        E 14,,A,WR,,LDMAC,,LATCH                ;LATCH->WR,MC, STORE->MAC
+        E 2,,APLUSB,WR,CNST,,,BUS3+WR,LOADMC    ;WR+2->WR
+        E ALIGN2,WR0                            ;IF WR0 JUMP ALIGN2
+        E 8,,,,,,MACREQ+REGWRT+MREG             ;WR->R8 (DESTINATION)
+ALIGN2: E 7,,,,,,MREG                           ;DIAGNOAL CKSUM->LATCH
+        E ,,B,WR,,,,L02+L22+L33                 ;LATCH->WR
+        E ,,,RLWR                               ;ROTATE WR LEFT
+        E 5,,AEXRB,WR,,,MREG,XWR2+XWR3+WR       ;WR EXR XWR->WR,VRT CKSUM->LAT
+        E 7,,AEXRB,WR,,,REGWRT+MREG,XWR2+XWR3+LATCH;WR->R7, LAT EXR XWR ->WR
+        E 1,,,,,,MREG                           ;HALF WORD COUNT ->LATCH
+        E 5,,AMIN1,WR,,,REGWRT+MREG,LATCH       ;WR->R5(VERT CKSUM), LAT-1->WR
+        E 1,,,,,,REGWRT+MREG                    ;WR->R1 (HW COUNT)
+        E ALIGN3,G                              ;IF COUNT>0 JUMP ALIGN3
+        E 3,,A,,,,MREG,PC,INCPC                 ;R3->LAT, PC->MC,PC+2->PC
+        E 8019,,B,WR,,LDMAC,,L22+L33,LOADMC     ;LOW LAT->WR, FETCH->MAC
+        E 3,,,,,,MACREQ+REGWRT+MREG             ;WR->R3
+        E FETCH1,TRUE                           ;JUMP FETCH1
+ALIGN3: E ALIGN,WR31,A,,,,,PC                   ;IF ODD JUMP ALIGN
+        E 8019,,,,,LDMAC,,,LOADPC+LOADMC;       ;REFETCH W/O MACREQ
+        E FETCH1,TRUE;                          ;JUMP FETCH1
+;
+EJECT
+;************************************************************************
+;
+;      CHECKSUM  OPCODE 37
+;
+;------------------------------------------------------------------------
+;
+;      YD VERT, YD+1 DIAG, YS BEGINING ADDRESS, R0 NEGATIVE COUNT
+;      ILLEGAL INSTR IF R0>0 OR SPECIFIES ODD COUNT
+;      MAX COUNT = 64K BYTES
+;      REFETCH EVERY 32D HW'S TO ALLOW INTERRUPTS
+;
+       ORG H#6A0
+        E 10,,A,XWR,,LDMAC,YS,PC,INCPC;         ;PC+2->XWR, 10->MACCTL, ADDR->LAT
+        E 0,,A,,,,MREG,LATCH;                   ;BEG ADDR->MC, R0(COUNT)->LAT
+        E ,,A,WR,,,INCYD,LATCH,LOADMC;          ;COUNT->WR
+        E ,,,,,,MACREQ,,LOADPC;                 ;COUNT->PC, START READ OF 1ST HW
+        E CHKSM1,WR0,A,WR,,,YD+DECYD,PC;        ;CHKSM1 IF COUNT NEG, PC->WR
+        E CHKSM5,G,B,WR,,,,L02+L22+L33;         ;ILLEGAL IF COUNT>0, DIAG->WR(LEFT & RIGHT)
+        E CHKSM4,TRUE,B,RLWR,,,YD,XWR0+XWR2+XWR3;  ;CHKSM4 IF COUNT=0
+;
+CHKSM1: E CHKSM5,WR31,B,WR,,,,L02+L22+L33;      ;DIAG->WR(LEFT & RIGHT), ILLEGAL IF COUNT ODD
+CHKSM2: E CHKSM3,G,,RLWR;                       ;CHKSM3 IF NO REFETCH, ROTATE DIAG
+;
+;      REFETCH EVERY 32 HW'S
+;      UPDATE YS (BEG ADDR) AND R0 (COUNT) FOR REENTRY
+;
+        E 0FFFF,,AB,WR,CNST,,YS,BUS2+BUS3+PC;   ;RIGHT HW OF PC->WR
+        E 0,,APLUSB,WR,,,MREG,L00+L22+L33+WR;   ;PC+BEGADDR->WR
+        E 19,,AMINB,WR,,LDMAC,,L22+L33+WR;      ;ADDR+(CURRENT COUNT)-(OLD COUNT)->WR
+        E 0FFFF,,AORB,WR,CNST,,REGWRT+YS,BUS0+PC;  ;WRITE NEW ADDR, PC(SIGN EXT)->WR
+        E 0,,B,WR,,,REGWRT+MREG,XWR0+XWR2+XWR3; ;WRITE NEW COUNT, NEXT PC->WR
+        E 2,,AMINB,,CNST,,,WR+BUS3;             ;DEC PC TO CKSUM INSTR AGAIN
+        E FETCH1,TRUE,,,,,,,LOADPC+LOADMC;      ;REFETCH W/O MACREQ
+;
+CHKSM3: E 8000,,AEXRB,WR,MDR,,INCYD+YD,BUS2+BUS3+WR,INCMC;  ;DATA.EXOR.DIAG->WR
+        E ,,AEXRB,WR,MDR,,DECYD+REGWRT+YD,BUS2+BUS3+LATCH;  ;WRITE DIAG, DATA.EXOR.VERT->WR
+        E ,,A,WR,,,MACREQ+REGWRT+YD,PC,INCPC;   ;WRITE VERT, COUNT+2->WR, START NEXT READ
+        E ,,,,,,INCYD;                          ;(CAN'T PUT INCYD W/MACREQ IN PREVIOUS INSTR)
+        E 3E,,AB,WR,CNST,,DECYD+YD,BUS3+WR;     ;COUNT.AND.3E->WR (REFETCH CHECK)
+        E CHKSM2,G,B,WR,,,,L02+L22+L33;         ;LOOP UNTIL COUNT=0, DIAG->WR(LEFT&RIGHT)
+;
+;      DONE!   INCLUDE VERT CKSUM IN DIAG....THEN FETCH NEXT INSTR.
+;
+        E ,,B,RLWR,,,YD,XWR0+XWR2+XWR3;         ;ROTATE DIAG, NEXT PC->MC,PC
+CHKSM4: E 8019,,AEXRB,WR,,LDMAC,INCYD,WR2+WR3+LATCH,LOADPC+LOADMC;  ;DIAG.EXOR.VERT->WR
+        E FETCH1,TRUE,,,,,MACREQ+REGWRT+YD;     ;WRITE DIAG, START NEXT INSTR FETCH
+;
+;      ILLEGAL INSTR IF R0 (COUNT) > 0 OR LSB IS SET
+;
+CHKSM5: E ,,B,WR,,,,XWR0+XWR2+XWR3;             ;NEXT PC->WR
+        E 2,,AMINB,,CNST,,,BUS3+WR;             ;DEC PC TO CURRENT INSTR
+        E ILEGAL,TRUE,,,,,,,LOADPC;             ;ILLEGAL INSTR TRAP
+;
+EJECT
+;************************************************************************
+;
+;      GCI  OPCODE 38
+;
+;------------------------------------------------------------------------
+;
+;      YD BYTE, YS BUFFER, R3 WILL HAVE BB
+;      FOLLOWED BY SIZE, ERROR PC, BB/4, NEXT PC, LAST PC
+       ORG H#6C0
+        E 11,,,,,LDMAC,MACREQ+YS                ;4*BUFF NO.->LATCH, FETCH->MAC
+        E ,,A,WR,MDR,,,LATCH                    ;4*BUFF NO.->WR
+        E 8000,,AMINB,WR,MDR,,,BUS2+BUS3+WR     ;4*BUFF NO.- 4*NBUF->WR
+        E WCI1,WR0,,,,,,,INCMC                  ;MC+2->MC, IF BUFF NO.<0 ILLEGAL
+        E GCI1,WR0,,,,,,,INCMC                  ;MC+2->MC,BUFF NO<NBUF GO GCI1
+        E GCIE,TRUE                             ;ERROR GO TO ERROR ROUTINE
+GCI1:   E ,,,,,,MACREQ                          ;READ BB/4
+        E 8000,,B,WR,MDR,,,BUS2+BUS3            ;BB/4->WR
+        E ,,,SLWR                               ;BB/2->WR
+        E ,,,SLWR,,,YS                          ;BB->WR, BUFF NO.*4->LATCH
+        E ,,APLUSB,XWR,,,,WR0+WR2+WR3+LATCH     ;BB+4*BUFF NO.->XWR
+        E ,,,,,,,,LOADMC                        ;BB+4*BUFF NO.->MC
+        E 10,,,,MDR,LDMAC,MACREQ                ;READ BEGIN ADDR, FETCH->MAC
+        E 8000,,B,WR,MDR,,,BUS0,INCMC           ;MC+2->MC, BEGIN ADDR->HI WR
+        E ,,,,,,MACREQ                          ;READ SECOND HALF BEGIN ADDR
+        E 8000,,B,WR,MDR,,,WR0+BUS2+BUS3        ;FULL BEGIN ADDR -> WR,MC
+        E 3,,,,,,REGWRT+MREG,,LOADMC            ;BEGIN ADDR -> REG3
+        E GCI2,G                                ;IF BEGIN ADDR>0 JUMP GCI2
+GCIE:   E 4,,APLUSB,,CNST,,,BUS3+PC             ;ERROR, PC+4->MC (ERROR PC)
+        E WCI1,TRUE,,,,,,,LOADMC                ;JUMP WCI1
+GCI2:   E GCI3,WR31,A,,,,MACREQ,PC              ;PC->MC, IF LOW BYTE JUMP GCI3
+        E 8011,,B,WR,MDR,LDMAC,,BUS2+BUS3,LOADMC;HW->WR, FETCH->MAC
+        E ,,,,,,REGWRT+YD,,INCMC                ;MC+2->MC, HW->YD
+        E ,,,,,,YD                              ;YD->LATCH
+        E GCI4,TRUE,B,WR,,,,L32                 ;LATCH>>8->WR, JUMP GCI4
+GCI3:   E 8011,,B,WR,MDR,LDMAC,,BUS3,LOADMC     ;BYTE->WR
+        E ,,,,,,,,INCMC                         ;MC+2->MC
+GCI4:   E ,,B,WR,MDR,,MACREQ+REGWRT+YD,XWR0+XWR2+XWR3;BYTE->YD,BB+4*BUFF NO.->WR
+        E 8010,,APLUSB,,MDR,LDMAC,,BUS2+BUS3+WR ;4*NBUF+WR->MC (BUFF END ADDR)
+        E ,,,,,,,,LOADMC                        ;
+        E ,,,,MDR,,MACREQ                       ;READ
+        E 8000,,B,WR,MDR,YD,,BUS0,INCMC;        ;MC+2->MC,HIGH END ADDR->WR
+        E 3,,,,CNST,,MACREQ+MREG                ;3->YD PTR, REG3->LATCH
+        E 8003,,AEXRB,WR,MDR,,MREG,WR0+BUS2+BUS3+LATCH ;R3->LAT
+        E ,,APLUS1,WR,,,,LATCH                  ;BEGIN ADDR+1->WR
+        E GCI5,G,B,,,,,XWR0+XWR2+XWR3           ;IF BGN ADDR NOT = END ADDR GO
+        E 0A,,APLUSB,,CNST,,,BUS3+PC            ;PC+0A->MC  (LAST PC)
+        E WCI1,TRUE,,,,,,,LOADMC                ;JUMP WCI1
+GCI5:   E 3,,,,,,REGWRT+MREG,,LOADMC            ;BB+4*BUF NO.->MC,WR->R3(NEW BA)
+        E 0F,,AB,WR,CNST,,YD,BUS3+WR            ;WR AND "0F"->WR, R3->LATCH
+        E 14,,A,,ALU,LDMAC+MDR,,LATCH,INCMC     ;LATCH->MDR,MC+2->MC,STORE->MAC
+        E GCI6,G                                ;IF NEW B.A. ISN'T LINK JUMP
+        E 8,,APLUSB,,CNST,,,BUS3+PC             ;PC+8->MC (NEXT PC)
+        E WCI1,TRUE,,,,,,,LOADMC                ;JUMP WCI1
+GCI6:   E 0C,,APLUSB,WR,CNST,,MACREQ,BUS3+PC    ;PC+0C->WR, STORE NEW B.A.
+        E FETCH,TRUE,A,,,,,WR                   ;WR->EBUS (NEXT INTS) JUMP FETCH
+;
+EJECT
+;************************************************************************
+;
+;      WCI  OPCODE 39
+;
+;------------------------------------------------------------------------
+;
+;      YD BYTE, YS BUF
+;      FOLLOWED BY SIZE, ERROR PC, BE/4, NEXT PC, FIRST PC
+       ORG H#700
+        E 11,,,,,LDMAC,MACREQ+YS                ;4*BUFF NO.->LAT, FETCH->MAC
+        E ,,A,WR,MDR,,,LATCH                    ;4*BUFF NO.->WR
+        E 8000,,AMINB,WR,MDR,,,BUS2+BUS3+WR     ;4*BUFF NO.-4*NBUF->WR
+        E WCI1,WR0,,,,,,,INCMC                  ;IF BUFF NO.<0 GO WCI1 (ILLEGAL)
+        E WCI2,WR0,,,,,,,INCMC                  ;MC+2->MC, IF BUF NO.<NBUF GO
+        E GCIE,TRUE                             ; JUMP ERROR ROUTINE
+WCI1:   E 11,,,,MDR,LDMAC,MACREQ                ;READ OFFSET, FETCH->MAC
+        E 8000+FETCH,TRUE,APLUSB,,MDR,,,SIGN0+BUS2+BUS3+PC;PC+OFFSET->EBUS,JMP
+WCI2:   E ,,,,,,MACREQ                          ;READ BE/4
+        E 8000,,B,WR,MDR,,,BUS2+BUS3            ;BE/4->WR
+        E ,,,SLWR                               ;BE/2->WR
+        E ,,,SLWR,,,YS                          ;BE->WR, 4*BUFF NO.->LATCH
+        E ,,APLUSB,,,,,WR0+WR2+WR3+LATCH        ;BE+4*BUF NO.->MC
+        E ,,,,,,,,LOADMC                        ;
+        E 10,,,,MDR,LDMAC,MACREQ                ;READ END ADDR,FETCH->MAC
+        E 8000,,B,WR,MDR,,,BUS0,INCMC           ;MC+2->MC, H.EA->WR
+        E ,,,,,,MACREQ                          ;READ LOWER EA
+        E 8000,,B,WR,MDR,,,WR0+BUS2+BUS3        ;MERGE END ADDR->WR
+        E ,,APLUS1,XWRWR,,,,WR                  ;E.A.+1->XWR (NEW EA)
+        E WCI3,G                                ;IF EA>0 JUMP WCI3
+        E 0A,,APLUSB,,CNST,,,BUS3+PC            ;PC+0A->MC (FIRST PC)
+        E WCI1,TRUE,,,,,,,LOADMC                ;JUMP WCI1
+WCI3:   E 0F,,AB,WR,CNST,,,BUS3+WR              ;EA AND "0F"->WR
+        E ,,B,,ALU,MDR,,XWR2+XWR3               ;LOW NEW EA->MDR
+        E WCI4,G,B,WR,,,,XWR0+XWR2+XWR3         ;NEW EA->WR, IF EA NOT LINK
+        E 3,,,,,,REGWRT+MREG                    ;NEW EA->R3
+        E 8,,APLUSB,,CNST,,,BUS3+PC             ;PC+8->MC (NEXT PC)
+        E WCI1,TRUE,,,,,,,LOADMC                ;JUMP WCI1
+WCI4:   E 14,,,,,LDMAC,MACREQ                   ;STORE NEW EA
+        E 0C,,APLUSB,,CNST,,,BUS3+PC            ;PC+0C->PC
+        E ,,B,WR,,,,XWR0+XWR2+XWR3,LOADPC       ;NEW EA->WR,MC
+        E 8010,,,,,LDMAC,,,LOADMC               ;FETCH->MAC
+        E STB0,TRUE,,,,,MACREQ                  ;READ DATA FROM BUFF,JUMP STB0
+;
+;
+EJECT
+;************************************************************************
+;
+;      CBCT  OPCODE 3A    CALCULATE EXACT BCT
+;
+;------------------------------------------------------------------------
+;
+;      EXPECTS YS = BUFFER INDEX
+;      INSTR FOLLOWED BY BB ADDR/4, SIZE OF BB ARRAY
+;      RETURNS EXACT BCT IN YD
+;
+;      NOTE - REQUIRES BB, BE, BF/BCT ARRAYS TO BE CONTIGUOUS IN THAT ORDER.
+;
+       ORG H#730
+        E 11,,,,,LDMAC,MACREQ,,INCPC;           ;START READ OF BB/4
+        E 8000,,B,WR,MDR,,,BUS2+BUS3,INCPC+INCMC;   ;BB/4->WR, INC MC TO SIZE
+        E ,,,SLWR,,,MACREQ,,INCPC;              ;START READ OF SIZE, WR=BB/2
+        E ,,,SLWR;                              ;WR=ADDR OF BB
+        E 2,,APLUSB,WR,CNST,,YS,BUS3+WR;        ;BB+2->WR (LOW HW OF BB), BUFF INDEX->LAT
+        E ,,APLUSB,WR,,,,WR0+WR2+WR3+LATCH;     ;WR+INDEX->MC,WR
+        E 8010,,B,XWR,MDR,LDMAC,,BUS2+BUS3,LOADMC;  ;SIZE->XWR
+        E ,,APLUSB,WR,,,MACREQ,XWR2+XWR3+WR;    ;START READ OF BB (LOW HW), WR+SIZE=BE ADDR->WR,MC
+        E 8000,,APLUSB,XWR,,,,XWR2+XWR3+WR,LOADMC;  ;WR+SIZE->XWR (BCT ADDR)
+        E ,,B,WR,MDR,,,BUS2+BUS3;               ;BB->WR
+        E 0F,,AB,WR,CNST,,MACREQ,BUS3+WR;       ;START READ OF BE, GET LOW 4 BITS OF BB->WR
+        E ,,B,,,,,XWR0+XWR2+XWR3;               ;BCT ADDR->MC
+        E 8000,,A,XWR,,,,WR,LOADMC;             ;SAVE LOW 4 BB BITS IN XWR
+        E ,,B,WR,MDR,,,BUS2+BUS3;               ;BE(LOW HW)->WR
+        E 0F,,AB,WR,CNST,,MACREQ,BUS3+WR;       ;START READ OF BCT, GET LOW 4 BITS OF BE->WR
+        E ,,AMINB,WR,MDR,,,XWR3+WR;             ;BE-BB->WR
+        E 8000,,APLUSB,WR,MDR,,,BUS2+BUS3+WR;   ;WR+BCT->WR
+        E FETCH,TRUE,A,,,,REGWRT+YD,PC;         ;PUT EXACT BCT IN REG(YD)
+;
+EJECT
+;************************************************************************
+;
+;      RTD BYTE COPY LOOP
+;
+;------------------------------------------------------------------------
+;
+;      YD SCRATCH CHAR SAVE, YS BYTE COUNT, 0C SOURCE ADDRESS, 3 DEST ADDRESS
+;      FOLLOWED BY DEST BOUNDARY, BYTE 0, 1, 2, 3
+       ORG H#760
+;      REENTRY POINT OPCODE 3C
+        E 0F,,B,XWR,CNST,,,BUS3;                ;0F->XWR
+        E RTD4,TRUE,,,,,YD                      ;YD->LATCH, JUMP RTD4
+;      NORMAL ENTRY OPCODE 3B
+        E 0F,,B,XWR,CNST,,,BUS3,INCPC;          ;0F->XWR
+        E 0C,,,,,,MREG;                         ;GET SOURCE ADDR, REG0C->LAT
+        E ,,A,WR,,,,LATCH                       ;LATCH->WR,MC
+        E 10,,,,,LDMAC,,,LOADMC                 ;DATA FETCH -> MAC
+RTD1:   E RTD2,WR31,,,,,MACREQ+YD               ;YD->LAT, IF ODD ADDR GO TO RTD2
+        E 800C,,B,WR,MDR,,MREG,L00+BUS2+BUS3    ;HW->WR, REG0C->LATCH
+        E RTD3,TRUE,APLUS1,WR,,,REGWRT+YD,LATCH ;SOURCE ADDR+1->WR, YD->LAT, HW->YD
+RTD2:   E 0C,,B,WR,,,MREG,L00+L23               ;BYTE->WR, REG0C->LATCH
+        E ,,APLUS1,WR,,,REGWRT+YD,LATCH         ;SRC ADDR+1->WR, YD-.LAT, BYTE-.YD
+RTD3:   E 3,,,,,,MREG                           ;REG03->LATCH (BE)
+        E 0C,,APLUS1,WR,,,REGWRT+MREG,LATCH     ;BE+1->WR,MC, SRC ADDR+1->REGC
+        E 8003,,AB,WR,,,REGWRT+MREG,XWR3+WR,LOADMC ;BE+1->REG3,WR AND "0F"->WR
+        E RTD5,WR31,,,,,YD                      ;YD->LATCH, IF ODD BE JUMP RTD5
+        E RTD4,G,,,,,YD                         ;YD->LAT,IF BE+1 IS'NT LINK GO
+        E 2,,APLUSB,,CNST,,,BUS3+PC             ;PC+2->PC (NEXT BUFFERLET)
+        E WCI1,TRUE,,,,,,,LOADMC                ;GO TO WCI1 
+RTD4:   E ,,B,WR,,,YD,L02+L22+L33               ;YD->LATCH, HW->WR
+        E RTD6,TRUE,B,WR,,,REGWRT+YD,L32        ;YD->LAT, HIGH BYTE->WR, JUMP RTD6
+RTD5:   E 14,,B,WR,ALU,LDMAC+MDR,,L20+L32       ;HW->WR,MDR,YD->LAT,STORE->MAC
+        E ,,,,,,MACREQ                          ;START STORE
+RTD6:   E 0FC,,AB,WR,CNST,,YD,BUS3+WR           ;YD->LAT, WR AND "0FC"->WR
+        E ,,B,WR,,,,L32                         ;LATCH>>8->WR
+        E RTD7,G,,SLWR,,,YS                     ;BYTE COUNT->LATCH, IF G GOTO RTD7
+        E 4,,APLUSB,WR,CNST,,,BUS3+WR           ;WR+4->WR
+        E ,,APLUSB,,,,,WR3+PC                   ;PC+LOW WR->MC (CHAR ROUTINE)
+        E 8000+WCI1,TRUE,,,,,,,LOADMC           ;WAIT FOR STORE, JUMP WCI1
+RTD7:   E 0C,,AMIN1,WR,,,MREG,LATCH             ;BYTE COUNT-1->WR, REG0C->LATCH
+        E 8010,,A,WR,,LDMAC,REGWRT+YS,LATCH     ;UPDATE COUNTER,SR ADDR->WR,MC
+        E RTD1,G,,,,,,,LOADMC                   ;IF BYTE COUNTER>0,JUMP RTD1
+        E 3,,,,,,MREG                           ;DEST ADDR ->LATCH
+        E ,,A,WR,,,YD,LATCH                     ;DEST ADDR->WR,MC, NEW HW->LAT
+RTD7M:  E 8014,,B,,ALU,LDMAC+MDR,,L20,LOADMC    ;NEW HW->MDR, STORE->MAC
+        E RTD8,WR31                             ;IF ODD ADDR JUMP RTD8
+        E ,,,,,,MACREQ                          ;START STORE
+RTD8:   E 0C,,APLUSB,,CNST,,,BUS3+PC            ; PC+C->MC,PC (NEXT INSTRUCTION)
+        E 8000+FETCH0,TRUE,,,,,,,LOADPC+LOADMC  ;JUMP FETCH
+;
+EJECT
+;************************************************************************
+;
+;      RMAKE BYTE COPY  OPCODES 0E AND 0F
+;
+;------------------------------------------------------------------------
+;
+;      LIKE RTD BYTE COPY, EXCEPT SOURCE AND DEST REVERSED AND SKIP ON SOURCE BOUNDARY
+       ORG H#790
+;      ENTRY POINTER OF OPCODE 0F
+        E 0F,,B,XWR,CNST,,,BUS3;                ; 0F->XWR
+        E RMK4,TRUE                             ;GO TO RMK4
+;      ENTRY POINTER OF OPCODE 0E
+        E 0F,,B,XWR,CNST,,,BUS3,INCPC;          ; 0F->XWR, PC+2->PC
+        E 3,,,,,,MREG;                          ; GET SOURCE ADDRESS, BB->LAT
+        E ,,A,WR,,,,LATCH                       ;BB->WR,MC
+RMK1:   E 8010,,APLUS1,WR,,LDMAC,,WR,LOADMC     ;BB+1->WR, SET UP MAC FOR READ
+        E RMK3,WR31,,,,,MACREQ+YD               ;YD->LATCH, IF ODD BB GO TO RMK3
+        E 8003,,B,WR,MDR,,REGWRT+MREG,L00+BUS2+BUS3 ;BB+1->REG3,DATA->LOW WR
+RMK2:   E RMK4,TRUE,,,,,REGWRT+YD               ;YD->LATCH, WR->YD, GO TO RMK4
+RMK3:   E 3,,AB,WR,,,REGWRT+MREG,XWR3+WR        ;BB+1->REG3, WR AND "0F"->WR
+        E ,,,,,,YD                              ;YD->LATCH
+        E RMK2,G,B,WR,,,,L00+L23                ;LATCH->WR, IF BB+1 IS NOT LINK
+        E 2,,APLUSB,,CNST,,REGWRT+YD,BUS3+PC    ;PC+2->MC, WR->YD
+        E 8000+WCI1,TRUE,,,,,,,LOADMC           ;GO TO WCI1 (GET NEXT BUFFERLET)
+RMK4:   E 0C,,,,,,MREG                          ; LOGIC RECORD ADDR-1 ->LATCH
+        E ,,APLUS1,WR,,,,LATCH                  ;LATCH+1->WR
+        E 800C,,,,,,REGWRT+MREG,,LOADMC         ;WR->REG0C
+        E RMK5,WR31,,,,,YD                      ;YD->LATCH, IF ODD WR GO TO RMK5
+        E ,,B,WR,,,YD,L02+L22+L33               ;LATCH->WR, YD->LATCH
+        E RMK6,TRUE,B,WR,,,REGWRT+YD,L32        ;LATCH>>8->WR, GO TO RMK6
+RMK5:   E 14,,B,WR,ALU,LDMAC+MDR,,L20+L32       ;LATCH>>8->WR,MDR, STORE->MAC
+        E ,,,,,,MACREQ                          ;START STORE
+RMK6:   E 0FC,,AB,WR,CNST,,YD,BUS3+WR           ;WR AND "0FC"->WR, YD->LATCH
+        E ,,B,WR,,,,L32                         ;LATCH>>8->WR
+        E RMK7,G,,SLWR,,,YS                     ;2*WR->WR, BYTE COUNT->LATCH
+        E 4,,APLUSB,WR,CNST,,,BUS3+WR           ;WR+4->WR
+        E ,,APLUSB,,,,,WR3+PC                   ;PC+LOW WR->MC (SELECT CHAR ROUTINE)
+        E 8000+WCI1,TRUE,,,,,,,LOADMC           ;WAIT FOR STORE, GO TO WCI1
+RMK7:   E 3,,AMIN1,WR,,,MREG,LATCH              ;BYTE COUNT-1->WR, BB->LATCH
+        E ,,A,WR,,,REGWRT+YS,LATCH              ;BYTE COUNT->YS, BB->WR
+        E RMK1,G,A,,,,,WR                       ;BB->EBUS, IF BYTE COUNT>0 GO RMK1
+        E 0C,,,,,,MREG                          ;REG0C->LATCH
+        E RTD7M,TRUE,A,WR,,,YD,LATCH            ;LATCH->WR, YD->LATCH, GO RTD7M
+;
+EJECT
+;************************************************************************
+;
+;      ARRAY AND  OPCODE 3E     AND TWO BIT ARRAYS TOGETHER
+;
+;------------------------------------------------------------------------
+;
+;      YD = ADDR OF LAST HW OF SOURCE 1 ARRAY (S1)
+;      YD+1 = ADDR OF LAST HW OF SOURCE 2 ARRAY (S2)
+;      YS = (# OF HW'S IN ARRAY - 1)*10X
+;      IF HIT FOUND, NORMAL RETURN WITH BIT # IN YS
+;      SKIP (+2) RETURN IF NO HITS
+;      WILL REFETCH EVERY 16 HW'S TO ALLOW INTERRUPTS
+;
+;      NOTE - FOR EFFICIENCY, THE 1ST HW BEFORE THE START OF THE S1 ARRAY IS
+;      ALWAYS READ (NOT ANDED) WHICH COULD CAUSE A MAC VIOLATION IF THE S1
+;      ARRAY STARTS ON A MAC SEGMENT BOUNDARY.
+;
+       ORG H#7C0
+        E 10,,,,,LDMAC,INCYD+YD;                ;S1 ADDR->MC
+        E ,,A,,,,,LATCH;                        ; /
+        E 2,,B,XWR,CNST,,YD,BUS3,LOADMC;        ;/ 2->XWR
+        E ,,A,WR,,,MACREQ,LATCH;                ;S2 ADDR->WR, START READ OF 1ST S1 HW
+ARAND2: E 8000,,B,WR,MDR,,DECYD+REGWRT+YD,BUS2+BUS3,LOADMC; ;SAVE S2 ADDR, S1->WR
+        E ,,,,,,MACREQ+YD;                      ;START READ OF S2
+        E 2,,AMINB,,CNST,,,BUS3+LATCH;          ;DEC S1 ADDR...
+        E 8000,,AB,WR,MDR,,,BUS2+BUS3+WR,LOADMC;    ;...TO MC, S1.AND.S2->WR
+        E ,,,,,,MACREQ;                         ;START READ OF NEXT S1
+        E ARAND4,G,,,,,YD;                      ;ARAND4 IF RESULT>0
+        E 2,,AMINB,WR,CNST,,YS,BUS3+LATCH;      ;DEC S1 ADDR->WR
+        E 10,,AMINB,WR,CNST,,INCYD+REGWRT+YD,BUS3+LATCH;    ;DEC BIT COUNT BY 10
+        E 0F0,,AB,WR,CNST,,REGWRT+YS,BUS3+WR;   ;BITCOUNT.AND.0F0->WR  CHECK IF TIME FOR REFETCH
+        E ARAND3,WR0,,,,,YD;                    ;ARAND3 IF ALL BITS EXAMINED...DONE
+        E ARAND2,G,AMINB,WR,,,,XWR3+LATCH;      ;DEC S2 ADDR->WR, ARAND2 IF NO REFETCH
+        E 8019,,A,,,LDMAC,REGWRT+YD,PC;         ;REFETCH EVERY 16 HW'S, S2 ADDR->YD+1
+        E FETCH1,TRUE,,,,,,,LOADMC;             ;PC->MC, JUST DECODE AGAIN W/O MACREQ
+;
+;      ALL BITS EXAMINED AND NO HITS FOUND
+;
+ARAND3: E ,,,,,,,,INCPC;                        ;SKIP+2 RETURN
+        E FETCH,TRUE,A,,,,,PC,INCPC;            ;/
+;
+;      GOT A HIT!   FIND LEFTMOST BIT SET AND CALC BIT #
+;
+ARAND4: E ,,A,WR,,,REGWRT+YD,LATCH,INCPC;       ;SAVE HIT PATTERN IN YD
+        E ,,A,XWR,,,YD,PC;                      ;SAVE PC IN XWR (WILL USE PC AS BIT COUNTER)
+        E ,,B,WR,,,REGWRT+YD,L02;               ;MOVE HIT PATTERN TO LEFT HALF OF WR
+        E ,,B,SLWR;                             ;SHIFT HIT PATTERN LEFT
+        E ARAND6,WR0,,SLWR,,,,,LOADPC;          ;ARAND6 IF MSB SET
+ARAND5: E ARAND5,G,,SLWR,,,,,INCPC;             ;SHIFT WR LEFT UNTIL MSB SET, COUNT PC
+ARAND6: E ,,A,WR,,,,PC;                         ;FOUND IT! PC(2*COUNT)->WR
+        E ,,B,SRWR,,,,XWR0+XWR2+XWR3;           ;WR=BIT COUNT, OLD PC->PC,MC
+        E 8019,,A,XWR,,LDMAC,YS,WR,LOADPC+LOADMC;   ;BIT COUNT->XWR
+        E 0FFF0,,AB,WR,CNST,,MACREQ,SIGN0+BUS2+BUS3+LATCH;  ;CALC BIT #, START NEXT FETCH
+        E ,,APLUSB,WR,,,,XWR3+WR;               ;/
+        E FETCH1,TRUE,,,,,REGWRT+YS;            ;RETURN BIT# IN REG(YS)
+;
+EJECT
+;************************************************************************
+;
+;      HALFWORD COPY  OPCODE 3F    COPY ONE BLOCK OF MEMORY TO ANOTHER
+;
+;------------------------------------------------------------------------
+;
+;      YD = ADDR OF LAST SOURCE HW
+;      YD+1 = ADDR OF LAST DESTINATION HW
+;      YS = (# OF HW'S TO COPY - 1)*10X
+;      WILL REFETCH EVERY 16 HW'S TO ALLOW INTERRUPTS
+;
+;      NOTE - ALWAYS READS 1 HW BEFORE START OF SOURCE AREA (NOT COPIED)
+;      WHICH COULD CAUSE MAC VIOLATION IF SOURCE AREA STARTS ON A MAC
+;      SEGMENT BOUNDARY.
+;
+       ORG H#7E0
+        E 10,,,,,LDMAC,INCYD+YD;                ;SOURCE ADDR->MC
+        E ,,A,,,,,LATCH;                        ; /
+        E 2,,B,XWR,CNST,,YD,BUS3,LOADMC;        ;/ 2->XWR
+        E ,,A,WR,,,MACREQ,LATCH;                ;START READ OF SOURCE HW, DEST ADDR->WR,MC
+HCOPY1: E 8014,,,,MDR,LDMAC+MDR,DECYD+REGWRT+YD,,LOADMC;  ;SOURCE DATA->MDR, DEST ADDR->YD+1
+        E ,,,,,,MACREQ+YD;                      ;START WRITE TO DEST ADDR
+        E 2,,AMINB,WR,CNST,,,BUS3+LATCH;        ;DEC SOURCE ADDR BY 2->WR
+        E 8010,,,,,LDMAC,INCYD+REGWRT+YD,,LOADMC;   ;SAVE SOURCE ADDR->YD
+        E ,,,,,,MACREQ+YS;                      ;START READ OF NEXT SOURCE ADDR
+        E 10,,AMINB,WR,CNST,,YS,BUS3+LATCH;     ;DEC COUNT BY 10->WR
+        E 0F0,,AB,WR,CNST,,REGWRT+YS,BUS3+LATCH;    ;COUNT->YS, COUNT.AND.0F0->WR
+        E HCOPY2,WR0,,,,,YD;                    ;HCOPY2 IF COUNT NEGATIVE...DONE!
+        E HCOPY1,G,AMINB,WR,,,,XWR3+LATCH;      ;HCOPY1 IF NO REFETCH, DEC DEST ADDR BY 2->WR
+        E 8019,,A,,,LDMAC,REGWRT+YD,PC;         ;REFETCH EVERY 16 HW'S, DEST ADDR->YD+1
+        E FETCH1,TRUE,,,,,,,LOADMC;             ;PC->MC, JUST DECODE AGAIN W/O MACREQ
+HCOPY2: E FETCH,TRUE,A,,,,,PC,INCPC;            ;DONE! FETCH NEXT INSTR
+;
+	END
+    : c½
