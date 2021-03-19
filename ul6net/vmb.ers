@@ -1,0 +1,916 @@
+
+
+
+         ****    ***    ***    ***         *    *   *  *   *  ****
+         *   *  *   *  *   *  *   *       *     *   *  ** **   *  *
+         *   *  *      *      *           *     *   *  ** **   *  *
+         ****    ***   *       ***       *       * *   * * *   ***
+         * *        *  *          *     *        * *   * * *   *  *
+         *  *   *   *  *   *  *   *     *         *    *   *   *  *
+         *   *   ***    ***    ***     *          *    *   *  ****
+
+        ***  **  *  *****  *****  ****   *****    *     ***   *****
+         *   **  *    *    *      *   *  *       * *   *   *  *
+         *   * * *    *    *      *   *  *      *   *  *      *
+         *   * * *    *    ***    ****   ***    *   *  *      ***
+         *   * * *    *    *      * *    *      *****  *      *
+         *   *  **    *    *      *  *   *      *   *  *   *  *
+        ***  *  **    *    *****  *   *  *      *   *   ***   *****
+
+
+
+
+                   External Requirements Specification
+
+
+
+
+
+
+                              Eric Buell
+
+
+
+
+
+                             Tymshare, Inc.
+
+                      Network Technology Division
+
+                              May 21, 1984
+                  Revised (E. Buell) October 25, 1984
+                   Revised (E. Buell) April 21, 1985
+
+
+
+          ---------------------------------------------------------
+          |                                                       |
+          | This document is the sole property and confidential   |
+          | information of Tymshare, Inc., and may not be copied  |
+          | in whole or part, or disclosed to any third party     |
+          | without the prior written consent of TYMSHARE.        |
+          |                                                       |
+          ---------------------------------------------------------
+
+
+Tymnet RSCS/VMB Interface
+External Requirements Specification (ERS)
+
+
+                               PREFACE
+
+This manual describes the technical  aspects  of  the  VMB  Interface,
+operational procedures and applications of support.
+
+This product supports RSCS 1.2 and 1.3.
+
+It is assumed  that  the  reader  of  this  specification  is  already
+familiar with the RSCS/VMB Interface/Protocol as implemented by IBM on
+VM/370 systems and is only interested in  the  Tymnet  implementation.
+This interface/protocol is documented in these IBM publications:
+
+     General Information Binary Synchronous Communications, GA27-3004     _______ ___________ ______ ___________ ______________
+     RSCS Networking Logic Manual, LY24-5203-1     ____ __________ _____ ______
+
+Also, it is assumed that  the  reader  is  familiar  with  the  Tymnet
+2780/3780/HASP  Interface product, which is documented in the Tymshare
+publication:
+
+     2780/3780/HASP Interface Reference Manual, March 17,1982     ______________ _________ _________ ______
+
+The reader should also refer to the Tymshare document:
+
+     RSCS/VMB INTERFACE GENERAL EXTERNAL DESIGN, January 31, 1984     ________ _________ _______ ________ ______
+Tymnet RSCS/VMB Interface
+External Requirements Specification (ERS)
+
+
+                          TABLE OF CONTENTS                          _____ __ ________
+
+
+1.0  Overview
+
+2.0  Technical Description
+   2.1  Physical Interface
+   2.2  Link Level Protocol
+   2.3  Local Procedures
+      2.3.1  VMB Communication Initiation
+      2.3.2  File Transfer
+      2.3.3  Communication Termination
+
+   2.4  End-to-end Procedures
+      2.4.1  Signon Verification
+      2.4.2  Data Blocks
+      2.4.3  End-of-file Blocks
+      2.4.4  Command/Message Blocks
+         2.4.4.1  Restart Command
+         2.4.4.2  Purge Command
+
+   2.5  Network Services
+      2.5.1  Permanent Virtual Circuit Building
+      2.5.2  Circuit Clearing
+
+3.0  Application of Support
+   3.1  Constraints
+   3.2  External Support
+
+4.0  Operations
+   4.1  Network Signon Procedures
+   4.2  Network Signoff Procedures
+   4.3  Monitoring
+
+5.0  System Generation
+   5.1  Slot Parameters
+   5.2  Buffer Parameters
+   5.3  Line Parameters
+      5.3.1  DIALECT
+      5.3.2  RSCSVER
+      5.3.3  VMBSIG
+      5.3.4  LEASED
+      5.3.5  VMBHST
+      5.3.6  PVC
+
+   5.4  Line Counters and Timers
+   5.5  Default Parameters
+   5.6  Sample System Generation File
+   5.7  Sample Command File
+
+6.0  Interface Messages
+Tymnet RSCS/VMB Interface                                        Page 0
+External Requirements Specification (ERS)
+
+
+SECTION 1.0 OVERVIEW_______ ___ ________
+
+The Tymnet VMB Interface, an extension to  the  Tymnet  2780/3780/HASP
+Interface,  provides  network  access between customer hosts using the
+RSCS/VMB protocol.  The RSCS/VMB  protocol  allows  VM/RSCS  users  to
+spool data between compatible systems.
+
+Hardware or software changes are not required at  the  host  computer.
+Switched   (via   a   telephone  network  or  directly  connected)  or
+nonswitched (leased or directly connected) host ports are supported.
+
+Connection between hosts through the  network  will  be  by  means  of
+Permanent Virtual Circuits (PVC's).  The PVC between two hosts will be
+built at  slot  initialization  time  for  unswitched  lines  or  upon
+detection   of   Data   Set  Ready  (DSR)  for  switched  lines.   The
+interconnection of the hosts will be specified  at  System  Generation
+(SYSGEN) time.
+Tymnet RSCS/VMB Interface                                       Page 1
+External Requirements Specification (ERS)
+
+
+SECTION 2.0 TECHNICAL DESCRIPTION_______ ___ _________ ___________
+
+The following subsections provide  detailed  descriptions  of  various
+levels of VMB Interface support.  Included are the physical interface,
+link level  protocol,  local  procedures,  end-to-end  procedures  and
+network services.
+
+For network purposes, two types of host ports are defined.  Host ports
+can have switched or unswitched connections.  Switched connections use
+Data  Terminal  Ready  (DTR)  and  Data  Set  Ready   (DSR)   signals.
+Unswitched  connections  do not use DTR/DSR signals.  A port which has
+DTR/DSR signals may be SYSGEN'd "unswitched", however the reverse  may
+not be done.
+
+
+
+SECTION 2.1 PHYSICAL INTERFACE_______ ___ ________ _________
+
+A description of the physical interface can be found in  the  Tymshare
+document:
+
+     2780/3780/HASP Interface Reference Manual, March 17,1982     ______________ _________ _________ ______
+
+
+
+SECTION 2.2 LINK LEVEL PROTOCOL_______ ___ ____ _____ ________
+
+Data links between the host and  host  port,  use  binary  synchronous
+point-to-point protocol as described in the following IBM documents:
+
+     General Information Binary Synchronous Communications, GA27-3004     _______ ___________ ______ ___________ ______________
+     RSCS Networking Logic Manual, LY24-5203-1     ____ __________ _____ ______
+
+The interface can transmit data frames  that  require  more  than  one
+second of transmission time at the rated line speed.
+
+
+
+SECTION 2.3 LOCAL PROCEDURES_______ ___ _____ __________
+
+Acknowledgement  and  error  recovery  are  handled  locally  by   the
+interface  except  in  the  case of any non-data blocks or EOT's.  All
+such blocks are end-to-end ACK'd (except EOT's).
+
+A rejection (x'A0') is used by the host interface to temporarily  halt
+data  flow  when  insufficient  buffer  space  is available within the
+interface.  Once buffer space becomes  available  the  interface  port
+will respond with an ACK (x'80') instead of a rejection.
+
+In the event that there is nothing to send to the host for a prolonged
+period  while a file is being transmited, a Temporary Text Delay (TTD)
+will be simulated by sending "SYNCH" blocks.  
+
+2.3.1 VMB COMMUNICATION INITIATION      ___ _____________ __________
+Tymnet RSCS/VMB Interface                                       Page 2
+External Requirements Specification (ERS)
+
+
+All communication sessions are initiated from the quiescent  state  in
+which each side is monitoring the line for an ENQ.
+
+Immediately following circuit building a  signon  exchange  will  take
+place.   If  there  is no data to send, the session will be terminated
+with an EOT.  Both sides will then return to the quiescent state.  The
+PVC will remain.
+
+Under normal circumstances, communications are  initiated  by  a  host
+with  data  to transmit by sending an ENQ.  The expected response is a
+DLE/ACK0.  If however, an ENQ is received in response to an  ENQ,  the
+interface acquiesces and responds with DLE/ACK0.
+
+The format of the ENQ and DLE/ACK0 are:
+
+    ------                -------
+    |SSEP|                |SSDxP|
+    |YYNA|                |YYL7A|
+    |NNQD|                |NNE0D|
+    ------                -------
+
+The host interface now expects a signon block.
+
+The format of this signon block is:
+
+    ------------------------------------------------------------
+    |SSDS  8 Character      8 Character     2 Byte    DSDSDECCP|
+    |YYLT  Location ID      Password        Buffer    LYLYLTRRA|
+    |NNEX                                   Size      ENENEBCCD|
+    ------------------------------------------------------------
+
+    Note: The Buffer size is specified for RSCS 1.3 only.
+
+The response of the host interface  is  to  send  it's  signon  block.
+Successful validation of the signon blocks by both sides completes the
+signon sequence.
+
+The receipt of anything other than a signon block  in  response  to  a
+signon  block  is interpreted as a bad signon.  In this case an EOT is
+sent.   If  there  are  signon  retries  remaining,  the  sequence  is
+restarted from the ENQ - DLE/ACK0 exchange.
+
+After the signon exchange completes, the  initiating  side  (the  side
+with  data to send) will send a "SYNCH" block to synchronize the block
+sequence numbers.
+
+A signon block can be received during data  transfer.   This  normally
+indicates  that the remote went down and came back up.  In this case a
+signon block is returned and as long as anything other than EOT or NAK
+is received, the transfer will continue from where it left off (except
+that an interface that goes  through  complete  reinitialization  will
+send a RESTART command to the remote).
+
+2.3.2 FILE TRANSFER      ____ ________
+Tymnet RSCS/VMB Interface                                       Page 3
+External Requirements Specification (ERS)
+
+
+Once host signon is complete file transfer can proceed.  This is  done
+by  sending  the first data block which will probably contain the TAGB
+record for the file.
+
+The file transfer  continues  by  exchanging  blocks  in  one  of  the
+following formats:
+
+     w/o data
+
+    --------------
+    |SSSNNNNAECCP|
+    |YYOUUUUCTRRA|
+    |NNHLLLLKBCCD|
+    --------------
+
+     or w/ data
+
+    -----------------------------------------------------------------
+    |SSSNNNNAICCSSSS          S         PPDS               DSDSDECCP|
+    |YYOUUUUCTRRYYYY ('VMRA') E (STYLE) DDLT (PACKED DATA) LYLYLTRRA|
+    |NNHLLLLKBCCNNNN          Q         CCEX               ENENEBCCD|
+    -----------------------------------------------------------------
+
+     Note: The ACK byte is optional and is included only if there was
+           data in the last good frame received.  The text segment is
+           included  in the block only if there is data to send.  The
+           length of the  Packed  Data  segment is 824 bytes for RSCS
+           1.2, or as specified in the signon block for version 1.3.
+
+If a garbled block is received during the exchange, a NAK is returned.
+
+The format of the NAK is:
+
+    ------
+    |SSNP|
+    |YYAA|
+    |NNKD|
+    ------
+
+When the transmitting side receives an NAK  it  retransmits  the  last
+block,  including  ACK  and  data  if present.  This process continues
+until an ACK is received.
+
+2.3.3 COMMUNICATION TERMINATION      _____________ ___________
+
+If one side runs  out  of  files  to  send  in  a  bidirectional  file
+transfer,  it simply stops sending the text segment of the block.  The
+transfer then becomes unidirectional.
+
+If the transmitter runs out of  files  to  send  in  a  unidirectional
+transfer,  it  sends  an EOT.  This causes both sides to return to the
+quiescent state.
+Tymnet RSCS/VMB Interface                                       Page 4
+External Requirements Specification (ERS)
+
+
+The format of the EOT is:
+
+    ------
+    |SSEP|
+    |YYOA|
+    |NNTD|
+    ------
+
+
+
+SECTION 2.4 END-TO-END PROCEDURES_______ ___ __________ __________
+
+2.4.1 SIGNON VERIFICATION      ______ ____________
+
+Although signon takes place locally, the location ID and password that
+the  interface  sends  to  the local host are SYSGEN'd into the remote
+interface.  After  a  circuit  has  been  established  the  interfaces
+exchange  the  ID's  and  passwords  of their respective hosts so that
+local host signon can take place.  This not only simplifies the SYSGEN
+process  (only  the information for the local host need be included in
+the local interface's SYSGEN), it also allows "link switching".   This
+allows  several  remote hosts to signon and use the same line into the
+local host in an exclusive manner (one at a time).
+
+Since host signon occurs after the circuit has been built, there is no
+indication  that the remote interface host signon has been successful.
+This could allow files to be lost by  the  local  host  beginning  and
+completing the transmission of a short file without the net being able
+to deliver it to the remote host.  To alleviate this problem the first
+block  of  a  file is end-to-end acknowledged as a verification of the
+remote host signon.
+
+2.4.2 DATA BLOCKS      ____ ______
+
+A data block is identified by the text "PRINT" or "PUNCH" in the style
+field  of  the  block header.  Data blocks are sent end-to-end without
+the VMB header  and  without  an  acknowledgement  expected  from  the
+remote.
+
+When the first data block of a session is transmitted to  the  remote,
+it  is  preceded  by  an  "SOT" (Start Of Transmission) message.  This
+informs the remote that an end-to-end  session  has  begun.   This  is
+important to the TTD (Temporary Text Delay) function.
+
+2.4.3 END-OF-FILE BLOCK      ___________ _____
+
+An end-of-file (EOF) block is a special case of a data block.  It is a
+data  block  which  contains  an  EOF  flag  byte.  This block will be
+end-to-end acknowledged.  While waiting for  the  acknowledgement  the
+interface  will return rejects (x'A0') to the local host as necessary,
+causing the host to retransmit the data block.
+
+When the  interface  receives  the  acknowledgement  from  the  remote
+interface, ir returns an acknowledgement to the local host.
+Tymnet RSCS/VMB Interface                                       Page 5
+External Requirements Specification (ERS)
+
+
+This completes the file transfer.  If there are  more  files  to  send
+their transfer can proceed immediately, without a signon exchange.
+
+2.4.4 COMMAND/MESSAGE BLOCKS      _______________ ______
+
+A "MSGHD" block is used to send commands and messages  to  the  remote
+host.  "MSGHD" blocks are end-to-end ACK'd.  The contents of this kind
+of block is unimportant to the interface unless it contains a  RESTART
+command.
+
+2.4.4.1 RESTART COMMAND        _______ _______
+
+The RESTART command instructs the transmitting  host  to  rewind  it's
+output  file  and  begin retransmitting it.  This has consequences for
+the interface because it acknowledges data blocks locally and the host
+originating the RESTART expects that the next block it receives is the
+beginning of the restarted file.  This will not be the case because of
+the large number of blocks queued within the network.
+
+To solve this problem, the local interface immediately upon  detection
+of  a  RESTART  command, begins discarding any data blocks it receives
+from the remote and sends an end-to-end acknowledgement  request  with
+the  "MSGHD"  block  to  the  remote.   While  waiting for the ACK the
+interface will return rejects (x'A0') to the local host as  necessary,
+causing the host to retransmit the "MSGHD" block.
+
+The remote interface, when it receives this block will return  an  ACK
+to  the  originating  interface once the block has been transferred to
+and has been ACK'd by it's host.
+
+When the ACK  is  received  by  the  originating  side  it  will  stop
+discarding  blocks,  ACK  the  "MSGHD"/RESTART block and resume normal
+transmission.
+
+There is a problem inherent in the RSCS/VMB protocol with  respect  to
+RESTART commands.  When a RESTART command is received by a host and it
+is waiting for an ACK of a block containing an EOF, it will purge  the
+output  file  based  on  the  ACK in the RESTART block header and then
+process the RESTART command.  This causes the file to be lost.
+
+Normally this is not much of a problem because RESTART's are sent only
+at host VMB interface initialization.  However, because quite a number
+of blocks can be queued within the net the probability of losing files
+due to this cause is increased.
+
+2.4.4.2 PURGE COMMAND        _____ _______
+
+The only other command which is sent end-to-end is a PURGE, but it has
+no  affect on the interface because of it's unidirectional nature (the
+originator expects nothing back from the receiver).
+
+2.4.5 TERMINATING FILE TRANSFER      ___________ ____ ________
+
+When a host has no more files to send and it is not receiving any,  it
+sends an EOT and returns to the quiescent state.
+Tymnet RSCS/VMB Interface                                       Page 6
+External Requirements Specification (ERS)
+
+
+When an interface receives  this  EOT,  it  sends  it  end-to-end  and
+returns to the quiescent state.
+
+When the remote interface receives the EOT it sends it to it's host as
+long  as  there  is no data being sent from the host to the interface.
+The remote interface then returns to the quiescent state, as does  the
+host.
+
+
+
+SECTION 2.5 NETWORK SERVICES_______ ___ _______ ________
+
+Establishment of the PVC between two hosts  will  occur  at  different
+times  depending  on whether the connection is switched or unswitched.
+For an  unswitched  interface  PVC  building  will  be  done  at  slot
+initialization  time  and will remain established as long as the slots
+and the network are up.  For a switched  ince  the  PVC  will  be
+built  when  DSR  is  detected  on the originating host port, and will
+remain active until DSR is dropped.   Circuit  building  can  only  be
+initiated from one end.
+
+2.5.1  PERMANENT VIRTUAL CIRCUIT BUILDING       _________ _______ _______ ________
+
+Only one of a pair of VMB host interfaces is given the  PVC  attribute
+at  SYSGEN.   This  is  to  prevent  contention  problems  during  PVC
+building.
+
+When the PVC interface is initialized (for unswitched connections)  or
+when  DSR  is  detected  (for switched connections) it will attempt to
+build a PVC to it's remote interface.  The  success  of  this  attempt
+depends  on  the  remote  interface  having  detected  DSR  or  having
+simulated DSR (for an unswitched connection) from it's host.  If  this
+is the case the build attempt will be successful.
+
+Once the  circuit  is  built,  signons  will  be  performed  with  the
+respective  hosts.   If there is no data to transfer the sessions will
+quiesce by exchanging EOT's.
+
+2.5.2 CIRCUIT CLEARING      _______ ________
+
+The PVC will be cleared if DSR is dropped for a switched interface, if
+there  are  too  many  sync  errors,  or if a component of the virtual
+circuit (net) goes down.
+
+When this event is detected by the interfaces, they proceed  to  bring
+their  sessions to quiescence, if not already there, by sending an EOT
+to their hosts.
+
+When the  circuit  is  reestablished  and  signon  has  completed,  an
+interface  will  generate a PURGE command for the remote and a RESTART
+command for the local host.  Once these are sent, communications  will
+proceed normally.
+Tymnet RSCS/VMB Interface                                       Page 7
+External Requirements Specification (ERS)
+
+
+SECTION 3.0 APPLICATION OF SUPPORT_______ ___ ___________ __ _______
+
+The Tymnet RSCS/VMB host interface currently operates in  native  mode
+only.   The  following diagram shows the operation of the hardware and
+software in native mode.
+
+
+
+    -----------                  /----------- 
+    |         |  --------  -------  TYMNET   |
+    |   VM    |--| 3705 |--| VMB |           /
+    |  RSCS   |--|      |  |  IF |*         /
+    |         |  --------  ------- *PVC      | 
+    -----------               |     *       /
+                               |     *     /             -----------
+                                |   -------    --------  |         |
+                                ----| VMB |    |      |--|   VM    |
+                                    |  IF |----| 3705 |--|  RSCS   |
+                                    -------    --------  |         |
+                                                         -----------
+
+                    Figure 2.  Tymnet VMB Support
+
+Each link attached to an interface is connected via a  single  network
+Permanent  Virtual Circuit (PVC) to a target link.  The target link is
+usually attached to a remote interface, but may  be  attached  to  the
+interface originating the PVC.
+
+SECTION 3.1 CONSTRAINTS_______ ___ ___________
+
+DTR/DSR and RTS/CTS signalling is available only on some ports.  There
+are  eight  ports  with  modem signals and eight ports without on each
+Engine synchronous board.
+
+Maximum link speed is 19200 bps with external clocks and 9600 bps with
+internal clocks.
+
+SECTION 3.2 EXTERNAL SUPPORT_______ ___ ________ _______
+
+External support for the VMB Interface covers hosts only.
+
+The VMB Interface is compatible with IBM hardware and  software  using
+RSCS/VMB  protocol interfaces, versions 1.2 or 1.3.  The interface can
+support non-IBM hosts with equivalent capabilities.  Due to variations
+in  non-IBM vendor's implementations, an account representative should
+be contacted to verify compatibility with a specific non-IBM host.
+
+The interface supports switched and nonswitched host ports.
+Tymnet RSCS/VMB Interface                                       Page 8
+External Requirements Specification (ERS)
+
+
+SECTION 4.0 OPERATIONS_______ ___ __________
+
+The following subsections contain information concerning  the  various
+operational aspects of the interface as they pertain to the user.
+
+SECTION 4.1 NETWORK SIGNON PROCEDURES_______ ___ _______ ______ __________
+
+Since the VMB interfaces are connected by a PVC, there is no  operator
+initiated  signon  required.   The PVC will be initiated automatically
+when DSR is detected at the PVC originating host  and  completed  when
+DSR  is detected at the PVC receiving host.  It can take a significant
+amount of time to build  the  PVC  (in  the  tens  of  seconds).   The
+establishment of the circuit can be determined from the fact that host
+signon does not occur until the circuit has been built.   See  section
+2.5.1 for more information.
+
+SECTION 4.2 NETWORK SIGNOFF PROCEDURES_______ ___ _______ _______ __________
+
+The PVC will remain as long as the net is up and DSR is true  at  both
+ends   (for   switched   interfaces).   See  section  2.5.2  for  more
+information.
+
+SECTION 4.3 MONITORING_______ ___ __________
+
+There is an extended DDT command to monitor  sync  line  activity  for
+VMB.  The command is VMBTRACE [#][,#]..., where "#" indicates the line
+numbers to monitor.  If no line numbers  are  specified,  the  command
+will monitor all VMB lines.
+
+This command will cause a trace display to be  generated,  first  from
+any  old trace information in the trace buffer and then in realtime as
+the interface runs.  Interspersed with this trace in realtime will  be
+state information pertaining to the module HSEC (line states).
+
+Example:
+
+*?STAT
+:>VMBTRACE 1
+ LINE  RECEIVE FRAME     VMBPTP  TRANSMIT FRAME
+                         STATE
+  *** OLD TRACE DATA ***
+    1  ETB  D.A.1.M.R.E  CHARG                   
+    1  ETB  D.A.1.M.R.E  TALK    ETB  D.R.7.S. .   
+  ***    REALTIME    ***
+    1  LINIT  
+    1  LHLTC  
+    1  LDOWN  
+    1  LWT    
+    1  LREADY 
+    1                    ENABL                   
+    1  LTRL   
+    1  LCLEAR 
+    1  LHLTC  
+    1  LDOWN  
+    1  LWT    
+    1  LREADY 
+Tymnet RSCS/VMB Interface                                       Page 9
+External Requirements Specification (ERS)
+
+
+    1                    ENABL                   
+    1  LTRL   
+    1  LACTIVE
+    1                    ENABL                   
+    1                    VSTRT   ENQ             
+    1  ACK0              PASS1   ETB  S            
+    1  ETB  S            CHARG                   
+    1  ETB  S            TALK    ETB  D. .0.S. .   
+    1  ETB               VERFY                   
+    1  ETB  D.A.0.S. .   CHARG                   
+    1  ETB  D.A.0.S. .   TALK    ETB  D.A.1.M.R.E  
+    1  ETB               VERFY                   
+    1  ETB  D.A.1.M.R.E  CHARG                   
+    1  ETB  D.A.1.M.R.E  TALK    ETB  D.R. . . .   
+    1  ETB               VERFY                   
+    1  ETB  D. .1.M.R.E  CHARG                   
+    1  ETB  D. .1.M.R.E  TALK    ETB  D.R. . . .   
+    1  ETB               VERFY                   
+    1  ETB  D. .1.M.R.E  CHARG                   
+    1  ETB  D. .1.M.R.E  TALK    ETB  D.R.0.S. .   
+    1  ETB               VERFY                   
+    1  ETB  D.A.1.M.R.E  CHARG                   
+    1  ETB  D.A.1.M.R.E  TALK    ETB  D.R.1.M.R.E  
+    1  ETB               VERFY                   
+    1  ETB  D.A.1.M.R.E  CHARG                   
+    1  ETB  D.A.1.M.R.E  TALK    ETB  D.R.7.S. .   
+    1  ETB               VERFY                   
+    1  ETB  D.A.1.M.R.E  CHARG                   
+    1  ETB  D.A.1.M.R.E  TALK    ETB  D.R.0.M. .E  
+    1  ETB               VERFY                   
+    1  ETB  D.A.1.M.R.E  CHARG                   
+    1  ETB  D.A.1.M.R.E  TALK    ETB  D.R.0.S. .   
+    1  ETB               VERFY                   
+    1  ETB  D.A.1.M.R.E  CHARG                   
+    1  ETB  D.A.1.M.R.E  TALK    ETB  D.R.0.S. .   
+    1  ETB               VERFY                   
+    1  ETB  D.A.1.M.R.E  CHARG                   
+    1  ETB  D.A.1.M.R.E  TALK    ETB  D.A.0.S. .   
+    1  ETB               VERFY                   
+    1  ETB  D.A. . . .   CHARG                   
+    1  ETB  D.A. . . .   EOS     EOT             
+    1                    GET                     
+    1                    DINIT   <RCV>           
+:>Q
+*
+
+The columns for this display have the following meanings:
+
+      LINE            Interface line number
+
+      RECEIVE FRAME   This column indicates the frame received
+                      from the local host.  I starts out with a
+                      four character frame type identifier (e.g.
+                      ACK0).
+Tymnet RSCS/VMB Interface                                      Page 10
+External Requirements Specification (ERS)
+
+
+                      For ETB frames the rest of the field
+                      gives the detail of the frame contents.
+
+                       . . . . .
+                      | | | | | |
+                      | | | | | E - frame contains an EOF flag
+                      | | | | |
+                      | | | | R - frame contains a RESTART command
+                      | | | |
+                      | | | M - this is a MSGHD frame
+                      | | | S - this is a SYNCH frame
+                      | | | P - this is a PRINT or PUNCH frame
+                      | | |
+                      | | # - sequence number
+                      | |
+                      | A - frame contains an ACK
+                      | R - frame contains a Reject
+                      |
+                      D - this is a data frame
+                      S - this is a signon frame
+
+                      Additionally, this column displays the line
+                      (HSEC) state.  These are names prefixed with 
+                      "L".
+
+      VMBPTP STATE    VMB protocol processor's state.
+
+      TRANSMIT FRAME  Same as the RECEIVE FRAME except that it
+                      displays the frame that the interface transmits
+                      in response the received frame.
+
+The information listed under the "OLD TRACE DATA" banner is  displayed
+in  non-realtime,  i.e.   it is old information from the trace buffer.
+All information displayed under "REALTIME" is current, i.e.  displayed
+in realtime as the line processes the frames.
+
+Because VMBPTP may traverse several states  (pseudo-states)  upon  the
+receipt  of a single frame, the same receive frame may be displayed on
+several successive lines.  The transmit frame will only  be  displayed
+on  the line terminating the state transitions for the received frame.
+This makes it possible to distinguish each frame exchange between  the
+interface and the host.
+
+Information displayed in angled brackets indicate special action.
+
+For further information see the  discussion  in  section  4.3  of  the
+2780/3780/HASP Reference Manual.
+Tymnet RSCS/VMB Interface                                      Page 11
+External Requirements Specification (ERS)
+
+
+SECTION 5.0 SYSTEM GENERATION_______ ___ ______ __________
+
+Configuration of the host interfaces requires a Tymfile to specify the
+system generation parameters.  The Tymfile statements are listed below
+with an explanation of the possible parameters and defaults.
+
+All statement values are in decimal unless otherwise  specified.   All
+parameters  must  be  specified  unless  a default is acceptable.  The
+pound sign (#) in the syntax should  be  replaced  by  an  appropriate
+integer,  e.g.   a line number.  Statements must not start in column 1                                                 ___
+in the Tymfile.
+
+The statement descriptions have been organized by slot, buffer,  line,
+and line counters and timers.
+
+SECTION 5.1 SLOT PARAMETERS_______ ___ ____ __________
+
+5.1.1 LOCATION      ________
+
+Syntax:      LOCATION(Node#, Slot#)
+Default:     None - this statement must be specified.
+Description: This statement defines the node and slot number for the
+             interface.
+
+For further descriptions, see the discussion in  Section  5.1  of  the
+2780/3780/HASP Reference Manual.
+
+SECTION 5.2 BUFFER PARAMETERS_______ ___ ______ __________
+
+See the discussion in Section  5.2  of  the  2780/3780/HASP  Reference
+Manual.
+
+SECTION 5.3 LINE PARAMETERS_______ ___ ____ __________
+
+In the following descriptions, "Line#" refers to the ISIS Logical Unit
+Number associated with a specific line.  The Tymfile for ISIS contains
+the logical unit/physical line mapping.
+
+5.3.1 DIALECT      _______
+
+Syntax:      DIALECT(Line#, Dialect, ... , Dialect)
+Default:     None.  This statement must be specified.
+Description: This statement specifies the dialects which can be
+             supported by a particular line on a host interface port.
+
+             For RSCS/VMB, EVMB must be the only dialect specified.
+
+5.3.2 RSCSVER      _______
+
+Syntax:      RSCSVER(Line#, Version, Revision level)
+Default:     None.  This statement must be specified.
+Description: This statement specifies the version of RSCS that the
+             interface will be communicating with locally.
+
+5.3.3 VMBSIG      ______
+Tymnet RSCS/VMB Interface                                      Page 12
+External Requirements Specification (ERS)
+
+
+Syntax:      VMBSIG(Line#, Location ID, Tpass[, Buff])
+Default:     None.  This statement must be specified.
+Description: This statement specifies that this is a VMB line. 
+             When the interface is performing a VMB signon, it
+             will expect this location ID and password from
+             the local host.  These are also sent to the remote
+             interface as soon as a circuit is built.  The 
+             location ID should be the same as specified for
+             the local host.  Tpass and Buff must match the
+             parameters specified in the RSCS operators START
+             command for the local host (Buff should only be
+             specified for RSCS 1.3).  This statement must
+             follow the RSCSVER statement.
+
+5.3.4 LEASED      ______
+
+Syntax:      LEASED(Line#)
+Default:     A switched interface.
+Description: LEASED indicates that the line referenced by "Line#"
+             is a nonswitched interface.
+
+5.3.5 VMBHST      ______
+
+Syntax:      VMBHST(Line#, Host#)
+Default:     If this is a VMB interface, either the VMBHST or the PVC
+             statement must be used.
+Description: This statement is the mutually exclusive complement to
+             the PVC statement (see 5.3.6).  It indicates that this
+             interface is to be the receiver of the PVC and it
+             specifies the host number.
+
+             It is a constraint of the network that only one of a 
+             pair of interfaces connected by a PVC can initiate
+             the circuit building.  The use of this statement
+             indicates that this host will not be the initiator.                                           ___
+
+5.3.6 PVC      ___
+
+Syntax:      PVC(Line#, Userid, Host#, Password)
+Default:     If this is a VMB interface, either the VMBHST or the PVC
+             statement must be used.
+Description: This is used to define an interface that is to build
+             a virtual circuit to a specific remote interface once
+             DSR is detected for a switched port, or OFFTIM seconds
+             after the circuit is cleared for a nonswitched port.
+             This should be specified for only one interface of a
+             pair.
+
+             When using this statement with a VMB interface, the
+             remote interface specification must use the VMBHST
+             statement (see 5.3.4).
+
+For further  descriptions,  see  Section  5.3  of  the  2780/3780/HASP
+Reference Manual.
+
+SECTION 5.4 LINE COUNTERS AND TIMERS_______ ___ ____ ________ ___ ______
+Tymnet RSCS/VMB Interface                                      Page 13
+External Requirements Specification (ERS)
+
+
+See the discussion in Section  5.4  of  the  2780/3780/HASP  Reference
+Manual.
+
+SECTION 5.5 DEFAULT PARAMETERS_______ ___ _______ __________
+
+See the discussion in Section  5.5  of  the  2780/3780/HASP  Reference
+Manual.
+
+SECTION 5.6 SAMPLE SYSTEM GENERATION FILES_______ ___ ______ ______ __________ _____
+
+This section contains  sample  files  required  for  assembly  of  the
+2780/3780/HASP  Interface.  Included are a sample Tymfile and a sample
+command file.
+
+A VMB link between hosts normally terminates at  a  specific  physical
+port.   In  the event that more than one VMB PVC terminates at a host,
+it will be necessary to assign a unique network host  number  to  each
+such line.
+
+To insure that this selection  process  is  successful,  the  location
+ID's,  passwords  and  host  number should be considered a indivisible
+set, and specified uniquely when defining a link in the Tymfile.
+
+The colon (:) on a line indicates comments after it that are not  read
+by  the  assembler.  Use of the colon (and comments) is optional.  The
+parameters are explained in Sections 5.1 through 5.4.
+
+
+
+:**************     Sample VMB Interface Tymfile          ***********
+:**************        Version 3, Revision 5              ***********
+:
+:***********************  SLOT PARAMETERS  **************************
+:
+        LOCATION(2112,2)
+:
+:***********************  LINE PARAMETERS  **************************
+:
+:       LINE 0 - LEASED (UNSWITCHED) VMB PORT (PVC ORIGINATOR)
+:
+        DIALECT(0,EVMB)                 : VMB DIALECT ONLY
+        RSCSVER(0,1,3)                  : DEFINE THE RSCS VERSION
+        VMBSIG(0,VMHST1,PSWRD1,4072)    : DEFINE A VMB INTERFACE
+        PVC(0,EBUELL,594,NETDEVEL)      : DEFINE A PVC ORIGINATOR
+        LEASED(0)                       : DEFINE A LEASED LINE
+:
+:       LINE 1 - (SWITCHED) VMB HOST PORT (PVC RECEIVER)
+:
+        DIALECT(1,EVMB)                 : VMB DIALECT ONLY
+        RSCSVER(1,1,3)                  : DEFINE THE RSCS VERSION
+        VMBSIG(1,VMHST2,PSWRD2,4072)    : DEFINE A VMB INTERFACE
+        VMBHST(1,594)                   : DEFINE A PVC RECEIVER
+
+SECTION 5.7 SAMPLE COMMAND FILE_______ ___ ______ _______ ____
+Tymnet RSCS/VMB Interface                                      Page 14
+External Requirements Specification (ERS)
+
+
+See the discussion in Section  6.2  of  the  2780/3780/HASP  Reference
+Manual.
+Tymnet RSCS/VMB Interface                                      Page 15
+External Requirements Specification (ERS)
+
+
+SECTION 6.0 INTERFACE MESSAGES_______ ___ _________ ________
+
+There are no interface generated messages.
+    0@OE
