@@ -1,0 +1,101 @@
+
+:
+: TASK: REMOVE LINE FEED RIGHT AFTER CARRIAGE RETURN WHEN DATA
+:       COMES FROM NETWORK TO THE LINK.
+: 
+:
+
+   IF   1-\PBCIND
+     IF   1-DNOP
+PA0PTR  EQ      ((PA0PTR+3)/4)*4
+PATCH(880926,0900,JWANG,PA0PTR,,0A)
+LFREG9  WS      1
+LFREG7  WS      1
+PREVCH  BC      0,0
+CONPATCH(PA1PTR,,36)
+LFCHK   ST      R9,LFREG9,,
+        LHL     R9,DPORT,,
+        CLHI    R8,0A           :LINE FEED?
+        JN      STPREV          :GO STORE CHAR
+        LB      R4,PREVCH,R9,   :PREVIOUS CHAR
+        CLHI    R4,0D           :ACRRIAGE RETURN?
+        JE      LFRTN           :YES, DISCARD THIS LF
+STPREV  STB     R8,PREVCH,R9,   :SAVE CHAR
+        JAL     R4,WCI,,        :WRITE INTO DIBUF
+LFRTN   L       R9,LFREG9,,     :RESTORE BACK R9
+        JR      R7
+CONPATCH(DDN008+12,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        STB     R0,IDLCNT,R1,
+        STB     R0,PREVCH,R1,,  :CLEAN PREVCH
+        J       DDN008+18,,
+   IF   .MARK
+CONPATCH(DAT100+0A,,8)
+        J       PA1PTR,,
+        NOPR    0,0
+CONPATCH(PA1PTR,,1C)
+        OHI     R0,80
+        ST      R7,LFREG7,,
+        JAL     R7,LFCHK,,      :CHECK LF AND DELETE IT
+        L       R7,LFREG7,,
+        J       DAT100+12,,
+   EI
+:----------------------------
+   IF   .SPACE
+CONPATCH(DAT110+8,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+        LR      R8,R0
+        ST      R7,LFREG7,,
+        JAL     R7,LFCHK,,      :CHECK LF AND DELETE IT
+        L       R7,LFREG7,,
+        J       DAT110+0E,,
+   EI
+:---------------------------
+CONPATCH(DAT120+6,,8)
+        J       PA1PTR,,
+        NOPR    0,0
+CONPATCH(PA1PTR,,1C)
+        NHI     R8,7F
+        ST      R7,LFREG7,,
+        JAL     R7,LFCHK,,      :CHECK LF AND DELETE IT
+        L       R7,LFREG7,,
+        J       DAT120+0E,,
+A
+:----------------------------
+   IF  .MARK
+CONPATCH(DAT140+0A,,8)
+        J       PA1PTR,,
+        NOPR    0,0
+CONPATCH(PA1PTR,,1C)
+        OHI     R0,80
+        ST      R7,LFREG7,,
+        JAL     R7,LFCHK,,      :CHECK LF AND DELETE IT
+        L       R7,LFREG7,,
+        J       DAT140+12,,
+   EI
+:-----------------------------
+   IF   .SPACE
+CONPATCH(DAT150+8,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+        LR      R8,R0
+        ST      R7,LFREG7,,
+        JAL     R7,LFCHK,,
+        L       R7,LFREG7,,
+        J       DAT150+0E,,
+   EI
+:-----------------------------
+CONPATCH(DAT160+6,,8)
+        J       PA1PTR,,
+        NOPR    0,0
+CONPATCH(PA1PTR,,1C)
+        NHI     R8,7F
+        ST      R7,LFREG7,,
+        JAL     R7,LFCHK,,
+        L       R7,LFREG7,,
+        J       DAT160+0E,,
+ENDPATCH(DELETE LF RIGHT AFTER CARRIAGE RETURN FOR DATE COMING FROM IRING)
+  EI
+    EI
