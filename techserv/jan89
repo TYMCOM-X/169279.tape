@@ -1,0 +1,431 @@
+*******************************************************************************
+*                                                                             *
+*           T      E      C      H             T      I      P     S          *
+*                                                                             *
+*                         J a n u a r y    1 9 8 9                            *
+*                                                                             *
+*                                                                             *
+*******************************************************************************
+
+
+
+
+
+
+
+1.  Five-Digit Host Numbers Not Supported in SDLC versions 1.12 or 2.02
+    Peter O'Harrow                              
+
+2.  Error in SNA Version 3.03 Patch File            
+    Peter O'Harrow                              
+
+3.  Crash Type 35 in version 7.04 of CMTI
+    Kal Kalenda      
+
+4.  Limitations of SDLC Line No. and SIO board
+    Danny Fang
+
+5.  HP Spectrum Hosts 
+    Mary Zortman
+
+6.  Tymnet X.28 PAD CUG Support Reference
+    Avi Margalit
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Peter O'Harrow                              
+
+SUBJECT:  
+
+Five-Digit Host Numbers Not Supported in SDLC 1.12 or SDLC 2.02
+
+We have recently seen problems arising from the assignment of five-digit
+host numbers to SDLC interfaces.  Currently available SDLC software
+(versions 1.12 and 2.02) does not support host numbers exceeding four
+digits in length.  This issue is currently being addressed by
+Development.  The fix for this situation will be deployed in SDLC 2.04
+which is now undergoing QA testing.
+ 
+In the meantime, Project Implementation will cease issuing five-digit
+host numbers to new SDLC installations.  Should you already have a
+five-digit host number assigned for a pending installation, please
+submit a request to have P.I.  reassign a four-digit host number for
+that installation.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Peter O'Harrow                                  
+
+SUBJECT:  
+
+Error in SNA Version 3.03 Patch File            
+ 
+A typographical error has been discovered in (BETATEST)SNA03.P03.  This
+error will not generally cause problems if this is the only patch file
+assembled, however the error may cause serious difficulties if other
+patches are added into the gen.  The error will be corrected as soon as
+possible - and certainly before the code is placed in the SOURCE
+directory for its limited release.
+ 
+In the meantime, if you must regen an SNA 3.03 interface, replace
+(BETATEST)SNA03.P03 with (TECHSERV)SNA03.P03 when assembling the code.
+The checksum for (TECHSERV)SNA03.P03 is QOCROF.
+ 
+Following is a sample command file illustrating the change:
+ 
+;;COMMAND FILE FOR SNA INTERFACE
+;;VERSION 03 REVISION 03
+ 
+LIST -R,-X
+TITLE (SNA) SNA INTERFACE
+;A(BETATEST)SNA03.I03
+;A(BETATEST)SNA03.T03
+ 
+LIST -R,X
+;A(BETATEST)SNA03.R03
+;A(TECHSERV)SNA03.P03             <------ Patch drawn from
+                                          TECHSERV directory
+1;FSNA03.N03
+ 
+LO BSUB
+LO CBKDEF
+LO CMDLST
+LO DLCPRO
+LO FGGBDF
+LO GBLDEF
+LO GDSP
+LO GIIX
+LO IFCNTL
+LO ISISC
+LO NIO
+LO OSCAN
+LO SFGPTP
+LO SNAPKG
+
+
+CTA,CTASIZ;P
+SEG0,S0SIZE;P
+SEG1,S1SIZE;P
+SEG2,S2SIZE;P
+SEG3,S3SIZE;P
+SEG4,S4SIZE;P
+SEG5,S5SIZE;P
+SEG6,S6SIZE;P
+SEG7,S7SIZE;P
+ 
+%P
+%Q
+ 
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Kal Kalenda 
+
+SUBJECT:
+
+Crash Type 35 in version 7.04 of CMTI
+     
+CMT support has noticed a number of escalations for a crash type 35 in
+version 7.04 of CMTI.  To help cut down on these escalations we want to
+warn you about the changes necessary to fix the problem.  When customers
+upgrade from version 3.00 to version 7.04 care should be taken to define
+segment 5 in your commands file.  Version 7.04 has added this new
+segment to hold error messages, if the segment is not genned in then any
+attempt by the CMT to get an error message will cause this type of
+crash.  Your version 7.04 commands file should look like this:
+     
+      title   cmt/3270...ascii terminal to 3270 translator  
+      subttl  version 7.04    
+     
+      list l,f,-x,-r
+      ;@(source)cmti07.i04    
+      ;@(source)cmti07.m04    
+      ;@(source)cmti07.t04    
+      ;@(source)cmti07.r04    
+      ;@(source)cmti07.p04    
+      1;fnd9999.n99 
+      cta,ctasize;pseg0,s0size;pseg1,s1size;PSEG5,S5SIZE;psegd,sdsize;p%p%q
+     
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Danny Fang
+
+SUBJECT:
+
+Limitations of SDLC Line No. and SIO board
+
+Eight lines is the proper number recommended for an SDLC interface
+configuration according to NTS.  The following includes the mother board
+configuration guide so that you may check it yourself.
+
+Please pick one configuration for each SIO mother board.  Assign SIO
+mother boards in order of priority.  The following configurations are
+mutually exclusive.
+
+ #1  4x56kb (V.35)
+
+ #2  2x56kb (V.35) + 4xV.24
+
+ #3  2x56kb (V.35) + 2xV.24 + 2 MS (OCL), or
+     2x56kb (V.35) + 2xV.24
+
+ #4  2x56kb (V.35) + 4 MS (OCL), or
+     2x56kb (V.35) + 2 MS (OCL)
+
+ #5  12xV.24, or
+     10xV.24, or
+      8xV.24
+
+ #6  10xV.24 +  2xASYNC, or
+      8xV.24 +  4xASYNC, or
+      6xV.24 +  6xASYNC, or
+      4xV.24 +  8xASYNC, or
+      2xV.24 + 10xASYNC
+
+ #7  6xV.24 + 2 MS (OCL)
+
+ #8  4xV.24 + 4 MS (OCL)
+ 
+ #9  2xV.24 + 6 MS (OCL)
+
+#10  4xV.24 + 2 MS (OCL) + 2xASYNC, or
+     2xV.24 + 4 MS (OCL) + 2xASYNC, or
+     2xV.24 + 2 MS (OCL) + 4xASYNC
+
+#11  8 MS (OCL), or
+     6 MS (OCL), or
+     4 MS (OCL), or
+     2 MS (OCL)
+
+#12  6 MS (OCL) + 2xASYNC, or
+     4 MS (OCL) + 4xASYNC, or
+     2 MS (OCL) + 6xASYNC
+
+#13  16xASYNC, or
+     14xASYNC, or
+     12xASYNC, or
+     10xASYNC, or
+      8xASYNC, or
+      6xASYNC, or
+      4xASYNC, or
+      2xASYNC
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Mary Zortman
+
+SUBJECT:
+
+HP Spectrum Hosts 
+
+If you connect an HP Spectrum Host Async into the Net, you need to do
+the following:
+
+HP port time is a DB20 modem port. 
+
+In your Tymnet code, set PCAN and PSIG to SIG.
+
+For cabling, leave the crossovers on. On a cable from the crossover to the
+host: 
+         
+              Cross 2 and 3 back over - 2-3 and 3-2
+              Jumper 4,6, and 8 to 20.
+
+As a lot of you know, HP hosts can be frustrating to work with, so you
+may want to add this to your HP file.
+
+********************
+*                  *
+*  T E C H  T I P  *
+*                  *
+********************
+
+Avi Margalit
+ 
+SUBJECT:
+
+Tymnet X.28 PAD CUG Support Reference
+
+The following is a quick reference to Tymnet X.28 PAD implementation of
+CUG facility.  I would like to thank Stephen Liang for the great effort
+that he put into this document, I hope that it will answer questions
+regarding CUG.
+
+Tymnet X.28 PAD Implementation Of CCITT Closed User Group Facility
+ 
+I.  Introduction
+ 
+Closed user group (CUG) is an optional user facility agreed for a period
+of time.  This facility, if subscribed to, enables the start-stop DTE to
+belong to one or more CUG(s).  A CUG permits the DTE(s) belonging to the
+group to communicate with each other, but precludes communication with
+all other DTE(s).
+ 
+The calling start-stop DTE specifies the closed user group selected for
+the call using the CUG facility parameters in the call selection
+command.  The CUG selected for a virtual call will be indicated to a
+called start-stop DTE using the same facility parameter in the incoming
+call packet.  When a start-stop DTE only belongs to one closed user
+group or when the call is associated with the DTE's preferential closed
+user group, this indication may not be present.
+ 
+Closed user group with subscriptions of outgoing/incoming access are
+optional user facilities agreed for a period of time.  These facilities,
+if subscribed to, enable the start-stop DTE to belong to one or more
+closed user groups, to originate/receive calls in the open part of the
+network.
+ 
+II.  Tymnet X.28 PAD Implementation
+ 
+The current Tymnet  X.28  PAD  implementation  of  Closed  User  Group
+facility  does  not  fully  comply  with  CCITT  recommendations 1984, 1988
+respectively. There are basically 12 types of CUG arrangement in respect to
+1988 CCITT recommendation X.25 and X.301:
+ 
+ 1.  CUG
+ 2.  CUG/IA
+ 3.  CUG/OA
+ 4.  CUG/IA/OA
+ 5.  CUG/ICB
+ 6.  CUG/OCB
+ 7.  CUG/IA/ICB
+ 8.  CUG/IA/OCB
+ 9.  CUG/OA/ICB
+10. CUG/OA/OCB
+11. CUG/IA/ICB/OCB
+12. CUG/OA/ICB/OCB
+ 
+where    IA  - Subscribes with incoming access
+         OA  - Subscribes with outgoing access
+         ICB - Incoming call barred
+         OCB - Outgoing call barred
+ 
+The PAD currently does not support ICB and OCB CUG facilities.
+Therefore, only items 1 to 4 above are applicable.
+ 
+In the Tymnet X.28 PAD, the CCITT Closed User Group (d of 2 processes:
+ 
+1.  CUG Access Subscription
+2.  CUG Interclock Code Validation
+ 
+A.  CUG Access Subscription
+ 
+The user may apply the CUG facility by subscribing to CLOSED USER GROUP
+during the system generation time (defined in Tymfile).  For example, to
+enable the CUG facility the "CUG" macro is used.  Thus,
+ 
+	The "CUG" macro:
+ 
+	Description: defines the CLOSED USER GROUP facility switch options.
+	Syntax:      CUG(submode,inmode,outmode,p0,...,pn)
+	Default:     0 for above three
+ 
+	submode      =  1  subscribed to CUG facility
+	             =  0  not subscribed to CUG facility
+	inmode       =  1  subscribed to CUG with incoming access
+		     =  0  subscribed to CUG without incoming access
+	outmode      =  1  subscribed to CUG with outgoing access
+		     =  0  subscribed to CUG without outgoing access
+ 
+If the user wants to use the CUG facility for a specific port, the CUG
+facility must be subscribed for it.  The CUG subscription is done on a
+port or a range of ports basis.
+ 
+Currently the PAD takes no action on the INCOMING ACCESS subscription.
+ 
+If a port has been subscribed to have the CUG facility with OUTGOING
+ACCESS, the CUG facility is sent with CUG/OA selection facility
+indication code.
+
+If a port has been subscribed to have the CUG facility without OUTGOING
+ACCESS, the CUG facility is sent with "CUG selection facility"
+indication code.
+ 
+B.   CUG Interlock Code Validation
+ 
+The second process in the CONSAT/PAD which handles Closed User Group
+facility deals with CUG Interlock Code Validation.  The CUG Interlock
+Code can be considered as information for a specific "Closed User
+Group", and this information is used by the remote host to verify the
+validity of the call.
+ 
+The Interlock Code for a "Closed User Group" is subscribed on a port or
+a range of port basis.  However a port can be subscribed to more than
+one Closed User Group(s).  Subscription to a specific Closed User Group
+can be done by configuring the CUGROUP macro which is described below:
+ 
+	Description: specifies the Interlock Code Mapping for each CUG index.
+	Syntax:      CUGROUP(Index,icodea,icodeb,p0,p1,...,pn)
+	Default:     none
+ 
+	index        =  CUG index < 99 (decimal)
+	icode        =  DNIC portion of the Interlock Code
+		        (0 for national CUG, 2000-7999 for international CUGs)
+	icode        =  the rest of the Interlock Code (decimal)
+ 
+The user may use an index configured via CUGROUP macro for this port to
+specify a CUG he/she wants to belong to during the call setup.
+ 
+If the CUG index is being specified in the CUG facility field in the
+call selection command, this index is used to map to a specific
+Interlock Code for a specific Closed User Group.  The Interlock Code s
+included in the Call Request packet as CUG facility to be sent to the
+remote DCE.
+ 
+If the user specifies a CUG INDEX which is not confileared and no call
+request is sent out to the network.
+ 
+It is only optional for the user to specify the CUG INDEX in the CUG
+facility field during the call setup.  The user may configure the
+preferential CLOSED USER GROUP (default CLOSED USER GROUP) on a port or
+a range of ports basis.  Thus,
+ 
+	Description: specifies the preferential CLOSED USER GROUP
+	Syntax:      CUGPREF(index,p0,p1,...,pn)
+	Default:     index = 0
+ 
+If the user does not specify the CUG INDEX in the CUG facility field
+then the preferential CUG index is used as the default CUG INDEX to
+refer to the interlock code.
+ 
+NOTE: X.25 and X.29 messages  are  exchanged  using  the Tymnet IIX message
+      format within the Tymnet network. A typical example of CUG facility in
+      a call request packet is shown below:
+ 
+      (a) CUG Selection Facility:
+ 	  0AC0 8C07 06C3 0431 4630 39
+ 
+      (b) CUG/OA Selection Facility:
+          0AC0 8C07 06C7 0431 4630 39
+ 
+      Interpretation:
+ 
+      0A   - length of IIX message
+      C08C - network utility
+      07   - length of Network utility
+      06   - length of CUG field
+      C3   - CUG indication code - CUG selection facility
+      C7   - CUG indication code - CUG/OA selection facility
+      04   - length of interlock code
+      3146 - the first part of interlock code - DNIC NO. (in decimal).
+      3039 - the second part of interlock code - (in HEX)
+ 
