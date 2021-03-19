@@ -1,0 +1,3480 @@
+
+
+
+
+
+
+
+
+
+                              A PROGRAMMED PRIMER
+                                       IN
+                            ENGINE ASSEMBLY LANGUAGE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                    ********
+
+                                GEOFFREY M. LEE
+
+                          NETWORK TECHNOLOGY DIVISION
+
+                                AUGUST 13, 1984
+
+
+
+                               TABLE OF CONTENTS
+
+
+
+          Introduction
+          
+              1.0    Where to Find this Document
+              2.0    Purpose
+              3.0    References
+              4.0    How to Use this Workbook
+          
+          Chapter 1: Binary and Hexadecimal Numbers
+          
+              1.1    Binary and Hexadecimal Qualifying Test . . . . 1-1
+              1.2    An Introduction to Hexadecimal . . . . . . . . 1-4
+              1.3    A Tutorial in Binary . . . . . . . . . . . . . 1-7
+              1.4    The Relation of Binary to Hexadecimal. . . . . 1-12
+          
+          Chapter 2: Memory
+          
+              2.1    Memory in Bits and Bytes . . . . . . . . . . . 2-2
+              2.2    Memory Addressing. . . . . . . . . . . . . . . 2-3
+          
+          Chapter 3: Registers
+          
+              3.1    What Is a Register?. . . . . . . . . . . . . . 3-1
+              3.2    Bit Positions within a Word. . . . . . . . . . 3-3
+              3.3    The Load Instruction . . . . . . . . . . . . . 3-4
+              3.4    Byte, Halfword, or Word Instruction? . . . . . 3-6
+              3.5    The Store Instruction. . . . . . . . . . . . . 3-8
+          
+          Chapter 4: Initialization
+          
+              4.1    What Is a Initialization?. . . . . . . . . . . 4-1
+              4.2    Defining Variables with NAD. . . . . . . . . . 4-2
+              4.3    Allocating Blocks of Memory with NAD . . . . . 4-3
+              4.4    Defining Mnemonics . . . . . . . . . . . . . . 4-4
+              4.5    The Add Instruction. . . . . . . . . . . . . . 4-5
+              4.6    The Subtract Instruction . . . . . . . . . . . 4-8
+              4.7    Using Loads and Stores to Initialize . . . . . 4-11
+          
+          Chapter 5: Immediate Mode Instructions
+                    
+              5.1    The Need for Immediate Mode. . . . . . . . . . 5-1
+              5.2    Definition of the Immediate Mode . . . . . . . 5-2
+
+
+
+
+
+          Chapter 6: Branching
+                    
+              6.1    What Is Branching? . . . . . . . . . . . . . . 6-1
+              6.2    Conditional Branches . . . . . . . . . . . . . 6-3
+                    
+          Chapter 7: Indexing
+          
+              7.1    Tables and Indexing. . . . . . . . . . . . . . 7-1
+              7.2    Accessing Tables Entries . . . . . . . . . . . 7-3
+          
+          Chapter 8: Subroutines
+          
+          Appendix A: Engine Instructions
+
+
+
+
+                                  INTRODUCTION
+
+
+
+          1.0  WHERE TO FIND THIS DOCUMENT
+
+               This document is available in (NETMID)APPEAL.DOC.
+
+
+
+          2.0  PURPOSE
+
+               This self-teaching style of manual should enable a user
+          to  acquire a working knowledge of assembly language for the
+          TYMNET Engine within a period of 1 to 5 days.  After working
+          through  this  manual,  the  user should be able to read and
+          understand small sections  of  assembly  language  listings.
+          This  manual  is  meant to be a preparatory step towards the
+          Tymshare Technical Training  class  "ISIS  Programming"  (in
+          which  the  user  will learn to write and debug programs and
+          create patches to code).
+
+
+
+          3.0  REFERENCES
+
+               Additional references are as follows:
+
+          1.  (ISISDOC)ENGINE.DOC - the Tymnet Engine manual
+
+          2.  (ISISDOC)TOOLS.DOC -  contains  a  section  on  the  NAD
+              assembler
+
+          3.  (NETMID)TGUIDE.DOC - contains a section on using NAD 
+
+          4.  (ISISDOC)ISIS2.DOC - the ISIS-II document
+
+
+               These documents should be at hand when working  through
+          this primer.
+
+
+
+          4.0  HOW TO USE THIS WORKBOOK
+
+               These programmed notes are for your  use  at  your  own
+          pace.  Take your time, proceeding to the next paragraph when
+          you are satisfied with your answer after comparing with  the
+          answer it given.
+
+               To  use  this  workbook  effectively,  please  use  the
+          following procedure:
+
+          1.  Cover the given answer shown below the  horizontal  line
+              following each question.  
+
+          2.  Read the material given in the exercise.
+
+          3.  Write your answer to the question asked.
+
+          4.  Compare your answer with  the  answer  given  below  the
+              horizontal  line  (sometimes  on  the page following the
+              exercise).  When you fully understand  any  differences,
+              proceed to the next paragraph.
+
+
+
+               For practice, attempt the  following  question.   Cover
+          the answer written below the dotted line.  Write your answer
+          below the question then uncover the answer.
+
+
+
+          EXERCISE:  After answering the  question,  what  should  the
+          student  of  this  workbook do?  Write your answer above the
+          line below.
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          Answer:  The student should compare his/her  answer  to  the
+          one  given  in  the  workbook  and,  when satisfied with any
+          differences, move on to the next paragraph.
+
+
+
+
+
+
+
+
+
+
+
+
+                              CHAPTER 1
+
+                    BINARY AND HEXADECIMAL NUMBERS
+
+
+
+               If you can add both binary and hexadecimal numbers  and
+          can  convert both from binary to hex and from hex to binary,
+          attempt the questions on the following page.  Answers to all
+          questions below may be found on the page following the test.
+
+               If binary and hex are  not  familiar  to  you,  proceed
+          directly to page 1-4 for instruction.
+          Binary and Hexadecimal Numbers                      Page 1-2
+          Binary and Hexadecimal Qualifying Test
+
+
+
+
+
+
+          1.1  BINARY AND HEXADECIMAL QUALIFYING TEST
+
+          Question 1:  Convert the following hex numbers to binary:
+
+          1.  4539
+
+          2.  6E1C
+
+          3.  224F5
+
+
+          Question 2:  Convert the following binary numbers to hex:
+
+          1.  110010011
+
+          2.  1100110010101111
+
+          3.  1011001100101110
+
+
+          Question 3:  Add the following binary numbers:
+
+          1.   10110101001
+              +00001000010
+              ------------
+
+
+          2.   101101010011
+              +001101011011
+              -------------
+
+
+
+          Question 4:  Add the following hex numbers:
+
+          1.   6B249
+              +12198
+              ------
+
+
+
+
+          2.   167937
+              +05F3C4
+              -------
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+          Binary and Hexadecimal Numbers                      Page 1-3
+          Binary and Hexadecimal Qualifying Test
+
+
+          If your  answers  have  leading  zeros,  but  otherwise  are
+          identical  to  the  answers  below,  you  may  consider your
+          answers correct.
+
+
+          Answers to Question 1
+
+          1.  100010100111001
+
+          2.  110111000011100
+
+          3.  100010010011110101
+
+          Answers to Question 2
+
+          1.  193
+
+          2.  CCAF
+
+          3.  B32E
+
+          Answers to Question 3
+
+          1.  10111101011
+
+          2.  111010101110
+
+          Answers to Question 4
+
+          1.  7D3E1
+
+          2.  1C6CFB
+
+
+               If you have more than one error, go to the  next  page.
+          If your answers are all correct, go to the next chapter.  If
+          you had one error, correct the error  and  go  to  the  next
+          chapter.
+          Binary and Hexadecimal Numbers                      Page 1-4
+          An Introduction to Hexadecimal
+
+
+
+
+
+
+          1.2  AN INTRODUCTION TO HEXADECIMAL
+
+               A hex number is a number  with  16  possible  types  of
+          digits, 0 to 9 and A to F.  The next number after F is "zero
+          and one to carry", written as 10.  An x denotes that 10x  is
+          a hexadecimal, not a decimal, number.  The additional digits
+          A, B, C, D, E, and F represent the numbers 10, 11,  12,  13,
+          14,  and  15  in  decimal.   Thus a list of hex numbers with
+          their decimal equivalents is:
+
+
+          hex       0 1 2 3 4 5 6 7 8 9  A  B  C  D  E  F
+          decimal   0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+          Binary and Hexadecimal Numbers                      Page 1-5
+          An Introduction to Hexadecimal
+
+
+               That the number following F is 10x is  not  an  unusual
+          concept;  it is merely the idea of "positional significance"
+          that we are so familiar with in  the  decimal  system.   For
+          example,  the  number  123  is  just  a convenient method of
+          expressing a sum of multiple powers of 10 (decimal):  
+
+                                    2       1       0
+                          123 = 1*10  + 2*10  + 3*10
+
+          Note that the rightmost digit is always the multiple of  the
+          zero  power of 10 ( = 1), and as digits proceed to the left,
+          the power of 10 they represent increases by one.
+
+               In  a  similar  manner,  the  number  123x  is  just  a
+          convenient  method  of  expressing  a  sum  of  powers of 16
+          (decimal):
+
+                                    2       1       0
+                         123x = 1*16  + 2*16  + 3*16
+          Binary and Hexadecimal Numbers                      Page 1-6
+          An Introduction to Hexadecimal
+
+
+          EXERCISE:  Express 17x as a decimal number.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          Answer:                 1       0
+                        17x = 1*16  + 7*16  = 16 + 7 = 23
+          Binary and Hexadecimal Numbers                      Page 1-7
+          A Tutorial in Binary
+
+
+
+
+
+
+          1.3  A TUTORIAL IN BINARY
+
+               We will leave the hexadecimal number system momentarily
+          to  look  at  the  binary  number system, which has only two
+          digits, 0 and 1.  The first two binary numbers  are  then  0
+          and  1,  corresponding  to 0 and 1 in decimal notation.  The
+          next number after 1 is 10, since 1 + 1 = "zero  and  one  to
+          carry" or 2 in decimal notation.
+
+               1
+              +1
+              --
+            = 10   or 2, expressed in decimal
+
+          The next number after 10 is
+
+              10
+             + 1
+             ---
+            = 11   or 3, expressed in decimal
+
+          Using the concept of  positional  significance,  the  binary
+          number 11 may be expressed as
+
+              1 1             0
+              \ \_____  1 * 2   = 1 * 1 = 1
+               \              1
+                \_____  1 * 2   = 1 * 2 = 2
+                                         ---
+                                          3  total in decimal notation
+          Binary and Hexadecimal Numbers                      Page 1-8
+          A Tutorial in Binary
+
+
+          EXERCISE:  What is the next number after the  binary  number
+          11 (that is, 3 in decimal)?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          Answer:  100 
+
+          since            11
+                          + 1
+                          ---
+                          100
+
+          Again         1 0 0            0
+                         \ \ \____  0 * 2  = 0 * 1 = 0
+                          \ \            1
+                           \ \____  0 * 2  = 0 * 2 = 0
+                            \            2
+                             \____  1 * 2  = 1 * 4 = 4
+                                                     -
+                                                     4   decimal
+          
+          Binary and Hexadecimal Numbers                      Page 1-9
+          A Tutorial in Binary
+
+
+          Remark:  The answer to the above exercise,  with  3  "binary
+          digits"  (or "bits" for short), is sometimes called a "3 bit
+          word".  The term "word" is used loosely in this  context  to
+          mean  some  sequence  of  bits.  The number of bits may vary
+          from one word to the next, so it is best to state the number
+          of  bits  explicitly.   If  it  is  understood that the word
+          length is a previously specified and fixed number  of  bits,
+          the bit length may be omitted.
+
+
+
+
+          EXERCISE:  Write the  binary  equivalent  of  the  first  16
+          decimal numbers, starting at 0.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+          Binary and Hexadecimal Numbers                     Page 1-10
+          A Tutorial in Binary
+
+
+          Answer:   
+          
+                          Decimal            Binary
+          
+                             0                   0
+                             1                   1
+                             2                  10
+                             3                  11
+                             4                 100
+                             5                 101
+                             6                 110
+                             7                 111
+                             8                1000
+                             9                1001
+                            10                1010
+                            11                1011
+                            12                1100
+                            13                1101
+                            14                1110
+                            15                1111                  
+          Binary and Hexadecimal Numbers                     Page 1-11
+          A Tutorial in Binary
+
+
+               There is no limit to the possible length  of  a  binary
+          number.  
+
+
+          Example:
+
+              1 1 0 1 0           0
+              \ \ \ \ \___  0 * 2   =   0
+               \ \ \ \            1
+                \ \ \ \___  1 * 2   =   2
+                 \ \ \            2
+                  \ \ \___  0 * 2   =   0
+                   \ \            3
+                    \ \___  1 * 2   =   8
+                     \            4
+                      \___  1 * 2   =  16
+                                       --
+                                       26  decimal
+
+
+
+
+          Binary and Hexadecimal Numbers                     Page 1-12
+          The Relation of Binary to Hexadecimal
+
+
+
+
+
+
+          1.4  THE RELATION OF BINARY TO HEXADECIMAL
+
+               Expressing or remembering long binary numbers  is  very
+          tedious  and  subject  to  error.   It is more convenient to
+          express a binary  number  in  hexadecimal  (hex  for  short)
+          format  by  breaking  the  binary number up into groups of 4
+          bits each.  Decimal and hex numbers up to the value of 9 are
+          the same.  Hence, the previous conversion table of binary to
+          decimal is also valid for binary to hex for hex  numbers  up
+          to and including 9.  For example, the binary number 101 is 5
+          expressed in hex as well as decimal.
+
+               Converting binary first to hex, then  hex  to  decimal,
+          can  make  binary  evaluation  much  simpler than converting
+          directly from binary to decimal.  
+
+               The conversion from binary to hex is little more than a
+          grouping  of  bits  into  groups  of four, starting from the
+          right.  
+
+               The conversion from hex to decimal is done in a  manner
+          similar to that shown for binary.
+
+
+
+
+          Example:
+
+          01111111100 = 011 1111 1100
+                         3    F    C              0
+                          \    \    \____  12 * 16  = 12 * 1   =  12
+                           \    \                 1
+                            \    \_______  15 * 16  = 15 * 16  = 240
+                             \                    2
+                              \__________   3 * 16  =  3 * 256 = 768
+                                                                 ---
+                                                                1020
+          Binary and Hexadecimal Numbers                     Page 1-13
+          The Relation of Binary to Hexadecimal
+
+
+          EXERCISE:  What is the hex version of the binary number 110?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                               /
+          _________________________________________________________/
+
+
+          Answer:  6 or 6x, to be precise
+          Binary and Hexadecimal Numbers                     Page 1-14
+          The Relation of Binary to Hexadecimal
+
+
+               The 8 bit binary number below has divided into 2 groups
+          of 4 bits.  Each group of 4 bits is then converted to hex:
+
+              0101 1010  =  5Ax
+              \  / \  /
+               \/   \/
+               5    A
+
+
+
+
+          EXERCISE:  Express 111100111011 as a hex number
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          Answer:  F3Bx
+
+                          1111 0011 1011
+                           \/   \/   \/
+                            F    3    B
+          Binary and Hexadecimal Numbers                     Page 1-15
+          The Relation of Binary to Hexadecimal
+
+
+          EXERCISE:  Express 010101011110 as a hex number.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          Answer:  55Ex
+
+                          0101 0101 1110
+                           \/   \/   \/
+                            5    5    E
+          Binary and Hexadecimal Numbers                     Page 1-16
+          The Relation of Binary to Hexadecimal
+
+
+               If the binary number does not form  convenient  groups,
+          each  of which has 4 bits.  Zeros are added on the left side
+          of the number to fill out the left group.  These added zeros
+          are  called  "leading  zeros"  and are used only to make the
+          conversion to hex easier to see.  They  do  not  change  the
+          value of the number.
+
+
+
+
+          Example:
+
+              11011 = 00011011 = 1Bx
+
+
+
+          EXERCISE:  Express 10101 as a hex number
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          Answer:  15x
+
+                          0001 0101
+                            1    5
+
+          Three leading zeros were added to the binary  number  before
+          conversion.
+          Binary and Hexadecimal Numbers                     Page 1-17
+          The Relation of Binary to Hexadecimal
+
+
+          EXERCISE:  Express 10100110101110 as a hex number
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          Answer:  29AEx
+
+                          0010 1001 1010 1110
+                            2    9    A    E
+
+          Two leading zeros were added to  the  binary  number  before
+          conversion.
+          Binary and Hexadecimal Numbers                     Page 1-18
+          The Relation of Binary to Hexadecimal
+
+
+          EXERCISE:  Express both binary numbers in hex format.
+
+          1101001010110010
+
+
+
+
+
+
+
+
+          1111100010011110
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          Answer:  D2B2x
+
+                          1101 0010 1011 0010
+                            D    2    B    2
+
+
+          Answer:  F89Ex
+
+                          1111 1000 1001 1110
+                            F    8    9    E
+
+          Each of the above binary numbers is a 16 bit word.
+          Binary and Hexadecimal Numbers                     Page 1-19
+          The Relation of Binary to Hexadecimal
+
+
+               Expressing a hex number in binary format  is  extremely
+          easy.  Each hex digit is converted to a 4 bit binary and the
+          resulting sequence of bits is the binary  representation  of
+          the entire hex number.
+
+
+
+
+          Example:
+
+              53x  =  5   3
+                     /\  /\
+                    /  \/  \
+                    01010011
+
+          Therefore, 53 = 1010011
+
+
+
+          EXERCISE:  Express 12FEx in binary format.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          Answer:  0001001011111110
+
+
+
+          NOTE:  Leading zeros may be dropped after the conversion.
+          Binary and Hexadecimal Numbers                     Page 1-20
+          The Relation of Binary to Hexadecimal
+
+
+               Adding two binary numbers may or may not  result  in  a
+          carry.
+
+
+
+
+          Example:
+
+            binary  decimal
+                         __
+              100  =  4    |
+             +011  =  3    |
+              ---     -    |  no carry
+              111  =  7  __|
+
+                         __
+              01           |
+             +11           |
+              --           |  results in 2 carries
+             100         __|
+
+
+
+          EXERCISE:  1. Add    1 0 1
+                              +0 1 1
+                               -----
+
+
+
+
+
+
+
+
+          2. Add            1 1 0 1 1
+                           +1 0 1 1 1
+                            ---------
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+                        1 0 1              1 1 0 1 1
+                       +0 1 1             +1 0 1 1 1
+                      -------            -----------
+                      1 0 0 0            1 1 0 0 1 0
+          Binary and Hexadecimal Numbers                     Page 1-21
+          The Relation of Binary to Hexadecimal
+
+
+          EXERCISE:  Perform the following additions:
+
+              1 1 0 1 0 1                1 0 1 0 1 1
+             +0 1 1 1 1 1               +1 1 1 1 1 0
+              -----------                -----------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+              1 1 0 1 0 1                1 0 1 0 1 1
+             +0 1 1 1 1 1               +1 1 1 1 1 0
+              -----------                -----------
+            1 0 1 0 1 0 0              1 1 0 1 0 0 1
+          Binary and Hexadecimal Numbers                     Page 1-22
+          The Relation of Binary to Hexadecimal
+
+
+               Hex addition without a carry looks exactly like decimal
+          addition when digit sums are less than ten.
+
+
+
+
+          Example:
+              1253
+             +4521
+              ----
+              5774
+          Binary and Hexadecimal Numbers                     Page 1-23
+          The Relation of Binary to Hexadecimal
+
+
+          Remembering that decimal 10  through  15  are  expressed  as
+          single digits in hex, the hex addition of F and 1 is
+
+              F
+             +1
+             --
+             10x
+
+          This sum generates a carry similar to the binary  sum  of  1
+          and 1.
+
+
+          Examples:  Some carrying sums
+          
+                           E    D    C    B    A    F
+                           2    3    4    5    6    2 
+                          --   --   --   --   --   --
+                          10x  10x  10x  10x  10x  11x
+
+          Any time the sum in a particular column  exceeds  or  equals
+          the  radix  (16  in  the  case  of  hexadecimal), a carry is
+          produced.
+          Binary and Hexadecimal Numbers                     Page 1-24
+          The Relation of Binary to Hexadecimal
+
+
+          EXERCISE:  Add the following  hex  numbers,  expressing  the
+          answer in hex.
+
+              D        F        F        F
+             +5       +3       +D       +F
+             --       --       --       --
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+              D        F        F        F
+             +5       +3       +D       +F
+             --       --       --       --
+             12       12       1C       1E
+
+          Note that a carry was produced in each case.
+
+
+
+
+          Binary and Hexadecimal Numbers                     Page 1-25
+          The Relation of Binary to Hexadecimal
+
+
+          EXERCISE:  Add the following hex numbers.
+
+              16
+             +2C
+              --
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+              16    since 6x + Cx = 6 + 12 = 16 + 2 = 2 plus a carry
+             +2C    then  1x + 2x + carry = 1 + 2 + 1 = 4
+              --
+              42x
+
+
+
+
+          Binary and Hexadecimal Numbers                     Page 1-26
+          The Relation of Binary to Hexadecimal
+
+
+          EXERCISE:  Add the following hex numbers.
+
+              D6
+             +5F
+              --
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+              D6
+             +5F
+              --
+             135
+
+          A carry is produced in both columns.
+          Binary and Hexadecimal Numbers                     Page 1-27
+          The Relation of Binary to Hexadecimal
+
+
+          EXERCISE:  To check the previous question  convert  each  of
+          the  2  digit  numbers, D6 and 5F, to binary, then calculate
+          the binary sum, then convert the answer to hex.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+                     1101 0110  =    D6
+                     0101 1111  =   +5F
+                                     --    
+                0001 0011 0101  =   135
+          Binary and Hexadecimal Numbers                     Page 1-28
+          The Relation of Binary to Hexadecimal
+
+
+               Now go to the beginning of this  chapter  and  try  the
+          qualifying test again.
+
+
+
+
+
+
+
+
+
+
+
+
+                              CHAPTER 2
+
+                                MEMORY
+
+
+
+               Programmers use a language called NAD assembly language
+          to  communicate with the TYMNET Engine.  NAD stands for Node
+          Assembler and Debugger.  Programs written in  this  language
+          are  assembled  by NAD.  That is, they are translated by NAD
+          into 32 bit "words" which are recognized by  the  Engine  as
+          instructions to perform certain tasks.
+
+               This manual will be concerned with only  the  assembler
+          portion  of  NAD.   For  further information on the debugger
+          portion   of   NAD,   refer   to   the   NAD   section    of
+          (ISISDOC)TOOLS.DOC,      the      troubleshooting      guide
+          (NETMID)TGUIDE.DOC,     or     the     ISIS-II      document
+          (ISISDOC)ISIS2.DOC.   Programming  and  debugging  are  also
+          taught  in  the  Tymnet  technical  training   class   "ISIS
+          Programming", given in Cupertino, CA.
+          Memory                                              Page 2-2
+          Memory in Bits and Bytes
+
+
+
+
+
+
+          2.1  MEMORY IN BITS AND BYTES
+
+               Computer memory of any sort is simply a vast region  in
+          which  electrical  impulses can be stored for some amount of
+          time.  One of these impulses  is  defined  by  the  computer
+          designer to stand for "0";  another, for "1".  These are the
+          "bits"  that  computers  manipulate   during   computations.
+          Computer  memory  can  be considered as a single (very long)
+          string of bits.
+
+               In the Engine this string of bits is  partitioned  into
+          32-bit  contiguous  segments  so  that  memory  may  be more
+          conveniently viewed as a string of  "words".   These  32-bit
+          words  may be manipulated in fractions as 16-bit "halfwords"
+          or as 8-bit "bytes".  Most Engines are equipped with several
+          thousands of bytes of memory, which are often referred to as
+          "kilobytes" or simply "K".  To be  precise,  1024  bytes  of
+          memory  make  up  1  K.  An Engine may contain anywhere from
+          128K to 1024K ( = 1 Meg, or 1 M) of memory.
+
+
+          Example:  A bit string broken  into  bytes,  halfwords,  and
+          words.
+
+          0 0 0 1 0 1 1 0 1 0 1 1 1 1 1 0 0 0 1 0 1 1 1 0 1 0 0 1 0 1 0 0
+          ^             ^ ^             ^ ^             ^ ^             ^
+          \_____________/ \_____________/ \_____________/ \_____________/
+                byte            byte            byte            byte
+          ^                             ^ ^                             ^
+          \_____________________________/ \_____________________________/
+                     halfword                        halfword
+          ^                                                             ^
+          \_____________________________________________________________/
+                                        word
+
+
+          Memory                                              Page 2-3
+          Memory Addressing
+
+
+
+
+
+
+          2.2  MEMORY ADDRESSING
+
+               Since memory may be envisioned as a  string  of  bytes,
+          each  byte  can  be associated with a unique integer that is
+          its  displacement  in  bytes  from  a  designated   starting
+          location  known as "the beginning of memory".  The beginning
+          of memory may be actual,  meaning  that  there  is  no  more
+          electrical  storage  beyond  that  point  in memory.  Or the
+          beginning of memory may  be  logical,  meaning  that  for  a
+          particular  application that application will not be allowed
+          beyond a certain point in memory.  For the purposes of  this
+          document, the difference is unimportant.
+
+               The integer displacement (in bytes) of a byte from  the
+          beginning  of  memory  is  known  as  that byte's "address".
+          Therefore, the byte  at  the  beginning  of  memory  has  an
+          address  of  0;   the  next  byte's  address is 1;  the next
+          byte's, 2, and so on.  Refer  to  the  diagram  below.   The
+          addressing  is  sequential,  as  are the bytes.  Again, each
+          byte has a unique address,  and  each  address  specifies  a
+          unique byte.
+
+
+              0     1     2     3     4     5     6  ...  addresses
+               ___________________________________________________
+              |     |     |     |     |     |     |     |         |
+              |  T  |  U  |  V  |  W  |  X  |  Y  |  Z  |  . . .  |
+              |_____|_____|_____|_____|_____|_____|_____|_________|
+              ^     ^
+              \____/
+               byte
+              ^           ^           ^
+              \__________/\__________/
+                halfword    halfword
+              ^                       ^
+              \______________________/
+                      fullword
+              ^
+              \________  the beginning of memory
+              ^                                   ^
+              \__________________________________/
+                   the displacement from the beginning of memory
+                   for byte Z (displacement = 6 bytes)
+          
+          
+                       Memory viewed as a string of bytes
+          Memory                                              Page 2-4
+          Memory Addressing
+
+
+               Occasionally, the partition into bytes is neglected  so
+          that  memory  is once again visualized as one long string of
+          bits.  This enables certain instructions to treat memory  as
+          a  vast  bit  array,  thereby  providing  the  Engine with a
+          flexible assortment of bit flags and switches.
+
+               Contiguous bytes may be referred  to  as  halfwords  (2
+          bytes)  or  fullwords  (4  bytes),  but  in the execution of
+          instructions the  Engine  is  slightly  fussy.   The  Engine
+          requires  halfwords  and  fullwords  to  begin  on even byte
+          boundaries.  That is, halfwords and fullwords must have even
+          addresses.   A  programmer  must  observe  this  restriction
+          closely to avoid surprises when designing code.
+
+
+
+
+
+
+
+
+
+
+
+
+                              CHAPTER 3
+
+                              REGISTERS
+
+
+
+          3.1  WHAT IS A REGISTER?
+
+               The TYMNET Engine performs  most  of  its  instructions
+          through   the  use  of  32-bit  general  purpose  registers.
+          Registers are like memory locations because they can be used
+          to store bit patterns, but registers are NOT part of memory.
+          Each byte of memory has an address associated with  it,  but
+          no address is associated with a register.
+
+               While regular  memory  is  usually  used  for  storage,
+          registers are usually used for arithmetic operations and bit
+          manipulation.  Registers are favored by the computer in that
+          instructions  take  less  time  to execute when they involve
+          registers only.
+
+               Within the Engine there are 16 sets  of  16  registers.
+          Usually  a single set of 16 will be available for use at any
+          one time.
+          Registers                                           Page 3-2
+          What is a register?
+
+
+               Each  register  is  designated  by  its  number  (i.e.,
+          register  number  0 is 0, register 1, 1, and register 15, 15
+          decimal or 0F hex).  To avoid confusion, programmers  prefer
+          to  assign  these  registers  directly.   For  example,  the
+          following assignments are  usually  made  somewhere  in  the
+          beginning of a code:
+
+                  R0      EQ      0
+                  R1      EQ      1
+                  .
+                  .
+                  .
+                  R15     EQ      0F
+
+
+               This  way,  any  programming  reference   to   R12   is
+          automatically  interpreted  as  a reference to 0C, which, in
+          the  proper  position  in  an  instruction,  will  refer  to
+          register 12.
+          Registers                                           Page 3-3
+          Bit Positions Within a Word
+
+
+
+
+
+
+          3.2  BIT POSITIONS WITHIN A WORD
+
+               Within a word in  general  and  within  a  register  in
+          particular,  the  32 bits are numbered from left to right, 0
+          to 31, in ascending order.
+
+           0       4       8      12      16      20      24      28
+           _______________________________________________________________
+          | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
+          |_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|
+          
+                         Bit positions in one word
+          Registers                                           Page 3-4
+          The Load Instruction
+
+
+
+
+
+
+          3.3  THE LOAD INSTRUCTION
+
+               One  of  the  most  basic  instructions  is  the   Load
+          instruction.   This instruction is used to copy a value from
+          a location in memory into a register.  The  original  memory
+          location is left unchanged.
+
+               The Load instruction comes in 3 basic forms:
+
+          1.  LB - used to load a register with a byte from a byte  in
+              memory,
+
+          2.  LH - used to load a register  with  a  halfword  from  a
+              halfword in memory, and
+
+          3.  L  - used to load a register  with  a  fullword  from  a
+              fullword in memory.
+
+          In each instruction the  value  is  right-justified  in  the
+          register.  
+
+               This means LB will place a value into bits 24-31 of the
+          register  designated,  while LH will place a value into bits
+          16-31 of the register.  Of course, L will  fill  the  entire
+          32-bit register with a value.
+          Registers                                           Page 3-5
+          The Load Instruction
+
+
+          Example:  Suppose the halfword at location  X  contains  the
+          value 1234x.
+
+                  byte address    0 1 2 3 4 . . . X  X+1
+                  byte contents   . . . . . . . . 12 34
+
+          Note that since the halfword  at  location  X  contains  the
+          value  1234x, the byte at location X contains the value 12x,
+          and the byte at location X+1 contains the value 34x.
+
+               Then
+
+                                   LH   R3,X
+
+          loads  register  3  (R3)  with  the  value  00001234x.   The
+          instruction
+
+                                   LB   R3,X
+
+          loads R3 with the value 00000012x.
+
+               To load R3 with 34x, use the instruction 
+
+                                  LB   R3,X+1
+          Registers                                           Page 3-6
+          Byte, Halfword, or Word Instructions?
+
+
+
+
+
+
+          3.4  BYTE, HALFWORD, OR WORD INSTRUCTIONS?
+
+               The choice  of  whether  to  use  LB,  LH  or  L  in  a
+          particular  situation  usually  depends  upon the resolution
+          with  which  one   wishes   to   view   memory.    In   some
+          circumstances, any of the 3 forms may be used and the result
+          will be the same.  However, most of the time only  one  such
+          form will perform the required manipulation.  The wrong form
+          might reference too much data or too little, thereby setting
+          a register with the wrong value.
+
+
+
+
+          Example:   Suppose  the  location  TABLE   is   a   fullword
+          containing the value 12345678.
+
+                                                TABLE
+                                                  |
+                                                  v
+                  byte address    0 1 2 3 4 . . . X   X+1 X+2 X+3
+                  byte contents   . . . . . . . . 12  34  56  78  
+
+
+          Suppose that one wishes to load the value 1234  from  TABLE.
+          Then   only   the  instruction    LH reg,TABLE      will  be
+          correct.  A LB will only get the value 12 (too little),  and
+          a L will get the value 12345678 (too much).
+
+
+          Remark:  In those cases in  which  more  than  one  form  is
+          correct, remember that the instructions take different times
+          for the Engine to  execute.   Typically,  instructions  that
+          manipulate  bytes  are  faster  than  those  that manipulate
+          halfwords,  which  in  turn  are  faster  than  those   that
+          manipulate  fullwords.   Execution  times can be critical in
+          certain real time applications.
+          Registers                                           Page 3-7
+          Byte, Halfword, or Word Instructions?
+
+
+          EXERCISES:  Suppose the word  at  location  X  contains  the
+          value
+
+                                    2CD9A73
+
+          1.  What value will R1 have after the instruction
+
+                                   LB   R1,X
+
+          2.  What value will R1 have after the instruction
+
+                                  LH   R1,X+2
+
+          3.  Using X, write the instruction that will place the value
+              73 into register R1.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          Answer:
+
+                    byte location    X    X+1  X+2  X+3
+                    byte contents    02   CD   9A   73
+
+          1.  After LB R1,X                R1 will contain 02
+
+          2.  After LH R1,X+2              R1 will contain 9A73
+
+          3.  To place 73x into R1, use    LB   R1,X+3
+
+
+
+          Registers                                           Page 3-8
+          The Store Instruction
+
+
+
+
+
+
+          3.5  THE STORE INSTRUCTION
+
+               The opposite of  the  Load  instruction  is  the  Store
+          instruction.   The  Store  instruction  is  used to take the
+          value in a register and copy it into a  designated  location
+          in memory.  The register contents are left unchanged.
+
+               Similar to the  Load  instruction,  Store  comes  in  3
+          forms:
+
+          1.  STB - store a byte (bits 24-31) into a byte of memory,
+
+          2.  STH - store a halfword  (bits  16-31)  into  a  halfword
+              location in memory, and 
+
+          3.  ST  - store a word (bits 0-31) into a fullword  location
+              in memory.
+
+          Here  again,  as   with   the   Load   instructions,   Store
+          instructions  use  values  from the rightmost portion of the
+          register.  STB uses the value in bits 24-31 of the register;
+          STH, bits 16-31.
+
+
+          Example:  If register R2 contains F312, the instruction
+
+                                   STB   R2,X
+
+          places 12 into the byte at location X.
+          Registers                                           Page 3-9
+          The Store Instruction
+
+
+          EXERCISE:  Suppose register 4 contains the value 81A1A.  Let
+          location 1047 be represented by the label X.  
+
+          Do the problems below as efficiently as possible.
+
+          1.  Write the instruction sequence that will place  1A  into
+              location 1047.
+
+          2.  Write the instruction sequence that will place  1A  into
+              location 1048.
+
+          3.  Write the instruction sequence that will place 1A1A into
+              locations 1048-1049.
+
+          4.  Write the instruction sequence that will place 1A1A into
+              locations 1047-1048.
+
+          5.  Why are the solutions in 3 and 4 different in form?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+          Registers                                          Page 3-10
+          The Store Instruction
+
+
+          Answers:
+
+                          bits     0     8     16    24
+                                   _______________________ 
+                                  |     |     |     |     |
+                                  | 0 0 | 0 8 | 1 A | 1 A |
+                                  |_____|_____|_____|_____|
+          
+                                          Register 4
+
+          1.         STB     R4,X
+
+          2.         STB     R4,X+1
+
+          3.         STH     R4,X+1
+
+          4.         STB     R4,X
+                     STB     R4,X+1
+
+          5.  Using a single instruction (STH) is more efficient  than
+              using  two instructions (STB) that basically do the same
+              operation.  The reason STH could not be used in  part  4
+              of the exercise is that halfword instructions must refer
+              to even addresses in memory.  If an address is not even,
+              a halfword instruction will truncate the address down to
+              the nearest even address, thereby resulting in an error.
+
+
+
+
+          How a particular address can be made even will be  described
+          in the next chapter.  
+
+
+
+
+
+
+
+
+
+
+
+
+                              CHAPTER 4
+
+                            INITIALIZATION
+
+
+
+          4.1  WHAT IS INITIALIZATION?
+
+               Initializing  is   the   creation   of   a   particular
+          environment  in  which  a process can begin.  In the case of
+          computers this usually refers to giving memory locations and
+          registers  the correct starting values so that a computation
+          will be done correctly.  This chapter will discuss  ways  in
+          which  this  can  be  done  in  the  Engine, but first it is
+          necessary to show how NAD allocates memory.
+          Initialization                                      Page 4-2
+          Defining Variables with NAD
+
+
+
+
+
+
+          4.2  DEFINING VARIABLES WITH NAD
+
+               Certain  assembly  directives  instruct  NAD  to  place
+          specified values into memory locations at assembly time.
+
+
+          Example:  Byte variables A and B are in NAD format as  shown
+          below:  
+
+          A       BC      12
+          B       BC      3E
+
+          The BC  stands  for  Byte  Constant.   The  first  statement
+          defines  A  to be a label whose numeric value represents the
+          location in memory where a byte containing the hex value  12
+          has  been  set  aside  for  later  use.  Similarly, B is the
+          location of a byte containing the hex value 3E.
+
+               Similarly, the NAD directives
+
+                  HC
+          and
+                  WC
+
+          may be used to define Halfword Constants and Word Constants.
+
+               An added precaution goes with using HC and  WC.   While
+          BC  defines  a  byte  constant at any location, HC defines a
+          halfword constant at a HALFWORD boundary (i.e., the  address
+          will  be  divisible  by  2).  The word constant WC defines a
+          constant at a WORD  boundary  (i.e.,  the  address  will  be
+          divisible  by  4).   This  forcing of address boundaries may
+          cause unexpected storage gaps between labels.
+          Initialization                                      Page 4-3
+          Allocating Blocks of Memory with NAD
+
+
+
+
+
+
+          4.3  ALLOCATING BLOCKS OF MEMORY WITH NAD
+
+               The Storage directives are used to  reserve  a  certain
+          amount of space in memory for future use without setting any
+          particular value in that space at assembly time:
+
+          1.  BS - reserves a specified number of bytes,
+
+          2.  HS - reserves a specified number of halfwords, and
+
+          3.  WS - reserves a specified number of words.
+
+          These are very useful for setting up table space  that  will
+          be  set  at  a run time or some later time by the associated
+          program.
+
+               HS and WS, like HC and WC, align locations to  halfword
+          and word boundaries, respectively.
+
+          Example:  The directive
+
+          TABLE   HS      20
+
+          reserves 32 (20  hex)  halfwords  at  location  TABLE.   The
+          location of TABLE will be even.  
+
+
+          Initialization                                      Page 4-4
+          Defining Mnemonics
+
+
+
+
+
+
+          4.4  DEFINING MNEMONICS
+
+               For greater convenience it is advisable to use mnemonic
+          labels  in  place  of  numeric  locations.   This  allows  a
+          programmer to refer  to  a  location  by  name  (the  label)
+          instead  of  referring to a fixed numeric address in memory.
+          A label may consist of up to  6  symbols,  the  first  being
+          alphabetic and the rest chosen from the set of alphanumerics
+          and the period (.).  A label must start in column 1  and  be
+          terminated  by at least one space.  In fact, except for line
+          length considerations, any number of spaces may be  used  to
+          separate labels and assembly directives.  
+
+
+
+
+          Example:  In the the  preceding  chapter  on  registers  the
+          symbols  R0,  R1, ..., R15 were defined to stand for the hex
+          numbers 0, 1, ..., 0F.
+
+                  R0      EQ      0
+                  R1      EQ      1
+                  .
+                  .
+                  .
+                  R15     EQ      0F
+
+
+
+
+          Example:  The label LABEL is set with the  EQ  directive  as
+          follows:
+
+          LABEL   EQ      num
+
+          Then LABEL may be used  interchangeably  in  code  with  the
+          value num.
+          Initialization                                      Page 4-5
+          The Add Instruction
+
+
+
+
+
+
+          4.5  THE ADD INSTRUCTION
+
+               The Add instruction is used to add  arithmetically  the
+          contents  of  some  memory  location  to  the  current value
+          contained in a  register.   The  contents  of  the  original
+          memory location are left unchanged.
+
+               To add the value at location X to the  value  contained
+          in a register R, use the instruction 
+
+                                   A     R,X
+
+          The fullword value at  location  X  will  be  added  to  the
+          contents of register R.  The value at X is left unaltered.
+
+               If only a halfword is required, use the instruction
+
+                                   AH    R,X
+          Initialization                                      Page 4-6
+          The Add Instruction
+
+
+          EXERCISE:  Write the set of instructions to add X to Y.  Use
+          register  R4  and  save  the  result  in Y.  As part of this
+          exercise, define X as a word containing 7C144  and  Y  as  a
+          word containing 23691.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          X   WC   7C144   place 7C144 into location X
+          Y   WC   23691   place 7C144 into location X
+              L    R4,Y    copy the contents of Y into register 4
+              A    R4,X    add contents of X to register 4
+              ST   R4,Y    copy the sum to location Y
+
+               No special order was given to the space allocation  for
+          X and Y.  Word storage and instructions were used because of
+          the size of the numbers involved.  
+
+               The instructions are shown neatly lined up.  This makes
+          instructions  easier  to  read;  however, it will not affect
+          the Engine if instructions are not so aligned.
+          Initialization                                      Page 4-7
+          The Add Instruction
+
+
+          EXERCISE:  What will be the value of Y when the  program  in
+          the previous exercise is executed?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+              7C144
+             +23691
+              -----
+              9F7D5
+
+
+
+
+          Initialization                                      Page 4-8
+          The Subtract instruction
+
+
+
+
+
+
+          4.6  THE SUBTRACT INSTRUCTION
+
+               The  Subtract   instruction   is   used   to   subtract
+          arithmetically the contents of some memory location from the
+          current value contained in a register.  The contents of  the
+          original memory location are left unchanged.
+
+               The  Subtract  instruction  looks  much  like  the  Add
+          instruction:
+
+                                    S   R,X
+
+          The fullword value at  location  X  will  be  arithmetically
+          subtracted  from the contents of register R.  The value at X
+          is left unaltered.
+
+               The halfword version of the subtract instruction is
+
+                                    SH  R,X
+          Initialization                                      Page 4-9
+          The Subtract instruction
+
+
+          EXERCISE:  Write a short  program  to  subtract  5  from  9.
+          Define  two  locations containing the values 5 and 9 as part
+          of the exercise.   Replace  the  9  with  the  result.   Use
+          register 4 as the working register in this exercise.  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                    /
+          _________________________________________________________/
+
+
+          X   WC  5     place 5 into location X
+          Y   WC  9     place 9 into location Y
+              L   R4,Y  copy contents of location Y into register 4
+              S   R4,X  subtract the contents at X from register 4
+              ST  R4,Y  copy the difference to location Y
+          
+          or
+          
+          X       HC      5      the operations are the same here as
+          Y       HC      9      in the example above, except that
+                  LH      R4,Y   halfwords are used in all the operations
+                  SH      R4,X
+                  STH     R4,Y
+          
+          is correct.
+
+               All else being equal, preference should be given to the
+          halfword   version   over   the   word   version  for  speed
+          considerations.  If instead of 5 and 9 the numbers 3FFFF and
+          42000  were  used,  it  would  not  be  possible  to use the
+          halfword version because the numbers  are  too  large.   The
+          fullword version would be required.
+          Initialization                                     Page 4-10
+          The Subtract instruction
+
+
+          EXERCISE:  Write  the  portion  of  a  program  which  gives
+          location B the value 91B7, the original value at location A.
+          Use register 4 in this exercise.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+
+               Note  that  91B7  is  small  enough  to  use   halfword
+          instructions.
+
+          A       HC      91B7   start location A with value 91B7
+          B       HS      1      set aside a halfword for B
+                  LH      R4,A   copy contents at A into register 4
+                  STH     R4,B   copy the contents of register 4 into
+                                 location B
+          Initialization                                     Page 4-11
+          Using LOADs and STOREs to Initialize
+
+
+
+
+
+
+          4.7  USING LOADS AND STORES TO INITIALIZE
+
+               The sequence of Load and Store instructions used in the
+          previous  exercise  (and  reproduced below) is an example of
+          how variables can be  initialized.   When  the  sequence  is
+          executed,  the  halfword  at  B  acquires  the  value of the
+          halfword at location A;  that is, the halfword a B has  been
+          initialized  with  the  value  at  A.   The  value  at  A is
+          unchanged.
+
+
+          A       HC      91B7   start location A with value 91B7
+          B       HS      1      set aside a halfword for B
+                  LH      R4,A   copy contents at A into register 4
+                  STH     R4,B   copy the contents of register 4 to
+                                 location B
+          Initialization                                     Page 4-12
+          Using LOADs and STOREs to Initialize
+
+
+          EXERCISE:   Write  the  instructions  that  will  initialize
+          location  X with 48372, the value at Y.  Include definitions
+          in your answer.  Use register 4.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          Note that word directives are needed to deal with 48372
+
+
+
+
+          X     WS    1      reserve space at location X
+          Y     WC    48372  start location Y with 48372
+                L     R4,Y   copy value at location Y into register 4
+                ST    R4,X   copy register 4 into location X
+          Initialization                                     Page 4-13
+          Using LOADs and STOREs to Initialize
+
+
+          EXERCISE:   Let  L  contain  the  value  48A1.   Write   the
+          instruction  sequence  which will initialize location K with
+          twice the value contained in L;   then  subtract  2FE0,  the
+          value  at  M,  from  the  value  at  K.  Save the results at
+          location N.  Use register 4.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          K       HS      1     save space at K
+          L       HC      48A1  put 48A1 into location L
+          M       HC      2FE0  put 2FE0 into location M
+          N       HS      1     save space at N
+          
+                  LH      R4,L  copy value at L into register 4
+                  AH      R4,L  add contents of L to register 4
+                  STH     R4,K  copy register 4 to K
+                  SH      R4,M  subtract contents of M from register 4
+                  STH     R4,N  copy register 4 to N
+          Initialization                                     Page 4-14
+          Using LOADs and STOREs to Initialize
+
+
+               A label can  be  in  the  form  of  an  arbitrary  name
+          assigned  by  the programmer instead of a single letter.  If
+          the names are chosen carefully,  they  can  make  a  program
+          easier to understand.
+
+
+
+
+          Example:  The program in the previous  exercise  could  have
+          been written as
+
+          STORE   HS     1
+          NUM0    HC     48A1
+          NUM1    HC     2FE0
+          ANSWER  HS     1
+          
+                  LH     R4,NUM0
+                  AH     R4,NUM0
+                  STH    R4,STORE
+                  SH     R4,NUM1
+                  STH    R4,ANSWER
+          Initialization                                     Page 4-15
+          Using LOADs and STOREs to Initialize
+
+
+          EXERCISE:   Let  location  CONST  contain  26411.   Write  a
+          program  which  will initialize location LIST with twice the
+          value at CONST, then subtract 2312, the  value  at  location
+          NLINES,  from  the value at location LIST.  Place the result
+          in location TABLE.  Use register 4.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          The size of 26411 requires the use of word storage.
+
+
+          CONST  WC     26411
+          LIST   WS     1
+          NLINES WC     2312
+          TABLE  WS     1
+          
+              L   R4,CONST   copy value at CONST to register 4
+              A   R4,CONST   add value at CONST to register 4
+              ST  R4,LIST    copy register 4 to LIST
+              S   R4,NLINES  subtract value at NLINES from register 4
+              ST  R4,TABLE   copy register 4 to TABLE
+          
+          Initialization                                     Page 4-16
+          Using LOADs and STOREs to Initialize
+
+
+          EXERCISE:  Write the portion of a program which will do  the
+          following:
+
+          1.  initialize location NUDATA with the  rightmost  byte  of
+              1316, the value at location GONUM
+
+          2.  then add 2517, the value  at  location  MORDAT,  to  the
+              value at NUDATA
+
+          3.  then subtract 165, the value at location DELTA, from the
+              result.
+
+          4.  Save the result at location TOTDAT.
+
+          Use register 4.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          The numbers  in  this  exercise  are  small  enough  to  use
+          halfword instructions.
+
+
+          NUDATA HS     1
+          GONUM  HC     1316
+          MORDAT HC     2517
+          DELTA  HC     165
+          TOTDAT HS     1
+          
+              LB   R4,GONUM   copy value at GONUM to register 4
+              STB  R4,NUDATA  copy register 4 to NUDATA
+              AH   R4,MORDAT  add value at MORDAT to register 4
+              SH   R4,DELTA   subtract value at DELTA from register 4
+              STH  R4,TOTDAT  copy register 4 to TOTDAT
+          Initialization                                     Page 4-17
+          Using LOADs and STOREs to Initialize
+
+
+          EXERCISE:  Write the portion of a program which will do  the
+          following:
+
+          1.  Subtract 115, the value at location VARIB, from 312, the
+              value at location NUNUM,
+
+          2.  Initialize location DATA with the result,
+
+          3.  Then add 16237, the value at location OFFSET.
+
+          4.  Save the result at location TOTAL.
+
+          Use register 4.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          Since 16237 is large enough to  require  word  storage,  the
+          following answer will use all word instructions.  
+
+
+          DATA   WS     1
+          NUNUM  WC     312
+          VARIB  WC     115
+          OFFSET WC     16237
+          TOTAL  WS     1
+          
+              L    R4,NUNUM   copy value at NUNUM into register 4
+              S    R4,VARIB   subtract value at VARIB from register 4
+              ST   R4,DATA    copy register 4 to DATA
+              A    R4,OFFSET  add value at OFFSET to register 4
+              ST   R4,TOTAL   copy register 4 to TOTAL
+
+
+
+
+
+
+
+
+
+
+
+
+                              CHAPTER 5
+
+                     IMMEDIATE MODE INSTRUCTIONS
+
+
+
+          5.1  THE NEED FOR IMMEDIATE MODE
+
+               By  now  the  more  impatient  readers   are   probably
+          wondering  why it is always necessary to have numbers placed
+          in memory locations before these numbers can be used.  Is it
+          possible  to  specify  these  numbers  in  the  instructions
+          themselves, so that  one  needn't  always  go  out  to  some
+          location in order to get a value for some operation?
+
+               The  answer  is  yes,  and  the   immediate   mode   of
+          instruction is the means.
+          Immediate mode instructions                         Page 5-2
+          Definition of the immediate mode
+
+
+
+
+
+
+          5.2  DEFINITION OF THE IMMEDIATE MODE
+
+               An instruction used in the immediate mode  specifies  a
+          register  and some numeric value to be used in the execution
+          of the instruction.  The numeric value is actually  part  of
+          the  instruction.   It  is  not  necessary  to  set  aside a
+          separate location to hold this numeric value.
+
+               Most instructions discussed up  to  this  point  (Load,
+          Add,  and Subtract) can be used in the immediate mode.  (The
+          Store  instruction  always  copies  from  a  register  to  a
+          location,  so  an  immediate mode Store instruction would be
+          nonsense.)
+
+               The immediate mode is indicated by appending an "I"  to
+          the  instruction.  So, the immediate modes of L, A and S are
+          LI, AI, and SI, respectively.
+
+               Similarly, the halfword versions of these  instructions
+          (LH,  AH,  and  SH) may be used in immediate mode (LHI, AHI,
+          and SHI,  respectively).   These  instructions  require  the
+          numeric value to be small enough to fit in a halfword;  that
+          is, the number must be no longer than 4 hex digits.
+
+               There are special "short" versions of  these  immediate
+          mode  instructions  (LIS,  AIS,  and  SIS)  that  are useful
+          because the instructions are executed very quickly  and  are
+          short  in  length  (2  bytes).   The  numeric value in short
+          instructions is limited to a single hex digit.
+
+
+          Examples:
+
+              LI     R1,4FBC2   copies the value 4FBC2 into register 1
+          
+          
+              AHI    R3,1234    adds the value 1234 to the contents 
+                                of register 3
+          
+              SIS    R0,0F      subtracts the value 0F from the contents
+                                of register 0
+          Immediate mode instructions                         Page 5-3
+          Definition of the immediate mode
+
+
+          EXERCISE:  The answer to the last exercise in  the  previous
+          chapter is reproduced below.
+
+          DATA   WS     1
+          NUNUM  WC     312
+          VARIB  WC     115
+          OFFSET WC     16237
+          TOTAL  WS     1
+          
+              L    R4,NUNUM
+              S    R4,VARIB
+              ST   R4,DATA 
+              A    R4,OFFSET
+              ST   R4,TOTAL
+
+          Rewrite  it  using  immediate  mode  instructions   wherever
+          possible.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          Since values were stored to locations DATA  and  TOTAL,  the
+          definitions  of DATA and TOTAL must remain.  However, NUNUM,
+          VARIB, and  OFFSET  may  be  replaced  by  the  values  they
+          contained when instructions are converted to immediate mode.
+
+          DATA   WS     1        or        DATA   WS     1
+          NUNUM  EQ     312                TOTAL  WS     1
+          VARIB  EQ     115        
+          OFFSET EQ     16237
+          TOTAL  WS     1
+          
+              LI   R4,NUNUM                       LI    R4,312
+              SI   R4,VARIB                       SI    R4,115
+              ST   R4,DATA                        ST    R4,DATA 
+              AI   R4,OFFSET                      AI    R4,16237
+              ST   R4,TOTAL                       ST    R4,TOTAL
+
+
+
+
+
+
+
+
+
+
+
+
+                              CHAPTER 6
+
+                              BRANCHING
+
+
+
+          6.1  WHAT IS BRANCHING?
+
+               Branching  is  a  method  of  interrupting  the   usual
+          straightline execution of a sequence of instructions.
+
+
+
+          6.2  WHEN IS BRANCHING USEFUL?
+
+               Branching becomes  particularly  useful  when  handling
+          several cases or when executing repetitive tasks.
+
+               When dealing with situations in which several cases are
+          possible,  a  programmer  will write a code so that once the
+          case is determined the code will resume execution at another
+          section  of  code  written  to  handle that case, and neatly
+          skipping over any code that is irrelevant to the case  being
+          considered.
+
+               Repetitive tasks are usually  handled  by  sections  of
+          code  known  as loops.  A loop is a sequence of instructions
+          that is executed over and over.  This is done by making  the
+          last  instruction  in the loop (the "branching" instruction)
+          an instruction to resume execution at the first  instruction
+          of the loop.
+          Branching                                           Page 6-2
+          When is branching useful?
+
+
+               The  most  basic  branch   in   the   Engine   is   the
+          unconditional jump, which looks like this:
+
+              J    LOC
+
+          where LOC is a label at the location where code execution is
+          to resume.
+
+
+
+
+          Example:
+
+                 LIS    R1,0    initialize register 1 to zero
+          ALPHA  AIS    R1,1    add one to the contents of register 1
+                 J      ALPHA   resume execution at location ALPHA
+
+          This loop will add 1 to the contents of register 1 over  and
+          over again.
+          Branching                                           Page 6-3
+          Conditional Branches
+
+
+
+
+
+
+          6.3  CONDITIONAL BRANCHES
+
+               If the branch at the end of a  loop  always  redirected
+          the  Engine  to  continue  execution at the beginning of the
+          loop, the Engine would continue to execute the loop forever.
+          This is usually undesirable and can be avoided by making the
+          branch conditional.  That is, allowing the branch  to  occur
+          only when certain conditions are satisfied.
+
+               After  most  instructions  are  executed,  the   Engine
+          retains   a   primitive   status   of  the  results  of  the
+          instruction.  This is known as the  "condition  code",.   If
+          the  results  of  the  instruction  were less than zero, the
+          Engine notes this fact.  It also notes if the  results  were
+          greater than zero.
+
+               Jumps that redirect the sequence of execution based  on
+          the  Engine's  status  are  called  conditional  branches or
+          conditional jumps.
+
+
+
+
+          Example:   JL  is  a  conditional  jump.   It  directs   the
+          execution  of  code  to  another  address  when the Engine's
+          condition  code  indicates  the  result  of   the   previous
+          instruction  was  less  than  zero.   If  the condition code
+          indicates the result was not less than zero, the Engine does
+          not  execute  the  jump  and  proceeds  with the instruction
+          following the jump.
+          Branching                                           Page 6-4
+          Conditional Branches
+
+
+               A table listing JL and other jump instructions  can  be
+          seen  in  Appendix  A at the back of the notes.  Open it for
+          reference.   Note  that  there   are   many   varieties   of
+          conditional jumps offered by the Engine instruction set.
+
+               For  each  instruction  (ISISDOC)ENGINE.DOC  lists  the
+          condition code following completion of that instruction.
+          Branching                                           Page 6-5
+          Conditional Branches
+
+
+               An example of a repetitive task that can be handled  in
+          a  loop  is integer multiplication.  The number of times the
+          loop is executed is determined by a counter.   This  counter
+          is  often  initialized  with  an immediate mode instruction.
+          Such a case will be examined below.
+
+               Integer multiplication may be considered shorthand  for
+          successive  addition.   For example, one way to multiply 21x
+          by 3 might be
+
+          DATNUM  WC      21
+          TOTAL   WS      1
+          
+                  L    R1,DATNUM
+                  A    R1,DATNUM
+                  A    R1,DATNUM
+                  ST   R1,TOTAL
+
+
+               This method is useful only for trivial  multiplication.
+          A   better  way,  which  permits  multiplication  by  larger
+          numbers, would be to count the number of times  that  DATNUM
+          is  added  to produce TOTAL.  The example below is a program
+          that continues on when its  counter  (register  R1)  becomes
+          zero:
+
+          TOTAL   WS     1
+          
+                LIS   R1,3     initialize register 1, the counter, to 3
+                LIS   R2,0     register 2 is used for calculation
+          MORE  AHI   R2,21    add 21 to the running total in register 2
+                ST    R2,TOTAL save the result in TOTAL
+                SIS   R1,1     subtract one from the counter
+                JG    MORE     continue adding as long as the counter
+                               is greater than zero (1, 2, or 3 in this
+                               case)
+          Branching                                           Page 6-6
+          Conditional Branches
+
+
+          EXERCISE:  The second line of the  previous  program  clears
+          R2.  That is, initializes R2 with a value of 0.  Why is this
+          necessary?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+
+               Clearing R2 ensures that whenever this program  is  run
+          R2 will always start at 0 rather than at some value leftover
+          from some other part of the program.
+          Branching                                           Page 6-7
+          Conditional Branches
+
+
+          EXERCISE:  What will be the value in R1 when the instruction
+          JG  MORE  is  first  executed?   What  will  be the value at
+          location TOTAL?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          R1 will contain 2 since the subtract  immediate  instruction
+          SIS  has only been executed once since R1 was initialized to
+          3.  
+
+               At this point location TOTAL contains a value of 21.
+          Branching                                           Page 6-8
+          Conditional Branches
+
+
+          EXERCISE:  After the second time that JG  MORE is  executed,
+          what is the value in R1?  What is the value at TOTAL?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          The second time R1 contains a 1 and TOTAL contains 42.
+          Branching                                           Page 6-9
+          Conditional Branches
+
+
+               When the instruction JG  MORE  is  executed  the  third
+          time, the contents of R2 is zero.  Consequently, the Jump if
+          Greater does NOT produce the jump back, and the  instruction
+          following  the  JG  (whatever  it  might  be)  is  the  next
+          instruction to be executed.  
+
+
+
+
+          EXERCISE:  Modify the program to multiply  the  two  numbers
+          1263  and  24.   Can  you  answer  this  exercise  with  two
+          different solutions?  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          TOTAL   WS     1      or    TOTAL   WS     1      
+          
+                LHI   R1,24                  LHI   R1,1263
+                LIS   R2,0                   LIS   R2,0     
+          MORE  AHI   R2,1263          MORE  AHI   R2,24   
+                ST    R2,TOTAL               ST    R2,TOTAL 
+                SIS   R1,1                   SIS   R1,1     
+                JG    MORE                   JG    MORE     
+
+          The solution on the left is preferred because the number  of
+          times  the code must loop is minimized.  This shortens total
+          execution time.
+
+               Note that the LIS could no longer be  used  because  of
+          the size of the count.  However, the AHI could still be used
+          because both 1263 and 24  can  fit  in  a  single  halfword.
+          Similarly,  the  SIS  could still be used since the count is
+          still reduced by 1 each time through the loop.  
+          Branching                                          Page 6-10
+          Conditional Branches
+
+
+          EXERCISE:  Write a program to  multiply  3652  by  35  using
+          successive   addition.   Store  the  result  in  a  location
+          carrying the label PRODUC.  If necessary, use  the  previous
+          program   as  a  reference.   You  may  use  immediate  mode
+          instructions if you wish.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          PRODUC  WS      1
+          
+                  LHI     R1,35
+                  LIS     R2,0
+          LOOP    AHI     R2,3652
+                  SIS     R1,1
+                  JG      LOOP
+                  ST      R2,PRODUC    save the result after all
+                                       calculation is done
+
+
+
+
+          The addition loop will continue  to  be  executed  until  R1
+          contains a zero.  At that time the condition for the JG will
+          no longer be satisfied, and the ST following the JG will  be
+          the next instruction executed.
+
+               In your program you probably used different labels  and
+          may  have  used  JN  (Jump Nonzero) rather than JG.  You may
+          have also used locations containing the constant  values  35
+          and 3652 instead of using immediate instructions.  
+          Branching                                          Page 6-11
+          Conditional Branches
+
+
+               The previous multiplication program is intended  mainly
+          to  demonstrate  looping  operations.   Better programs that
+          take greater advantage of the instructions available on  the
+          Engine can be written.
+
+               In a looping type program the point to which  the  jump
+          back  occurs is after the initialization.  In our exercises,
+          registers 1 and 2 were initialized at the beginning of  each
+          program.  Jumping to a point within the initializing part of
+          code could produce a program which never leaves the loop.
+
+
+
+
+          Example:  If the label LOOP were moved one instruction up,
+
+          PRODUC  WS      1
+          
+                  LHI     R1,35
+          LOOP    LIS     R2,0
+                  AHI     R2,3652
+                  SIS     R1,1
+                  JG      LOOP
+                  ST      R2,PRODUC
+
+          register 2 would be zeroed each time through the  loop.   At
+          the  end  of  the  loop execution, PRODUC would only contain
+          3652, not the product of 3652 and 35.
+          Branching                                          Page 6-12
+          Conditional Branches
+
+
+          EXERCISE:  What would happen if the label LOOP were moved up
+          one more instruction?
+
+          PRODUC  WS      1
+          
+          LOOP    LHI     R1,35
+                  LIS     R2,0
+                  AHI     R2,3652
+                  SIS     R1,1
+                  JG      LOOP
+                  ST      R2,PRODUC
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+          The counter, register 1, would get reset  to  35  each  time
+          through the loop.  Then the SIS R1,1 instruction would bring
+          the value of register 1 down to 34, which  would  always  be
+          greater than zero.  The condition for the JG would always be
+          satisfied, and  the  jump  back  to  LOOP  would  always  be
+          executed.   Program  execution  would  never leave this loop
+          once it entered it.
+
+
+
+
+
+
+
+
+
+
+
+
+                              CHAPTER 7
+
+                               INDEXING
+
+
+
+          7.1  TABLES AND INDEXES
+
+               Often several pieces of data will be manipulated in the
+          same  manner  by a code.  Under these circumstances it would
+          be wasteful to repeat the code  to  handle  each  individual
+          piece  of  data.  Instead, the individual pieces of data can
+          be collected into  a  single  contiguous  area  known  as  a
+          "table".   With data arranged in a table structure, code can
+          be written to manipulate any entry in the table in the  same
+          way.
+
+               The beginning of a table is usually  given  some  label
+          for easy reference.  Entries within the table are referenced
+          relative to the  beginning  of  the  table  by  means  of  a
+          displacement or "index".
+
+                      ________________    
+               LABEL |                |   <----+
+                     |________________|        |
+                     |                |        |
+                     |________________|        |
+                     |                |        |
+                     |________________|        |    displacement
+                     |                |        |
+                              .                |
+                              .                |
+                              .                |
+                     |________________|        |
+                     |                |   <----+
+                     |________________|
+                     |                |
+                     |________________|
+                     |                |
+                     |________________|
+
+          Remark:   "Index"  and   "displacement"   are   often   used
+          interchangeably, but when used they should carry a qualifier
+          indicating the units being used (e.g., a word index, a  byte
+          displacement).
+          Indexing                                            Page 7-2
+          Tables and Indexes
+
+
+          Example:  Some indexed tables.
+
+                 a halfword table              a word table
+          
+             address  contents  index    address  contents  index
+              2000      5555      0       50000   12345678    0
+              2002      4444      1       50004   11111111    1
+              2004      3333      2       50008   22222222    2
+              2006      2222      3       5000C   33333333    3
+              2008      0001      4       50010   00000001    4
+
+
+               The table on the left contains  entries  that  are  one
+          halfword each (two bytes).  The index is a halfword index in
+          the  example.   The  table  entry  which  is  the   halfword
+          containing  1  has  a  halfword index of 4.  This entry is 8
+          bytes from the beginning of the table (2000).
+
+               The table on the right contains entries  that  are  one
+          word  each  (four  bytes).  The index is a word index in the
+          example.  The table entry which is the word containing 1 has
+          a  word  index  of  4.   This  entry  is  16  bytes from the
+          beginning of the table (50000).
+
+               In both tables the entry containing 1 has an  index  of
+          4, but because one table uses a halfword index and the other
+          uses a word index, the entry in  the  halfword  table  is  8
+          bytes from the beginning of the table while the entry in the
+          word table is 16 (=10 hex) bytes from the beginning  of  the
+          table.
+
+               The difference made by indexing units is  important  to
+          remember  when  determining  the  byte  address of an entry.
+          Usually one knows the address of the beginning of the  table
+          and  a  displacement into the table.  Often both the address
+          and the index must be converted into bytes to determine  the
+          final   address;    without  the  index  units  the  correct
+          conversion to a byte address cannot be calculated.
+          Indexing                                            Page 7-3
+          Accessing Table Entries
+
+
+
+
+
+
+          7.2  ACCESSING TABLE ENTRIES
+
+               Accessing table entries involves a process in which the
+          address  of  a  table  entry  is  determined, referred to as
+          "indexing".  This can be accomplished in one of two ways:
+
+          1.  Given the address of the table and the displacement into
+              the  table,  one  can calculate the address of the table
+              entry directly, or
+
+          2.  Given the address of the table and a register containing
+              the displacement, one may use Engine instructions in the
+              "index mode".  In this  mode  the  Engine  automatically
+              sums  the contents of the register and the table address
+              to calculate the entry address.
+
+          The second method is to be preferred whenever  possible  for
+          reasons of efficiency.  
+
+          Remark:  The net result of  this  address  determination  is
+          referred to as the "effective address".
+          Indexing                                            Page 7-4
+          Accessing Table Entries
+
+
+          Example:  Suppose TABLE is composed of byte entries  and  R1
+          contains a byte index (say 5) into TABLE.  
+
+                       address    contents    byte index
+                       TABLE         98           0
+                       TABLE+1       87           1
+                       TABLE+2       76           2
+                       TABLE+3       65           3
+                       TABLE+4       54           4
+                       TABLE+5       43           5
+                       TABLE+6       32           6
+
+          Then in order to Load register 2 with  the  sixth  entry  in
+          TABLE, use the instruction
+
+                              LB      R2,TABLE,R1
+
+          and R2 will contain the value 43.  The effective address for
+          this instruction is calculated as follows:
+
+          effective address = TABLE + (contents of R1)
+                            = TABLE + 5
+
+          (Note that a byte displacement of zero indicates  the  first
+          entry  in  TABLE,  so a byte displacement of 5 indicates the
+          sixth entry.)
+          Indexing                                            Page 7-5
+          Accessing Table Entries
+
+
+               Many  instructions  will  take  still   another   index
+          register,  allowing  for  doubling an index or for using two
+          distinct index registers.
+
+          Example:  Suppose TABLE is composed of halfword entries  and
+          R1 contains a halfword index (say 5) into TABLE.  
+
+                       address    contents   halfword index
+                       TABLE        9876           0
+                       TABLE+2      8765           1
+                       TABLE+4      7654           2
+                       TABLE+6      6543           3
+                       TABLE+8      5432           4
+                       TABLE+0A     4321           5
+                       TABLE+0C     3210           6
+
+          Then in order to Load register 2 with  the  sixth  entry  in
+          TABLE, use the instruction
+
+                             LH      R2,TABLE,R1,R1
+
+          R2 will contain 4321.  The  calculation  for  the  effective
+          address in this instruction is as follows:
+
+          effective address = TABLE+(contents of R1)+(contents of R1)
+                            = TABLE + 5 + 5
+                            = TABLE + 0A
+
+
+               This  instruction  format  indicates  that  the   final
+          address  is  TABLE  plus  twice  the  contents  of  R1.  Any
+          halfword index value, when doubled, becomes  a  byte  index.
+          Therefore  this instruction format allows the halfword index
+          R1 to be used twice (thereby allowing the halfword index  to
+          be used as a byte index) without any additional calculation.
+
+          Remark:  The two indexing registers need  not  be  the  same
+          register.   Distinct  registers are used when subindexing is
+          necessary.  
+
+          WARNING:  A  restriction  in  the  Engine  instruction  code
+          prohibits the use of register 0 as an index register.
+          Indexing                                            Page 7-6
+          Accessing Table Entries
+
+
+          EXERCISE:  Write a program to copy 99 halfword entries  from
+          TABLE1 to TABLE2.  
+
+
+
+
+
+
+
+
+
+
+                                                                     /
+                                                                    /
+          _________________________________________________________/
+
+
+                                     or
+                 LHI   R1,2*99                  LHI   R1,99
+          LOOP   LH    R2,TABLE1,R1      LOOP   LH    R2,TABLE1,R1,R1
+                 STH   R2,TABLE2,R1             STH   R2,TABLE2,R1,R1
+                 SIS   R1,2                     SIS   R1,1
+                 JG    LOOP                     JG    LOOP
+
+          Functionally the two programs are the same, but the  one  on
+          the left should be faster because the shorter load and store
+          instructions are faster.  
+
+          NOTE:  Copying "from back to front" uses a conditional  jump
+          and  takes  advantage  of  the  Engine's  ability to set its
+          condition codes according to whether the contents of R1  are
+          greater than zero.
+
+
+
+
+
+
+
+
+
+
+
+
+                              CHAPTER 8
+
+                             SUBROUTINES
+
+
+
+               If the same sequence of instructions is  used  in  many
+          different  places,  it  is  often more efficient to make the
+          sequence a separate entity known as a subroutine.
+
+               This is done by removing the sequence  of  instructions
+          to  its  own  place in memory, and everywhere else replacing
+          the sequence with a single instruction that is essentially a
+          jump to the subroutine.
+
+               The subroutine  is  the  sequence  with  an  additional
+          instruction that allows it to return to the place from which
+          it was called.  
+
+               The instruction that calls a  subroutine  is  JAL,  the
+          Jump And Link;  its use is shown below:
+
+                      .
+                      .
+                      .
+                  STH     R6,TABLE1
+                  JAL     R4,COPY
+                  SIS     R6,1
+                  JN      MORE
+                      .
+                      .
+                      .
+
+          Presumably, the subroutine COPY would be  defined  elsewhere
+          in the code:
+
+          COPY    LHI     R1,2*98
+          LOOP    LH      R2,TABLE1,R1
+                  STH     R2,TABLE2,R1
+                  SIS     R1,2        
+                  JN      LOOP        
+                  JR      R4
+          Subroutines                                         Page 8-2
+
+
+
+               The instruction JAL  R4,COPY causes code  execution  to
+          continue  at  the set of instructions at address COPY.  When
+          the instructions  in  the  subroutine  COPY  are  completed,
+          instruction   execution   is   supposed  to  resume  at  the
+          SIS  R1,2.
+
+               In this case the JAL instruction stores the address  of
+          the  instruction SIS  R1,2 in R4.  Then it jumps to location
+          COPY.
+
+               The subroutine COPY must contain a method for returning
+          the  sequence of instruction execution to the SIS  R1,2.  In
+          this example  COPY  contains  a  JR  R4.   Once  the  Engine
+          reaches  the instruction JR  R4 within the routine COPY, the
+          Engine will use the contents of R4 as an address and jump to
+          that  location.  Because of the JAL, the JR  R4 is a jump to
+          the instruction SIS  R1,2.
+
+          Remark:  The  register  used  in  the  JAL  that  links  the
+          subroutine  to  the main code is called the "link register".
+          In the example the link register is 4.
+          Subroutines                                         Page 8-3
+
+
+
+               Without the subroutine call, the code is equivalent to
+
+                      .
+                      .
+                      .
+                  STH     R6,TABLE1
+                  LHI     R1,2*98
+          LOOP    LH      R2,TABLE1,R1
+                  STH     R2,TABLE2,R1
+                  SIS     R1,2        
+                  JN      LOOP        
+                  SIS     R6,1
+                  JN      MORE
+                      .
+                      .
+                      .
+          
+          Subroutines                                         Page 8-4
+
+
+
+          NOTE:  It is very important that COPY  maintain  the  return
+          address,  either in R4 or a specified storage location.  Any
+          modification to the contents of the link  register  must  be
+          done VERY carefully.
+
+
+          NOTE:  It is also important to note  that  the  contents  of
+          certain registers can be destroyed (in this case, R1 and R2)
+          within the  subroutine  call;   if  the  contents  of  these
+          registers  is important to the routine making the subroutine
+          call,  the  routine  should  save  the  contents  of   these
+          registers before making the subroutine call.
+
+
+          Remark:  If a subroutine is called only once  in  an  entire
+          code,  the  subroutine is not really necessary.  In fact, in
+          such a case it will be more expensive due to  the  need  for
+          the   JAL   and   its   return.    However,   under  certain
+          circumstances  the  added  expense  may  be  overlooked   if
+          breaking  the  code up into small subroutines makes the code
+          easier to understand and maintain.
+
+
+
+
+
+
+
+
+
+
+
+
+                             APPENDIX A
+
+                      ENGINE INSTRUCTION SUMMARY
+
+
+
+
+
+
+        Instruction                             Op-code NAD 
+
+        Add                                     5A      A
+        Add Halfword                            4A      AH 
+        Add Halfword Immediate                  CA      AHI 
+        Add Halfword to Memory                  61      AHM 
+        Add Immediate                           FA      AI 
+        Add Immediate Short                     26      AIS 
+        Add Register                            0A      AR 
+        Add to Memory                           51      AM 
+        aNd                                     54      N 
+        aNd Halfword                            44      NH 
+        aNd Halfword Immediate                  C4      NHI 
+        aNd Immediate                           F4      NI 
+        aNd Register                            04      NR 
+
+        Compare                                 59      C 
+        Compare Halfword                        49      CH 
+        Compare Halfword Immediate              C9      CHI 
+        Compare Immediate                       F9      CI 
+        Compare Logical                         55      CL 
+        Compare Logical Byte                    D4      CLB 
+        Compare Logical Halfword                45      CLH 
+        Compare Logical Halfword Immediate      C5      CLHI 
+        Compare Logical Immediate               F5      CLI 
+        Compare Logical Register                05      CLR 
+        Compare Register                        09      CR 
+        Complement BiT                          77      CBT 
+        Console IO                              99      CIO 
+        Convert Halfword Value Register         12      CHVR 
+
+        Divide                                  5D      D 
+        Divide Halfword                         4D      DH 
+        Divide Halfword Register                0D      DHR 
+        Divide Register                         1D      DR 
+
+        Engine Instruction Summary                             Page A-2
+
+
+
+        EXchange Byte Register                  94      EXBR 
+        EXchange Halfword Register              34      EXHR 
+        Exchange Program Status Register        95      EPSR 
+        eXclusive or Halfword                   47      XH 
+        eXclusive or Halfword Immediate         C7      XHI 
+        eXclusive or                            57      X 
+        eXclusive or Immediate                  F7      XI 
+        eXclusive or Register                   07      XR 
+
+        Jump                                    430     J 
+        Jump And Link                           41      JAL 
+        Jump And Link Register                  01      JALR 
+        Jump Backward Short                     220     JBS 
+        Jump Carry                              428     JC 
+        Jump Carry Backward Short               208     JCBS 
+        Jump Carry Forward Short                218     JCFS 
+        Jump Carry Register                     028     JCR 
+        Jump Equal                              433     JE 
+        Jump Equal Backward Short               223     JEBS 
+        Jump Equal Forward Short                233     JEFS 
+        Jump Equal Register                     033     JER 
+        Jump False Backward Short               22M     JFBS 
+        Jump False Forward Short                23M     JFFS 
+        Jump Find First One                     31      JFFO 
+        Jump Find First One Halfword            33      JFFOH 
+        Jump Forward Short                      230     JFS 
+        Jump Greater                            422     JG 
+        Jump Greater Backward Short             202     JGBS 
+        Jump Greater Equal                      431     JGE 
+        Jump Greater Equal Backward Short       221     JGEBS 
+        Jump Greater Equal Forward Short        231     JGEFS 
+        Jump Greater Equal Register             031     JGER 
+        Jump Greater Forward Short              212     JGFS 
+        Jump Greater Register                   022     JGR 
+        Jump Less                               421     JL 
+        Jump Less Backward Short                201     JLBS 
+        Jump Less Equal                         432     JLE 
+        Jump Less Equal Backward Short          222     JLEBS 
+        Jump Less Equal Forward Short           232     JLEFS 
+        Jump Less Equal Register                032     JLER 
+        Jump Less Forward Short                 211     JLFS 
+        Jump Less Register                      021     JLR 
+        Jump No Carry                           438     JNC 
+        Jump No Carry Backward Short            228     JNCBS 
+        Jump No Carry Forward Short             228     JNCFS 
+        Jump No Carry Register                  038     JNCR 
+        Jump Not equal                          423     JN 
+        Jump Not equal Backward Short           203     JNBS 
+        Jump Not equal Forward Short            213     JNFS 
+        Jump Not equal Register                 023     JNR 
+        Jump on False condition                 43M     JF 
+        Jump on False condition Register        03M     JFR 
+        Engine Instruction Summary                             Page A-3
+
+
+
+        Jump on True condition                  42M     JT 
+        Jump on True condition Register         02M     JTR 
+        Jump Register                           030     JR 
+        Jump True Backward Short                20M     JTBS 
+        Jump True Forward Short                 21M     JTFS 
+
+        Load                                    58      L 
+        Load Address                            E6      LA 
+        Load Byte                               D3      LB 
+        Load Byte Register                      93      LBR 
+        Load Complement Short                   25      LCS 
+        Load Halfword                           48      LH 
+        Load Halfword Immediate                 C8      LHI 
+        Load Halfword Logical                   73      LHL 
+        Load Halfword Logical                   73      LHL 
+        Load Halfword Register                  12      LHR 
+        Load Immediate                          F8      LI 
+        Load Immediate Short                    24      LIS 
+        Load Multiple                           D1      LM 
+        Load Program Status Word                C2      LPSW 
+        Load Program Status Word Register       18      LPSWR 
+        Load Register                           08      LR 
+
+        Multiply                                5C      M 
+        Multiply Halfword                       4C      MH 
+        Multiply Halfword Register              0C      MHR 
+        Multiply Register                       1C      MR 
+
+        No OPeration                            420     NOP 
+        No OPeration Register                   020     NOPR 
+
+        Or Halfword                             46      OH 
+        Or Halfword Immediate                   C6      OHI 
+        Or Immediate                            F6      OI 
+        Or Register                             06      OR 
+        Or word                                 56      O 
+        Output Command                          DE      OC 
+        Output Command Register                 9E      OCR 
+
+        Read Data                               9B      RDR 
+        Reset BiT                               76      RBT 
+        Rotate Left Logical                     EB      RLL 
+        Rotate Right Logical                    EA      RRL 
+
+        Sense Status Register                   9D      SSR 
+        Set BiT                                 75      SBT 
+        Shift Left Halfword Logical             CD      SLHL 
+        Shift Left Halfword Logical Short       91      SLHLS 
+        Shift Left Logical                      ED      SLL 
+        Shift Left Logical Short                11      SLLS 
+        Shift Right Arithmetic                  EE      SRA 
+        Shift Right Halfword Logical            CC      SRHL 
+        Engine Instruction Summary                             Page A-4
+
+
+
+        Shift Right Halfword Logical Short      90      SRHLS 
+        Shift Right Logical                     EC      SRL 
+        Shift Right Logical Short               10      SRLS 
+        STore                                   50      ST 
+        STore Byte                              D2      STB 
+        STore Byte Register                     92      STBR 
+        STore Halfword                          40      STH 
+        STore Multiple                          D0      STM 
+        Subtract                                5B      S 
+        Subtract Halfword                       4B      SH 
+        Subtract Halfword Immediate             CB      SHI 
+        Subtract Immediate                      FB      SI 
+        Subtract Immediate Short                27      SIS 
+        Subtract Register                       0B      SR 
+        SuperVisor Call                         E1      SVC 
+
+        Test and Set                            E0      TS 
+        Test BiT                                74      TBT 
+        Test Halfword Immediate                 C3      THI 
+        Test Immediate                          F3      TI 
+
+        User Program Status Word                D5      UPSW 
+
+        Write Data                              DA      WD 
+        Write Data Register                     9A      WDR 
+ Y`@t
