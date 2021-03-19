@@ -1,0 +1,156 @@
+:----------------------------------------------------------------------
+: Product: (BETATEST)CMTI
+: Version: 12.06
+: Cleated by : Kobayshi
+: DATE       : Oct.31.91 
+: Customer   : TDB (Teikoku Data Bank)
+:++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+: << First patch >>
+: This is patch for TDB Only
+: Spec:: TDB Hitach host Only (Order process)
+:        KI********SP.ORD.....****
+:         |        |   |        |
+:         +--------|---|--------|----> Kanji in
+:                  |   |        |
+:                  +---|--------|----> ANK Space code
+:                      +--------|----> Nomal order process
+:                               +----> Make it a rule to do for Kanji
+:
+: << Second patch >>
+: This patch is TDB only for convert of Gaji
+:
+:
+        LO      DSP
+PATCH(901031,1500,NIS.KOBAYASHI,DSPNX5-10,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,016)
+        LR      R0,R0
+        JE      DSP550,,
+        LIS     R4,1
+        STH     R4,DPAIR,R12,           :NEXT ONE 1ST HALF KANJI
+        J       DSP550,,
+ENDPATCH(TDB KANJI FILED LAST CHER A/N/K DEMO KANJI MODE)
+        FO      DSP
+:----------------------------------------------------------------------
+:       TDB Gaiji support
+:----------------------------------------------------------------------
+        LO      TM
+PATCH(880326,1000,NIS.KOBAYASHI,ERRH2J,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,56)
+        POP(R0)
+        IF      \PRTSW
+        LIS     R5,P.PRNT
+        TBT     R5,DIABIT,R12           :PRINTER CIRCUIT?
+        JE      GAI07
+        LI      R0,INVKPR               :RETURN PREDEFINED ERROR CHAR
+        J       EXITH2J,,
+        EI      PRTSW
+GAI07
+        OHI     R0,HW.ON                :TURN ON HI BITS IN KANJI CHAR
+        NI      R0,0FFFF
+        LIS     R2,0                    :INDX ZERO SET
+GAI01   LHL     R3,HITKAN,R2,           :GET HOST KANJI CODE
+        CLI     R3,0FFFF                :TABLE END?
+        JEFS    GAI02                   :YES END
+        CR      R0,R3                   :KANJI CODE MATCH?
+        JNFS    GAI03                   :NO MATCH
+        LHL     R0,JISKAN,R2,           :SET JIS KANJI CODE
+        J       EXITH2J,,
+GAI03   AIS     R2,2                    :COUNT UP
+        J       GAI01
+GAI02   LI      R0,INVKCR               :SET INVALID KANJI CHAR
+        J       EXITH2J,,
+CONPATCH(PA0PTR,,0C0)
+:               HITACHI HOST INPUT KEIS KANJI CODE TABLE
+HITKAN  HC      97B0                    
+        HC      97B1
+        HC      97B2
+        HC      97B3
+        HC      97B4
+        HC      97B5
+        HC      97B6
+        HC      97B7
+        HC      97B8
+        HC      97B9
+        HC      97BA    
+        HC      97BB
+        HC      97BC
+        HC      97C0
+        HC      97C1
+        HC      97C2
+        HC      97C3
+        HC      97C4
+        HC      97C5
+        HC      97C6
+        HC      97C7
+        HC      97C8
+        HC      97C9
+        HC      97CA
+        HC      97CB
+        HC      97CC
+        HC      97CD
+        HC      97CE
+        HC      97CF
+        HC      99F0
+        HC      99F1
+        HC      99F2
+        HC      99F3
+        HC      99F4
+        HC      99F5
+        HC      99F6
+        HC      99F7
+        HC      99F8
+        HC      99F9
+        HC      90C0
+        HC      90F6
+        HC      9BEF
+        HC      0FFFF                   :END FLG
+:               JIS GAIZI KANJI CODE TABLE
+JISKAN  HC      0A2AF
+        HC      0A2B0                   
+        HC      0A6D9
+        HC      0A6DA
+        HC      0A6DB
+        HC      0A6DC
+        HC      0A6DD
+        HC      0A6DE
+        HC      0A6DF
+        HC      0A6E0
+        HC      0A6E1
+        HC      0A6E2
+        HC      0A6E3
+        HC      0A6E4
+        HC      0A6E5
+        HC      0A6E6
+        HC      0A6E7
+        HC      0A6E8
+        HC      0A6E9
+        HC      0A6EA
+        HC      0A6EB
+        HC      0A6EC
+        HC      0A6ED
+        HC      0A6EE
+        HC      0A6EF
+        HC      0A6F0
+        HC      0A6F1
+        HC      0A6F2
+        HC      0A6F3
+        HC      0A6F4
+        HC      0A6F5
+        HC      0A6F6
+        HC      0A6F7
+        HC      0A6F8
+        HC      0A6F9
+        HC      0A6FA
+        HC      0A6FB
+        HC      0A6FC
+        HC      0A6FD
+        HC      0A6FE
+        HC      0A2C8
+        HC      0A1A3
+        HC      0FFFF                   :END FLG
+ENDPATCH(TEIKOKU DATA BUNK GAIZI SUPPORT)
+        FO      TM
+P0END   EQ      PA0PTR
+P1END   EQ      PA1PTR
