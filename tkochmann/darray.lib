@@ -1,0 +1,176 @@
+	TITLE	DARRAY.LIB . . . .Package to display Array Statistics	
+	SUBTTL	DARRAY....Definitions
+
+:		****    *   ****  ****    *   *   *
+:		*   *  * *  *   * *   *  * *   * *
+:		*   * ***** ****  ****  *****   *
+:		*   * *   * *  *  *  *  *   *   *
+:		****  *   * *   * *   * *   *   *
+
+:****************************************************************
+:								:
+:	This program is the sole property and confidential	:
+:	information of Tymshare, Inc., and may not be copied	:
+:	in whole or in part or disclosed to any third party	:
+:	without the prior written consent of Tymshare.		:
+:								:
+:****************************************************************
+
+:	DARRAY - ISIS Array statistics display package
+:		Version of 14 November 1981
+:			John Kopf
+
+
+
+:		The DARRAY package is intended to provide a tool to display
+:	array statistics gathered by other programs.
+
+:		Some of the parameters passed are in the form of "descriptors",
+:	of standard format:
+
+:	DISCR	WC	START		:the start value (or pointer)
+:		HC	DESCR		:print descriptor (as per ISIS SVC 0D,$A14)
+:		HC	NUMBER		:either increment or number of elements
+
+:		If the SVC descriptor value is 0, the corresponding value
+:	is not printed.
+
+:		LABEL Descriptor:  Each line may be labeled.  In this case,
+:	START is the label for the first line, to be incremented by NUMBER
+:	for successive lines.
+
+:		ARRAY Descriptor:  The logical halfword array (i.e.
+:	unsigned numbers), starting at START and of length NUMBER, will be
+:	displayed.
+
+:		Displays may be of 2 forms:
+:	Tabular (with label and 8 elements/line),
+:	Histogram (with label and a line of "*"s whose length is proportional
+:		to the element value).  Histograms may be either FULL (all
+:		elements displayed), or truncated (multiple zero elements
+:		suppressed).
+
+	GL	LIST,PROFIL
+
+	SEG	A.CODE
+
+	MO	.,DARRAY
+
+OUT	EQ	0B			:output SVC
+KIO	EQ	0D			:KIO SVC
+	SUBTTL	DARRAY....List
+
+:	List an array...expects:
+:	R0-R4 -	scratch
+:		R2 -	line cursor
+:		R3 -	label value
+:		R4 -	array-element pointer
+:	R5 -	LABEL-descriptor pointer
+:	R6 -	ARRAY-descriptor pointer
+:	R7 -	Link register
+LIST	LIS	R2,0			:index
+	L	R3,0,R5			:get label start
+	L	R4,0,R6			:get array start
+LIST1	SVC	OUT,CRLF		:new line
+	LH	R1,4,R5			:get descriptor
+	JEFS	LIST2			:null...no label
+	LR	R0,R3			:copy label
+	SVC	KIO,$A 10		:print label
+
+LIST2	LH	R1,4,R6			:get element descriptor
+	JLE	LIST4			:null...exit
+LIST3	LHL	R0,0,R4			:get an entry
+	SVC	KIO,$A 10		:print it
+	AH	R3,6,R5			:next label
+	AIS	R4,2			:next element
+	AIS	R2,1			:advance index
+	CH	R2,6,R6			:check if done
+	JGEFS	LIST4			:quit if so
+	THI	R2,7			:time for new line?
+	JNBS	LIST3			:no
+	J	LIST1			:yes
+
+LIST4	SVC	OUT,CRLF		:terminate with blank line
+	JR	R7			:and exit
+	SUBTTL	DARRAY.... -- Profile (histogram)
+
+
+:	Profile an array...expects:
+:	R0-R6 -	scratch
+:		R2 -	label value
+:		R3 -	array-element pointer
+:		R4 -	scale factor
+:		R5 -	blank-line flag
+:		R6 -	index
+:	R6 -	array scaling factor
+:	R7 -	Label-descriptor pointer
+:	R8 -	Array-descriptor pointer
+:	R9 -	full histogram if non-negative
+:	R10 -	Link register
+PROFIL	LIS	R4,1			:set default scale factor
+	LR	R2,R6			:copy scaling
+	JLEFS	PROF1			:skip if ignorable...use default
+	AHI	R2,$A 64
+	LHI	R3,65
+	DHR	R2,R3			:Compute the scale factor
+	AIS	R3,9
+	LIS	R0,$A 10		:make pretty
+	DHR	R3,R0
+	MHR	R4,R0
+PROF1	SVC	OUT,PROFM1		:" (each '*' is "
+	LR	R0,R4
+	LHI	R1,60A			:6 decimal digits
+	SVC	KIO,$A 10		:add detail about scaling
+	SVC	OUT,PROFM2		:" events)"
+
+	L	R2,0,R7			:first label
+	L	R3,0,R8			:get array-start
+	LIS	R5,0			:blank-line flag
+	LH	R6,6,R8			:get count for index
+
+PROF2	LHL	R0,0,R3			:get an entry
+	JNFS	PROF3			:skip if not 0
+	LR	R5,R5			:check flag
+	JL	PROF6			:skip if multiple 0's
+	LHL	R5,2,R3			:single 0-channels print empty
+	JNFS	PROF3
+	LR	R9,R9			:check if full or truncated
+	JGEFS	PROF3			:full...print it
+	SVC	OUT,CRLF		:0's print as 1 blank line
+	J	PROF6			:and skip
+
+PROF3	LR	R5,R0			:non-zero (or 1 0)...clear blank-flag
+	SVC	OUT,CRLF		:new line
+	LH	R1,4,R7			:label-descriptor
+	JEFS	PROF4			:skip if null
+	LR	R0,R2			:else copy label
+	SVC	KIO,$A 10		:print label
+PROF4	LHL	R0,0,R3			:Check if empty
+	JE	PROF6			:yes...abort
+	SVC	OUT,BLANKS		:"  "
+	DHR	R0,R4			:scale the number
+	LHI	R0,2A			:"*"
+	CHI	R1,$A 64		:range check
+	JLEFS	PROF5
+	LHI	R1,$A 64
+PROF5	SVC	KIO,$A 14		:...then print it
+	SIS	R1,1
+	JGBS	PROF5
+
+PROF6	AH	R2,6,R7			:next label
+	AIS	R3,2			:next element
+	SIS	R6,1			:advance index
+	JG	PROF2			:not done yet
+	LR	R5,R5			:check flag
+	JLR	R10			:last line was blank
+	SVC	OUT,CRLF		:else terminate with blank line
+	JR	R10			:and return
+
+PROFM1	SC	/ (each '*' is /
+PROFM2	SC	/ events)/
+
+
+CRLF	SC	/"8D"8A/
+BLANKS	SC	/  /
+
+	EM	:DARRAY
