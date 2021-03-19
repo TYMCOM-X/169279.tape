@@ -1,0 +1,495 @@
+*******************************************************************************
+*                                                                             *
+*                                                                             *
+*            T      E      C      H             T      I      P     S         *
+*                                                                             *
+*                                                                             *
+******************************************************************************
+
+
+
+
+
+
+ 1.     'End of session' option for V3.03 SNA
+         John McKiernan  - Software Technical Support
+
+ 2.      Satellite link usage in Tymnet / SDLC
+         John McKiernan  - Software Technical Support
+
+ 3.      High speed SDLC lines for SNA   
+         John McKiernan - Software Technical Support
+
+ 4.      'Receive overrun' in SDLC interfaces   
+         John McKiernan - Software Technical Support
+
+ 5.      Default Option of Japanese CONSAT
+         Yuki Furuta  - Technical Support - NISNET-Japan
+
+ 6.      Can CMT accept an X.28 call from a non-Tymnet PAD?   
+         Richard Ho - Software Technical Support  
+
+ 7.      CMTI 7.02 RFI # 62526 for LEAF, Inc. 
+         Richard Ho -Software Technical Support 
+
+ 8.      CMTI 7.02 patch release.
+         Richard Ho -Software Technical Support 
+
+ 9.      User Disconnects from SNA Host Session
+         Ping Chu - Software Technical Support
+
+
+
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+John McKiernan 
+Software Technical Support
+     
+SUBJECT:  
+
+'End of session' option for V3.03 SNA
+     
+DISCUSSION:
+     
+The RETAIN macro is actually a 'companion' that is used with another
+option which is not documented.  The prerequisite to using the RETAIN
+macro is the UNBNDS option.  The latter is the option that normally
+forces an 'end of session' when an SNA UNBIND request is received.
+     
+Within the UNBIND request is a field that indicates why the LU - LU
+session is being terminated.  Normally, that field has a value of 01
+(Normal end) or 02 (BIND forthcoming) .  Other values generally indicate
+some problem.  A list is in the SNA Reference Summary (IBM document
+GA27-3136) .
+     
+By defining the UNBNDS options, the SNA interface will clear the
+associated network circuit whenever an UNBIND request is received.  By
+defining the RETAIN option, you can specify a particular case (IE 02 -
+BIND forthcoming) in which the SNA interface will NOT clear the circuit.
+Thus if the end user transits from one application (LU) to another via
+UNBIND , the network circuit will remain in place.  All other cases
+would force a disconnect (CMT users will see a 'PLI') .
+     
+An example of the coding for the above options is:    
+     
+  OPTION(UNBNDS,YES)             : Disconnect circuit @ UNBIND    
+  RETAIN(02)                     : Retain if BIND forthcoming
+
+We currently have two customers using these options.  Their interface
+TYM files are in ND7000.T01 and ND3640.T01 .  The first was installed in
+1Q 1987 .  The latter was recently installed.
+
+Version 3.03 contains the new END OF SESSION option.  It appears to be
+addressed by the RETAIN macro.  The documentation SNA03.DOC both the
+SYSGEN and ERS manual do not provide information on valid reason codes
+that should be used.
+
+Nor is a sample TYMFILE available wherein one could find some examples.
+
+
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+     
+John McKiernan 
+Software Technical Support
+     
+SUBJECT:  
+
+Satellite link usage in Tymnet / SDLC
+     
+DISCUSSION:
+
+In its current usage, our SDLC products use a CCT of 0CC (HEX) which
+(according to the Tymnet Circuit Protocol Reference) is defined as 1200
+BPS (Interactive) .  During network login, it 'gouges' the network
+circuit based on the line speed which is defined.  The interface uses
+'Class 02 - ^C' for stations on a 4800 BPS line and uses 'Class 03 - ^D'
+for higher speeds.
+     
+Regarding 'dynamic' usage of BATCH versus INTERACTIVE CCT's, the
+interface cannot determine the usage for each attached device since it
+handles only SDLC frames.  Since a single circuit multiplexes all
+devices attached to a station, it is a further generalization.
+     
+Regarding the impact of the CCT and available SATELLITE links in the
+network, Gail Bubsey provided an analysis in December 1986 Tech-Tip's .
+That may be of some interest to review.
+
+
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+    
+John McKiernan 
+Software Technical Support
+     
+SUBJECT:  
+
+High speed SDLC lines for SNA   
+     
+DISCUSSION:
+
+Due to the HALFDUPLEX datamode for our SNA products, data which passes
+over the line moves in only one direction at any point in time.  As
+such, the aggregate throughput will be the combination of TRANSMIT and
+RECEIVE utilizations.
+     
+To provide any study of the delays associated with the SNA interface, we
+would need more details of the environment.  Since we are discussing a
+CMT/SNA environment, we need to know the following (as a minimum):
+     
+1:  The number of simultaneous users (and SNA LU's) .  
+     
+2:  The average CPS for users over the session.  Note this is not the
+    ASYNC access speed, but a factor based on the aggregate data transfer
+    over time.
+     
+3:  The average CPS for the ASYNC access line.    
+     
+4:  Some estimate of the average INPUT/OUTPUT data ratio for users over
+    the entire session.
+     
+The above are critical to our study of queuing delays in your
+environment.  Without these, it is impossible for us to give you any
+realistic estimate of a real environment.
+     
+
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+John McKiernan
+Software Technical Support
+
+SUBJECT:  
+
+'Receive overrun' in SDLC interfaces   
+     
+DISCUSSION:
+
+On several occasions, people have observed the following via SDLC's
+Extended DDT 'SCOPE' facility.  The following provides a brief
+description of the problem and potential solutions.
+     
+PROBLEM EXAMPLE:
+     
+     Via 'SCOPE' command output             Summary of the display    
+  ----------------------------    -----------------------------  
+  X RR     1  11  (FASTC time)       RR/F    ; N(R) = 0   
+  R RR     1  11  ( "     "  )       RR/F    ; N(R) = 0   
+  X RR     1  11  ( "     "  )       RR/F    ; N(R) = 0   
+  R INF    1   0  ( "     "  )       INFO    ; N(R) = 0 ; N(S) = 0  
+  R INF    1   2  ( "     "  )       INFO    ; N(R) = 0 ; N(S) = 1  
+  R OVER RUN   4  ( "     "  )       INFO    ; N(R) = 0 ; N(S) = 2  
+  R OVER RUN  16  ( "     "  )       INFO/F  ; N(R) = 0 ; N(S) = 3  
+  X RNR    1  55  ( "     "  )       RNR/F   ; N(R) = 2   
+  R RR      1  11 ( "     "  )       RR/F    ; N(R) = 0   
+  X RR      1  51 ( "     "  )       RR/F    ; N(R) = 2   
+     
+In the example above, the interface received a set of four SDLC
+'I-frames' , but acknowledged only the first two and indicated it was
+'not ready' to receive more frames.  Shortly afterwards the interface
+indicated it was 'ready' but did not acknowledge receipt of the last two
+frames.  This leads to retransmissions from the attached station.
+     
+The problem above is due to a shortage of 'available' receive buffers at
+the interface.  This problem is normally temporary, since some buffers
+may be in use while data passes through the interface.  With some
+understanding, this problem can also be reduced and/or eliminated.
+     
+
+When sending an RR/F (versus RNR/F) the interface will check the
+'available' receive buffer pool and will send RR/F if either of the
+following conditions is true:
+     
+1:  The 'available' pool is at least half the buffers  
+     
+2:  The 'available' pool is at least half the window   
+     
+Four TYM file parameters determine which 'rule' applies:  
+     
+1:  The frame  size (Default: 270) 
+     
+2:  The buffer size (Default: 140) 
+     
+3:  The RCVFRMQA value (IE 07)
+     
+4:  The window size (Default: 07)  
+     
+From the TYM file defaults for the above, the pool is  
+     
+  ROUND(FRAMESIZE / BUFSIZE) * RCVFRMQA =    
+  ROUND(270 / 140) * 7 = 2 * 7 = 14
+     
+From the above, we can see that the interface will send RR/F if the
+available pool is 03 or more (since 07 DIV 02 is 03) .
+     
+By now you can probably see the problem which leads to this 'overrun'
+condition.  If the station attempts to send a full window worth of data
+(07 frames) we would require (07 * 02) buffers to accept the full
+sequence.  We may run out of RCV buffers while processing the second
+frame, which generates a 'data loss' condition (overrun) and
+retransmissions.
+     
+One option which could eliminate this problem is to send an RNR/F unless
+all the buffers are available.  One customer is using such a patch, but
+has intermittent problems where the buffer pool is not restored (leading
+to continuous RNR's) .
+
+Another approach is to remove the test for 'half a window' and use only
+the 'half the pool' approach.  Still this may not eliminate the overrun
+but simply reduce its frequency.
+
+Another approach is to define a large value for RCVFRMQA .  It may help
+to set it as high as twice the window size, but this may lead to
+excessive memory requirements, especially in cases where a large frame
+size is used or for multidrop configurations.
+     
+One key factor to reducing cases of this problem is knowing how often
+the attached station sends 'bursts' of data versus single frames.  The
+'single frame' case is handled very well by existing logic, but a
+sequence of 'bursts' can create an overrun condition.  For the latter
+case, some logic changes (patches) may be required.
+     
+It is important to understand that there is some advantage to allowing
+the overrun to take place.  If the interface is too cautious and sends
+RNR/F too often, the protocol delays for the station to send data may be
+much more than may be seen if overrun and retransmissions occasionally
+occur.  This is especially important in large multidrop configurations.
+
+
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Yuki Furuta
+Technical Support
+NISNET-Japan
+
+SUBJECT:
+
+Default Option of Japanese CONSAT
+
+DISCUSSION:
+
+The public dial-up ports in NISNET Japan have a special feature.  If you
+have a customer accessing from Japanese CONSAT to your host, please note
+there is a little difference from US CONSAT port.
+
+1.  Version 6.xx without CONSAT PAD
+
+2.  Parity
+
+CONSAT sends TID message with space parity.  (TIDSPP) 
+CONSAT sends its own and ISIS message with space parity.  (KANA)
+
+After connecting terminal and host, all message's parity is saved.
+
+3.  TID
+
+TID-I effects as force space parity as TID-O on v6.xx.
+
+4.  XON/XOFF
+
+All ports have PVC(RBP) option; in other words they don't need to put ^R
+at login, and there is no way to remove this option at login phase.
+
+If your customer wants to use file transfer using XMODEM and other
+bit-based protocol from the Japanese CONSAT to your Host interface, you
+should remember this point.  Without rewriting this option from your
+host, CONSAT will stop sending data to the terminal after receiving 13x
+or 93x - even if it is a data character.
+
+If your host interface is XCOM, please ask host person to send X.29 to
+rewrite X.3's 5 and 12 just before starting the file transfer.
+
+If your host interface is ACOM, now NIS is asking HQ to release this
+option from ACOM.  We wrote a special patch for ACOM03, and finished its
+testing.  In this patch , if the customer sends a UETM character to
+ACOM, ACOM sends STP 12,14 to CONSAT, then CONSAT resets both XON and
+RXON bits.
+
+As same as standard UETM option, there is no way to set those bits again
+until zapping the circuit.
+ 
+If you have any questions, please feel free to Ontyme me or Chris Chen
+(NIS.FURUTA, ENS.C/CHEN).
+
+
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+     
+Richard Ho 
+Software Technical Support  
+
+QUESTION:
+     
+Can CMT accept an X.28 call from a non-Tymnet PAD?   
+
+REPSONSE:
+
+When you said non-Tymnet X.28 PAD, I assume that you are talking about
+an X.28 PAD which resides outside of the Tymnet network, coming in to
+Tymnet via an X.75 gateway.  I can't think of a way to bring up a
+non-Tymnet X.28 PAD inside the Tymnet network.
+     
+The answer to your question is - Yes, CMT can accept a call from a
+non-Tymnet X.28 PAD coming to Tymnet via a X.75 gateway, but you will
+encounter echo problems (the gateway doesn't handle CMT's ball logic
+properly).  The only way to avoid the echo problems is to use
+Tymnet78/half-duplex and CMTI version 7.02 which is currently in
+Betatest.
+     
+I would like to clarify that even though CMT can accept an X.28 call
+from a non-Tymnet PAD, we don't know if CMT would work with a Siemens
+switcher (per your customer's configuration).
+ 
+     
+     
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Richard Ho 
+Software Technical Support  
+     
+QUESTION:
+
+While using the Softerm package emulating TYMNET78, if an input
+violation occurs, i.e., alpha char into numeric-only field, Softerm is
+intelligent enough to alert the user of the error by beeping.  Then,
+when CMT receives the error, it beeps again.  Hence a double beep.  Will
+it ever be possible to turn off the second beep in CMT for users
+selecting the TYMNET78/ADDSHDX terminal type?
+
+This double beep can be annoying for the end user, since he may not be
+certain which beep means what when.
+
+RESPONSE:
+          
+The following explains why Softerm/Tymnet78 beeps at the user twice for    
+each invalid character (i.e. user types an alpha character into a numeric  
+field).
+     
+When the user types an invalid character, Softerm/Tymnet78 rejects the
+character, beeps at the user then sends the invalid character to CMT. 
+When receiving the invalid character, CMT throws it away and sends a  
+BEL/07 to Softerm/Tymnet78 causing it to beep at the user one more time.   
+     
+We have talked to Softerm about this issue and they will modify the PC
+software so it won't send invalid characters to CMT.  Until the fix is
+available from Softerm, just think of the beeps as a special feature
+that comes at no extra cost.
+     
+     
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Richard Ho 
+Software Technical Support  
+     
+SUBJECT :
+
+CMTI 7.02 patch release.
+
+DISCUSSION:
+          
+The following patches have been released by STS to fix several problems    
+in CMTI 7.02:  
+     
+1. (QSATS)CMTI07.PAB  - Checksum = QOSHUJ  
+     
+This patch fixes the problem with CMT/Tymnet78 not handling the
+Erase/Write command properly.  This patch also fixes the problem with
+the color displays for field attributes in Tymnet78.
+     
+2. (QSATS)CMTI07.PAC  - Checksum = YUXWUJ  
+     
+This patch fixes the dispatcher crash problem at the terminal selection
+screen.
+     
+3. (QSATS)CMTI07.PAD  - Checksum = KAFNEJ  
+     
+This patch makes CMT/Tymnet78 to include the decimal point and the minus
+sign as numeric characters.
+     
+Please regen your CMTI 7.02 code with the above patches at your earliest   
+convenience.   
+     
+Last but not least, all C.S.'s with CMTI 7.02 betatest customers (except
+for LEAF Inc.  and APL - these two customers already received the latest
+version of Tymnet78 PC software) must contact Debbie Hoffman/Tymnet
+Marketing at (408) 922-7563 as soon as possible to get the latest
+version of Softerm Tymnet78 PC software.  The old version of Softerm
+Tymnet78 doesn't accept the decimal point and the minus sign as numeric
+characters.  
+
+
+
+*****************
+*               *
+* T E C H T I P *
+*               *
+*****************
+
+Ping Chu 
+Software Technical Support
+     
+QUESTION:
+
+We have a potential customer/user community of 5000 stores.  They have
+brought up the following question and I'm not sure exactly what we send
+or enough specifics about IMS.
+
+They would be ordering a 3270 SNA/SDLC and CMT interface.  They are
+running ACF/VTAM, ACF/NCP ON A 3725 and the application is IMS.  They
+are concerned about the user who does not sign out of his application ID
+before hanging up.  How do we notify them that the user has gone away?
+Is a "term-self" enough for them to clean up the user ID?  Right now,
+they said if anyone hangs up without signing off, their user ID is
+suspended until they bring down IMS in the evening.  Is there something
+else we need to do or is there something they should do on the IMS side
+when using our 3270 SNA/SDLC HIF?
+
+RESPONSE: 
+     
+When users abnormally disconnect their jobs from the host application,
+the SNA slot will send a TERM_SELF command to VTAM.  What this command
+does is request THE host application to clean up the session.  It clears
+the active sessions as well as the pending active sessions.  If you turn
+on a switch TERMQU in your SNA command file, the SNA slot will force the
+application to clear up their queued session.  With this feature, we
+have not come across any situation where any user ports are hanging.
+     
+From our past experience working with all our SAN/CMT installs, we have
+not had to ask customers to change their host application's gen or VTAM
+gens to handle TERM_SELF.  VTAM is built in to understand how TERM_SELF
+is supposed to work.    
