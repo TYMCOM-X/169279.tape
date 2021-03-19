@@ -1,0 +1,561 @@
+.SEC(CONSOLE PROCESSES)
+.SS(MODES OF OPERATION)
+     The PICO Engine CONSOLE is implemented by IOC Firmware routines which
+comprise an IOC debugger, a TTY I/O port, an ENGINE debugger and the Engine
+Front Panel Console display.  A 1200 baud terminal is required to use the soft
+console on PICO Engine.  The terminal will connect to the DB-9 subminiature
+male connector provided at the rear panel of PICO which is simply an extension
+of connector J4 from the IOC board.  The terminal should be strapped for lower
+case, full duplex, 1 stop-bit, parity inhibit, 8 bits with bit 8 equal to 0.
+At System Power Up and System Reset cycles, the terminal will display the
+current version number of IOC Firmware and the prompt ENGbug>.  The operator
+may switch routines or processes by enterring the special Process Control
+Character [CNTL]n.  Upon entry of [CNTL]n the prompt will change to TTY I/O.
+Enterring [CNTL]n again the user will be prompted with IOCbug *>.  Each time
+the Process Control Character is enterred the current Process context is
+saved and suspended (such as outputting TTY I/O data and changing to IOCbug).
+When the Process is reenterred the process context and task(s) resume from the
+point at which they were suspended.  All console processes and tasks are under
+the control of a Monitor which controls process arbitration and interrupt
+services.
+
+     If at any time the user looses control of the Console for any reason such
+as hardware anomalies, software anomalies or pilot error, the reset switch
+located at Switch 1 on the IOC board can be used to reset all processes and
+restart the Monitor.  Switch 1 is presented to the rear panel of PICO as a
+BOOT switch but it only serves the purpose of a BOOT switch if the WDT has
+been left enabled.  This is catastrophic to any software processes being
+executed on PICO as all Engine execution is halted and the user will have to
+manually restart the program execution.  If the WDT was left enabled the boot
+will have executed, writing over blocks of memory and requiring the Engine be
+reloaded!  TTY I/O generates interrupts to the IOC and degrades PICO I/O
+performance.  Worse than this is the fact that heavy TTY I/O can cause emulated
+sync I/O routines to loose their pointers and be forever lost!  The TTY port
+is useful and appropriate for use at System Bring-up and debugging periods
+but the user must be certain to perform a normal DDT logout and return the
+Console to the ENGbug> prompt when finished.  Whenever possible utilize the
+remote logon through the Network to DDT for Node Code and slot analysis.
+
+.SS(ENGBUG)
+     ENGbug processes provide access to the Engine registers, main memory,
+WDT (watch dog timer), RTC (real time 600 Hz clock), clock interrupts and 
+Engine execution.  Engine execution options include running with or without 
+up to 8 breakpoints, single-stepping, tracing the last 128 instructions
+executed, booting and modifying the SCC write register values.  The ENGbug
+process supports backspacing[CNTL]h and XON/XOFF (DC3/DC1) [CNTL]s/[CNTL]q
+flow control. From the ENGbug process the EP memory resources are presented
+as addresses 000000 to 0FFFFEx.  The low address of 000000 is the same
+address presented to IOC IOCbug processes as 800000x EP main memory).
+.BEGIN BOX
+                     ENGbug COMMANDS
+ENGbug > 
+? [command]            Provides command descriptions( NYI)
+                       Register commands
+BOOT                   Load and start Engine Boot
+BR [addr [;count]]...  Set or display breakpoints in Engine code
+CIO [switch]           Accept new 'switch'; display 'Front Panel' value
+DR                     Display Engine registers in hex
+DT                     Display Address Trace Buffer
+GD [addr]              Go Direct (without active breakpoints)
+GO [addr]              Go with breakpoints active
+GT addr                Go until temporary breakpoint
+GSS                    Go with trace buffer
+INI                    Initialize Engine
+MD addr [count]        Display Engine memory bytes(=>DDT R cmd)
+MDW addr [count]       Display Engine memory words
+MDI addr [count]       Disassemble Engine Memory
+MI                     Initialize all Engine RAM
+MS addr hex|ascii [hex|ascii...] Set Engine memory(=>DDT W cmd)
+NOBR [addr]...         Remove breakpoint(s)
+RBK [addr]             Go with breakpoints active
+RM reg [hex] [reg [hex]] Modify Engine register(s)
+RTC [on|off]           Turn real-time clock on or off
+RUN [addr]             Go Direct (without active breakpoints)
+SD [0-7]               Dump scc information
+TBOOT                  Boot Engine from TTY line(NYI)
+TR [count]             Trace Engine code
+TT addr                Trace Engine code to temp breakpoint
+WD [on|off]            Turn watchdog timer on or off
+VER                    Display Engbug and Engine uCode version number
+
+NOTE:  NYI = NOT YET IMPLEMENTED AS PER NTD
+.END
+
+     Most of the ENGbug commands are quite literal and provide the user with
+powerful, low-level debugging tools.  Caution needs to be exercised when
+invoking any of the debugger level commands.  For example, just enterring
+the command ver[CR] to display the Firmware and microcode versions will
+halt all Engine processes and then display the version information so the 
+appropriate time to record the version levels would be prior to loading the
+machine and bringing it up in the Network.  Consider the example below.  The
+virtual Front Console is displaying the ENGbug process prompt and directly
+below it is the Front Console display which emulates the Standard Engine
+Console display.  Observe that the Tachometer equals 82, the crash count
+equals 1 and the Node number equals 2774 (the same CIO commands are issued
+to the virtual soft console as they are for the Engine console).  At the prompt
+the command ver[CR] is enterred, the desired information displayed and the
+node is brought down hard.
+.BEGIN BOX
+
+ENGbug  : 
+082102774 > ver
+
+    EP IOC Firmware V1.01     7/10/87
+    PICO Engine Debugger   V1.03  05/06/88
+    TSI Engine uCode V2.0   03/14/1987
+
+ENGbug> 
+Engine Stopped
+.END
+     The same effect is true for DT (dissassemble address trace buffer) and DR
+(display Engine PSD and current general registers).  Observe the example:
+.BEGIN BOX
+ENGbug> dr
+
+  PC = 0062E8     PSW = E2F1 = WIMtarSp cvgL         regset = F 
+
+  R00  FFFFFFF6   R01  000098F0   R02  00000000   R03  03758688 
+  R04  FFFFFFFF   R05  00000005   R06  FFFF88D4   R07  00000020 
+  R08  000105DA   R09  00014F4E   R10  000126C6   R11  0006B400 
+  R12  00000000   R13  000099AA   R14  00000008   R15  00000008 
+>0062E8  584002E0        L      R4, X'2E0',
+
+ENGbug> dt
+ 0126C6  0000            HC     X'0'
+ 014F4E  3F3F            COPY   R3, R15
+ 0105DA  0000            HC     X'0'
+ 000020  0000            H        JFFS       , .+X'6'
+ 0098F0  0000            HC of bounds
+
+  PC = 0062E8     PSW = E2F1 = WIMtarSpcvgL         regset = F 
+
+  R00  FFFFFFF6   R01  000098F0   R02  00000000   R03  03758688 
+  R04  FFFFFFFF   R05  00000005   R06  FFFF88D4   R07  00000020 
+  R08  000105DA   R09  00014F4E   R10  000126C6   R11  0006B400  
+  R12  00000000   R13  000099AA   R14  00000008   R15  00000008
+.END
+
+     The WDT and RTC will both be turned on by the Firmware during the
+initial power on sequence.  To determine the state of the WDT enter wdt[CR].
+To alter the state of the timer enter wdt on[CR] or wdt off[CR].  Example:
+.BEGIN BOX
+ENGbug  : 
+060002773 > wd
+Watchdog Timer is OFF
+003920000 > 
+*****Notice this command is nondestructive and the Front Console continued
+     to update the normal running display.  The same is true for RTC******
+003920000 > rtc
+Real Time Clock is ON
+00C002773 > 
+.END
+     To begin a new Engine program sequence the current program must be
+halted.  For example, if the PICO is running Engine ISIS code the user will
+enter the command ini[CR] to clear out the Front Panel mailbox**, the I/O
+mailbox and interrupt pending que.  A reset is issued to the Engine and IOC
+and Engine code is halted.  Next the user will enter the command gd 70[CR]
+to restart the Engine at the ISIS entry address 70x.  GD starts the Engine
+program at the specified address without setting breakpoints.  If gd[CR] is
+enterred without an address specified the program will start (or attempt to
+start) at the address dictated by the current PC (program counter).  Engine
+program execution wil continue until the PSW wait bit is set or a display
+register type command is issued.  Unless the user has set breakpoints and
+intends to run with breakpoints enabled (at which point the Engine will halt
+when encounterred) the gd command should always be the command specified to
+begin program execution.
+
+**A note about the MAILBOX:  
+
+     I/O between the EP and IOC devices is implemented through three
+mailboxes which are special areas of dedicated Engine main memory.  One
+mailbox is for messages from EP to IOC, one for IOC to EP messages
+and one for EP to Console.  Engine memory 370x through 38Ex and 3C0x
+through 3CEx is reserved for the mailbox transactions and may be displayed 
+by the command md 370 60[CR]
+which will read and dump 60x bytes of data starting from address 370x to
+the terminal.  The EP will write FF into mailbox "cell" 380x to call the 
+IOC.  The IOC will write 7F into the same cell to respond that the call
+or interrupt from the EP is being serviced.  380x (Interrupt Flag) is
+reset to 00 when the IOC completes the service.  For IOC to EP calls, the
+IOC will write into mailbox "cell" 3C0x FF and the EP will respond with
+the 7F to indicate interrupt received and being serviced.  When complete
+the EP will reset the cell to 00.  Console interrupts to the EP are
+generated when the IOC writes FF into mailbox "cell" 370x.  Again the EP
+will rewrite the cell to 7F while servicing the interrupt and reset it to 
+00 when complete.
+
+
+     The SD (Dump SCC information) command  permits the user to dump a
+snapshot of the current channel configuration and status from the terminal.
+It also provides one of the three methods of reprogramming or reconfiguring
+the Z8530 SCCs.  The current channel configuration and status for channels
+0-7 can be obtained by the command sd "channel # 8-F"[CR].  The commands
+sd "channel # 0-7"[CR] will return a menu driven configuration guide which
+will prompt the user for channel configuration selections.  This is a point
+where the user may select specific protocols, clock sources and baud rates.
+Be advised however that the ISIS will override any user terminal defined
+parameters.  This is most useful under diagnostic conditions where programs
+like DSIO can not reconfigure the channels.  The following is an example
+of the information presented by the sd command for channels operating in 
+the HDLC/DMA, HDLC/INT, TYMSYNC/INT and ASYNC/INT modes.  Be advised that
+the information presented by the "snapshot" is at the SCC channel level
+and may or may not actually represent true line conditions!  For example,
+the SCC channel may have I/O clocks present and be transmitting data out
+to the line driver associated with it but it has no "knowledge" of whether
+or not the line driver is even installed!  Jumpers could be improperly
+positioned, cables could be faulty, modems could be failing, Telco could
+be dropping out and all that the SCC "knows" is that it is transmitting.
+Of course the receive statistics should reflect the actual conditions.  If
+jumpers are off here or line problems exist the receive data fields and
+pointers will be somewhat static.  The only real verification of the state
+of the line is to physically intrude and install some sort of breakout or
+datascope off of the port associated with the channel in question!
+.BEGIN BOX
+ENGbug  :
+030920000 > sd 8
+
+SCC CHAN 0 STATUS: available, MODE: SIO Emulation, PROTOCOL: HDLC W/DMA
+TX_CLK_DIRECTION: TRxC_input, TX_CLK_LINE: TRxC, TX_CLK: TRxC, RX_CLK: RTxC
+BAUD RATE: 9600, RELOCATION: 1A400, LOWER LIMIT: 07920, WINDOW: 0670
+RX_PKT_CNT: 41730, RX_CCW_PTR-> LAST: 21D70, NEXT: 21D78, RX_STATE: ACTIVE
+TX_PKT_CNT: 31573, TX_CCW_PTR-> LAST: 21D54, NEXT: 00000, TX_STATE: STOPPED
+TX-> RECORD: 21E52, RECORD_SIZE: 4
+TX-> DAR: FFFFC7, MAR: 021E56, MTC: 0000, CSR: 01, CER: 00, ERR_CNT: 0
+RX-> DAR: FFFFC7, MAR: 0222B0, MTC: 00D0, CSR: 09, CER: 00, ERR_CNT: 0
+RX-> BFR: 21F70, BFR_SIZE: 410, FRAME: 222B4, RECORD: 222B8,RECORD_SIZE:80
+RX_OVERRUN_CNT: 0, RX_CRC_ERR_CNT: 0, RX_ABORT_CNT: 9, TX_ABORT_CNT: 0
+
+|--- Read Registers ---|  |------------- Write Registers -------------|
+00 01 02 03 10 12 13 15   00 01 02 03 04 05 06 07 09 10 11 12 13 14 15
+6C 07 80 00 00 FE 00 C0   18 79 80 D9 20 EB 00 7E 09 80 09 FE 00 07 C0
+                          00 F9 80 D9 20 EB 00 7E 89 80 09 FE 00 07 C0
+
+081002773 > sd 9
+
+SCC CHAN 1 STATUS: available, MODE: SIO Emulation, PROTOCOL: ASYNC
+TX_CLK_DIRECTION: TRxC_input, TX_CLK_LINE: TRxC, TX_CLK: BRG, RX_CLK: BRG
+BAUD RATE: 9600, RELOCATION: 00000, LOWER LIMIT: 00000, WINDOW: 10000
+RX_CCW_PTR-> LAST: 00000, NEXT: 00000, RX_STATE: IDLE
+TX_CCW_PTR-> LAST: 00000, NEXT: 00000, TX_STATE: IDLE
+TX->BFR: 00000, RECORD: 00000, RECORD_SIZE: 0, XON: FF, XOFF: FF, XOFFed 0
+RX-> LAST_BUFFERLET: 00000, BUFFERLET: 00000, BYTE_CNT: 0, TIMER: 0
+
+|--- Read Registers ---|  |------------- Write Registers -------------|
+00 01 02 03 10 12 13 15   00 01 02 03 04 05 06 07 09 10 11 12 13 14 15
+44 07 86 00 00 0E 00 00   00 13 80 C1 44 68 00 00 09 00 51 0E 00 03 80
+                          00 00 80 C1 44 68 00 00 09 00 51 0E 00 03 00
+006920000 > sd a
+
+SCC CHAN 2 STATUS: attention, MODE: SIO Emulation, PROTOCOL: TYMSYNC
+TX_CLK_DIRECTION: TRxC_output, TX_CLK_LINE: TRxC, TX_CLK: BRG, RX_CLK: RTxC
+BAUD RATE: 9600, RELOCATION: 00000, LOWER LIMIT: 00000, WINDOW: 10000
+RX_CCW_PTR-> LAST: 01E30, NEXT: 01E34, RX_STATE: ACTIVE
+TX_CCW_PTR-> LAST: 01E2C, NEXT: 00000, TX_STATE: ACTIVE
+
+|--- Read Registers ---|  |------------- Write Registers -------------|
+00 01 02 03 10 12 13 15   00 01 02 03 04 05 06 07 09 10 11 12 13 14 15
+68 07 90 00 00 FE 00 40   18 12 90 D1 10 EA FF FF 09 00 15 FE 00 03 40
+                          00 12 90 D1 10 EA FF FF 09 00 15 FE 00 03 40
+
+081900000 > sd b
+
+SCC CHAN 3 STATUS: available, MODE: SIO Emulation, PROTOCOL: ASYNC
+TX_CLK_DIRECTION: TRxC_input, TX_CLK_LINE: TRxC, TX_CLK: BRG, RX_CLK: BRG
+BAUD RATE: 9600, RELOCATION: 64C00, LOWER LIMIT: 003A0, WINDOW: 0360
+RX_CCW_PTR-> LAST: 65080, NEXT: 650C0, RX_STATE: ACTIVE
+TX_CCW_PTR-> LAST: 64FD0, NEXT: 00000, TX_STATE: STOPPED
+TX->BFR: 65100, RECORD: 65113, RECORD_SIZE: 0, XON: 11, XOFF: 13, XOFFed 0
+RX-> LAST_BUFFERLET: 652E2, BUFFERLET: 652F0, BYTE_CNT: 0, TIMER: 23574786
+
+|--- Read Registers ---|  |------------- Write Registers -------------|
+00 01 02 03 10 12 13 15   00 01 02 03 04 05 06 07 09 10 11 12 13 14 15
+44 07 96 00 00 0E 00 80   00 13 90 C1 44 82 00 00 09 00 51 0E 00 83 80
+                          00 11 90 C1 44 82 00 00 09 00 51 0E 00 83 80
+
+018002773 > sd c
+
+SCC CHAN 4 STATUS: available, MODE: SIO Emulation, PROTOCOL: ASYNC
+TX_CLK_DIRECTION: TRxC_input, TX_CLK_LINE: TRxC, TX_CLK: BRG, RX_CLK: BRG
+BAUD RATE: 9600, RELOCATION: 00000, LOWER LIMIT: 00000, WINDOW: 10000
+RX_CCW_PTR-> LAST: 00000, NEXT: 00000, RX_STATE: IDLE
+TX_CCW_PTR-> LAST: 00000, NEXT: 00000, TX_STATE: IDLE
+TX->BFR: 00000, RECORD: 00000, RECORD_SIZE: 0, XON: FF, XOFF: FF, XOFFed 0
+RX-> LAST_BUFFERLET: 00000, BUFFERLET: 00000, BYTE_CNT: 0, TIMER: 0
+
+|--- Read Registers ---|  |------------- Write Registers -------------|
+00 01 02 03 10 12 13 15   00 01 02 03 04 05 06 07 09 10 11 12 13 14 15
+44 07 A0 00 00 0E 00 00   00 13 A0 C1 44 68 00 00 09 00 51 0E 00 83 80
+                          00 00 A0 C1 44 68 00 00 09 00 51 0E 00 83 00
+
+060900000 > sd d
+
+SCC CHAN 5 STATUS: available, MODE: SIO Emulation, PROTOCOL: ASYNC
+TX_CLK_DIRECTION: TRxC_input, TX_CLK_LINE: TRxC, TX_CLK: BRG, RX_CLK: BRG
+BAUD RATE: 9600, RELOCATION: 00000, LOWER LIMIT: 00000, WINDOW: 10000
+RX_CCW_PTR-> LAST: 00000, NEXT: 00000, RX_STATE: IDLE
+TX_CCW_PTR-> LAST: 00000, NEXT: 00000, TX_STATE: IDLE
+TX->BFR: 00000, RECORD: 00000, RECORD_SIZE: 0, XON: FF, XOFF: FF, XOFFed 0
+RX-> LAST_BUFFERLET: 00000, BUFFERLET: 00000, BYTE_CNT: 0, TIMER: 0
+
+|--- Read Registers ---|  |------------- Write Registers -------------|
+00 01 02 03 10 12 13 15   00 01 02 03 04 05 06 07 09 10 11 12 13 14 15
+44 07 A6 00 00 0E 00 00   00 13 A0 C1 44 68 00 00 09 00 51 0E 00 83 80
+                          00 00 A0 C1 44 68 00 00 09 00 51 0E 00 83 00
+
+081002773 > sd e
+
+SCC CHAN 6 STATUS: available, MODE: SIO Emulation, PROTOCOL: ASYNC
+TX_CLK_DIRECTION: TRxC_input, TX_CLK_LINE: TRxC, TX_CLK: BRG, RX_CLK: BRG
+BAUD RATE: 4800, RELOCATION: BEC00, LOWER LIMIT: 003A0, WINDOW: 0360
+RX_CCW_PTR-> LAST: BF080, NEXT: BF0A0, RX_STATE: ACTIVE
+TX_CCW_PTR-> LAST: BEFD0, NEXT: 00000, TX_STATE: STOPPED
+TX->BFR: BF100, RECORD: BF113, RECORD_SIZE: 0, XON: 11, XOFF: 13, XOFFed 0
+RX-> LAST_BUFFERLET: BF26A, BUFFERLET: BF270, BYTE_CNT: 0, TIMER: 23287388
+
+|--- Read Registers ---|  |------------- Write Registers -------------|
+00 01 02 03 10 12 13 15   00 01 02 03 04 05 06 07 09 10 11 12 13 14 15
+44 07 B0 00 00 1E 00 80   00 13 B0 C1 44 82 00 00 09 00 51 1E 00 83 80
+                          00 11 B0 C1 44 82 00 00 09 00 51 1E 00 83 80
+006900000 > sd f
+
+SCC CHAN 7 STATUS: available, MODE: SIO Emulation, PROTOCOL: ASYNC
+TX_CLK_DIRECTION: TRxC_input, TX_CLK_LINE: TRxC, TX_CLK: BRG, RX_CLK: BRG
+BAUD RATE: 4800, RELOCATION: 00000, LOWER LIMIT: 00000, WINDOW: 10000
+RX_CCW_PTR-> LAST: 00000, NEXT: 00000, RX_STATE: IDLE
+TX_CCW_PTR-> LAST: 00000, NEXT: 00000, TX_STATE: IDLE
+TX->BFR: 00000, RECORD: 00000, RECORD_SIZE: 0, XON: FF, XOFF: FF, XOFFed 0
+RX-> LAST_BUFFERLET: 00000, BUFFERLET: 00000, BYTE_CNT: 0, TIMER: 0
+
+|--- Read Registers ---|  |------------- Write Registers -------------|
+00 01 02 03 10 12 13 15   00 01 02 03 04 05 06 07 09 10 11 12 13 14 15
+44 07 B6 00 00 1E 00 00   00 13 B0 C1 44 68 00 00 09 00 51 1E 00 83 80
+                          00 00 B0 C1 44 68 00 00 09 00 51 1E 00 83 00
+
+     The two rows of Write Register values displayed for WR00-WR15 present
+on the first row the SIO initition  values issued to the IOC via slot
+program CCPs (Channels Command Programs)comprised of CCWs (Channel Command
+Words) and translated to equivalent SCC   values by the Firmware which are
+presented directly below the first row.     It may or may not  be  obvious
+to the user but the SD "snapshot" information presents, in addtion to  the
+channel parameters,specific addresses of transmit and receive CCW pointers,
+DMA memory base offset values and receive buffer addresses in memory which
+the user may actual read via the "md" command under ENGbug processes.  This
+is most useful in troubleshooting line and interface problems when the user
+can actually monitor the down-line-load records and line reset packets that
+are being written into memory before the machine even comes up!
+.END
+     Next observe an example of using the SD command to reconfigure channel
+parameters for high-speed HDLC/DMA with a 56KBps DDS (Digital Data Set):
+.BEGIN BOX
+
+PICO Engine Debugger   V1.01  02/18/88
+
+ENGbug> sd 0
+
+SCC Channel 0 ASYNC Baud Rate Generator: 9600, WR11: 50.
+Receiver clock source: BRG, Transmitter Clock source: BRG.
+Transmit Clock Line TRxC_input sourced by EXTERNAL SOURCE.
+SCC Channel 0 TYMSYNC Baud Rate Generator: 9600, WR11: 08.
+Receiver clock source: RTxC, Transmitter Clock source: TRxC.
+Transmit Clock Line TRxC_input sourced by EXTERNAL SOURCE.
+
+SCC Channel 0 HDLC Baud Rate Generator: 9600, WR11: 08.
+Receiver clock source: RTxC, Transmitter Clock source: TRxC.
+Transmit Clock Line TRxC_input sourced by EXTERNAL SOURCE.
+
+
+SCC Channel 0 HDLC W/DMA Baud Rate Generator: 9600, WR11: 08.
+Receiver clock source: RTxC, Transmitter Clock source: TRxC.
+Transmit Clock Line TRxC_input sourced by EXTERNAL SOURCE.
+
+Present active channel protocol is ASYNC.
+Which protocol are you interested in?
+
+    (A) ASYNC
+    (B) TYMSYNC
+    (C) HDLC
+    (D) HDLC With DMA Data Transfers
+    (E) Bail-Out with no changes
+
+Enter desired selection: d
+
+Baud Rates available are:
+    (A) 50 (Not valid for Sync Modes)
+    (B) 75 (Not valid for Sync Modes)
+    (C) 110 (Not valid for Sync Modes)
+    (D) 150 (Not valid for Sync Modes)
+    (E) 300 (Not valid for Sync Modes)
+    (F) 600 (Not valid for Sync Modes)
+    (G) 1200
+    (H) 2400
+    (I) 4800
+    (J) 9600
+    (K) 14.4k
+    (L) 19.2k
+    (M) 38.4k
+    (N) 48k (Not valid for Async Mode
+    (O) 56k (Not valid for Async Mode)
+    (P) 64k (Not valid for Async Mode)
+    (Q) 72k (Not valid for Async Mode)
+    (R) 128k (Not valid for Async Mode)
+    (S) 256k (Not valid for Async Mode)
+
+Enter desired selection: o
+
+Note: TX Clock direction change also requires IOC jumpering correction.
+"TX Clock Line" and "Transmitter Clock" usually are from the same source.
+
+Possiblities for Transmit Clock Line:
+
+    (A) Transmit Clock interface line is an input
+    (B) Transmit Clock interface line is an output
+Enter desired selection: a
+
+
+Possible Sources for SCC Transmit (TX) Clock:
+
+    (A) RTxC - Receive Clock line clocks SCC Transmitter
+    (B) TRxC - Transmit Clock line clocks SCC Transmitter
+    (C) BRG  - Baud Rate Generator clocks SCC Transmitter
+    (D) DPLL - Digital Phase Locked Loop clocks SCC Transmitter
+
+Enter desired selection: b
+
+Possible Sources for SCC Receiver (RX) Clock:
+
+    (A) RTxC - Receive Clock line clocks SCC Receiver
+    (B) TRxC - Transmit Clock line clocks SCC Receiver
+    (C) BRG  - Baud Rate Generator clocks SCC Receiver
+    (D) DPLL - Digital Phase Locked Loop Clocks SCC Receiver
+
+Enter desired selection: b
+
+New Channel 0 BRG Time Constant (WR12/WR13): 002E, New WR11: 28
+
+ENGbug> ini
+***********
+     The reconfiguration is NOT COMPLETE until the ini[CR] command is
+issued from the terminal!    The new SCC template values to reprogram
+the Z8530 Write Registers are loaded into RAM and then  written  into
+the SCC when a program issues a Channel Command  Word to load   Write
+register 4 of the SCC. Typically this operation is performed when the
+software initialization routine is executed.   The "ini" command will
+halt the Engine code processing.     The user must now enter the "gd"
+command followed by the address to execute from    (ie ISIS = 70x and
+DIAGS = A00x).    This guarantees that the programs are restarted and
+the initialization  routines execute sending down a WR4 command pair.
+.END
+.SS(TTY I/O)
+     TTY I/O is functionally the same on PICO as the Standard Tymnet
+Engine.  It is possible to type ahead in the local TTY mode but there
+still is no backspacing or XON/XOFF support.  The M68901 MFP device on
+the IOC board has an internal USART utilized to implement the TTY I/O
+port and even though higher baud rates are functionally possibe the TTY
+baud rate is set to 1200 baud as per default and should not be reconfigured
+to any higher speed!  TTY I/O processes generate interrupts to the EP via the
+mailbox scheme and actually contend with the other communication I/O channels
+for the available processor resources.  The user may logon to ISIS DDT
+processes from the local port when in TTY mode.  Standalone diagnostics are
+also operated from the local TTY port.
+
+     The TTY port is presented to the rear panel of PICO as a male DB9-pin
+subminiature connector.  The appropriate part number for the 9-pin female
+to 25-pin male cable is #160319-001.  Receive and transmit data signals are
+crossed over on the IOC board so construction of the cable is straightforward
+and is connected directly to a terminal without any additional crossover
+cables required.
+
+.SS(IOCbug)
+     IOCbug is a conversion of the Motorola MACSbug 68000 uP debugger.  As
+with ENGbug, backspace [CNTL]h, XON/XOFF [CNTL]s/[CNTL]q functions are 
+supported.  The IOCbug presents an IOC view of the PICO Engine.  For example,
+the Mailbox transactions referenced in the ENGbug section can be observed
+in IOC RAM from addresses 800370x through 8003C0x and like the ENGbug 
+processes, the IOCbug commands can bring a running machine down!  The IOCbug
+"views" addresses 800000x to 8FFFFEx as main EP memory (000000 to FFFFFEx from
+(ENGbug), 400000x to 41FFFEx as IOC RAM and 000000 to 01FFFEx as ROM area.
+.BEGIN BOX
+                     IOCbug COMMANDS
+
+IOCbug *> 
+
+PC .SR .US .SS .VB .SF .DF
+D0 .D1 .D2 .D3 .D4 .D5 .D6 .D7
+A0 .A1 .A2 .A3 .A4 .A5 .A6 .A7
+R0 .R1 .R2 .R3 .R4 .R5 .R6
+
+BF    <addr1> <addr2> <word>          Fill memory block.
+BI    <addr1> <addr2>                 Initialize block.
+BM    <addr1> <addr2> <addr3>         Move specified memory block.
+BR    [<addr> [;<count>]]             Set or display breakpoints.
+BS    <addr1> <addr2> "literal"       Search memory block.
+BT    <addr1> <addr2>                 Test block (destructive).
+DC                                    Data conversion.
+DF                                    Display registers.
+DR                                    Display registers.
+DT                                    Disable time measurments.
+DU    <addr1> <addr2> [<text>]        Dump memory.
+ET                                    Enable time measurments.
+G     [<addr1>]                       Execute after one trace.
+GD    [<addr1>]                       Execute without breakpoints.
+GO    [<addr1>]                       Execute (with breakpoints).
+GT    <breakpoint>                    Execute until breakpoint.
+HE                                    Displays this list.
+LO    [;<opts>] [=<text>]             Load S-record data.
+M     <addr1> [;<opts>]               Modify memory.
+MD    <addr1> [<count>]               Display memory.
+MM    <addr1> [;<opts>]               Modify memory.
+MS    <addr1> <data>                  Memory set.
+NOBR  <addr1>                         Remove breakpoint(s).
+OF                                    Display offsets (.R0-.R7).
+PF    <port number>                   Format or display port.
+PS                                    Display task status screen.
+PT                                    Display task statistcs.
+R                                     Modify register.
+RM                                    Modify register.
+RS                                    Reset host port.
+SS                                    Restart SCC channels.
+ST    <test #/*>                      Self test (destructive).
+T     [<count>]                       Trace.
+TM    [<exit character>]              Enter transparency mode.
+TR    [<count>]                       Trace.
+TT    <breakpoint>                    Temperary breakpoint trace.
+VE                                    Verify S-records.
+VI                                    Initialize vectors.
+VR                                    Display version number.
+?                                     Displays this list.
+
+    
+IOCbug  *> vr
+I/O Channel debugger version 1.00
+
+.END
+     The DC (Data Conversion) command provides a quick HEX to DECIMAL or
+DECIMAL to HEX converter for the user.  The syntax for DECIMAL to HEX is
+dc #data[CR].  The # designates decimal data.  To convert HEX to DECIMAL
+enter dc $data[CR].  The $ designates hexidecimal data.  It is from this
+IOCbug that the user will select the Self-Tests, initialize memory prior
+to loading target code and monitor the active processes under the Monitor
+control.  The breakpoints are not for Engine addresses but rather IOC
+addresses and are definitely NOT user friendly.  Once a breakpoint has
+been encounterred it is usually necessary to reset PICO and reload!  The
+PT (Process Time Display) is enabled with the ET (Enable Time Measurements)
+command and disabled with the DT (Disable Time Measurement) command.  If
+required this command should only be temporarily enabled, displayed and
+promptly disabled as the trace consumes crucial processor time.  The PS
+(Print Status) command is usually just as effective and displays the
+status of all 16 Task Control Blocks (the 16th consist of the 8 transmit
++ 8 receive devices for I/O channels).  Each task (routine) is flagged
+as Active, Dismissed, Invalid, Suspended, Resumed or New.  The Dismissed
+counts (number of times the process dismissed back to the Monitor) and the
+TMO (time out and suspended because the process used up its entire time
+slice) are useful to determine problems in servicing routines.
+
+     When System level errors (which bring down the Engine) occur, a
+concise error message will be output to the terminal along with the
+current PC, PSD and general register contents.  Without a Motorola
+MC68000 Programmers Reference Manual the error messages will most likely
+appear somewhat cryptic but when encounterred they should be noted and
+forwarded with any other crash information available from the ISIS, SLOT
+or NODE CODE crash fields.
+    XQgK%
