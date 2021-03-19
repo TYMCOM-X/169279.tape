@@ -1,0 +1,221 @@
+-TTY FORM
+
+-TYP JOHNW
+
+4 November 1984
+
+To: John Williams
+From: BJ Chang
+Subject: Attached summary on encryption.
+
+John,
+
+Here is a brief summary of the encryption study we discussed.
+It is very brief,  time constraints preclude a more complete
+response. I hope that this will be of use to you in working
+with your client.  If there are specific issue you are concerned with
+that are not covered here, let me know. I will, when time permits,
+expand this summary.
+
+Best regards,
+bjc
+
+
+In early 1984, NTD evaluated a number of data encryption devices
+for use on a Private Tymnet network.   The devices studied
+were selected by the client commissioning the evaluation.
+
+There were three objectives to this study.  First, the devices were
+tested to insure that basic network functionality would not be impaired
+by encrypting internodal links with external crypto devices.
+
+Basic network functionality was defined, for the purpose of this test, 
+to mean that links between network processors could be established,
+network software could be loaded across encrypted links, virtual
+circuits could be established, and data transmitted.  Further, 
+this definition of basic functionality included the ability to
+automatically recover from common error conditions - that is, loss
+and recovery of a network processor, modem, encryption device, or
+line.
+
+Secondly, the devices were tested to evaluate the effect on
+network performance (as defined by round trip transmission time)
+of transiting encrypted links.
+
+Third, the devices were evaluated in terms of the key management
+options and facilities provided by each vendor.  Of particular
+interest in this regard, was the extent to which the key
+management facilities were amenable to an environment of
+remote  distributed processor, and to the potential of
+remote automatic key distribution through network facilities.
+
+All of the devices evaluated, were optioned to operate in
+bit transparent mode. Some vendors have different devices for
+protocol sensitive operation, these were not evaluated.
+
+The devices were tested, in this transparent mode, on
+tymnet internodal protocol links, on HDLC X.25 links,
+and on BSC3270 links, to insure that they could be
+deployed for both link level, and "tail circuit" encryption.
+
+
+Testing occurred in the NTD development lab in Cupertino.
+A line simulator was used to generate noise and phase
+jitter in order to evaluate the effect on performance,
+of common line error conditions.
+
+The devices evaluated included:
+RACAL MILGO DatacryptorII
+PARADYNE Infolock
+RAN Data encryptor
+ANALYTICS Sherlock encryptor
+
+All devices successfully passed network functionality tests.
+They varied in their effect on round trip time during the
+performance tests.  They also varied in the degree to which they
+gracefully handled high line error rates.
+
+As noted above, testing was performed on synchronous links
+only. The line speed used was 9.6.  Some of the vendors noted
+offer different, asynchronous encryptors. It should be
+noted that protocol sensitive block mode encryption is
+more efficient than the bit transparent mode used in these test.
+However, the nature of a value added packet network environment,'
+and the unique Tymnet internodal protocol, precluded use of
+protocol sensitive encryption for this testing.
+All vendors noted, have indicated a willingness to develop
+Tymnet specific protocol encryption should that be deemed desirable.
+
+As noted above, Link level encryption, using external encryption
+devices, has been successfully demonstrated to be a viable option
+in a Tymnet environment. 
+
+The effect on network round trip time, of transiting an encrypted
+link, will vary by device, link quality, packet size, and environment
+(that is, internodal link, or BSC 3270, or HDLC X.25).
+
+The devices ranged, during the course of the testing, from
+virtually no incremental increase in round trip time, to
+incremental increases of up to 240 ms.  On the average,
+taking all devices, with small and large packets, medium
+and heavy link loads, moderate line noise (D1 conditioning),
+one may expect to see approximately a 30 ms increase in round trip time
+for a transit across an encrypted link.
+One may expect to see the effect of line serious line
+impairment somewhat exacerbated by encryption devices, as errors may
+be propagated through cipher feed back until resynchronization
+occurs.
+
+All devices tested provided , as either standard, or option,
+DES encryption. All  offered key distribution facilities 
+appropriate to a distributed environment.  None of the
+vendors noted currently offer a Key management facility as
+envisioned by the ANSI X.9 study group, however, a number of the
+vendors either plan to offer such facilities, or have indicated
+willingness to develop them. 
+
+
+One additional comment should be made regarding link vrs
+end to end encryption.
+
+As noted above, these devices were tested in a link
+encryption environment. There are some applications
+where end to end encryption may be used in a Tymnet
+environment, however, for the reasons noted below,
+end to end encryption is not a generalized option.
+
+More specifically, asynchronous end to end encryption may
+be supported on a Tymnet network for those applications
+where the establishment of a network virtual circuit between
+communicating pairs is automated, and does not require
+participation of either end user. For example,
+an ALO, (Automated log-on ) or PVC (Permanent Virtual
+Circuit) option, permits the necessary interaction with
+network control, and routing facilities to take place
+in transparent mode. For those applications where the
+communicating pairs are pre-determined, that is, the
+user at an asynchronous terminal is always communicating
+with a specific host, end to end encryption may be supported.
+
+In addition, the Tymnet SNA/SDLC extension cord interface
+provides link level support, transparent to higher SNA
+protocol layers.  SNA encryption may then also be supported
+in this particular environment.  (This support is implemented
+via a PVC, such that, again, interactions required to establish
+the virtual circuit, take place in transparent mode).
+
+However, in general, End to end encryption using external encryption
+devices, in a Value added network environment such as Tymnet's, offers
+some interesting challenges.  
+
+Some of the issues in this area, include:
+
+Local Significance
+Multi-targeting
+Protocol Conversion
+Value Added passthroughs
+
+
+The issue of local significance has been alluded to above with
+regard to virtual circuit establishment.
+
+There are interactions, within the network environment, between
+the user (caller) and the network origin interface (DCE), between
+the origin interface and the network control facilities, and between
+the receiver (callee) and the network destination interface (DCE).
+Data of local significance, (for example call request prompts,
+and virtual circuit construction processes) must be intelligible
+and cannot therefore be encrypted by a device which cannot distinguish
+user data and control information.
+
+
+Encryption devices are communicating pairs.  There is a one to one
+relationship between a device at the origin, and a device at the
+destination of a communication session.  These devices must either have
+shared encryption keys installed, or have some means of communicating,
+in secure fashion, a data encryption key to be used for a particular
+communication.
+
+In a tymnet environment, no predefined one to one relationship need
+necessarily exist between to users or applications.  Indeed, a key
+element of value added services, is the flexibility provided for a
+particular user, or origin, to construct circuits to multiple potential
+authorized targets.  This feature, if desired, then precludes the one to
+one communicating pair relationship between encryption devices noted
+above.
+
+Another issue affecting end to end encryption options, is the
+protocol conversion capability offered by the network.  If network
+interfaces, (which , by definition, reside between the end users,),
+are to convert protocols and translate codes, they must be able
+to operate on unscrambled data.  While a protocol sensitive
+encryption device may encrypt only user data frames, hence retaining
+the control information needed for conversion, if the network
+converts data to a different protocol at the destination end,
+the two encryptors cannot communicate.
+
+The last issue affecting end to end encryption options, is one
+sometimes known as Value Added Passthroughs.  These are network based
+facilities which may reside on transit network processors.  They may
+perform such functions as the protocol conversion noted above (such as
+is provided by CMT), or may provide menu server functions, directing or
+redirecting a user circuit to a different destination based upon
+interaction with the user.  Use of these facilities precludes
+use of end to end encryption.
+
+While none of these challenges are insurmountable, they suggest
+that for those users who wish to fully exploit the value
+added features of the technology, link level encryption is
+the appropriate currently available option using external
+encryption devices (with the exceptions noted above).
+
+Tymnet continues to explore alternatives for developing an
+integrated encryption facility which might retain these
+features while offering additional data security.
+
+
+
+
+
+-EXI
+    
