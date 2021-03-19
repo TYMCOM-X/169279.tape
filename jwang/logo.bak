@@ -1,0 +1,64 @@
+:
+:
+: PATCH FOR VERSION 3.01.
+: PATCH REQUESTED BY YAMAHA MOTOR CORP.
+: 
+: PATCH FUNCTION:
+:  (THE X.25 INTERFACE ACTS AS A TPAD)
+:    AFTER THE INTERFACE RECEIVES CALL ACCEPT PACKET FROM HOST,
+:    IT SENDS A DATA PACKET WITH THE FOLLOWING INFORMATIONS:
+:      4C4F474F2044415441284C4F474F  (LOGO DATA(LOGO) AS FIRST 14 BYTES
+:      ORIGINATING NODE NUMBER FROM ISIS NEEDLE IN HEX AS THE NEXT 2 BYTES.
+:      THE LAST TWO BYTES IS THE TC CLASS FOLLOWED BY ) (RIGHT PAREN).
+:          -------------------    --------     ----------------------------
+
+PATCH(861007,1230,JWANG,PA0PTR,,26)
+LOGOST  BC      7,0,13,0,4C,4F,47,4F,20,44,41,54,41,28,4C,4F,47,4F,1,2,3,29
+: /7/0/LEN/FLAG/L/O/G/O/SP/D/A/T/A/(/O.N/CS/)
+LOG0    WS      1
+LOG1    WS      1
+LOG9    WS      1
+LOG5    WS      1
+CONPATCH(NSAV10+4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,20)
+        STB     R0,ORGTID,R1,
+        LHL     R0,LO4TMP,R1,R1         :GET O. NODE
+        STB     R0,LOGOST+13,,          :STORE SECOND BYTE OF O. NODE
+        SRLS    R0,8                    :GET THE FIRST BYTE OF O.NODE
+        STB     R0,LOGOST+12,,
+        J       NSAV10+0A,,
+CONPATCH(NST220+4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        STB     R2,TCLTR,R4,
+        LR      R7,R2
+        SRLS    R7,4
+        STB     R7,LOGOST+14,,
+        J       NST220+0A,,
+CONPATCH(PCA340+16,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,60)
+        JAL     R7,SETTWP,,
+        ST      R0,LOG0,,
+        ST      R1,LOG1,,
+        ST      R9,LOG9,,
+        ST      R5,LOG5,,
+        LHL     R1,IPORT,,
+        SLLS    R1,2
+        AHI     R1,IEDBIA
+        LIS     R5,0
+:
+: COPY TE STRING TO IEDBUF IN ORDER TO SEND OUT THIS DATA PACKET
+LOGOCP  LB      R0,LOGOST,R5,
+        JAL     R4,WCI,,                :WRITE INTO IED BUFFER
+        AIS     R5,1
+        CLHI    R5,16
+        JL      LOGOCP
+        L       R0,LOG0,,
+        L       R1,LOG1,,
+        L       R5,LOG5,,
+        L       R9,LOG9,,
+        J       PCA340+1C,,
+ENDPATCH(SEND DATA PACKET WITH LOGO-O.NODE-BAUD RATE TO HOST AFTER)
+ENDPATCH(RECEIVING CALL ACCEPT PACKET FROM HOST)
