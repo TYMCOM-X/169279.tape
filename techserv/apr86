@@ -1,0 +1,2473 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TTTTTTTT   EEEEEE    CCCCCC    HHH   HHH   TTTTTTTT   IIII   PPPPP       SSSS
+TTTTTTTT   EEEEEE   CCC   CC   HHH   HHH   TTTTTTTT   IIII   PP   PP    SS  SS
+   TT      EE       CC         HHH   HHH      TT       II    PP    PP   SS
+   TT      EEEE     CC         HHHHHHHHH      TT       II    PPPPPPP     SSSS
+   TT      EE       CC         HHH   HHH      TT       II    PP             SS
+   TT      EEEEEE   CC    CC   HHH   HHH      TT      IIII   PP         SS  SS 
+   TT      EEEEEE    CCCCCC    HHH   HHH      TT      IIII   PP          SSSS 
+
+
+
+
+
+
+
+
+
+
+                               April 01, 1986
+
+
+
+                              TABLE OF CONTENTS
+                              -----------------
+
+
+
+UPGRADE NETVAL 1 TO NETVAL 2; by Jeff Liu . . . . . . . . . . . . . . . . . 01
+
+REVISED TTE 2Q SCHEDULE; by Robert Grandey. . . . . . . . . . . . . . . . . 03
+
+CLASS/GROUP TABLE SIZES FOR SUPs OF VERSION 40 & 41; by Ashok Chippa. . . . 05
+
+NEW RELEASED PATCH FILE OF PBH/7.05; by DeeJong Tsao. . . . . . . . . . . . 07
+
+FULL RELEASE AND LIMITED RELEASE REPORTS AS OF 15 MARCH; by D. Fowler . . . 08
+
+QUESTIONS & ANSWERS ON ACU SERVER; by Nirmala Shukla. . . . . . . . . . . . 13
+
+QUESTIONS & ANSWERS ON PRINTER OUTPUT FOR CRT/PRT PAIR; by Dianna Tai . . . 14
+
+QUESTIONS & ANSWERS REGARDING 'TOM' SHUT OVERRIDE'; by P. OHarrow . . . . . 16
+
+QUESTION & ANSWER REGARDING BANNER STRING; by Shaio-Ming Tsui . . . . . . . 17
+
+NEED BETA TEST SITES FOR REVISED SIO MICROCODE; by John Gomes . . . . . . . 18
+
+'TIP' FOR TTY USERS; by Norman Chin . . . . . . . . . . . . . . . . . . . . 19
+
+A LESSON IN LOGIC - OR HOW TO MAP CONSAT PORTS; by Michael Hanna. . . . . . 20
+
+TYMNET INTRODUCES SNA/SDLC SUPPORT FOR ASYNC-TO-3270 SERVICE. . . . . . . . 23
+
+CIRCUIT REBUILD AND COMMAND CIRCUIT ROUTING; by Sandra Nilluka. . . . . . . 25
+
+BETATEST VERSION 5.13 - RESTRICTION/PATCH RELEASE; by Sandra Nilluka. . . . 27
+
+ANSWERS TO QUESTIONS ON 3270 DSP; by Dianna Tai . . . . . . . . . . . . . . 28
+
+HOW TO CAPTURE DATA IN THE RECEIVE & TRANSMIT BUFFER; by Dianna Tai . . . . 31
+
+
+
+
+
+                                     01
+                                  --------
+
+
+                        UPGRADE NETVAL 1 TO NETVAL 2              
+                        ----------------------------
+                        ----------------------------
+
+
+Written by : Jeff Liu, HQ Network Consultant
+      Date : March, 1986
+
+
+
+
+      The following is the procedure to upgrade from Netval, version 1, to
+   Netval, version 2.  (For example, when Netval 1 currently resides in a
+   sup node and the upgrade will bring Netval 2 to a non-sup node.)  
+
+      For explanation of Netval commands, refer to Netval 1 and Netval 2
+   reference manuals.
+
+
+   1.  To make sure that all the cud changes after the last scheduled
+       consistency are recorded in the muds, run the SUP command in Netval 1.
+       It will show the time when the mud is last updated in each supervisor.
+       If there is any change after the mud is last updated, do a manual 
+       consistency with the CON command.
+
+   2.  Turn off all the scheduled updates to the sups.  Run the SET command in
+       Netval 1.  Enter carriage return for valid supervisor and for frequency
+       of updates.
+  
+   3.  Run the TYP ALL, LIST CLASS, LIST GROUP, LIST HOSTLIST and LIST 
+       NODELIST commands and get a hardcopy of the output.
+
+   4.  Run the RESET command.
+
+   5.  Run the STORE command to save a copy of the cud, class and group table,
+       etc. on tape.
+
+   6.  Halt Netval 1.
+
+
+
+
+   Option A -- This method will only create the cud on the Netval 2 disk after
+               the upgrade.  The class, group, hostlist and nodelist have to 
+               be typed in.  This method is recommended because it is straight
+               forward.
+
+
+               7.  Load the Disk Maintenance program to Netval 2 slot.  Run
+                   the REGENERATE CUD command and then the REGENERATE 
+                   PARAMETERS command.  Use ddt ?HIST command to check if 
+                   there is any range error in the Netval 2 slot.  If there 
+                   is, report to HQTECH.  Otherwise, run the INITIALIZE 
+                   CONFIG, INITIALIZE OPERLOG, INITIALIZE MUDUPDATE and 
+                   INITIALIZE NODE commands to initialize necessary Netval 2 
+                   files.
+
+               8.  Run the CHECK command.  If there is any mismatch parameter,
+                   check the files that the parameter is defined or referenced
+
+               9.  Load Netval 2, run the SELECT CONTROL NA command and then
+                   the DISPLAY DIRECTORY command.  Get a hardcopy of the 
+                   output.  If there is any format or checksum errors, report
+                   immediately to HQTECH via ontyme name *** NETVAL, or call 
+                   Jeff Liu at (408)942-5264 or call Amy Kwok at (408)942-5248
+
+              10.  Enter the class, group, hostlist and nodelist with the data
+                   from step 3.
+
+              11.  Upgrade is completed.  
+
+
+
+
+    Option B -- This method will creat the cud, class, group, hostlist and
+                nodelist on the Netval 2 disk after the upgrade.
+
+
+               7.  Configure and gen Netval 1 to have consistent logical unit
+                   in slot tym file with dsc file as Netval 2. Load it into
+                   the Netval 2 slot.  Run the RESTORE command. The reason is
+                   we have to use Netval 1 to restore the tape created by
+                   Netval 1.
+
+               8.  Load the Disk Maintenance program to Netval 2 slot.  Run
+                   the CONVERT command to convert the cud from Netval 1 to
+                   Netval 2 and run the REGENERATE PARAMETERS command.  Use
+                   ddt ?HIST command to check if there is any range error in 
+                   the Netval 2 slot.  If there is, reprot to HQTECH.
+ 
+               9.  Run the CHECK command.  If there is any mismatch parameter,
+                   check the files that the parameter is defined or referenced.
+
+              10.  Load Netval 2, run the SELECT CONTROL NA command and then
+                   the DISPLAY DIRECTORY command.  Get a hardcopy of the 
+                   output.  If there is any format or checksum errors, report
+                   immediately to HQTECH via ontyme name *** NETVAL, or call 
+                   Jeff Liu at (408)942-5264 or call Amy Kwok at (408)942-5248
+
+              11.  Run the DISPLAY CLASS, DISPLAY GROUP, DISPLAY HOSTLIST and
+                   DISPLAY NODELIST commands.  Compare with the class, group,
+                   host and node lists from step 3.  If there is any mismatch,
+                   report to HQTECH.
+
+              12.  Upgrade is completed.
+
+
+
+
+                                     03
+                                  --------
+
+
+                           REVISED TTE 2Q SCHEDULE
+                           -----------------------
+                           -----------------------
+
+
+Written by : Robert Grandey, Mgr. Tymnet Training
+      Date : February 27, 1986            
+
+
+
+
+      DUE TO A VARIETY OF FACTORS, ENROLLMENT IN TYMNET TRAINING AND EDUCATION
+   COURSES FOR THE FIRST HALF OF 1986, IS NOT AS HIGH AS PROJECTED LAST 
+   OCTOBER.  THEREFORE, WE ARE MODIFYING THE SCHEDULE FOR THE SECOND QUARTER.
+   THIS MODIFICATION PROVIDES THE FOLLOWING BENEFITS:
+
+      A)  CLASS SIZE WILL BE LARGER WHICH MAKES TRAINING MORE EFFICIENT.
+      B)  WE SHOULD NOT HAVE TO CANCEL CLASSES.
+      C)  TTE WILL BE ABLE TO DESIGN AND DELIVER MORE CUSTOMIZED COURSES
+          FOR SPECIFIC CUSTOMERS.
+ 
+      THE DISADVANTAGE OF THIS REVISION IS THAT THOSE WHO ARE CURRENTLY 
+   ENROLLED IN CLASSES THAT ARE NO LONGER ON THE SCHEDULE WILL HAVE TO CHANGE
+   PLANS.  WE REGRET THIS INCONVIENCE AND WILL DO OUR BEST TO RESCHEDULE YOU 
+   FOR AN ACCEPTABLE TIME.  CHERYL MCGOWAN, TTE REGISTRAR, WILL CONTACT YOU TO
+   RESCHEDULE.
+ 
+   ***  SPECIAL NOTE TO SALES REPS - PLEASE INFORM YOUR CUSTOMERS OF THIS
+        REVISIOIN.
+ 
+      THE PRINTED SCHEDULE AVAILABLE FROM SUSAN COPELAND WILL BE CHANGED BUT
+   THIS WILL TAKE SEVERAL WEEKS.  MOST CLASSES FOR WHICH CUSTOMERS ARE 
+   CURRENTLY REGISTERED WERE NOT CHANGED.  PROPOSALS FOR CUSTOMER-SITE CLASSES
+   ARE NOT AFFECTED BY THIS REVISION. ***
+ 
+      TO ENROLL IN THESE CLASSES CONTACT CHERYL MCGOWAN, ONTYME NSS.TTE.  SEE
+   THE TTE BROCHURE FOR COURSE DESCRIPTIONS AND FEES OR CALL R.GRANDEY,  
+   408/435-0239.
+ 
+
+             COURSE                    LENGTH (DAYS)         SCHEDULE
+ 
+   100 - BASIC DATA COMMUNICATIONS       3                   MAY 7-9
+   101 - TYMNET CONCEPTS                 2                   MARCH 31 - APR 1
+                                                             APRIL 28-29
+                                                             JUNE 2-3
+   102 - TYMNET NETWORK OPERATIONS       8                   APRIL 2-11
+                                                             APRIL 30 - MAY 9
+                                                             JUNE 4-13
+   501 - TYMNET CONCEPTS (PRIVATE NET)   2                   MAY 12-13
+   502 - TYMNET NETWORK OPERATION
+         (PRIVATE NET)                   8                   MAY 14-23
+   510 - NETWORK SYSTEMS MGT.            5                   APRIL 21-25
+   520 - NETWORK DESIGN (TOPS)          10                   APRIL 28-MAY 9
+   530 - NETWORK PERFORMANCE ANALYSIS                        2H86
+   540 - NETWORK PROJECT MANAGEMENT                          2H86
+   400 - INTRODUCTION TO ISIS            5                   APRIL 14-18
+                                                             APRIL 28 - MAY 02
+                                                             MAY 12-16
+                                                             JUNE 16-20
+   440 - TYMNET ENGINE PROGRAMMING       5                   MAY 5-9
+   442 - ISIS SLOT PROGRAMMING          10                   MAY 12-23
+   445 - SYSTEMS CODE GENERATION         5                   MAY 19-23
+   450 - NETWORK TROUBLESHOOTING        10                   MARCH 31-APRIL 11
+                                                             JUNE 23 - JULY 03
+   455 - UTILITIES CODE GENERATION       5                   JUNE 9-13
+   460 - MENU/NETWORK SERVICE            5                   JUNE 2-6
+   465 - CONFIGURATION MANAGEMENT
+         FACILITY                        5                   2H86
+   110 - TYMNET FIELD SERVICE BASICS     5                   APRIL 7-11
+         (FOR FIELD ENGINEERS)                               JUNE 2-6
+   300 - COMMUNICATIONS LINE OPERATIONS  5                   APRIL 14-18
+                                                             JUNE 9-13
+   330 - TYMNET ENGINE MAINTENANCE      10                   APRIL 21 - MAY 2
+                                                             JUNE 16-27
+   340 - HARDWARE TROUBLESHOOTING        5                   APRIL 7-11
+                                                             MAY 5-9
+                                                            *JUNE 30-JULY 3
+                                                            *(4 LONG DAYS)
+   225 - X.25/X.PC PROTOCOL              8                   MAY 28-JUNE 6
+   230 - 3270 INTERFACES ASYNC TO
+         3270 SERVICE (CMT)              8                   MAY 5-14
+   235 - ASYNC TYMCOM/CONSAT                                 MAY 19 - MAY 23
+   240 - SNA/SDLC                        5                   APRIL 7-11
+                                                             JUNE 2-6
+   245 - 2780/3780/HASP                                      JUNE 9-13
+   250 - XPEDITE                         3                   TBD
+
+
+
+
+                                     05
+                                  --------
+
+
+      CLASS AND GROUP TABLE SIZES FOR SUPERVISORS OF VERSIONS 40 AND 41
+      -----------------------------------------------------------------
+      -----------------------------------------------------------------
+
+
+Written by : Ashok Chippa, HQ Network Consultant
+      Date : March 07, 1986
+
+
+
+
+     The class and group table sizes are allocated differently for Supervisors
+  of versions 40 and 41.  In version 40.01, the parameters CLSSIZ (class size)
+  and GRPSIZ (group size) is allocated in number of bytes.  In version 41.1 
+  and above the CLSSIZ and GRPSIZ are allocated in number of sectors in the
+  FENCE macro.  For version 40 of your Supervisor you have
+     
+          CLSSIZ = 280 hex bytes  
+          GRPSIZ = 180 hex bytes  
+     
+  For version 41 of the Supervisor you have,   
+     
+          FENCE(30,3,10,2)   
+     
+  i.e.    CLSSIZ = 3 sectors or 300 hex bytes
+  and     GRPSIZ = 2 sectors or 200 hex bytes 
+     
+
+     NETVAL has CLSSIZ = 280 and GRPSIZ = 180.  When a 'send' command is issued
+  in NETVAL, 280+180 or 400 hex bytes would be sent to both the Supervisors. 
+  But for the new Supervisor, CLSSIZ+GRPSIZ = 500 and not 400.  This leads to
+  the problem of sending class and group tables to version 41 of the 
+  Supervisor.  
+     
+     To send the tables correctly to version 41 of the Supervisor, we have to
+  redefine the sizes to NETVAL.  But since we want to transition from version
+  40 to 41 on both Supervisors one at a time we have to follow a carefully 
+  thought out procedure. 
+     
+
+  Here is what I propose for a smooth transition:   
+
+     
+  1) Reload Supervisor 2   
+  2) Remove sysmsg1 username    
+  3) Run consistency  
+  4) Manually update CG tables in Sup 2   
+  5) Run on Sup 2
+     
+  If Sup 2 stable then
+     
+  6) Reload Sup1 and netval with new code making sure not to  
+     disturb the mud/cud area.  
+  7) Revalidate sysmsg1 username
+  8) Swap to Sup 1    
+  9) Set to Sup 1 only in netval
+  10)Send tables from netval    
+  11)Run on Sup 1
+     
+  If Sup 1 stable then
+       
+  12)Set to both Supervisors in netval.   
+     
+  
+
+
+                                     07
+                                  --------
+
+
+                    NEW RELEASED PATCH FILE OF PBH/7.05
+                    -----------------------------------
+                    -----------------------------------
+
+
+Written by : DeeJong Tsao, HQ Network Consultant
+      Date : March, 1986
+
+
+
+
+
+      A new formal patch file for PBH/7.05 has been released to SOURCE.  This
+   patch makes PBH/7.05, support associated printer and multiple disconnect 
+   properly.
+ 
+      Please remove the HQ's patches (ZAPPRT.PAT and NOTSND.PAT) if you have 
+   them, and regen your code with the new PBH07.P05 file.
+ 
+      I urge you to do it ASAP. Thanks.
+
+
+
+                                     08
+                                  --------
+
+
+         FULL RELEASE AND LIMITED RELEASE REPORTS AS OF 15 MARCH 1986
+         ------------------------------------------------------------
+         ------------------------------------------------------------
+
+
+Written by : Diana Fowler, Betatest Coordinator
+      Date : March 18, 1986
+
+
+
+
+                             FULL RELEASE REPORT
+
+
+      The  monthly PRODUCTS IN FULL RELEASE report,  as of 15 MAR 86 is 
+      attached for your reference use.  This report is comprised of all 
+      fully released products and their respective version of code.
+
+      Any  product or product version number that is not  contained  in 
+      this report will be considered in beta test,  limited release  or 
+      unsupported.   If  you  have a customer requesting beta  test  or 
+      limited release products,  you must have approval from HQ Quality 
+      Assurance and HQ Technical Services,  before installation. If you 
+      have  a customer who has a product with a version number that  is 
+      older  than  those  specified,   please  contact  HQ    Technical  
+      Services to assure that the version is still supported,  as it is 
+      Technical Services who supports the majority of these products.
+
+      This  report is put out by HQ Quality Assurance.   Our definition 
+      of  a fully released product may differ from that of Baseline  or 
+      others.   Please  keep  in  mind that the  HQ  Quality  Assurance 
+      definition  of  a product with Full Release Status is  a  product 
+      which  has been proven reliable and has general  accesibility  to 
+      all customers.
+      
+      For your information:
+      1.  LOAD II version 2.16 is now in Full Release.
+      2.  MERLIN version 2.01 is now in Full Release.
+      3.  NTCN version 3.01 is now in Full Release.
+      4.  NVAL version 1.16 is now in Full Release.
+      5.  TMCS  version  10.00  requires  that TMDM  version  1.03  be 
+          executed before loading TMCS.
+      6.  UN2 version 4.00 is no longer supported as of 15MAR86.
+
+      Please  review the following report,  and as soon as you have any 
+      updates,  changes,  deletions or additions, notify me IMMEDIATELY 
+      at:
+                            ONTYME: NSS.D/FOWLER
+                            PHONE: (408) 942-5363
+
+
+
+
+
+
+
+
+
+
+
+      =================================================================
+
+                       PRODUCTS IN FULL RELEASE REPORT
+                                  15 FEB 86
+
+      The  following report is comprised of all fully released products 
+      and  their respective version of code.   For  your   convenience, 
+      products  will be sectioned by category,  also their acronym will 
+      be given.
+
+      (note: changes are denoted by an asterisk - *)
+
+
+      CATEGORY   PRODUCT                                  VERSION
+      -----------------------------------------------------------
+      ELECTRONIC MESSAGE SYSTEM
+           ONTM: Ontyme                                     17.33
+           ONTM: Ontyme                                     17.10
+           ONTM Database Restore                             1.06
+
+      GATEWAY INTERFACES
+           I2G1: ISIS Gateway                                
+           I2G1: ISIS Gateway                                4.04
+           I2G1: ISIS Gateway                                4.03
+
+      NETWORK ACCOUNTING
+           RAM: Raw Accounting Merger                       10.07
+           RAM: Raw Accounting Merger                       10.05
+
+      NETWORK CIRCUIT-MULTIPLEXING UTILITY
+           MUX: Multiplexor                                  3.02
+
+      NETWORK CIRCUIT-REBUILDING UTILITY
+           REBUILD: Rebuild                                  5.06
+
+      NETWORK CODE-GENERATING UTILITIES
+           CPAS: Concurrent Pascal Compiler                  1.01
+           CPAS: Concurrent Pascal Compiler                  1.00
+      *    MERLIN:  Merge & Link                             2.01
+           MERLIN: Merge & Link                              1.60
+           NAD: Node Assembler/Debugger                      1.10
+           PNUC: Pascal Nucleus                             10.06
+           PNUC: Pascal Nucleus                              8.02
+
+      NETWORK CODE-LOADING UTILITIES
+           ELF: Engine Load Facility                         3.10
+           ELF: Engine Load Facility                         3.05
+      *    LOAD II: Load II                                  2.16
+           LOAD II: Load II                                  2.12
+           LOAD II: Load II                                  1.16
+
+      NETWORK COMMUNICATIONS SOFTWARE
+           NODE: Node Code                                   5.06
+
+      NETWORK DISK-FORMATTING UTILITY
+           MSCTST: MSC Stand Alone Disk Diagnostic           4.00
+
+      NETWORK MANAGEMENT     
+           ACCT: Accounting Slave for Sup                    5.01
+           ERLG: Error Log Slave for Sup                     7.01     
+           SUP: Supervisor                                  41.01
+           SYSM:  System Message Slave for Sup               5.01 
+           UN2: UN2 Slave under Sup code                     5.01
+           UTIL: Utility Slave for Sup                       1.02
+
+      NETWORK MONITORING
+           PRB: Probe                                       35.01
+           NCDM: Network Console Disk Maint.                 1.00
+           NCRE: Network Console Resource Est.               1.00
+           NEM: Network Event Monitor                        4.07
+           NMDM: NEM Disk Maintenance                        1.03
+           NMRE: NEM Resource Estimator                      1.00
+      *    NTCN: Network Console                             3.01
+           NTCN: Network Console                             3.00
+           NTCN: Network Console                             2.06
+           TMCS: Tymnet Monitor & Control System            10.00
+           TMCS: Tymnet Monitor & Control System             7.08
+           TMDM: TMCS Disk Maintenance                       2.01
+           TMDM: TMCS Disk Maintenance                       1.03
+           TMDM: TMCS Disk Maintenance                       1.02
+           TMDM: TMCS Disk Maintenance                       1.01
+           TMRE: TMCS Resource Estimator Prog.               2.00
+           XRAY: XRAY                                        5.06
+
+      NETWORK PLANNING SYSTEM
+           CONFIGURATOR                                      2.00
+           LLTA                                              1.00
+           MDR                                               1.00    
+           PLANET                                            2.00
+           PMED                                              1.00
+           PORTS                                             1.00
+           TMDT                                              2.00
+           TYMTAP                                            1.10
+
+      NETWORK VALIDATIONS
+           NVAL: Network Validations                         2.05
+      *    NVAL: Network Validations                         1.16
+           NVAL: Network Validations                         1.14
+           NVDM: Netval Disk Maintenance Pgm.                1.02
+      
+      NODE OPERATION SYSTEMS
+           DDT: Dynamic Debugging Tool                       5.08
+           ISIS: Internally Switched Interface System        5.08
+
+      OPERATIONS MANAGERS
+           TOM: Tymcom Operations Manager                    2.03
+      
+      SNA TERMINAL & HOST INTERFACE
+      *    SNA: Systems Network Architecture                 1.03
+
+      TYMNET NETWORK HOST INTERFACE
+           ACOM: Async Tymcoms                               2.03
+           VARIAN ACOM: Varian Async Tymcoms                44.32
+           VARIAN BSC: Varian Bisynchronous Tymcom          44.16
+
+      TYMNET NETWORK TERMINAL INTERFACE
+      *    ISCS: ISIS Consolidated Consat                    3.05
+           ISCS: ISIS Consolidated Consat                    2.07
+      
+      X.25/X.75 NETWORK INTERFACE
+           XCOM: X.25/X.75 Interface                         3.01
+           XCOM: X.25/X.75 Interface                         2.02
+           XCOM: X.25/X.75 Interface                         2.01
+
+      X780/HASP/MULTILEAVING
+           BBXS: X780/HASP/Multileaving                      5.02
+           BBXS: X780/HASP/Multileaving                      5.01
+           BBXS: X780/HASP/Multileaving                      3.06
+      
+      3270 NETWORK INTERFACES
+           CMTI: 3270 Character Mode Terminal                2.06
+           CMTI: 3270 Character Mode Terminal                2.03
+           CMTI: 3270 Character Mode Terminal                2.00
+           PBH: 3270 Host Interface                          7.03
+           PBH: 3270 Host Interface                          7.02
+           PBH: 3270 Host Interface                          7.01
+           PBT: 3270 Terminal Interface                      5.03
+           PBT: 3270 Terminal Interface                      5.02
+           PBT: 3270 Terminal Interface                      5.01
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                           LIMITED RELEASE REPORT
+   
+
+
+      The  following  report  will  inform and update  you  each  month 
+      regarding  products that are upgraded to LIMITED  RELEASE.   This 
+      report entails;   product name and version (and location of  test 
+      site(s) when information is supplied).
+
+      A  product  which  is  in limited  release  has  undergone  "Beta 
+      Testing"  and corresponding "Completion Criteria" (see Beta  Test 
+      Guide-lines).   It is the responsibility of Product Marketing, HQ 
+      Technical  Services,   and HQ Support to review beta test results 
+      of the product to determine suitability for limited release.
+
+      Upon reaching limited release, a product is then available to our 
+      customers,  but  not  yet released to  the  open  market.   These 
+      limited release products are supported by HQ Tech.
+
+      All  changes to this report are denoted by an asterisk (*) in the 
+      left hand column.  If you have any updates to this report, please 
+      send me an Ontyme  (NSS.D/FOWLER) or call me at 408-942-5363.
+
+      For your information:
+
+      1.  RAM version 11.04 is now in Limited Release.   However, this 
+          version  is  to be used for Raw Accounting  Collection  Only.  
+          Use of this code must be approved.
+      2.  MENU version 1.11 will be in Full Release as of 01APR86 - 
+
+
+      Thank You For All Your Support!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      =====================================================================
+                                LIMITED RELEASE REPORT
+      
+                                    AS OF 15 MAR 86
+                                                       
+      =====================================================================
+
+
+      PRODUCT:    3270 PBH (BSC HIF)
+        VERSION:  7.05
+
+
+      PRODUCT:    3270 PBT (BSC TIF)
+        VERSION:  5.05
+                  (Unrestricted Use)
+
+
+      PRODUCT:    ATC  Asynchronous Terminal Concentrator
+        VERSION:  1.20
+
+
+      PRODUCT:    MENU SERVICE  (MSV0)
+        VERSION:  1.11
+
+
+      PRODUCT:    RAM   Raw Accounting Merger
+      * VERSION:  11.04
+
+
+      PRODUCT:    SDLC  Sync Data Link Control Network Interface
+        VERSION:  1.10
+        SITE(S):    None
+
+
+
+                                     13
+                                  --------
+
+
+                      QUESTIONS & ANSWERS ON ACU SERVER
+                      ---------------------------------
+                      ---------------------------------
+
+
+Questions by : Abayomi Olatunde, Field Communications Consultant
+  Answers by : Nirmala Shukla, HQ Network Consultant
+        Date : March 10, 1986
+
+
+
+
+   What equipment does the customer have to buy (modems, cables, acu's, and
+   related specs)?
+
+      Externally, all you need, is a compatible cable (RS-366/V.25) for an
+      801 Dialer and a compatible cable (RS-232/V.24) for a 208 Sync Modem.  
+      Internally, you need an outdial cable for each dialer, with 5 async 
+      connectors and a single sync port connector.
+
+      The related specs are (Techref:56)ACU.GED - General External Design,
+                                        ACU.GEN - Sysgen Manual,
+                                        ACU.ERS - User Manual,
+                                        ACU.IMS - Internal Maintenance Manual.
+
+
+
+   What is the procedure for placing a call?
+
+      ACUS initiates the call.  PVC is built from BBXS to ACUS.  Ontyme builds
+      an AUX circuit to ACUS.  PVC keeps track of which port is connected to
+      which dialer.  The second Data Circuit goes to BBXS from ACUS, thus data
+      flows from ontyme - to ACUS - to BBXS - to 2780/3780 EBCDIC terminal.  
+      BBXS runs in virtual mode.  All the translation from ASCII to EBCDIC
+      and from EBCDIC to ASCII are done by BBXS.  BBXS generates as a terminal
+      interface.
+
+
+
+   How many slots are involved and what are they (TIF, HIF, ACU Server, Parent
+   outidal, etc)?
+      
+      There are two slots involved.  In one slot, BBXS code is loaded and in
+      the another one, ACUS code.
+
+
+
+                                     14
+                                  --------
+
+
+              QUESTIONS & ANSWERS ON PRINTER OUTPUT FOR CRT/PRT PAIR
+              ------------------------------------------------------
+              ------------------------------------------------------
+
+
+Questions by : Bill Flaherty, Filed Communications Consultant
+  Answers by : Dianna Tai, HQ Network Consultant
+        Date : March 19, 1986
+
+
+
+
+   ORIGINAL QUESTION:
+
+
+      A user is assigned a CRT/Printer pair at logon (wildcard), let's say
+   device 40 (CRT) and device C1 (printer), but does not activate his printer
+   (does not turn it on. . .).     If he then requests a print-out from the
+   host, where will the print-out go..???
+
+   Will it go to the CRT?
+   
+   Will the host interface know the printer is not active and send a status 
+   message to the host, telling the host not to send the print-out?
+
+   Also, if a user is assigned a CRT/Printer pair at logon, as stated above
+   (wildcard), does the printer keep the assigned device address (C1), whether
+   it is active or not...or does it get assigned a device address only after
+   it becomes active?
+
+
+
+
+   RESPONSE:
+
+
+      Following is a simple drawing of the configuration you described, and a
+   description of the circuit building process:
+ 
+     |---|   |----| 40 (CRT)  |----|    |-------|   
+     |FEP|-- |HIF |---------- |CMT |--- |CONSAT |-- CRT 
+     |---|   |    | C1 (PRT)  |    |    |-------|    |
+             |    |---------- |    |                 |
+             |----|           |----|                 |--> PRT
+ 
+   step 1: The user logs on with a username of CRT/PRT pair defined in CMT.
+   step 2: Since it is a wild card, HIF assigns one CRT and one PRT to this
+           user, by allocating from the highest device number available.
+   step 3: So there are two distinguished circuits, for the CRT and PRT,
+           between the HIF and CMT.
+   step 4: Host sends a print job to C1.  CMT receives it from HIF and does
+           necessary translation with escape (ESC) sequences so that the
+           CRT (or emulation program) understands.
+   step 5: When the CRT receives the start print ESC sequence, it routes the 
+           message to the printer, and gets back to the CRT mode when it
+           receives the end print ESC sequence.
+ 
+
+
+   Now to answer your specific questions:
+ 
+   1. Q: Where does the Print-out for a powered-off PRT go?
+      A: It could come out on the CRT screen or could be lost, while locking-
+         up the CRT keyboard, depending on how the CRT (or emulation program)
+         handles it.  Different CRTs have different ways of dealing it.
+ 
+   2. Q: Does the HIF know if the printer is not active?
+      A: No, because the CRT does not notify the CONSAT that the printer is 
+         not active, So neither the CMT nor the HIF knows it.
+ 
+         However, if it is the CRT that is powered off, then the CONSAT
+         detects the DTR is off and will notify CMT and in turn notify the
+         HIF.
+ 
+   3. Q: Does the printer get assigned a device address only when it is
+         active?
+      A: If the user logs on to HIF, with a CRT/PRT pair, then the printer
+         gets assigned a device address after the user logs on, no matter if
+         it is powered on or not.
+
+
+
+
+                                     16
+                                  --------
+
+
+              QUESTIONS & ANSWERS REGARDING 'TOM SHUT OVERRIDE'
+              -------------------------------------------------
+              -------------------------------------------------
+
+
+Question by : Marcia Hopkins, Field Communications Consultant
+Answered by : Peter O'Harrow, HQ Network Consultant
+       Date : March, 1986
+
+
+
+
+   Original Question:
+
+
+      THIS QUESTION PERTAINS TO TOM AND SHUT OVERRIDE CAPABILITIES.  I VALI-
+   DATED A TOM USERNAME FOR THE CUSTOMER CALLED TOMLA## AND I GENNED THE NAME
+   INTO THE TYMFILE UNDER THE TOMGG LIST.  WHILE TESTING PRIORITY-TARGETED 
+   USERNAMES, THE CUSTOMER DISCOVERED SOME "DISCREPANCIES".
+
+
+   TEST #1 INVOLVED USERNAME TOMLA## LOGGING ON TO HOST 4649 AND SHUTTING THAT
+   HOST NUMBER, USING THE SHUT HOST COMMAND.  USER LOGGED BACK INTO 
+   TOMLA##:4649 AND GOT "HOST SHUT".  ##TOM##:4649 WAS JUST FINE.
+
+   TEST #2 INVOLVED SHUTTING SORD #1 DOWN WHICH CONTROLS ALL PORTS FOR HOST 
+   4649.  LOGGING INTO TOMLA##:4649 WAS SUCCESSFUL.
+
+   TEST #3 INVOLVED SHUTTING PORTS 0-4 WHICH REPORT TO SORD 1-HOST 4649.  
+   LOGGING INTO TOMLA## GOT A "HOST SHUT" MESSAGE WHILE ##TOM##:4649 WAS FINE.
+   UNDER THE SHUT COMMAND ^ SECTION OF THE REFERENCE MANUAL I SAW THAT SHUT 
+   OVERRIDE STATUS HAS NO EFFECT ON SHUT PORTS.  IS THERE SOME DIFFERENCE 
+   BETWEEN THE LOGIN "AUTHORITY" OF TOMLA## AND ##TOM##.  IT WAS MY UNDER-
+   STANDING THAT SHUT OVERRIDE WAS SHUT OVERRIDE AND THAT THERE SHOULD BE NO 
+   DIFFERENCE BETWEEN THE TWO USERNAMES.
+
+
+   Response:
+
+
+      Shut override status requires special Supervisor validation, and is 
+   authorized only for the username "##TOM##".  "TOMLA##" does not, and may 
+   not, have shut override status.  The macro "TOMGG" pertains only to level 
+   "2" privledge, not to override status.
+
+      Shutting the host through TOM will cause a "host shut" message to be 
+   sent to the Supervisor, of course.  Shutting all the async ports for a 
+   particular host will also cause a "host shut" message to be sent to the 
+   Supe.  Shutting a subhost, even if all async ports are assigned to that 
+   subhost, will not cause the "host shut" message to be sent, however.  This
+   last situation may seem a little odd, but it allows the customer whose TOM
+   username lacks shut override status to shut-off user access while still 
+   allowing his own access to the TOM.
+
+
+
+                                     17
+                                  --------
+
+
+                  QUESTION & ANSWER REGARDING BANNER STRING
+                  -----------------------------------------
+                  -----------------------------------------
+
+
+Question by : David Auerbach, Field Communications Consultant
+  Answer by : Shiao-Ming Tsui, HQ Network Consultant
+       Date : March, 1986
+
+
+
+
+   Original Question:
+
+
+      I am trying to gen version 10.0 and I get an 'invalid string' error,
+   from CPAS1, if I have a banner string longer than 20 characters.  I am
+   using the same banner that I was running with version 7.8.  The sample TMCS
+   parameter file assembles ok (its banner is 20 characters).  If I try adding
+   just one more character to it, I get the error there too.  I can find no 
+   parameters relating to max string constants.  What is the problem?
+
+
+
+
+   Response:
+
+
+      The banner title string must end with 'backslash' and must be an even
+   number of characters (including the backslash).  There is a maximum of
+   80 characters allowed.
+
+
+
+                                     18
+                                  --------
+
+
+               NEED BETA TEST SITES FOR REVISED SIO MICROCODE
+               ----------------------------------------------
+               ----------------------------------------------
+
+
+Written by : John Gomes, Mgr., HQ Quality Assurance           
+      Date : Mary 19, 1986
+
+
+
+
+      The HQ Quality Assurance Unit has an immediate need for beta test sites
+   for the revised SIO Microcode.  This version contains a fix for the under 
+   run condition, which shows up as truncated packets.  
+
+      If you have a site that is interested, please give me a call immediately
+   at 408-942-5142.
+
+
+
+
+                                     19
+                                  --------
+
+
+                             'TIP' FOR TTY USERS
+                             -------------------
+                             -------------------
+
+
+Written by : Norman Chin, HQ Network Consultant
+      Date : March 20, 1986
+
+
+
+
+      If your customer is using a TTY terminal or emulation going to CMT, 
+   please be certain that the 3270 application programs, on the host, sends 
+   us all erase write commands (F5).  If you see a screen being displayed 
+   several times, that's a good indication that the application is sending 
+   write commands (F1) instead of erase write.  Please alert your customer 
+   of that.
+
+
+
+
+                                     20
+                                  --------
+
+
+               A LESSON IN LOGIC - OR HOW TO MAP CONSAT PORTS
+               ----------------------------------------------
+               ----------------------------------------------
+
+
+Written by : Michael Hanna, Field Communications Consultant
+      Date : March 20, 1986
+
+
+
+
+      The attached article, was originally sent to Tymnet's Field Engineers,
+   by Michael Hanna, to try to clear-up any confusion that resulted from the 
+   numerous PVC Port installs he has been doing on Isis Consat slots.
+
+
+
+      There seems to be a problem understanding the logical, to physical,
+   mapping of the isis consats that have PVC code in them, for ADP.  This 
+   is not a problem inherent to just ADP`s consats, but with isis consats in 
+   general.  
+
+      The confusion seems to arise from the fact that the isis consat slot
+   will look at the first port, in any isis consat slot, as port '0' and then
+   count up from there.  This means that regardless of the `aref`, used in
+   the slot, the first port will be 0, and the second port will be 1, etc.
+   even though the actual physical port may be 16, or 32, or 48.  This has 
+   been the cause of much confusion in the past and this is my attempt to try
+   to clear up some of that confusion.
+
+      If there is a question about where a port is physically located on the 
+   async board, then maybe the following chart can help:
+
+
+   **  if 'aref(0)' is the first 'aref' in the slot, then the physical to 
+       logical port mapping will be one-to-one  **
+
+
+     physical     |                logical isis consat ports
+      ports       | with one of the following as the first aref in the slot
+                  |
+   dec  |  oct    |   aref(0)    |    aref(1)    |   aref(2)     |    aref(3)
+        |         |  dec   oct   |   dec   oct   |  dec    oct   |   dec   oct
+   ---------------------------------------------------------------------------
+     0      0     |   0     0    |               |               |
+     1      1     |   1     1    |               |               |
+     2      2     |   2     2    |               |               |
+     3      3     |   3     3    |               |               |
+     4      4     |   4     4    |               |               |
+   ---------------------------------------------------------------------------
+     5      5     |   5     5    |               |               |
+     6      6     |   6     6    |               |               |
+     7      7     |   7     7    |               |               | 
+     8      10    |   8    10    |               |               |
+     9      11    |   9    11    |               |               |
+   ---------------------------------------------------------------------------
+     10     12    |  10    12    |               |               |
+     11     13    |  11    13    |               |               |
+     12     14    |  12    14    |               |               |
+     13     15    |  13    15    |               |               |
+     14     16    |  14    16    |               |               |
+   ---------------------------------------------------------------------------
+     15     17    |  15    17    |               |               |
+     16     20    |  16    20    |   0     0     |               |
+     17     21    |  17    21    |   1     1     |               |
+     18     22    |  18    22    |   2     2     |               |
+     19     23    |  19    23    |   3     3     |               |
+   ---------------------------------------------------------------------------
+     20     24    |  20    24    |   4     4     |               |
+     21     25    |  21    25    |   5     5     |               |
+     22     26    |  22    26    |   6     6     |               |
+     23     27    |  23    27    |   7     7     |               |
+     24     30    |  24    30    |   8    10     |               |
+   ---------------------------------------------------------------------------
+     25     31    |  25    31    |   9    11     |               |
+     26     32    |  26    32    |  10    12     |               |
+     27     33    |  27    33    |  11    13     |               |
+     28     34    |  28    34    |  12    14     |               |
+     29     35    |  29    35    |  13    15     |               |
+   ---------------------------------------------------------------------------
+     30     36    |  30    36    |  14    16     |               |
+     31     37    |  31    37    |  15    17     |               |
+     32     40    |  32    40    |  16    20     |    0    0     |
+     33     41    |  33    41    |  17    20     |    1    1     |
+     34     42    |  34    42    |  18    21     |    2    2     |
+   ---------------------------------------------------------------------------
+     35     43    |  35    43    |  19    23     |    3    3     |
+     36     44    |  36    44    |  20    24     |    4    4     |
+     37     45    |  37    45    |  21    25     |    5    5     |
+     38     46    |  38    46    |  22    26     |    6    6     |
+     39     47    |  39    47    |  23    27     |    7    7     |
+   ---------------------------------------------------------------------------
+     40     50    |  40    50    |  24    30     |    8    10    |
+     41     51    |  41    51    |  25    31     |    9    11    |
+     42     52    |  42    52    |  26    32     |   10    12    |
+     43     53    |  43    53    |  27    33     |   11    13    |
+     44     54    |  44    54    |  28    34     |   12    14    |
+   ---------------------------------------------------------------------------
+     45     55    |  45    55    |  29    35     |   13    15    |
+     46     56    |  46    56    |  30    36     |   14    16    |
+     47     57    |  47    57    |  31    37     |   15    17    |
+     48     60    |  48    60    |  32    40     |   16    20    |    0     0
+     49     61    |  49    61    |  33    41     |   17    21    |    1     1
+   ---------------------------------------------------------------------------
+     50     62    |  50    62    |  34    42     |   18    22    |    2     2
+     51     63    |  51    63    |  35    43     |   19    23    |    3     3
+     52     64    |  52    64    |  36    44     |   20    24    |    4     4
+     53     65    |  53    65    |  37    45     |   21    25    |    5     5
+     54     66    |  54    66    |  38    46     |   22    26    |    6     6
+   ---------------------------------------------------------------------------
+     55     67    |   55    67   |  39    47     |   23    27    |    7     7
+     56     70    |   56    70   |  40    50     |   24    30    |    8    10
+     57     71    |   57    71   |  41    51     |   25    31    |    9    11
+     58     72    |   58    72   |  42    52     |   26    32    |   10    12
+     59     73    |   59    73   |  43    53     |   27    33    |   11    13
+   ---------------------------------------------------------------------------
+     60     74    |   60    74   |  44    54     |   28    34    |   12    14
+     61     75    |   61    75   |  45    55     |   29    35    |   13    15
+     62     76    |   62    76   |  46    56     |   30    36    |   14    16
+     63     77    |   63    77   |  47    57     |   31    37    |   15    17
+
+
+      There are some nodes in the net (node 5245 for example) that have an odd
+   'aref' configuration (i.e. aref`s 0, 1, 3) which can make for some inter-
+   esting times when working on trying to find out what circuit is supposed to
+   be on which port.  Although in the above example, with node 5245, the 
+   logical port mapping would be ports 0-47 -logically!!
+
+      Hopefully this will clear up any confusion about descrepensies between 
+   the slot code, for a consat with pvc code and a project report, that don`t
+   seem to match up.
+
+      I have been informed that the above situation is only a factor with an 
+   isis consat and that they are the only type of consat -or tymsat- that 
+   deals with the logical to physical mapping this way.  A standalone tymsat 
+   or consat would have a one to one mapping, physical to logical.
+
+
+
+
+                                     23
+                                  --------
+
+
+TYMNET INTRODUCES SNA/SDLC SUPPORT FOR ASYNC-TO-3270 SERVICE (PRESS RELEASE)
+----------------------------------------------------------------------------
+----------------------------------------------------------------------------
+
+
+Written by : Lori Waggener, Network Services & Marketing Support
+      Date : March 24, 1986
+
+
+
+
+      ATLANTA, Georgia, March 24, 1986 -- Tymnet, McDonnell Douglas Network
+   Systems Company, announced here today at Interface the full release of
+   SNA/SDLC support for its Async-to-3270 Service, a significant addition to
+   the company's IBM data communications services.
+
+      This service cost-effectively connects asynchronous ASCII terminals and 
+   PCs to IBM mainframes without the need for expensive synchronous emulator 
+   boards, WATS lines and protocol converters, or host-based conversion 
+   software, and provides access to 3270 applications such as TSO, VM, CICS, 
+   AND IMS.  Current customers of the service include Teledyne, American 
+   President Lines, and DuPont.
+
+      SNS/SDLC is the most popular type of communications protocol in the 
+   IBM world.  Customers having IBM mainframes can now have pure SNA networks
+   using this service, and can serve even low-to-medium-traffic sites cost-
+   effectively -- sites that might otherwise be served by cluster controllers
+   and leased lines.  (Previously, Tymnet accomplished async-to-3270 protocol
+   conversion by means of bisync interfaces or X.25.)
+
+      Because the Async-to-3270 SNA/SDLC support is designed and built to 
+   reside within the TYMNET public packet-switched network, it takes advantage
+   of the network's advanced technology and associated benefits including 
+   erro-correction, network management, added layer of security, access to 
+   hundreds of data bases from a single terminal, extensive local access
+   availability, and complete protocol support and conversion capabilities.
+   No other company offers a comparable network-resident service.
+
+      "This service can be a substantial cost-saver for small, medium, and 
+   large companies needing to connect micros or terminals to IBM mainframes 
+   and access 3270 applications -- and especially for those companies with 
+   users scattered over large areas, who can take advantage of Tymnet's 
+   geographically dispersed local access coverage," said Mary Chalmers, 
+   Tymnet's 3270 Product Manager.
+
+      Currently, 82 terminal brands and PC software packages are certified
+   as compatible for use with Tymnet's Async-to-3270 Service, including the
+   SNA/SDLC version.  File transfer software from Micro Tempus (distributed by
+   Pansophic, Innovative Computer Products, Sterling Software's Dylakor 
+   Division, and others) is available for use with the service, and incorpor-
+   ates the X.PC asynchronous communications protocol for error-free file 
+   transmission.
+
+      The Async-to-3270 SNA/SDLC Service was tested rigorously throughout 
+   1985, both in beta-test and limited release modes.
+
+      Tymnet also offers synchronous IBM terminal services for SNA/SDLC or
+   bisync 3270, 3770, 5250, and 2780/3780 HASP devices.  Other Tymnet IBM
+   data communications services include IBM's X.25 (QLLC) service, which
+   provides support for X.25 including the 1984 CCITT recommendations and IBM
+   QLLC compatibility; and the Tymnet Extension Cord Service, which supports
+   IBM sychronous devices using the SDLC protocol.
+
+      Tymnet provides local access from more than 600 locations in the U.S. 
+   and from some 68 countries.  The company also has installed more private 
+   networks than any other supplier.
+
+                                #     #     #
+
+
+      In addition, four vendors today announced their support of the X.PC 
+   protocol.  Digisoft Computers Inc., LaSalle Micro In., Micro Tempus Inc., 
+   and Western Union.
+
+
+
+                                     25
+                                  --------
+
+
+                 CIRCUIT REBUILD AND COMMAND CIRCUIT ROUTING
+                 -------------------------------------------
+                 -------------------------------------------
+
+
+Written by : Sandra Nilluka, HQ Network Support
+      Date : March 24, 1986
+
+
+
+
+   CIRCUIT REBUILD
+
+
+      Circuit rebuild is a feature that provides for broken virtual circuits
+   to be re-constructed by the network, such that the user experiences a delay 
+   in service during the rebuild process, but does not have to perform a login
+   and loses no data.
+
+
+      All of the following conditions must be met for a circuit to be success-
+   fully rebuilt:
+
+   1. Origination and destination nodes must be nodecode version 5.06 (or 
+      higher) with rebuild enabled, and all intermediate nodes in a circuit's
+      path must be nodecode version 5.xx.  This implies Solo and Isis; ATCs 
+      do not support rebuild.  The orig. and dest. nodes will exchange control
+      information on data successfully received and maintain history buffers 
+      for re-transmission, should rebuild occur.
+
+   2. There must be an alternate path available for construction of a replace-
+      ment circuit path.  The link that went out will not be used in the new 
+      path.
+
+   3. The circuit breakage must be caused by a network link outage or an 
+      intermediate node outage.  It can not be caused by a host crash, host 
+      link outage, host disconnect, user disconnect, or orig./dest. node 
+      crash.
+
+   4. The command circuit of the destination node must be intact.  If the 
+      circuit is down, the destination node does not exist, causing the 
+      rebuild request to be rejected.  Currently, the sup holds off rebuild
+      requests for 8 seconds before checking.
+
+   5. The command circuit of the origination node must be intact.  If the 
+      circuit is down, the node will not request circuit rebuild because the 
+      node can not communicate with the supervisor.  
+
+   6. The sup can not be saturated with rebuild requests.  Once its limit is 
+      reached, the sup will reject rebuild requests.  The current public 
+      network limit is 512 outstanding requests.
+
+   7. The origination and destination nodes must be able to ensure no loss 
+      of data.  If data cannot be provided from history buffers, or if the 
+      nodes can not agree on control sequence numbers, the now-rebuilt circuit
+      is immediately zapped.
+
+
+      The rebuild option requires additional memory for the circuit rebuild 
+   logic, and history buffers for each circuit originating or terminating in 
+   the node.
+
+
+      The impact on CPU utilization is not measured.  Data for eligible
+   circuits must also be placed into history buffers.  The node must 
+   periodically report control information.  Circuit outage would invoke the 
+   rebuild process.
+
+
+
+   COMMAND CIRCUIT ROUTING
+
+
+      A command circuit is the circuit over which the node and supervisor
+   communicate.  Its path is determined by the supervisor:
+
+   1. At takeover time when the sup gains control of the network.
+
+   2. At re-take time following a command circuit outage.
+
+   3. At re-take time per Probe command request.
+
+      There is no provision for designated routing.  One can not define which
+   of a node's links will be used for its command circuit.
+
+
+      For a given node, one could force the command circuit to use a specific
+   link, by disconnecting or shutting all other links and then issuing a 
+   re-take command.  If the disconnection caused the command circuit to be 
+   zapped, re-take would automatically occur.  Upon re-take completion, the 
+   other links could be re-connected or unshut.
+
+
+      However, a subsequent takeover by a new supervisor or a re-take due to 
+   loss of command circuit or Probe command results in command circuit path 
+   re-calculation, and thus defeats the contrived path.
+
+
+
+                                     27
+                                  --------
+
+
+             BETATEST VERSION 5.13 - RESTRICTION/PATCH RELEASE
+             -------------------------------------------------
+             -------------------------------------------------
+
+
+Written by : Sandra Nilluka
+      Date : March 24, 1986
+
+
+
+
+   RESTRICTION - TIIG  V5.13
+
+      The Tymnet-II Gateway does NOT support IIX logins from the HNET side 
+   (secondary network, pseudo-node side) when the HNET supervisor is version 
+   40.01.
+
+      This restriction will not be removed.  The circumvention is to upgrade 
+   the HNET supervisor to version 41.01 or higher.
+
+
+
+   PATCH RELEASE - TIIG  V5.13
+
+      A new patch file TII05.P13 has been released by NTD.  It fixes a bug 
+   that may have prevented successful IIX logins from the HNET side (secondary
+   network, pseudo-node side).
+
+      If you or your customers are using this Betatest product, please re-gen
+   and re-load the gateway slot(s).  Support will be provided only for 
+   upgraded slots.
+
+   NOTE:  Previous release was February 12, 1986.
+
+
+
+                                     28
+                                  --------
+
+
+                      ANSWERS TO QUESTIONS ON 3270 DSP
+                      --------------------------------
+                      --------------------------------
+
+
+Written by : Dianna Tai, HQ Network Consultant                
+      Date : March 26, 1986
+
+
+
+
+   Item 1: (Question: in Section 1.3 of DSP manual, which elements are 
+            are supported?  If supported, are there any limitations of the
+            features?)
+ 
+
+   1.3.1   Required Elements:
+   --------------------------
+   1. EBCDIC character set support              -- supported
+ 
+   2. ACK-bit acknowledgement                   -- supported 
+          
+   3. Limited Conversation Mode (READ command) processing 
+                                             -- supported
+      In remote 3270 BSC, only READ BUFFER and READ MODIFIED are supported
+               
+   4. Command chaining                          -- not supported
+ 
+   5. Command and message sequencing            -- supported
+ 
+   6. STATUS message processing                 -- supported
+ 
+   7. Error recovery                            -- supported
+ 
+   8. Single logical connection per virtual circuit using X.25 call
+      request
+                  --  Terminal initiated circuit calls are supported
+                  --  Host initiated circuit calls are not 
+ 
+   9. Forward Abort                             -- supported
+                                         
+ 
+
+   1.3.2 Optional Elements:
+   ------------------------
+ 
+   1. ASCII character set support               -- not supported
+ 
+*  2. Setting of ACK-bit                        -- supported
+ 
+   3. Transparent text mode operation           -- supported in NATIVE
+                                                   mode but not CMT
+ 
+   4. Single logical connection using circuit request --  not supported
+  
+   5. Multiple logical connections per virtual circuit using 
+      circuit request                             -- not supported
+ 
+   6. Host initiated call request                 -- not supported
+    
+*  7. Permanent Virtual Circuits (PVC's)          -- supported
+ 
+
+   [* = SEE ADDENDUM AT BOTTOM OF ARTICLE]
+
+
+
+   Item 2: (Question: How is acknowledgement of frames sent from the host to 
+            the terminal handled? - In particular, if the host interface
+            acknowledges the frame as soon as it is received (early ack) where
+            does the data get buffered, in the host interface? in the network?
+            at the terminal interface?  If the terminal interface is presumed
+            to be capable of buffering the data this may present problems for 
+            other networks which have limited buffering capabilities at the 
+            terminal interface.)
+ 
+
+   Acknowledgement  
+   ---------------
+      As described in the DSP manual, after the HIF received a COMMAND, it
+   performs local acknowledgement to the FEP before transmiting the COMMAND 
+   to the terminal.  Same to the TIF that after the TIF received a RESPONSE, 
+   the TIF performs local acknowledgement to the CU before transmiting the 
+   RESPONSE to the host.
+ 
+
+   Data Buffering
+   --------------
+      Only DATA is carried across the network. Logically, the data message is
+   first stored in the HIF bufferlet(s), then put into the ORING waiting to 
+   be sent to the TIF through the network.  Network package arrives at the 
+   TIF, stored in the IRING first, then put into the bufferlet(s) to be sent 
+   to the CU and terminal.
+ 
+      At different times of each phase, data could stay in the HIF, the 
+   Network or the TIF or all of these three, depending on when it is looked 
+   at.
+ 
+      There is an EDF (Early Data Forwarding) mechanism implemented in all of 
+   the present versions of code to improve response time of data transmission.
+   It avoids verifying checksums before using the data.  Before this "To 
+   Terminal" EDF (Outbound) is implemented, messages from the customer's host
+   (outbound), which may be as large as 1920 user data bytes a block, is sent
+   to the HIF then to the TIF only when the ETX is received at the HIF.  The 
+   TIF after receiving a STX, also waits for the ETX and then transmits the 
+   whole message out to the Control Unit.
+ 
+      Two constants RCVMIN & DYNBUF support the EDF mechanism.
+ 
+   RCVMIN -- minimum number of character required to transmit. Defaulted
+             to 64 bytes (40 in hex).
+ 
+   DYNBUF -- switch to set dynamic buffer size for executing EDF. 
+             Default is on.
+ 
+      The EDF can be turned off by equating DYNBUF to 0. The bytes transmit
+   limit can be changed by equating RCVMIN to value other than 40.
+ 
+      If DYNBUF is on (the default), then once data has started to arrive
+   from the FEP, the HIF starts to pass that data through the network.  That 
+   is, the data bytes are sent to the TIF by HIF whenever RCVMIN hex bytes 
+   (or ETX if is the last block) is received from the IBM host without waiting
+   for the ETX.
+ 
+      The TIF transmits these messages out to the control unit immediately 
+   when each is received without waiting for the ETX either. Thus the two
+   bisynchronous transmissions times can be partly overlapped.
+ 
+      "To Host" Direction EDF is implemented in PBH 8.02 and PBT 6.01 up.  
+   These new versions of code are in Betatest right now.
+ 
+ 
+   Error Recovery (Forward Abort)
+   ------------------------------
+ 
+      If a checksum error is detected by the PBH and data was already sent 
+   through the network, then any data still in the PBH is discarded and a 
+   forward abort indication is sent through the network to the TIF.  The 
+   forward abort is passed by the TIF and the previously received data is 
+   discarded by the CU.  
+
+
+   ADDENDUM:
+   --------
+   *   NTD suggested some clarification, in order to avoid confusion:
+
+   1.  Setting of ACK-bit -- NTD indicated that it is only used in the special
+       version, implemented for Hongkong & Shanghai Banking Corp.
+
+       PBT 5.03, 5.05 and PBH 7.03, 7.05 all revealed that code to send the
+       ACK Message, in response to a COMMAND/RESPONSE message with the ACK-
+       bit set, is not implemented.  Since these codes do not support the ACK
+       Message, they do not support the Setting of ACK-bit.
+
+
+   2.  PVC in 3270 PBT is different from the PVC in X.25.
+
+       If the PBT is configured for a PVC, the logon menu screen will not
+       appear.  The logon process is done automatically as defined during the
+       configuration of the PBT.  For PVC defined terminals, the flexibility 
+       to access various hosts no longer exists.
+
+       In the PBT code, there are routines to run periodically to check 
+       whether or not a PVC-configured device needs to be logged on auto-
+       matically.  The PVCTIM is defaulted to activiate the PVC timer every
+       5 minutes.
+
+
+
+
+                                     31
+                                  --------
+
+
+            HOW TO CAPTURE DATA IN THE RECEIVE & TRANSMIT BUFFER
+              (Open/close gates and command link, buffer read)
+                          3270 BSC Debugging Hints
+ 
+
+Written by : Dianna Tai, HQ Network Consultant
+      Date : March, 1986
+
+
+
+
+        This article was initiated by the idea of distributing a
+   '3270 Trouble-Shooting tip', nicely organized by Roseann Koralewski.
+   As comments and suggestions were gathered, Steve Cortez and I started 
+   adding more information to make it complete.
+ 
+        Many thanks to DeeJong Tsao for his supervision and guidance 
+   during this period. I also appreciate Paul Chu, of NTD, who provided
+   comments and critics to increase the validity of this article.
+ 
+        Please  note that the information, provided below, is for the  
+   present versions of PBH and PBT codes only. The examples are from
+   our trouble shooting experiences, based on our understanding of the
+   code. If new versions of code have changes or if there is anything
+   that needs more discussion, we will submit articles to Techtips
+   later on.
+ 
+ 
+   I. BACKGROUND
+   
+        There are times when we are trouble-shooting a 3270 HIF or TIF    
+   problem, and data messages are suspected of becoming invalid during
+   one of the transmission steps, thus we need to verify where this 
+   happened and the cause.
+ 
+        TIF and HIF both have a mechanism implemented to handle data
+   transfer. For the 3270 HIF and TIF, there is a foreground process, 
+   a background process, and several types of queues to be used
+   between the foreground and background process. Each interface
+   has the transmit queue (XMT) and receive queue (RCV) in addition
+   to a set of queue related storage spaces.  Big Bufferlet, where the
+   data message is stored before being processed, is the one that 
+   provides useful information to help identify the problem.
+ 
+        Below is a picture which shows the position of these queues
+   in NATIVE mode environment.
+ 
+ |---|    |----------------|    |-------|      |--------------|    |---|
+ |FEP| -- | --> rcv   HIF  | -- |NETWORK| ---  | TIF  rcv <-- | -- |CU |
+ |-- |    | <-- xmt        |    |       |      |      xmt --> |    |---|
+          |----------------|    |-------|      |--------------|
+     EBCDIC                 DSP          EBCDIC
+ 
+ 
+ 
+ 
+ 
+
+
+   A. HOST INTERFACE
+      ==============
+ 
+   RCV queue -- stores the data received from the FEP on the BSC 
+      line. Background processor will transform it into either DSP
+      (NATIVE mode) messages or ASCII (VHM) strings to be delivered
+      to the terminal.
+ 
+   XMT queue -- stores the terminal data arrived from the network, 
+      where data has been converted either from ASCII (VHM) or DSP
+      (NATIVE mode) into BSC messages in the background process.
+      The foreground will transmit this information to the FEP.
+ 
+ 
+   B. TERMINAL INTERFACE
+      ==================
+ 
+   RCV queue -- stores the data received from the CU on the BSC
+      line. Background processor will transform it into either
+      DSP (NATIVE mode) messages or ASCII (VTM) strings to be
+      delivered to the host.
+ 
+   XMT queue -- stores the host data arrived from the network, 
+      where the data has been converted either from ASCII (VTM)
+      or DSP (NATIVE mode) into BSC messages in the background
+      process. The foreground will transmit this information to
+      the CU.
+ 
+      There is also an IN and OUT queue in the Terminal Interface,
+   related to the data transmission. They are not used in the
+   examples in this documents, and omitted here.
+ 
+ 
+ 
+   II.  DECIDE WHICH QUEUE TO EXAMINE
+ 
+        The basic rules are:
+ 
+   HIF RCV queue -- check the data received from FEP on the BSC line.
+   HIF XMT queue -- check the data before sending it to FEP.
+   TIF RCV queue -- check the data received from CU on the BSC line.
+   TIF XMT queue -- check the data before sending it to CU.
+ 
+        For example, if a print job does not get printed on the
+   printer, we can close the HIF RCV gate to see if the WCC byte
+   captured has its print bit set. If not, we know that the host
+   application is the one that caused the problem. 
+ 
+        Or we can check the target SBA (set buffer address) in the
+   buffer to see what the HOST application requests the cursor
+   location to be, and verify whether it is the CMT's conversion
+   problem.
+ 
+ 
+
+
+   III. TWO WAYS OF GETTING BUFFER INFORMATION
+ 
+      A. Traditional way -
+ 
+        Close gate to capture data message in the buffer, then
+   perform command link read and buffer read. This method can be
+   applied to all the versions of HIF and TIF versions with PBH 
+   8.01 and 8.02 the only exceptions.
+ 
+      Description of symbols to be used:
+      ----------------------------------
+ 
+      1. DEVTAB (device table) -- contains pointers pointing to
+         the device control block of the corresponding devices.
+ 
+      2. CMDLK (command link) --  stores sets of information for 
+         each bufferlet on the link list. Each set has 8 bytes
+         to specify: 
+ 
+         a. if the first 2 bytes are positive, then they are the
+            data size, bufferlet offset address, flag and the
+            pointer points to next command link.
+         b. if the first half word is negative, then the status
+            information will be stored in the buffer. 
+ 
+      3. BBUFER (big bufferlet) -- the starting address of the
+         buffer storage that stores the data messages.
+ 
+      4. RCVGAT (receive gate) -- bit array, each bit represents
+         a corresponding device. bit = 1 if the receive gate is
+         open. For example, if there are 16 devices, we need to
+         read 4 bytes from RCVGAT. Suppose it reads out as FFF3
+         (hex), that is 1111 1111 1111 0011 (binary). It reveals
+         that device 12 (the 13th device from the left) and device
+         13 (the 14th device from the left) both have the receive
+         gate closed.
+ 
+         To open device 12, write FFFB (1111 1111 1111 1011) to
+         the RCVGAT. 
+              
+       5. GPRCV (get pointer of receive queue) -- contains the
+          starting command link pointers for each device.
+ 
+       6. RPRCV (release pointer of receive queue)  -- contains
+          the ending command link pointers for each device.
+ 
+          The transmit queue (XMT queue) also has the same functions
+          as the receive queue, they are  XMTGAT, GPXMT and RPXMT.
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+          Inverted Bisync Translation 
+          ---------------------------
+          In the XMT queue, data bytes are prepared in inverted 
+      format. Following is an example of using the first 24 data 
+      bytes of PBT 5.03 XMT queue to show the way to decypher the
+      data message:
+   
+        buffer   inverted      interpreted
+        ======   ========      ===========
+        40E4       0227        stx esc
+        AF5E       F57A        erase write  WCC
+        B80E       1D70        sf attribute  
+        8802       1140        sba cursor address 
+        6B2B       D6D4        cursor address M
+        A747       E5E2        VS
+        0647       60E2        -S
+        EB02       D740        P space
+        0247       40E2        space S
+        1747       E8E2        YS
+        C7A3       E3C5        TE
+        2B02       D440        M space
+ 
+        Two steps of inversion is needed: 
+        a. Go to the table provided below to find the inverted 
+           value for a byte.
+        b. Then swap the two digit of this byte.
+ 
+        for example: 40 --> 20  --> 02
+                     AF --> 5F  --> F5
+      
+ 
+        Reversing Table
+        ===============
+          0   -->  0
+          1   -->  8
+          2   -->  4
+          3   -->  C
+          4   -->  2
+          5   -->  A
+          6   -->  6
+          7   -->  E
+          8   -->  1
+          9   -->  9
+          A   -->  5
+          B   -->  D
+          C   -->  3
+          D   -->  B
+          E   -->  7
+          F   -->  F
+ 
+ 
+ 
+ 
+ 
+
+
+ 
+     B. Query command through HBOM -- PBH 8.01 & 8.02 only
+     
+        HBOM is a Host Interface Bisync Operation Monitor. It can
+     be called when log on into DDT. The commands related to the
+     buffer data are:
+ 
+     RCV query commands:
+ 
+        1. STOPRCV  -- stop RCV queue process 
+        2. QRCVQ    -- query data on RCV queue
+        3. STARTRCV -- start RCV queue
+ 
+     XMT query commands:
+ 
+        1. STOPXMT  -- stop XMT queue process
+        2. QXMTQ    -- query data on XMT queue
+        3. STARTXMT -- start XMT queue
+
+
+ IV. SAMPLE EXAMPLE OF TRADITIONAL WAY
+    
+    A. PBH 7.05 RECEIVE QUEUE
+:------------------------------------------------------------------
+: file: (DTAI:54)GATE1.DOC  3/12/86 
+:
+: This is a sample run of NAD-DDT to close receive gate of HIF to
+: capture buffer data received on the BSC line from the host.
+:
+: Comments are at the right hand side to distinguish themselves
+: from run time input and system response.
+:------------------------------------------------------------------
+ 
+-SYS
+TYMSHARE D25-P034/P-8 2-20-86
+-O ALL                         :set license
+DTAI
+ 
+-
+Did not set WC RC OP GD TD ST JL XC
+-R NAD                         :get to NAD
+1.1
+%F   BB2237.N05                :open nib file
+ 
+%G                             :get NAD state & symbols from nib file
+;G                             :get local image from nib file
+Data ranges read:
+0-1C25 10000-17FFD 17FFE-19CE7 0E0000-0E011F 
+ 
+;C   BUBB                      :engine in Bubbnet, go through gateway
+Working
+Circuit ready
+ 
+inter-link established from TYMNET-BUBBV-1-G2 to BUBB-NETG2
+please log in: ::ISISTECH:679;pass-word
+                               :log on to DDT of node with kernel
+                               :host number 679
+node: 2237
+host: 679
+ 
+slot #: ;R03                   :PBH 7.05 is in slot 3
+ 
+Slot 03 running: DDT
+*::?HOST                       :always check host status for the
+                               :state of the host
+ 
+0 Host 4855d has 32d ports, is answered
+0d ports in use
+ 
+ 
+*NDEVM#   20                   :first find out how many devices we
+                               :have by issuing NDEVM[
+                               :20 hex is returned, enter return    
+                               :key then
+
+ 
+ 
+::R DEVTAB,40
+004F6  0002  0002  0002  0002  0002  0002  0002  0002
+00506  0002  0002  0002  0002  0002  0002  0002  0002
+00516  0002  0002  0002  0002  0002  0002  0002  0002
+00526  0002  0002  0002  0002  0002  0002  0002  0002
+ 
+                               :if you do not get the * prompt
+                               :here, it is ok, simply enter your
+                               :read command to take a snapshot 
+                               :of the device table before logging
+                               :on to a testing device
+                               :20 (hex) devices takes requires
+                               :40 (hex) bytes pointer storage
+ 
+                               :now log on
+                               :read device table again to find the
+                               :relative pointer location in the 
+                               :device table, it will be used later
+                               :to locate pointers in GPRCV & RPRCV
+*::R DEVTAB,40
+004F6  0002  0002  0002  0002  0002  0002  0002  0002
+00506  0002  0002  0002  0002  0002  0002  0002  0992  :<--- changed
+00516  0002  0002  0002  0002  0002  0002  0002  0002
+00526  0002  0002  0002  0002  0002  0002  0002  0002
+ 
+                               :dummy pointer value 0002 indicates
+                               :the device is not logged on, since the
+                               :pointer at location for device F is
+                               :changed from 0002 to 0992 after we
+                               :logged on, the bit array location
+                               :and pointer location of this device is
+                               :identified to be the 16th device.
+ 
+*R RCVGAT,8                    :Note: instead of using ::R we used 
+                               :CONTROL R, this control character
+                               :does not show here. The COMTROL R
+012C0  FFFF FFFF FFFF FFFF     :is equivalent to ::R
+                               :
+                               :Verify if the RCV gates in the engine
+                               :is closed or not, read 8 bytes for
+                               :all 32 devices. Actually as device F
+                               :is our only concern, 2 bytes is enough 
+*RCVGAT[   0   0FFFE
+                               :Note: 0 is the value of RCVGAT value
+                               :in nib file returned by NAD. We then
+                               :write 2 bytes value 0FFFE into RCVGAT
+                               :typing 0FFFE followed by a return
+                               :
+                               :That is to close RCV gate of device F
+                               :by writing 0 to the 16th bit from the
+                               :left. 0FFFE (hex) = 1111 1111 1111 1110
+                               :(binary). 
+ 
+
+W .,2
+Data sent and received
+                               :CONTROL W was typed in, the control 
+                               :character does not show here.
+                               :We then write these 2 bytes into engine
+                               :for consistency
+*R RCVGAT,2
+012C0  FFFE
+*RCVGAT[   0FFFE
+                               :always double check to see if everything
+                               :is transferred correctly
+ 
+                               :now hit the SEND key on keyboard
+                               :for host to send something over to
+                               :the terminal, since we have closed
+                               :the receive gate, the data message
+                               :should be captured in the bufferlets.
+ 
+*R GPRCV,40
+0113C  0008  0020  0038  0050  0068  0080  0098  00B0
+0114C  00C8  00E0  00F8  0110  0128  0140  0158  0170  <---
+0115C  0188  01A0  01B8  01D0  01E8  0200  0218  0230
+0116C  0248  0260  0278  0290  02A8  02C0  02D8  02F0
+ 
+                               :display the starting command link
+                               :pointer of all the devices
+*R RPRCV,40
+011BC  0008  0020  0038  0050  0068  0080  0098  00B0
+011CC  00C8  00E0  00F8  0110  0128  0140  0158  0310  <---
+011DC  0188  01A0  01B8  01D0  01E8  0200  0218  0230
+011EC  0248  0260  0278  0290  02A8  02C0  02D8  02F0
+ 
+                               :display the ending command link
+                               :pointer of all the devices, here
+                               :we have 0170 and 0310, since these
+                               :two numbers are different,we know
+                               :that the data is captured in the buffer
+*R CMDLK+170,8
+20B78  0041  00C2  0100  0300
+                               :read 8 bytes from the command link
+                               :for data size and bufflet offset
+                               :and also check the last 2 bytes to
+                               :see if it is 0310. If so, then all
+                               :of the command link pointers are
+                               :read, otherwise, continue reading
+                               :the next link by using the last 2
+                               :bytes as an offset
+*R CMDLK+300,8
+20D08  000E  0122  0400  0310
+ 
+                               :last 2 bytes = 0310, all the command
+                               :link pointers are read
+ 
+ 
+ 
+
+*R BBUFER+0C2,41
+30556  0227  F5C2  E3C8  C9E2  40C9  E240  C1D5  40C5
+30566  E7C1  D4D7  D3C5  40D6  C640  C3D3  D6E2  C9D5
+30576  C740  C1D5  C440  D6D7  C5D5  D5C9  D5C7  40D9
+30586  C5C3  C5C9  E5C5  40C7  C1E3  C540  D7D9  D6E5
+30596  C940
+                               :the first bufferlet has offset 00C2
+                               :and size 0041 (hex bytes), so we
+                               :read 41 hex bytes from the location
+                               :BUFFER+0C2 down
+ 
+                               :note the last byte does not belong to
+                               :the data message because we have 41
+                               :hex bytes in this bufferlet
+*R BBUFER+122,0E
+305B6  C4C5  C440  C2E8  40C8  D8E3  C5C3  C803
+ 
+                               :the 2nd bufferlet has offset 122 size
+                               :0E (hex bytes), so read 0E hex bytes.
+                               :Note the last byte is 03 (ETX) which
+                               :is another indication of the ending
+                               :of the data message 
+*RCVGAT[   0FFFE   0FFFF
+W .,2
+Data sent and received        
+                               :Do not forget to open the gate by
+                               :setting the bit for this device
+                               :in the bit array.
+                               :Write 0FFFF to the nib file and use
+                               :CONTROL W to write the same 2 bytes
+                               :into the engine.
+*R RCVGAT,2
+012C0  FFFF
+                               :double check again               
+*%Q                            :quit the NAD-DDT
+EXIT
+ 
+-
+
+
+
+   B. PBT 5.02 TRANSMIT QUEUE
+ 
+:-----------------------------------------------------------
+:   filenme: GATE3.DOC              3-17-86
+:
+:   This is a sample run of NAD-DDT to close transmit (XMT) 
+:   gate of TIF to capture buffer data before it is sent to
+:   the CU.
+:
+:   Comments are at the right hand side to distinguish 
+:   themselves from run time input and system response.
+:-----------------------------------------------------------
+ 
+-SYS
+TYMSHARE D25-P034/P-8 2-20-86
+-O ALL                            :set license
+DTAI
+ 
+-
+Did not set WC RC OP GD TD ST JL XC
+ 
+-R NAD                            :get to NAD
+1.1
+%F   BB2034.N02                   :open nib file
+ 
+%G                                :get NAD state & symbols from nib file
+;G                                :get local image from nib file
+Data ranges read:
+0-11BF 10000-17FFD 17FFE-198AD 40000-4017F 50000-50064 0E0000-0E00E3
+ 
+;C   ISISTECH:1893                :log on to DDT of node with kernel
+                                  :host number 1893
+Working
+Circuit ready
+ 
+node: 2034
+host: 1893
+ 
+slot #: ;R02                      :PBT 5.03 is in slot 2
+ 
+ 
+Slot 02 running: DDT
+*::?HOST                          :see if the slot is up
+                                  :we might get message "Dispatcher
+                                  :indicates slot is down"
+ 
+0 Host 4918d has 0d ports, is shut
+0d ports in use
+                                  :since this is a TIF, status "is shut"
+                                  :is legitimate, also we cannot tell
+                                  :the number of devices from here
+*NDEVM#   2  
+                                  :find out how many devices defined
+                                  :in tymfile, we have 2 devices              
+
+                                  :get a snapshot of the device table
+                                  :before log on to a testing device.
+                                  :2 devices takes up 2 2-bytes pointer
+                                  :storage in device table,we only need
+                                  :to read 4 bytes
+*::R DEVTAB,4                   
+0046E  0082  0002  
+                                  :0082 and 0002 are fixed pointers,
+                                  :they never get changed like in the
+                                  :HIF, their value will be put into 
+                                  :the PORTAB when a corresponding
+                                  :device is logged on
+ 
+*::R PORTAB,6
+00468  0000  0102  0102 
+                                  :get a snapshot of the port table
+                                  :the 0102s are dummies, 
+                                  :the first pointer 0000 is reserved
+                                  :for the dispatcher port, that is why
+                                  :we need to read 2 more bytes
+ 
+                                  :Now log on
+*::R DEVTAB,4
+0046E  0082  0002
+                                  :Just to show that the contents
+                                  :of device table does not change
+*::R PORTAB,6
+00468  0000  0102  0082  <--- changed
+ 
+                                  :pointer has changed! the 3rd value
+                                  :is changed from 0102 to 0082
+                                  :that 0082 is the device pointer of
+                                  :device 0 (the first device)
+ 
+*::R XMTGAT,2
+                                  :find out the value in the XMTGAT
+                                  :before writing value to it, this
+                                  :is to avoid losing original infor-
+                                  :mation
+00E30  F000
+ 
+*XMTGAT[   0   7000
+                                  :Note: 0 is the value of XMTGAT
+                                  :returned by NAD. 7000 and a return
+                                  :was typed in to write 2 bytes value
+                                  :into the XMTGAT in nib file.
+                       
+                                  :7 (hex) = 0111 (binary), write a
+                                  :0 into the transmit gate bit array
+                                  :for device 0 to close the gate
+                                  :although we only have 2 devices,that
+                                  :only bit 0 & 1 from the left are
+                                  :under concern, we still need to
+                                  :write 2 bytes value back 
+ 
+
+ W .,2
+ Data sent and received
+                                  :use CONTROL W to write these 2 bytes 
+                                  :into engine for consistency.
+                                  :Note the control character does not
+                                  :show
+*XMTGAT[   7000   
+                                  :verify value in nib file,when 7000
+                                  :was returned, simply hit return key
+::R XMTGAT,2
+00E30  7000
+                                  :verify value in engine
+ 
+                                  :Note that a "*" prompt was not
+                                  :displayed by NAD-DDT, it is ok, just
+                                  :enter your command
+                                  :
+                                  :Now the transmit gate is closed
+                                  :I purposefully typed in wrong input
+                                  :on the keyboard to cause the host
+                                  :to sent message to the terminal.
+                                  :This host message should be the
+                                  :data captured in the bufferlets.
+ 
+*::R GPXMT,4
+00E16  0058  0030
+                                  :display the starting command link
+                                  :pointer of these 2 devices
+*::R RPXMT,4
+00E1E  0060  0030
+                                  :display the ending command link 
+                                  :pointer of these 2 devices
+ 
+                                  :the 2 pointers for device 0 are
+                                  :different (0058 and 0060), which
+                                  :means we captured the data in buffer
+*R CMDLNK+58,8
+                                  :I typed in just a "R" after "*"
+                                  :it should be either CONTROL R or
+                                  : "::R"
+Undefined not allowed   ?
+:\                                :get NAD-DDT back
+ 
+Slot 02 running: DDT
+ 
+*::R CMDLK+58,8
+20A60  0046  0302  0101  0078
+                                  :read 8 bytes from the command link
+                                  :to get data size, bufferlet offset,
+                                  :flag and next command link pointer.
+ 
+                                  :since the last 2 bytes are not 0060
+                                  :we need to continue 
+ 
+ 
+
+*::R CMDLK+78,8
+20A80  0014  0062  0001  0068
+                                  :the last two bytes from last read
+                                  :is used for the offset here, we
+                                  :again read 8 bytes and find that
+                                  :0068 is still not 0060
+*::R CMDLK+68,8
+20A70  0046  00C2  0001  0028
+                                  :continue for another bufferlet
+*::R CMDLK+28,8
+20A30  000D  02A2  0401  0060
+                                  :now the last 2 bytes = 060, stop!
+ 
+                        :pointers  0058 -->0078 -->0068 -->0028 -->0060
+                        :offsets   0302    0062    00C2    02A2
+                        :size        46      14      46      0D
+ 
+*::R BBUFER+302,46 + 18
+30390  02C1  407D  5AD4  115A  D193  9393  4040  4040
+303A0  4040  4040  4040  4040  40E4  AF5E  B80E  8802
+303B0  6B2B  A747  0647  EB02  0247  1747  C7A3  2B02
+303C0  630F  1FEF  0202  0247  8306  8F02  022B  47E3
+303D0  024F  8823  32C3  6B2B  2B83  AB23  02AB  6BC7
+303E0  029B  A3C3  6BE3  AB93  97A3  23D2  88E3 
+ 
+                        :read contents of 1st bufferlet
+                        :NOTE: we need to read 18 (hex) more bytes
+                        :because the first 24 bytes are reserved
+                        :for rotor list, the 46 (hex) bytes after
+                        :these 24 bytes are the data we want
+                        :so the data we want to decypher starts
+                        :at address 303A8 which is 40E4 ---> 88E3
+                        :
+                        :another way of getting them is to give
+                        :command ::R BBUFER+302+18,46
+                        : in that way you do not need to skip the
+                        : first 24 bytes
+ 
+*::R BBUFER+62,14 + 18
+300F0  0000  0012  0003  0108  0000  0007  0003  0058
+30100  0000  0000  0003  01B0  DEC3  13A3  C34B  0217
+30110  6B27  9B02  236B  C327  2BA3  ABC7
+ 
+                        :read contents of 2nd bufferlet
+                        :NOTE: data starts at address 30108 which
+                        : is DEC3 --> ABC7
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+*::R BBUFER+0C2,46 + 18
+30150  0000  0046  0003  0168  0000  0006  0003  0058
+30160  0000  0000  0003  00F0  83C7  936B  AB88  93D2
+30170  6B9B  0267  93C7  1302  176B  279B  0247  27EB
+30180  A39B  A793  476B  9BD2  88EB  0FB8  02C8  0202
+30190  0202  0202  0202  0202  0202  0202  0202  0202
+301A0  0202  0202  0202  0202  0202  0202  0202  
+ 
+                         :read contents of 3rd bufferlet
+                         :data starts at address 30168
+                         :which is 83C7 --> 0202
+ 
+*::R BBUFER+2A2,0D + 18
+30330  0000  0016  0003  0348  0000  0005  0003  0058
+30340  0000  0000  0000  0000  0202  0202  0202  0202
+30350  B802  C0D2  313A
+ 
+                         :read contents of the last bufferlet
+                         :data starts at address 30348 which
+                         : is 0202 --> 313A
+*XMTGAT[   7FFF   0F000
+                                 :very important to open the gate
+                                 :after we got all the information
+                                 :after the system prompted 7000
+                                 :followed by spaces, we type in 0F000
+                                 :to open that gate, a "0" before F
+                                 :is needed for NAD to treat it as 
+                                 :a numerical value
+W .,2
+ Data sent and received
+                                 :use CONTROL W again to write these
+                                 :2 bytes into engine
+ 
+*XMTGAT[   0F000                 :verify the value is correctly 
+::R XMTGAT,2                     :written into the nib file and engine
+00E30  F000
+ 
+*%Q                              :get out of NAD-DDT
+EXIT
+ 
+-
+
+
+
+   V. SAMPLE EXAMPLE OF QUERY COMMAND METHOD (PBH 8.02 RCV QUEUE)
+ 
+:--------------------------------------------------------------
+: file: (DTAI:54)GATE2.DOC        3/14/86
+:
+: This is a sample run of NAD-DDT to use HBOM query commands to
+: read buffer data received from host.
+:
+: Comments are at the right hand side to distinguish themselves
+: from run time input and system response.
+:---------------------------------------------------------------
+ 
+-SYS
+TYMSHARE D25-P034/P-8 2-20-86
+-O ALL                         :set license
+DTAI
+ 
+-
+Did not set WC RC OP GD TD ST JL XC
+-R NAD                         :get to NAD
+1.1
+%F   CC2237.N02                :open nib file
+ 
+%G                             :get NAD state & symbols from nib file
+;G                             :get local image from nib file
+Data ranges read:
+0-1DF3 10000-17FFD 17FFE-1E8BF 70000-7071D 0E0000-0E011F
+ 
+;C   BUBB                      :engine in Bubbnet, go through gateway
+Working
+Circuit ready
+ 
+inter-link established from TYMNET-BUBBV-1-G2 to BUBB-NETG2
+please log in: ::ISISTECH:679;pass-word
+ 
+                               :log on to DDT of node with
+                               :kernel host number 679
+ 
+node: 2237
+host: 679
+ 
+slot #: ;R03                   :PBH 8.02 is in slot 3
+ 
+ 
+Slot 03 running: DDT
+*::?HOST                       :always check host status for
+                               :the state of the host
+ 
+0 Host 4855d has 32d ports, is answered
+0d ports in use
+ 
+*NDEVM#   20                   :find out the number of devices
+                               :in this slot, system returns
+                               :20 (hex), so we have 32 devices
+
+
+                               :get a snapshot of the device table
+                               :before log on to a testing device.
+                               :32 devices takes up 32 2-bytes
+                               :pointer storage in device table,
+                               :so read 40 (hex) bytes
+::R DEVTAB,40
+00612  0002  0002  0002  0002  0002  0002  0002  0002
+00622  0002  0002  0002  0002  0002  0002  0002  0002
+00632  0002  0002  0002  0002  0002  0002  0002  0002
+00642  0002  0002  0002  0002  0002  0002  0002  0002
+           
+                               :Note the * prompt did not come not
+                               :it is because we hit an enter
+                               : key after that 20 in last command
+                               : it is ok
+                    
+                               :now log on
+                               :read device table again
+                               :find the relative pointer location
+                               :in the device table, it will be
+                               :used to identify the device address
+*::R DEVTAB,40
+00612  0002  0002  0002  0002  0002  0002  0002  0002
+00622  0002  0002  0002  0002  0002  0002  0002  0BB2   <-- changed
+00632  0002  0002  0002  0002  0002  0002  0002  0002
+00642  0002  0002  0002  0002  0002  0002  0002  0002
+ 
+                               :dummy pointer value 0002 indicates
+                               :the device is not logged on, since
+                               :the pointer at location for device
+                               :F (device 15 in decimal) is changed
+                               :from 0002 to 0BB2 after we logged
+                               :on, we will look for the address
+                               :in the configuration table for
+                               :that device.        
+ 
+*::?STAT
+                               :entering HBOM
+                               :from now on you will get ":>" 
+                               :prompt from HBOM
+         
+                               :to enter the query command,line
+                               :address, control unit address and
+                               :device address are needed.
+                               :One way is to look at the tymfile.
+                               :Another way is by issuing a slot 
+                               :configuration query
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+:>::CONF
+HBOM -- 3270PBH Bisync Operations Monitor
+NODE  2237    SLOT  3    14Mar86 23:04:22
+ 
+ 
+LINE  LADR  LID  #CU
+  0    40    00    1
+ 
+      CUN   CUADR  CID  #DEV
+       0     040   000    32
+ 
+            DEV    DADR  DID  DTYP   COL  XPR
+              0     040  000  C1920   N    N
+              1     0C1  001  C1920   N    N
+              2     0C2  002  C1920   N    N
+              3     0C3  003  C1920   N    N
+              4     0C4  004  C1920   N    N
+              5     0C5  005  C1920   N    N
+              6     0C6  006  C1920   N    N
+              7     0C7  007  C1920   N    N
+              8     0C8  008  C1920   N    N
+              9     0C9  009  C1920   N    N
+             10     04A  010  C1920   N    N
+             11     04B  011  C1920   N    N
+             12     04C  012  C1920   N    N
+             13     04D  013  C1920   N    N
+             14     04E  014  C1920   N    N
+             15     04F  015  C1920   N    N     <----- find it
+             16     050  016  P1920   N    N
+             17     0D1  017  P1920   N    N
+             18     0D2  018  P1920   N    N
+             19     0D3  019  P1920   N    N
+             20     0D4  020  P1920   N    N
+             21     0D5  021  P1920   N    N
+             22     0D6  022  P1920   N    N
+             23     0D7  023  P1920   N    N
+             24     0D8  024  P1920   N    N
+             25     0D9  025  P1920   N    N
+             26     05A  026  P1920   N    N
+             27     05B  027  P1920   N    N
+             28     05C  028  P1920   N    N
+             29     05D  029  P1920   N    N
+             30     05E  030  P1920   N    N
+             31     05F  031  P1920   N    N
+ 
+                                      :we have 1 line 1 CU, both 
+                                      :of address 40, the device
+                                      :we are interested in is 04F
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+:>::STOPRCV 40,40,4F
+                                      :issue a command to capture
+                                      :data in receive queue
+HBOM -- 3270PBH Bisync Operations Monitor
+NODE  2237    SLOT  3    14Mar86 23:02:27
+ 
+STOP RCV Q  ON DEVICE NUMBER :  15
+                                      :HBOM stopped the RCV queue
+                                      :process
+                                     
+                                      :now hit SEND key to get
+                                      :response from the host
+                                      :since the receive gate is
+                                      :closed, data sould be captured
+                                      :in the bufferlets
+ 
+:>::QRCVQ
+                                      :query data on RCV queue
+HBOM -- 3270PBH Bisync Operations Monitor
+NODE  2237    SLOT  3    14Mar86 23:02:45
+ 
+QUERY RCV Q  ON DEVICE NUMBER :  15
+BUFADR     CONTENTS
+ 
+30270  0227 F5C2 E3C8 C9E2 40C9 E240 C1D5 40C5 E7C1 D4D7 
+30284  D3C5 40D6 C640 C3D3 D6E2 C9D5 C740 C1D5 C440 D6D7 
+30298  C5D5 D5C9 D5C7 40D9 C5C3 C5C9 E5C5 40C7 C1E3 C540 
+302AC  D7D9 D6E5 C9
+302D0  C4C5 C440 C2E8 40C8 D8E3 C5C3 C803
+   
+                                     :all of the buffer contents
+                                     :are displayed here ready for
+                                     :us to decypher them
+ 
+:>::STARTRCV
+                                     :do not forget to restart
+                                     :the RCV queue process
+ 
+HBOM -- 3270PBH Bisync Operations Monitor
+NODE  2237    SLOT  3    14Mar86 23:03:03
+ 
+START RCV Q  ON DEVICE NUMBER :  15
+ 
+:>::EXIT
+                                     :log off from HBOM & DDT
+ 
+inter-link cleared from TYMNET-BUBBV-1-G2 to BUBB-NETG2
+ 
+Aux circuit lost
+ 
+%Q                                   :log off from NAD
+EXIT
+
+
+ =@H
