@@ -1,0 +1,100 @@
+:------------------------------------------------------------------------------
+:
+: Patch name:  IRINGP.TRP                     Product and Version:  CMTI 11.03
+: Customer  :  MTSSNET					  Date   :  09/19/91
+:
+: Description of Problem:  #
+:
+:    After the CMT sent the data to a host port (port X) and there was no data 
+:    need to be sent to the terminal, the CMT started to read the data from the
+:    IRING. At that time, if the CMT read the input data from the same host port
+:    X and if due to the transmit limit was reached and the input and/or out
+:    suspension was encounetred, for some reason the ring pointer was damaged
+:    and caused the CMT fetched a data and interpreted the data as a port
+:    number and caused the crash.
+:
+:    Here is my findings so far : When the code executed the "JAL  R4,SLOR,,"
+:    instruction located at DIN+20, the iring pointer was correct. Then the code
+:    did something as well as called the SHIPBF routine. After it returned from
+:    the SHIPBF routine, the code executed the "JAL  R4,ELODR,," instruction
+:    located at DINSUS+14. The pointer was damaged before the ELODR routine was
+:    called.
+:
+:    This trap patch turns on the hardware trace when enters the DIN routine 
+:    and turns off the hardware trace when exit. It will record the contents
+:    of the 16 GPRs at every jump to aid the future analysis.
+:
+:    **********  NOTE  ********** 
+:
+:    (1). This trap patch MAY cause Watch Frog Timer timeout crash due to the
+:         trace function is turned on. Please provide a dump to STS if the
+:         type 16 crash occurs. We can locate the crash point and simplely
+:         update the Watch Frog Timer by adding the "SVC  SYS,$A 47"
+:         instruction to prevent the crash from re-occurring.
+:
+:    (2). In order to include this trap patch, the P0SIZE and/or P1SIZE should 
+:         be enlarged to P0SIZE EQ 8000 and P1SIZE EQ 1000.
+:	  Since the ZZSIZE is defined to 4, the NIB file size will be 26K bytes 
+:         larger. If your CMT slot can not hold the bigger NIB file you may
+:         enlarge your CMT slot size or reduce the NIB file size by changing
+:         the ZZSIZE from 4 to 3 or 2 and reduce the P0SIZE as well.
+:
+:-----------------------------------------------------------------------------
+
+        LO      FRNTND
+        LO      TRACE
+	LO	DSP
+	LO	TP
+	LO	PRT
+	LO	LOGON
+PATCH(091991,1100,CC,TRPSD,,8)
+TRCPSD  WC      1000,0000
+ZZSIZE	EQ	4
+CONPATCH(PA0PTR,,44*60*ZZSIZE+12)
+TRCREG  WS      11*60*ZZSIZE
+INDXSV  HS      1
+TRWORK  WS      4
+CONPATCH(TRACE,,3E)
+        STM     R14,TRWORK,,
+        LHL     R15,INDXSV,,
+        STM     R0,TRCREG,R15,
+        L       R14,TRCPSD+4,,
+        ST      R14,TRCREG+40,R15,
+        AHI     R15,44
+        CI      R15,60*44*ZZSIZE
+        JLFS    NOWRAP
+        LIS     R15,0
+NOWRAP  STH     R15,INDXSV,,
+        LM      R14,TRWORK,,
+        UPSW    TRCPSD,,
+CONPATCH(IPSD,,8)
+        WC      1000,TRINPT
+
+CONPATCH(DIN,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,0A)
+	J	TRBGN,,			:Jump to process with trace on         
+
+TRINPT  L	R11,DCCB,R12		:From source
+	TBT	R1,FRISIS		:From source
+	JE	DIN020,,		:From source
+	J	DIN+0C,,		:Back to source
+
+CONPATCH(ACTIV2,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,30)
+	UPSW	ZZ0001			:Trun off the trace
+ZZ0001  WC      0000,ZZ0011		:
+ZZ0011  L	R4,RETRN,,		:From source
+	JR	R4			:From source
+
+TRAOFF  UPSW    TROFF			:Turn off the trace
+TROFF   WC      0000,TRINPT     	:
+
+ENDPATCH(ENABLES THE JUMP TRACE FOR THE INPUT ROUTINE)
+	FO	LOGON
+	FO	PRT
+	FO	TP
+	FO	DSP
+        FO      TRACE
+        FO      FRNTND
