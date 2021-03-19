@@ -1,0 +1,1489 @@
+
+
+
+
+                                                             October 13, 1986
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                    TYMTUNNEL
+
+
+                             General External Design
+
+                          NETWORK TECHNOLOGY DIVISION
+                               October 13, 1986
+
+
+
+
+
+
+
+
+
+
+     ====================================================================
+     |   Tymnet,  Inc.'s  proprietary  rights  are  included  in  the   |
+     |   information disclosed herein.   The recipient,  by receiving   |
+     |   this document,  agrees  that neither this  document nor  the   |
+     |   information  disclosed  herein nor any part thereof shall be   |
+     |   reproduced or transferred to  other  documents  or  used  or   |
+     |   disclosed  to  others  for  manufacturing  or  for any other   |
+     |   purpose except  as  specifically authorized  in  writing  by   |
+     |   Tymnet, Inc.                                                   |
+     ====================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS
+
+
+
+
+                                                             October 13, 1986
+
+
+
+
+
+
+
+                              TABLE OF CONTENTS
+
+ Section                                                                 Page
+
+
+
+ 1.   Introduction                                                          1
+
+
+ 2.   Requirements                                                          2
+   2.1   Performance                                                        2
+   2.2   Limitations                                                        3
+
+
+ 3.   Implementation Overview                                               4
+   3.1   PVC vs SVC                                                         4
+   3.2   Impact on other products                                           5
+
+
+ 4.   Establishing the TYMTUNNEL                                            6
+   4.1   Activation of TymTunnel Link                                       6
+      4.1.1    Dedicated Circuit                                            6
+      4.1.2    Backup Circuit                                               7
+
+   4.2   Node Code to X.25 Slot Exchange - Origination                      7
+   4.3   Connecting to the PVC                                              8
+   4.4   Call Set-up over the PDN using SVCs                                8
+      4.4.1    Node Code to X.25 Slot Exchange - Destination using SVCs     9
+
+   4.5   Link Up                                                            9
+   4.6   Exception Conditions and Recovery                                 10
+
+
+ 5.   Data transfer over PDN                                               11
+   5.1   Transmission of Data 'Packets'                                    11
+   5.2   Exceptions and Errors                                             11
+   5.3   Flow Control                                                      11
+
+
+ 6.   Link Tear Down                                                       12
+   6.1   Re-establishing the Link - SVC                                    12
+   6.2   PVC TymTunnel                                                     12
+
+
+ 7.   Establishing the Backup Link                                         13
+   7.1   Manual Backup                                                     13
+   7.2   Automatic Backup                                                  13
+
+
+      TUNNEL.GED                    TYMTUNNELS
+
+
+
+
+                                                             October 13, 1986
+
+
+ 8.   Configuration Issues                                                 14
+   8.1   Tymfile MACROs                                                    14
+      8.1.1    PVC Parameters                                              15
+      8.1.2    SVC Parameters                                              15
+
+   8.2   Modification of Parameters                                        15
+
+
+ 9.   Other Performance Related Issues                                     17
+   9.1   Local Back Pressure Relief                                        17
+   9.2   NAK                                                               17
+   9.3   Other Enhancements                                                18
+
+
+ 10.  Recommendations                                                      19
+   10.1  Closed User Groups                                                19
+
+
+ 11.  Dependencies                                                         20
+
+
+ 12.  References                                                           21
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS
+
+
+
+
+      Introduction                                           October 13, 1986
+
+
+
+
+
+ 1 -  Introduction
+
+
+           The  objective  of TymTunnel  is  to utilize  a  X.25 virtual
+      circuit over a Public Data Network (PDN) to provide the internodal
+      link  between two  Tymnet-technology nodes.   This would  allow an
+      independent network  to use  a public  network for  its internodal
+      connections  hence reducing  the dependence  on leased  lines; the
+      public network could also provide the backup internodal connection
+      when the primary connection fails.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                              1
+
+
+
+
+      Requirements                                           October 13, 1986
+
+
+
+
+
+ 2 -  Requirements
+
+
+           This implementation of TymTunnels will provide  the following
+      service:
+
+           o    a  dedicated   X.25  virtual  circuit  to   provide  the
+               internodal connection as an alternative to a leased line
+
+           o   a backup  to a leased line  that is established  when the
+               primary connection fails
+
+           The circuit can either be a X.25 PVC or SVC and this  will be
+      a selectable option.
+
+           As a backup service, the circuit can be established in one of
+      two ways:
+
+           o   manual backup mode - the X.25 circuit will be established
+               only upon operator request through TMCS
+
+           o    automatic  backup  mode  -  the  X.25  circuit  will  be
+               automatically requested  by TMCS as  soon as  the primary
+               link outage is detected.
+
+
+
+ 2.1  Performance
+
+
+           An analysis of the  performance of the TymTunnel  service has
+      been done by the Network  Planning Unit to evaluate the  impact of
+      traversing a PDN.  The report's main conclusions are:
+
+           o   the maximum throughput of TymTunnel will be determined by
+               the PDN and the access line limitations
+
+           o    the   delay  for  any   level  of  throughput   will  be
+               substantially higher than for a dedicated line
+
+           o   the reliability of a  TymTunnel link may be lower  than a
+               dedicated line.
+
+           The report also has a recommendation for computing the window
+      size for a TymTunnel link that is optimal for TYMNET  protocol and
+      retransmission strategy.  Please refer to this report  for details
+      (see References, section 12).
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                              2
+
+
+
+
+      Requirements                                           October 13, 1986
+
+
+ 2.2  Limitations
+
+
+           This service will not  include IRC rotation.  The  concept of
+      'multi-line links' will not be supported.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                              3
+
+
+
+
+      Implementation Overview                                October 13, 1986
+
+
+
+
+
+ 3 -  Implementation Overview
+
+
+           The nodes  on either  end of  a TymTunnel  link will  be ISIS
+      systems, each with a Node Code  slot and a X.25 slot as  a minimum
+      configuration.  The Node Code will establish a circuit to the X.25
+      slot and  submit a  request to the  slot to  build a  X.25 circuit
+      through the  PDN.  This  X.25 circuit will  terminate at  the X.25
+      slot on the  other end of the  TymTunnel link, and will  be passed
+      into the Node Code in that machine.  The two Node Codes  will then
+      treat this virtual circuit as an internodal link for  further data
+      transfers and communication.
+
+           A new link  type, the TymTunnel link,  will be defined  and a
+      new  'link'  handler will  be  developed in  the  Node  Code.  The
+      modifications will include  new link initialization  procedures, a
+      different  mechanism for  'data transmission',  and a  new  set of
+      error and exception conditions.
+
+
+
+ 3.1  PVC vs SVC
+
+
+           The X.25 virtual circuit that is established can be either a
+
+              Permanent Virtual Circuit (PVC) 
+         or a
+              Switched Virtual Circuit (SVC).
+
+
+           This is  an option that  can be selected  when the  system is
+      configured  and  both  PVCs  and  SVCc  will  be  supported.   The
+      differences between the two  are in the call set-up  sequence, and
+      possibly in  the tariffs  and cost of  this service.   The circuit
+      clearing cause is only available on the SVC.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                              4
+
+
+
+
+      Implementation Overview                                October 13, 1986
+
+
+ 3.2  Impact on other products
+
+
+           TymTunnels will be implementated to interface to the existing
+      X.25  application  and  modification  of  X.25  slot  code  is not
+      anticipated.  However input from the X.25 development unit will be
+      needed  during the  design  and implementation  of  TymTunnels and
+      their participation during integration testing is critical.
+
+           Modifications  to  TMCS and  some  other   Network Operations
+      Tools will be required  to support the backup service  provided by
+      TymTunnel, both in manual and in automatic mode.
+
+           A new message  will need to  be added to  the Supervisor-Node
+      Code  dialog to  enable the  reporting of  a TymTunnel  link.  The
+      Supervisor and PROBE  will also need to  be modified to  display a
+      new link type connecting two nodes.
+
+           In order to load the remote node, a new bootstrap needs to be
+      implemented, possibly  an X.25 bootstrap;  or a local  disk device
+      needs to be  supported so the node  image can be booted  off disk.
+      (Section 11 discusses the different options).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                              5
+
+
+
+
+      Establishing the TYMTUNNEL                             October 13, 1986
+
+
+
+
+
+ 4 -  Establishing the TYMTUNNEL
+
+
+           The TymTunnel  link is  a 'link' between  2 Tymnet  nodes and
+      consists of several parts:
+
+           o   an internal circuit from  the Node Code to the  X.25 slot
+               at one end
+
+           o   an X.25  circuit (over a PDN)  from one X.25 slot  to the
+               X.25 slot on the other end of the 'link'
+
+           o   an internal circuit from the destination X.25 slot to its
+               Node Code.
+
+           The  TymTunnel  link  is established  either  as  a dedicated
+      circuit  for  a permanent  internodal  connection or  as  a backup
+      circuit, to be built upon external request.
+
+
+
+ 4.1  Activation of TymTunnel Link
+
+
+
+
+ 4.1.1  Dedicated Circuit
+
+           This  connection  will  be, for  all  purposes,  just another
+      network  link and  will be  used as  such.  The  link  will become
+      'active' when the Node Code starts up and begins to initialize all
+      links.  When a TymTunnel-type  link is encountered, the  Node Code
+      will first establish this X.25 circuit; after this is done it will
+      proceed with the usual line-reset procedure.
+
+           Call setup should be initiated from the remote node, i.e. the
+      node that has no other connection to the main part of the network.
+      This node is designated the 'caller'.    The Node Code  will build
+      an internal circuit to the X.25 slot, and submit the  Call Request
+      sequence to  the slot  to establish the  X.25 circuit  through the
+      PDN.  No action will be taken in the node at the other end  of the
+      link.   This Node  Code (of  the 'called'  node) will  wait  for a
+      circuit  to  be  built  to  it  before  beginning  the  line-reset
+      procedure.  The circuit (an internal circuit from the X.25 slot in
+      the same machine) will be built to a specified 'host' with  a pre-
+      defined special username.
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                              6
+
+
+
+
+      Establishing the TYMTUNNEL                             October 13, 1986
+
+
+ 4.1.2  Backup Circuit
+
+           If a TymTunnel link is specified as a 'backup' link, then the
+      link will not  be 'activated' when  the node is  initialized.  The
+      Node Code will wait for a command from TMCS before  initiating the
+      call setup.  In either manual or automatic backup mode,  TMCS will
+      build a  virtual circuit to  XRAY in the  node and issue  the XRAY
+      command that will begin  the X.25 circuit establishment.   In this
+      environment, the node  that is a part  of the main portion  of the
+      network will  initiate the  call.  (The remote  node no  longer is
+      accessible from the rest of the network and thus  cannot terminate
+      a circuit from TMCS.)
+
+           Modifications to the Node Code will be needed to  provide the
+      ability to handle the circuit building sequence at the remote node
+      when the node is not in the network.  The Node Code will recognize
+      that  the circuit  is being  built to  a special  (TymTunnel) host
+      using a pre-specified username and will allow the  circuit request
+      to complete.
+
+
+
+ 4.2  Node Code to X.25 Slot Exchange - Origination
+
+
+           To bring up a link, the 'caller' Node Code first  enters into
+      an IIX exchange with the X.25 slot as follows:
+
+           o   Node Code constructs a needle, with the IIX bit  set, and
+               sends this into the slot
+
+           o   Slot responds with IIX X.25 dialect
+
+           o   Node Code sends back X.25 IIX select
+
+           o   Node Code then sends X.25 version to Slot
+
+           o   Slot responds with the version number
+
+           The Call Request to the PDN can now begin.
+
+           If the X.25 slot detects  an error, a zapper will be  sent to
+      the Node Code to clear the internal circuit.
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                              7
+
+
+
+
+      Establishing the TYMTUNNEL                             October 13, 1986
+
+
+ 4.3  Connecting to the PVC
+
+
+           If  the TymTunnel  has  been defined  as a  PVC,  the circuit
+      through the  PDN will  be established and  maintained by  the X.25
+      slot.  When the node code is  ready it has to connect to  the X.25
+      circuit by sending in the following information:
+
+           o   host number
+
+           o   channel number
+
+           o   link number
+
+           o   window size
+
+           o   throughput class
+
+           The X.25 slot will need the above information to  verify that
+      the PVC requested  by the Node Code   is the one intended  for the
+      TymTunnel.  The same connection procedure will be initiated by the
+      Node Code (to the X.25 slot) at both ends of the TymTunnel link.
+
+
+
+ 4.4  Call Set-up over the PDN using SVCs
+
+
+           The Call Request sequence is as follows:
+
+           o   CALLED ADDRESS
+
+           o   CALLING ADDRESS
+
+           o   FACILITIES FIELD
+
+           o   CALL USER DATA FIELD
+
+           When the circuit  is successfully established, a  CALL ACCEPT
+      IIX message will  be sent back to  the Node Code.  At  this point,
+      there is a connection between the Node Codes.
+
+           Throughout this exchange, the following exceptions can occur:
+
+           o    Reset is  received  - this  is translated  into  an ISIS
+               gobbler followed by an IIX Reset Message which includes a
+               reason for this reset
+
+           o   a Call Clear is received, cause and  diagnostic, followed
+               by a zapper
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                              8
+
+
+
+
+      Establishing the TYMTUNNEL                             October 13, 1986
+
+
+ 4.4.1  Node Code to X.25 Slot Exchange - Destination using SVCs
+
+           The  X.25 slot  in the  'called' (or  destination)  node will
+      receive a  CALL REQUEST  over the PDN  and the  following exchange
+      occurs:
+
+           o   Slot sends a pseudo-needle request to Node Code
+
+           o   Node Code returns a pseudo-needle.  The Node  Code checks
+               for  the pseudo-needle  request coming  from  a specified
+               slot and will honor the  request even if it has  not been
+               taken over.
+
+           o   Slot sends in the 'login' string
+
+           o   Node Code  checks for a special  username and for  a pre-
+               defined TymTunnel host number
+
+           o   Node Code sends to Slot IIX Global X.25 dialect
+
+           o   Slot sends back IIX X.25 dialect
+
+           o   Slot sends X.25 version number
+
+           o   Node Code responds with X.25 version #
+
+           o   CALL DATA arrives from the Slot - which is discarded
+
+           The connection between the two Node Codes is now established.
+
+
+
+ 4.5  Link Up
+
+
+           The usual Node  Code 'line-reset' proc can  proceed once
+      the connection is established.  The reset pattern is  exchanged by
+      the two Node  Codes and once  the ping-pong sequence  is complete,
+      the link becomes active.
+
+           Since  the X.25  call set-up  exchange has  already completed
+      successfully,   it  can   be  assumed   that  the   connection  is
+      operational.  In  this case,  the reset exchange  by the  two Node
+      Codes can  be shortened to  allow the link  to become  active more
+      quickly.  For a TymTunnel link, the reset sequence will stop after
+      two reset patterns have been exchanged.
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                              9
+
+
+
+
+      Establishing the TYMTUNNEL                             October 13, 1986
+
+
+ 4.6  Exception Conditions and Recovery
+
+
+           Exception conditions that occur  in the PDN will  be detected
+      and processed by the X.25  slot and passed to the Node  Code.  The
+      X.25 slot itself can originate exception messages to Node Code.
+
+           The exception conditions that can happen are
+
+           o   zapper  sent to  Node Code.  When  this is  detected, the
+               Node Code should clear  its part of the  internal circuit
+               and free up all associated resources.
+
+           o   CALL CLEAR.  The  Slot issues a detach; Node  Code should
+               use the  resulting zapper  to clear  its circuit  and the
+               clearing  cause should  be entered  in the  node's crypto
+               log.
+
+           o    RESET  CAUSE  followed  by  a  reason  field.   This  is
+               translated into an ISIS gobbler, and an IIX Reset message
+               with a reason  code.  The reset  and the cause  should be
+               reported in  the XRAY  Crypto log  and to  the Supervisor
+               Error Log.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                             10
+
+
+
+
+      Data transfer over PDN                                 October 13, 1986
+
+
+
+
+
+ 5 -  Data transfer over PDN
+
+
+           The TymTunnel link is  no different from other  Tymnet inter-
+      nodal links  and will  conform to  standard Tymnet  link protocol.
+      Tymnet virtual circuits will be built across this link; user data,
+      command circuit messages, inter-node control messages will  all be
+      transmitted across this link in the standard Tymnet packet format.
+
+
+
+ 5.1  Transmission of Data 'Packets'
+
+
+           Tymnet packets  will be  assembled to  contain the  data that
+      needs to be transmitted  across the link.  Instead of  sending the
+      packet out on a physical line, the Node Code will send  the packet
+      to the X.25  slot, through ISIS,  using the 'data'  message.  This
+      message is large enough to accommodate the maximum packet  size of
+      128 bytes.
+
+
+
+ 5.2  Exceptions and Errors
+
+
+           The same exception conditions  - CALL RESET and CALL  CLEAR -
+      may occur on this link.
+
+
+
+ 5.3  Flow Control
+
+
+           This  X.25 circuit  will  be subject  to all  the  usual flow
+      control rules.   If the circuit  is being backpressured,  the X.25
+      slot  will send  the ISIS  Set Back-pressure  message to  the Node
+      Code.  Upon receiving this message, the Node Code should  stop all
+      further 'transmission', i.e. stop  putting data into the  ISIS I/O
+      rings, until a Release  Backpressure message is received  from the
+      X.25 slot.
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                             11
+
+
+
+
+      Link Tear Down                                         October 13, 1986
+
+
+
+
+
+ 6 -  Link Tear Down
+
+
+           A TymTunnel link is torn  down when a CALL CLEAR  is received
+      by the X.25 slot.  The Slot issues a 'detach' message and the Node
+      Code will receive  a 'circuit zap'  when the detach  is processed.
+      Then the Node  Code declares the link  down and proceeds  with the
+      rest of the link teardown process.
+
+
+
+ 6.1  Re-establishing the Link - SVC
+
+
+           If the  TymTunnel has  been established as  an SVC,  the Node
+      Code will  automatically try  to re-establish  the link  after the
+      link  has been  declared down.   It is  possible that  the  PDN is
+      unable to  re-build this  circuit and thus  the call  request will
+      continue to fail.   An optional parameter  will be provided  for a
+      TymTunnel link to allow for a specified number of  retries.  After
+      this number of attempts to re-establish the link have  failed, the
+      node code  will stop  trying to set-up  the TymTunnel.   After the
+      failure condition has been corrected, the link can  be established
+      manually, using a TMCS command.
+
+
+
+ 6.2  PVC TymTunnel
+
+
+           If the TymTunnel has been establised as a PVC and if there is
+      an outage in  the PDN, the PVC  will be rebuilt,  transparently to
+      the Node Code.  A  RESET 'Out of Order'  will be sent by  the X.25
+      slot to indicate that the circuit is lost.   When this  message is
+      received by  the Node Code,  all activity on  the link  should  be
+      suspended  (temporarily).   When  the  cause  for  the  outage  is
+      corrected,   the  circuit   is  rebuilt   and  a   RESET  'Network
+      Operational'  will  be  sent  to  the  Node  Code.    Normal  link
+      processing can then be resumed.
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                             12
+
+
+
+
+      Establishing the Backup Link                           October 13, 1986
+
+
+
+
+
+ 7 -  Establishing the Backup Link
+
+
+           An XRAY command will be provided to allow a TymTunnel link to
+      be established on request.
+
+
+
+ 7.1  Manual Backup
+
+
+           The  TymTunnel will  be  established by  a  network operator,
+      using TMCS, after the  primary connection is detected to  be down.
+      TMCS  will log  into XRAY  of the  node and  issue the  command to
+      construct the TymTunnel link.
+
+
+
+ 7.2  Automatic Backup
+
+
+           Modifications  to  TMCS  will  be  needed  to   support  this
+      function:
+
+           o    TMCS will  be  informed of  all node-pairs  that  have a
+               backup link using TymTunnels
+
+           o   if a link outage  is detected between any of  those node-
+               pairs,  TMCS  will  issue the  command  to  construct the
+               TymTunnel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                             13
+
+
+
+
+      Configuration Issues                                   October 13, 1986
+
+
+
+
+
+ 8 -  Configuration Issues
+
+
+
+
+ 8.1  Tymfile MACROs
+
+
+           The 2 nodes  using this X.25  virtual circuit link  will need
+      additional  information in  their TYMFILEs  to establish  the X.25
+      connection. A new macro TIIX25 is defined:
+
+         TIIX25 (netadr, host #, [O/D/B], [PVC/SVC], retry)
+
+     where
+
+         netadr  is the international network address of the access
+                 line in the independent network
+
+         host #  is the host number (in the independent network)
+                 to which the TymTunnel 'circuit' is built
+
+         O/D/B   Origination or Destination or Backup.
+                 The Origination is the node that will initiate the
+                 call in the case of a dedicated TymTunnel.  On a
+                 backup circuit, this does not apply.
+                 If B is specified, the X.25 link is to be used as a
+                 backup connection.
+
+         PVC/SVC the X.25 circuit is either a PVC or a SVC circuit.  
+                 Parameters are further defined for PVC or SVC circuits
+                 using the MACROs below
+
+         RETRY   number of times (up to infinity) to try to re-establish 
+                 a TymTunnel link
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                             14
+
+
+
+
+      Configuration Issues                                   October 13, 1986
+
+
+
+
+
+ 8.1.1  PVC Parameters
+
+
+         XNCPVC (PACKET,WSIZ,TPC)
+
+     where
+
+         PACKET  is the packet size, default of 128
+
+         WSIZ    is the window size, with a default of 2. A window
+                 size of 3 or 4 is recommended for better response.
+
+         TPC     is the throughput class, default of 9600
+
+
+
+ 8.1.2  SVC Parameters
+
+
+         XNCSVC (CALLED,TPC,CUG,DELAY)
+
+       where
+
+         CALLED  is the called address
+
+         TPC     is the throughput class
+
+         CUG     is the 32-bit Closed User Group specification
+
+         DELAY   is the transit delay selection
+
+
+
+
+ 8.2  Modification of Parameters
+
+
+           The parameters associated with this type of link may  need to
+      be  modified.  A  means  will be  provided through  XRAY  to allow
+      modification without having to re-gen and re-load the node.
+
+           The variable parameters are:
+
+           o   Host #
+
+           o   Backup or dedicated
+
+           o   packet size (for PVCs)
+
+           o   window size (for PVCs)
+
+      TUNNEL.GED                    TYMTUNNELS                             15
+
+
+
+
+      Configuration Issues                                   October 13, 1986
+
+
+           o   throughput class
+
+           o   called address (for SVCs)
+
+           o   Closed User Group (for SVCs)
+
+           o   origination or destination
+
+           o   transit delay selection
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                             16
+
+
+
+
+      Other Performance Related Issues                       October 13, 1986
+
+
+
+
+
+ 9 -  Other Performance Related Issues
+
+
+           Some enhancements  have been made  to the Tymnet  protocol to
+      handle an environment where  long link delays are normal  and non-
+      user  data  traffic   was  to  be   kept  to  a   minimum.   These
+      modifications were  done for a  different project,  but TymTunnels
+      may benefit  from these  changes.  It is  expected that  the delay
+      between the two nodes, through a PDN, is significantly higher that
+      across a leased line.
+
+
+
+ 9.1  Local Back Pressure Relief
+
+
+           The flow control mechanism  in the Node Code was  modified to
+      relieve Backpressure locally from the node transmitting  the data.
+      A node no longer sends out Backpressure Relief messages  every 1/2
+      second to its neighbor for all the active circuits on the  link to
+      continue receiving data.  Instead the node will send out  an Apply
+      Backpressure message only when it wants to stop the data flow on a
+      particular circuit.   The objective for  this modification  was to
+      reduce the non-user traffic across the link.  For TymTunnels, this
+      would keep the overhead (and non-billable) traffic to a minimum.
+
+
+
+ 9.2  NAK
+
+
+           A Negative Acknowledgement  (NAK) was implemented  to enhance
+      the existing  retransmission strategy.  Using  a NAK  allows error
+      recovery to take place sooner, without having to wait for the link
+      window-size to fill  up.  The PDN  should have better  error rates
+      and this should not be needed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                             17
+
+
+
+
+      Other Performance Related Issues                       October 13, 1986
+
+
+ 9.3  Other Enhancements
+
+
+           An  additional enhancement  would be  to restrict  the packet
+      assembly process to build only a certain number of packets for the
+      TymTunnel link, instead of filling  up the link window as  is done
+      currently.  This change would allow enough packets to be assembled
+      to keep the  link busy with data  to transmit, but would  not fill
+      the  link  window with  many  small packets.   While  the  link is
+      transmitting the data, more data will be allowed to accumulate and
+      larger packets will result.  This will make more efficient  use of
+      the PDN  circuit.  It  will also  be more  cost effective  to send
+      fewer, but  larger, packets  because most  networks charge  by the
+      packet.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                             18
+
+
+
+
+      Recommendations                                        October 13, 1986
+
+
+
+
+
+ 10 -  Recommendations
+
+
+
+
+ 10.1  Closed User Groups
+
+
+           Use of the Closed User Group facility would control access to
+      and from the Tymnet  nodes and would help prevent  TymTunnels from
+      being established incorrectly.  The details are handled by X.25 so
+      the Node Code can easily take advantage of this security feature.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                             19
+
+
+
+
+      Dependencies                                           October 13, 1986
+
+
+
+
+
+ 11 -  Dependencies
+
+
+           It  is assumed  that there  will be  a means  of  loading the
+      remote node.  There are three alternatives:
+
+           o    make the  necessary modifications  to the  bootstrap and
+               LOADII to allow a node to be loaded over a X.25 circuit
+
+           o    provide support  for a  local disk  device  (including a
+               floppy  disk) so  the node  image can  be booted  off the
+               disk.    Support  for   a  floppy   disk   will  simplify
+               distribution of the code.
+
+           o   use of a personal computer (the TI has been used in other
+               organizations)  to  get  the  node  image  from  the host
+               computer and store  this on disk.   The node can  then be
+               loaded using  the PC.   This would imply  that such  a PC
+               will be available at all the remote sites, whenver a node
+               load is needed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                             20
+
+
+
+
+      References                                             October 13, 1986
+
+
+
+
+
+ 12 -  References
+
+
+      o   Agrawal,  A.,  Performance  Analysis  of  TymTunnel, Technical
+         Report, NTD, Tymnet
+
+      o  Lee, G., X.25/X.75 Field Guide, NTD, Tymnet
+
+      o  Wong,  S.K., A Presentation  on CCITT Series  X Recommendations
+         and TYMNET, Tymnet International Operation.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      TUNNEL.GED                    TYMTUNNELS                             21
+   t5,Á
