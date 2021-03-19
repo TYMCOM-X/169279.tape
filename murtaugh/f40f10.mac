@@ -1,0 +1,60 @@
+;	Generate Fortran-4 / Fortran-10 compatable macros
+$FOR=^D10
+;	expects symbol $FOR to have value 4 or ^D10...
+;		others default to 4 with error message
+;	DEFINES:
+;		$ENTRY	LABEL	Define routine entry point.
+;		$RET	N	SKIP-N Return (exit from routine) (N=No. args)
+;		$END		End assembly (takes care of LIT and VAR)
+;		$DATA		Declare data area.
+;		$CODE		Declare code area.
+;	("XXXX" in TITLE is module name)
+
+	IFN	<$FOR-4>*<$FOR-^D10>,< PRINTX '$FOR ill-defined, using 4'>
+
+	IFE	$FOR-^D10,<	;	FORTRAN-10
+	TITLE	XXXX10
+	TWOSEG
+	RELOC	400000
+
+	DEFINE	$ENTRY(LABEL)<
+	ENTRY	LABEL
+LABEL:	>
+
+	DEFINE	$RET(N)<
+	POPJ	17,>
+
+	DEFINE	$END<
+	LIT
+	RELOC	0
+	VAR
+	END>
+
+	DEFINE	$DATA<
+	RELOC	0>
+
+	DEFINE	$CODE<
+	RELOC	400000>
+
+>
+
+	IFN	$FOR-^D10,<	;	FORTRAN-4
+	TITLE	XXXX4
+
+	DEFINE	$ENTRY(LABEL)<
+	ENTRY	LABEL
+LABEL:	0>
+
+	DEFINE	$RET(N)<
+	JRA	16,N(16)>
+
+	DEFINE	$DATA<>
+
+	DEFINE	$CODE<>
+
+	DEFINE	$END<
+	END>
+
+>
+
+        END
