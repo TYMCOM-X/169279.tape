@@ -1,0 +1,519 @@
+:-------------------------------------------------------------------------
+:
+:       INTERFACE : CMTI
+:       VERSION   : 12.06
+:       FILE      : INITIAL MACRO FILE FOR SHIFT-JIS KANJI TERMINAL
+:
+:       THIS TERMINAL SUPPORT VT100 ESCAPE SEQUENCE AND NEW SHIFT JIS
+:       KANJI CODE SEQUENCE. SHIFT JIS CODE DOESN'T HAVE ANY SHIFT
+:       CODE (SI/SO/KIN/KOUT). 
+:       USE  SFTJIS.126 WITH THIS INITIAL FILE.
+:
+:----------------------------------------------------------------------
+:
+        KILL    OUTANR
+        KILL    CTRANR
+        KILL    INCANR
+SFTJIS  MACRO(RENAM,NEWNAM) [           : "SHIFT-JIS"
+
+        BGNTRM("53"48"49"46"54"2D"4A"49"53"20,RENAM,NEWNAM)
+        CTLDEF(0,0,1,0,2,0,3,0,4,0,7,0,8,0,0C,1,0D,0,0E,1)
+
+:
+: VT1XX-STYLE INITIALIZATION
+:
+
+        STRDEF("1B"5B"30"71)            :TURN OFF LEDS -ESC"5B0q
+        STRDEF("1B"3E)                  :KEYPAD NUMERIC-ESC>
+        STRDEF("1B"5B"3F"32"68)         :ANSI MODE     -ESC"5B?2h
+        STRDEF("1B"5B"3F"35"6C)         :NORMAL VIDEO  -ESC"5B?5l
+
+:
+: INITIALIZE G0, G1, G2, AND G3 CHARACTER SET DEFINITIONS
+:
+
+:       STRDEF("1B"28"4A)               :*KANA* A/N   INTO G0-ESC(J
+:       STRDEF("1B"29"49)               :*KANA* KANA  INTO G1-ESC)I
+:       STRDEF("1B"2A"49)               :*KANA* KANA  INTO G2-ESC*I
+:       STRDEF("1B"2B"22"30)            :*KANA* KANJI INTO G3-ESC+0
+
+:
+: FORMAT GL AND GR, WHICH CONTROL WHICH CHARACTERS ARE DISPLAYED ON THE SCREEN
+:
+
+:       STRDEF("0F)                     :*KANA* G0 INTO GL (A/N) -SI
+:       STRDEF("1B"7D)                  :*KANA* G2 INTO GR (KANA)-ESC}
+        CLRDEF("1B"5B"32"4A"1B"5B"48)   :ERASE SCRN/HOME-ESC"5B2JESC"5BH
+        MCDEF(MCVT1)
+        XERDEF(XERVT1)
+        CTRDEF(CTRANR)
+        OUTDEF(OUTANR)
+        INCDEF(INCANR)
+        deldef(incanr)
+        LKBDEF("1B"5B"31"71)
+        UKBDEF("1B"5B"30"71)          
+        PRTDEF(1)
+        BPRDEF(PRESENT,"1B"5B"35"69)
+        FPRDEF(PRESENT,"1B"5B"34"69)
+        SCDEF(PRESENT,"1B"37)
+        EELDEF(PRESENT,"1B"5B"30"4B)
+        ESLDEF(PRESENT,"1B"5B"31"4B)
+        EESDEF(PRESENT,"1B"5B"30"4A)
+        ESSDEF(PRESENT,"1B"5B"31"4A)
+        RCDEF(PRESENT,"1B"38)
+        LIDEF(PRESENT,"1B"5B"30"6D)
+        HIDEF(PRESENT,"1B"5B"31"6D)
+        KDEF(7)
+        CFDEF(1,5,5,1)
+        ESZDEF(4)
+        OPTDEF(0F800)
+:       KSIDEF(PRESENT,"1B"7C)          :KANJI SHIFT-IN  SEQUENCE: ESC |
+:       KSODEF(PRESENT,"1B"7D)          :KANJI SHIFT-OUT SEQUENCE: ESC }
+        LANDEF(KANJI)                   :DEFINE CHARACTER SET TYPE
+        SETDEF(8)                       :DEFINE CHARACTER SET SIZE
+        IF      \STL                    :STATUS LINE
+        STADEF(STL)                     :ANY LINE DEFINED BY STL
+        ELSE
+        STADEF($A0)                     :UPPER RIGHT
+        EI
+        ENDTRM
+]
+
+CTRANR  MACRO [
+        LEVEL1(A.SOH,1,STATLN)          :^A STATUS DISPLAY KEY
+        LEVEL1(A.EM,1,fsys)             :^Y FOR SYS/REQ
+        LEVEL1(A.SUB,1,KILL)            :ZAP CIRCUIT (^Z)
+        LEVEL1(A.SO,1,NEWLIN)           :NEW LINE
+:       LEVEL1(A.SI,1,KATSI)            :KATA SHIFT IN
+        LEVEL1(A.CR,1,FCNENT)           :CARRIAGE RETURN = ENTER(^M)
+        LEVEL1(A.LFED,1,FCNCLR)         :LINEFEED=CLEAR (ELSE FIXUP ERROR)
+        LEVEL1(A.ETX,1,FCNCLR)          :CLEAR (^C)
+        LEVEL1(A.EOT,1,DELCHA)          :DELETE CHARACTER (^D)
+        LEVEL1(A.DC2,1,RESET)           :RESET/LEAVE INSERT MODE(^R)
+        LEVEL1(A.DEL,1,DELCHA)          :LET DELETE BE A DELETE
+        LEVEL1(A.DC4,1,FLDTAB)          :TAB CHARACTER (^T)
+        LEVEL1(A.HT,1,FLDTAB)           :TAB CHARACTER (^I)
+        LEVEL1(A.STX,1,BACKTA)          :BACKTAB CHARACTER (^B)
+        LEVEL1(A.BS,1,BACKTA)           :BACKTAB CHARACTER (^H)
+        LEVEL1(A.CAN,1,CURSEL)          :CURSOR SELECT (^X)
+        LEVEL1(A.ENQ,1,EEOF)            :ERASE TO END OF FIELD (^E)
+        LEVEL1(A.ESC,0)                 :   <ESCAPE>
+:*************************FHT-B  --> ALSO DELETE J.NA, IT CAUSES PROBLEMS
+          LEVEL2(A.B,1,FCNBRK)          :BREAK KEY, HITACHI HOSTS ONLY
+          LEVEL2(A.LB,1,FCNBRK)         :BREAK KEY, HITACHI HOSTS ONLY
+:*************************FHT-E
+          LEVEL2(A.N,1,NEWLIN)          :NEW LINE
+          LEVEL2(A.LN,1,NEWLIN)         :NEW LINE
+          LEVEL2(A.R,1,REDSPY)          :REDISPLAY
+          LEVEL2(A.LR,1,REDSPY)
+          LEVEL2(A.K,1,REDIBM)          :REDISPLAY FOR IBM WITH SUBFIELDS 
+          LEVEL2(A.LK,1,REDIBM)          :AND SHIFT CODES DISPLAYED
+:         LEVEL2(A.RBRC,1,KANSO)        :KANJI SHIFT OUT
+:         LEVEL2(A.VIRT,1,KANSI)        :KANJI SHIFT IN
+          LEVEL2(A.H,1,HOME)            :HOME CURSOR (1ST UNPROTECTED FIELD)
+          LEVEL2(A.LH,1,HOME)           :HOME CURSOR (1ST UNPROTECTED FIELD)
+          LEVEL2(A.I,1,INSMOD)          :INSERT MODE
+          LEVEL2(A.LI,1,INSMOD)         :INSERT MODE
+          LEVEL2(A.X,0)                 :<F I L E      T R A N S F E R>
+            LEVEL3(A.B,1,BEGXFR)        :ESC-X-B  STOPS    NETWORK ECHO
+            LEVEL3(A.E,1,ENDXFR)        :ESC-X-E  RESTARTS NETWORK ECHO
+          LEVEL2(A.1,1,FCNF1)           :PF-1
+          LEVEL2(A.2,1,FCNF2)           :PF-2
+          LEVEL2(A.3,1,FCNF3)           :PF-3
+          LEVEL2(A.4,1,FCNF4)           :PF-4
+          LEVEL2(A.5,1,FCNF5)           :PF-5
+          LEVEL2(A.6,1,FCNF6)           :PF-6
+          LEVEL2(A.7,1,FCNF7)           :PF-7
+          LEVEL2(A.8,1,FCNF8)           :PF-8
+          LEVEL2(A.9,1,FCNF9)           :PF-9
+          LEVEL2(A.0,1,FCNF10)          :PF-10
+          LEVEL2(A.EXCL,1,FCNF11)
+          LEVEL2(A.AT,1,FCNF12)
+          LEVEL2(A.PND,1,FCNF13)
+          LEVEL2(A.DOL,1,FCNF14)
+          LEVEL2(A.PCT,1,FCNF15)
+          LEVEL2(A.CART,1,FCNF16)
+          LEVEL2(A.AND,1,FCNF17)
+          LEVEL2(A.STAR,1,FCNF18)
+          LEVEL2(A.LPAR,1,FCNF19)
+          LEVEL2(A.RPAR,1,FCNF20)
+          LEVEL2(A.O,0)
+            LEVEL3(A.P,1,FCNF1)
+            LEVEL3(A.Q,1,FCNF2)
+            LEVEL3(A.R,1,FCNF3)
+            LEVEL3(A.S,1,FCNF4)
+          LEVEL2(A.LBKT,0)
+            LEVEL3(A.H,1,HOME)          :HOME CURSOR (1ST UNPROTECTED FIELD)
+            LEVEL3(A.D,1,CURLEF)        :CURSOR LEFT
+            LEVEL3(A.B,1,CURDON)        :CURSOR DOWN
+            LEVEL3(A.C,1,CURRT)         :CURSOR RIGHT
+            LEVEL3(A.A,1,CURUP)         :CURSOR UP
+        LEVEL1(A.ACK,0)                 :^F
+          LEVEL2(A.1,1,FCNF21)
+          LEVEL2(A.2,1,FCNF22)
+          LEVEL2(A.3,1,FCNF23)
+          LEVEL2(A.4,1,FCNF24)
+        LEVEL1(A.DLE,0)                 :^P
+          LEVEL2(A.1,1,FCNPA1)          :PA1
+          LEVEL2(A.2,1,FCNPA2)          :PA2
+          LEVEL2(A.3,1,FCNPA3)          :PA3
+]
+:BEG JAK****
+:
+: OUTANR - SUBROUTINE TO OUTPUT CHARACTERS TO THE TERMINAL.
+:
+: THIS ROUTINE CHECKS FOR NON-DISPLAY FIELDS, FOR CHANGES IN
+: HIGHLIGHTING, AND FOsR THE NEED TO OUTPUT KANJI SHIFT SEQUENCES.
+: THE KANIJ SHIFT SEQUENCES ARE OUTPUT WHEN THE CURRENT CHARACTER
+: HAS THE HIGH BIT ON AND THE TSIOID FIELD IN THE CCB DOES NOT MATCH
+: THE LANGUAGE STATUS.  THE STATUS IS DETERMINED BY THE KANJI
+: BITS IN THE KANJI BIT MAP "KANMAP".
+:
+OUTANR  MACRO [EQ .
+:
+ANROUT  LH      R2,CCDATR,R11           :DISPLAY FIELD?
+        NHI     R2,0C                   :ISOLATE DISPLY BITS IN ATR
+        CHI     R2,0C                   :NON DISPLAY FIELD?
+        JE      ANRSPACE                :GO DISPLAY AS A SPACE 
+        NHI     R2,8                    :CHECK INTENSITY
+        CH      R2,CLDSP,R11            :IS IT THE SAME?
+        JE      ANRKAN                  :CHECK FOR KANJI SHIFT CODE STATUS
+
+        PUSH(R4,R5,R3,R0)               :SAVE STATE
+
+        STH     R2,CLDSP,R11            :REMEMBER NEW GRAPHIC RENDITION
+        LHL     R3,TRMHI,R9             :SET UP HI INTENSITY STRING
+        THI     R2,8                    :SET RENDITION TO NEW FORM
+        JNFS    ANR020                  :SEND HI INTENISTY STRING
+        LHL     R3,TRMLI,R9             :SET UP LO INTENSITY STRING
+ANR020  JAL     R5,PUTSTR,,             :SEND STRING
+
+        POP(R0,R3,R5,R4)                :GET BACK STATE
+
+:
+: IF HIGH BIT IS ON, CHARACTER IS A JAPANESE CHARACTER.  IF KANMAP
+: BIT IS ON, CHARACTER IS KANJI, ELSE KATAKANA.  IF BIT IS OFF, CHECK
+: TPAIR INDICATOR.  THIS INDICATOR DISTINGUISHES BETWEEN KATAKANA
+: AND THE 2ND HALF OF A KANJI.  NO CHECK FOR TSIOID FOR 2ND HALF KANJI
+: SINCE IT MUST HAVE BEEN DONE FOR THE FIRST HALF.
+:
+
+ANRKAN
+        lcs     r2,1
+        cr      r0,r2                   :r0 is invalid kanji ?
+        je      anrk45
+        lr      r0,r0
+        jn      anrk00
+        lhi     r0,a.sp
+        j       putone,,
+anrk00
+        CHI     R0,080                  :IS IT A JAPANESE CHARACTER?
+        JG      ANRK02
+        CHI     R0,A.SP
+        JN      ANRK41                  :GO NORMAL OUTPUT IF NOT A SPACE
+        LHL     R2,DHOST,R12
+        CHI     R2,IBM
+        JN      ANRK41
+        PUSH(R4,R3)                     :NEED TO CHECK IF SI OR SO
+        LB      R2,SCN,R8,R7            :GET CURRENT BYTE
+        CHI     R2,0E                   :DID WE GET HERE BY SI?
+        JN      ANKAA                   :GO IF NOT
+        JAL     R4,PUTONE,,             :SEND THE SPACE CHARACTER FIRST
+        LIS     R2,KOBT01
+        SBT     R2,TSIOID,R11           :SET IT TO KANJI IF SI
+        POP(R3)
+        RETJ(R4)
+ANKAA   CHI     R2,IKSO                 :IS IT SO?
+        JN      ANKAC                   :NORMAL RETURN IF NOT
+        LIS     R2,KOBT01
+        RBT     R2,TSIOID,R11
+ANKAC   POP(R3,R4)
+        LHI     R0,A.SP
+        J       PUTONE,,
+anrk02  sis     r7,1                    :two bytes collected
+        TBT     R7,KANMAP,R8            :KANJI CHARACTER?
+        JE      ANRK40                  :NO, GO OUTPUT KATAKANA
+        LIS     R2,KOBT01
+        TBT     R2,TSIOID,R11           :WERE WE IN KANJI OUTPUT STATE?
+        JE      ANRK10                  :GO IF NOT IN KANJI STATE
+        LHL     R2,TPAIR,R11
+        CHI     R2,2
+        JE      ANRK05                  :IF 2ND HALF OF KANJI PAIR
+        PUSH(R4,R3)
+        LR      R3,R0                   :SAVE SECOND HALF OF KANJI CHAR
+        SRLS    R0,8                    :SEND OUT THE FIRST HALF
+        jal     R4,PUTONE,,             :YES, OUTPUT CHARACTER-NO KSI NEEDED
+        LR      R0,R3
+        POP(R3,R4)
+ANRK05  LIS     R2,1
+        STH     R2,TPAIR,R11                    :RESET KANJI PAIR INDICATOR
+        AIS     R7,1                    :INCREMENT BUFFER POSITION
+        J       PUTONE,,                :PUT SECOND HALF OF CHAR
+        
+ANRK10  PUSH(R4,R3,R5,R0)               :SAVE STATE
+        LIS     R2,KOBT01
+        SBT     R2,TSIOID,R11           :SET IT TO KANJI OUTPUT STATE
+        POP(R0,R5)
+        LR      R3,R0                   :SAVE SECOND HALF OF KANJI CHAR
+        SRLS    R0,8                    :SEND OUT THE FIRST HALF
+        jal     R4,PUTONE,,             :YES, OUTPUT CHARACTER-NO KSI NEEDED
+        LR      R0,R3
+        AIS     R7,1                    :INCREMENT BUFFER POSITION
+        POP(R3,R4)
+        J       PUTONE,,                :PUT SECOND HALF OF CHAR
+
+ANRK40  ais     r7,1                    :increment buffer position
+ANRK41  LIS     R2,KOBT01
+        TBT     R2,TSIOID,R11           :IS IT KATAKANA?
+        JE      PUTONE,,                :YES, PUTPUT CHARACTER-NO KSO NEEDED
+        PUSH(R4,R5,R3,R0)               :SAVE STATE
+        LIS     R2,KOBT01
+        RBT     R2,TSIOID,R11
+        J       ANRPOP                  :GET CHAR AND SEND IT
+anrk45
+        lhi     r0,invkcr
+        j       anrk02
+
+ANRSPACE LHI     R0,A.SP                :LOAD SPACE CHARACTER
+        J       PUTONE,,
+ANRPOP  POP(R0,R3,R5,R4)                :GET BACK STATE AND CHARACTER
+        J       PUTONE,,                :OUTPUT CHARACTER TO TERMINAL
+
+KILLIT  MACRO   [
+        KILL    OUTANR
+OUTANR  MACRO   [EQ ANROUT]
+        KILL    KILLIT]                 :END OF KILLIT MACRO DEFINITION
+        KILLIT]                         :END OF OUTANR/ANROUT DEFINITION
+:
+:
+: INCANR - PERFORMS INSERT CHARACTER AND DELETE CHAR FUNCTIONS
+:
+INCANR  MACRO [EQ .
+:
+:ANRINC INSERT CHARACTER FOR ANRITSU. TERMINAL HAS NO INSERT CHARACTER
+:       MODE.  THIS CAN ALSO BE USED FOR DELETE CHARACTER
+:
+:       1)GOBBLE ANY CHAR'S ON THEIR WAY TO THE TERMINAL IF THE
+:         YELLOW BALL COUNT FOR THIS PORT IS ZERO
+:
+:       2)RESTORE THE CURSOR TO THE R7 POSITION SINCE IT MAY GET
+:         LOST BY THE GOBBLE
+:
+:       3)WRITE DATA FROM R7 POSITION TO BUT NOT INCLUDING R6 POSITION
+:         BEWARE OF END OF LINE AND END OF SCREEN
+:
+ANRINC  PUSH(R5)
+        PUSHH(R7)
+        L       R5,TRMMC,R9
+        JALR    R5,R5
+ANRC1   LB      R2,SCN,R7,R8            :OUTPUT CURRENT CHAR
+:BEG
+:KANJI TRANSLATION...GET TWO BYTES INTO R0 BEFORE JUMPING
+:TO THE APPROPRIATE CONVERSION ROUTINE
+:
+:
+        tbt     r7,kanmap,r8                    :kanji 
+        je      anRC01                  :skip collecting 2 bytes
+:if a kanji character get 2 bytes
+:
+        lis     r3,kobt01
+        sbt     r3,tsioid,r11
+:
+anrcaa
+        slls    r2,8
+        ais     r7,1                    :increment buffer position
+        lb      r0,scn,r7,r8            :2nd byte
+anrc00  or      r0,r2
+: to determine correct tanslation table to use for the particular
+:host involved
+:
+        jal     r5,trnskn,,             :convert byte  
+        j       anrc0a                  :continue processing kanji
+:
+anrc0x  lhi     r0,a.sp
+        jal     r4,putone,,
+        j       anrcx
+anrc01
+        lis     r3,kobt01
+        rbt     r3,tsioid,r11
+anrcbb  chi     r2,a.nul
+        je      anrc0x
+        chi     r2,0e
+        je      anrc0x
+        chi     r2,0f
+        je      anrc0x
+        jal     r5,hstrm,,
+:end
+:
+: IF HIGH BIT IS ON, CHARACTER IS A JAPANESE CHARACTER.  IF KANMAP
+: BIT IS ON, CHARACTER IS KANJI, ELSE KATAKANA.  IF BIT IS OFF, CHECK
+: TPAIR INDICATOR.  THIS INDICATOR DISTINGUISHES BETWEEN KATAKANA
+: AND THE 2ND HALF OF A KANJI.  NO CHECK FOR TSIOID FOR 2ND HALF KANJI
+: SINCE IT MUST HAVE BEEN DONE FOR THE FIRST HALF.
+:
+
+        CHI     R0,080                  :IS IT A JAPANESE CHARACTER?
+        JGE     ANrc40                  :YES
+        JAL     R4,PUTONE,,             :NO, GO OUTPUT CHARACTER
+        j       anrcx
+ANrc0A  SIS     R7,1                    :DECREMENT POSITION TO 1ST BYTE KANJI
+        LIS     R2,KOBT01
+        TBT     R2,TSIOID,R11
+        JE      ANRC10                  :GO IF NOT IN KANJI OUTPUT STATE
+        PUSH(R4,R3)
+        LR      R3,R0                   :SAVE SECOND HALF OF KANJI CHAR
+        SRLS    R0,8                    :SEND OUT THE FIRST HALF
+        JAL     R4,PUTONE,,             :YES, OUTPUT CHARACTER-NO KSI NEEDED
+        LR      R0,R3
+        AIS     R7,1                    :INCREMENT BUFFER POSITION
+        POP(R3,R4)
+        JAL     R4,PUTONE,,             :PUT SECOND HALF OF CHAR
+        J       ANRCX                   :CONTINUE OUTPUT
+        
+ANrc10  PUSH(R4,R3,R5,R0)               :SAVE STATE
+        LIS     R2,KOBT01
+        SBT     R2,TSIOID,R11           :INDICATE NOW IN KANJI STATE
+        POP(R0,R5)
+        LR      R3,R0                   :SAVE SECOND HALF OF KANJI CHAR
+        SRLS    R0,8                    :SEND OUT THE FIRST HALF
+        JAL     R4,PUTONE,,             :YES, OUTPUT CHARACTER-NO KSI NEEDED
+        LR      R0,R3
+        AIS     R7,1                    :INCREMENT BUFFER POSITION
+        POP(R3,R4)
+        JAL     R4,PUTONE,,             :PUT SECOND HALF OF CHAR
+        J       ANRCX
+
+ANrc40  
+        LIS     R2,KOBT01
+        TBT     R2,TSIOID,R11
+        JN      ANIC45                  :GO IF NOT KATAKANA
+        PUSH(R2)
+        JAL     R4,PUTONE,,             :YES, OUTPUT CHARACTER-NO KSO NEEDED
+        POP(R2)
+        J       ANRCX
+ANIC45  
+        LIS     R2,KOBT01
+        RBT     R2,TSIOID,R11           :INDICATE NOW IN KATAKANA STATE
+        JAL     R4,PUTONE,,             :OUTPUT CHARACTER TO TERMINAL
+        J       ANRCX
+
+ANRC60  jal     r5,hstrm,,              :use appropriate conversion
+        JAL     R4,PUTONE,,
+:
+ANRCX   AIS     R7,1                    :ADVANCE AND WRAP
+        CH      R7,TRMSIZ,R9
+        JLFS    ANRIC2
+        LIS     R7,0
+:
+        L       R5,TRMMC,R9             :POSITION CURSOR
+        JALR    R5,R5
+        J       ANRC3
+:
+:
+ANRIC2  TBT     R7,TRMSPC,R9            :CHECK FOR END OF LINE
+        JE      ANRC3                   :NO
+:beg line functuion
+        lb      r0,tchset,r11
+        chi     r0,kanji
+        jnfs    anrc3a
+        j       anrc4                   :quit at end of line
+anrc3a  LHI     R0,A.CR                 :GO TO NEXT LINE
+        JAL     R4,PUTONE,,
+        LHI     R0,A.LFED
+        JAL     R4,PUTONE,,
+:
+ANRC3   CR      R6,R7                   :CHECK IF DONE
+        JN      ANRC1
+:
+anrc4   POPH(R7)
+        L       R5,TRMMC,R9
+        JALR    R5,R5
+:
+        RETJ(R5)
+:
+KILLIT  MACRO [
+        KILL INCANR
+INCANR  MACRO [EQ ANRINC]
+        KILL    KILLIT]
+        KILLIT]
+:END
+        KILL    JTERMS
+JTERMS  MACRO [
+        SFTJIS
+]
+
+        KILL    INVKCR
+        KILL    INVKPR
+        GL      INVKCR,INVKPR
+INVKCR  EQ      $0 81A1                 :CRT INVALID KANJI CHAR
+INVKPR  EQ      $0 8140                 :PRT INVALID KANJI CHAR
+
+        KILL    INVKAN
+INVKAN  MACRO(VALCRT,VALPRT) [
+
+        IF      VALCRT
+INVKCR  EQ      VALCRT
+        EI
+
+        IF      VALPRT
+INVKPR  EQ      VALPRT
+        EI
+]
+
+:----------------------------------------------------------
+:       GAIJI TABLE MACRO(USER DEFINE KANJI CODE TABLE)
+:       GJBGN
+:       GJHF2S(HITACHI FUJITSU KANJI, SFTJIS KANJI)
+:       GJIB2S(IBM KANJI,SFT JIS KANJI)
+:       * THIS MACRO SHOULD BE LOCATED IN CHRMAP MACRO, AND
+:       * IT ALSO SHOULD BE LOCATED AFTER DEFINITION OF CHGIJ(,)
+:       * MACRO FOR IBM TO JIS
+:
+:----------------------------------------------------------
+
+GJBGN   MACRO   [               : TABP ADDR
+        ORG     SAVORG          : RESET ORG FOR CHRMAP MACRO
+        GL      GJTAB,GJCNT
+
+        WS      0
+GJTAB   HS      0
+GJCNT   EQ      0
+GJVAL   EQ      0
+]
+
+
+:       DEFINE TABLE MACRO FOR HITACHI FUJITSU, NOT EFFECT FOR IBM
+
+GJHF2S  MACRO(HST,TRM)  [
+        IF      GJVAL-HST               :CODE ORDER CHECK
+        REMARK  %GAIJI CODE =
+        NUMBER  HST     
+        REMARK   IS NOT IN ORDER
+ERRMAC  EQ      ERRMAC+1                :INCREMENT ERROR COUNTER
+        ELSE
+GJVAL   EQ      HST                     :SET CURRENT VALUE
+Q       EQ      HST&7F7F
+        HC      Q                       :DEFINE HOST GAIJI CODE WITH MASK
+        HC      TRM                     :
+GJCNT   EQ      GJCNT+4                 : ADD CONTER
+
+SAVORG  EQ      .                       :INCREMENT ORG POINTER
+        EI
+]
+
+GJIB2S  MACRO(HST,TRM)  [
+        IF      GJVAL-HST               :GAIJI CODE ORDER CHECK
+        REMARK  %GAIJI CODE =
+        NUMBER  HST
+        REMARK   IS NOT IN ORDER
+ERRMAC  EQ      ERRMAC+1                :INCREMENT ERROR COUNTER
+        ELSE
+GJVAL   EQ      HST
+        HC      HST                     :DEFINE HOST GAIJI CODE WITH MASK
+        HC      TRM                     :
+GJCNT   EQ      GJCNT+4                 : ADD CONTER
+
+SAVORG  EQ      .                       :INCREMENT ORG POINTER
+        EI
+]
+ $@HW
