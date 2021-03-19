@@ -1,0 +1,234 @@
+
+
+<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+<><><><><>               T E C H    A L E R T                     <><><><><>
+<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+
+
+TechAlert Number: NTS-005
+
+Product Code    : Engine Family
+
+Version         : 
+
+Author          : Bruce Shepherd
+
+OnTyme ID       : NSC.B/SHEPHERD
+Dialcom ID      : shepherd@dialcom 98
+Unix ID         : bruces@gemini
+
+Subject         : General Node Configuration guidelines
+
+
+*************************************************************************
+****					          	             ****
+****       This TECH ALERT refers to general node configuration      ****
+****       guidelines for all engine based products.                 ****
+****				  	                             ****
+*************************************************************************
+
+The  following tech alert  is  intended  to  be  used  as a guideline for
+configuring nodes in the public network.
+
+Under  no cicumstances  should  an SIO motherboard be defined in the node
+tymfile with 0 ports.  If there are  no ports  intended to  be used on an
+SIO motherboard, the motherboard  should not  be installed  in the engine
+nor defined in the tymfile.   This will prevent unnecessary ISIS overhead
+in attempting to  connect and  maintain an unused motherboard.  This same
+rule applies to the standard SYNC motherboard. 
+
+Standard  engine ASYNC configurations  have been noted previously in Tech
+Alerts authored by Tim Kochmann.   Briefly  stated the guidelines for the
+ASYNC is as follows:
+
+    o  CPU I   at 8 MHz
+       MAC II  at 8 MHz
+       Interrupt rate:        High Speed (BAUDR equal to 2)
+       Maximum node CPS Rate: 2800 bytes per second (1400 in and out)
+
+    o  CPU I   at 8 MHz
+       MAC III at 8 MHz
+       Interrupt rate:        High Speed (BAUDR equal to 2)
+       Maximum node CPS Rate: 3300 bytes per second (1650 in and out)
+
+    o  CPU III at 10 MHz
+       MAC III at 10 MHz
+       Interrupt rate:        High Speed (BAUDR equal to 2)
+       Maximum node CPS Rate: 3800 bytes per second (1900 in and out)
+
+    o  PXL-I 
+       Interrupt rate:        High Speed (BAUDR equal to 2)
+       Maximum node CPS Rate: 3800 bytes per second (1900 in and out)
+
+    o  MICRO II/III
+       Interrupt rate:        High Speed (BAUDR equal to 2)
+       Maximum node CPS Rate: 2800 bytes per second (1400 in and out)
+
+
+Reasonable high speed port configurations would be as follows:
+
+    o  CPU I   at  8 MHz
+       MAC II  at  8 MHz
+       Maximum number of Async ports:       32
+       Maximum number of SIO ASYNC ports:    4
+       Maximum number of X.25 Dialup Ports:  0
+
+    o  CPU I   at  8 MHz
+       MAC III at 10 MHz
+       Maximum number of Async ports:       32
+       Maximum number of SIO ASYNC ports:    4
+       Maximum number of X.25 Dialup Ports:  2
+
+    o  CPU III at 10 MHz
+       MAC III at 10 MHz
+       Maximum number of Async ports:       48
+       Maximum number of SIO ASYNC ports:    4
+       Maximum number of X.25 Dialup Ports:  2
+
+    o  PXL-I
+       Maximum number of Async ports:       32
+       Maximum number of SIO ASYNC ports:    4
+       Maximum number of X.25 Dialup Ports:  2
+
+
+These  ASYNC   guidleines  provide  a  safe  window  to  operate  within.
+Exceeding  these guidelines  can  and  will  result  in  what is commonly
+referred to as async ring wrap.
+
+As  a general  rule  on  ASYNC  concentration nodes, the  node code lines
+should always be SIO ports not SYNC ports.
+
+
+Standard engine SYNC configurations should follow the below guidlelines:
+
+    o  Sync board capability is defined as follows:
+
+       o  CPU I/II  with LOW speed interrupts enabled (BAUDR equal 0)
+          can handle a maximum of 19,200 interrupts per second.
+
+       o  CPU I/II with HIGH speed interrupts enabled (BAUDR equal 2)
+          can handle a maximum of 9,600 interrupts per second.
+
+       o  CPU III  with  LOW speed interrupts enabled (BAUDR equal 0)
+          can handle a maximum of 24,000 interrupts per second.
+
+       o  CPU III  with HIGH speed interrupts enabled (BAUDR equal 2)
+          can handle a maximum of 12,000 interrupts per second.
+
+
+    o  Port capacity calculation:
+
+            (port speed) X (number of ports) X (interrupts per port)
+	    --------------------------------------------------------
+                               (clock ticks)
+
+
+       where
+          port speed          =  baud rates
+	  number of ports     =  number of active lines
+	  interrutps per port =  transmit/receive interrupts (value of 2)
+	  clock ticks         =  16
+
+
+       In  all  calculations the  value  of  the  equation  should  never
+       exceed  19,200 (maximum  interrupts per second) for a CPU I/II  or
+       24,000 for a MAC III node when LOW speed  interrupts (BAUDR 0) are
+       enabled,  or 9,600 for a CPU I/II  or  12,000 for  a  CPU III when
+       HIGH speed interrupts (BAUDR 2) are enabled.
+
+       A  sample of  this would  be the maximum number of lines at 19.2Kb
+       on a MAC II node running low speed interrupts:
+
+
+                  (19200) X (8) X (2)      307200
+		  -------------------  =   ------  =  19200
+ 		           (16)              16
+
+       Simply  stated this  means  that  a  MAXIMUM of eight (8) lines at
+       19.2Kb  can be  configured on the SYNC motherboard.  Configuring a
+       node  with  more  than  8  lines at  19.2Kb  can  and will lead to
+       problems with the engine to keep up with the traffic and has shown
+       in the field that byte synchronous applications tend to fails.
+
+       WARNING:  For nodes with ASYNC configured on them, 14.4Kb sync
+                 lines are NOT recommended for node code or interface
+		 slots as they run at the same interrupt level as the
+		 ASYNC interrupter.
+
+
+The standard  engine SYNC motherboard is broken into two groups of ports:
+primitive  and  non-primitive.  Primitive are ports those ports that only
+carry limited RS-232  signals [RC (receive clock),  TC (transmit  clock),
+TD (transmit data), RD (recieve  data),  and   RTS  (request  to  send)].  
+Non-primitive ports  contain  the above signals in addition to CTS (clear
+to  send), DSR (data  set  ready) and  DTR  (data  terminal  ready).  The
+breakdown in port ordering is as follows:
+
+    o  Primitive ports:     0,1,4,5,8,9,12,13
+    o  Non-primitive ports: 2,3,6,7,10,11,14,15
+
+Node code does not care about the signalling therefore it can be assigned
+either primitive or non-primitive ports.  Bisync applications may require
+the  full  range of RS-232 signalling therefore should always be assigned
+to  the  non-primitive  ports.   The  standard  engine  SYNC  motherboard
+contains the  above  16 ports,  while  the  MICRO  III  and  PXL  contain
+only the  non-primitive  ports (addressed as  ports 2,3,6,7,10,11,14,15).
+There are NO primitive ports on the MICRO III or PXL hardware platforms.
+
+
+The  SIO  configuration  must  conform  to  CFB 168  with  no exceptions.
+Ordering  of the  ports (particularly in  reference to node code) must be
+in the following sequence:
+
+    o  SYNC
+    o  SIO V.35  (if applicable)
+    o  SIO V.24  (if applicable)
+    o  SIO OCL   (if applicable)
+    o  SIO ASYNC (if applicable)
+
+
+Note  the order  for  SIO:  that OCL and ASYNC   always  follow  any SIO
+interrupt channels (V35 or V24).  This is to accomodate those high speed
+ports  which need a fixed interrupt servicing rate, thereby allowing the
+remaining SIO motherboard  bandwidth to  be dynamically allocated by the
+CPU.
+
+CFB 168 applies to all current engine hardware platforms.
+
+
+Overloading  of the I/O is serious  and  can  lead to  catastrophic  and
+unpredictable   node failure.   HDLC  interfaces such as SNA, SDLC, X25,
+QLLC, and Frame Relay  may experience  unnecessary interrupt and channel
+resets for customers on machines with overloaded I/O components.
+
+Similiarly,  CPU  overloading  can also  lead to  the same  catastrophic
+failures.   CPU  utilization is dependent upon each  configuration where
+CPU  intensive  protocols  are  present  (such as  X.25, CMT, SNA, SDLC,
+BISYNC).  There  is  no hard  and fast  rule for CPU  utilization, but a
+Node  Statistics command (NS) from XRAY will show the  EXEC rate  in the
+node code (average number of EXEC loop iterations per second) and should
+the  EXCT  or  EXLW (low  water  mark) drop  below  70  then the node is
+considered on the threshold of an overload condition.
+
+
+One  last point  to be noted  is the  the  node code  (slot 0) memory  a
+allocations.   The optimal  memory  size  displayed during the node code
+generation is an undervalued amount in terms of  buffer managment space.
+Therefore  the  value assigned  to node  code should be 70-100Kb greater
+than the value displayed as optimal.  The larger the  node code size the
+more  buffer area  is  available  which  tends  to  prevent buffer zaps,
+circuit  backpressuring  and  some  related  node  code  problems.   The
+recommended configuration  for nodes  with  the  rebuild  option enabled
+(such as ALL public network rotary nodes) is 320Kb of memory for slot 0.
+
+
+****************************************************************************
+****							                ****
+****   This TECHALERT will  be  available  in TECHTIPS:38  with the     ****
+****   TECHALERT number as  the filename.  A  list of all available     ****
+****   TECHALERTS can be found in the same directory and is labeled     ****
+****   INDEX.NTS.                                                       ****
+****							                ****
+****************************************************************************
+
+ 
