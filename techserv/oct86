@@ -1,0 +1,1877 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TTTTTTTT   EEEEEE    CCCCCC    HHH   HHH   TTTTTTTT   IIII   PPPPP       SSSS
+TTTTTTTT   EEEEEE   CCC   CC   HHH   HHH   TTTTTTTT   IIII   PP   PP    SS  SS
+   TT      EE       CC         HHH   HHH      TT       II    PP    PP   SS
+   TT      EEEE     CC         HHHHHHHHH      TT       II    PPPPPPP     SSSS
+   TT      EE       CC         HHH   HHH      TT       II    PP             SS
+   TT      EEEEEE   CC    CC   HHH   HHH      TT      IIII   PP         SS  SS 
+   TT      EEEEEE    CCCCCC    HHH   HHH      TT      IIII   PP          SSSS 
+
+
+
+
+
+
+
+
+
+ 
+                              October 01, 1986
+
+
+
+                              TABLE OF CONTENTS
+                              -----------------
+
+
+
+FIND THE ACTUAL SIZE OF A SLOT FROM NIB FILE, DDT, AND MERLIN MAP. . . . . .01
+
+TYMNET INTERNAL USERNAMES. . . . . . . . . . . . . . . . . . . . . . . . . .04
+
+VARIOUS VALUES IN THE 'NS' COMMAND . . . . . . . . . . . . . . . . . . . . .07
+
+BETA TEST RELEASE OF PUBLIC OUTDIAL. . . . . . . . . . . . . . . . . . . . .09
+
+TECH ALERT ON SWITCHER CRASHES . . . . . . . . . . . . . . . . . . . . . . .14
+
+NODECODE CRASH 2063. . . . . . . . . . . . . . . . . . . . . . . . . . . . .15
+
+LEAVE X.25 BUFTRC OFF. . . . . . . . . . . . . . . . . . . . . . . . . . . .18
+
+SIMPLE FIXES FOR SOME COMPLICATED X25 PHENOMENA. . . . . . . . . . . . . . .19
+
+RELEASE OF TYMVALIDATE 8.10. . . . . . . . . . . . . . . . . . . . . . . . .20
+
+PROGRAMMING 801B DATA SCOPE. . . . . . . . . . . . . . . . . . . . . . . . .22
+
+BETA, LIMITED AND FULL RELEASE REPORTS FOR SEPTEMBER . . . . . . . . . . . .25
+
+TMCS VERSION 10.10 - MEMORY ESTIMATION FORMULA . . . . . . . . . . . . . . .27
+
+PATCH TO BRING UP THE LINK IMMEDIATELY AFTER RECEIVING SABM. . . . . . . . .28
+
+PATCH FILE MANAGEMENT SYSTEM . . . . . . . . . . . . . . . . . . . . . . . .29
+
+ANNOUNCING TWO, NEW NETWORK CONNECTIONS. . . . . . . . . . . . . . . . . . .30
+
+FULL RELEASE OF CMT VERSION 3.00 . . . . . . . . . . . . . . . . . . . . . .32
+
+MULTI-TARGETTED HOSTS. . . . . . . . . . . . . . . . . . . . . . . . . . . .33
+
+FOREGROUND OVERLOADS AND THE CONSAT. . . . . . . . . . . . . . . . . . . . .34
+
+CMT AND BILLING PROBLEM. . . . . . . . . . . . . . . . . . . . . . . . . . .35
+
+ABNORMAL DISCONNECTS & PERSONAL COMPUTER APPLICATIONS. . . . . . . . . . . .36
+
+
+
+
+
+
+                                     01
+                                  --------
+
+
+      FIND THE ACTUAL SIZE OF A SLOT FROM NIB FILE, DDT, AND MERLIN MAP  
+      -----------------------------------------------------------------
+      -----------------------------------------------------------------
+
+
+Question by : Dayna Meyer, Communication's Consultant
+Response by : Amy Kwok, HQ Network Staff Consultant      
+       Date : September, 1986
+
+
+
+
+
+Original Question:
+
+
+Is there is a method, perhaps through DDT, to determine the amount of memory 
+being used by the node and how it is allocated.  For example, my customer
+would like to see a listing that would indicate what memory was being used by
+isis, node code, and each of the slots.  They want the actual figure rather 
+than what is allocated in the tymfile.
+
+Is there currently a method to do this?
+
+
+
+
+
+Response:
+
+
+    You can find the actual size of a slot from nib file, ddt and merlin map.  
+The following is the description of how to figure the size illustrated by
+examples:
+
+1. From Merlin map:
+   slot FF:    ISIS always used the amount of memory that is needed.
+   slot 0:     Nodecode always used up all the amount that is allocated.
+   other slots:Only used up the amount that is needed.
+
+   Example:
+
+   r merlin
+   @nd####.mer
+   MERGE AND LINK ISIS SLOTS
+   VERSION  2.10
+
+
+            SLOT MAP
+
+   SLOT BEGINS ENDS
+    0   16000  5BFFF  ----> Base on tymfile, 280d K
+    1   5C000  8DFFF  ---->       "        , 200d K
+    2   8E000  8E3FF  ---->       "        , 1 K
+
+
+        MAP OF SLOT 0
+
+   SEG  BEGINS ENDS
+    0   17000  1D5FF
+    1   1D600  282FF
+    2   28300  2D6FF
+    4   2D700  2D8FF
+    6   2D900  3D8FF
+    7   3D900  4D8FF
+    8   4D900  510FF
+    11  51100  514FF
+    12  51500  54BFF
+    13  54C00  5BFFF  ----> same as in tymfile allocation
+    14  16000  16FFF   
+
+
+        MAP OF SLOT 1
+
+   SEG  BEGINS ENDS
+    0   5C200  5D31F
+    1   5D400  5FB9F
+    5   5FC00  6FBFE
+    6   6FC00  76EC7
+    7   76F00  78BF7
+    8   78C00  7FB7B  ----> smaller than tymfile allocation
+    14  5C000  5C107
+
+   ----------------------------------------------------------
+
+2. From DDT ?mac and ?abs commands:
+
+   slot FF: ISIS always starts at physical location 0. Nodecode always
+            starts right after ISIS.  To figure out how big ISIS is, go
+            to slot 0 and do a ?ABS 0 <cr> which tells you where node
+            code starts, that is where ISIS ends.  Or you can do a ?MAC
+            in slot 0 and look at the starting location of segment E.
+            Any interface's segment E is physically located at the
+            beginning of each slot.
+
+   slot 0:  2 ways: I. You can read from segment E's memory requirements
+   & other             AREAS for 50x bytes.  Example: r 0E0008,38 <cr>.
+   slots               Each segment is 5 bytes and it starts with segment 0
+                       to segment D.  Segment E is a fix size of 1000x bytes.
+   
+                   II. You can do a ?MAC in the slot and you will also find
+                       out how big each segment is and how many segments
+                       are used.
+
+   Note: Since nodecode used up all the amount that is allocated, if you
+         have to shrink nodecode, you should look at the optimal amount
+         of memory needed at gen time.
+
+   Example: in DDT of slot 0 of the same node as in the above example.
+
+   *r 0E0008,38
+   E0008  0000  6600  0000  AD00  0000  5400  0000  0000 --> segments 0,1,2,3
+   E0018  0000  0200  0000  0000  0001  0000  0001  0000 --> segments 4,5,6,7
+   E0028  0000  3800  0000  0000  0000  0000  0000  0400 --> segments 8,9,A,B
+   E0038  0000  3700  0000  7400 --> segments C,D
+ 
+   *?MAC
+
+   MAC seg. 0 has 6600x, starting at location 17000 execution protection
+   MAC seg. 1 has AD00x, starting at location 1D600 write protection
+   MAC seg. 2 has 5400x, starting at location 28300 execution protection
+   MAC seg. 4 has 200x, starting at location 2D700 execution protection
+   MAC seg. 6 has 10000x, starting at location 2D900 execution protection
+   MAC seg. 7 has 10000x, starting at location 3D900 execution protection
+   MAC seg. 8 has 3800x, starting at location 4D900 execution protection
+   MAC seg. B has 400x, starting at location 51100 execution protection
+   MAC seg. C has 3700x, starting at location 51500 execution protection
+   MAC seg. D has 7400x, starting at location 54C00 write protection
+   MAC seg. E has 1000x, starting at location 16000 write execution protection
+   MAC seg. F has 500x, starting at location 1300 write execution protection
+
+   --------------------------------------------------------------------
+
+3. From nib file:
+
+   After you open the nib file with symbol table and data ranges, do 
+   AREAS,38[ and you will get the same table as you do r 0E0008,38
+   in ddt.
+
+
+
+
+                                     04
+                                  --------
+
+
+                          TYMNET INTERNAL USERNAMES
+                          -------------------------
+                          -------------------------
+
+
+Written by : Michael C. Sadler, HQ Network Staff Consultant
+      Date : August 26, 1986
+
+
+
+
+
+This document should clear up any questions about TYMNET internal usernames.
+If you have any questions on this, call 408/942-5043.
+ 
+ 
+1. ELF (Engine Load Facility) / LOADII
+ 
+     ELF and LOADII access two usernames to load nodes and slots within
+     a TYMNET type network.  The same usernames are used for dumps.  The
+     ELF machines need access to all kernel hosts for loading.  ELF also
+     needs to get access to TYMNET's public network for new code versions etc.
+ 
+     DLOAD - the username ELF and LOADII use to load and dump nodes
+ 
+     GATEWAY - the username ELF and LOADII use to load and dump slots
+ 
+     The access profiles for DLOAD and GATEWAY should have:
+        - origins as all the ELF hosts
+        - destinations as group 0 (to access all nodes, hosts and gateways)
+ 
+ 
+ 
+2. NETVAL (NETwork VALidation)
+ 
+     NETVAL lets users create and modify usernames, including setting
+     passwords and restricting access points in a TYMNET type network.
+ 
+     SYSMSG1 - the username NETVAL uses to update the Supervisor
+     Class/group Table
+ 
+     When a request is made to NETVAL to modify the definition of a
+     class or group (this is known as changing the Class/group table):
+ 
+        1. the updated entry is placed in the NETVAL Class/group table
+        2. NETVAL builds a circuit to each Supervisor (one at a time) to
+           update the Supervisor's Class/group tables
+        3. the SYSMGS1 username is used to build a aux circuit to the
+           Supervisor slave process called "SYSMGS1"
+ 
+     The access profile for SYSMSG1 should have:
+        - origins as the NETVAL and TMCS (see below) hosts
+        - destinations as all Supervisors
+ 
+ 
+     UN2 - the username NETVAL uses to update the SUpervisor MUD
+ 
+     When a request is made to NETVAL to modify a username in the CUD:
+ 
+        1. the NETVAL CUD is updated with the new entry information
+        2. an entry describing the change is placed in the NETVAL MUD update
+           file
+        3. the NETVAL MUD update process builds a circuit to all Supervisors
+           and updates all of the MUD's (all at the same time) with the new
+           information
+        4. the UN2 username is used to build a aux circuit to the Supervisor
+           slave process called "UN2"
+ 
+     The access profile for UN2 should have:
+        - an origin as the NETVAL host
+        - destinations as all Supervisors
+ 
+     NOTE: DO NOT USE A CLASS/GROUP TABLE DEFINITION IN UN2'S ACCESS PROFILE,
+           SINCE IF THE TABLE IS EVER CORRUPTED, NO CHANGES WOULD BE ABLE TO
+           BE MADE TO THE CUD.
+ 
+ 
+
+3. RAM (Raw Accounting Meger)
+ 
+     RAM builds a circuit to the account slave on the Supervisor
+     and pulls all accounting blocks.
+ 
+     ACCOUNT - the username ACCOUNT is used to build a aux circuit to the
+     Superivisor accounting slave.
+ 
+     The access profile for ACCOUNT should have:
+        - an origin as the RAM host
+        - destinations as all Supervisors
+
+ 
+ 
+4. TMCS (TYMNET Monitor and Control System)
+ 
+     TMCS accesses the following four network usernames:
+ 
+     PROBE - This username is not hard coded.  It is defined in the
+     configuration file, aka the "A" file.  This username gives TMCS
+     access to PROBE.
+ 
+     NETEVENT - This username is not hard coded.  It is also
+     placed in the configuration file.  This username gives
+     TMCS access to NEM.
+ 
+     NETPAT - This username is not hard coded.  It is placed
+     in the tym file of the slot.  This is the secondary user
+     name for logging into PROBE.
+ 
+     SYSMSG1 - If TMCS has $shutlink enabled, TMCS will update
+     all sleeping Supervisors shut link tables via the SYSMSG1 slave; TMCS
+     also talks to the Supervisor slave SYSMSG1 for the host greeting message.
+ 
+              The access profile for netevent should have:
+                 -origins as the TMCS host
+                 -destaination the NEM host
+ 
+              The access profile for sysmsg1 should have:
+                 - see configuration for NETVAL
+
+ 
+ 
+5. NEM (Network Event Monitor)
+ 
+     Builds a aux circuit to the Supervisor slave process called erlog.
+     NEM then records all messages sent from all nodes and host.
+ 
+     ERLOG - the username NEM uses to log into the Supervisor slave process
+     called " erlog"
+ 
+     NETEVOP - a utility on NEM that all "NEM" error message are sent
+ 
+ 
+              The access profile for ERLOG should have:
+                 -an origin as NEM host
+                 -destainations as all Supervisors
+ 
+ 
+              The access profile for NETEVOP should have:
+                 -an origin of the support persons consat
+                 -distination as the NEM host
+
+
+
+
+                                     07
+                                  --------
+
+
+                     VARIOUS VALUES IN THE 'NS' COMMAND                
+                     ----------------------------------
+                     ----------------------------------
+
+
+Question by : Stephen Wong, Int'l Tech Services
+Response by : Gail Bubsey, HQ Network Staff Consultant
+       Date : September 3, 1986
+
+
+
+
+
+Question:
+
+
+  1. In Node Code XRAY, using NS command, what is the
+     precise meaning of HWMO. Please give full description
+     including what is being counted etc.
+
+  2. On the same command output, what is the precise meaning
+     of HWMI, and also, CPSO, CPSI.
+
+  3. What is the precise meaning of  CODE DELAY, what should we
+     do if it exceeds a certain number ?  what should that
+     finite number be under normal circumstances ??
+
+  4. What is the precise meaning of  H-WARE DELAY, what
+     should we do if it always contain a big number in there ?
+     again, what does a big number signify ?  Should a good
+     machine show any number in this field ??
+  
+
+
+
+
+Response:
+
+
+Each link maintains counts for logical and physical CPS in and out.
+This is done by counting the number of logical, LRC, or physical, PRC,
+characters per record.  This is then added to the running count for
+each which is kept on a last minute basis.  The NS command shows the
+cumulative values for all links on a node with the logical characters
+in and out being massaged to reflect an average character per second
+count over that minute and are shown in the CPSI and CPSO fields.
+These are then compared to the high water mark fields, HWMI and HWMO,
+which are updated when appropriate.
+
+HWMO = High Water Mark Out
+
+HWMI = High Water Mark In
+
+CPSO = Characters Per Second Out
+
+CPSI = Characters Per Second In
+
+CODE DELAY = Sum of ((Buffer Delay + Sylvex-RTear Delay + Average Sylvex
+
+              Delay) * Appropriate % of Traffic for Link n)  
+
+              n = 1 through # of Links
+
+              value is in milliseconds
+
+              Time spent IN QUEUE, average sylvex delay, is the time 
+              spent waiting to be checksummed and moved to the input 
+              sector.  Time spent in RTEAR, sylvex-rtear delay, is the
+              time between getting to the input sector and beginning
+              to be torn down.  BUFFER delay reflects time spent waiting
+              to be made into a packet.  This last reflects delays caused
+              by windowsize limitations and backpressure restraints.
+
+HWARE DELAY = Sum of ((Average Transmission Time + Average Queue Time)
+
+              * Appropriate % of Traffic for Link n)
+
+              n = 1 through # of Links
+
+              value is in milliseconds
+
+              OUT QUEUE, average queue time, is time spent in the output
+              sector waiting to be transmitted.  This keeps track of the
+              delay caused by retransmitted packets.  This statistic is
+              not kept for SIO lines.  XMIT, average transmission time,
+              is the average time from when a character is taken from
+              the output sector until it can be acted upon by the
+              node at the other end of the link.
+
+TOTAL DELAY = CODE DELAY + HWARE DELAY
+
+              The only general guideline is that the TOTAL DELAY
+              should be less than or equal to 50 ms.
+
+              As long as there is traffic passing over a node's links,
+              there should be some value in these fields.  It is always
+              possible that very small amounts of traffic could cause the 
+              delays to be reflected as zero.  As always, the problem is in 
+              what constitues the definition of "excessive" values.
+
+              The Xray manual states that HWARE reflects delays caused by
+              windowsize and bandwidth limitations and retransmissions.
+              Excessive numbers in this field would suggest looking into
+              these factors on all of the node's links.
+
+
+
+                                     09
+                                  --------
+
+
+                     BETA TEST RELEASE OF PUBLIC OUTDIAL
+                     -----------------------------------
+                     -----------------------------------
+
+
+Written by : Gordon Smith, HQ Product Mktg. Mgr.
+      Date : September 4, 1986                 
+
+
+
+
+
+Yes, it is finally coming true.  Public Outdial will be ready for beta test
+in October and we're looking for beta test customers.
+
+
+
+WHAT IS PUBLIC OUTDIAL
+
+Public Outdial allows customers to share rotaries of Outdial ports and be 
+charged for Outdial calls on a usage sensitive basis, much like we do with
+indial.
+
+To deploy the service we are converting our existing 2400 bps rotaries to
+the new Consat/Outdial (version 6.01) code and the Trispeed 300/1200/2400
+bps autodial modems.  Once this conversion takes place, these rotaries
+will support both indial and outdial, i.e., each port on the rotaries can
+be used for either function.
+
+Outdial calls can be originated from either X.25 or async terminal interfaces.
+The latter includes all of our public indial rotaries, async private access
+ports, and async terminal concentrator devices.  Outdial calls can be
+made to any industry standard (Bell 103, Bell 212, or V.22 bis) modem set 
+up to receive async data calls.  Any async/ASCII device can be connected
+to the modem including printers, PCs, CRT terminals, and host computer systems.
+
+Making a Public Outdial call is a two step process.  The first step is logging
+into the Consat/Outdial rotary nearest your destination device.  This is done
+using the standard t "username:host number;password" login string. 
+(The host number is the Consat/Outdial host number you wish to be routed
+to.)  The second step is sending the Consat/Outdial interface the phone number
+you wish to call and any communication options (e.g., XON/XOFF flow control)
+you wish to set.  The Consat/Outdial interface will then dial the number
+to establish the connection.
+
+Outdial calls can be made to any location within the 48 contiguous States.
+(Attempts to make international calls will be rejected.)  A Public Outdial
+WATS rotary will also be provided, although not with the initial October
+beta test release.  Outdial calls can be originated from international locations
+if the customer has a Tymnet domestic account that we can bill to directly 
+and uses the 31069 address scheme.
+
+Public Outdial customers will be charged standard connect time (i.e., high, 
+medium, or low density with standard volume discounts) for their use of Outdial
+ports.  They will also be charged for the phone call itself.  The phone call
+charge will be approximately 115% of what the local BOC would charge for 
+the call plus $.05 per call to recover our billing processing costs.  We will
+be using the CCMI database to determine call costs.  (More detailed pricing
+information is provided below.)
+
+
+
+APPLICATIONS
+
+The benefits of using Public Outdial are essentially the same as indial - 
+the primary one being low cost communication.  What makes Outdial unique
+is the applications it is suited for.  Applications for which indial
+is not readily suited.  Some of these are:
+
+
+
+* Distribution of Time Critical Information to Remote Sites
+
+     It may be impractical to expect remote users to login repeatedly to
+     their host to check for urgent messages.  Outdial permits immediate
+     and efficient distribution.  For example, field service organizations
+     can use Outdial to notify their remote offices of problem situations
+     that need immediate attention.
+
+
+* Communication With Remote Automated Sites
+
+     Outdial can be used to distribute information to remote unmanned sites
+     or to sites where users are unable or unwilling to operate data commun-
+     ications equipment.  For example, Outdial can be used to monitor and
+     diagnose remotely located equipment without requiring the presence of
+     someone at the site.  Outdial can also be used by retail outlets to
+     download information into POS equipment, e.g., new prices, bad check
+     alerts, etc., and upload the day's receipts, inventory information,
+     and orders for additional products.
+
+
+* Deferral of Non-Time Critical Transmissions
+
+     When information isn't time critical, Outdial transmissions can be 
+     deferred to off-hours, allowing users to take advantage of both lower
+     communications costs and possibly lower processing loads on their host.
+
+
+* Terminal-to-Terminal Communications
+
+     Terminals or PC users can communicate with each other directly without
+     the expensive of WATS or long distance direct dial charges, or the added
+     cost of electronic mail store and retrieve systems.
+
+
+* Low Volune Host Connections
+
+     Some users may want to provide a host based service on Tymnet but may
+     not expect the traffic volumes needed to justify a dedicated leased 
+     line host interface.  For example, Outdial can provide a very cost-
+     effective network interface for PC bulletin board services.
+
+
+* Security-Call-Back
+
+     Although Public Outdial does not provide a complete security-call-back
+     capability itself, it can be used as the basis for such a system.  
+     Users with security-call-back devices or software at their host site
+     can use Public Outdial to perform the call-back function.  Users can
+     login to the device through Tymnet, identify themselves, and then be
+     called-back (using Outdial) at a pre-established phone number to ensure
+     that they are who they claim to be.
+
+
+
+FEATURES
+
+Some of the key features of Public Outdial include:
+
+1) 300/1200/2400 bps Transmission Speeds
+    Public Outdial supports 300 bps, 1200 bps, and 2400 bps asynchronous
+transmission speeds using the Bell 103, Bell 212, and CCITT V.22 bis industry
+standard signally methods.
+
+2) Autobaud
+    Public Outdial will automatically adjust to the signalling method of the 
+target Outdial devices, e.g., Bell 103 (300 bps), Bell 212 (1200 bps), or
+V.22 bis (2400 bps).
+
+3) A Variety of Communication Options
+    Public Outdial supports a number of important options including: flow
+control (XON/XOFF), half duplex, parity (even, space, or none), carriage return
+delay, and manual transmission speed selection.
+
+4) Human and Program Interfaces
+    Public Outdial supports command formats for both the human interactive
+user and automated program driver.  The first emphasizes user friendliness
+and feedback the other terse simplicity.
+
+5) Call Status Messages
+    Public Outdial provides complete call status information including 
+explanations such as "Number busy", "Call did not ring", and "No answer tone
+received" when connections can not be made.
+
+
+
+
+
+PRICING
+
+There are two basic types of Outdial sessions.  The billing for them differ.
+The first is Outdial sessions that are originated from dedicated interfaces,
+e.g., X.25, PAPs, or ATCs.  The second, is Outdial sessions that are initiated
+from public async indial rotaries.
+
+
+Origination from Dedicated Interfaces
+-------------------------------------
+
+In this case the user pays for the dedicated interface (e.g., an X.25 host
+interface), standard kilocharacters, standard connect time for their use 
+of the Outdial port, plus the Outdial phone call charge.  Session minimum
+and peak/off-peak rules are the same as for indial and are applied to
+the Outdial rotary where the Outdial phone call is made from.
+
+
+Origination from Public Indial Rotaries
+---------------------------------------
+
+In this case the user pays for standard connect time for their use of the
+indial port, standard kilocharacters, standard connect time for their use
+of the Outdial port, plus the Outdial phone call charge.  Users therefore
+will be charged for both indial and outdial connect time.  The session
+minimum for this type of session is 1 1/2 minutes and is applied to both
+connect times.  Peak/off-peak rates are determined by the time of day of 
+the indial origination point of the session.
+
+
+
+In addition, there is also a $50/mo Outdial Account Surcharge to cover the
+administrative overhead involved in setting up and maintaining all Outdial
+accounts.
+
+
+
+BILLING
+
+On the invoice that customers receive, connect time charges for the use of
+Outdial ports is combined with indial connect time charges.  Volume
+discounts are applied to the combined total.  Separate invoice items will
+show the sum of the Outdial phone call charges that the user incurs.
+
+Customer will also receive a separate MRD detailed report for the Outdial
+phone call charges.  This report includes such information as: session
+number (for reconciliation with the session MRD), time and date of call,
+length of call, number called, city/state called, calling Tymnet number,
+the charge, and the call completion status (e.g., number busy, no answer,
+successful).
+
+
+
+BETA TEST INFO
+
+Initial Service Availability
+----------------------------
+
+In October, when the beta test begins, Public Outdial will be available
+in five cities: San Jose, Dallas, Houston, New York, and Kansas City.  In 
+November we plan to add five more cities and then five more in December/
+January.  We will then continue to expand the service through its limited
+release phase.  Our selection of expansion cities will, of course, be
+influenced by customer requests.
+
+
+Beta Test Pricing
+-----------------
+
+During the beta test period, we will waive connect time charges for the use
+of Outdial ports and the Outdial account surcharge.  We will charge for 
+everything else, e.g., indial connect time, kilocharacters, Outdial phone
+calls, and the account charge.
+
+
+Submitting a Beta Request
+-------------------------
+
+If you have a customer who wants to participate in the beta test, submit 
+your request via the Ontyme exec program ":EXEC *** Beta.Request".  Please
+be as complete as possible in your responses to the exec program's questions.
+In particular, we'd like to know as much as possible about the customer's
+application and intended configuration.  We will respond to your request 
+within a couple days.  If you have questions or would like to discuss your
+request, fell free to Ontyme me directly (NSMS.G/Smith) or call (x5214).
+
+
+
+OTHER THINGS YOU WILL NEED TO KNOW
+
+
+1. Outdial sessions can NOT be originated from IBM protocol host interfaces
+(e.g., CMT, 3270 BSC or SNA/SDLC) or from Async Tymcom interfaces.  We intend
+to support these in the future but have no definite plans at this time.
+
+2. Technical documentation on Outdial can be found in the CONSAT ERS 
+(dndspec:33)consat.ers.  Public Outdial User Documentation is in the process
+of being prepared.
+
+3. Some additional billing  details:
+
+    * If an Outdial phone call is not answered, i.e., if the number is busy 
+      or there is a ring-no-answer, we do not charge for the phone call.
+      We will, though, charge for everything else - connect time(s) and
+      kchars.
+
+    * If an Outdial port is not available when the user logs in, we do not
+      charge anything for their attempt.
+
+    * If an Outdial phone call is answered, the eventual termination of that
+      call will terminate the session.  In other words, we can not bill 
+      for multiple completed calls within the same session.
+
+
+
+                                     14
+                                  --------
+
+
+                       TECH ALERT ON SWITCHER CRASHES                
+                       ------------------------------
+                       ------------------------------
+
+Written by : Carl Langdon, Mgr. Network Support Unit
+      Date : September, 1986
+
+
+
+
+
+SWITCHER CRASHES WHICH OCCUR WITH CRASH TYPE 2063 COULD BE CAUSED BY A 
+NEIGHBORING TYMSAT !!!
+
+IF YOU SEE THIS PROBLEM, REFER TO THE NEXT PAGE FOR SANDRA NILLUKA'S
+ARTICLE DESCRIBING HOW TO DETERMINE WHICH TYMSAT CAUSED THE CRASH.
+
+ONCE THE TYMSAT IS IDENTIFIED, IT SHOULD BE UPGRADED TO SOLO CONSAT
+VERSION 5.11.  THIS IS A TEMPORARY WORKAROUND WHICH WILL STOP
+THE SWITCHER CRASHING.
+
+BERYL AGUA`S PROJECT IMPEMENTATION GROUP HAS A CODE GENERATOR ON
+CALL.  NETWORK CONTROL HAS THE PAGER NUMBER FOR THE CODE GENERATOR.
+
+SIMULATANEOUSLY, A PROJECT IS UNDERWAY TO UPGRADE THE REMAINING
+TYMSATS IN THE PUBLIC NETWORK.  WE WILL NOW INCREASE THE PRIORITY
+OF THIS PROJECT ACCORDINGLY.
+
+
+
+
+                                     15
+                                  --------
+
+
+                             NODECODE CRASH 2063
+                             -------------------
+                             -------------------
+
+
+Written by : Sandra Nilluka, HQ Network Staff Consultant
+      Date : September 5, 1986
+
+
+
+
+
+***************************************************************************
+*                          T E C H   A L E R T                            *
+*                        S. Nilluka/STS 09/05/86                          *
+***************************************************************************
+
+SYMPTOM:  Nodecode Crash 2063
+
+PROBLEM:  A logic bug in nodecode version 5.xx causes nodecode to crash
+          with code 2063 in the following situation:
+            A host interface node with rebuild has sent a rebuild sequence
+            number to the terminal (origination) node, during circuit
+            initiation.  The origination node's neighbor detects that the
+            origination does not support rebuild, and thus removes the
+            data.  The removal process has a logic bug that causes this
+            node to think the rebuild message is too small, and the node
+            then crashes for a bad rebuild message.
+          NOTE:  This has been detected only in switcher nodes with Solo
+          Tymsat version 20405 neighbors.  Please ontyme *** Nodecode to
+          advise of neighbor versions other than 20405.
+
+SOLUTION:  None; the logic bug is not yet resolved.
+
+CIRCUMVENTION:  Identify the neighbor causing this node to invoke the
+          bad logic, and upgrade the neighbor to support rebuild.  If the
+          neighbor is Solo Tymsat 20405, upgrade to Solo Consat 20511 with
+          rebuild support.  If the neighbor is Isis with nodecode 105xx,
+          add rebuild support.  Please escalate other cases to *** Nodecode.
+          NOTE:  Contact P.I. for upgrade of public network nodes.
+
+          To identify the neighbor, logon to Xray in the Switcher.  Issue
+          the DC command, to display the crash tables.  Look at the crash
+          detail (there are two entries,) first crash and last crash for a
+          crash code 2063.  If found, look at register 0B (11) in the user
+          register set.  It contains the link number in hex of the neighbor.
+          Then issue the ND command, for the node description.  Look at the
+          LINE/LINK data, for a matching link number, again in hex.  The
+          neighbor node for that link number is the one to be upgraded.
+          NOTE:  5-digit neighbors are displayed as 4-digits; the first
+          digit is dropped.
+
+          To identify the version of the neighbor, snap the node in Probe
+          or TMCS.  Then, arrange for the node to be upgraded, accordingly.
+
+EXAMPLE:
+------------------------------------------------------------------XRAY
+**X-RAY** NODE: 6631  HOST: 3234  TIME: 248:21:35:53
+>dc
+
+CRASH SUMMARY TABLE
+TIME           CC   TYPE  PSW   ADDRESS
+248:15:22:15  0010  2063  67F2  000139FE 
+248:12:47:58  0009  2063  67F2  000139FE 
+247:15:45:33  0008  2063  67F2  000139FE 
+247:15:10:29  0007  2063  67F2  000139FE 
+247:14:48:09  0006  2063  67F2  000139FE 
+245:18:47:43  0005  2063  67F2  000139FE 
+245:18:40:01  0004  2063  67F2  000139FE 
+245:14:16:47  0003  2063  67F2  000139FE 
+245:13:54:00  0002  2063  67F2  000139FE 
+245:13:47:44  0001  2063  67F2  000139FE 
+
+CRASH DETAIL TABLE
+TIME           CC   TYPE  PSW   ADDRESS <---------------detail for FIRST crash
+245:13:47:44  0001  2063  67F2  000139FE 
+                      |------------------------------------crash code IS 2063
+
+REGISTER SET 0:
+000067FA 0001489A 00000024 0000FFFF 00000414 00000001 FFFFFFFA 00005372 
+00015510 000067FA 00004000 00006202 01002690 00000B8C 000067F2 0001086E 
+
+USER REGISTER SET:
+FFFFFFFF FFFFFFFF 000001DC 0000026F 0000003B 0000001E 00001A00 000001A0 
+000139E6 000139D4 00000079 00000008 00020605 FFFFFFFE FFFFFFFE 00004484 
+                              |-------------user reg. 0b(11) contains link# 8
+MAC REGISTERS (300-35F):
+07903790 08D0B130 0BC13F90 00000000 00000000 00000000 0FF28F90 0FF38F90 
+0FF48F90 0FF58F90 00000000 01002690 01E1FC90 07321B30 00F00610 00000000 
+00000000 FFC00BA4 7FC080EC FFF00BA4 001FFFFF FFC00000 FFFF0000 FFFFFFFF 
+
+TIME           CC   TYPE  PSW   ADDRESS <---------------detail for  LAST crash
+248:15:22:15  0010  2063  67F2  000139FE 
+                      |------------------------------------crash code IS 2063
+REGISTER SET 0:
+000067FA 0001391C 00000022 0000FFFF 00000400 00000001 FFFFFFFA 00007769 
+00015530 000067FA 00004000 00006202 01002690 00000B8C 000067F2 0001086E 
+
+USER REGISTER SET:
+FFFFFFFF FFFFFFFF 000000DC 000000BD 0000001B 0000001C 00001A00 000001A0 
+000139E6 000139D4 00000079 00000008 00020685 FFFFFFFE FFFFFFFE 00004484 
+                              |-------------user reg. 0b(11) contains link# 8
+MAC REGISTERS (300-35F):
+07903790 08D0B130 0BC13F90 00000000 00000000 00000000 0FF28F90 0FF38F90 
+0FF48F90 0FF58F90 00000000 01002690 01E1FC90 07321B30 00F00610 00000000 
+00000000 FFC00BA4 7FC080EC FFF00BA4 001FFFFF FFC00000 FFFF0000 FFFFFFFF 
+
+**X-RAY** NODE: 6631  HOST: 3234  TIME: 248:21:36:00
+>nd
+
+NODE  KHOST  VERSION   H-WARE   S-WARE  SUPR   MEMORY
+6631  3234  00000506   RESTART  RESTART  03    1024KB
+
+PORTS  PASSTHRUS  ALNK  TLNK  XLNK   LINES  SYNC  SIO
+0000    0017      0009  0009  0000    0016  0016  0000  
+
+NODE FIRST CAME UP AT 242:11:17:54    NODE LAST CAME UP AT 248:15:22:51
+
+LAST CRASH:     TIME       CC   TYPE  PSW   ADDRESS
+            248:15:22:15  0010  2063  67F2  000139FE 
+
+**LINE**  ***--LINK--***    LINE    LINK  LINE   LINK  LINE          LINE
+NO. TYPE  NEIG  NO. TYPE    STATUS  WSIZ  SPEED  CRQS  TIME ATT/DET  ERRATE
+00  SYNC  4134  01  TII     UP      0008   9.6   0002  248:15:22:44
+01  SYNC  4225  07  TII     UP      0008   9.6   0005  248:15:22:41
+02  SYNC  7453  08  TII     UP      0008   9.6   0004  248:15:22:42  *    
+                 |------------------------------ linK #8 is for neighbor 7453
+03  SYNC  6635  00  TII     UP      0008   9.6   0005  248:15:22:44
+04  SYNC  6634  02  TII     UP      0008   9.6   0002  248:15:22:44
+05  SYNC  3106  03  TII     UP      0008   9.6   0007  248:15:22:42
+06  SYNC  4726  06  TII     UP      0008   9.6   0015  248:17:27:04  *    
+07  SYNC  4117  05  TII     UP      0008   9.6   0009  248:15:22:43
+08  SYNC  3516  04  TII     UP      0008   9.6   0005  248:15:22:43
+09  SYNC                    UNUSED
+10  SYNC                    UNUSED
+11  SYNC                    UNUSED
+12  SYNC                    UNUSED
+13  SYNC                    UNUSED
+14  SYNC                    UNUSED
+15  SYNC                    UNUSED
+TIILNK NEIGHBORS DOWN - ZIP
+
+-------------------------------------------------------PROBE (or TMCS)
+:n 7453
+:VERSION 20405 TYPE 9 CRASH 3 UP 2003 <----------ver 20405 is Solo Tymsat
+AVAILABLE PASSTHROUGHS 512
+HOST STATUS
+ 1620 ANSWERED   0 IIX-N
+LINK STATUS
+ 0  6631  9.6
+
+
+
+Because this neighbor is Solo Tymsat 20405, you would arrange for upgrade
+to Solo Consat 20511 with rebuild support.  If the neighbor is Isis with
+nodecode 105xx, you would arrange to add rebuild support and would ontyme
+*** Nodecode of the neighbor's version.
+
+
+
+                                     18
+                                  --------
+
+
+                            LEAVE X.25 BUFTRC OFF
+                            ---------------------
+                            ---------------------
+
+
+Written by : Carl Langdon, HQ Mgr. Network Support Unit
+      Date : September, 1986
+
+
+
+
+
+THE BUFFER TRACE `BUFTRC` PARAMETER IN X.25 SHOULD BE LEFT DISABLED
+UNLESS SPECIFICALLY APPROVED BY NTD OR HQ SOFTWARE TECHNICAL
+SERVICES.
+
+THE DEFAULT VALUE IS DISABLED (OFF);
+
+BUFFER TRACE `BUFTRC` WILL NOT BE ON UNLESS IT IS SPECIFICALLY
+ENABLED IN THE COMMAND FILE.
+
+LEAVING BUFFER TRACE DISABLED (OFF) WILL IMPROVE X.25 PERFORMANCE BY 
+DECREASING THE OVERHEAD.
+
+THANKS FOR YOUR CONFORMANCE TO THIS POLICY.
+
+
+
+
+                                     19
+                                  --------
+
+
+               SIMPLE FIXES FOR SOME COMPLICATED X25 PHENOMENA
+               -----------------------------------------------
+               -----------------------------------------------
+
+
+Written by : Jerry Lucas, HQ Network Staff Consultant
+      Date : September 11, 1986
+
+
+
+
+
+                       
+
+     MANY OF YOU HAVE PROBABLY AT SOME TIME WITNESSED THE COMPLICATED X25
+PHENOM - THE PROBLEM THAT YOU'VE NEVER SEEN BEFORE, THAT YOU'RE SURE IS
+NOT OUR PROBLEM, THAT MUST BE THE PROBLEM OF THE OTHER SIDE.  THEN THE
+OTHER SIDE LOOKS AT IT AND DECLARES THAT IT'S A TYMNET PROBLEM.
+
+     THE PROBLEM CAN TAKE ON VARIOUS FORMS.  DATA MAY BECOME GARBLED OR
+LOST.  THE LINK MAY DROP INTERMITTENTLY.  INDIVIDUAL USERS MAY BE GETTING
+PACKET LEVEL RESETS, SEEMINGLY AT RANDOM INTERVALS.  OR OBVIOUS PROTOCOL
+VIOLATIONS MAY SHOW UP IN TRACES.
+
+     IF YOU FIND YOURSELF MIRED IN THIS SORT OF QUICKSAND, IT IS IMPORTANT
+TO KNOW WHAT KINDS OF THINGS TO TRY FOR THE MOST EFFECTIVENESS.  
+
+     ALTHOUGH ALL OF THE PROBLEMS DESCRIBED ABOVE SEEM QUITE DIFFERENT, THEY
+ALL STEM FROM A COMMON ROOT, THE FRAME LEVEL BUG.  DEPENDING ON THE METHOD
+OF FRAME LEVEL RECOVERY, THE BUG CAN PROPAGATE TO THE PACKET LEVEL AND A USER
+CAN EITHER SEE LOST DATA OR BE DROPPED.  OR TOTAL LINK RESET CAN OCCUR.
+AS FAR AS WHAT TO DO ABOUT IT, HERE ARE SOME THINGS TO CHECK:
+
+
+   1. IF THE FRAME TRACE SHOWS A LOT OF RETRANSMITTED FRAMES WITH THE POLL
+      BIT SET (PROBABLY ANSWERED BY REJ FRAMES) THEN THE T1 TIMER FOR THE
+      SIDE DOING THE RETRANSMITTING SHOULD PROBABLY BE INCREASED.  THE LINE
+      SHOULD BE CHECKED ALSO.
+
+   2. IF YOU GET INTO THE SLOT IN NAD AND DO :R SIOER1,2  -  IF THIS GIVES
+      YOU A NONZERO NUMBER, THEN YOU NEED THE PATCH (JLUCAS:25,33,54)SIOCHK.
+      301.
+
+   3. GET INTO THE SLOT IN NAD AND DO :R T2ERR,2  -  IF THIS GIVES A
+      NONZERO ANSWER, THEN YOU NEED THE PATCH (JLUCAS:25,33,54)SIOLK1.301.
+
+   4. GET INTO THE SLOT IN NAD AND DO :R SM.11,2  -  IF THIS GIVES A NONZERO
+      ANSWER THEN YOU NEED THE PATCH (JLUCAS:25,33,54)EMERY.301.
+
+
+
+
+     I HAVEN'T SUPPLIED IN THIS TIP THE RATIONALE BEHIND THESE FIXES BUT I
+WOULD BE HAPPY TO DO THIS ON AN INDIVIDUAL BASIS FOR THOSE WITH SPECIFIC
+PROBLEMS.  
+
+     IF YOU DO GET THAT COMPLICATED PROBLEM, LOOK FOR THE SIMPLE FIXES
+FIRST, I.E. CHECK THE ABOVE.
+
+
+
+                                     20
+                                  --------
+
+
+                         RELEASE OF TYMVALIDATE 8.10
+                         ---------------------------
+                         ---------------------------
+
+
+Written by : Bob Fultz, Network Services & Marketing Support
+      Date : August 30, 1986
+
+
+
+
+
+Normally, a new release of TYMVALIDATE wouldn't warrant much attention.
+However, this time is different.  We need your help!
+ 
+TYMVALIDATE currently runs on the 940s, an old computer.  The 940s have
+served Tymnet well and faithfully over many years.  But, technological
+progress and economics makes it necessary to retire them.  Thus, all
+programs running on them must be moved to other systems, including
+TYMVALIDATE.  This means that EVERY Tymnet customer will be moved to the
+new system.  This is not an optional upgrade.
+ 
+TYMVALIDATE 8.10 will run on the PDP-10s.  During the past 2 months, the
+Validations department and 5 beta test sites have been verifying the new
+system.  The code has proven itself to be stable and is ready for general
+release.
+ 
+Your help is required to make this conversion go as smoothly as possible.
+Starting October 1, 50 new TYMVALIDATE User's Guides will be distributed to
+each District Office.  The Guides should arrive by October 8.  You will be
+responsible for ensuring that a User's Guide is placed in the hands of the
+appropriate person at each customer.  If your office needs more than 50,
+let me know by September 26.
+ 
+Conversion to the new system will take place October 18.  That's a
+Saturday, so any service disruption should be minimal.  Your customers
+should have the User's Guide by October 17.
+ 
+There are some minor changes in the new system, but on the whole, your
+customers should not have any trouble picking it up.  I suggest you have
+your customers execute the HELP and INSTRUCTIONS commands in TYMVALIDATE on
+October 19 to familiarize themselves with the changes.
+ 
+    a.   The new TYMVALIDATE will display upper and lower case characters.
+    b.   Elimination of the two step logoff process.  QUIT now returns you
+         to the network prompt, "please log in:".
+    c.   Elimination of the two step logon process.  The mailname and
+         password will take you directly to TYMVALIDATE, bypassing the
+         PDP-10 operating system.
+    d.   Because of (c), there is a new command in TYMVALIDATE, "CHANGE
+         MAILNAME PASSWORD".  It performs the same function as the PASSWORD
+         command at the 940's operating system.
+    e.   In order to make TYMVALIDATE more user friendly and consistent,
+         some command names have been changed:
+ 
+         Old                      New
+         ---                      ---
+         LIST NAMES               LIST USERNAMES
+         LIST USER                LIST USERNAME INFORMATION
+         CHECK NAME               CHECK USERNAME
+         NEW USER                 NEW USERNAME
+         CHANGE USER NAME         CHANGE USERNAME
+         CANCEL USER              CANCEL USERNAME
+         (at operating system)    CHANGE MAILNAME PASSWORD
+ 
+         Because TYMVALIDATE commands may be abbreviated to a unique
+         string, customers should experience changes on LIST NAMES, LIST
+         USER, and CHECK NAME only.  All other abbreviations stay the same.
+ 
+    The User's Guide has been re-written to reflect these changes.
+ 
+Thank you very much for your help.  Let me know if you need any special
+assistance.
+
+
+
+                                     22
+                                  --------
+
+
+                         PROGRAMMING 801B DATA SCOPE
+                         ---------------------------
+                         ---------------------------
+
+
+Written by : John Bell, Communications Consultant
+      Date : September 08, 1986
+
+             
+
+
+
+THE FOLLOWING IS A SHORT DOCUMENT ON HOW TO PROGRAM THE SCOPE FOR 3270 BISYNC.
+THIS KIND OF THING IS GOOD FOR TESTING TIF AND HIF TIMEOUTS FOR DIFFERENT
+SITUATIONS, MAKING SURE THE CODE WILL RUN, ETC.  JUST THOUGHT YOU MIGHT
+BE INTERESTED.  I USED IT SEVERAL TIMES TO TEST PATCHES, AND ALSO WHEN THE
+CUSTOMER SAYS HE THINKS THERE MIGHT BE A PROBLEM WITH OUR CODE I RUN DIFFERENT
+PROGRAMS TO ANSWER POLLS, ISSUE DEVICE ENDS TO GET MENU SCREENS, ETC.  HOPE
+YOU FIND IT USEFUL IN THE FUTURE.
+
+
+
+=====================================================================
+
+THE FOLLOWING IS HOW TO PROGRAM THE HALCYON 801B DATA SCOPE IN 3270
+BISYNC.
+
+1. POWER ON SCOPE; YOU WILL SEE MENU:
+
+SELECT DESIRED PAGE
+
+0: DATA/STATUS PAGE
+1: LINE/DISPLAY PAGE
+2: START/STOP PAGE
+3: COUNTER PAGE
+4: PRINTER/POLL/BERT
+5: AUTOMONITOR
+6: SOFTWARE RESET
+
+CLEAR TO ENTER SELF TEST
+
+
+2. SELECT "1" BY PRESSING 1 ON THE KEYPAD.  THE SCREEN WILL DISPLAY LINE,
+   DISPLAY, AND MONITOR PARAMETERS.  
+
+3. THE CURSOR WILL APPEAR IN THE PROTOCOL FIELD (AT POWER UP THIS DISPLAYS
+   "ASYNC").  PRESS "ENTER" ONCE TO DISPLAY "SYNC".  ALL THE OTHER DEFAULTS
+   ON THIS PAGE APPLY.
+
+4. PRESS "PAGE" ON THE KEYPAD TO RETURN TO MAIN MENU AFTER THE LINE PARAMETER
+   "SYNC" IS SET.
+
+5. AT THIS TIME YOU ARE READY TO SET THE POLLING PROGRAMS.  PRESS "4"
+   ON THE KEYPAD TO SELECT PRINTER/POLL/BERT ROUTINES.  AT THIS TIME,
+   YOU WILL SEE:
+
+    FUNCTION:    POLL
+
+SIM:    DTE        DISPLAY:    PROG
+
+CMD    OPERAND                  NEXT
+---------------------------------------
+0 NOP                           _or_
+1 NOP        			_or_
+2 NOP				_or_
+  .
+  .
+  .
+  .
+9 NOP				_or-
+
+
+
+6. POSITION THE CURSOR BETWEEN THE "0" AND THE FIRST "NOP" ON THE FIRST
+   ROW OF THE PROGRAM USING THE CURSOR CONTROL KEYS AT THE LOWEST ROW
+   ON THE KEYPAD.
+
+7. PRESS "ENTER" ON THE KEYPAD UNTIL THE CMD FIELD IS SET TO THE DESIRED 
+   OPERATION.
+
+8. POSITION THE CURSOR IN THE OPERAND FIELD.  THEN HIT "CLEAR" KEY TO
+   INITIALIZE THE LINE.  "CLEAR" MUST BE ENTERED AT ANY FIELD WITH THE
+   DARKER HIGHLIGHTING BEFORE YOU CAN INPUT DATA.
+
+9. NOW YOU MAY ENTER WHAT YOU WISH THE SCOPE TO LOOK FOR OR TO TRANSMIT.
+   ALL CHARACTERS ARE ENTERED IN HEX REPRESENTATION OF EBCDIC.
+
+10. WHEN FINISHED ENTERING THE DATA ON THAT LINE, PRESS "ENTER" TO SAVE THE
+    DATA LINE.  THE CURSOR WILL JUMP TO THE NEXT FIELD.
+
+11. HERE, YOU MUST TELL THE PROGRAM WHICH LINE TO EXECUTE NEXT.  THERE ARE
+    TWO CHOICES IN THE NEXT FIELD FOR MULTIPLE BRANCHES.  FOR THE MOST
+    PART, ONLY THE FIRST "NEXT" FIELD WILL BE USED FOR THE SIMPLE PROGRAMS.
+    REMEMBER, PRESS "CLEAR" BEFORE ENTERING THE LINE NUMBER.  NOW YOU ARE
+    READY TO SCROLL TO LINE TWO AND BEGIN THE PROCESS AGAIN.
+
+12. WHEN YOU ARE FINISHED INPUTTING THE PROGRAM, MOVE THE CURSOR TO THE
+    "DISPLAY" FIELD AND PRESS "ENTER". THE FIELD WILL CHANGE TO "MENU":
+
+      FUNCTION:    POLL
+
+SIM:    DTE      DISPLAY:    MENU
+
+     SYNC TOP LEVEL MENU
+
+      0. SAVE/RECALL MENU
+      1. 3270 MENU
+      2. X.25 MENU
+
+
+
+     SELECTION:_
+
+
+13. PRESS "0" IF YOU WISH TO STORE YOUR PROGRAM.  AT THE SAVE/RECALL MENU,
+    PRESS "2" TO SAVE USER PROGRAM.
+
+14. ENTER THE PROGRAM NUMBER THAT YOU WISH TO NAME YOU PROGRAM.
+
+15. WHEN THE SAVE IS COMPLETED, PRESS "1" TO GET BACK TO TOP LEVEL MENU.  AT
+    THE SYNC TOP LEVEL MENU, PRESS "1" TO GET BACK TO THE 3270 MENU.  AT
+    THE 3270 MENU, PRESS "PAGE" TO GET TO UPPERMOST MENU WHERE YOU FIRST
+    STARTED AT POWER UP.  NOW YOU ARE READY TO RUN THE PROGRAM.
+
+16. AFTER INSTALLING THE "Y" RIBBON CABLE PROPERLY (SEE HARDWARE SET-UP AT
+    BOTTOM OF PAGE), PRESS "4" AT THE INITIAL POWER UP MENU TO SELECT 
+    PRINTER/POLL/BERT.
+
+17. AT THE 3270 MENU, PRESS "0" TO REACH THE SAVE/RECALL MENU.
+
+18. AT THE SAVE/RECALL MENU, PRESS "3" TO LOAD THE PROGRAM THAT YOU HAVE
+    PREVIOUSLY STORED. THE SCOPE WILL PROMPT YOU FOR THE NUMBER OF THE 
+    PRE-STORED PROGRAM.
+
+19. YOU ARE READY TO RUN THE PROGRAM.  PRESS "SEND" TO BEGIN PROGRAM.
+
+EXAMPLE PROGRAM
+===============
+
+      FUNCTION:    POLL
+
+SIM:    DTE    DISPLAY:    PROG
+
+ CMD    OPERAND                         NEXT
+--------------------------------------------
+0 RECV  SP SP " " EQ FF                 1or_
+1 XMIT  SY SY ET FF                     2or_
+2 RECV  SP SP " " EQ FF                 3or_
+3 XMIT  SY SY SX SP SP A B EX BC BC FF  4or_
+4 RECV  SY SY NK FF                     5or_
+5 RECV  SY SY ET FF                     0or_
+
+
+IF WE WERE TO BE CABLED TO A SYNC PORT OF A 3270 TIF WITH A C.U. ADDRESS
+40 DEVICE ADDRESS 40 THE PROGRAM WOULD WORK IN THE FOLLOWING WAY:
+
+1. THE TIF SENDS GEN POLL TO C.U. 40 (CMD 0)
+
+2. THE SCOPE, SEEING THE GEN POLL, TRANSMITS EOT (CMD 1)
+
+3. THE TIF SENDS GEN POLL AGAIN (CMD 2)
+
+4. THE SCOPE SENDS DATA FROM 40 40 WITH BAD BCC (CMD 3)
+
+5. THE TIF WOULD NAK DUE TO BAD BCC (CMD 4)
+
+6. GETTING NO RESPONSE TO THE NAK FROM THE SCOPE, THE TIF THEN SENDS EOT.
+
+IN THIS WAY, WE CAN TEST THE TIMER THAT EXISTS BETWEEN THE SENDING OF A NAK
+AND THE SENDING OF AN EOT ON AN UNANSWERED NAK.
+
+HARDWARE SET-UP
+===============
+
+1. SET THE SCOPE FOR SIM DTE ON THE SWITCH AT THE BOTTOM OF THE SCOPE'S
+   FRONT PANEL.
+
+2. INSTALL A CROSSOVER CABLE BETWEEN THE SCOPE AND THE ENGINE.  (THEOR-
+   ETICALLY YOU SHOULD BE ABLE TO SET THE SCOPE FOR SIM DCE AND LEAVE OUT
+   THE CROSSOVER CABLE BUT I HAD SOME TROUBLE WITH THIS CONFIGURATION).
+
+3. SINCE THE SCOPE CANNOT PROVIDE CLOCKS, LET THE ENGINE PROVIDE BOTH
+   TRANSMIT AND RECIEVE CLOCKS ON THE SYNC PORT YOU ARE USING.  
+
+4. I ALWAYS PUT A BREAKOUT BOX BETWEEN SCOPE AND ENGINE BECAUSE MINI-FOX
+   801B SCOPES HAVE SHOWN SOME UNRELIABILITY REGARDING FRONT PANEL
+   SIGNAL STATUS L.E.Ds.  YOU SHOULD BE READY TO BEGIN.
+
+
+
+                                     25
+                                  --------
+
+
+            BETA, LIMITED AND FULL RELEASE REPORTS FOR SEPTEMBER
+            ----------------------------------------------------
+            ----------------------------------------------------
+
+
+Written by : John Gomes, Mgr. Tymnet Quality Assurance
+      Date : September 17, 1986
+
+
+
+
+
+The  Monthly  Beta,  Limited  and Full Release  reports  are  now 
+available  for  your review.   Highlights for this period are  as 
+follows:
+
+
+NEW PRODUCTS IN BETA TEST:
+
+     -  SUPERVISOR  42.01
+
+
+NEW PRODUCTS IN LIMITED RELEASE:
+
+     -  MUX  4.00
+
+
+NEW PRODUCTS IN FULL RELEASE:
+
+     -  ALCC  Async Term to Sync Host Connection  1.00
+     -  ALCH  ALC 2946 Extn Cord Host Interface  1.00
+     -  ALCP  Packet Assembler/Disassembler  1.00
+     -  ALCT  ALC 2946 Extn Cord Terminal Interface  1.00
+     -  TII  Node Code  5.10
+     -  VIP HIF  2.02
+     -  VIP TIF  2.02
+
+
+PRODUCTS NO LONGER SUPPORTED
+
+     -  CMTU 1.05 (Beta)
+        Customers must upgrade to beta version 1.06 by October 1.  
+        New customers must be approved before installation.
+
+
+NUMBER OF PRODUCTS AND SITES
+
+     -  38 Beta Test Products
+     -  146 Beta Test Sites
+     -  10 Limited Release Products
+     -  26 Limited Release Sites
+
+
+The complete beta,  limited and full release reports can be found 
+on  System  56  in  the TECHREF directory.   File  names  are  as 
+follows:
+
+     -  BETA.SEP  (Beta Test Report)
+     -  FULLIM.SEP  (Full and Limited Release Reports)
+
+SITES  WHICH DO NOT HAVE THE PROPER APPROVALS AND A  SIGNED  BETA 
+TEST AGREEMENT, WILL NOT BE INSTALLED.  To receive approval for a
+Beta Test Site, use :EXEC *** BETA.REQUEST.  To receive  approval 
+for a Limited Release Site, use :EXEC *** LIMITED.REQUEST
+
+If  you require additional information on the beta test  program, 
+please  read the Beta Test Guidelines (***  BETA.TESTGUIDELINES), 
+call me at 408-942-5142, or send me an Ontyme - QSATS.J/GOMES.
+
+Thank you for your continued support.     
+
+
+
+                                     27
+                                  --------
+
+
+               TMCS VERSION 10.10 - MEMORY ESTIMATION FORMULA
+               ----------------------------------------------
+               ----------------------------------------------
+
+
+Written by : Shiao-Ming Tsui, HQ Network Staff Consultant
+      Date : September 18, 1986
+
+
+
+
+
+The following formula can be used to estimate the memory requirements
+for TMCS version 10.10 code generation with all options ($enable
+facilities in TMCS 10.10 configuration file).  It should give you
+a number very close to that obtained by code generation.  The actual
+slot size will be varied depending on the network configurations.
+For disk estimation on TMCS 10.10, please still refer to (SOURCE)TMRE.
+
+
+BASE CODE                                    447   K
+       
+  $enable CLUSTERNODES                  +     14.4 K
+  
+  $enable ALARM                         +     48.9 K
+
+  $enable RELOAD                        +     92   K
+  
+  $enable SHUT_LINK_TABLE_MAINTENANCE   +      6.3 K
+
+  $enable MULTIPLE_SHUT_LINK_TABLE_     +      2.6 K
+          MAINTENANCE                  
+
+  $enable TYMNETONE                     +     14.7 K
+
+  Per TMCS user                         +      9.1 K
+
+  Per Supervisor                        +      2.8 K
+
+  Per 1000 hosts                        +     14.3 K
+    
+  Per 1000 nodes                        +     18.6 K
+    
+
+
+
+                                     28
+                                  --------
+
+
+       PATCH TO BRING UP THE LINK IMMEDIATELY AFTER RECEIVING SABM
+       -----------------------------------------------------------
+       -----------------------------------------------------------
+
+
+Written by : James Wang, HQ Network Staff Consultant
+      Date : September 19, 1986
+
+
+
+
+
+   SYMPTOM: ON X.25/X75 HDLC LAPB, TYMNET's XCOM INTERFACE
+            DOESN'T BRING UP THE LINK AFTER RESPONDING UA
+            TO THE SABM RECEIVED FROM THE LINK.
+
+   CCITT  : ON LAPB, THE LINK SHOULD BE UP AFTER SABM-UA EXCHANGE.
+
+   TYMNET : TYMNET's X.25/X75 INTERFACE HANDLES THE LINK SET-UP MORE
+            CAUTIOUSLY. AFTER THE SLOT IS RESTARTED, OUR XCOM WILL SEND
+            SABM OUT. IF THEN WE RECEIVE SABM, WE RESPOND UA.
+            BUT, WE DO NOT BRING UP THE LINK AT THIS TIME DUE TO 
+            REASONS SUCH AS 'OUR UA MAY BE LOST'. WE WILL NOT BRING
+            UP THE LINK UNTIL WE RECEIVE 'UA' RESPONSE FOR OUR SABM.
+
+            MOST CUSTOMERS HAVE NO PROBLEM TO HAVE THEIR X.25 TALK TO
+            OUR XCOM HDLC LAPB. BUT, SOME CUSTOMERS EXPRIENCE THE ABOVE
+            SYMPTOM JUST BECAUSE OUR XCOM DOESN'T BRING UP THE LINK
+            IMMEDIATELY AFTER RESPONDING UA FOR THE SABM RECEIVED FROM 
+            THE LINK.
+   PATCH  : (PNTS:37) SABM.PAT. THIS PATCH FORCES THE XCOM TO BRING UP
+            THE LINK IMMEDIATELY AFTER RESPONDING UA FOR THE SABM
+            RECEIVED FROM THE LINK. THIS PATCH CAN BE USED FOR VERSION
+            3.00, 3.01.
+
+   NTD    : NTD PLANS TO RELEASE A SIMILAR PATCH FOR VERSION 3.01.
+
+   ***********************************************************************
+
+   ******************** ATTENTION ****************************************
+
+   IF YOU HAVE THIS PROBLEM, BRINGING UP THE LINK WITH THE ABOVE
+   SYMPTOM, PLEASE ASSEMBLE THE PATCH (PNTS:37) SABM.PAT FOR A TEMPORARY
+   FIX. ANY QUESTIONS, PLEASE FEEL FREE TO CALL STS. THANKS.
+   ***********************************************************************
+
+
+
+                                     29
+                                  --------
+
+
+                        PATCH FILE MANAGEMENT SYSTEM
+                        ----------------------------
+                        ----------------------------
+
+
+Written by : Shirley Chiang, Mgr. Tymnet Interface Support
+      Date : September 21, 1986
+             
+
+
+
+
+    Headquater's S/W Technical Services dept. (known as QSATS OR STS) has
+recently established a Patch File System to effectively manage the 
+patches written by our support personnel including STS, field organization 
+and NTD staff.  These patches are non-baseline released,
+usually written as an expedient solution to escalations, NSRs' or PIRs',
+complying with the Patch Policy published jointly by the Marketing 
+and NTD on Feb. 10, '86.  
+
+    As each patch must have either an NSR or PIR associated, NTD
+will review and evaluate the NSRs'/PIRs' and eventually incorporate
+them into the next baseline release through a new revision or version
+of code.  At that time, patches affected will then be deleted from
+this system.
+
+    However, for the purpose of centralized management of patch files,
+other types of patch file are also accepted.  For example, a patch
+created as trap to capture certain problem condition is categorized
+as "TRAP."  A patch may be marked as "PIR PEND" while pending for the
+assignment of a PIR number.
+
+    The Patch File Information System is on System 56.  The patches
+released by STS will be distributed to System 22, 25, 26, 31, 33, 37,
+54 and 70 under QSATS directory.  Usage of these patches must be
+examined carefully as some of the PIR or TRAP type of patches may not
+be applicable for general deployment - this will be indicated in the
+description field in the patch file information.
+
+    A "Patch File System Procedures" is available on (TECHREF:56)PATCH.PRO.
+      ==============================                 ======================
+The procedure details the method of 1). submitting the patch and its
+information to STS Technical Administrator (ontyme id: QSATS.TECHSERV);
+2). accesssing the patch file information from System 56.
+
+    Please ensure that a copy is made available to yourself and your
+organization.  All outstanding patches must be submitted to TECHSERV
+as soon as possible.
+
+    If you have any questions or need assistance in the process, please
+contact us immediately.  Our Technical Administrator is Linda Kypke,
+she can be reached at 408-942-5213 or through ontyme QSATS.TECHSERV.
+
+    Your cooperation is highly appreciated.
+
+
+
+                                     30
+                                  --------
+
+
+          Beta Test Release of New Dialup 9.6 KBPS Synchronous
+          Network Connection and 19.2 KBPS Leased Line Synchron-
+          ous Network Connection.
+          -----------------------------------------------------
+          -----------------------------------------------------
+
+
+Written by : Dean Spieller
+      Date : September 22, 1986
+ 
+
+ 
+
+ 
+            ANNOUNCING TWO, NEW NETWORK CONNECTIONS!!
+ 
+
+ 
+ 
+The beta test release of these (2) new network connections is
+effective immediately, and we are anxious to bring up a limited
+number of beta test sites quickly.
+ 
+         DIALUP 9.6 KBPS SYNCHRONOUS NETWORK CONNECTION
+ 
+To offer this new service we are employing the Concord V.32
+Trellis modem. This represents the first dialup Synchronous modem
+at this speed offered commercially. The operation of the modem
+complies with the, CCITT recommendation defining a dialup, sync-
+hronous data modem which operates on a full duplex basis at 9.6
+KBPS and 4.8 KBPS over the switched, dial telephone network.
+ 
+                          APPLICATIONS
+ 
+Dialup 9.6 KBPS synchronous network connections will be an
+attractive alternative to customers currently installed with an
+NC-48D and need the increased bandwidth/transmission rate offered
+in the NC-96D.
+ 
+                             PRICING
+ 
+                     Monthly             Install
+                      Rate                Rate
+                     -------             -------
+NC-96D               $500/mo             $400/mo
+ 
+Note: As with the NC-48D, the customer premise modem is not
+included at the rates shown above.
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+                     Monthly             Install
+                      Rate                Rate
+                     -------             -------
+SM-96D               $235/mo             $300
+ 
+Note: Pricing for the SM-96D is the same as that for a leased
+line modem at 9.6 KBPS.
+ 
+=================================================================
+=================================================================
+ 
+      19.2 KBPS LEASED LINE SYNCHRONOUS NETWORK CONNECTION
+ 
+To offer this service, which represents the highest synchronous
+transmission rate on a network connection provided as a standard
+service, we will employ the Paradyne 19.2 KBPS modem. For more
+than (6) months, this modem has been running on network topology
+lines. Performance has been excellent, clearing the way for this
+new network connection. The NC-192L will have obvious appeal to
+customers requiring more bandwidth/faster transmission than can
+be provided with the NC-144L.
+ 
+Initially, the NC-192L is offered in a limited number of class 1
+sites. TSO approval will occur as a process of beta test
+application approval.
+ 
+                             PRICING
+ 
+                     Monthly             Install
+                      Rate                Rate
+                     -------             -------
+NC-192L              $1800/mo            $250*
+ 
+* $1,000 if not installed concurrently with CPE or SHI.
+ 
+ 
+                         BETA TEST INFO
+ 
+During the beta test period, we will waive installation charges
+for these connections. Recurring monthly charges will be billed
+as normal.
+ 
+Inasmuch as these (2) new network connections are being
+introduced for beta test only, the standard beta test application
+procedures will be adhered to.
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+If you have a customer who wants to participate in the beta test,
+submit your request via Ontyme exec program ":EXEC ***
+Beta.Request". Please be as complete as possible in your
+responses to the EXEC program's questions. In particular, we'd
+like to know as much as possible about the customer's intended
+configuration. We will respond to your request within a couple
+days. If you have questions or would like to discuss your
+requests, feel free to Ontyme me directly (NSMS.D/SPIELLER or
+call 408/942-5255).
+
+
+
+                                     32
+                                  --------
+
+
+                      FULL RELEASE OF CMT VERSION 3.00
+                      --------------------------------
+                      --------------------------------
+
+
+Written by : Mary Chalmers, Product Marketing
+      Date : September 23, 1986                
+
+
+
+
+ 
+On October 1, 1986 version 3.00 of CMTI will be in full release.
+ 
+This version includes support for the following:
+25th Status Line emulation
+CMTI Operations Monitor
+Improved Echo Mode
+ 
+Additionaly, it supports numerous new terminal definitions.
+
+
+
+                                     33
+                                  --------
+
+
+                            MULTI-TARGETTED HOSTS
+                            ---------------------
+                            ---------------------
+
+
+Written by : Gail Bubsey, HQ Network Staff Consultant
+      Date : September 23, 1986
+
+
+
+
+
+The restriction that has existed regarding the use of multi-targetted
+hosts on nodes with no passthroughs has been lifted with version 42.00
+of the supervisor.
+
+This version is currently in betatest and has been installed on all
+public net supervisors.  It is now possible to set passthroughs to be
+inhibitted on nodes containing slots with multi-targetted host numbers.
+
+
+
+
+                                     34
+                                  --------
+
+
+                     FOREGROUND OVERLOADS AND THE CONSAT
+                     -----------------------------------
+                     -----------------------------------
+
+
+Written by : Bryan Wing, HQ Network Staff Consultant
+      Date : September 24, 1986
+                 
+
+
+
+
+ If you have an overworked ISIS Consat out there that is hogging
+ foreground time, there could be some relief.  A patch exists that
+ reschedules async polling every 20ms instead of every 10ms.  Async
+ polling would then be scheduled once every foreground pass instead of
+ twice.  This patch has been tested in the real world and resolved a
+ problem with foreground overloads on a 128 port ISIS Consat running
+ at low speed interrupts on a core memory machine.  (Ring wrap could
+ occur at higher speeds).  If you feel the overload condition is
+ detrimental, you can test by assembling (qsats)iscs03.pac into your
+ version 3.05 Consat command file and letting me know the results
+ of the change.
+
+
+
+
+                                     35
+                                  --------
+
+
+                           CMT AND BILLING PROBLEM
+                           -----------------------
+                           -----------------------
+
+
+Written by : Mary Chalmers, Product Marketing
+      Date : September 24, 1986
+           
+
+
+
+
+Please be aware that the "all ports in cleanup" loop in CMT may
+cause your customer to be billed for an extrememly long
+session(s).  This problems exists in version 2.06 (full release)
+and in version 3.00 (Limited Release).
+ 
+Every effort is being made to get a resolution to this problem.
+
+
+
+
+                                     36
+                                  --------
+
+
+           ABNORMAL DISCONNECTS & PERSONNAL COMPUTER APPLICATIONS
+           ------------------------------------------------------
+           ------------------------------------------------------
+
+
+Written by : Bryan Wing, HQ Network Staff Consultant
+      Date : September 24, 1986
+
+
+
+
+
+ If you have not heard by now, there is a problem that is becoming more
+ widespread.  It has to do with abnormally long sessions due to user oriented
+ abnormal disconnects.  What we have identified is a problem with the
+ dial up async Racal Vadic modems not being able to detect the change
+ of state from carrier to dial tone.  This is an intermittent problem,
+ but when it occurs can run up sessions as long as 24 or more hours.
+
+ Let us say that a terminal user hangs up the phone thus dropping carrier.
+ The phone company, upon the drop of carrier, returns dial tone.  The Racal
+ Vadic modem does not detect the change in state so it never drops CP to
+ the Consat.  The Consat having never seen a drop in CP continues to scan 
+ for data and will interpret the spaces on the idle line as breaks and send
+ them along as data (interspersed with garbage).  How soon dial tone is
+ returned determines if there will be a hung session.  Answer only will
+ be a solution albeit expensive.  Having the host interface count breaks
+ and disconnecting the session upon receipt of so many breaks in a given
+ amount of time works occassionally because of the problem with garbage.
+ Sorting out the problem and encouraging Racal Vadic to implement a fix
+ and then replacing all the Racal Vadic dialups would be costly and would
+ probably take a decade.
+
+ 
+ So what is the solution?
+
+ As you can see, there is currently no quick, cheap, all encompassing fool
+ proof fix.  I do have a suggestion.  When I started on back in 82, one of
+ the first things I learned was how to log on and "LOG OFF".  Pulling the
+ plug was frowned upon.  Who wants to leave their session dangling anyways.
+ I strongly suggest instructing end users to terminate sessions by logging
+ out of their hosts.  Those users with PCs should have their applications
+ set up the same way.  Warm boots do not guarantee a drop in DTR to the
+ internal modem anyways.  I strongly urge you to check on customers that
+ are using PCs to ensure they are logging off correctly.  It will save you
+ many headaches and explanations down the road.
+
+ e@[¤
