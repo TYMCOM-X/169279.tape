@@ -1,0 +1,48 @@
+:   Patch file updated, since formal patch coveres some problem
+:   07 apr 1987
+:
+:   PATCH FILE FOR PBT09.01     Make by NSCTECH-2
+:
+:   This patch for genarate in PBT and make a INHI BIT print bit
+:
+
+:   Problem 1. Ignore control byte in print bit from PBT
+
+PATCH(151286,1615,I/Harada,MSG7+4,,1)
+        IF      NMSGPR
+        BC      0C3          : IBM PRT WCC
+CONPATCH(MSG8+4,,1)
+        BC      0C3          : IBM PRT WCC  
+CONPATCH(NZMPTI+4,,1)
+        BC      0C3          : HITACHI PRT CB
+CONPATCH(NZMPTK+4,,1)
+        BC      0C3          : HITACHI PRT CB
+        EI
+ENDPATCH(Inhibit print bit CB0 & WCC  IBM or HITACH)
+
+:  Problem 3.  Return to NSS Dosen't handring DFC3 for HITACHI(9415 type)
+
+PATCH(091286,1800,I/Harada,RDN75+14,,6)
+
+        J       PA1PTR,,
+
+CONPATCH(PA1PTR,,40)
+
+        LA      R1,MSG6,,
+        LHL     R5,DDEV,RDCB, 
+        LB      R0,DEVHST,R5,
+        CLHI    R0,HITACHI
+        JN      RDN75A
+        LA      R1,MSG6H,,
+RDN75A  JAL     R5,PBSXMT,,
+        J       RDN75+1C,,
+
+MSG6H   HC      4
+        BC      ESC.,EWCMD,83,81
+
+ENDPATCH(HITACHI NSS RETURN TO APPLICATION T560/20)
+
+
+P0END   EQ      PA0PTR
+P1END   EQ      PA1PTR
+
