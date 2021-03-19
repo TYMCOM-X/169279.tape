@@ -1,0 +1,335 @@
+	SUBTTL	STATL.LIB . . . Long-token version of STATUS.LIB
+:******************************************************************
+:
+:	This program is the sole property and confidential
+:	information of TYMNET, and may not be copied in whole
+:	or in part or disclosed to any third party without
+:	the prior written consent of TYMNET.
+:
+:*******************************************************************
+
+  IF	1-\DB.STA			: DEFAULT DEBUG/STATUS TO ON
+DB.STA	EQ	1
+  EI
+
+  IF	DB.STA				: ASSEMBLE ONLY WITH DEBUG STATUS ON
+
+	SEG	A.CODE
+	MO	.,STATUS
+	RA	$00
+	GL	DSTART,DS.ELL,DS.ILL,DS.ERR,DS.DLM
+	GL	DS.TOK,DS.NUM,DS.EXI,DS.QUI,DS.GCH,DS.CUC,DS.DEL
+
+:	STATUS - User Command Handler
+:
+:	Version history:
+:	13.3  08/19/83  <JOK>Changed DS.TOK to return first 8 chars of
+:		TOKEN, changed DS.CMD to retain first 8 chars of command,
+:		and changed DSTART to accept up to 8-character commands.
+:	13.2  01/27/81  <BAB>Added RADIX=0 at start of mod.  Added jump
+:		following 'QUIT' SVC to allow DDT "P" (proceede) command
+:		to return the user to ":>" prompt.
+:	13.1  11/17/81	<BAB>Added DNEXTK support, DS.DLM (last delimiter),
+:		and fixed backspace for > 4 character entry, added the
+:		command thought to be invalid to invalid command message.
+:	13	08/81	<JK>Maintenance assumed by BAB from John Kopf
+:
+:		The Status package is intended to provide an extension to DDT,
+:	invokable via the "?STAT" command in DDT.  Once invoked you may re-
+:	activate it (provided you have not issued any DDT "G" (go) commands)
+:	by typing "P ".
+:
+:		There is limited editing control built into the package:
+:	ESC	aborts back to command level,
+:	^W	discards partial 'token' already input (word or number),
+:	^A	discards last char of token (backspace).
+:	^H	discards last char of token (backspace).
+
+:		Delimiters may occur in multiple (e.g. ", " is OK).  Valid
+:	delimiters are:
+:	C/R	L/F	H/T	","	and BLANK.
+
+:		Entry Points:
+:	DSTART	Place to exit on completion of command.
+:	DNEXTK  Get next token with out prompt.
+:	DS.ILL	Place to exit on illegal command -- types "Illegal command"
+:	DS.ERR	Place to exit on command error -- types "type '\' "
+:	DS.EXI	Place to exit machine.
+:	DS.QUI	Place to exit back to DDT.
+:	DS.GCH	Get a character...Link on R1, char (with high-order bit forced)
+:			in R0...normal return if detected ^W, skip-4 if detect
+:			^A, aborts back to DSTART if detects ESC.
+:	DS.DEL	Check for delimiter...Link on R2, Character in R0.  Skip-4
+:			return unless this is a delimiter, then normal return.
+:	DS.CUC	Convert to upper case...Link on R1, Character in R0.
+:	DS.TOK	Get a string token...Link on R4, TOKEN returned in R3/R2...
+:			inputs up to 4 characters, returns them (in uppercase)
+:			left justified, 0 fill
+:	DS.NUM	Get a number...Link on R5, expects Radix in R4...
+:			number returned in R0.  May ABORT if any character is
+:			input other than valid digit or delimiter.
+:	DS.DLM  Location of last delimeter entered (1 byte)
+
+:		There are two built-in commands:
+:	Quit	exit back to DDT.
+:	EXIt	exit machine.
+
+:		additional commands may be defined via the DS.CMD macro:
+:	 DS.CMD(TEXT,ADDR)
+:	Where:	TEXT	The (UPPERCASE) target command string.
+:		ADDR	The virtual address to transfer to, to service that
+:				command.
+:	DS.CMD generates a 16-byte descriptor for this command, at the point
+:	assembly where it is invoked.  This descriptor is on a WORD boundary.
+
+
+
+OUT	EQ	0B			: Output SVC
+IN	EQ	0A			: Input SVC
+
+DS.ELL	EQ	0			: Null pointer for end-of-linked-list
+
+	SEG	A.DATA
+DS.DLM	BS	1			: Last delimiter encountered
+R4SAV	WS	1			: Save-area for R4 in DS.TOK
+BADSTR	SC	/'xxxxxxxx'"8D"8A/	: Place to put bad command
+STOKEN	EQ	BADSTR+2		: String-buffer for token
+	SEG	A.CODE
+
+:	Define elements for command-block
+C.NEXT	EQ	0			: Pointer to next command-block
+C.ADDR	EQ	C.NEXT+4		: Pointer to command-handler
+C.STR	EQ	C.ADDR+4		: Relative position of string
+
+:	Define macro to generate this command-block
+DS.CMD	MACRO(STR,ADDR)[ WS	0
+   IF	DS.ELL
+Q	WS	0
+	ORG	DS.ELL
+	WC	Q
+	ORG	Q
+   EI
+DS.ELL	WC	0,ADDR
+	AC	/STR/
+	WS	0
+ IF	DS.ELL+10-. ; WC 0; EI
+]
+
+
+:	TABLE OF COMMANDS, AND TARGET ROUTINES.
+CMDLST	DS.CMD(Q,DS.QUI)		: Exit back to DDT
+	DS.CMD(QUIT,DS.QUI)		: Exit back to DDT
+	DS.CMD(EXIT,DS.EXI)		: Exit
+	DS.CMD(EXI,DS.EXI)		: Exit
+
+
+
+
+:	Diagnostic messages
+TERR	SC	/Illegal command /
+TTERR	SC	/type '\'"8D"8A/
+PROMPT	SC	/"8D"8A:>/		: "CR|LF:>"
+BKSPAC	SC	/"88 "88/		: Back-space
+	SUBTTL	Command-scanner, Verifier, and Bitcher
+
+:	Command-input Handler
+DOIT	L	R0,C.ADDR,R1		: Go service this command
+	JALR	R0,R0
+
+:	Next Command
+DSTART	SVC	OUT,PROMPT		: Issue Prompt
+DNEXTK	JAL	R4,DS.TOK		: Get command-token
+	LA	R1,CMDLST		: Search for string-match
+DSTAR1	CL	R3,C.STR,R1		: check first-word
+	JNFS	DSTAR2			: no match
+	CL	R2,C.STR+4,R1		: second-word
+	JE	DOIT			: Proceed if find a match
+
+DSTAR2	L	R1,C.NEXT,R1		: Else continue scan
+	JGBS	DSTAR1
+
+DS.ILL	SVC	OUT,TERR		: "ILLEGAL COMMAND"
+	SVC	OUT,BADSTR,,
+
+DS.ERR	SVC	OUT,TTERR		: Tell user to type Flush-char
+
+BITCH	JAL	R1,DS.GCH		: Flush input
+	 JBS	BITCH;	 NOPR	0			: ^W...Ignore
+	  JBS	BITCH;	  NOPR	0			: ^A...Ignore
+	CLHI	R0,0DC			: Read until "\" is found
+	JNBS	BITCH
+	J	DSTART			: Then exit
+
+
+:	Built-in Commands
+
+:		Command EXIt
+:		===========-
+DS.EXI	SVC	KIO,0			: Disconnect
+
+
+:		Command Quit (exit back to DDT)
+:		=========---
+DS.QUI	SVC	KIO,1			: Return to DDT
+	J	DSTART			: If operator typed "P", get next command
+	SUBTTL	U T I L I T I E S
+
+:	Get a Command-token...Up to 8 chars long
+:		Skips over extra characters to next delimiter
+:	Link on R4
+:	Token returned in R3/R2, Left justified, 0-fill
+DS.TOK	ST	R4,R4SAV,,		: save R4
+
+TOKEN0	LIS	R0,0			: clear token buffer
+	LA	R3,STOKEN,,		: set char-pointer
+	ST	R0,0,R3
+	ST	R0,4,R3
+
+:	Scan for first character of TOKEN
+TOKEN1	JAL	R1,DS.GCH		: Get next char
+	 JBS	TOKEN1;	 NOPR	0			: ^W...Ignore
+	  JBS	TOKEN1;	  NOPR	0			: ^A...Ignore
+	JAL	R2,DS.DEL		: Skip over delimiters
+	 J	TOKEN1
+	JAL	R1,DS.CUC		: Convert to Upper-case
+	CHI	R0,00DC			: = "\" ?
+	JE	DSTART			: YES.  Print Prompt, get next command
+	STB	R0,0,R3			: no...start TOKEN accumulation
+	AIS	R3,1			: advance pointer
+	LIS	R4,1			: 1 char. found so far
+
+TOKEN2	JAL	R1,DS.GCH		: Get another char
+	 J	TOKEN0			: ^W...Start over
+	  J	TOKEN4			: ^A...Toss last char
+	JAL	R1,DS.CUC		: Convert to upper-case
+	JAL	R2,DS.DEL		: Check for delimiter
+	 J	TOKEN3			: Got one...skip to clean up
+	CHI	R0,00DC			: = "\" ?
+	JE	DS.ILL			: YES.  Treat as Illegal
+	AIS	R4,1			: one more character
+	CHI	R4,8			: If >= 8 chars, do not use this one
+	JG	TOKEN2			: YES...Scan for delimiter
+	STB	R0,0,R3			: NO...Accumulate chars
+	AIS	R3,1			: advance cursor
+	J	TOKEN2			: ..and get another char
+
+TOKEN3	L	R4,R4SAV,,		: Restore R4
+	L	R3,STOKEN,,		: place TOKEN into Registers
+	L	R2,STOKEN+4,,
+	JR	R4			: Return TOKEN in R2/R3
+
+
+:	Handle backspace in TOKEN
+TOKEN4	SIS	R4,1			: one less char
+	JLE	TOKEN0			: re-initialize if none left
+	CHI	R4,8			: If after backspace TOKEN is >= 8
+	JGE	TOKEN2			: then just decrement counter
+	LIS	R0,0			: else... drop one character
+	SIS	R3,1			:   back-up pointer
+	STB	R0,0,R3
+	J	TOKEN2			: and get next char
+
+:	Utility routine to read a number
+:	uses R0-R3
+:	Expects RADIX in R4
+:	Link on R5
+:	Aborts if first non-delimiter is not digit
+:	Else returns number in R0
+DS.NUM	JAL	R1,DS.GCH		: get next char
+	 JBS	DS.NUM;	 NOPR	0			: ^W...ignore
+	  JBS	DS.NUM;	 NOPR	0			: ^A...Ignore
+	JAL	R2,DS.DEL		: check for delimiter char
+	 J	DS.NUM
+	JAL	R2,DS.DIG		: test if char is digit
+	 J	DS.ILL			: not a digit - give error-message
+	CLR	R0,R4
+	JGE	DS.ILL			: digit is bigger than RADIX...Abort
+	LR	R3,R0			: put first digit into accumulator
+NUMBER	JAL	R1,DS.GCH		: read next char
+	 J	DS.NUM			: ^W...Start over
+	  J	DIVIDE			: ^A...Toss last digit
+	JAL	R2,DS.DEL		: Check for delimiter
+	 LR	R0,R3;	 JR	R5	  :YES
+	JAL	R2,DS.DIG		: skip if digit
+	J	DS.ILL			: NO...Abort
+	CLR	R0,R4
+	JGE	DS.ILL			: RADIX error...Bitch
+	MR	R2,R4			: build number
+	AR	R3,R0			: add new digit
+	J	NUMBER			: get next digit
+
+DIVIDE	LIS	R2,0			: got a ^A...Make double-precision arg.
+	DR	R2,R4			: Quotent into R3, where we want it
+	J	NUMBER			: now go back for more digits
+
+:	Digit test
+:	Check character read...Skip return if digit
+:	Then R0=Binary value of HEX digit
+:	uses R1, Link on R2
+DS.DIG	JAL	R1,DS.CUC		: Convert to upper-case
+	LR	R1,R0			: Copy char
+	SHI	R1,0B0			: is it "0"?
+	JLR	R2			: return if less than "0"
+	SIS	R1,0B9-0B0		: is it "9"
+	JLEFS	DIGIT			: less than "9", then a good digit
+	SIS	R1,0C1-0B9		: is it "A"?
+	JLR	R2			: return if less than "A"
+	SIS	R1,0C6-0C1		: is it "F"?
+	JGR	R2			: return if greater than "F"
+	SIS	R0,7			: 0A - "A" (partial conversion)
+
+DIGIT	SHI	R0,0B0			: "0"
+	J	4,R2			: skip-return
+
+:	Check for delimiter
+:	Link	R2
+:	Uses	R0,R1
+:	Skip-4 return unless (R0) is a delimiter-character
+DS.DEL	LHI	R1,DLEN-1		: number of delimiter chars
+	STB	R0,DS.DLM,,		: save delimiter
+
+DELIM	CLB	R0,DLIST,R1		: compare to a delimiter
+	JER	R2			: return if delimiter
+	SIS	R1,1			: check next delimiter
+	JGEBS	DELIM			: loop if any more delimiters
+	J	4,R2			: skip-return
+
+:	List of delimiter chars
+DLIST	AC	' ,'			: Blank,","
+	BC	8D,8A,89		: CR,LF,HT
+DLEN	EQ	.-DLIST			: Number of delimiter chars
+
+:	Input a Character
+:	Link	R1
+:	Normal-return:   ^W Input...Flush entry
+: 	Skip-4 return:  ^A or ^H Input...flush last char
+:	  SKIP-8 return: Char in R0 (high-bit on)
+:	Aborts to command-scanner on "ESC"
+DS.GCH	SVC	IN,0F			: get the char
+	 J	DS.GCH
+	OHI	R0,80			: set high-order bit
+	CLHI	R0,9B			: check for escape
+	 JE	DSTART			: abort, proceed with prompt if so
+	CLHI	R0,97			: check for ^W
+	 JER	R1			: normal-return
+	CLHI	R0,81			: check for ^A
+	 JE	4,R1			: Skip-4 return
+	CLHI	R0,88			: check for ^H
+	 JN	8,R1			: No, skip-8 return, Char in R0
+
+	SVC	OUT,BKSPAC		: Back-space
+	J	4,R1			: skip-4 return for ^H
+
+:	Convert char in (R0) to upper-case
+:	Link on R1
+DS.CUC	CLHI	R0,0E1			: Compare with "a"
+	JLR	R1			: Exit if it can't be lower-case
+	CLHI	R0,0FA			: Compare with "z"
+	JGR	R1			: Not lower-case...Just return
+	SHI	R0,20			: Lower-case...Convert to upper-case
+	JR	R1			: and return
+
+	EM
+
+  EI	: (DB.STA)
+   
