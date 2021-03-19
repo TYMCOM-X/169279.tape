@@ -1,0 +1,21 @@
+:
+: SAVE THE ddt TRACES WHEN CLEAR REQUEST WITH DAIG=22,26(decimal) RECEIVED
+: FROM THE LINK.
+:
+PATCH(880412,1500,JWANG,TCLR20,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,44)
+        STB     R0,PSDIAG+1,R7,R7       :SAVE DIAGNOSTIC CODE
+        CLHI    R0,16                   :CLEAR DIAGNOSTIC 22?
+        JE      TCLSAV                  :YES, SAVE TRACES
+        CLHI    R0,1A                   :DIAG = 26?
+        JE      TCLSAV                  :YES, SAVE TRACES
+        J       TCLR20+6,,              :IF NOT EQU, JUST RETURN
+TCLSAV  ST      R7,SAV1,,
+        ST      R8,SAV2,,
+        LHI     R7,13                   :CASE NUMBER 00000013
+        JAL     R8,TRCSAV,,
+        L       R7,SAV1,,
+        L       R8,SAV2,,
+        J       TCLR20+6,,
+ENDPATCH(CAPTURE CLEAR REQ WITH DIAG 22/26 AND THE SAVE TRACES)
