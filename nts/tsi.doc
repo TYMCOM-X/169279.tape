@@ -1,0 +1,1219 @@
+                                                           March 21, 1989
+
+
+                     TTTTTTTTT     SSSSSSSS     IIIIIIIII
+                         T        S                 I    
+                         T        S                 I    
+                         T          S S S           I    
+                         T                S         I    
+                         T                S         I    
+                         T        SSSSSSSS      IIIIIIIII
+
+
+
+
+                     DDDDDDDD      OOOOOOO       CCCCCCCC
+                     D       D    O       O     C        
+                     D       D    O       O     C        
+                     D       D    O       O     C        
+                     D       D    O       O     C        
+                     DDDDDDDD      OOOOOOO       CCCCCCCC
+
+
+
+
+
+
+
+                            TYMNET SPIRIT INTERFACE
+                                SERVICE MANUAL
+
+
+
+
+                                    TYMNET
+                          NETWORK TECHNOLOGY DIVISION
+                                March 21, 1989
+
+
+
+
+
+
+
+     ====================================================================
+     |   Tymnet,  Inc.'s  proprietary  rights  are  included  in  the   |
+     |   information disclosed herein.   The recipient,  by receiving   |
+     |   this document,  agrees  that neither this  document nor  the   |
+     |   information  disclosed  herein nor any part thereof shall be   |
+     |   reproduced or transferred to  other  documents  or  used  or   |
+     |   disclosed  to  others  for  manufacturing  or  for any other   |
+     |   purpose except  as  specifically authorized  in  writing  by   |
+     |   Tymnet, Inc.                                                   |
+     ====================================================================
+
+
+
+
+                                                                  TSI DOC
+                                                           March 21, 1989
+
+
+
+
+
+
+
+                              TABLE OF CONTENTS
+
+    Section                                                          Page
+
+    1.   INTRODUCTION                                                   1
+      1.1   PURPOSE OF THE TSI SERVICE MANUAL                           1
+      1.2   OVERVIEW OF THE TSI SERVICE MANUAL                          2
+    2.   SYSTEM DESCRIPTION                                             2
+      2.1   SYSTEM OVERVIEW                                             2
+      2.2   EP                                                          2
+      2.3   I/O CONTROLLER                                              2
+      2.4   BLOCK DIAGRAM                                               3
+    3.   PHYSICAL DESCRIPTION                                           3
+      3.1   EP                                                          3
+      3.2   I/O CONTROLLER                                              3
+      3.3   DIMENSIONS                                                  3
+      3.4   ENVIRONMENTALS                                              4
+    4.   COMMUNICATION INTERFACES                                       4
+      4.1   PROTOCOL SUPPORT                                            4
+      4.2   INTERFACE SIGNALS                                           4
+      4.3   INTERFACE STANDARD                                          4
+      4.4   MAXIMUM CABLE LENGTH                                        4
+      4.5   PORT CONFIGURATION                                          5
+    5.   INSTALLATION                                                   5
+      5.1   AC POWER                                                    5
+      5.2   BOARD STRAPPING                                             5
+         5.2.1    EP                                                    5
+         5.2.2    IOC/SCC                                               5
+
+      5.3   PROM/PAL REFERENCE                                          6
+      5.4   ECO REVERENCE LEVELS                                        6
+      5.5   PCB CABLES                                                  6
+      5.6   SPECIAL EQUIPMENT                                           6
+      5.7   SYSTEM BRINGUP                                              6
+         5.7.1    NETWORK LOADING                                       6
+         5.7.2    SPIRIT ELF LOADING                                    6
+
+      5.8   SPIRIT INTERFACE REQUIREMENTS                               7
+         5.8.1    USER ACCOUNTS                                         7
+         5.8.2    ROUTE-FILE FILES                                      7
+         5.8.3    VIRTUAL PORT ENABLING                                 8
+    6.   CONSOLE PROCESSES                                              8
+      6.1   ENGBUG                                                      8
+      6.2   TTY I/O                                                     8
+      6.3   IOCbug                                                      9
+    7.   MAINTENANCE INFORMATION                                        9
+      7.1   DIAGNOSTIC TOOLS                                            9
+      7.2   SELF TEST DESCRIPTORS                                       9
+
+                                                                  TSI DOC
+                                                           March 21, 1989
+
+
+      7.3   STANDALONE DOWNLINE-LOAD DIAGNOSTICS                        9
+      7.4   RS-232 SIGNAL LOOPBACK METHODS                              9
+      7.5   COMPONENT PART NUMBERS                                     10
+      7.6   ISIS ENVIRONMENT TROUBLESHOOTING                           10
+      7.7   SCC STATUS                                                 11
+    8.   ISIS REFERENCES                                               11
+      8.1   ISIS MACROS                                                11
+      8.2   ISIS SOFTWARE STRAPPING                                    11
+      8.3   MERLIN                                                     11
+      8.4   SAMPLE TYMFILE/COMMAND FILE                                11
+      8.5   SAMPLE CODE GENERATION                                     12
+    9.   MBASE                                                         12
+      9.1   OVERVIEW                                                   12
+      9.2   BLOCK DIAGRAM                                              12
+      9.3   SPIRIT DEVICES FILE                                        12
+      9.4   TYMFILE PARAMETERS                                         12
+      9.5   SAMPLE CODE GENERATION                                     13
+      9.6   CRASH CODES                                                13
+      9.7   ISIS MESSAGES                                              13
+    10.  PERFORMANCE CAPABILITIES                                      16
+      10.1  WEIGHTING                                                  16
+      10.2  COMPARATIVE ANALYSIS VS ENGINE/PICO ENGINE/HDLC MICRO      16
+      10.3  PERFORMANCE CAPABILITIES OVERVIEW ISIS                     17
+    11.  APPENDIX                                                      17
+      11.1  NTS LABORATORY TESTS                                       17
+      11.2  DOCUMENT REFERENCES                                        17
+      11.3  GLOSSARY                                                   17
+      11.4  ERROR RETURN CODES                                         17
+      11.5  DEVICE VECTORS                                             18
+      11.6  MAILBOX STRUCTURE                                          18
+      11.7  CHANNEL COMMAND WORDS                                      18
+      11.8  TROUBLESHOOTING FLOWCHART                                  18
+      11.9  NOTES                                                      20
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                  TSI DOC
+    INTRODUCTION                                           March 21, 1989
+
+
+
+
+
+
+                              1 -  INTRODUCTION
+
+
+
+
+
+
+                   1.1  PURPOSE OF THE TSI SERVICE MANUAL
+
+
+
+
+
+
+                   1.2  OVERVIEW OF THE TSI SERVICE MANUAL
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    1                                                             TSI DOC
+    SYSTEM DESCRIPTION                                     March 21, 1989
+
+
+
+
+
+
+                           2 -  SYSTEM DESCRIPTION
+
+
+
+
+
+
+                            2.1  SYSTEM OVERVIEW
+
+
+
+
+
+
+                                   2.2  EP
+
+
+
+
+
+
+                             2.3  I/O CONTROLLER
+
+
+
+
+
+
+                             2.4  BLOCK DIAGRAM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    2                                                             TSI DOC
+    PHYSICAL DESCRIPTION                                   March 21, 1989
+
+
+
+
+
+
+                          3 -  PHYSICAL DESCRIPTION
+
+
+
+
+
+
+                                   3.1  EP
+
+
+
+
+
+
+                             3.2  I/O CONTROLLER
+
+
+
+
+
+
+                               3.3  DIMENSIONS
+
+
+
+
+
+
+                             3.4  ENVIRONMENTALS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    3                                                             TSI DOC
+    COMMUNICATION INTERFACES                               March 21, 1989
+
+
+
+
+
+
+                        4 -  COMMUNICATION INTERFACES
+
+
+
+
+
+
+                            4.1  PROTOCOL SUPPORT
+
+
+
+
+
+
+                           4.2  INTERFACE SIGNALS
+
+
+
+
+
+
+                           4.3  INTERFACE STANDARD
+
+
+
+
+
+
+                          4.4  MAXIMUM CABLE LENGTH
+
+
+
+
+
+
+                           4.5  PORT CONFIGURATION
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    4                                                             TSI DOC
+    INSTALLATION                                           March 21, 1989
+
+
+
+
+
+
+                              5 -  INSTALLATION
+
+
+
+
+
+
+                                5.1  AC POWER
+
+
+
+
+
+
+                            5.2  BOARD STRAPPING
+
+
+
+
+
+
+                                  5.2.1  EP
+
+
+
+
+
+
+                               5.2.2  IOC/SCC
+
+
+
+
+
+
+                           5.3  PROM/PAL REFERENCE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    5                                                             TSI DOC
+    INSTALLATION                                           March 21, 1989
+
+
+                          5.4  ECO REVERENCE LEVELS
+
+
+
+
+
+
+                               5.5  PCB CABLES
+
+
+
+
+
+
+                           5.6  SPECIAL EQUIPMENT
+
+
+
+
+
+
+                             5.7  SYSTEM BRINGUP
+
+
+
+
+
+
+                           5.7.1  NETWORK LOADING
+
+
+
+
+
+
+                          5.7.2  SPIRIT ELF LOADING
+
+
+
+
+
+
+                     5.8  SPIRIT INTERFACE REQUIREMENTS
+
+
+
+
+
+
+
+
+
+
+
+    6                                                             TSI DOC
+    INSTALLATION                                           March 21, 1989
+
+
+                            5.8.1  USER ACCOUNTS
+
+
+
+
+
+
+                           5.8.2  ROUTE-FILE FILES
+
+
+
+
+
+
+                        5.8.3  VIRTUAL PORT ENABLING
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    7                                                             TSI DOC
+    CONSOLE PROCESSES                                      March 21, 1989
+
+
+
+
+
+
+                           6 -  CONSOLE PROCESSES
+
+
+
+
+
+
+                                 6.1  ENGBUG
+
+
+
+
+
+
+                                6.2  TTY I/O
+
+
+
+
+
+
+                                 6.3  IOCbug
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    8                                                             TSI DOC
+    MAINTENANCE INFORMATION                                March 21, 1989
+
+
+
+
+
+
+                        7 -  MAINTENANCE INFORMATION
+
+
+
+
+
+
+                            7.1  DIAGNOSTIC TOOLS
+
+
+
+
+
+
+                         7.2  SELF TEST DESCRIPTORS
+
+
+
+
+
+
+                  7.3  STANDALONE DOWNLINE-LOAD DIAGNOSTICS
+
+
+
+
+
+
+                     7.4  RS-232 SIGNAL LOOPBACK METHODS
+
+
+
+
+
+
+                         7.5  COMPONENT PART NUMBERS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    9                                                             TSI DOC
+    MAINTENANCE INFORMATION                                March 21, 1989
+
+
+                    7.6  ISIS ENVIRONMENT TROUBLESHOOTING
+
+
+
+
+
+
+                               7.7  SCC STATUS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    10                                                            TSI DOC
+    ISIS REFERENCES                                        March 21, 1989
+
+
+
+
+
+
+                            8 -  ISIS REFERENCES
+
+
+
+
+
+
+                              8.1  ISIS MACROS
+
+
+
+
+
+
+                        8.2  ISIS SOFTWARE STRAPPING
+
+
+
+
+
+
+                                 8.3  MERLIN
+
+
+
+
+
+
+                      8.4  SAMPLE TYMFILE/COMMAND FILE
+
+
+
+
+
+
+                         8.5  SAMPLE CODE GENERATION
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    11                                                            TSI DOC
+    MBASE                                                  March 21, 1989
+
+
+
+
+
+
+                                 9 -  MBASE
+
+
+
+
+
+
+                                9.1  OVERVIEW
+
+
+
+
+
+
+                             9.2  BLOCK DIAGRAM
+
+
+
+
+
+
+                          9.3  SPIRIT DEVICES FILE
+
+
+
+
+
+
+                           9.4  TYMFILE PARAMETERS
+
+
+
+
+
+
+                         9.5  SAMPLE CODE GENERATION
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    12                                                            TSI DOC
+    MBASE                                                  March 21, 1989
+
+
+                              9.6  CRASH CODES
+
+
+
+    :       CRASH CODE DEFINITIONS
+
+    GL      CCEVT1,CCGTEV,CCSPRS,CCISD,CCHLT0,CCTMLS,CCBSRB
+
+    GL      CCPRTN,CCPRT0,CCINDL,CCIPSN,CCILCS,CCATCQ,CCSBTO,CCJFFO
+
+    GL          CCNOB3,CCRBKP,CCAPBK,CCCMRD     CCSPRS      EQ         20
+    :START    RESET   INTERFACE    BY   SPIRIT    CCEVT1     EQ        21
+    :INVALID   EVENT    TYPE   CODE    (EVTRAC)   CCGTEV     EQ        22
+    :INVALID    EVENT    TYPE   (GET    EVENT)    CCISD      EQ        23
+    :ERROR  FOUND  BY ISIS  DRIVER  (LINK OR  STALL)  CCPRTN   EQ      24
+    :ILLEGAL PORT  NMBR CCPRT0  EQ       25              :ILLEGAL  PORT 0
+    MSG TYPE CCINDL  EQ      26              :NEEDLE REC'D ON ACTIVE PORT
+    CCIPSN  EQ       27              :PSEUDONEEDLE  REC'D ON  ACTIVE PORT
+    CCILCS  EQ       28              :ILLEGAL  CIRCUIT SIGNAL  (ISIS MSG)
+    CCATCQ  EQ      29             :PST NOT ON ATTACHED QUEUE  CCSBTO  EQ
+    2A              :SBUS  TIMEOUT CCJFFO   EQ       2B             :THIS
+    WILL NEVER HAPPEN CCHLT0   EQ      2C             :HALT ON  CHANNEL 0
+    CCTMLS   EQ       2D              :TIME-OUT  LIST  ERROR  CCBSRB   EQ
+    2E              :BAD  SRB ADDR  CCIOUT   EQ       2F             :PST
+    SHOULDNT   BE   ON    ISIS   OUTPUT   QUEUE   CCUMSG     EQ        30
+    :UNKNOWN MESSAGE TYP CCNOB3  EQ      31              :RAN OUT OF TYPE
+    3 BUFFERS  CCRBKP  EQ      32               :ERROR IN  HANDLING INPUT
+    APPLY BKPRSR CCAPBK  EQ      33              :ERROR IN HANDLING INPUT
+    RELEASE BKPRSR CCCMRD  EQ      34              :ERR IN  COMPLETION OF
+    A READ OF A CIRC SIG.
+
+    GL      CCNSRB CCNSRB  EQ      35              :ERR IF NO SRBS
+
+
+
+
+                             9.7  ISIS MESSAGES
+
+
+
+    XDRICA  HS      0
+
+    SC      /DET/   :DETACH MESSAGE TYPE
+
+    SC      /ZAP/   :DISCONNECT MESSAGE
+
+    SC      /NOS/   :APPLY BACK-PRESSURE (NO SEND)
+
+    SC      /SND/   :RELEASE BACK-PRESSURE (SEND)
+
+    SC      /ICM/   :FLUSH OUTPUT (GOBBLER)
+
+    SC      /BKG/   :FLUSH INPUT (BACK GOBBLER)
+
+    13                                                            TSI DOC
+    MBASE                                                  March 21, 1989
+
+
+    SC      /BLK/   :DATA LOST IN THIS DIRECTION (BLACK BALL)
+
+    SC      /GRY/   :DATA LOST IN OPPOSITE DIRECTION (GREY BALL)
+
+    SC      /EDE/   :ENTER DEFERED ECHO MESSAGE
+
+    SC      /LDE/   :LEAVE DEFERED ECHO MESSAGE
+
+    SC      /ETM/   :ENTER TRANSPARENCY MODE
+
+    SC      /LTM/   :LEAVE TRANSPARENCY MODE
+
+    SC      /GB /   :GREEN BALL
+
+    SC      /RB /   :RED BALL
+
+    SC      /YB /   :YELLOW BALL
+
+    SC      /OB /   :ORANGE BALL
+
+    SC      /BRK/   :BREAK DETECTED
+
+    SC      /HNG/   :HANG UP
+
+    SC      /QTP/   :QUERY TERMINAL PARAMETER
+
+    SC      /STP/   :SET TERMINAL PARAMETER
+
+    SC      /PSN/   :PSEUDO NEEDLE
+
+    SC      /NLC/   :NORMAL LOGON CHAR
+
+    SC      /NLS/   :NORMAL LOGON STATUS
+
+    SC      /LOF/   :LOG ON FAILURE
+
+    SC      /NCC/   :NORMAL CIRCUIT COMPLETE
+
+    SC      /ADA/   :ADDENDUM TO ACCOUNTING
+
+    SC      /SHG/   :SUPER-HANG UP
+
+    SC      /TLM/   :SET TRANSMIT LIMIT
+
+    SC      /EBK/   :END OF BREAK
+
+    SC      /ZAK/   :ZAP ACK
+
+    SC      /EAD/   :ENTER ALTERNATE OUTPUT DEVICE MODE
+
+    SC      /LAD/   :LEAVE ALTERNATE OUTPUT DEVICE MODE
+
+    SC      /ZAR/   :ZAP WITH REASON
+
+    14                                                            TSI DOC
+    MBASE                                                  March 21, 1989
+
+
+    SC      /SIX/   :START INTERFACE INFORMATION EXCHANGE
+
+    SC      /TIX/   :TERMINATE INTERFACE INFORMATION EXCHANGE
+
+    :       INTRA NODE MESSAGES :       -------------------
+
+    XDRICB  HS      0
+
+    SC      /RQR/   :RESTART REQUEST
+
+    SC      /RST/   :RESTART INTERFACE
+
+    SC      /NTO/   :NODE HAS BEEN TAKEN OVER
+
+    SC      /REP/   :REPORT TO SUPERVISOR'S LOG
+
+    SC      /RHS/   :REPORT HOST STATUS (OBSOLETE)
+
+    SC      /RAC/   :REPORT ACCOUNTING
+
+    SC     /   :GMT TIME
+
+    SC      /RNP/   :REQUEST FOR NORMAL PSEUDO NEEDLE
+
+    SC      /RAP/   :REQUEST AUX PSEUDO-NEEDLE
+
+    SC      /PSR/   :PSEUDO-NEEDLE REJECTED
+
+    SC      /HPA/   :HOST PORT AVAILABILITY
+
+    SC      /HNA/   :HOST NOT ACCEPTABLE
+
+    SC      /RHC/   :REPORT HOST COST
+
+    SC      /NSU/   :NO SUPERVISOR
+
+    SC      /ODN/   :1-DOWN TEXT
+
+    SC      /RAH/   :REPORT ALL HOSTS
+
+    SC      /HSR/   :HOST STATUS REPORT :
+
+
+
+
+
+
+
+
+
+
+
+
+
+    15                                                            TSI DOC
+    PERFORMANCE CAPABILITIES                               March 21, 1989
+
+
+
+
+
+
+                       10 -  PERFORMANCE CAPABILITIES
+
+
+
+
+
+
+                               10.1  WEIGHTING
+
+
+
+
+
+
+         10.2  COMPARATIVE ANALYSIS VS ENGINE/PICO ENGINE/HDLC MICRO
+
+
+
+
+
+
+                10.3  PERFORMANCE CAPABILITIES OVERVIEW ISIS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    16                                                            TSI DOC
+    APPENDIX                                               March 21, 1989
+
+
+
+
+
+
+                               11 -  APPENDIX
+
+
+
+
+
+
+                         11.1  NTS LABORATORY TESTS
+
+
+
+
+
+
+                          11.2  DOCUMENT REFERENCES
+
+
+
+
+
+
+                               11.3  GLOSSARY
+
+
+
+
+
+
+                          11.4  ERROR RETURN CODES
+
+
+
+
+
+
+                            11.5  DEVICE VECTORS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    17                                                            TSI DOC
+    APPENDIX                                               March 21, 1989
+
+
+                           11.6  MAILBOX STRUCTURE
+
+
+
+
+
+
+                         11.7  CHANNEL COMMAND WORDS
+
+
+
+
+
+
+                       11.8  TROUBLESHOOTING FLOWCHART
+
+
+
+
+
+
+                                 11.9  NOTES
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    18                                                            TSI DOC
+ I2 Ö
