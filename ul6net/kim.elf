@@ -1,0 +1,196 @@
+-;;....................................................................
+-;;.                                                                  .
+-;;.	        ==*  Network Utility Node - KH2065  *==	             .
+-;;.                                                                  .
+-;;.                           [  ELF  ]                              .
+-;;.    Node : 2065                               Updated: 04-Dec-85  .
+-;;.  Kernal : 123                                     By: CAR        .
+-;;.   Hosts : 192                                Version: 4.01-ELF   .
+-;;.                                                      10.07-PNUC  .
+-;;....................................................................
+-;;  Command file for ELF Version 4.01
+-;;....................................................................
+-;;
+-;; Command file for ELF Version 4.01
+-;;
+-copy (BETATEST)elf04.i01+(UL6NET)KH2065.a01+(BETATEST)elf04.r01,KH2065.z01
+
+-r(SOURCE)cppro
+
+Concurrent Pascal Preprocessor. Version 1.0
+
+Input file: KH2065.z01
+Output file: KH2065.z01
+
+Preprocessing complete. 23161 lines read, 16210 lines written
+
+End of SAIL execution
+-r(SOURCE)cpas1
+OBJECT    = KH2065.x01
+LIST      = KH2065.y01
+SOURCE    = KH2065.z01
+
+CPASCAL/ENGINE-1 OF 11 JUNE MCMLXXXVI
+ 1 2 3 4 5 6 7
+EXIT
+
+-r(SOURCE)objnib
+PASCAL E-code to NAD image binary converter - Version 1.5
+                Product ID is 006F
+Concurrent PASCAL OBJECT <input> file : KH2065.x01
+NAD <output> file name : KH2065.x01
+Hex value of E-code load address (Default 20000) : 
+
+
+Total bytes input: 115424
+Total records output: 5
+End of SAIL execution
+-r(SOURCE)staddr
+
+STADDR - version 1.1
+
+input file: KH2065.y01
+output file: KH2065.y01
+
+EXIT
+
+-r nad
+1.5
+;a   (SOURCE)pnuc11.i12
+
+End of assembly
+;a   KH2065.T01
+
+End of assembly
+;a   (SOURCE)pnuc11.r12
+ 
+Concurrent PASCAL Nucleus 10/28/85
+
+HOST NUMBER -192
+
+Port configuration - 4 terminal devices, 5 circuit devices.
+
+This is version 11.12
+
+COMFIL 0 0
+Start.Lib Version 0.05
+TRACE 1028A 1032C 
+CRASH.LIB    11-15-84 AWT
+THIS VERSION HAS AN OPTION FOR EXTENDED CRASH PROCESSING.
+CRASH 1032C 10546
+BID 10546 10556
+TIMOUT 10556 1062C 
+FRING V 0.01  06-06-84 AWT
+RING 1062C 1085A
+OUTNUM 1085A 58A
+CONVRT 58A 109A0
+MBUFER 08-23-84, AWT
+BUFFER 109A0 3402
+FrontLib V 0.16 06-06-84 AWT
+FRONT 3402 11748
+COMMON  V 1.9, 10-06-72, RNP
+COMMON 11748 11748
+STATUS 11748 11940
+NUCDB  V 0.3, 04-22-83, RNP
+NUCDB 11940 12064
+FORGND  V 1.0, 04-22-83, RNP 
+LPRDRV  V 1.5 05-11-83, RNP 
+PSEUDO  V 1.23 12-04-84, AWT
+PSEUDO 1214A 1241E 
+DSKDRV  V 1.10 07-03-85, MKS
+DSKDRV 1241E 12BB2 
+TTYDRV  V 1.18 02-13-85 AWT
+TTYDRV 12BB2 144D8
+NUCIO	V 1.4 05-05-82, SCY
+NUCIO 144D8 146FA
+NUCLUS  V 0.114  07-03-85, MKS
+NUCLUS 146FA 151B8
+TTYDRV 151B8 556A
+PSEUDO 556A 556A 
+PALLOC  02-15-85  AWT
+
+207K-bytes left for Pascal Code Area
+SEGMENT 0-length 21998d, requires 5600x bytes of core.
+SEGMENT 1-length 21056d, requires 5300x bytes of core.
+SEGMENT 2-length 65536d, requires 10000x bytes of core.
+SEGMENT 3-length 65536d, requires 10000x bytes of core.
+SEGMENT 4-length 65536d, requires 10000x bytes of core.
+SEGMENT 5-length 15616d, requires 3D00x bytes of core.
+SEGMENT 0E-length 240d, requires 100x bytes of core.
+       250d K-bytes of core
+End of assembly
+;x   (BETATEST)elf04.p01
+
+;; Patch to handle echoing properly thru X.25/X.75 gateways
+
+lo front
+lo ttydrv
+trmsix+4]   LHI 2,SIIX,0   lhi 2,ldmmsg
+
+
+;; Patch to correct bug in checksum computaion - Nucleus version 10.07
+
+lo pseudo
+syout1]   ST 4,8,0B   st 4,8,0b
+SYOUT1+4\   ST 5,0C,0B   st 5,0c,0b
+
+
+
+;; Patch to clear pending needle read on terminal device timeout in
+;; Nucleus version 10.07
+
+patch1]   OPFLOP   lis 9,0
+PATCH1+2\   OPFLOP   sth 9,ttport,0d
+PATCH1+6\   OPFLOP   l 0b,ttrprm,0d
+PATCH1+0A\   OPFLOP   j acloop+40
+acloop+3c]   L 0B,8,0D   j patch1
+
+
+;; Patch to correct bug in clearing terminal editing characters.
+;; Nucleus version 10.07
+lo ttydrv
+stedib+8]   LA 5,TTEDAK,0D   la 5,ttedak,0d
+
+;; Patch to await zap acknowledgement when zapping circuit for rejected
+;; needle
+lo buffer
+nedzap]   LIS 0,3   jal 5,zapprt
+NEDZAP+4\   OPFLOP   j input1
+%f   KH2065.x01
+
+;g
+Data ranges read:
+20000-27FF7 27FF8-2FFEF 2FFF0-37FE7 37FE8-3C2DF 
+
+
+;a   KH2065.y01
+
+End of assembly
+;4   seg2[   1C2E0   ;\   0   
+.[   0   s2size:   
+1;f   KH2065.n01
+
+sege,sesize;p
+seg0,s0size;p
+seg1,s1size;p
+seg2,s2size;p
+%p
+%q
+EXIT
+
+-
+-del KH2065.x01,KH2065.y01,KH2065.z01
+
+
+-SEND UL6NET
+TYPE LETTER:
+; PCOM v1.63 - processed: (UL6NET)KIM.ELF = (UL6NET)KH2065.C01
+; Options: DETACH  LOG NOAPPEND SUPERSEDE LICENSE 
+; Limits: TIME:60 TRULIMIT:0 
+; Status: completed.
+; Output recorded in file (UL6NET)KIM.ELF.
+
+mail waiting
+-LOGOUT
+8709.91 tru
+terminal time: 0:07:48
