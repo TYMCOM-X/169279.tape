@@ -1,0 +1,2151 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                               SOUTHWESTERN BELL
+                           X.75/X.25 TROUBLESHOOTING
+                                   GUIDE
+
+
+
+
+
+
+
+                                COMPILED BY:
+
+                                 JOHN BELL
+
+
+                               JULY 15, 1985
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     THE FOLLOWING IS A LIST OF PROCEDURES THAT SHOULD BE USED WHEN TROUBLE-
+SHOOTING THE X.75 GATEWAYS.  IT MAY ALSO BE USED TO TROUBLESHOOT X.25 SLOTS
+IN MOST CASES.  IT IS BY NO MEANS A COMPLETE GUIDE TO TROUBLESHOOTING THESE
+INTERFACES BUT RATHER, IT IS MEANT AS A PRIMER TO THE MORE COMMON COMMANDS
+WHICH ARE USED TO ISOLATE TROUBLE AREAS IN THE INTERFACE.
+
+     IF THE OPERATOR FINDS THAT ANY MATERIAL HEREIN IS INSUFFICIENT, PLEASE
+LET ME KNOW SO THAT I MAY UPDATE THE DOCUMENT OR ADD COMMANDS TO IT AS
+NECESSARY.  ANY SUGGESTIONS FOR THE IMPROVEMENT OF THIS DOCUMENT WOULD BE
+MORE THAN WELCOME.
+
+
+
+                          TABLE OF CONTENTS
+                          -----------------
+
+
+
+1. GETTING INTO SLOT ........................... PAGE 1
+
+2. GETTING INTO EXTENDED DDT ....................PAGE 1
+
+3. THE EXTENDED DDT PROMPT.......................PAGE 1
+
+4. BASIC COMMANDS................................PAGE 1
+    
+         4.1  FRAME TRACE........................PAGE 2
+         4.2  PACKET TRACE.......................PAGE 3
+         4.3  PACKET BUFFER TRACE................PAGE 4
+         4.4  OUTPUT SECTOR......................PAGE 5
+         4.5  SIO INTERPRETER....................PAGE 6
+         4.6  HELP...............................PAGE 7
+         4.7  EXIT...............................PAGE 8
+
+
+                         TABLE OF APPENDICES
+                         -------------------
+
+
+   APPENDIX   A - LAPB INTERFACE STATE TABLE
+              B - X.25/X.75 FRAME BYTES
+              C = PACKET TYPE
+              D - CHANNEL STATES
+              E - PACKET IDENTIFIER
+              F - CCITT PACKET FORMATS
+              G - CAUSE AND DIAGNOSTICS
+              H - FACILITIES & UTILIZES
+              I - CRASH CODES
+                                                                PAGE 1
+
+
+1.) Get into slot in the usual manner:
+
+         ISISTECH:KERNEL HOST #;PASSWORD (CR)
+
+         NODE:XXXX
+         HOST:YYYY
+
+         SLOT#:(SPECIFY APPROPRIATE SLOT) 
+
+    SLOT 01 RUNNING DDT
+   *
+
+
+
+
+
+2.)  AT THE "*" PROMPT, TYPE:
+
+         *?STAT (CR)
+
+
+
+
+
+3.)  THE SYSTEM WILL PROMPT YOU WITH A "-->"
+
+
+
+
+
+4.)  THERE ARE 6 BASIC COMMANDS THAT WILL BE USED TO TROUBLESHOOT X.75 
+     GATEWAYS.  THEY ARE AS FOLLOWS:
+
+         --> FT
+         --> PT
+         --> PB
+         --> OS
+         --> SIO
+         --> HELP
+
+
+      THESE ARE NOT THE ONLY COMMANDS THAT MAY BE ENTERED AT THE ARROW  
+      PROMPT.  "HELP" WILL PRINT A LIST OF POSSIBLE COMMANDS AS WELL AS THE
+      ADDRESS OF THE CRASH TABLE. (SEE APPENDIX I FOR CRASH CODES)
+
+
+
+                                                                PAGE 2
+
+
+4.1) FT STANDS FOR "FRAME TRACE".  ONCE ENTERED, DDT WILL PROMPT YOU FOR
+     "SEC=".  SPECIFY THE NUMBER OF SECONDS THAT YOU WISH TO EXAMINE FOR-
+     WARD FROM THE CURRENT TIME.  REMEMBER, THESE ARE IN "HEX" SECONDS.
+
+
+     EXAMPLE: --> FT (CR)
+                  SEC: 40 (CR)
+
+F 8002 0301  OUT LINE 0  SECINF   RR  0  
+F 8002 0301  OUT LINE 0  SECINF   RR  0  
+F 8002 0301  OUT LINE 0  SECINF   RR  0  
+F 8002 0301  OUT LINE 0  SECINF   RR  0  
+F 8002 0301  OUT LINE 0  SECINF   RR  0  
+F 8002 0301  OUT LINE 0  SECINF   RR  0  
+F 8002 0301  OUT LINE 0  SECINF   RR  0  
+F 8002 0301  OUT LINE 0  SECINF   RR  0  
+F 8002 0301  OUT LINE 0  SECINF   RR  0  
+ 
+
+
+     OUTPUT WILL BE IN THE FORMAT:
+ 
+                  A B0B1 B2B3 DDD LINE E FFFF GGGG
+
+
+
+
+     WHERE: A=INDICATION OF FRAME LEVEL TRACE (F)
+            BO=80 + LINE NUMBER FOR OUTPUT
+               00 + LINE NUMBER FOR INPUT
+            B1=INTERFACE STATE (SEE APPENDIX A)
+
+            PRIMARY ADDRESS WILL BE USED FOR FRAMES CONTAINING COMMANDS FROM
+            THE INTERFACE TO THE LINK AND FOR RESPONSES FROM THE LINK TO THE
+            INTERFACE.  THE SECONDARY ADDRESS WILL BE USED FOR FRAMES CON-
+            TAINING COMMANDS FROM THE LINK TO THE INTERFACE AND FOR RESPONSES
+            FROM THE INTERFACE TO THE LINK.
+
+
+
+            B2: IF DDD=OUT AND B2=01 THEN B2 IS A REPONSE FROM INTERFACE
+              TO THE LINK.
+
+              : IF DDD=OUT AND B2=03 THEN B2 IS A COMMAND FROM THE
+              INTERFACE TO THE LINK.
+              
+              : IF DDD=IN AND B2=03 THEN B2 IS A RESPONSE FROM THE LINK
+              TO THE INTERFACE.
+
+              : IF DDD=IN AND B2=01 THEN B2 IS A COMMAND FROM THE LINK
+              TO THE INTERFACE.
+
+            B3= FRAME TYPE (SEE APPENDIX B)
+
+
+            DDD=TRANSLATION OF B0 (OUT OR IN)
+            LINE E=TRANSLATION OF BO
+            FFFF=TRANSLATION OF B1
+            GGGG=TRANSLATION OF B3
+
+                                                                PAGE 3
+
+
+4.2)  PT STANDS FOR "PACKET TRACE".  ONCE ENTERED, DDT WILL PROMPT YOU FOR
+      "SEC=".  AGAIN, THESE ARE TO BE SPECIFIED IN HEX SECONDS.
+
+      EXAMPLE: --> PT (CR)
+                   SEC=40 (CR)
+
+
+P  8000 0001 0B01  OUT CHAN 01 CALL REQ    PSCALR
+P  0000 0001 1302   IN CHAN 01 CLEAR REQ   PWCALC
+P  8000 0001 1706  OUT CHAN 01 CLEAR CON   PSCLRC
+P  8000 0001 0B01  OUT CHAN 01 CALL REQ    PSCALR
+P  0000 0001 1302   IN CHAN 01 CLEAR REQ   PWCALC
+P  8000 0001 1706  OUT CHAN 01 CLEAR CON   PSCLRC
+P  8000 0001 0B01  OUT CHAN 01 CALL REQ    PSCALR
+P  0000 0001 1302   IN CHAN 01 CLEAR REQ   PWCALC
+P  8000 0001 1706  OUT CHAN 01 CLEAR CON   PSCLRC
+P  8000 0001 0B01  OUT CHAN 01 CALL REQ    PSCALR
+P  0000 0001 1302   IN CHAN 01 CLEAR REQ   PWCALC
+P  8000 0001 1706  OUT CHAN 01 CLEAR CON   PSCLRC
+
+
+      OUTPUT IS IN THE FORMAT:
+
+         A B0B1 B2B3 B4B5 DDD CHAN EE FFFF GGGG
+
+
+
+      WHERE:    A=INDICATION OF PACKET LEVEL TRACE (P)
+                B0=80 FOR OUPUT, 00 FOR INPUT, +01 FOR ILLEGAL PACKET, +
+                02 IF Q BIT IS SET.
+                B1= LINE NUMBER
+                B2 & B3= EXTERNAL CHANNEL NUMBER
+                B4= PACKET TYPES (SEE APPENDIX C)
+                B5=CHANNEL STATES (SEE APPENDIX D)
+                DDD=TRANSLATION OF B0 (OUT OR IN)
+                CHAN EE=TRANSLATION OF B2 & B3
+                FFFF=TRANSLATION OF B4
+                GGGG=TRANSLATION OF B5
+
+                                                                PAGE 4
+
+
+4.3)  PB STANDS FOR "PACKET BUFFER TRACE".  THIS TRACE WILL GIVE PACKET
+      ID'S AS WELL AS DATA TRANSFERRED FROM HOST (LINK TO INTERFACE.)
+
+      EXAMPLE: --> PB (CR)
+                   SEC= 40 (CR)
+
+
+1464 0003 1001 E1
+166E 0015 1001 EE53 4446 4741 5346 4447 6173 6466 6173 6466 0D
+1878 0003 1001 01
+1A82 0003 1001 21
+1C8C 0004 1001 200D 
+1E96 0003 1001 41
+0000 0004 1001 420D 
+020A 0004 1001 440D 
+0414 0003 1001 61
+061E 001E 1001 6661 6263 6465 6667 6869 6A6B 6C6D 6E6F 7071 7273 7475 7677 7879
+ 7A0D 
+0828 0003 1001 17
+0A32 0005 1001 1305 00
+0C3C 0005 1001 1305 00
+0E46 0005 1001 1305 00
+FFFF 0005 1001 1305 00
+
+
+
+      OUTPUT WILL BE IN THE FORMAT:
+      
+         AAAA B0B1 B2B3 B4 ------SEE NOTE
+
+
+
+      WHERE:     AAAA = 2 BYTES OF ADDRESS
+                 B0 & B1 = BYTE COUNT OF PACKET
+                 B2 = 4 BITS OF GENERAL FORMAT IDENTIFIER
+                    = 4 BITS OF LOGICAL CHANNEL GROUP NUMBER
+                 B3 = LOGICAL CHANNEL NUMBER
+                 B4 = PACKET IDENTIFIER (SEE APPENDIX E)
+
+
+  NOTE:  WHAT FOLLOWS B4 (PACKET I.D.) IS PACKET TYPE SPECIFIC.  FOR PACKET
+         FORMATS OF EACH PACKET TYPE, SEE APPENDIX F.
+
+                                                                PAGE 5
+
+
+4.4)  OS STANDS FOR "OUTPUT SECTOR".  THIS TRACE WILL GIVE PACKET ID'S AS
+      WELL AS DATA TRANSFERRED TO HOST (INTERFACE TO LINK).
+
+      NOTE: PACKET FORMAT IS IDENTICAL TO THE PACKET FORMAT OF THE "PB"
+      COMMAND (SEE SECTION 4.3).
+
+
+
+      EXAMPLE: --> OS (CR)
+                   SEC= 40 (CR)
+
+
+
+0005 01C0 1001 61
+000B 01C2 1001 6490 F0E1 F2BF 8D
+0005 0104 1001 81
+0007 0106 1001 1300 00
+0024 0128 1001 0BAA 3333 9013 2933 3302
+ 2713 0E81 285B DA01 0042 0707 4302 0202
+ 7700 0100 0000 
+
+
+
+
+                                                                PAGE 6
+
+
+
+
+4.5)  SIO TRACE WILL INTERPRET THE SIO STATUS TABLE FOR EACH SIO UNIT.
+
+
+
+         EXAMPLE:  --> SIO (CR)
+
+
+
+
+         YOU MAY ENCOUNTER THE FOLLOWING:
+
+         1.  TRANSMIT UNDERRUN-
+
+         2.  CLEAR TO SEND-
+
+         3.  CARRIER DETECTED-
+
+         4.  TRANSMIT BUFFER EMPTY-
+
+         5.  END OF FRAME DETECTED-
+
+         6.  HDLC-
+
+         7.  IDLE COUNT-
+
+         8.  CRC COUNT-
+
+         9.  ABORT COUNT-
+
+        10.  READ STATUS COMPLETE-
+
+        11.  RECEIVE CLOCK PRESENT-
+
+        12.  TRANSMIT CLOCK PRESENT-
+
+        13.  HDLC LINE IDLE-
+
+        14.  INTERRUPT STATUS-
+
+
+
+
+                                                                 PAGE 7
+
+
+4.6)  "HELP" WILL PRINT A LIST OF ALL POSSIBLE COMMANDS AT THE "-->"
+      LEVEL.  KEEP IN MIND THAT MOST OF THEM WILL NOT BE USED ON A REGULAR
+      BASIS.  AT THE BOTTOM OF THE LIST, "HELP" WILL PRINT THE ADDRESS
+      OF THE CRASH TABLE.
+
+
+         EXAMPLE: -->HELP (CR)
+
+
+
+
+HELP  Prints this list          QUIT  Returns to DDT
+BH    Bufferlet dump in hex     BA    Bufferlet dump in ascii
+BHN   Non-empty dump in hex     BAN   Non-empty dump in ascii
+PB    Packet buffer trace       PT    Packet trace
+FT    Frame trace               PFT   Packet and frame trace
+RI    Input ring trace          RO    Output ring trace
+SIO   SIO interpreter           OS    Output sector trace
+SELECT Diagnostic selection     REDO  Repeat selection
+SNAP  One-shot selection
+DMY1  Spare Diagnostic          DMY2  Spare Diagnosti
+
+008B4 = CRAT, address of the Crash Table.
+
+
+      THEN YOU MUST TYPE THE FOLLOWING:
+
+         EXAMPLE: -->^C (CONTROL C GETS YOU BACK TO THE DDT "*" PROMPT)
+
+                   *R 8B4,4C (CR)
+
+008B4  0001  0001  0000  0000  FFFF  FFFF  0000  0000
+008C4  0000  0000  0000  0000  0000  0000  0000  0000
+008D4  0000  0000  0000  0000  0000  0000  0000  0000
+008E4  0000  0000  0000  0000  0000  0000  0000  0000
+008F4  0000  0000  0000  0000  0000  0000
+
+
+
+          WHERE: 1. THE NUMBERS IN THE LEFT HAND COLUMN ARE SLOT VIRTUAL  
+                    ADDRESSES.  THIS ADDRESS MAY NOT BE THE SAME FOR EVERY
+                    XCOM INTERFACE.
+
+                 2. THE FIRST HALF WORD (2 BYTES) IS THE RESTART COUNT. THIS
+                    COLUMN WILL INCREMENT RAPIDLY IF THE SLOT IS CRASHING
+                    CONTINUOUSLY.  NOTE THAT THE RESTART COUNT IS INITIALIZED
+                    AT 1.  THUS, THE FIRST CRASH WILL SET THE RESTART COUNT
+                    TO "2".
+
+                 3. THE NEXT HALF WORD IS THE CRASH CODE OF THE LAST CRASH.
+                    (SEE APPENDIX G FOR DESCRIPTION OF EACH)
+
+                 4. THE NEXT FULL WORD (4 BYTES) IS THE LOCATION OF THE CRASH.
+
+                 5. THE NEXT FULL WORD IS TO BE IGNORED.
+
+                 6. THE NEXT 16 FULL WORDS ARE THE CONTENTS OF THE 16 REG-
+                    ISTERS AT THE TIME OF THE CRASH.
+
+                                                                PAGE 8
+
+
+4.7)  EXIT AT THE "-->" PROMPT IS DONE IN THE FOLLOWING WAY:
+
+
+       EXAMPLE: -->^C (CONTROL C)
+
+                *Z    Logging off?   Z
+
+       YOU WILL BE BACK AT THE "please log in:" PROMPT.
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                 APPENDIX A                     PAGE A-1
+                                 ----------
+
+
+
+
+
+
+
+
+                          LAPB INTERFACE STATE TABLE
+                          ==========================
+
+STATE          PRIMARY                         SECONDARY 
+
+  0  NOT ARMED               PNARM       NOT ARMED             SECADM
+  1  ARMING                  PAPMG       TRYING TO ARM         SECRMG
+  2  INFORMATION TRANSFER    PINFO       INFORMATION TRANSFER  SECINE
+  3  TIMER RECOVERY          PTRECV      TIMER RECOVERY        SECRECV
+  4  RESET                   PRFSET      RESET                 SECRESET
+  5  FRAME REJECT            PFRMR       FRAME REJECT          SECMDR
+  6  DISCONNECT              PDISC       DISCONNECT            SECDSC
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                 APPENDIX B                     PAGE B-1
+                                 ----------
+
+
+
+                   X.25/X.75 FRAME BYTES
+                   ======================
+
+                   INFORMATION             ?? (ALWAYS EVEN)
+                   RECIEVE READY           X1
+                   RECEIVE NOT READY       X5
+                   REJECT                  X9
+                   SARM (LAP)              OF/1F
+                   DM (LAPB)               OF/1F
+                   SARM                    2F/3F
+                   DISC                    43/53
+                   UA                      63/73
+                   CMDR/FRMR               87/97
+
+
+
+
+
+
+
+
+
+
+
+                                 APPENDIX C                     PAGE C-1
+                                 ----------
+
+
+
+
+
+
+
+
+PACKET TYPE     TYPE DEFINITION                      LISTING SYMBOL
+===========     ===============                      ==============
+
+    013         CLEAR REQUEST/INDICATION                 YCLRR
+    017         CLEAR CONFIRMATION                       YCLRC
+    00B         CALL REQUEST/INCOMING CALL               YCALR
+    00F         CALL ACCEPTED/CONNECTED                  YCALA
+    01B         RESET REQUEST/INDICATION                 YREST
+    01F         RESET CONFIRMATION                       YRESTC
+    023         INTERRUPT PACKET                         YINTP
+    027         INTERRUPT CONFIRMATION                   YINTPC
+    001         RR PACKET, P(R) MUST BE OR'ED IN         YRRP
+    005         RNR PACKET, P(R) MUST BE OR'ED IN        YRNRP
+    009         REJ PACKET, P(R) MUST BE OR'ED IN        YREJP
+    0F1         DIAGNOSTIC PACKET                        YDIAG
+    0FB         RESTART REQUEST                          YRSTRT
+    0FF         RESTART CONFIRMATION                     YRSTRC
+
+A DATA PACKET IS NOT LISTED IN THE TABLE ABOVE.  THE PACKET TYPE OF A DATA
+PACKET IS ALWAYS EVEN.
+
+
+
+
+
+
+
+
+
+
+
+                                 APPENDIX D                     PAGE D-1
+                                  ----------
+
+
+
+
+
+
+
+
+STATE NUMBER          STATE DEFINITION          LISTING SYMBOL
+============          ================         ==============
+
+     0       READY STATE                            PREADY
+     1       SEND CALL REQUEST SOFTWARE STATE       PSCALR
+     2       WAITING FOR CALL CONFIRMATION          PWCALC
+     3       MUST SEND CALL CONF. STATE             PSCLRQ
+     5       WAITING FOR CLEAR CONFIRMATION STATE   PWCLRC
+     6       SEND CLEAR CONF. STATE                 PSCLRC
+     7       FLOW CONTROL READY STATE               PFLOWC
+     8       MUST SEND RESET INDICATION             PSRESI
+             MUST SEND RESET INDICATION             PSRESI
+             (RESET IN QUEUE BUT YET SENT)
+     9       WAITING FOR RESET CONFIRMATION STATE   PWRESC
+    0A       MUST SEND RESET CONF. STATE            PSRESC
+             (RESET WAS REVD. CONF IN QUEUE BUT NOT SENT)
+    0B       SEND RESTART INDICATION STATE          PSRSTI
+             (RESTART IN RMAKE QUEUE, BUT NOT SENT)
+    0C       WAITING FOR RESTART CONFIRMATION STATE PWRSTC
+    0D       SEND RESTART CONFIRMATION STATE        PSRSTC
+             (RESTART RECEIVED; CONFIRMATION IN
+              RMAKE QUEUE, BUT NOT SENT)
+
+
+
+
+
+                                 APPENDIX E                     PAGE E-1
+                                 ----------
+
+
+
+
+
+
+
+
+         FROM DCE TO DTE        FROM DTE TO DCE     PID
+         ===============        ===============     ===
+
+
+  CALL SET-UP AND CLEARING
+
+         INCOMING CALL         CALL REQUEST          0B
+         CALL CONNECTED        CALL ACCEPTED         0F
+         CLEAR INDICATION      CLEAR REQUEST         13
+         DCE CLEAR CONF.       DTE CLEAR CONF.       17
+
+  DATA AND INTERRUPT
+
+         DCE DATA              DTE DATA              (ALWAYS EVEN NUMBER)
+         DCE INTERRUPT         DTE INTERRUPT         23
+         DCE INTERRUPT CONF.   DTE INTERRUPT CONF    27
+
+  FLOW CONTROL AND RESET PACKET TYPE
+
+         DCE RR   (MOD 8)      DTE RR (MOD 8)        X1
+         DCE RR   (MOD 128)    DTE RR (MOD 128)      01
+         DCE RNR  (MOD 8)      DTE RNR (MOD 8)       X5
+         DCE RNR  (MOD 128)    DTE RNR (MOD 128)     X9
+                               DTE REJ (MOD 8)       X9
+                               DTE REF (MOD 128)     09
+         RESET INDICATION      RESET REQUEST         1B
+         DCE RESET CONF.       DTE RESET CONF.       1F
+
+  RESTART ALWAYS OCCURS ON CHAN #0
+
+         RESTART INDICATION    RESTART REQUEST        FB
+         DCE RESTART CONF.     DTE RESTART CONF.     FF
+
+  DIAGNOSTIC
+
+         DIAGNOSTIC                                  F1
+
+
+
+
+628D
+                             APPENDIX F                         PAGE F-1
+                             ----------
+
+                    CCITT PACKET FORMATS (INDEX)
+
+
+
+
+
+
+
+
+
+        PACKET TYPE                             PAGE
+        -----------                             ----
+
+            13  ...............................  F5
+            17  ...............................  F7
+            0B  ...............................  F2-F3
+            0F  ...............................  F4
+            
+            1B  ...............................  F12
+            1F  ...............................  F12
+            23  ...............................  F9
+            27  ...............................  F9
+
+            01  ..............................  F10
+       05  ..............................  F11
+            09  ..............................  F15
+            F1  ..............................  F14
+
+            FB  ..............................  F13
+            FF  ..............................  F13
+
+
+
+
+                  Call Request and Incoming Call Packet Format
+
+
+                                                              Page F-2
+          CCITT packet formats
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |        (See Note 1)        |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                 Packet Type Identifier                   |
+          |   0      0      0      0       1      0      1      1    |
+          |__________________________________________________________|
+          |    Calling DTE address     |     Called DTE address      |
+          |          length            |           length            |
+          |____________________________|_____________________________|
+          |                                                          |
+          |             Called DTE address (See Note 2)              |
+          .                                                          .
+          .                                                          .
+          |__________________________________________________________|
+          |                                                          |
+          |             Calling DTE address (See Note 2)             |
+          |                             _____________________________|
+          |                            |                             |
+          |                            |   0      0      0      0    |
+          |____________________________|_____________________________|
+          |             |                                            |
+          |   0      0  |              Facility length               |
+          |_____________|____________________________________________|
+          |                                                          |
+          |                                                          |
+          |                       Facilities                         |
+          |                                                          |
+          |__________________________________________________________|
+          |                                                          |
+          |                                                          |
+          |                     Call User Data                       |
+          |                   (See Notes 3 and 4)                    |
+          |                                                          |
+          |__________________________________________________________|
+
+          Note 1:  Coded 0d01 (mod 8) or 0d10 (mod 128), where "d"  is
+          the D bit.
+
+          Note 2:  The figure is drawn assuming the Called and Calling
+          addresses together consist of an odd number of digits.
+
+          Note 3:  Bits 8 and 7 of the first octet of  the  Call  User
+          Data  field have particular significance.  When present, the
+          first four octets of the Call User  Data  field  comprise  a
+          protocol id field whose meaning depends on bits 8 and 7.
+
+
+
+                                                              Page F-3
+          CCITT packet formats
+
+
+                    00      then the protocol id field  is  for  CCITT
+                            use, with
+                            01/00/00/00, indicating a PAD, or
+                            00/00/00/00, indicating a host,
+
+                    01      then the protocol id field is for national
+                            use,
+
+                    10      then it is reserved for international user
+                            bodies, 
+
+                    11      then it is for DTE-DTE use.
+
+
+          TYMNET recognizes the following protocol id fields:
+
+               01/00/00/00    PAD
+
+               00/00/00/00    host
+
+               01/TID/TSPD/00 Telenet
+
+               56/xx/xx/xx    DSP
+
+                   or
+
+               57/xx/xx/xx
+
+          Except for the Telenet protocol id, all protocol  id's  pass
+          transparently.
+
+          Note 4:  The Call User Data Field need not be  present.   If
+          present,  maximum  length  of the Call User Data field is 16
+          octets unless the fast select facility is chosen,  in  which
+          case the maximum length is 128 octets.
+                                                              Page F-4
+          CCITT packet formats
+
+
+                 Call Accepted and Call Connected Packet Format
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |        (See Note 1)        |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                 Packet Type Identifier                   |
+          |   0      0      0      0       1      1      1      1    |
+          |__________________________________________________________|
+          |    Calling DTE address     |     Called DTE address      |
+          |          length*           |           length*           |
+          |____________________________|_____________________________|
+          |                                                          |
+          |             Called DTE address (See Note 2)*             |
+          .                                                          .
+          .                                                          .
+          |__________________________________________________________|
+          |                                                          |
+          |             Calling DTE address (See Note 2)*            |
+          |                             _____________________________|
+          |                            |                             |
+          |                            |   0      0      0      0    |
+          |____________________________|_____________________________|
+          |             |                                            |
+          |   0      0  |              Facility length*              |
+          |_____________|____________________________________________|
+          |                                                          |
+          |                                                          |
+          |                       Facilities*                        |
+          |                                                          |
+          |__________________________________________________________|
+          Note  1:  Coded 0d01 (mod 8) or 0d10 (mod 128), where "d" is
+          the D bit.
+          Note 2:  The figure is drawn assuming the Called and Calling
+          addresses together consist of an odd number of digits.
+
+          * These fields are not mandatory in Call  Accepted  packets.
+          However,  if  facilities  are present and the Calling/Called
+          addresses are not, the Calling and  Called  address  LENGTHS
+          must be coded as 0.
+                                                              Page F-5
+          CCITT packet formats
+
+
+                Clear Request and Clear Indication Packet Format
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |         (See Note)         |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                 Packet Type Identifier                   |
+          |   0      0      0      1       0      0      1      1    |
+          |__________________________________________________________|
+          |                                                          |
+          |                    Clearing Cause                        |
+          |__________________________________________________________|
+          |                                                          |
+          |                   Diagnostic Code*                       |
+          |__________________________________________________________|
+          Note:  Coded 0001 (mod 8) or 0010 (mod 128).
+
+          * This field is not mandatory in Clear Request packets.
+                                                              Page F-6
+          CCITT packet formats
+
+
+                Clear Request and Clear Indication Packet Format
+                          for the Fast Select Facility
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |        (See Note 1)        |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                 Packet Type Identifier                   |
+          |   0      0      0      1       0      0      1      1    |
+          |__________________________________________________________|
+          |                                                          |
+          |                      Clearing Cause                      |
+          |__________________________________________________________|
+          |                                                          |
+          |                     Diagnostic Code                      |
+          |__________________________________________________________|
+          |    Calling DTE address     |     Called DTE address      |
+          |          length            |           length            |
+          |____________________________|_____________________________|
+          |                                                          |
+          |                DTE address (See Note 2)                  |
+          |                             _____________________________|
+          |                            |                             |
+          |                            |   0      0      0      0    |
+          |____________________________|_____________________________|
+          |             |                                            |
+          |   0      0  |              Facility length               |
+          |_____________|____________________________________________|
+          |                                                          |
+          |                                                          |
+          |                       Facilities                         |
+          |                                                          |
+          |__________________________________________________________|
+          |                                                          |
+          |                                                          |
+          |                     Clear User Data                      |
+          |                      (See Note 3)                        |
+          |                                                          |
+          |__________________________________________________________|
+          Note 1:  Coded 0001 (mod 8) or 0010 (mod 128).
+          Note 2:  The figure is drawn assuming the Called and Calling
+          addresses together consist of an odd number of digits.
+          Note 3:  Maximum length of the Clear User Data field is  128
+          octets.
+                                                              Page F-7
+          CCITT packet formats
+
+
+                  DTE and DCE Clear Confirmation Packet Format
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |         (See Note)         |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                 Packet Type Identifier                   |
+          |   0      0      0      1       0      1      1      1    |
+          |__________________________________________________________|
+          Note:  Coded 0001 (mod 8) or 0010 (mod 128).
+                                                              Page F-8
+          CCITT packet formats
+
+
+                         DTE and DCE Data Packet Format
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |   Q      D      0      1   |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                    |       |                     |       |
+          |        P(R)        |   M   |        P(S)         |   0   |
+          |____________________|_______|_____________________|_______|
+          |                                                          |
+          |                        User Data                         |
+          |__________________________________________________________|
+          
+          (mod 8)
+
+
+
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |   Q      D      1      0   |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                                                  |       |
+          |               P(R)                               |   0   |
+          |__________________________________________________|_______|
+          |                                                  |       |
+          |               P(S)                               |   M   |
+          |__________________________________________________|_______|
+          
+          (mod 128)
+
+
+          D = Delivery Confirmation bit
+          M = More Data bit
+          Q = Qualifier bit
+                                                              Page F-9
+          CCITT packet formats
+
+
+                      DTE and DCE Interrupt Packet Format
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |         (See Note)         |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                 Packet Type Identifier                   |
+          |   0      0      1      0       0      0      1      1    |
+          |__________________________________________________________|
+          |                                                          |
+          |                  Interrupt User Data                     |
+          |__________________________________________________________|
+          Note:  Coded 0001 (mod 8) or 0010 (mod 128).
+
+
+
+
+
+
+                DTE and DCE Interrupt Confirmation Packet Format
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |         (See Note)         |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                 Packet Type Identifier                   |
+          |   0      0      1      0       0      1      1      1    |
+          |__________________________________________________________|
+          Note:  Coded 0001 (mod 8) or 0010 (mod 128).
+                                                             Page F-10
+          CCITT packet formats
+
+
+                          DTE and DCE RR Packet Format
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |   0      0      0      1   |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                    |       Packet Type Identifier        |
+          |        P(R)        |   0       0      0      0      1    |
+          |____________________|_____________________________________|
+          
+          (mod 8)
+
+
+
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |   0      0      1      0   |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                 Packet Type Identifier                   |
+          |   0      0      0      0       0      0      0      1    |
+          |__________________________________________________________|
+          |                                                  |       |
+          |               P(R)                               |   0   |
+          |__________________________________________________|_______|
+          
+          (mod 128)
+                                                             Page F-11
+          CCITT packet formats
+
+
+                         DTE and DCE RNR Packet Format
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |   0      0      0      1   |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                    |       Packet Type Identifier        |
+          |        P(R)        |   0       0      1      0      1    |
+          |____________________|_____________________________________|
+          
+          (mod 8)
+
+
+
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |   0      0      1      0   |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                 Packet Type Identifier                   |
+          |   0      0      0      0       0      1      0      1    |
+          |__________________________________________________________|
+          |                                                  |       |
+          |               P(R)                               |   0   |
+          |__________________________________________________|_______|
+          
+          (mod 128)
+                                                             Page F-12
+          CCITT packet formats
+
+
+                Reset Request and Reset Indication Packet Format
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |         (See Note)         |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                 Packet Type Identifier                   |
+          |   0      0      0      1       1      0      1      1    |
+          |__________________________________________________________|
+          |                                                          |
+          |                   Resetting Cause                        |
+          |__________________________________________________________|
+          |                                                          |
+          |                   Diagnostic Code*                       |
+          |__________________________________________________________|
+          Note:  Coded 0001 (mod 8) or 0010 (mod 128).
+
+          * This field is not mandatory in Reset Request packets.
+
+
+
+
+
+
+                  DTE and DCE Reset Confirmation Packet Format
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |         (See Note)         |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                 Packet Type Identifier                   |
+          |   0      0      0      1       1      1      1      1    |
+          |__________________________________________________________|
+          Note:  Coded 0001 (mod 8) or 0010 (mod 128).
+                                                             Page F-13
+          CCITT packet formats
+
+
+              Restart Request and Restart Indication Packet Format
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |         (See Note)         |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                 Packet Type Identifier                   |
+          |   1      1      1      1       1      0      1      1    |
+          |__________________________________________________________|
+          |                                                          |
+          |                   Restarting Cause                       |
+          |__________________________________________________________|
+          |                                                          |
+          |                   Diagnostic Code*                       |
+          |__________________________________________________________|
+          Note:  Coded 0001 (mod 8) or 0010 (mod 128).
+
+          * This field is not mandatory in Restart Request packets.
+
+
+
+
+
+
+                 DTE and DCE Restart Confirmation Packet Format
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |         (See Note)         |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                 Packet Type Identifier                   |
+          |   1      1      1      1       1      1      1      1    |
+          |__________________________________________________________|
+          Note:  Coded 0001 (mod 8) or 0010 (mod 128).
+                                                             Page F-14
+          CCITT packet formats
+
+
+                            Diagnostic Packet Format
+                                  (See Note 1)
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |                             |
+          |        (See Note 2)        |   0      0      0      0    |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |   0      0      0      0       0      0      0      0    |
+          |__________________________________________________________|
+          |                 Packet Type Identifier                   |
+          |   1      1      1      1       0      0      0      1    |
+          |__________________________________________________________|
+          |                                                          |
+          |                   Diagnostic Code                        |
+          |__________________________________________________________|
+          |                                                          |
+          |                                                          |
+          |                Diagnostic Explanation                    |
+          |                     (See Note 3)                         |
+          |__________________________________________________________|
+          Note 1:  Not currently available on TYMNET networks.
+          Note 2:  Coded 0001 (mod 8) or 0010 (mod 128).
+          Note  3:   The  figure  is  drawn  assuming  the  Diagnostic
+          Explanation field is an integral number of octets in length.
+                                                             Page F-15
+          CCITT packet formats
+
+
+                             DTE REJ Packet Format
+                                   (See Note)
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |   0      0      0      1   |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                    |       Packet Type Identifier        |
+          |        P(R)        |   0       1      0      0      1    |
+          |____________________|_____________________________________|
+          
+          (mod 8)
+
+
+
+
+
+
+              8      7      6      5       4      3      2      1
+           __________________________________________________________
+          |  General Format Identifier |    Logical Channel          |
+          |   0      0      1      0   |     Group Number            |
+          |____________________________| __ __ __ __ __ __ __ __ __ _|
+          |                                                          |
+          |                 Logical Channel Number                   |
+          |__________________________________________________________|
+          |                 Packet Type Identifier                   |
+          |   0      0      0      0       1      0      0      1    |
+          |__________________________________________________________|
+          |                                                  |       |
+          |               P(R)                               |   0   |
+          |__________________________________________________|_______|
+          
+          (mod 128)
+          Note:  Not currently accepted on TYMNET networks.
+
+
+
+
+
+                               APPENDIX G                       PAGE G-1
+                               ----------
+
+
+            CAUSE AND DIAGNOSTIC VALUES
+            ___________________________
+
+            The following clearing, reset, and restart cause and diagnostic
+            values are output when a call  is cleared, reset, or restarted.
+            The cause code and CCITT  explanation is listed first, followed
+            by a  list of diagnostic codes  which may accompany  that cause
+            code and further define the  message.  The first three sections
+            list information for the  X.25 interface.  The next  three sec-
+            tions list information for the X.75 interface.  Text surrounded
+            by brackets  indicates a packet  state.  A table  of diagnostic
+            numbers 00 through  127 listing the packet state  coding can be
+            found in Annex 5 of the CCITT Recommendation X.25 (1981).
+
+
+
+            X.25 Interface Clearing Cause Codes
+            ___________________________________
+
+            00  DTE originated
+                  00  DTE clearing,  a network disconnect was  received, or
+                      the call request was aborted  before receiving a net-
+                      work circuit complete message.
+
+            01  Number busy
+                 129  An OUT OF PORTS message was received from the network
+                      Supervisor.
+
+            03  Invalid facility request
+                  65  Call set-up problem; facility code not allowed.
+                  66  Call set-up problem; facility parameter not allowed.
+
+            05  Network congestion
+                 129  A CIRCUITS BUSY message was received from the network
+                      Supervisor.
+                 130  A TRY AGAIN LATER message was  received from the net-
+                      work Supervisor.
+                 131  A  BAD MUD  message  was  received from  the  network
+                      Supervisor.
+                 133  A NO  HOST SPECIFIED  message was  received from  the
+                      network Supervisor.
+                 134  A MUD  ERROR message  was received  from the  network
+                      Supervisor.
+                 138  Login  error.  The  message USERNAME  or ERROR,  TYPE
+                      PASSWORD was  received from  the network  Supervisor,
+                      and PKTOPT(TKSUP) was not set.
+
+
+
+                                    CAUSE AND DIAGNOSTIC VALUES    Page 118
+
+
+
+
+
+
+
+
+
+
+                                                                PAGE G-2
+
+
+                 140  Received clear  before  getting normal  circuit  com-
+                      plete.
+                 141  Circuit timeout before sending call accept.
+                 142  Login timeout.
+                 143  INFOSWITCH - call accept timeout.
+                 148  Internal protocol violation: illegally formatted net-
+                      work internal communication message.
+                 153  Login failure - node unable to complete request.
+                 154  Login failure - format error.
+                 155  Login failure - bad username.
+                 156  Login failure - bad MUD.
+                 157  Login failure - system unavailable.
+                 158  Login failure - downline load or dial-out failure.
+                 159  Login failure - timeout.
+                 160  Login failure - access not permitted.
+                 161  Login failure - out of origination ports.
+                 162  Login failure - try again later.
+                 163-168  Login failure - unknown reason.
+                 169  A DSP call was expected by the destination interface,
+                      but the protocol ID field of the call request did not
+                      indicate that it was a DSP call.
+                 170  X.25  internal network  communication level  response
+                      received was  greater than the X.25  network internal
+                      communication level configured for the interface.
+                 171  Protocol ID field of the call request was DSP but the
+                      destination does not accept DSP calls.
+                 172  Buffer capacity exceeded, data lost.
+                 175  Internal  malfunction, received  illegally  formatted
+                      X.25 network internal communication message.
+                 176  Internal malfunction, received  unimplemented network
+                      internal communication message.
+                 180  Received erroneous call accept  network internal com-
+                      munication message.
+                 191  XOM wants no more calls.
+                 192  No available internal ports  to assign when receiving
+                      call request.
+
+            09  Out of order
+                 129  A HOST  SHUT message  was received  from the  network
+                      Supervisor.
+                 130  A HOST  DOWN message  was received  from the  network
+                      Supervisor.
+
+
+
+
+
+
+
+
+                                    CAUSE AND DIAGNOSTIC VALUES
+
+
+
+
+
+
+
+
+
+
+                                                                PAGE G-3
+
+
+            11  Access barred
+                 129  An ACCESS NOT PERMITTED message was received from the
+                      network Supervisor.
+                 130  A PLEASE SEE YOUR REPRESENTATIVE message was received
+                      from the network Supervisor.
+                 182  Outgoing calls barred within CUG, or CUG with no out-
+                      going access facility.
+                 183  Incoming  calls barred  within CUG,  or  CUG with  no
+                      incoming access facility.
+
+            13  Not obtainable
+                 129  A HOST  NOT AVAILABLE message  was received  from the
+                      network Supervisor.
+                 130  A BAD HOST NUMBER message was  received from the net-
+                      work Supervisor.
+
+            17  Remote procedure error
+                  17  Packet type invalid for r1 [packet level ready].
+                  18  Packet type invalid for r2 [DTE restart request].
+                  33  Packet not allowed; unidentifiable packet.
+                  40  Invalid GFI, D bit not implemented.
+                  41  Logical channel nonzero in bits 1-4, 9-16 in restart,
+                      restart confirmation.
+                  50  Timer expired for clear indication.
+                  51  Timer expired for reset indication.
+                  52  Timer expired for restart indication.
+
+            19  Local procedure error
+                  20  Packet type invalid for p1 [ready].
+                  21  Packet type invalid for p2 [DTE waiting].
+                  22  Packet type invalid for p3 [DCE waiting].
+                  23  Packet type invalid for p4 [data transfer].
+                  25  Packet type invalid for p6 [DTE clear request].
+                  33  Packet not allowed, unidentifiable packet.
+                  38  Packet not allowed, packet too short.
+                  39  Packet not allowed, packet too long.
+                  41  Logical channel nonzero in restart, restart confirma-
+                      tion.
+                  49  Timer expired for incoming call.
+                  50  Timer expired for clear indication.
+                  51  Timer expired for reset indication.
+                  64  Call set-up problem, (facility or utility length >63,
+                      incorrect lengths, etc.).
+                  67  Call set-up problem, invalid called address.
+                  68  Call set-up problem, invalid calling address.
+                 128  Internal malfunction (DPORT not assigned).
+                 135  Calling address does not match CHKCLG(adr).
+
+
+
+                                    CAUSE AND DIAGNOSTIC VALUES 
+
+
+
+
+
+
+
+
+
+
+                                                                PAGE G-4
+
+
+                 139  Login   error   ERROR  TYPE   USERNAME   message   or
+                      PKTOPT(TKSUP) not set.
+                 146  Non-CCITT defined  protocol ID, or protocol  ID field
+                      too short.
+                 147  Call user data  field in call accept  and fast select
+                      not implemented.
+                 150  Q bit set on nondata packet.
+                 151  Call  user  data  field too  long  (>16  for  nonfast
+                      select, >128 for fast select).
+                 174  Error in received clear request packet.
+                 190  Received call request  on a logical channel  that was
+                      already assigned.
+
+            25  Reverse charging not subscribed
+
+            33  Incompatible destination
+                  40  Invalid GFI, D bit not implemented.
+
+            41  Fast select acceptance not subscribed
+                  65  Invalid facility request.
+
+
+            X.25 Interface Reset Cause Codes
+            ________________________________
+
+            01  Out of order
+
+            03  Remote procedure error
+                  35  Invalid packet on PVC channel.
+
+            05  Local procedure error
+                  01  Invalid P(S).
+                  02  Invalid P(R).
+                  17  Packet not allowed; unidentifiable packet.
+                  27  Packet type invalid for d1 [flow control ready].
+                  28  Packet type invalid for d2 [DTE reset request].
+                  35  Invalid packet on PVC channel.
+                  37  Packet not allowed; reject packet not subscribed.
+                  39  Packet not allowed; packet too long.
+                  41  Logical channel nonzero in bits 1-4, 9-16 in restart,
+                       restart confirmation.
+                  43  Packet not allowed; unauthorized  interrupt confirma-
+                      tion.
+                  44  Packet not  allowed; unauthorized  interrupt  indica-
+                      tion.
+                 149  Q bit  violation.  The  last packet  contained Q = 1,
+                      M = 1; this  packet has  Q = 0.  Or  the last  packet
+                      contained Q = 0, M = 1; this has Q = 1.
+                 150  Q bit was set on a nondata packet.
+
+
+                                    CAUSE AND DIAGNOSTIC VALUES
+
+
+
+
+
+
+
+
+
+
+                                                                PAGE G-5
+
+
+            07  Network congestion
+                 144  A break generated a reset.
+                 172  Buffer capacity exceeded, data was lost (buffer zap).
+
+            09  Remote DTE operational
+
+            15  Network operational
+
+            33  Incompatible destination
+                  40  Invalid GFI, D bit not implemented.
+
+
+            X.25 Interface Restart Cause Codes
+            __________________________________
+
+            01  Local procedure error
+                  17  Packet type invalid for r1 [packet level ready].
+                  18  Packet type invalid for r2 [DTE restart request].
+                  33  Packet not allowed; unidentifiable packet.
+                  40  Invalid GFI; D bit not implemented.
+                  41  Logical channel nonzero in restart, restart confirma-
+                      tion (remote).
+                  52  Timer expired for restart indication.
+                 177  XOM operator brought packet level down.
+
+            07  Network operational
+                  00  link startup.
+
+
+            X.75 Interface Clearing Cause Codes
+            ___________________________________
+
+            00  DTE originated
+                  00  DTE clearing;  a network disconnect was  received, or
+                      the call request was aborted before receiving network
+                      circuit complete message.
+
+            01  Number busy
+                 129  An OUT OF PORTS message was received from the network
+                      Supervisor.
+
+            03  Invalid facility request
+                  65  Call set-up problem; facility code not allowed.
+                  66  Call set-up problem; facility parameter not allowed.
+
+            05  Network congestion
+                  20  Packet type invalid for p1 [ready].
+                  21  Packet type invalid for p2 [DTE waiting].
+                  22  Packet type invalid  for p3 [DCE waiting].
+                  23  Packet type invalid for p4 [data transfer].
+
+
+                                    CAUSE AND DIAGNOSTIC VALUES 
+
+
+
+
+
+
+
+
+
+
+                                                                PAGE G-6
+
+
+                  25  Packet type invalid for p6 [DTE clear].
+                  33  Packet not allowed; unidentifiable packet.
+                  38  Packet not allowed; packet too short.
+                  39  Packet not allowed; packet too long.
+                  41  Logical channel nonzero in restart, restart confirma-
+                      tion.
+                  49  Timer expired for incoming call.
+                  50  Timer expired for clearing indication.
+                  51  Timer expired for reset indication.
+                  64  Call set-up problem (facility/utility length > 63, or
+                      incorrect lengths, etc).
+                  67  Call set-up problem invalid called address.
+                  68  Call set-up problem invalid calling address.
+                 128  Internal malfunction (DPORT not assigned).
+                 129  A CIRCUITS BUSY message was received from the network
+                      Supervisor.
+                 130  A TRY AGAIN LATER message was  received from the net-
+                      work Supervisor.
+                 131  A  BAD MUD  message  was  received from  the  network
+                      Supervisor.
+                 133  A NO  HOST SPECIFIED  message was  received from  the
+                      network Supervisor.
+                 134  A MUD  ERROR message  was received  from the  network
+                      Supervisor.
+                 135  Calling address does not match  CHKCLG(adr).
+                 138  Login  error.  The  message USERNAME  or ERROR,  TYPE
+                      PASSWORD was  received from  the network  Supervisor,
+                      and PKTOPT(TKSUP) was not set.
+                 139  Login error: ERROR, TYPE USERNAME message.
+                 140  Received clear  before  getting normal  circuit  com-
+                      plete.
+                 141  Circuit timeout before sending call accept.
+                 142  Login timeout.
+                 143  INFOSWITCH - call accept timeout.
+                 145  Utility length missing.
+                 146  Non-CCITT-defined  protocol identifier,  or  protocol
+                      identifier field is too short.
+                 147  Call user data  field in call accept  and fast select
+                      not implemented.
+                 148  Internal protocol option; illegally formatted dialect
+                      message.
+                 150  The Q bit was set on a nondata packet.
+                 151  Call user data  field too long - length was  > 16 for
+                      nonfast select or > 128 for fast select.
+                 152  Data lost in network
+                 153  Login failure - node unable to complete request.
+                 154  Login failure - format error.
+                 155  Login failure - bad username.
+
+
+                                    CAUSE AND DIAGNOSTIC VALUES   
+
+
+
+
+
+
+
+
+
+
+                                                                PAGE G-7
+
+
+                 156  Login failure - bad MUD.
+                 157  Login failure - system unavailable.
+                 158  Login failure - downline load or dial-out failure.
+                 159  Login failure - timeout.
+                 160  Login failure - access not permitted.
+                 161  Login failure - out of origination ports.
+                 162  Login failure - try again later.
+                 163-168  Login failure - unknown reason.
+                 169  A DSP call was expected by the destination interface,
+                      but the protocol ID field of the call request did not
+                      indicate that it was a DSP call.
+                 170  X.25/X.75   internal  network   communication   level
+                      response received was greater than the X.25/X.75 net-
+                      work internal communication level  configured for the
+                      interface.
+                 171  Protocol ID  field of the  call request was  DSP, but
+                      the destination does not accept DSP calls.
+                 172  Buffer capacity exceeded; data was lost (buffer zap).
+                 175  Internal  malfunction; received  illegally  formatted
+                      X.25/X.75 network internal communication message.
+                 176  Internal malfunction;  received unimplemented  global
+                      IIX message.
+                 178  RPOA DNIC utility received in  call request matches a
+                      DNIC of this network.
+                 179  RPOA DNIC utility received in call request not speci-
+                      fied in RPOAGAteway statement and is unknown.
+                 180  Internal  malfunction; received  illegally  formatted
+                      call accept dialect message.
+                 181  National facility/utility options in call request.
+                 184  Duplicated appearance of utility/facility code.
+                 185  Requested packet size not acceptable in flow negotia-
+                      tion.
+                 186  Requested packet  window size not acceptable  in flow
+                      negotiation.
+                 188  Missing call ID utility in call request packet.
+                 190  Received call request on  an already assigned logical
+                      channel.
+                 191  XOM wants no more calls.
+                 192  No available internal ports  to assign when receiving
+                      a call request.
+
+            09  Out of order
+                 129  A HOST  SHUT message  was received  from the  network
+                      Supervisor.
+                 130  A HOST  DOWN message  was received  from the  network
+                      Supervisor.
+
+
+
+
+                                    CAUSE AND DIAGNOSTIC VALUES   
+
+
+
+
+
+
+
+
+
+
+                                                                PAGE G-8
+
+
+            11  Access barred
+                 129  An ACCESS NOT PERMITTED message was received from the
+                      network Supervisor.
+                 130  A PLEASE  SEE YOUR  REPRESENTATIVE was  received from
+                      the network Supervisor.
+
+            13  Not obtainable
+                 129  A HOST  NOT AVAILABLE message  was received  from the
+                      network Supervisor.
+                 130  A  BAD HOST  message was  received  from the  network
+                      Supervisor.
+
+            17  Remote procedure error
+                  17  Packet type invalid for r1 [ready].
+                  18  Packet type invalid for r2 [DTE restart request].
+                  33  Packet not allowed; unidentifiable packet.
+                  41  Logical channel nonzero in restart, restart confirma-
+                      tion.
+                  52  Timer expired for restart indication.
+
+            25  Reverse charging not subscribed
+
+            33  Incompatible destination
+                  40  Invalid GFI, D bit not implemented.
+
+            41  Fast select acceptance not subscribed
+                  65  Invalid facility request.
+
+
+            X.75 Interface Reset Cause Codes
+            ________________________________
+
+            07  Network congestion
+                  01  Invalid P(S).
+                  02  Invalid P(R).
+                  17  Packet not allowed; unidentifiable packet.
+                  27  Packet type invalid for d1 [flow control ready].
+                  28  Invalid packet for d2 [DTE reset].
+                  37  Packet not allowed; reject packet not subscribed.
+                  39  Packet not allowed; too long.
+                  41  Logical channel nonzero in restart, restart confirma-
+                      tion.
+                  43  Packet not allowed; unauthorized  interrupt confirma-
+                      tion.
+                  44  Unauthorized interrupt indication.
+                 149  Q  bit  violation.   The  previous  packet  contained
+                      M = 1, Q = 0; the  current packet has Q = 1.   Or the
+                      previous packet  contained M = 1, Q = 1;  the current
+                      packet has Q = 0.
+
+
+                                    CAUSE AND DIAGNOSTIC VALUES  
+
+
+
+
+
+
+
+
+
+
+                                                                PAGE G-9
+
+
+                 150  The Q bit was set on a nondata packet.
+                 172  Buffer capacity exceeded; data was lost.
+                 173  Buffer unavailable to hold PAD parameters during pro-
+                      cessing of PAD messages.
+
+            33  Incompatible destination
+                  40  Invalid GFI; D bit not implemented.
+
+
+            X.75 Interface Restart Cause Codes
+            __________________________________
+
+            03  Network congestion
+                  17  Packet type invalid for r1 [packet level ready].
+                  18  Packet type invalid for r2 [DTE restart].
+                  33  Packet not allowed; unidentifiable packet.
+                  41  Logical channel nonzero in restart, restart confirma-
+                      tion.
+                  52  Timer expired for restart confirmation.
+                 177  XOM operator brought packet level down.
+
+            07  Network operational
+                  00  Link start-up.
+
+
+                             APPENDIX H                         PAGE H-1
+
+                  X.25 FACILITIES AND X.75 UTILITIES
+
+
+
+          ___________________________________________________________
+          
+            Bits   8 7 6 5 4 3 2 1   Interpretation
+          ___________________________________________________________
+          Class A  0 0 x x x x x x   for single octet parameter field
+          Class B  0 1 x x x x x x   for double octet parameter field
+          Class C  1 0 x x x x x x   for triple octet parameter field
+          Class D  1 1 x x x x x x   for variable length parameter
+                                     field
+                   1 1 1 1 1 1 1 1   facility code extension
+
+
+
+                Class A                            Class B
+          
+            8 7 6 5 4 3 2 1                    8 7 6 5 4 3 2 1
+           _________________                  _________________
+          |                 |                |                 |
+          | 0 0 x x x x x x |                | 0 1 x x x x x x |
+          |_________________|                |_________________|
+          |    Facility     |                |                 |
+          | parameter field |                |    Facility     |
+          |_________________|                |_________________|
+                                             |                 |
+                                             | parameter field |
+                                             |_________________|
+          
+
+                                                              PAGE H-2
+          Facilities and utilities
+
+
+          
+                Class C                            Class D
+          
+            8 7 6 5 4 3 2 1                    8 7 6 5 4 3 2 1
+           _________________                  __________________
+          |                 |                |                  |
+          | 1 0 x x x x x x |                | 1 1 x x x x x x  |
+          |_________________|                |__________________|
+          |                 |                |Facility parameter|
+          |    Facility     |                |   field length   |
+          |_________________|                |__________________|
+          |                 |                |                  |
+          |    parameter    |                |     Facility     |
+          |_________________|                |     parameter    |
+          |                 |                |       field      |
+          |      field      |                .                  .
+          |_________________|                .                  .
+                                             .                  .
+                                             |__________________|
+
+
+
+                              Facility Code Fields
+
+                                                      bits       hex
+              Facility                          8 7 6 5 4 3 2 1   
+          ___________________________________________________________
+          
+          Closed user group                     0 0 0 0 0 0 1 1   03 *
+          
+          Bilateral closed user group           0 1 0 0 0 0 0 1   41 *
+          
+          Reverse charging                      0 0 0 0 0 0 0 1   01   
+          
+          RPOA selection                        0 1 0 0 0 1 0 0   44 *
+          
+          Flow control parameter negotiation
+           Packet sizes                         0 1 0 0 0 0 1 0   42
+          
+           Window sizes                         0 1 0 0 0 0 1 1   43
+          
+          Throughput class                      0 0 0 0 0 0 1 0   02
+          
+          Fast select                           0 0 0 0 0 0 0 1   01 *
+          
+          Datagram nondelivery indication       0 0 0 0 0 1 1 0   06 *
+          
+          Datagram delivery confirmation        0 0 0 0 0 1 1 0   06 *
+          
+          National options marker               0 0 0 0 0 0 0 0   00
+          (facility marker)
+          ___________________________________________________________
+          * Not currently supported on TYMNET networks.
+                                                              PAGE H-3
+          Facilities and utilities
+
+
+                           Facility Parameter Fields
+
+          Facility/Parameter Field              8  7  6  5  4  3  2  1
+          ____________________________________________________________
+          
+          Closed user group
+            index to closed user group          
+            consisting of 2 bcd digits         bcd digit 1.bcd digit 2
+          
+          Bilateral closed user group
+            index to bilateral closed user     bcd digit 1.bcd digit 2
+            group (4 bcd digits)               bcd digit 3.bcd digit 4
+          
+          Reverse charging
+            reverse charging not requested      0  0  0  0  0  0  0  0
+            or reverse charging requested       0  0  0  0  0  0  0  1
+          
+          RPOA selection
+            network identification code        bcd digit 1.bcd digit 2
+            consisting of 4 bcd digits         bcd digit 3.bcd digit 4
+          
+          Flow control parameter negotiation
+           Packet sizes
+             bcd log2(size) from called DTE     0  0  0  0.calledsize
+             bcd log2(size) from calling DTE    0  0  0  0.callingsize
+          
+           Window sizes
+             bcd log2(size) from called DTE     0  called DTE size
+             bcd log2(size) from calling DTE    0  calling DTE size
+          
+          Throughput class
+            throughput class encoded            called DTE.calling DTE
+            (see table below)
+
+                                                              PAGE H-4
+          Facilities and utilities
+
+
+                 Table of Called/Calling DTE Throughput Class
+                ______________________________________________
+                
+                Bits: 4 3 2 1 (calling DTE)        Throughput
+                or                                   class
+                Bits: 8 7 6 5 (called DTE)         (bits/sec)
+                ______________________________________________
+                
+                      0 0 0 0                       Reserved
+                      0 0 0 1                       Reserved
+                      0 0 1 0                       Reserved
+                      0 0 1 1                             75
+                      0 1 0 0                            150
+                      0 1 0 1                            300
+                      0 1 1 0                            600
+                      0 1 1 1                          1 200
+                      1 0 0 0                          2 400
+                      1 0 0 1                          4 800
+                      1 0 1 0                          9 600
+                      1 0 1 1                         19 200
+                      1 1 0 0                         48 000
+                      1 1 0 1                       Reserved
+                      1 1 1 0                       Reserved
+                      1 1 1 1                       Reserved
+                ______________________________________________
+
+
+
+          Fast select
+            fast select not requested           0 0/1 0  0  0  0  0  0 
+            or fast select requested
+               with no restriction on response  1  0  0  0  0  0  0  0
+            or fast select requested
+               with restriction on response     1  1  0  0  0  0  0  0
+          
+          Datagram nondelivery indication
+            datagram nondelivery
+              indication not requested          0  0  0  0  0  0  0  0
+            or datagram nondelivery
+              indication requested              0  0  0  0  0  0  1  0 
+          
+          Datagram delivery confirmation
+            datagram delivery confirmation
+              not requested                     0  0  0  0  0  0  0  0
+            or datagram delivery
+              confirmation requested            0  0  0  0  0  0  0  1
+                                                              PAGE H-5
+          Facilities and utilities
+
+
+                            X.75 Utility Code Fields
+
+
+
+                                                      bits       hex
+              Facility                          8 7 6 5 4 3 2 1   
+          ___________________________________________________________
+          
+          Call identifier                       1 0 0 0 0 0 0 1   81
+          
+          Tariff class                          0 0 0 0 0 0 1 1   06
+          
+          Utility marker                        0 0 0 0 0 0 0 0   00
+          ___________________________________________________________
+
+
+
+
+
+
+
+
+
+
+
+
+  
+                               APPENDIX I                       PAGE I-1
+                               ----------
+
+                     SPECIFIC XCOM CRASH CODE TYPES
+
+         
+          FE  - Tried to retransmit sector not out already (FG)
+          FD  - Tried to retransmit frame not out already (FG)
+          FC  - On output, DLE followed by not DLE or ETX (FG)
+          FB  - Programming error -- 0 dispatcher port (RT)
+          FA  - Tried to get data from empty RTD ring (RT)
+          F9  - Send REJ packet logic not implemented (RM)
+          F8  - Invalid packet during flow control ready (RM)
+          F7  - Invalid packet during send reset request (RM)
+          F6  - Non-CLEAR REQUEST in send CLEAR REQUEST state
+          F5  - Illegal packet type (RM)  
+          F4  - Programming error-trying to execute dummy label esp0 (DP)
+          F3  - Empty facilities buffer
+          F2  - No data in ring when backed up to the start of msg (DP)
+          F1  - Unprocessable ISIS intranode message (DP)
+          F0  - Unprocessable ISIS control message (DP)
+          EF  - Dispatcher port greater than maxprt
+          EE  - Illegal message type in ID buffer
+          ED  - Force sync output SVC failure
+          EC  - Connect sync input SVC failure
+          EB  - Force SIO input SVC failure
+          EA  - Connect SIO card SVC failure
+          E9  - I/O inquery SVC, device type not SIO
+          E8  - IO inquery SVC failure
+          E7  - Internal port assigned but in ready state (RT)
+          E6  - Host unacceptable (DP)
+          E5  - Facility length too short in *PUF* (DP)
+          E4  - SIO output SVC error (FG)
+          E3  - *CDF* called with negative length
+          E2  - *MVDIIE* tried to copy data more than max packet size
+          E1  - *EDM* called with bad ID buffer content (DP)
+          E0  - *CHKSIO* detected  interrupt other than SIO over-run
+          DF  - RTD pointer > end of ring (RT)
+          DE  - Packet type received is .gt. 16d
+          DD  - Unknown login status message from Supervisor
+          DC  - Fg bisync fif rsc error
+          DB  - Incorrect length in ID buffer
+          DA  - About to put out an illegal accounting term code
+          D9  - Buffer zap on unreasonable packet state
+          D8  - Buffer zap on facilities or IEC buffer
+          D7  - ESCAPN routine called with negative length
+          D6  - STP received from RM
+          D5  - Incorrect length in saved list of transit net id
+          TYMNET - CRASH CODE TYPES                                    Page I-2
+
+
+          D4  - Programming error-incorrect transit NETID list in facbuf
+          D2  - Fast select with restriction and rcvd call accept from
+                network
+         
+                   CRASH CODES FROM ISIS CRASH LIBRARY
+
+         
+          14  - Protection violation
+          13  - System crash
+          12  - Illegal SVC
+          11  - Illegal instruction
+          10  - Dispatcher crash
+          0E  - Parity error
+          01  - Manual start
+          00  - Power failure
+                   CRASH CODES FROM BUFFER LIBRARY
+
+         
+          0D  - Buffer no. out of range on entry to *EMPTY*
+          06  - Unresonably fast storage drain of buffer
+          05  - Buffer no. out of range on entry to *WCI*
+          04  - Buffer no. out of range on entry to *MCI*
+          03  - Buffer no. out of range on entry to *GCI* or buffer empty
+         
+
+  ( !
