@@ -1,0 +1,582 @@
+                                                                 March 13, 1984
+
+
+
+
+
+
+
+
+
+
+
+
+                  *****  **** *****  ****        ***** *****
+                    *   *       *   *              *     *  
+                    *    ***    *    ***   *****   *     *  
+                    *       *   *       *          *     *  
+                  ***** ****  ***** ****         ***** *****
+
+                     Internally Switched Interface System
+                               REFERENCE MANUAL
+
+                           Network Development Group
+                                Tymshare, Inc.
+                             Cupertino, California
+
+
+
+
+
+   DISCLAIMER -- Many of the terms used herein are references to the TYMNET
+   technology -- these are more fully described in the document "TYMNET-I".
+
+
+
+    New users of this ISIS Document may feel that some process descriptions
+     are inadequate -- please advise us, so that these may be improved for
+                                 future users.
+
+
+
+
+       =================================================================
+       |       THIS DOCUMENT IS THE SOLE PROPERTY AND CONFIDENTIAL     |
+       |       INFORMATION  OF  TYMSHARE,  INC.,  AND  MAY  NOT BE     |
+       |       COPIED  IN  WHOLE OR IN PART  OR  DISCLOSED  TO ANY     |
+       |       THIRD PARTY  WITHOUT THE PRIOR  WRITTEN  CONSENT OF     |
+       |       TYMSHARE.                                               |
+       =================================================================
+
+
+
+
+
+
+
+
+                                                                        ISIS-II
+                                                                 March 13, 1984
+        ISIS-II -- Internally Switched Interface System          March 13, 1984
+
+
+
+
+
+
+                 1 -  ISIS-II -- Internally Switched Interface System
+
+
+
+
+
+
+
+                             1.1  Introduction -- ISIS-II
+
+
+             ISIS  was  defined in  order  to develop,  debug,  and  deploy new
+        interfaces on network nodes while protecting these nodes  from possible
+        faults in these interfaces.
+
+             ISIS is a system, not a program:   it is a set of rules as  to how
+        the interfaces are to be  constructed, and how they are  to communicate
+        with each other.  ISIS is not a TYMNET node or implementation of TYMNET
+        technology.
+
+             ISIS divides  the machine  into partitions, or  SLOTS.  Slot  0 is
+        expected  to  have  special  properties  and  abilities,  including the
+        routing  of  circuits  within  the  machine,  and  the   collection  of
+        diagnostic and accounting information.
+
+             To this  end, ISIS  treats the  TYMNET node  code as  just another
+        interface.   The  TYMNET node  code  has special  properties  only when
+        executing  in  slot  0.   These  include  the  routing  and  monitoring
+        functions relating to the TYMNET supervisor.  When executing in  a slot
+        other than  slot 0,  the TYMNET  interface performs  the function  of a
+        gateway to TYMNET.
+
+
+
+
+
+
+                                    1.2  The Kernel
+
+
+             The control center of ISIS is the KERNEL, a process which provides
+        ultimate  control  of  hardware,  including  the  scheduling  of  other
+        processes.
+
+             Interrupts  have  absolute   priority  in  the   machine.   During
+        intervals when  no interrupts are  active, other processes  are active.
+        These are either  the kernel, or some  process to which the  kernel has
+        temporarily assigned the machine.
+
+
+                                           1                            ISIS-II
+        ISIS-II -- Internally Switched Interface System          March 13, 1984
+
+
+             These processes are,  for the purposes of  scheduling, independent
+        jobs, even  though a  set of processes  may be  working together,  as a
+        SLOT.  These processes fall into a hierarchy of levels.
+
+             The top level consists  of Foreground (or Quasi-)  processes.  The
+        kernel schedules all active foreground processes to execute  once every
+        25   milliseconds   (nominally;  40   scheduled   activities/second  is
+        guaranteed), for a maximum period dependent upon the number  of devices
+        which must  be serviced...periods  are in  clock ticks  (1/600 second),
+        with a minimum of 2 ticks,  and one additional tick for each  3 logical
+        units.   These are  intended to  communicate with  the  interrupt level
+        processes, and thus must be scheduled at frequent intervals,  to permit
+        timely responses.  To this end, each time the kernel tries  to schedule
+        a job, it  first searches the queue  of foreground jobs, to  find which
+        one should run  next.  If none  should go immediately,  the time--until
+        the  next  foreground  process  is  to  run--is  made  available  to  a
+        background process.
+
+             At the bottom level are the Background jobs.  These are  the work-
+        horses, which  perform the  major effort  of an  interface.  Background
+        jobs  actually  fall  into  several  categories,  which   the  kernel's
+        scheduler treats identically.  The Kernel divides the  time-domain into
+        timeslices, of 50 milliseconds; these timeslices are interruptable (for
+        foreground  execution).  A  job  may dismiss  at any  time  during it's
+        timeslice...a new timeslice is then  created for the next job.   If the
+        job doesn't dismiss  itself, the machine is  taken away from it  at the
+        end of the timeslice, and all other jobs are given a chance  to execute
+        their timeslices.  As a  result, a job may get  as many as 500  or more
+        timeslices/second (in a lightly-loaded machine, with well-behaved jobs)
+        to as few as 2-4, if there are several pathologic jobs active.
+
+             The true background job, as already mentioned, is the  main effort
+        of a given interface.  In addition, there are a set of DDT  jobs.  Each
+        of  these  can be  logged  into through  the  network, and  be  used to
+        control, modify, debug, or reload a given set of processes (a SLOT).
+
+             Each  slot  has  an  DDT,  a  foreground,  and  a  background  job
+        associated with it (note--not all  jobs associated with a slot  need be
+        active concurrently).
+
+             An intermediate  level job is  the DISPATCHER.  The  dispatcher is
+        run each time a  true background job runs, and  is used to set  up that
+        background job for  it's next use of  the machine.  In  particular, the
+        dispatcher switches the output which  was produced by that slot  to the
+        appropriate destination slots.
+
+
+
+
+
+
+
+
+
+                                           2                            ISIS-II
+        ISIS-II -- Internally Switched Interface System          March 13, 1984
+
+
+                                  1.3  The Dispatcher
+
+
+             The communications center of ISIS is the DISPATCHER.   The primary
+        function of the dispatcher is to act as a switching center,  talking to
+        several  interfaces.   Subsidiary  functions  are  to  perform  network
+        accounting,  and  such  other  functions  which  it  is  convenient  to
+        centralize.  It does NOT  have any knowledge of the  strange properties
+        of specific interfaces, except that the interface associated  with slot
+        0 has  the capability  to perform  routing, and  is the  repository for
+        diagnostic, accounting, and other messages.
+
+             Each interface has a set  of descriptors which it uses to  talk to
+        the dispatcher, and may have  a translator to convert its  requests and
+        messages to the  standard format.  Each interface  runs as one  or more
+        independent jobs under the KERNEL, sharing time-slices with the rest of
+        the  interfaces.   The  MAC (Memory  Access  Controller)  prevents each
+        interface from destroying  another interface because of  illegal memory
+        stores.  The  dispatcher checks the  data flow to  insure that,  if the
+        interface is in error, it damages only its own subset of circuits.
+
+             Under the MAC,  a job slot  can have up  to 16 segments.   By ISIS
+        convention,  segment 15d  is readable  by all  processes,  and contains
+        system  variables (such  as  clocks) which  may  be of  interest  to al
+        processes.  Segment 14d is  the slot's Control Table Area  (CTA), which
+        is  protected from  inadvertent modification  by the  slot  itself, and
+        which contains the descriptors necessary and sufficient to describe the
+        slot's  running configuration,  such as  pointers to  variables, memory
+        layout, etc.  The dispatcher shares segment 14d with the slot, and uses
+        these  fixed  cells  to communicate  with  the  individual  jobs.  This
+        segment  is used,  by the  dispatcher, to  maintain records  of ongoing
+        events.
+
+
+
+
+
+
+                         1.4  Internal Process Communications
+
+
+             The  dispatcher and  any particular  interface must  talk  to each
+        other.  Because the processes are running concurrently,  the dispatcher
+        may interrupt the other after any instruction.  The intercommunications
+        has therefore been designed such that this is expected!
+
+             The two directions of traffic must also be independent.
+
+             The buffering mechanism used  is a ring buffer, which  one process
+        fills, and the other empties.  No specific constraint is placed  on the
+        size of  the buffer by  ISIS, and  indeed, there is  no reason  that an
+        interface input ring must be the same size as it's output ring.
+
+
+                                           3                            ISIS-II
+        ISIS-II -- Internally Switched Interface System          March 13, 1984
+
+
+             In designing an interface,  some knowledge is available as  to the
+        interface  capacity.   (An  interface with  one  9600-baud  full duplex
+        synchronous   line   interface   can   handle   no   more   than   1200
+        characters/second  in  each  direction,  and,  allowing   for  protocol
+        overhead, the  actual data transfered  is typically  significantly less
+        than  this.) A  reasonable approximation  is to  allocate  one second's
+        worth  of interface  traffic storage  to the  ring buffer,  to  allow a
+        certain degree  of "burstiness" to  data transfers.  (E.g.,  one simple
+        interface might have 200 character buffers, while another might require
+        5000 characters of buffering for  50 Kbps capacity, or because  of some
+        constraint on the size of records which it must transmit.)
+
+             Two interfaces talk to  each other through the  dispatcher.  There
+        is no requirement that the originator and the receiver of a data stream
+        be synchronous, so some  mechanism is necessary to  apply back-pressure
+        over  a  circuit.  This  back-pressure  may be  end-to-end,  or  may be
+        applied by the dispatcher to one of the interfaces.
+
+             The dispatcher normally tries to move data from the source process
+        to the  destination, but  for a variety  of reasons,  may be  unable to
+        deliver immediately, and must instead buffer the data  temporarily.  In
+        this case, it will have reason to back-pressure the source port.  It is
+        NOT desirable to back-pressure the source interface itself,  since that
+        would  stop ALL  its output--some  of which  would still  be allowable,
+        since it might be going to a different interface.  (A common reason for
+        buffering would be the destination ring being full--perhaps because the
+        destination process is busy processing a burst of data--but this should
+        not preclude  all traffic  from this source,  since some  of it  may be
+        going elsewhere.)
+
+             As  defined herein,  the  slot 0  interface includes  that  set of
+        functions relating to  inter-node communications, circuit  routing, and
+        diagnostic information.  Each interface, including slot 0, has a set of
+        permuter  tables,  controlled   by  the  dispatcher,  which   tell  the
+        dispatcher which  port of one  interface is connected  to what  port of
+        another.
+
+             The dispatcher receives commands and data from slot 0 and forwards
+        them to  the appropriate interface,  constructing internal  circuits as
+        necessary.   The  dispatcher  also  performs  the  internal  accounting
+        function.
+
+             If an interface requests a circuit to another host, the dispatcher
+        will make a connection to the slot 0 interface.  If that  circuit turns
+        out to  be an internal  circuit, the dispatcher  will do  the necessary
+        interconnection from source to  destination process such that  the data
+        flows  entirely within  the dispatcher,  without bothering  the  slot 0
+        interface.
+
+             The dispatcher could do all this without reference to slot  0, but
+        in the case where slot 0 is connected to some external  network special
+        constraints may apply, which should not be "wired" into the dispatcher.
+
+
+                                           4                            ISIS-II
+        ISIS-II -- Internally Switched Interface System          March 13, 1984
+
+
+             (This  capability  permits  the  deployment  of  stand-alone  ISIS
+        configurations  for the  purpose  of local  interconnection  of special
+        interfaces, such as the routing of a set of dial-up bisync ports to ANY
+        of a set of hosts connected to the same machine, perhaps with X-25 host
+        interfaces.)
+
+             The internal format of data being transmitted must be  uniform for
+        all interfaces.  To this end,  a message format is used.   Each message
+        originating at  an interface  has a header.   The header  specifies the
+        port number and  the message type:  for  each message type  the message
+        length is fixed.  One class  of messages would be pure  data transfers:
+        type 1  means 1  character follows, 2==2,  ..., 80x==128d;  others mean
+        specific  control  messages,  such  as  DISCONNECT,  etc.    Since  the
+        predominance  of  traffic  is  expected  to  be  data,  a  receiver can
+        eliminate much of the normal logic required to examine  each character,
+        because this  information is  incorporated into  the message  type.  In
+        particular, the dispatcher (and  other processes as well)  can process,
+        or move  messages from  one ring  to another,  with the  major overhead
+        occurring  in  looking  at  the  message  header  and  determining  the
+        destination;  if  there is room  there, the message  can be  moved very
+        quickly without excess character-by-character overhead.
+
+
+
+
+
+
+                               1.5  Routing of Circuits
+
+
+             Slot 0, as noted above, has special properties  involving routing,
+        accounting, and  diagnostic collection.   The actual  implementation is
+        dependent on the usage of that particular ISIS configuration.
+
+             In a self-contained configuration, all circuits are  internal, and
+        the routing algorithm may be very simple.
+
+             When the slot 0 interface is part of an external network, circuits
+        may  originate  and  terminate both  internally,  and  externally.  The
+        interface is now more complex, since, in addition to internal circuits,
+        it  need  also  perform  some  measure  of  external  routing,  and may
+        additionally  support  external   traffic  which  passes   through  the
+        interface, but  which is not  terminated (in the  view of  the external
+        network) there.
+
+             In a network with centralized control, such as TYMNET, all routing
+        is  defered  to the  control  of the  supervisor,  which  also provides
+        centralized accounting and diagnostic collection.  Use is also  made of
+        the supervisor's ability to validate requests, and to permit  or reject
+        certain connections (fences).
+
+
+
+
+                                           5                            ISIS-II
+        ISIS-II -- Internally Switched Interface System          March 13, 1984
+
+
+                             1.6  External Communications
+
+
+             Each logical  interface may require  some sort of  hardware driver
+        (although this it  not strictly necessary),  which could imply  loss of
+        security  (memory violations  for other  jobs) for  each  new interface
+        generated.  However, the  majority of drivers  would seem to  fall into
+        one of  four communication classes:   async, synchronous,  bit stuffing
+        (SDLC), and channel,  or alternately, some  sort of special  I/O device
+        driver  (printer, disc,  etc.).  ISIS  supports drivers  for  all these
+        devices.   The value  of  centralized hardware  drivers,  although less
+        efficient  than  allowing  each  process  to  drive  it's  own devices,
+        outweighs  efficiency  considerations.   The  inter-process  protection
+        afforded, the ability to change or share devices without rewriting each
+        process using that  device, and the  lack of specialized  knowledge (on
+        the part  of the process)  make the processes  much easier  to develop.
+        Details  of  specific  logical  interfaces  relate  not  to  the actual
+        transfer mechanism used,  but on the  buffer format--a detail  which is
+        protectable, under the MAC, from interprocess corruption.  An interface
+        which corrupts its buffer handling hurts only itself, not thdware,
+        or the other interfaces with  which it is sharing the  hardware.  Thus,
+        each interface is constrained to request actual data transfers from the
+        drivers, through the KERNEL.
+
+
+
+
+
+
+                                1.7  Internal Processes
+
+
+             In addition, in  a given machine which  has an available  slot and
+        unused capacity, there  is no reason  that special processes  cannot be
+        run.   These  processes   may  be  internal  or   network  housekeeping
+        functions, or they may be specific applications.
+
+
+
+
+
+
+                          1.8  Communications with the Kernel
+
+
+             All interfaces  must be  able to communicate  with the  kernel, if
+        only  to dismiss  themselves.  This  is done  through the  mechanism of
+        SVC's (SuperVisory Command instructions).  There are a number  of these
+        defined,  and  they  provide  primitive  functions,  such  as  dismiss,
+        restart, connect  foreground, connect I/O  drivers, as well  as special
+        SVC's for the use of DDT.
+
+
+
+                                           6                            ISIS-II
+        ISIS-II -- Internally Switched Interface System          March 13, 1984
+
+
+                                    1.9  Libraries
+
+
+             It is desirable to have a library of functional packages which may
+        be  collected as  needed and  used  to produce  the skeleton  of  a new
+        interface.  Since these packages  may change with requirements  (and as
+        bugs are  found, as well  as when improvements  are discovered),  it is
+        desirable to be able to create  a new version of an interface  with all
+        corrections incorporated.  These requirements impose two constraints on
+        the assembler:
+
+             A.  It is desirable, to  prevent the number of library  files used
+        for an interface from getting out of hand, for each library  package to
+        contain ALL code and data allocations required for that  package.  This
+        means that all packages should  be able to "scatter" blocks  of storage
+        and code to  different MAC segments  to acquire the  appropriate access
+        protection.   This  facility  is provided  by  the  NAD  assembler.  In
+        particular, a  SEG directive provides  a separate location  counter for
+        each segment of address space.
+
+             B.   Since  an  interface  may  go  into  several  machines  (with
+        different parameters), it is desirable to be able to transmit a list of
+        parameter  and  library  files  on  releasing  an  interface,   so  the
+        appropriate  code may  be generated.   To help  prevent  possible human
+        errors, the assembler permits this file for use as a COMMAND file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                           7                            ISIS-II
+        ISIS-II -- Internally Switched Interface System          March 13, 1984
+
+
+
+        =====================================================
+        |                                                   |
+        |       HARDWARE (INTERRUPTS)                       |
+        |                         A           A           A |
+        ==========================|===========|===========|=|
+        |                         |           |           | |
+        |      KERNEL (SCHEDULER) |           |           | |
+        |                         |           |           | |
+        ========================--|--=======--|--=======--|-|
+        |                       | V |       | V |       | V |
+        |     DISPATCHER    ----|   |   ----|   |   ----|   |
+        |                   |   <=======>   <=======>   |   |
+        --------------------|   | F |---|   | F |---|   | F |
+        |               |   |   | O |   |   | O |   |   | O |
+        |    OTHER      | D | B | R | D | B | R | D | B | R |
+        |               | D | A | E | D | A | E | D | A | E |
+        ----------------| T | C | G | T | C | G | T | C | G |
+                        |   | K | R |   | K | R |   | K | R |
+                        |   | R | O |   | R | O |   | R | O |
+                        |   | O | U |   | O | U |   | O | U |
+                        |   | U | N |   | U | N |   | U | N |
+                        |   | N | D |   | N | D |   | N | D |
+                        |     D     |     D     |     D     |
+                        |           |           |           |
+                        |   SLOT 0  |           |           |
+                        |  (TYMNET) |           |           |
+                        ------------|           |           |
+                                    |           |   SLOT 2  |
+                                    |           |------------
+                                    |   SLOT 1  |
+                                    -------------
+
+                                       Figure 1.
+
+             Schematic  layout  of  ISIS.  Showing  the  general  layout  for a
+        configuration  with   three  slots.    The  hardware   module  services
+        interrupts.   The kernel  schedules all  other processes,  and provides
+        communications  between the  hardware  module and  the  individule slot
+        processes.  Each slot has up to three processes active.  The foreground
+        process  has  the  highest   priority  of  service,  and   is  executed
+        periodically,  for  short  time-slices.  The  Dispatcher  has  the next
+        highest priority, and runs  whenever any slot's background  process has
+        finished.  The background process does the major portion of  the slot's
+        work, and communicates with  other slots through the  dispatcher.  Each
+        slot has a DDT process associated with it, so that maintainance  can be
+        performed on that slot.
+
+
+
+
+
+
+
+                                           8                            ISIS-II
+        ISIS Process Intercommunication                          March 13, 1984
+
+
+
+
+
+
+                         2 -  ISIS Process Intercommunication
+
+
+             ISIS is a system to support interface processes.   These processes
+        are connected  to a  subset of  NODE PORTS,   and communicate  with the
+        other processes  ONLY through a  special process, the  DISPATCHER.  The
+        interface  is the  SLAVE process,  and knows  ONLY about  its set  of N
+        ports.  The  dispatcher translates  the relative  port number  into the
+        appropriate real port and buffer numbers.
+
+             Independent processes  communicate with  the dispatcher  via input
+        and output  rings.  Each ring  contains a string  of MESSAGES,  each of
+        which has a HEADER of  standard format.  Each message starts on  a word
+        boundary.  Each ring is described by a collection of  DESCRIPTOR cells,
+        to  permit the  driver  and receiver  to synchronize  with  each other.
+        Requiring that messages start on word boundaries also insures  that the
+        header can be referenced without consideration of ring folding.
+
+             Each ring descriptor has the following parameters:
+
+                --------.-------.-------.-------
+                |      NFMI     |      CEI     |
+                |-------.-------.-------.------|
+                |       THE RING               |
+                |----                      ----|
+                |                              |
+
+                where:
+
+        NFMI    next fill message index         H-word
+                The chararacter index of the next message to be filled.
+        CEI     current empty index             H-word
+                The character index of the next message to be emptied.
+        RING    the ring data                   Variable number of Words
+                the set of data
+
+                Associated with each ring is an additional 16-bit quantity:
+
+        MAXI    maximum index
+                The number of characters reserved in the ring.  This is used
+                to cycle indices.
+
+
+
+
+
+
+
+
+
+                                           9                            ISIS-II
+  1 c
