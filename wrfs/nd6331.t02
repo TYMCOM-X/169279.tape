@@ -1,0 +1,98 @@
+:=============================================================================
+:  EPANET   SDLC HOST INTERFACE   NODE 5235    SLOT 1    KERNEL 3066
+:  HOST 4297/3362   MONITOR HOST 4344   VERSION 1.12   CREATED 10/24/86 CAA
+:=============================================================================
+:                             REVISION HISTORY
+:=============================================================================
+: 11/19/86 DELETE PSEUDO HOST NUMBER...CAA
+: 01/15/87 ADD SECOND LINE AND RCVSIOFR STATEMENT...CAA
+: 05/04/87 ADD THIRD LINE FOR LANSING MSNF...CAA
+: 05/20/87 DELETE MONTGOMERY LINK AND REPLACE WITH BALTIMORE...CAA
+: 06/08/87 SET OPTION TO DEFINE VERSION 3.01+ NCP...CAA
+: 06/18/87 CHANGE LINE 2 FROM LEASED TO SWITCHED (LANSING)...CAA
+: 06/29/87 CHANGE POLLING ADDRESS FOR LINE 2 FROM 0E TO 0C...CAA
+: 07/10/87 ADD PATCH TO CORRECT PROBLEM IN PREVIOUS PATCH...CAA
+: 07/13/87 INCREASE FRAMESIZE FOR LINE 2 TO 2500 AND DECREASE FRAME SIZE
+:          FOR LINE 1 TO 2500...CAA
+: 07/14/87 CHANGE ALL LINES TO SWITCHED...CAA
+: 08/17/87 INCREASE FRAME SIZE FOR LINES 1 AND 2 TO 4k...CAA
+: 09/17/87 CHANGE POLLING ADDRESS FOR LINE 2 FROM 0C TO 0E..MCB
+: 10/07/87 CHANGE POLLING ADDRESS FOR LINE 2 TO 04...CAA
+: 01/18/88 DEFINE SECOND PU FOR LINE 0...CAA
+: 02/25/88 REDUCE PUS FOR LINE 0 BACK TO 1...CAA
+: 05/13/88 ADDED NCP VER 3.01 OPTION TO LINE 1...BSL
+: 20-Nov-89 BSL Increased NETREPLYTO to 20 from 8                        .
+:=============================================================================
+:
+:
+PRINT                                   :PRINT SYSGEN 
+
+
+ BEGINTYM                               :START THE TYMFILE 
+
+ FREEZE(YES)                            :FREEZE ON CRASH
+:
+:       SYSTEM PARAMETERS
+:
+ SYSTEM(TYMNT2)                         :TYMNET II TECHNOLOGY
+
+ TIMEZONE(-5)                           :TIMEZONE CORRECTION TO ZULU
+
+ ISISRING(4092,4092)                    :IRSIZE & ORSIZE
+
+ BUFSIZE(140)                           :BUFFER SIZE IN BYTES
+
+ PVCTIMER(60)                           :PVC CIRCUIT REBUILD TIMER IN SECONDS
+
+ MSIOTP(M.TYP1)                         :MICRO CODE VERSION E OR LATTER IS USED
+:
+:       MONITOR PARAMETERS
+:
+ MONITOR()                          :MONITOR HOST
+        MPORTS(4)                       :NUMBER OF MONITOR PORTS
+        UPD.INTERVAL(1)                 :REFRESH INTERVAL IN MINUTES
+        MBUFQA(10)                      :MONITOR OUTPUT BB QUOTA PER PORT
+        MLOG.TBL(50)                    :MONITOR LOG TABLE SIZE
+        MUSR.TBL(50)                    :MONITOR USR TABLE SIZE
+        MGOODGUY(CSHAW)                 :GOODGUY
+        MGOODGUY(TWANG)                 :GOODGUY
+        MGOODGUY(BONDAD)                :GOODGUY
+        MGOODGUY(AKSELROD)              :GOODGUY
+        MGOODGUY(DRISCOLL)              :GOODGUY
+        MGOODGUY(MIKERUDE)              :GOODGUY
+        MGOODGUY(ISISTECH)              :GOODGUY
+:       
+:       DEFINE SDLC LINK PARAMETERS     
+:
+ GROUP                                  :SECONDARY LINK GROUP
+        SECONDARY                       :THIS IS A SECONDARY GROUP
+        SPEED()                     :9600 BAUD LINES
+        DATAMODE(HALFDUPLEX)            :HALF-DUPLEX DATA MODE
+        VTAM(YES)                       :LINK TO IBM VTAM HOST        
+        RTSCTS(NO)                      :NO RTS/CTS HANDSHAKING
+        SWITCHED(YES)                   :GENERATE DISC WHEN DSR DROPS TO ENGINE
+        REPLYTO(30)                     :REPLY TIMOUT IN SECOND
+        NETREPLYTO(29)                  :2.0 SECONDS TO WAIT FOR A RESPONSE 
+                                        :FROM THE NETWORK
+        WINDOWSIZE(7)                   :MAX. OUTSTANDING FRAMES
+        XMTFRMQA(7)                     :XMT FRAME BB QUOTA
+        RCVFRMQA(7)                     :RCV FRAME BB QUOTA
+        POLLTIMER(1)                    :TIMER FOR RR/RNR
+        POLLRETRIES(7)                  :RETRIES FOR RNR
+        DSIOTP(D.TYP1)                  :SIO CARD VERSION TYPE IS G OR EARLIER
+
+        LINE(0)                         :IBM 3725 L26L019
+
+        HOST()                      :NETWORK HOST NUMBER
+        FRAMESIZE(2000)                 :MAXIMUM FRAME SIZE FOR THIS LINK
+        RCVSIOFR(8)                     :NUMBER OF SIO RECEIVE FRAMES
+
+                PU(0)                   :1ST PU IN THIS LINE
+                        ADDR(01)        :POLLING ADDRESS
+
+
+ ENDTYM                                 :END OF TYMFILE
+
+OPTION(V31NCP,1)                        : DEFINE V3.01+ NCP OPTION
+LOPTION(0,CDOPT,1)                      : DEFINE LINE 1 FOR ABOVE
+
