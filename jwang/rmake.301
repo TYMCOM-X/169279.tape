@@ -1,0 +1,23 @@
+:	In RMAKE routine, R4 is loaded with GRPSAV and is modified in
+:	RMK060. There is a possibility at the beginning of RMK070 to loop
+:	back to RMK050 without reinitializing R4, thus corrupting R4, R2,
+:	EPORT, R6, IPORT, R1 & DPORT : i.e. all possibilities of index used
+:	in the related routines. This is leading to several types of crashes
+:	occuring in the RMAKE routine at different locations when an 
+:	instruction refers to an address wich is out of bounds (out of 
+:	segment 0 for exemple) due to a corrupted index used in this
+:	instruction.
+:	This patch just ensures that R4 is properly restored after it has 
+:	been modified in case we have to loop back to RMK050.
+
+
+patch(861114,1900,STF,RMK070,,6)
+	J	PA1PTR,,
+conpatch(PA1PTR,,18)
+	LH	R6,EI.MT,R2,R2		: original code
+	JG	RMK070+0A,,		: patch not applicable in this case
+	LH	R4,GRPSAV,RL2,		: otherwise ensure R4 is properly
+					: reinitialized
+	J	RMK050,,		: then go back to source code
+endpatch(ensure R4 is properly reinitialized when looping back from RMK070 to)
+endpatch(RMK050 in RMAKE routine)
