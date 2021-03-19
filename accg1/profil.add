@@ -1,0 +1,511 @@
+
+
+
+
+
+
+
+
+
+
+
+
+                   NETWORK PROFILE DATABASE -- USER'S GUIDE
+
+                     ADDENDUM:  Version 3-0, March, 1984
+
+
+
+
+                           SUMMARY OF NEW FEATURES
+
+
+        Version 3-0 of the Network Profile Database adds  several  enhanced
+        capabilities to the system.  These new features include:
+
+            1) Access to information on synchronous circuits between  nodes
+               and from nodes to hosts.
+
+            2) New reports in the SPECIAL REPORTS package
+
+            3) Other new background features, such as:
+
+                  * Automatic node and host number assignment
+                  * Table of valid cities
+                  * Basic statistics package
+                  * Table update program
+                  * Canadian provinces
+                  * Large report generation in NETDB
+
+
+
+
+                             NETWORK CONNECTIONS
+
+
+        The primary objective of Version 3-0 is  the  addition  of  network
+        connection  information  to  the  Network  Profile  data structure.
+        Information on  the  following  types  of  network  connections  is
+        included in this release:
+
+               NODE-TO-NODE leased lines
+               NODE-TO-NODE hardwires and memory shufflers
+               NODE-TO-HOST leased lines
+
+        A future release is planned which will incorporate asynchronous and
+        terminal  oriented  connections (corresponding to the current Ports
+        Database).
+Network Profile Database                                             Page 2
+ADDENDUM
+
+
+        SOURCES OF DATA
+        ---------------
+
+        Network connection data is being provided for display only in  this
+        release  of the Network Profile.  Direct update of this data within
+        the Profile is scheduled for implementation as part of Release 4-0.
+
+        Network connection information is fed into  the  Profile  from  two
+        sources:
+
+            1) The Topology Database (NODE.TEK and LINE.TEK).   This  is  a
+               1022  database  maintained  by  the  Database Administration
+               group.  It is updated  from  project  reports,  orders,  and
+               Network  Control  shift summaries.  Circuits are verified in
+               Probe before being entered into Topology.
+
+            2) The Paradyne Analysis Database (ANAL.DMS).  This is  another
+               1022  file  of  line and drop information for circuits under
+               the Paradyne analysis  system.   It  is  maintained  by  the
+               Network Quality Control group.
+
+        The information from these two sources  is  copied  onto  the  host
+        system  for Network Profile on a daily basis via a PERP job.  There
+        it is loaded into MAGNUM relations where it is  accessible  through
+        LIST, SEARCH, and REPORT commands.
+
+
+        NEW FIELDS
+        ----------
+
+            CIRCUIT NAME:   For  leased  lines  this  is  the  alphanumeric
+               designator  used  by  ATT  Long  Lines  or  the  local  Bell                                       _
+               operating company to identify the circuit (eg.  FDEA123456).
+               This  field  also  designates  hardwires  as  HW  and memory
+               shufflers as MS.
+
+            TROUBLE PHONE:  This is the telephone  number  used  to  report
+               line   outages   and   problems  to  the  telephone  company
+               responsible for the circuit.
+
+            BPS:  Line speed as measured in bits per second  (eg.   9600  =
+               9600 bits/second;  56KB = 56,000 bits/second.
+
+            LINE:  Logical line indicator for the Paradyne analysis system.
+               A  line  on  this  system  can monitor up to 15 master/slave
+               pairs, or up to 30 individual Paradyne modems.
+
+            DROP:  The logical  address  for  each  modem  monitored  by  a
+               particular line in the Paradyne analysis system.
+
+            TRIBUTARY:  Tributary is the drop  address  for  slave  modems.
+               Its  primary  use  is for multi-drop synchronous circuits to
+               indicate the relationship  of  several  slave  modems  to  a
+               single master.
+Network Profile Database                                             Page 3
+ADDENDUM
+
+
+
+
+
+
+
+
+        COMMAND CHANGES
+        ---------------
+
+            LIST:  The list command now gives two new options:   LIST  NODE
+               CONNECTIONS  and  LIST  HOST CONNECTIONS.  These two options
+               work identically in 425 and non-425 modes.  Having  selected
+               an  option  in  425 mode, the user will find that the screen
+               features are turned off and the  terminal  accepts  carriage
+               returns rather than function key sequences.
+
+               The following example  illustrates  use  of  the  LIST  NODE
+               CONNECTIONS option.
+
+
+
+Enter Node Number or RETURN: 2270           [The user enters node number
+                                             2270 and <CR> at the prompt]
+
+
+
+ID  PORT   Network Neighbor & Port     Circuit              BPS   Trouble Phone
+========== =========================== ==================== ===   =============
+ 1) SYNC 0   2173 SWITCHER      SYNC 2 HW                   9600              
+ 2) SYNC 1   2171 SWITCHER      SYNC 3 HW                   9600              
+ 3) SYNC 2   4166 TYMSAT        SYNC 1 HW                   9600              
+ 4) SYNC     1830 HOST                 FDEA536313-PDY       4800  800/672-8825
+ 5) SYNC     4164 HOST                 74FDEA150950-PDY     9600  611         
+ 6) SYNC     2732 HOST                 FDEA286969-PDY       9600  408/491-9092
+ 7) SYNC     4791 HOST                 *TYM-LINK            4800  408/980-8204
+ 8) SYNC     4131 HOST                 FDEA607268-PDY       9600  408/491-1821
+
+
+
+              [The program has responded with a list of the connections  to
+               node  2270.   This display shows three hardwired connections
+               to neighbor nodes, two switchers and a Tymsat, and the  sync
+               ports  for  each  node.  It also shows five synchronous host
+               connections  via  leased  lines.   Each   of   these   eight
+               connections  is  given a temporary "Line ID" for purposes of
+               this display.]
+Network Profile Database                                             Page 4
+ADDENDUM
+
+
+
+
+Enter a Line ID or RETURN: 4      [The user now requests more detailed infor-
+                                   mation on circuit FDEA536313 by entering
+                                   Line ID 4 and <CR> at the prompt.]
+
+
+
+===============================================================================
+Node:   2270                Type: ISIS               Kernel: 1338
+Hardware: ENGINE            Memory: CORE1024         Region: WNFE 
+Company: TYMSHARE/TYMNET                             City & St: SANTA CLARA ,CA
+Phone  at site: 408/446-7770                         Site Id:  150
+~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+Circuit: FDEA536313-PDY     Bps: 4800                Trouble #: 800/672-8825   
+Line:    50                 Drop:    27              Trib:    28
+~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+Host:   1830                Int: 3270 HOST           Site Id: 6306  Manned?  
+Company: ITEL CORPORATION                            City & st: SAN FRANCISC,CA
+Phone at site: 415/955-0000        
+===============================================================================
+
+
+
+              [The  program  has  now  responded  with  Paradyne   analysis
+               information  on  the  line itself, as well as detailed node,
+               host, and site information for the two end-points.]
+
+
+
+
+
+Enter a Line ID or RETURN:     [The user now has the choice of entering one
+                                of the other seven Line IDs for detailed
+                                display or simply entering a <CR> to return
+                                to the prompt for entering another node.]
+
+
+
+               The LIST HOST CONNECTIONS option works exactly the  same  as
+               the  LIST  NODE CONNECTIONS option illustrated above, except
+               that in most cases there will be only one Line  ID  for  the
+               user to select for detailed display.
+Network Profile Database                                             Page 5
+ADDENDUM
+
+
+
+
+
+
+            SEARCH:  The SEARCH command has a new  option,  SEARCH  CIRCUIT
+               NAME.   This  option  allows  the  user  to enter any set of
+               characters from a circuit name.  The program will  return  a
+               list  of  circuits  that  contain  the  specified  character
+               string.
+
+               The example below illustrates the SEARCH CIRCUIT NAME option
+               in  non-425 mode.  Where 425 mode differs from this example,
+               it is noted in the explanation.
+
+
+
+Enter search string or RETURN: 5363   [The user has entered a numeric sub-
+                                       string of a circuit name at the
+                                       prompt.  In general, the more char-
+                                       acters that can be entered here, the
+                                       faster the search will be.]
+
+
+
+ID    Circuit              Bps    Point1  City        St  Point2  City        St
+
+   1 FDEA536316-PDY        4800   N 2361  SANTA CLAR  CA  N  410  MONTEREY    CA
+   2 FDEA536340-PDY        9600   N 1017  MOUNTAIN V  CA  N 2171  SANTA CLAR  CA
+   3 FDEA536313-PDY        4800   N 2270  SANTA CLAR  CA  H 1830  SAN FRANCI  CA
+   4 FDEA536327-PDY        9600   N 2173  SANTA CLAR  CA  N 2105  SAN BRUNO   CA
+   5 FDEA536356-PDY        9600   N  707  SANTA CLAR  CA  H  803  PALO ALTO   CA
+   6 FDEA536309-PDY        4800   N 2172  SANTA CLAR  CA  N 2757  MENLO PARK  CA
+
+
+
+              [The program has responded  with  a  list  of  circuits  that
+               contain  the  requested  character string.  The user now has
+               the option to display detailed information on one  of  these
+               circuits  by  entering  the  Line  ID,  or  to return to the
+               previous prompt and enter another  search  string.   In  425
+               mode  the screen is capable of displaying up to ten circuits
+               at a time.  If the list is longer  than  ten  circuits,  the
+               user  will  be asked to enter FUNCTION-SPACE repetitively to
+               see the full list.]
+
+
+
+Enter a Line ID or RETURN: 3      [The user enters Line ID 3 to display
+                                   detailed information for circuit
+                                   FDEA536313.]
+
+Network Profile Database                                             Page 6
+ADDENDUM
+
+
+
+
+
+
+
+Ckt name : FDEA536313-PDY      
+Bps      : 4800 
+Trouble# : 800/672-8825   
+
+Point1   : N 2270
+Company1 : TYMSHARE/TYMNET               
+Street1  : 3255 SCOTT BLVD  SUITE 4B     
+City1    : SANTA CLARA          CA
+SiteId   :  150
+SitePhone: 408/446-7770        
+
+Point2   : H 1830
+Company2 : ITEL CORPORATION              
+Street2  : 55 FRANCISCO STREET           
+City2    : SAN FRANCISCO        CA
+SiteId   : 6306
+SitePhone: 415/955-0000        
+
+
+              [The program has now displayed the detailed  information  for
+               the  requested  Line ID.  (Note that one end point is a node
+               and the other is a host).  If the program is  able  to  find
+               only  one  circuit  that  matches the search string, it will
+               immediately jump to this detailed display.]
+Network Profile Database                                             Page 7
+ADDENDUM
+
+
+            REPORTS:  A variety of new reports are  available  for  network
+               connections.  They can all be created by first selecting the
+               BRIEF REPORT option in the  REPORT  command,  and  then  the
+               NETWORK  CONNECTIONS  option.   There  is no real difference
+               between 425 and non-425 modes as far as creating reports  is
+               concerned.
+
+               Several of  these  reports  are  quite  large,  and  require
+               significant  time  and system resources to create.  In these
+               cases the program will indicate to  the  user  that  a  file
+               containing  the  report already exists on line, and the date
+               that it was last created.  If the date is recent enough  the
+               user  may  choose  to  type  out the existing report without
+               spending the time to create a newer version.
+
+               As with the other brief reports, these new reports  are  all
+               132 columns wide.  They can be SPOOLed if the user specifies
+               LARGE form size and 66 lines per page in the SPOOL  request.
+               If  they  are  output  to  a printer the user should set TTY
+               WIDTH 132 and set the printer on compressed type.
+
+               The available  reports  and  their  individual  options  are
+               briefly described below.
+
+
+
+            1) CIRCUIT MAP - This report comes in two basic  versions.   It
+               is  similar  to  the  Circuit Map formerly produced from the
+               1022 version of the Topology  Database,  but  contains  more
+               site details.
+
+               a) Node/host sort.  This version of the  Circuit  Map  lists
+                  circuits  by node and then by host.  Connections for each
+                  node are grouped together, first sync ports, and then SIO
+                  ports.  The neighbor node or host on the other end of the
+                  circuit is listed with site  details,  as  well  as  line
+                  speed,  trouble  reporting  number, and Paradyne analysis
+                  information.  Host connections are listed in  a  separate
+                  section  following  the  node connections.  Every line is
+                  listed twice in this report, once  for  each  end  point.
+                  This report can be selected by NFE region or Tech Support
+                  area.
+
+               b) Circuit name sort.  This version contains one  entry  for
+                  each  leased line (no hardwires or memory shufflers).  It
+                  is much smaller than the node/host version,  and  has  no
+                  selection options.
+
+            2) LEASED LINE REPORTS - These reports group  leased  lines  by
+               site,  and  show  details  of nodes and hosts connected to a
+               particular site as well as a mileage figure  calculated  for
+               each  circuit.  Three options for this report are all lines,
+               Tymnet to customer lines, and customer  to  customer  lines.
+               All versions can be selected by region or area.
+Network Profile Database                                             Page 8
+ADDENDUM
+
+
+            3) SITE CONNECTIONS - This report comes in  only  one  version,
+               though  it  can  be  selected  by region or area.  Lines are
+               grouped by node  or  host  within  each  site,  and  include
+               hardwires  and  memory  shufflers  as  well as leased lines.
+               Thus, from this report it is possible to  see  how  machines
+               within  a  site  are interconnected, as well as how the site
+               itself is connected to other network locations.
+
+
+
+
+                               SPECIAL REPORTS
+
+
+
+        The following is a listing of the reports available in the  special
+        reports  package.   These  reports  can be created by accessing the
+        SPECIAL option within the REPORT command.  A few of  these  reports
+        have  been  described in the Version 2-0 document, but they are all
+        listed here for the sake of completeness and convenience.
+
+            1) The NODE List.  This report is similar in format to the  old
+               Editor file maintained by Project Implementation and then by
+               Network Engineering.  It lists all  nodes,  in  node  number
+               order,  including  location  (company,  city and state), old
+               node number for upgrades, number  of  the  order  that  last
+               affected  the node, effective date, and all hosts associated
+               with the node, including kernel host.
+
+            2) The HOST list.  This report is in the format  of  the  brief
+               host  report.   It  is  separated into two sections, one for
+               normal hosts (recognized by  the  Supervisor)  and  one  for
+               accounting hosts (5-digit host numbers).
+
+            3) TYMNET-I Nodes.  A report of the remaining T-I nodes in  the
+               public  network,  including hardware type, software type and
+               location.
+
+            4) The ISIS Report.  This report summarizes  all  of  the  ISIS
+               nodes  in  the  network  by  location.   It  shows the hosts
+               assigned to each  node,  including  pending  hosts.   It  is
+               possible  to  use  this  report to approximate the number of
+               ISIS slots available at each site.
+
+            5) The ISIS Report - Tymnet Sites.   Same  as  above  but  only
+               listing Tymnet ISIS sites.
+
+            6) Site Summary - Tymnet/Tymshare Network Sites.  A report that
+               gives  a one-line description of each Tymnet and/or Tymshare
+               site, with a listing of nodes and hosts at that site.
+
+            7) Site Summary -  All  Network  Sites.   Same  as  above,  but
+               including  customer  sites  as  well  as Tymnet and Tymshare
+               sites.
+Network Profile Database                                             Page 9
+ADDENDUM
+
+
+            8) Site Summary -  All  Sites  in  the  Database,  Network  and
+               Non-network.   Same  as  above,  but  including sites in the
+               databhere no nodes or hosts are located.  These  latter
+               sites  are  in  the  database to provide complete congruence
+               with Tymshare Fixed Assets site  listing.   All  three  Site
+               Summary reports are sorted geographically.
+
+            9) Site Report - Network and  Non-network  Sites.   This  is  a
+               listing  of  all sites in the database by site id, including
+               all the Fixed Assets sites.
+
+            10) Circuit Dump - This is a file, with no report headings,  of
+               basic circuit information.  It is intended to be loaded into
+               1022 or some other database structure.
+
+
+
+
+                              OTHER NEW FEATURES
+
+
+
+        There are several new features incorporated in Release 3-0 that are
+        not  apparent  to  the general user.  They are, however, of general
+        interest, and for that reason are briefly documented here.
+
+             * AUTOMATIC NODE AND HOST  NUMBER  ASSIGNMENT  -  The  Network
+               Profile  is  the  official vehicle for assigning and keeping
+               track of node and host numbers.  The  database  software  is
+               now  able  to  assign the next valid number to a user who is
+               allowed to add a node or host record.  It will automatically
+               reassign  numbers  that  have  been deleted for more than 60
+               days, in the interests of  keeping  the  Supervisor's  fixed
+               node and host number tables to a minimum.
+
+             * TABLE OF VALID CITIES - The program now checks  a  table  of
+               cities  whenever  a site is entered or changed.  If the user
+               is entering a city not already  in  the  table,  a  list  of
+               cities  in  that  country  or state that start with the same
+               letter is produced.  This gives the user an  opportunity  to
+               verify that the city being entered is not a variant spelling
+               of an existing city in the database.
+
+             * BASIC STATISTICS PACKAGE - This gives a brief report on such
+               items  as  number  of  nodes and sites in the network.  This
+               feature will be greatly enhanced in future releases.
+
+             * TABLE UPDATE PROGRAM - There is now a graceful way  for  the
+               Database  Administration  group  to  update  tables of valid
+               values, such as hardware and software types.
+
+             * CANADIAN PROVINCES -  Two-character  abbreviations  for  the
+               Canadian   provinces  have  now  been  added  to  the  state
+               abbreviation  tables.   The  following  is  a  list  of  the
+Network Profile Database                                            Page 10
+ADDENDUM
+
+
+               provinces and their corresponding abbreviations:
+
+                    AB Alberta
+                    BC British Columbia
+                    MB Manitoba
+                    NB New Brunswick
+                    NF Newfoundland
+                    NS Nova Scotia
+                    ON Ontario
+                    PE Prince Edward Island
+                    PQ Quebec
+                    SK Saskachewan
+
+             * LARGE REPORT GENERATION IN NETDB - Many of the reports  that
+               can  be  produced from the database are large, both in terms
+               of paper pages and in terms  of  disk  storage.   They  also
+               require  significant  amounts  of  time  and CPU capacity to
+               produce.  In order to reduce system degradation during prime
+               time,  to  minimize  disk  usage,  and  to  free  up  users'
+               terminals, a new scheme  is  being  used  to  produce  large
+               reports.
+
+               The large reports include most of the  SPECIAL  reports  and
+               the  BRIEF  and  DETAILED  reports that are produced for the
+               entire public network.  These  reports  will  be  maintained
+               within  the  NETDB  directory.  When the user chooses one of
+               them the program will respond with  a  message  stating  the
+               last  time  it  was created.  The user then has an option of
+               creating a more up-to-date copy (with  the  attendant  delay
+               and  CPU  usage),  or  immediately  exiting  and  typing  or
+               SPOOLING the copy that  is  already  on-line  in  the  NETDB
+               directory.
+   3@ 
