@@ -1,0 +1,310 @@
+:------------------------------------------------------------------
+:
+: INTERFACE : CMTI
+: VERSION   : 12.06
+:
+:       Supporting new Kanji code set called Shift-JIS.
+:
+:       1. Presently CMT supports only DEC Kanji code set for
+:          async terminal side.
+:
+:       2. By adding Shift-JIS code set some new terminal can be supported.
+:
+:       ORIGINAL  : 891211 by T.KOBAYASHI
+:       REVICE    : 900216 by Y.FURUTA, ADD USER DEFINED 
+:                 : 900224 by Y.FURUTA, quick table search (GJCNV)
+:------------------------------------------------------------------
+:
+:CHECK TERMINAL INPUT
+:---------------------
+        LO      TM
+PATCH(891211,1700,NIS.KOBAYASHI,DGY020,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,01E)
+        CHI     R0,$0 81                :Is it shift-jis kanji?
+        JL      DGY060,,                :NO, Itis A/N/K character
+        CHI     R0,$0 9F                :Is it shift-jis kanji?
+        JLE     DGY020+12,,             :Yes
+        CHI     R0,$0 0E0               :Is it shift-jis kanji?
+        JL      DGY060,,                :No, It is A/N/K character
+        CHI     R0,$0 0EF               :Is it shift-jis kanji?
+        JG      DGY060,,                :No, It is A/N/K character
+        J       DGY020+12,,             :Yes, it is shift-jis kanji
+:
+:MODIFY CODE INSERT ROUTINE
+:--------------------------
+CONPATCH(IKN13B,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,01E)
+        CHI     R0,$0 81                :Is it shift-jis kanji?
+        JL      IKN14B,,                :No, It is A/N/K character
+        CHI     R0,$0 9F                :Is it shift-jis kanji?
+        JLE     IKN13B+12,,             :Yes, it is shift-jis kanji
+        CHI     R0,$0 0E0               :Is it shift-jis kanji?
+        JL      IKN14B,,                :No, it is A/N/K character
+        CHI     R0,$0 0EF               :Is it shift-jis kanji?
+        JG      IKN14B,,                :No, it is A/N/K character
+        J       IKN13B+12,,             :Yes, it is shift-jis kanji
+
+:
+:C1OFF UNIT, DESTROY THIS ROUTINE
+:--------------------------------
+CONPATCH(C1OFF,,2)
+        JR      R5                      :RETURN TO CALLER
+                                        :NOT HIGHT-BIT OFF
+:
+:IBM TO JIS
+:----------
+CONPATCH(EXTI2J,,6)
+        JAL     R5,JTOSJ,,              :CHANGE JIS TO SHIFT-JIS
+
+        IF      \GJCNT                  :SPECIAL SHIFT-JIS CONVERT OPTION
+CONPATCH(PA0PTR,,2)
+SVICD   HS      1                       :ORIGINAL IBM GAIJI CODE
+
+CONPATCH(I2J,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,14)
+        STH     R0,SVICD,,              :SAVE ORIGINAL KANJI CODE
+        LR      R5,R0                   :FROM SOURCE
+        CLHI    R0,IBM.SP               :FROM SOURCE
+        J       I2J+6,,
+
+CONPATCH(ERRI2J,,6)                     :INVALID KANJI CODE
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,0E)
+
+        LHL     R0,SVICD,,              :GET ORIGINAL KANJI CODE
+        JAL     R5,GJCNV                :GAIJI CONVERT
+        J       EXTI3J,,
+
+        EI      GJCNT
+
+:
+:JIS TO IBM
+:----------
+CONPATCH(JIS2IBM+6,,6)
+        JAL     R5,SJTOJ,,              :CHANGE SHIFT-JIS TO JIS
+CONPATCH(ERRJ2I,,6)
+        LI      R0,0A2A3
+:
+:FUJITSU TO JIS
+:--------------
+CONPATCH(FUJI2+4,,6)
+        JAL     R5,JTOSJ,,              :CHANGE JIS TO SHIFT-JIS
+:
+        IF      \GJCNT                   :USER DEFINED KANJI CODE CONVERT
+CONPATCH(ERRF2J,,6)                     :INVALID KANJI ROUTINE
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1C)
+        POP(R0)
+        PUSH(R5)
+        JAL     R5,GJCNV                :CONVERT
+        POP(R5)
+        J       EXITF2J,,
+        EI      GJCNT
+:
+:JIS TO FUJITSU
+:--------------
+CONPATCH(JIS2FUJ+6,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,10)
+        JAL     R5,SJTOJ                :CHANGE SHIFT-JIS TO JIS
+        PUSH(R0)
+        J       JIS2FUJ+10,,
+CONPATCH(ERRJ2F+6,,6)
+        LI      R0,0A2A3
+:
+:HITACHI TO JIS
+:---------------
+CONPATCH(H2J030+4,,6)
+        JAL     R5,JTOSJ,,              :CHANGE JIS TO SHIFT-JIS
+:
+        IF      \GJCNT                   :USER DEFINED KANJI CODE  ?
+CONPATCH(ERRH2J,,6)                     :INVALID KANJI CODE
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1C)
+        POP(R0)
+        PUSH(R5)
+        JAL     R5,GJCNV                :CONVERT
+        POP(R5)
+        J       EXITH2J,,
+        EI      GJCNT
+
+:
+:JIS TO HITACHI
+:
+CONPATCH(JIS2HIT,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,10)
+        PUSH(R5)
+        JAL     R5,SJTOJ                :CHANGE SHIFT-JIS TO JIS
+        J       JIS2HIT+6,,
+CONPATCH(ERJ2HH,,6)
+        LI      R0,0A2A3
+
+:----------------------------------------------------------
+:USER DEFINED KANJI CODE(GAIJI) CONVERT
+:       LINK    R5
+:       KANJI   R0      (INPUT AND OUTPUT)
+:       R1 -- FIRST TABLE ENTRY ADDR FOR SEARCH
+:       R2 -- LAST TAB ENTRY ADDR + 4 (NEXT POSITION)
+:       R3 -- CURRENT SEARCH POINTER's DISPLACEMENT FROM R1
+:----------------------------------------------------------
+        IF      \GJCNT
+
+CONPATCH(PA0PTR,,4)
+GJCASH  HC      0                       :CASH AREA
+        HC      0
+
+CONPATCH(PA1PTR,,0A6)
+GJCNV   CLH     R0,GJCASH,,             :CHECK CASH AREA
+        JNFS    GJCNV0                  :NO, CHECK WHOLE TABLE
+        LHL     R0,GJCASH+2,,           :FOUND IN CASH, FETCH RESULT
+        JR      R5                      :RETURN TO CALLER
+GJCNV0  PUSH(R1,R2,R3)                  :REG SAVE
+        LA      R1,GJTAB,,              :GOT TABLE TOP ADDR (BY GJBGN MACRO)
+        LA      R2,GJCNT,R1             :SET LAST EMPTY POSITION ADDR
+GJCV1   LR      R3,R2                   :COPY LAST ADDR
+        SR      R3,R1                   :R3=SEARCH RANGE LENGTH (BYTE)
+        SRLS    R3,3                    :R3/4/2=ENTRY COUNT/2
+        SLLS    R3,2                    :TO BYTE LENGTH
+
+        CLH     R0,0,R3,R1              :CHECK TABLE ENTRY(LEFT ORG CODE)
+        JE      GJCVT                   :FOUND, CONVERT NEW CODE
+        JGFS    GJCV2                   :R0>GJTAB(POINTER)
+        LA      R2,0,R3,R1              :CURRENT POINTER TO LAST ENTRY
+        JFS     GJCV3
+GJCV2   LA      R1,4,R3,R1              :POINTER+4 TO FIRST ENTRY
+GJCV3   CR      R1,R2                   :FIRST ENTRY < LAST ENTRY ?
+        JL      GJCV1                   :YES CHECK NEXT HALF
+                                        :NOT FOUND
+
+        IF      \PRTSW                  :NOT FOUND IN THE TABLE
+        LIS     R0,P.PRNT
+        TBT     R0,DIABIT,R12           :IS IT PRINTER PORT ?
+        JEFS    GJCV4                   :NO CRT
+        LI      R0,INVKPR               :FETCH INVARID CODE FOR PRINTER
+        J       GJCVE
+        EI      PRTSW
+GJCV4   LI      R0,INVKCR               :FETCH INV CODE FOR CRT
+GJCVE   POP(R3,R2,R1)
+        JR      R5                      :BACK TO CALLER
+GJCVT   L       R0,0,R3,R1              :GOT NEW KANJI CODE
+        ST      R0,GJCASH,,             :SAVE IT IN CASH AREA
+        NI      R0,0FFFF                :MASK UPPER 2 BYTE
+        J       GJCVE
+
+        EI      GJCNT
+
+:-------------------------------------------------------------
+
+:       library for Shift Jis and Jis Kanji convert sub
+:       R0 - source and output Kanji code, 2byte long
+:       R5 - Link
+:       destroy - nothing
+:
+:       1) Jis to Shiftjis. Can use high-bit-on Jis code
+:               JAL     R5,JTOSJ
+:       2) Shiftjis to Jis(Hi-bit-oFF)
+:               JAL     R5,SJTOJ
+:       3) Shiftjis to Jis(Hi-bit-On)
+:               JAL     R5,SJTOJH
+:
+:       1989.12 by Y.Furuta
+:--------------------------------------------------------------
+CONPATCH(PA0PTR,,0C)
+SVR1    WS      1
+SVR2    WS      1
+SVR5    WS      1
+
+CONPATCH(PA1PTR,,0C0)
+KJSAV   ST      R1,SVR1,,               :REG SAVE AND SEPARATE 2 BYTE
+        ST      R2,SVR2,,
+        LR      R1,R0                   :COPY SOURCE
+        SRLS    R1,8                    :GOT 1ST KANJI CODE
+        LR      R2,R1                   :COPY IT
+        NHI     R0,0FF                  :GOT 2ND BYTE
+        JR      R5
+
+KJRET   L       R1,SVR1,,       :RETURN TO CALLER
+        L       R2,SVR2,,
+        L       R5,SVR5,,
+        JR      R5
+
+:
+:------ JIS TO SHIFT JIS
+:
+JTOSJ   ST      R5,SVR5,,               :JIS TO SHIFT JIS ROUTINE
+        NHI     R0,$0 7F7F              :MASK HIGH BIT
+        JAL     R5,KJSAV                :SEPARATE SOURCE TO R1,R0
+        LR      R5,R1                   :COPY 1ST BYTE TO R5
+        NHI     R5,1                    :CHECK 1ST BYTE, EVEN OR ODD ?
+        JEFS    JTOSJ1                  :EVEN
+        AHI     R0,$0 40-21             :SHIFT 2ND BYTE (1)
+        JFS     JTOSJ2
+JTOSJ1  AHI     R0,$0 9E-21             :SHIFT 2ND BYTE (2)
+JTOSJ2  CHI     R0,7F                   :LESS THAN 7F ?
+        JLFS    JTOSJ3                  :YES, SKIP
+        AHI     R0,1                    :INCREMENT
+JTOSJ3  SHI     R1,$0 21                :R1=R1-21
+        SRLS    R1,1                    :R1/2
+        AHI     R1,$0 81                :+81
+        CHI     R1,$0 0A0
+        JLFS    JTOSJ4
+        AHI     R1,$0 40
+JTOSJ4
+        SLLS    R1,8                    :MAKING 2BYTE SHIFT JIS
+        OR      R0,R1
+        J       KJRET                   :RETURN
+
+:
+:------ SHIFT JIS TO JIS
+:
+SJTOJ   ST      R5,SVR5,,
+        JAL     R5,KJSAV                :SEPARATE SOURCE TO R1,R0
+        LHI     R2,0                    :MAKE R2 ZERO
+        JFS     SJTOJ0
+
+SJTOJH  ST      R5,SVR5,,
+        JAL     R5,KJSAV                :SEPARATE SFCODE TO R1,R0
+        LHI     R2,$0 8080              :SET HIGH BIT FOR RETURN
+
+SJTOJ0  HS      0                       :START CONVERSION
+        CHI     R1,0E0                  :R1>=0E0 ?
+        JLFS    SJTOJ1                  :NO SKIP
+        SHI     R1,$0 40                :R1-40
+SJTOJ1  SHI     R1,$0 81                :R1-81
+        SLLS    R1,1                    :R1*2
+        AHI     R1,$0 21                :R1+21
+
+        CHI     R0,$0 7F                :GREATER THAN 7F ?
+        JLEFS   SJTOJ2                  :NO
+        SHI     R0,1                    :R0-1
+SJTOJ2  CHI     R0,$0 9D                :NEXT, R0>9D ?
+        JLEFS   SJTOJ3                  :NO
+        AHI     R1,1                    :SHIFT EVEN 1ST BYTE
+        SHI     R0,$0 9E-21             :R0-9E+21
+        JFS     SJTOJ4
+SJTOJ3  SHI     R0,$0 40-21             :R0-40+21
+SJTOJ4  SLLS    R1,8                    :MAKING 2BYTE CODE
+        OR      R0,R1                   :DONE
+        OR      R0,R2                   :+0000 OR 8080
+        J       KJRET                   :RETURN
+
+CONPATCH(CK8BT+1C,,2)
+        JFS     TRMI08
+CONPATCH(DGKCH4+1E,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,01C)
+        POP(R1)
+        LIS     R2,1
+        LIS     R0,K.1PIT
+        TBT     R0,TKBITS,R11
+        JE      DGKC20,,
+        AIS     R2,1
+        J       DGKC20,,
+CONPATCH(KDMN02+12,,2)
+        SIS     R2,1
+ENDPATCH(Supporting new Kanji cocde set called Shift-JIS)
+        FO      TM
