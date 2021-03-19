@@ -1,0 +1,839 @@
+TO: Whomever		April 11, 1983
+FROM: Tim Zimmer
+
+
+Attached are extracts from the internal documentation of the ASYNC module.
+
+It would be helpful if you could review this material briefly in prepara-
+tion for our Solo CONSAT design review this afternoon.  The design review
+will follow its own outline, but we will be covering in some detail many
+of the functions described herein.
+
+Thanks.
+
+	SUBTTL	ASYNC - STANDALONE CONSAT INTERFACE::*
+::*	The Standalone CONSAT is a hybrid product consisting of the
+::	environment-independent CONSAT code (which is common to both
+::	standalone and ISIS configurations) and the node code which
+::	incorporates the environment-dependent portion of the CONSAT
+::	under the SOLOCS switch.  In the following comments, the terms
+::	"CONSAT" and "CONSAT proper" refer to the environment-independent
+::	part of the code.  Everything else is ours.
+::
+::	The ASYNC module contains the bulk of the environment-dependent 
+::	code for the Standalone CONSAT.  Unfortunately and unavoidably,
+::	there are SOLOCS-switched bits and pieces of code scattered
+::	throughout other modules.  Our code performs two general types
+::	of functions:
+::
+::		1) Scheduling and calling the async periodic processes
+::		   (interrupt-level processing is handled entirely by
+::		   the microcode), and
+::
+::		2) Interfacing between the CONSAT proper and the 
+::		   environment-dependent functions of the node code
+::		   (e.g., circuit-building and -teardown, WCI/GCI,
+::		   hardware drivers).
+::
+::	The CONSAT proper performs all the high-level logical functions
+::	associated with virtual-terminal support in a Tymsat, as well
+::	as such special capabilities as PVC, MPVC, LISA, and port-addres-
+::	sability.  Very little of our code knows or cares about these
+::	things.  Typically, the sequence for performing a specific
+::	function (e.g., outputting a character from a buffer to a 
+::	terminal) goes something like this:
+::	
+::		1) Our code (in this case the async polling process)
+::		   determines that a character is in the output buffer 
+::		   and the terminal (i.e., the async ring) is ready to
+::		   receive it.
+::
+::		2) We call the CONSAT output processor which has been
+::		   assigned to the port by the CONSAT proper (based on
+::		   virtual characteristics of the port which we know
+::		   nothing about).
+::
+::		3) The CONSAT output processor does what ever it has to
+::		   for the type of terminal involved and eventually calls
+::		   one or more of our interface routines -- e.g., GETCHR
+::		   to fetch a character from a buffer, APUTCH to put the
+::		   character into the async ring.
+::
+::		4) The CONSAT eventually exits back to the caller (us),
+::		   and so life goes on.
+::		   
+::	A few points about this interaction, some of which may be self-
+::	evident:
+::
+::		1) The CONSAT never directly calls a regular node code
+::		   routine (e.g., GCI).  It will only call one of the 
+::		   special interface routines in ASYNC (e.g., GETCHR)
+::		   which in turn do the calls to the appropriate
+::		   node code functions.  All passing of data in these
+::		   exchanges is done through registers, and our code
+::		   must obey the rules set by the caller (the CONSAT).
+::		   Needless to say, the CONSAT never accesses our privi-
+::		   leged code directly.  All SVC calls are ours.
+::
+::		2) Data passes transparently as far as our code is
+::		   concerned.  Any code translation required is done
+::		   by the CONSAT and we couldn't care less.  But control
+::		   codes (virtual-terminal codes, network control
+::		   characters) are our responsibility.  The CONSAT
+::		   has its own set of 1-byte control codes called
+::		   "signals".  These signals are the only control codes
+::		   the CONSAT will send to or accept from us.  Therefore,
+::		   we have to perform the necessary translation in both
+::		   directions (see PUTSIG and GETCHR).  Usually these
+::		   translations are fairly simple (1-to-1) but there
+::		   are annoying exceptions.
+::
+::		3) Most of what we and the CONSAT need to know about an
+::		   active port is contained in or accessible through 
+::		   the port-table (.PTABL).  The port-table begins at
+::		   PTBASE (currently 40000x in our environment), but it
+::		   may be moved if necessary by redefining PTBASE since
+::		   the CONSAT knows to look there for it.  Other variable
+::		   data symbols which are referenced by the CONSAT must be
+::		   assembled at or below 3FFFx (SEG0) since the CONSAT uses
+::		   the RX1 instruction format whenever possible.  This is why
+::		   our SEG0 storage allocations are split between the EQUATE
+::		   and DATA modules.  The CONSAT assembles its SEG0 area
+::		   between EQUATE and DATA, and we do a check in ASYNC to
+::		   make sure it hasn't assembled past the limit (see LOWSG0).
+::
+::	Register conventions (and names) peculiar to the CONSAT:
+::		R1 (RBC) - character register
+::		R2 (RBP) - buffer index register
+::		R7 (RCH) - link register 
+::		R8 (RBF) - link register 
+::		R10 (RLINK) - polling process/port filter link register
+::		R12 (RPI) - pointer to port descriptor
+::		R13 (RP2, PN2) - 2 * port number
+::		R14 (RP, PN) - port number
+::
+::	The following permuter-table/attention-flag-arrays are used
+::	by the CONSAT and ASYNC:
+::		ASYTAB/ASYFLG - Point to the async ports.  ASYZFL=40x.
+::		TPTTAB/TOPORT - Same as ASYTAB/ASYFLG (CONSAT's name
+::			for them.
+::		ALMTAB/ALMFLG - Point to the virtual login port.  This
+::			is an arbitrary channel number assigned to a 
+::			port in login mode.  The supervisor uses this
+::			number, rather than the actual port number, to
+::			process circuit-building requests.  This enables
+::			us to send a new login for a port without having
+::			to wait for and existing circuit to that port to
+::			be completely zapped.   Used in conjunction with
+::			ANITAB/ANIFLG.  ALMZFL=ASYZFL + # of async ports.
+::		ANITAB/ANIFLG - Point to virtual login port (input side--
+::			i.e., toward the supervisor via LOGGER).  Used
+::			in conjunction with ALMTAB/ALMFLG to process
+::			logins.  ANIZLF=ANIZFL + # of login ports.
+::		GLGTAB/GOLOG  - Used by the CONSAT for ports in login mode
+::			to flag ports which are ready to transmit login data.
+::			GLGZFL=ANIZFL + # of login ports.
+::		TLGTAB/TOLOG - Used by CONSAT to connect ports to its login
+::			process.  TLGZFL=GLGZFL + # of login ports.
+::
+::	The ASYNC module is divided into several sections:
+::		1) Variable data storage areas (segments 0 and 4),
+::		2) Fixed data (tables) (segment 1),
+::		3) Initialization and periodic logic, and
+::		4) Interface routines, which for the most part
+::		   are called only by the CONSAT proper.
+::
+::	You will find the following assembly switches scattered
+::	throughout the following code:
+::
+::		SOLOCS:	SOLO CONSAT assembled.  I.e., everything
+::			in ASYNC and bits and pieces of code in 
+::			other modules.
+::		NUMPRN:	Number of (high-speed) printers, for code
+::			relating to printer support only.
+::		NSPORT: Number of SIO async ports (not yet supported).
+::		PVC   :	PVC ports assembled.
+::		MPVC  :	Multiplexed PVC support.
+::		BAUDR : Code for maximum async terminal speed supported
+::			(2 = 4800 baud, 0 = 1200 baud).
+::		LOWSPD:	50 BAUDOT support (only if BAUDR=0).
+::
+::	Finally, a word about maintaining and modifying SOLOCS code.
+::	Since the CONSAT proper is developed and maintained by another
+::	group, it is going to be important to synchronize changes made
+::	to the CONSAT proper with changes made to our code.  It is
+::	fervently to be hoped that most enhancements to the CONSAT will
+::	be downwardly compatible with our code, but we won't always
+::	be so lucky.  Every new release of the CONSAT will have to be
+::	tested and certified for compatibility with our code and will
+::	require a new release of our code, even if we make no changes.
+::	This because, even though it's a hybrid, the Standalone CONSAT
+::	will be a separate product with its own identity (i.e., product
+::	ID and version number).
+
+	SUBTTL	ASYNC (FIXED TABLES AND ARRAYS)::*
+::*	.PTP.:	Port-Table-Pointer table
+::	================================
+::		A HW table of pointers to async port descriptors, indexed
+::		by port number.  The table value must be added to PTBASE
+::		(SEG4 in a Solo CONSAT) to get the actual location.
+::		The structure of the port table is defined in SHARE and
+::		is given again here for ease of reference.  Table elements
+::		which are required by the CONSAT are marked with "%%%".
+::		All others are for our use only.  RPI (R12) is conventionally
+::		used to point to a port's descriptor (table entry) and is
+::		set up as follows:
+::
+::			LHL	RPI,.PTP.,PN,PN	:Get pointer to entry
+::			AI	RPI,PTBASE	:Add offset
+::		
+::		Async Port Table Descriptor:
+::
+::		.PORT	HS	1	:Port number%%%
+::		.TERMT	HS	1	:Terminal type%%%
+::		.TTBUF	HS	2	:To-terminal buffer index%%%
+::		.FTBUF	HS	2	:From-terminal buffer index%%%
+::		.LGBUF	HS	2	:Login input buffer index%%%
+::		.ALBUF	HS	2	:Login input buffer index used by
+::					:LOGGER (node code)
+::		.VSTAT	HS	2	:Pointer to active receiver filter%%%
+::		.VSAVE	HS	2	:Pointer to normal (backed-up)
+::					:receiver filter%%%
+::		.XSTAT	HS	2	:Pointer to active transmitter filter%%%
+::		.XSAVE	HS	2	:Pointer to normal (backed-up)
+::					:transmitter filter%%%
+::		.LSTAT	HS	2	:Pointer to login status handler%%%
+::		.VBSTA	HS	1	:Pointer (relative to SEG1) to current
+::					:AGETCH handler routine (q.v.).  
+::		.MARGE	HS	1	:Normally, current output cursor 
+::					:position.  Else, when in delay mode,
+::					:count of remaining 1/30 second delay
+::					:intervals.%%%
+::		.LRSAV	HS	2	:Link register save area for ADELAY.
+::
+::			IF	PVC
+::		.PVCX	HS	2	:PVC exception paramters%%%
+::		.PVCTO	HS	1	:PVC timeout%%%
+::		.PVCLH	HS	2	:PVC logon history/flag%%%
+::		.PVCDO	BS	1	:PVC action state%%%
+::			EI	:PVC
+::
+::			WS	0
+::		.PTLEN	EQ	.-.PORT	:Length of table entry%%%
+::
+::	The order of the elements in the table is not important.
+::
+::*	VIDG:	Baud rate index table
+::	=============================
+::		A byte table of baud-rate idices (HO nibble is input,
+::		LO  nibble is output) which is used by AGETIB to set up
+::		a port's IBRATE and OBRATE based on the rate at which the
+::		TID is received.  The VIDG table varies depending on the
+::		value of BAUDR (0=1200 baud max., 2=4800 baud max.).
+::		Table elements range from 00 to AA.  Invalid rates are
+::		marked with FF.  The baud-rate indices derived from this
+::		table are used by the async microcode to clock bits to and
+::		from the terminal.
+::
+::*	SPED.A: valid-SPEeD-indices-for-Async-ports array
+::	=================================================
+::		A bit array (different for each value of BAUDR)
+::		which flags valid async port speed indices (a set bit
+::		means the corresponding speed index is valid).  This
+::		array gets copied into A.SPED at initialization for
+::		use by the CONSAT proper.
+::
+::*	CONSIG: CONsat-SIGnal table
+::	===========================
+::		A HW table indexed by CONSAT signal number, yields
+::		the corresponding network character pair (in reverse-
+::		byte order).  E.g., a 01FB (break begin) is stored in
+::		the table as 0FB01.  This just to save us an EXBR when
+::		translating.  If the HO byte of the table entry is 0,
+::		the signal translates to a single byte rather than a
+::		pair (e.g., 0006 = 06 = red ball).
+::		When the CONSAT proper calls PUTSIG, we use this table
+::		to translate the CONSAT signal number into something
+::		we understand before putting it into a buffer.
+::		A table entry of 0 means the signal is not legal
+::		for PUTSIG and we will crash.
+::
+::*	SIGDAT: consat-SIGnals-associated-DATa array
+::	============================================
+::		A bit array indexed by CONSAT signal number.  Some CONSAT
+::		signals have associated data which are passed separately.
+::		This data must be ORed into the LO byte of the corresponding
+::		01-character-pair during translation.  SIGDAT tells us
+::		whether to expect additional data for a given signal.
+::
+::*	PFXSIG: PreFiX-code-to-consat-SIGnal translation table
+::	======================================================
+::		A HW table indexed by
+::		the 2nd byte of a 01-character-pair, yields the CONSAT
+::		signal number (HO byte) and associated data (if any, LO
+::		byte).  A table entry of 0 means the signal is illegal
+::		and we will crash.  A table entry of -1 means the signal
+::		cannot be translated 1-to-1 into a CONSAT signal and
+::		special handling is required (i.e., it must be translated
+::		into 2 or more CONSAT signals).  The latter is a pain
+::		in the algorithm, but there are still hosts in the network
+::		which use obsolete 01-prefix codes.  See CPEEK1 and GETCH1
+::		for useage.
+::
+
+	SUBTTL	ASYNC (INITIALIZATION AND PERIODIC CODE)::*
+::*	XIZASY:	Xray-InitialiZation-of-ASYnc
+::	====================================
+::	Called by: XRAY 'IZ' command.
+::	Returns:   To [R10].
+::	Reg Usage: Various. Expects nothing. Returns nothing. Clobbers many.
+::	Calls:     See IZASYN below.
+::		The XRAY 'IZ' command initializes the async stuff on a
+::		machine -- in effect "crashing" the CONSAT without
+::		crashing the node code.  Here we zero out the part of SEG0
+::		that belongs to the CONSAT, then fall through to IZASYN.
+::		Use of the IZ command should be considered a last resort
+::		in trying to clear up an async problem.  The 'HP" (Hang
+::		Port) command should be used to deal with individual ports
+::		which may have achieved undocumented states.
+::
+::*	IZASYN:	InitialiZe-ASYNc
+::	========================
+::	Called by: G250MZ (first iteration of quarter-second logic).
+::		   Also, fall through from XIZASY.
+::	Returns:   To [R10].
+::	Reg Usage: Various. Expects nothing. Returns nothing. Clobbers many.
+::	Calls:     OOS(R6), SVC13(initialize async ring), SNDRTS(R8), PVCIZ
+::		   (R0)
+::		Initializes everything associated with async.  Called from
+::		node initialization.  We also fall through to here from
+::		XIZASY.  Initialization includes clearing some memory,
+::		copying some stuff (text-strings and bit arrays) from
+::		protected to unprotected memory, initializing some cells
+::		to their non-zero default values, initializing the async
+::		ring and microcode parameters (SVC13), etc.
+::
+::*	HANGAN:	HANG-and-ANswer processing
+::	==================================
+::	Called by: Half-second logic.
+::	Returns:   Via J HANRET.
+::	Reg Usage: Excepts nothing. Returns nothing. Clobbers many.
+::	Calls:     SVC17(input CP), SVC16(input DSR), AHNGAN(R0), SVC14(output
+::		   DTR)
+::	This is the environment-dependent portion of ASYNC HANG/ANSWER.
+::	It runs every so often off the half-second logic.  It performs the 
+::	following sequence of functions:
+::		1) Inputs CP for all ports and stores the samples in
+::		   the appropriate CPSAMP slot,
+::		2) Inputs DSR for all ports and updates NEWDSR,
+::		3) Calls the CONSAT Hang/Answer process to compute
+::		   state changes (the CONSAT may in turn call routines
+::		   to hang or answer ports as appropriate),
+::		4) Outputs DTR to all ports,
+::		5) Returns to the half-second logic from whence it
+::		   was called.
+::
+::*	ASYPOL:	ASYnc-POLling process
+::	=============================
+::	Called by: EXEC (highest priority in SQUEUE)
+::	Returns:   Via dismiss to EXEC.
+::	Reg Usage: Expects nothing. Returns nothing. Clobbers everything.
+::	Calls:    Various transmitter and receiver filters and ADLYMR (R10),
+::		  SVC1A (printer output).
+::		Runs as often as possible (it's scheduled every 8.33 ms).
+::		The highest priority process in the node code (always
+::		excepting buffer-zaps) because we don't want to the async
+::		input ring to wrap.  (RNGWRP is the time, in ms, it takes
+::		the async ring to wrap.)
+::
+::		ASYPOL services ports for input/output, then services
+::		printer ports for output (see FLUSHP).  RLINK (R10) is the
+::		high-level link register -- i.e., when we can't think of 
+::		anything better to do, we JR RLINK.  Alternatively, the
+::		CONSAT may return us to VRET or XRET to continue as usual,
+::		or to VDEF or XDEF (to defer further I/O on the port just
+::		serviced).  When output is called for, we jump to the port's
+::		active transmitter filter (.XSTAT).  When input is indicated
+::		we go to .VSTAT.  These are usually port filters in the
+::		CONSAT proper.  The principal exception is when a port is
+::		in delay mode, in which case we are sent to ADLYMR in our
+::		code.
+::
+::		The decision to do I/O on a port is made by the async micro-
+::		code when we use the SBOD instruction.  The only parameter
+::		passed to SBOD is the location of the async port buffer flag
+::		array (actually we point to a copy of ASYFLG called ASPFLG).
+::		SBOD causes the microcode to scan the async ring for input
+::		start-bauds (assembled characters) and for ports which have
+::		both their TAM (Transmit-Active-Mask) and attention bits set.
+::		In the former case (input available), SBOD gives us a skip +4
+::		return.  In the latter (output available and enabled) it gives
+::		us a skip +8 return.  In both cases, the microcode sets up
+::		R14 (port number) and R13 (port number * 2) of set F.  (The
+::		microcode uses register sets 1-4 to do its thing. R13 and R14
+::		are the only set F registers affected.)  If SBOD finds nothing
+::		to do, it gives us a straight return and we go on our way.
+::		A note about output: SBOD will keep returning us to output for
+::		a port as long as data is available and TAM is set--i.e., we
+::		may output more than one character to a port per SBOD cycle.
+::		To defer further output for a port, it is necessary to reset
+::		its attention bit (hence the use of ASPFLG rather than 
+::		ASYFLG).  This is what happens when a return is made to XDEF.
+::		By the same token, it is never safe to try to do more than
+::		one output (XMIT instruction) per SBOD cycle because we can't
+::		easily determine the state of the port's TAM bit.  Attempting
+::		to output to a port whose TAM bit is off will result in an
+::		illegal instruction interrupt on the XMIT. (DELAY for
+::		the consequences of this feature.)
+::
+::		Async SIO I/O is handled separately.
+::	
+::*	FLUSHP:	FLUSH-Printer-output
+::	============================
+::	Called by: Part of ASYPOL.
+::	Returns:   See ASYPOL.
+::	Reg Usage: Various.
+::	Calls:     SVC1A(printer output).
+::
+::		This is part of the async polling loop (ASYPOL), but
+::		printer output is handled separately.  Ports with printer 
+::		output pending (P.FLSH array) are masked out of the SBOD 
+::		cycle and are serviced after regular async I/O is processed.
+::		This is because printer output is done from an intermediate
+::		buffer (PRBFFR) which is filled by PCHAR.  When the contents
+::		of a port's printer buffer are ready to be flushed to the
+::		printer, the port's bit gets set in P.FLSH, which serves as
+::		as our attention flag array for this process.  (P.FLSH is
+::		only a HW, of which only the HO nibble is used since only
+::		ports 0-3 may be printer ports.)  Printer output is done
+::		via SVC1A.  If the SVC fails (detected by checking the
+::		printer status returned in R2), the P.FLSH bit is left on,
+::		and we'll try again next time.  If the port's bit in F.FLSH
+::		is set (indicating a forced flush -- i.e., finish up output
+::		whether successful or not), the SVC will give an output
+::		complete status in R2 regardless of the actual status of
+::		the printer.
+::	
+::		Notes: SVC1A runs in register set F, with the MAC disabled,
+::		but with interrupts enabled (outputting a long line to the
+::		printer can take a while).  Also, the in P.FLSH and F.FLSH
+::		bit arrays, 0 means yes, 1 means no. 
+::
+::*	ASYLOU:	ASYnc-Login-OUtput processing
+::	=====================================
+::	Called by: SWITCH exec loop.
+::	Returns:   Via J ALORET.
+::	Reg Usage: Various.
+::	Calls:     GCI(R8), WCI(R8), ZAPV(R9), LSTAT/XLSTAT(R10), CBCLR(R8),
+::		   BFCOPY(R9), RFCBUF(R8), CRYPTO(R8)
+::		Moves data from login output buffers to to-terminal
+::		buffers of ports in login mode, based on ANIFLG (attention
+::		flags for login output buffers.  Checks for various
+::		control codes (e.g., zappers, needle eyes) and acts
+::		on them if appropriate.  Communication between the
+::		network and a port in login mode is accomplished thru
+::		a pair of permuter tables, ALMTAB and ANITAB.  Both
+::		are indexed by the login-port number which is arbit-
+::		rarily assigned to a port in login mode and bears no
+::		necessary relation to the port's port number.  The
+::		ANITAB entry for a port is it's login input (.ALBUF)
+::		buffer index.  The ALMTAB entry is the to-terminal
+::		(.TTBUF) buffer index.
+::
+::		ASYLOU intercepts and acts on 02- and 03-character-pairs.
+::		All other control codes are passed unchanged to the
+::		terminal output buffer.  A 02- is illegal and crashes us.
+::		Of the 03-pairs, most are illegal and will crash us.  The
+::		good ones are:
+::			1) Zapper (01-03) -- which cause us to zap the node
+::			   code's half of the circuit (between ANITAB
+::			   and LOGGER, then pass the zapper on to the
+::			   port.
+::			2) Needle Eye (11) -- which cause us to disconnect
+::			   the port from the login process and connect it to
+::			   the new circuit, in the process copying any
+::			   typed-ahead data from the old input buffer to
+::			   the new one.
+::			3) Message-for-terminal-in-login-mode (12), login-
+::			   error (13), and no-sup (14) -- all of which cause
+::			   us to call the CONSAT's login status handler (LSTAT
+::			   or XLSTAT) with the appropriate (CONSAT-defined)
+::			   status code.
+::		
+::*	TYQSEC:	Tymsat-Quarter-SECond logic
+::	===================================
+::	Called by: G250MS(EXEC), quarter-second logic.
+::	Returns:   Dismisses to EXEC.
+::	Reg Usage: Clobbers various.
+::	Calls:     GBTIME(CONSAT).
+::		Runs every so often.  Does green-ball processing to try to
+::		get ports out of DEM.
+::
+
+	SUBTTL	ASYNC (CONSAT ROUTINES)::*
+::
+::	THIS SECTION CONTAINS THE ENVIRONMENT-DEPENDENT ROUTINES THAT
+::	ARE CALLED BY THE CONSAT.  MODIFY WITH GREAT CARE AND ATTENTION
+::	TO WHAT THE CONSAT CODE REQUIRES AND EXPECTS.
+::
+::*	A.ANS:	Async-ANSwer-port routine
+::	=================================
+::	Called by: CONSAT Hang/Answer when a port needs to be answered.
+::	Returns:   Via [R10].
+::	Reg Usage: Expects RPI(R12), PN(R14).
+::	Calls:     CRYPTO(R8)
+::		Called by CONSAT when a port is answered.  Informs CRYPTO
+::		of port answered (CRYE3F, Status=1).
+::
+::*	IZ.PRT:	InitialiZe-async-PoRT
+::	=============================
+::	Called by: CONSAT Hang/Answer when a port is answered.
+::	Returns:   Via [R10].
+::	Reg Usage: Expects RPI(R12), PN(R14). Clobbers R0, R2, R5, R8, R9.
+::	Calls:     SVC18(enable async port), GFCBUF(R8), CRQHCR(R9)
+::	Links On:  RLINK(R10)
+::		Enables the port (SVC18).  Grabs a fresh pair of buffers and
+::		assigns them to the port for I/O.  Builds a half-circuit from
+::		the port to the buffer-pair.  
+::
+::*	A.DSC:	Async-port-DiSConnect
+::	=============================
+::	Called by: CONSAT Hang/Answer when a port is hung to disconnect it.
+::	Returns:   Via [R8].
+::	Reg Usage: Expects RPI(R12), PN(R14).
+::	Calls:     Nada.
+::		Sets the port's .VBSTA to VCLSBA, which will cause
+::		the port to be disabled if any input is received on it.
+::
+::*	A.IBR:	Async-set-Input-Baud-Rate routine
+::	=========================================
+::	Called by: CONSAT, to set IBR for a port.
+::	Returns:   Via [R8].
+::	Reg Usage: Nada.
+::	Calls:     Nicht.
+::		Currently a do-nothing routine.  The CONSAT has done 
+::		everything that is necessary before calling A.IBR.
+::		In the ISIS environment, a message is sent to ISIS via
+::		the slot-to-ISIS async ring.
+::
+::*	A.OBR:	Async-set-Output-Baud-Rate
+::	==================================
+::	Called by: CONSAT, to set OBR for a port.
+::	Returns:   Via [R8].
+::	Reg Usage: Nada.
+::	Calls:     Nicht.
+::		Currently a do-nothing routine.  The CONSAT has done 
+::		everything that is necessary before calling A.OBR.
+::		In the ISIS environment, a message is sent to ISIS via
+::		the slot-to-ISIS async ring.
+::
+::*	A.TID:	Async-set-TID-mode routine
+::	==================================
+::	Called by: CONSAT, to set a port to look-for-TID-mode.
+::	Returns:   Via [R8].
+::	Reg Usage: Expects RPI(R12). Clobbers R1.
+::	Calls:     Nothing.
+::		Sets the port's .VBSTA pointer to AGETIB, which will look
+::		for a TID input and report the TID and IBR when a good one
+::		is found.
+::
+::*	A.VID:	Async-receiVed-tID routine
+::	==================================
+::	Called by: CONSAT, when a valid TID has been reported.
+::	Returns:   Via [R9].
+::	Reg Usage: Expects PN(R14), R4(TID).  Clobbers R0, R8.
+::	Calls:     CRYPTO(R8).
+::		Reports TID received on new port to CRYPTO (CRYE3C).
+::		Otherwise, a do-nothing routine.  In the ISIS environment,
+::		sets the port to data mode, which we have done automatically
+::		when the TID was received and reported by AGETIB.
+::
+::*	ADELAY:	Async-DELAY-generator routine
+::	=====================================
+::	Called by: CONSAT, to output a delay to a port.
+::	Returns:   Links on R7.  If [R5]>0, R7 is saved in .LRSAVE and we
+::		   return to the polling loop via RLINK(R10).  After all 
+::		   delay has been output, we recover R7 and return to the
+::		   original caller.
+::	Reg Usage: Expects PN(R14), PN2(R13),RPI(R12), R5(delay count).
+::		   Clobbers R1.
+::	Calls:     Nicht.
+::		Called by CONSAT to generate a delay of [R5] 1/30-second
+::		intervals.  If [R5]>0, ADELAY does the set-up for transmitting
+::		the delay, but doesn't actually send it.  Instead, it sets
+::		the port's transmit vector to ADLYMR and the delay is actually
+::		transmitted on the next pass thru the polling loop.  The 
+::		reason for this is that the CONSAT may call ADELAY immediately
+::		after APTUCHing a character into the async output ring.  An
+::		attempt to output the delay immediately, before the SBOD has
+::		run again, may cause an illegal instruction on the XMIT 
+::		instruction.  The .MARGE cell of the port descriptor is used
+::		to save the current count of remaining delay units to be
+::		output.
+::
+::*	ADLYMR:	Async-DELaY-MoRe-to-transmit
+::	====================================
+::	Called by: ASYPOL, for ports in delay mode, via .VBSTA.
+::	Returns:   To polling loop (RLINK) if more delay, else recovers
+::		   R7 and returns to original ADELAY caller.
+::	Reg Usage: Expects RPI(R12), PN2(R13). Clobbers R1, R2, R5, R7, R0.
+::	Calls:     Nada.
+::		We come here for ports which have been set up by ADELAY.
+::		The port's .MARGE holds the count of remaining 1/30 second
+::		delay units to be transmitted.  In a 4800 baud CONSAT,
+::		delay must be transmitted 1 unit at a time .  In a
+::		1200 baud CONSAT we can save some overhead by transmitting
+::		3 units (1/10 second) at a time if appropriate.  The amount
+::		of delay transmitted is determined by the value in R2, which
+::		ordinarily holds the port's OBR index for the XMIT instruc-
+::		tion.  For 1/30 second delay, LIS R2,0F.  For 1/10 second
+::		delay, LIS R2,0E.
+::
+::*	AGETCH: Async-GET-CHaracter-from-async-ring
+::	===========================================
+::	Called by: CONSAT, to input a character (or something) from a port.
+::	Returns:   R7.  Skip +4 return if input is data, else (signal input)
+::		   straight return.  May return to poller (RLINK) if neither.
+::	Reg Usage: Expects PN(R14), PN2(R13), RPI(R12). Clobbers R0, R1, R3,
+::		   R5, R6.  Returns R1(data character) or R5 (signal number).
+::	Calls:     Appropriate input routine (see below).
+::		AGETCH dispatches to one of the following routines (pointed
+::		to by .VBSTA in the port descriptor):
+::			1) AGETTI/AGETCR -- look for data character (may be
+::			   TID).  Returns character or break-begin signal.
+::			   Sets .VBSTA to AGETBR or leaves it as is.
+::			2) AGETIB -- report input baud rate.  Returns TIBSIG
+::			   in R5.  Sets .VBSTA to AGETTI if valid baud rate
+::			   detected, else leaves it as is.
+::			3) AGETBR -- port was last in breaking state.  Returns
+::			   to poller (via RLINK) if still breaking.  Else 
+::			   returns break-end signal in R5.  Sets .VBSTA to
+::			   AGETCR or leaves it as is.
+::			4) VERROR -- got input start baud on disabled port.
+::			   Reports error to Probe and Crypto.  Leaves .VBSTA
+::			   unchanged.  This is the initial state for all ports.
+::			   When a port is answered, .VBSTA is set to AGETIB.
+::			5) VCLSBA -- port has been hung, do disable SVC.
+::			   Sets .VBSTA to VERROR (any further input after
+::			   disable is an error).
+::
+::*	APUTCH:	Async-PUT-CHaracter-to-async-ring
+::	=========================================
+::	Called by: CONSAT, to put a character to a port. 
+::	Returns:   Via [R7].
+::	Reg Usage: Expects PN(R14), PN2(R13), R1(data character). Clobbers
+::		   R0, R2.
+::	Calls:     Nothing.
+::		Gets the port's OBR to R2, loads the character into R0,
+::		does an XMIT.
+::
+::*	CIRDIS: CIRcuit-DISconnect
+::	==========================
+::	Called by: CONSAT to disconnect a circuit from a port.
+::	Returns:   Via IZ.PRT to [RLINK].
+::	Reg Usage: Expects RPI(R12), PN(R14), PN2(R13). Clobbers R2, R9.
+::	Calls:     ZAPHRD(R9), IZ.PRT.
+::		Zaps the existing circuit, then goes to IZ.PRT to set up
+::		for new login.
+::
+::*	DT.PRT: DeTach-async-PoRT
+::	=========================
+::	Called by: CONSAT Hang/Answer when a port is hung.
+::	Returns:   Via [RLINK].
+::	Reg Usage: Expects PN(R14), RPI(R12). Clobbers many.
+::	Calls:     CRYPTO(R8), EMPTY(R7), RFCBUF(R8), ZAPHRD(R9)
+::		   Reports port hung to Crypto, zaps any circuit connected
+::		   to the port, returns all the port's buffers to the pool,
+::		   reinitializes the port descriptor.
+::
+::*	CPEEK:	Character-Peek routine
+::	==============================
+::	Called by: CONSAT to find out if there is a signal at the front
+::		   of a buffer.
+::	Returns:   [R7] if data or nothing, [R7]+4 if signal.
+::	Reg Usage: Expects RBP(R2).  Returns R1(signal number if signal).
+::		   Clobbers R1, R8.
+::	Calls:     PCIS(R8), PCI(R8)
+::		   Peeks into the specified buffer.  If the buffer is empty
+::		   (or unused) or the peeked byte(s) is data, gives a straight
+::		   return.  If we find a control code, we translate it into
+::		   a CONSAT signal (in R1) and do a skip+4 return.  There are
+::		   times when the CONSAT might ordinarily defer processing of
+::		   further output to a port unless there is a zapper or 
+::		   pending.  This is how it finds out.
+::
+::*	EMPTY:	EMPTY-buffer
+::	====================
+::	Called by: CONSAT, to empty a buffer.
+::	Returns:   Via [R7].
+::	Reg Usage: Expects RBP(R2). Clobbers R8.
+::	Calls:     CBCLR(R8).
+::		Does a CBCLR of the specified buffer if appropriate.
+::
+::*	ESTPRT: ESTablish-async-PoRT
+::	============================
+::	Called by: CONSAT, when a TID is received for a new port or an 
+::		   existing port is zapped.
+::	Returns:   Via CIRBLT or XLSTAT to poller (RLINK).
+::	Reg Usage: Expects RPI(R12), PN(R14).  Clobbers R5, R2, R1, R8, R0,
+::		   R9.
+::	Calls:     GFCBUF(R8), LOGIN(R8), WHWI(R9), WCI(R8), RSTACP(R8)
+::		   Assigns a login channel number (from ASYNXT) to the port.
+::		   This is done by finding the next sequential channel number
+::		   in the range of login channels for which both ANITAB and
+::		   ALMTAB entries are free, and which was last used no less
+::		   than a minute previously.  This assures that we don't reuse
+::		   a login port number which the supervisor may think is still
+::		   in use.  If no channel is available, we tell the CONSAT
+::		   "no path available...".
+::
+::		   We connect the port to the login process, assign some
+::		   buffers for login processing (1 for use by the CONSAT, a
+::		   pair for our own use), then JAL to LOGIN to set up for the
+::		   login string.  LOGIN gives us a straight return if there
+::		   is no supervisor and we so inform the CONSAT via XLSTAT.
+::		   Otherwise, we return to the CONSAT via CIRBLT so it can
+::		   finish setting up for the login. 
+::
+::*	GETCHR:	GET-CHaRacter-from-buffer
+::	=================================
+::	Called by: CONSAT, to get a character (or control signal) from
+::		   a buffer.
+::	Returns:   [R7] if signal, [R7]+4 if data.
+::	Reg Usage: Expects RBP(R2). Returns R1(data byte or signal associated
+::		   data), R5(signal number if signal). Clobbers several.
+::	Calls:     GCI(R8)
+::		Gets a character (or pair) from the specified buffer.  If it
+::		is data, returns the character in R1 with a skip+4 return.
+::		If it is a control code, translates it (via the appropriate
+::		table) into a CONSAT signal.  Returns the signal number in
+::		R5, the associated data (if any) in R1, and does a straight
+::		return.  Translating network control codes into CONSAT sig-
+::		nals is generally straight-forward, except for some obsolete
+::		prefix (01-pair) codes which have to be translated into
+::		several non-obsolete codes which are then stuffed back into
+::		the buffer for one-by-one retrieval.
+::
+::*	PMULT:	Print-MULTiple-characters
+::	=================================
+::	Called by: CONSAT, to put several copies of a character into a
+::		   printer buffer.
+::	Returns:   [R7] if compression count was 0, else returns [R7]+4.
+::	Reg Usage: Expects R6(compression count), R1(character to print),
+::		   PN(R14).  Clobbers several???.
+::	Calls:     PCHAR(R8).
+::		Puts [R6] copies of the character in R1 into the specified
+::		port's printer buffer--i.e., calls PCHAR [R6] times.
+::
+::*	PCHAR:	Print-a-CHARacter
+::	=========================
+::	Called by: CONSAT or PMULT, to put a character into a printer
+::		   buffer.
+::	Returns:   [R8] if printer buffer still available, [R8]+4 if
+::		   buffer ready to be flushed.
+::	Reg Usage: R1(character to be put), PN(R14).
+::	Calls:     PFLSH0.
+::		Puts a character into the specified printer buffer.
+::		If the character is an EOL (00), or if the printer buffer
+::		gets filled up, falls through to PFLSH0, where the buffer
+::		is marked for flushing and we do a skip+4 return.  Else
+::		we do a straight return to indicate the buffer is still
+::		available.  The actual flushing of the printer buffer is
+::		done in the polling loop (see FLUSHP).  The printer buffer
+::		is PRBFSZ bytes long, of which the first HW is used to hold
+::		the count of bytes currently in the buffer.
+::
+::		A note about data in the printer buffer:  The printer
+::		output SVC(1A) expects all data bytes to have their 80 bit
+::		set.  A byte value of 00 is an EOL and causes the contents
+::		of the buffer to be flushed to the printer.  A value in the
+::		range 01-3F is interpreted as a command to print that many
+::		spaces.  A value of 41-7F is interpreted as a command to
+::		print the previous character (that many - 40) times.  A value
+::		of 40 is interpreted as a form-feed command.
+::	
+::*	PFLUSH:	force-Printer-FLUSH
+::	===========================
+::	Called by: CONSAT, to force flushing of a printer buffer.
+::	Returns:   [R8] if nothing to flush, [R8]+4 if flushed.
+::	Reg Usage: Expects PN(R14), R9(pointer to buffer)
+::	Calls:     Nada.
+::		If the printer buffer is empty, we do a straight return.
+::		Else, we mark the printer buffer for forced flush in
+::		FLUSHP by resetting the port's bit in F.FLSH.  This causes
+::		the printer output SVC(1A) to try to flush the buffer and
+::		simply give up if it fails.  R9 is set up by SETPRN, which
+::		must be called before PFLUSH is called.
+::
+::		PCHAR falls thru to PFLSH0 below, where the printer is
+::		marked for regular flush (P.FLSH).  In this case, the
+::		printer output SVC will try to flush the buffer, and to
+::		keep trying until it succeeds or is force-flushed.
+::
+::*	PINIT:	Printer-initialize
+::	==========================
+::	Called by: CONSAT, when a port goes into printer mode.
+::	Returns:   Via [R7].
+::	Reg Usage: Expects PN(R14).
+::	Calls:     Nada.
+::		Initializes a specific printer port--i.e., assigns a
+::		printer buffer to it.
+::
+::*	SETPRN:	SET-up-for-PRiNter-output
+::	=================================
+::	Called by: CONSAT, to see if a printer buffer is available.
+::	Returns:   [R8] if buffer is available, [R8]+4 if not.
+::	Reg Usage: Expects PN2(R13).  Returns R9(pointer to printer
+::		buffer, if available).
+::	Calls:     Nada.
+::		Checks to see if the specified printer buffer is available
+::		for PCHAR--i.e., sees whether it is marked for flush. If
+::		so, returns the buffer's address in R9 with a straight return.
+::		Else does a skip return.
+::
+::*	PUTCHR:	PUT-CHaRacter-to-buffer
+::	===============================
+::	Called by: CONSAT, to put a character into a buffer.
+::	Returns:   Via R7.
+::	Reg Usage: Expects R1(character), R2(buffer index). Clobbers R5, R8.
+::	Calls:     WCI(R8).
+::		Puts the specified character into the specified buffer,
+::		escaping if necessary.
+::
+::*	PUTSIG:	PUT-SIGnal-to-buffer
+::	============================
+::	Called by: CONSAT, to put a signal into a buffer.
+::	Returns:   Via R7.
+::	Reg Usage: Expects R2(buffer index), R4(signal number), R1(associated
+::		data, if any).  Clobbers R5, R1, R8.
+::	Calls:     WCI(R8).
+::		Translates the CONSAT signal in R4 into the corresponding
+::		network control code, ORs in the data in R1 if appropriate,
+::		and puts the resulting character or pair into the specified
+::		buffer.  We crash on an invalid signal number.  SIGDAT is a
+::		bit array which tells us whether R1 is relevant.
+::
+::*	SNDLOG:	SeND-LOGin-string
+::	=========================
+::	Called by: CONSAT login process to flush login buffers
+::	Returns:   To ALIRET(SWITCH).
+::	Reg Usage: Expects nothing. Returns nothing.
+::	Calls:     GETCHR(R7), LOGCHR(R11), MSG(R9), EMPTY(R7).
+::		The CONSAT's login process (LGGO) runs off the SWITCH exec 
+::		loop.  After it is through transfering data from terminal
+::		input buffers to login buffers (.LGBUF), it comes here.
+::		We process buffers which have login data (GOLOG) and are
+::		marked to be flushed (FL.LOG).  We ignore data from ports
+::		which we think are not in login mode, and we will hang a
+::		port which has sent us a too-long login string.
+::
+::		.LGBUF is used by the CONSAT to accumulate login data
+::		from the from-terminal buffer.  When it encounters a
+::		terminator (CR or semi-:) in the string, or when the
+::		number of characters accumulated reaches the limit (55d),
+::		the port is marked for login flush.  We transfer the data
+::		to .ALBUF so it can be processed by our LOGGER.  We then
+::		perform the same checks again--which redundancy should be
+::		eliminated some time if possible.
+::	
+ Ig ±
