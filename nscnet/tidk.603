@@ -1,0 +1,52 @@
+:**************************************************************
+:  file name = TIDK.603
+:  <<<<< This patch apply to Consat version 6.03 >>>>>
+:
+:  (1) This function requestd by HEIWA-JOHO
+:
+:   <> Consat responds even parity message and automatically
+:      moves to ^P mode , when TID 'K' is input.
+:
+:  (2) This function requested by KINOKUNIYA
+:
+:   <> Consat responds spaceparity message and set transparent
+:      mode , when TID 'I' is input at half duplex port.
+:
+:
+        LO      PVC
+        LO      CONSAT
+        LO      SIGNAL
+        LO      DATA
+PATCH(890510,1655,NIS.KANETA,PA0PTR,,NAGRP*2)
+TIDFLG  HS      NAGRP                   : Flag for Received TID="K"
+
+CONPATCH(AVID1+22,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,20)
+        RBT     RP,TIDFLG               : Reset TID="K" flag
+        CLHI    R5,00B                  : RBC='K' or RBC='k' ?
+        JNFS    SKIPX1                  : NO
+        SBT     RP,TIDFLG               : Set TID="K" flag
+        LIS     R5,1                    : Set 1
+SKIPX1  LB      RBC,IBRATE,RP           : Get input baud rate
+        EXBR    R5,R5                   :
+        J       AVID1+28,,              : Return to main routine
+
+CONPATCH(PVCSO4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,30)
+        LH      RCH,.TERMT,RPI          : Load terminal type
+        LB      RBC,VID.TI,RCH,         : Load TID character
+        CLHI    RBC,09                  : TID=I ? (I=49hex i=69hex )
+        JE      PVCSO5,,                : YES
+        THI     R6,POPAR                : Test for even parity
+        JN      PVCSO4+6,,              : Yes , then goto ^P send process
+        TBT     RP,TIDFLG               : Is this port get TID='K' ?
+        JN      PVCSO4+6,,              : Yes , then goto ^P send process
+        J       PVCSO5,,                : Jump to next process
+
+ENDPATCH(Support TID='K' handling and Shift-JIS for KINOKUNIYA)
+        FO      PVC
+        FO      CONSAT
+        FO      SIGNAL
+        FO      DATA
