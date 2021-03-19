@@ -1,0 +1,550 @@
+V35lp.doc					 LAST UPDATE: 5 Jan 1990/SBR/NTS
+
+
+Hardware / Software Description...............................Page 1
+QSD-2 Module..................................................Page 2
+USD Module....................................................Page 3
+Local Loops...................................................Page 4
+Remote Loops..................................................Page 5
+Errors and Isolation / Hardwire Circuits......................Page 6
+Single / Double Tail Circuits.................................Page 7
+DSU Fault Isolation...........................................Page 8
+Miscellaneous.................................................Page 9
+
+
+
+
+
+
+
+This document is provided to help in isolating 56KB circuit problems that
+ride on the T1 Backbone. Any information that may improve this isolation .
+
+guide will be added on a reocurring basis.
+
+Procedures for looping back a single port of a QSD-2 or USD on the NET IDNX-20 
+or IDNX-40 is as follows:
+
+
+Hardware Description:
+
+The QSD-2 module is comprised of a front and rear module.
+
+The front processing card is a QSD-2 module and provides for 4 independent
+synchronus ports designed to interface as either a RS-232 or V.35, at rates 
+from 1.2kb to 56kb. A 32 bit buffer is provided for long haul and multipolling
+tail circuits.
+
+The rear module used is a V.35 DCE interface with 4 ports. This rear module is
+available in several different interfaces, but for TYMNETs puposes this interface
+will be used for both DCE and DTE interfacing. Clocking on the card is 
+differential. It has 4 female winchester connectors.
+
+
+Software Description:
+
+The QSD-2 module loopback capabilities are accessible from a manual hardware 
+intervention or thru the IDNX Diagnostic routines. All of these loops, of course,
+have a catastrophic effect on normal data flow. Hardware loops maybe overridden
+via the software. 
+
+
+
+
+
+
+
+
+
+
+
+
+Page 1 
+QSD-2 Module:
+                               +------+
+                               | QSD  |                               
+                               |  -2  |
+                               |     A|
+                               |     s|
+                               |     s|
+                               |     y|
+                               |      |
+                               |      |
+             Green Led -----   |o TD  |  -- data is being sent to this port
+             Green Led -----   |o RD  |  -- serial data leaving going to equip
+             Green Led -----   |o Busy|  -- indicates active call
+Channel 3                      |-CH-3-|
+                               |  REM |  -- Toggel Switch, Push Up (REM) to set
+                               |@ LOOP|     a remote loopback on the port; push
+                               |  LOC |     down (LOC) to set a local loopback
+                               |      |     on the port.
+             Yellow Led-----   |o LOOP|  -- indicates loop condition loc or rem.
+                               |------|
+                               |      |
+                               |o TD  |
+                               |o RD  |
+                               |o Busy|
+Channel 2                      |-CH-2-|
+                               |  REM |
+                               |@ LOOP|
+                               |  LOC |
+                               |      |
+                               |o LOOP|
+                               |------|
+                               |      |
+                               |o TD  |
+                               |o RD  |
+                               |o Busy|
+Channel 1                      |-CH-1-|
+                               |  REM |
+                               |@ LOOP|
+                               |  LOC |
+                               |      |
+                               |o LOOP|
+                               |------|
+                               |      |
+                               |o TD  |
+                               |o RD  |
+                               |o Busy|
+Channel 0                      |-CH-0-|
+                               |  REM |
+                               |@ LOOP|
+                               |  LOC |
+                               |      |
+                               |o LOOP|
+                               |------|
+                  Red Led ---  |o FLT | -- Fault, software detected fault.
+                               |o CBUS| -- Flashes when card is using C-bus,
+               Yellow Led ---  |      |    Typically shows little activity.
+                               |O  +5V|
+                               |O  -5V|
+                               |      |
+                               |O  GND|
+                               |      |
+                               |   REV|
+                               |      |
+                               +------+
+Page 2
+
+USD Module:
+
+                               +------+
+                               | USD  |                               
+                               |      |
+                               |     A|
+                               |     s|
+                               |     s|
+                               |     y|
+                               |      |
+                               |      |
+                               |[|REF1|
+                               |[|REF2|
+                               |------|
+                               | CH-1 |
+                               |      |
+             Green Led -----   |o TD  |  -- data is being sent to this port
+             Green Led -----   |o RD  |  -- serial data leaving going to equip
+             Green Led -----   |o Busy|  -- indicates active call
+             Yellow Led-----   |o LOOP|  -- indicates loop condition loc or rem.
+                               |  REM |  -- Toggel Switch, Push Up (REM) to set
+                               |@ LOOP|     a remote loopback on the port; push
+                               |  LOC |     down (LOC) to set a local loopback
+                               |      |     on the port.
+                               |------|
+                               |      |
+                               |      |
+                               |      |
+                               |      |
+                               |      |
+                               |      |
+                               |      |
+                               |      |
+                               |      |
+                               |      |
+                               |      |
+                               |      |
+                               |------|
+                               | CH-0 |
+                               |      |
+             Green Led -----   |o TD  |  -- data is being sent to this port
+             Green Led -----   |o RD  |  -- serial data leaving going to equip
+             Green Led -----   |o Busy|  -- indicates active call
+             Yellow Led-----   |o LOOP|  -- indicates loop condition loc or rem.
+                               |  REM |  -- Toggel Switch, Push Up (REM) to set
+                               |@ LOOP|     a remote loopback on the port; push
+                               |  LOC |     down (LOC) to set a local loopback
+                               |      |     on the port.
+                               |------|
+                               |      |
+                               |------|
+                  Red Led ---  |o FLT | -- Fault, software detected fault.
+                               |o CBUS| -- Flashes when card is using C-bus,
+               Yellow Led ---  |      |    Typically shows little activity.
+                               |O  +5V|
+                               |O  -5V|
+                               |      |
+                               |O  GND|
+                               |      |
+                               |   REV|
+                               |      |
+                               +------+
+
+Page 3                       
+Loops:
+The following information is provided as a guideline to isolate faulty 56KB 
+pipes located on the T1 backbone. The procedure involved is presented as
+a familiarization with IDNX and encompasses standard circuit troubleshooting.
+*****************************************************************************
+******* SHUTS should be in place before Trouble shooting is attempted  ******
+*****************************************************************************
+There are bascially three types of data circuits connected to the T1 Backbone.
+**** FIRST DETERMINE WHAT TYPE OF DATA CIRCUIT LINKS THE TYMNET ENGINES ****
+The ticket should provide the type of circuit involved, if not call NETCON.
+
+1. Hardwired   - 56KB
+
+Engine -V.35- IDNX <---T1---> IDNX to 56KB -V.35- Engine.
+
+
+2. Single Tail - 2 speeds 
+
+  56KB
+Engine -V.35- DSU <---4wire DDS---> DSU -V.35- IDNX <---T1---> IDNX -V.35- Engine.
+
+  19.2KB
+Engine -V.24- DSU <---4wire DDS---> DSU -V.35- IDNX <---T1---> IDNX -V.35- Engine.
+
+
+3. Double Tail - 56KB
+
+Engine -V.35- DSU <---4wire DDS---> DSU -V.35- IDNX <---T1-----------------------
+
+--------------------------T1---> DSU <---4wire DDS---> DSU -V.35- Engine
+
+
+To test the circuit a local or remote loop may be placed on the IDNX port,
+designated by:
+	T1 Node Number IDNX card number Card port number ie. N10C7P1
+	N10 = SFO , C7 = Card 7 , P1 = Port 1.
+
+1. Hardwired -
+
+LOCAL LOOP BACK on IDNX
+The local loop is inserted by placing either the designated QSD-2 card or USD 
+card in local loop with the toggle switch.
+
+					NODE 10
+  +-----------+                    +-----------------+
+  |           |\              +--+--+  Front         |\
+  |           | +             |  |  |\  Card         | +
+  |   V.35    |~|~~~~~~~~~~~~~|~L|DATA+              | |
+  |   Bert    | |   ---->     | P|PORT|              | |
+  |        or |~|~~~~~~~~~~~~~|~B|  | |              | |
+  |  NTS -    | |   <----     | K|  | |              | |
+  |  Line Test| |             +--+--+ |              | |
+  |           | |         Rear \  \  \|              | |
+  |           | |     Interface +-----+              | |
+  |           | |         Card     |                 | |
+  +-----------+ |                  +-----------------+ |
+   \           \|                   \                 \|
+    +-----------+                    +-----------------+
+  Test Equipment or
+    TYMNET Engine.
+			fig. 1
+		Local Data Port Loop
+Page 4
+
+Once the port is looped, a NTS lintst.rel is used to verify the quality of 
+line. This lintst is sent from the the near end engine.0 LOST should be the
+result of this test. Any LOST packets reported by the loader (loadii or BITS)
+is an unacceptable level.
+The loop placed on the circuit by the IDNX box is not a bi-directional loop,
+a lintst from the far end engine should show as zero recieved.
+The local loop only loops the rear interface card of the IDNX.
+
+
+
+REMOTE LOOP BACK on IDNX
+nn
+The remote loop is inserted by placing either the designated QSD-2 card or USD 
+card in remote loop with the toggle switch.
+
+
+
+
+					IDNX
+					NODE 10
+
+  +-----------+          DATA      +-----------------+
+  |           |\         PORT +--+--+                |\
+  |           | +   ---->     |  |  |\               | +
+  |  V.35     |~~~~~~~~~~~~~~~|~~|~~|~~~~~~)      +--+ |
+  |  Bert     | |             |  |  | |    (      |  |\|
+  |       or  |~~~~~~~~~~~~~~~|~~|~~|~~~~~))      |  | +
+  |  NTS-     | |   <----     |  |  | |   ((      |  | |
+  |  Line Test| |             +--+--+ |   ) ~~~~~~|~~|~~~~~~~~~~~~~~//
+  |           | |              \  \  \|   ~~~~~~~~|~~|~~~~~~~~~~~~//
+  |           | |               +-----+         TRUNK| |
+  |           | |                  |              +--+ |
+  +-----------+ |                  +---------------\  \|
+   \           \|                   \               +--+  
+    +-----------+                    +-----------------+
+  Test Equipment or
+   TYMNET Engine.
+
+								   TELCO T1
+								   SPAN
+					IDNX
+					NODE 20
+
+                         DATA      +-----------------+
+                         PORT +--+--+  Front         |\
+                              |  |  |\Card           | +
+                              |  |L~|~~~~~~)      +--+ |
+                              |  |P | |    (      |  |\|
+                              |  |B~|~~~~~))      |  | +
+                              |  |K | |   ((      |  | |  <-----
+                              +--+--+ |   ) ~~~~~~|~~|~~~~~~~~~~~~~//
+                        Rear   \  \  \|   ~~~~~~~~|~~|~~~~~~~~~~~//
+                       Interface+--|--+         TRUNK| |  ----->
+                         Card      |              +--+ |
+                                   +---------------\  \|
+                                    \               +--+  
+                                     +-----------------+
+
+
+			fig. 2
+
+		Remote Data Port Loop
+
+Page 5
+Once the port is remotely looped, a NTS lintst.rel is used to verify the 
+quality of circuit. This lintst is sent from the the near end engine.
+0 LOST should be the result of this test. Any LOST packets reported by the 
+loader (loadii or BITS) is an unacceptable level.
+The remote loop placed on the circuit by the IDNX box is not a bi-directional 
+loop, a lintst from the far end engine should show as zero recieved.
+A remote loop only places the far ends front IDNX card in loop.
+
+
+ERRORS and ISOLATION
+
+If errors are detected on the Hardwired circuit lintst use the following
+guidelines:
+
+Remove the Tymnet Cable from the IDNX rear interface card of the designated
+port. Loopback the following pins on Tymnet 160053-TAB cable with the stantard.
+red box jumper wires, they fit very nicely onto the pins of the winchester 
+connector.
+
+         WINCHESTER                    DB-25	              NET Xovr Cable
+       on 160053-TAB              on port or 4X or              Winchester
+                                     breakout box
+                  
+   dcd  F <------> C rts     rts  4 < --------- > 5  dcd   dcd F <------> C rts
+   dsr  E <------> Not conn. dsr  6 < --------- > 20 dtr   dsr E <------> H dtr
+   rda  R <------> P tda     tca  9 < --------- > 23 rca   rda R <------> P tda
+   rdb  T <------> S tdb     tcb 10 < --------- > 24 rcb   tdb S <------> T rdb
+   rca  V <------> Y tca     tda 11 < --------- > 21 rda   rca V <------> U scte a
+   rcb  X <------> a tcb     tdb 12 < --------- > 22 rdb   rcb X <------> W scte b
+
+Using the NTS lintst.rel and turning CLOCKS "ON", run the dwload to the TYMNET 
+port and verify on loadii or BITS an incrementing LOST.  
+
+If the lintst is clean to end of the cable, reseat the cable and run the IDNX 
+local loop again (ensure the Tymnet daughter port clocks are off). On the Tymnet 
+"old style" daughter card SW4 JA is port 0 and SW5 JB is port 1. Clocks are "ON"
+if the switch is in the forward position, towards the DB25 connector.
+
+	In the event the lintst is bad to the end of the cable, remove the cable
+	on the V.35 daughter card and loopback the port using the red box.
+	Use the DB-25 pinout above for the port, run the lintst again.
+	
+	In the event the lintst is still bad on a local loop to the IDNX. 
+	NET will have to be notified thru NETCON's escalation procedures.
+	(this is a rare case and previous tests should be run verified before
+	 this routine is persued)
+
+If the lintst is clean to the local looped IDNX, remotely loop the IDNX 
+and run the lintst again. This procedure will over lap the loops to isolate the 
+problem.
+
+If all is clean on this side of the circuit continue the test from the far end 
+engine.
+
+NETCON has the capability to loopback the IDNX thru the NETWORK Managment System.
+
+NETCON can provide assistance in running the loop tests on the far end if it is
+a non-manned site.
+
+Insure a port loopback is requested and NOT a trunk loopback.
+
+
+
+Page 6
+
+2. Single Tail - 2 speeds 
+
+  56KB
+Engine -V.35- DSU <---4wire DDS---> DSU -V.35- IDNX <---T1---> IDNX -V.35- Engine.
+
+  19.2KB
+Engine -V.24- DSU <---4wire DDS---> DSU -V.35- IDNX <---T1---> IDNX -V.35- Engine.
+
+
+Loop procedures are as follows:
+
+Divide the circuit in half, start in the center.
+
+
+				     | DTE loopback
+A end                                |                                     B end
+                                     V
+Engine -V.35- DSU <---4wire DDS---> DSU -V.35- IDNX <---T1---> IDNX -V.35- Engine
+
+
+This DSU is located at the site where the IDNX is located, place this DSU in
+DTE loopback. This action will place a bi-directional loop on the circuit.
+
+Run a lintst from each end determine which end has LOST packets. Don't stop with
+the first tested end when checking for errors. Over lapping the loops is the
+most ideal way to isolate the problem area.
+Shorten the loops to isolate on either end or both if packets are LOST in both
+lintst's. Coordination between sites is required for loops.
+
+0 -LOST should be the result of the lintst even acrossed a DDS tail circuit.
+1 -LOST or an incrementing -LOST count can be enough to cause HDLC chksum errors
+causing re-transmissions on the circuit further causing XRAY star error rates.
+
+Loops installed passed the DSU, on the TELCO punch down, have been required to
+isolate in some instances. There is no problem looping the xmt to rec on the 
+4wire side, no level problems.
+
+
+
+3. Double Tail - 56KB
+
+Engine -V.35- DSU <---4wire DDS---> DSU -V.35- IDNX <---T1-----------------------
+
+--------------------------T1---> DSU <---4wire DDS---> DSU -V.35- Engine
+
+
+Loop procedures are as follows:
+
+Divide the circuit in two halfs, start at the DSU nearest to the IDNX on each end.
+
+                                     |DTE Loopback
+A end                                |
+                                     V
+Engine -V.35- DSU <---4wire DDS---> DSU -V.35- IDNX <---T1-----------------------
+
+                                  
+                                  |DTE Loopback
+                                  |
+                                                             B end
+--------------------------T1---> DSU <---4wire DDS---> DSU -V.35- Engine
+
+
+Page 7
+Each DSU is located at the site where the IDNX is located, place one DSU in
+DTE loopback. This action will place a bi-directional loop on the circuit.
+
+Run a lintst from each end to determine which end has LOST packets. Don't stop 
+with the first tested end when checking for errors. Over lapping the loops is the
+most ideal way to isolate the problem area.
+Shorten the loops to isolate on either end or both if packets are LOST in both
+lintst's. Coordination between sites is required for loops.
+
+0 -LOST should be the result of the lintst even acrossed a DDS tail circuit.
+1 -LOST or an incrementing -LOST count can be enough to cause HDLC chksum errors
+causing re-transmissions on the circuit further causing XRAY star error rates.
+
+Loops installed passed the DSU, on the TELCO punch down, have been required to
+isolate in some instances. There is no problem looping the xmt to rec on the 
+4wire side, no level problems.
+
+Fault - Isolation Sequence for Point to Point DSU Installations
+
+Start ----> Perform end to end test using DSU pattern test.
+                                |
+                                |
+                                V
+            Perform Line <-----Pass
+             Loopback           or
+            on Local DSU       Fail----> Perform Line
+          Using DDS loopback    ?        Loopback Self-Test
+            |                            Using DDS loopback &
+            |                            Pattern switch on 
+            |                            Local DSU
+            |                                |
+            |                                |
+            |                                V
+            |      Perform Line  <----------Pass
+            |      Loopback Self-Test        or
+            |      Using DDS loopback &     Fail----> Faulty Local DSU
+            |      Pattern switch on         ?        
+            |      Remote DSU
+            |            |
+            |            +-------------------+
+            |                                |
+            |                                V
+            |      Faulty Communications <--Pass
+            |          Line                  or
+            |                               Fail----> Faulty Remote DSU
+            |                                ?        
+            |
+            +-------------------+
+                                |
+                                |
+                                V
+     Faulty Remote DTE<--------Pass
+     or Remote DUS-DTE          or
+        Connection             Fail----> Faulty Local DTE or 
+                                ?        Local DSU-DTE Connection
+Page 8
+Miscellaneous
+-Reseating the DSU in some cases has cleared problems with the circuit.
+-Loose bridge clips located on the TELCO punch down have caused problems.
+-The remote loop capability is activated on the DSU. 
+ DTE bi-directional loopback option.
+-Pinout for the RJ48S is as follows:
+            ___________
+            ||1     8||
+            || RJ48S ||     Pin No.   Function       Signal Direction
+            ||       ||       8-------RXD (R)<--------From DDS Network
+            |--|   |--|       7-------TXD (T)<--------From DDS Network
+            |  -| |-  |       2-------TXD (T1)------->To DDS Network
+            -----------       1-------RXD (R1)------->To DDS Network
+
+
+-CFB 175 covers strapping of the DSU
+-CFB 179 covers the NET loopback procedures for the IDNX box and related cards.
+-56KBSW.doc under the nts directory on any system will provide the current
+ 56KB circuits that use the T1 Backbone.
+
+Further, the final port configuration is to have daughter card clocks off
+the IDNX is to supply the clocking.
+
+Stan Richards or
+Stan Eckel
+HTS- TYMNET
+NSC.S/RICHARDS NSC.S/ECKEL
+408-922-7513 or 6079     800-538-9350 ext 7513 or 6079 Outside Calif.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Page 9
+  |0(LB
