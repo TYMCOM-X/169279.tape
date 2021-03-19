@@ -1,0 +1,671 @@
+*******************
+*                 *
+* T E C H   T I P *
+*                 *
+*******************
+
+Dee Eduardo  
+Special Interfaces
+NTD
+
+QUESTION:
+
+What should you do when you get a genning error message in version 6.01 that
+is not an error?
+
+ANSWER:
+
+If you are using BBXS 6.01 and get a single 'ERROR: PATCH CAUSES SEG1
+OVERFLOW' message followed by an error free patch listing, this is probably
+okay.  The reason for this is as follows:
+
+BBXS release 6.01 uses segments one and two for code space.
+
+The PATCH1 area is allocated after all other interface code has been 
+assembled, i.e., at the upper addresses of the segment.
+
+Depending on the number and type of options selected in the tymfile, patch 
+code assembled in the PATCH1 area (through use of PA1PTR0) may cross the
+boundary between segment one and segment two.
+
+The PATCH and CONPATCH macros check to see if the length of the patch code 
+runs beyond the defined end of the current segment.  If it does, they issue
+the seg overflow error message.
+
+If a patch starts in segment one and extends into segment two, the error
+message will be issued automatically.  But this is not an error.  Notice
+that later patches do not trigger any error messages.
+
+If this happens to you, load up the nib file and look at the symbols close
+to where the error message was issued.  You should see instructions that
+cross the segment boundary.  Verify that following patches have been assembled
+in correctly.  If so, this is just a case of the patch library not being able
+to distinguish between a rare but okay event and a true error.
+
+*******************
+*                 *
+* T E C H   T I P *
+*                 *
+*******************
+
+John McKiernan
+SNA/SDLC Support
+QSATS-STS
+
+
+SUBJECT:  SDLC Extension cord service delays
+
+Some of the most difficult escalations and RFI's which STS has been handling
+recently involve network imposed delays for SDLC Extension cord service.  This
+TechTip is intended to advise you of the inherent limitations of Tymnet's SDLC
+interfaces and the reasons behind the delays which most users complain about.
+
+SDLC DOES NOT SUPPORT FULL DUPLEX DATAMODE
+
+By design, SDLC is essentially a half duplex datamode protocol.  The
+PRIMARY/SECONDARY roles enforce this and the POLL/FINAL sequences assure 
+exchanges follow 'two way alternating' pattern.  IBM's SDLC products can
+support a limited full duplex datamode, but Tymnet's SDLC products do
+not implement this feature.
+
+NOTE:  Datamode is independent of the transmission media, which may be
+either HALF or FULL duplex.  Tymnet's SDLC products support either 
+transmission facility.
+
+SDLC DOES NOT SUPPORT EXTENDED WINDOW SIZES
+
+IBM's SDLC products can support extended window sizes (to 127).  This can
+be very important where the SDLC link uses a satellite or has a high 
+concentration of SNA LU's in active data transfer state.  Tymnet's SDLC
+products do not implement this feature.
+
+SDLC DOES NOT GIVE PRIORITY TO ACTIVE STATIONS
+
+IBM's SDLC products include a facility to define a service order that
+would allow 'important' stations to receive priority service by comparison.
+Their products also include a facility to define a fixed number of services
+to active stations before any service for inactive stations.  Tymnet's SDLC
+products do not implement these features.
+
+SDLC DOES NOT GIVE PRIORITY TO TRANSMISSIONS
+
+Tymnet's SDLC products implement a simple 'round robin' service mechanism.
+To service a set of stations on a line, it services each in sequence.
+Within the sequence, it will poll each active station which follows the
+current station, even if it has data to transmit for other stations.  Thus
+a pending transmission may be delayed for (nearly) the length of the polling
+cycle.
+
+SDLC DOES NOT HAVE 'EARLY DATA FORWARDING'
+
+Many are aware of the BSC TI 'Early data forwarding' feature or the XCOM
+PAD 'Idle timer' or "Forwarding' options which let the interface forward
+data before the end of a block.  Tymnet's SDLC products cannot implement
+this feature since they must transmit complete SNA PIU's in a contiguous
+transmission (SDLC frame).
+
+SDLC FRAMES MUST BE SERIALIZED REPEATEDLY
+
+In most cases of an IBM SNA network, each SDLC frame passes over a single
+link to reach the destination. For cases of a 'Tymnet SDLC network', each
+frame must pass over at least three links to reach the destination.
+If this is the only delay in the network, the first frame of each transmission
+requires at least three times as long to arrive.  Since we give a local SDLC 
+acknowledgement, the first frame is the only one which has this delay while 
+other frames follow in the network.
+
+*******************
+*                 *
+* T E C H   T I P *
+*                 *
+*******************
+
+Jeff Liu
+X.PC Support
+QSATS-STS
+
+
+SUBJECT: New patch for X.PC server extend DDT packet trace
+ 
+We have developed a new XNS patch for packet trace in DDT -- it is a real
+time packet trace patch (the packet trace program XPCTRC previously  developed
+before on the PDP-10 is not a real time trace facility, it is the trace
+facility for the X.PC dump file).
+ 
+This patch will interpret and display the packet type in ASCII which should
+prove easy-to-understand to the user when performing a real time trace.
+ 
+The patch is located on (QSATS:22,25,26,31,33,37,54)XPC01.PAH and has been
+tested.  This patch can be used for X.PC 1.05 and will be incorporated 
+into X.PC 2.00.
+ 
+The following is the output of this patch on extend DDT.
+ 
+> DPTF
+            RING            IN/            GFI/   P(r)   PKT
+ FASTC      ADDR    DPORT   OUT    LNGTH   LCI    P(s)   TYPE
+--------    ----    ----    ----    ----   ----   ----   ----
+3F572B0C    F2BA     3E      00=>XNS 02     80     00     FB  REStarR
+3F572B25    0C50     3E  PC<=01      00     80     10     FF  REStarC
+3F572CCB    F2CB     3E      00=>XNS 00     80     10     01  RECredy
+3F572CE1    0C5C     3E  PC<=01      00     80     10     01  RECredy
+3F577100    F333     3E      00=>XNS 16     21     00     09  SES REQ
+3F57711B    0C80     3E  PC<=01      00     81     10     01  RECredy
+3F577555    0CE4     3E  PC<=01      00     21     10     0A  SES ACP
+3F577774    0D18     3E  PC<=01      00     21     11     02  EOFF   
+3F57778D    0D24     3E  PC<=01      01     01     12     0D  ..data..
+3F577822    0D40     3E  PC<=01      00     21     13     01  EON    
+3F577945    F435     3E      00=>XNS 00     81     20     01  RECredy
+........    ....     ..      ..
+........    ....     ..      ..
+ 
+3F578C8D    F722     3E      00=>XNS 00     21     24     04  LDEM   
+3F578C8E    003C     3D      A7      leaveDE
+3F578CA6    0040     3E  PC<=01      00     81     50     01  RECredy
+3F578E7B    F742     3E      00=>XNS 01     21     25     0B  SES CLR
+3F578E7C    004C     3D      9F      discont
+01      00     81     60     01  RECredy
+3F578EB1    005C     3E  PC<=01      00     21     62     0C  SE CLRA
+3F579850    F765     3E      00=>XNS 02     80     00     FB  REStarR
+3F579851    0068     3E      9E      detach.
+
+*******************
+*                 *
+* T E C H   T I P *
+*                 *
+*******************
+
+Tod Fiste
+CMT Support
+QSATS-STS
+
+SUBJECT:  EBCDIC 3270-to-Async ASCII translation done by CMT
+
+OBJECTIVE:  To clear up some of the misconceptions about how CMT translates
+and the implied limitations inherent in that particular process.
+
+First of all, it is important to remember that the EBCDIC-to-ASCII (host-
+to-terminal) translation is a multiple-step process. The first step is to
+take each character out of the 3270 datastream and use it to format the
+screen buffer (which corresponds to the user screen). As far as the CMT
+is concerned there are two basic types of characters in this process -
+data characters and control characters. EBCDIC data characters are between
+hex 40 and hex FF (inclusive). Control characters are between hex 00 and 
+hex 3F. As the CMT examines each character it first divides it between 
+these two categories. Data characters are all translated in basically the 
+same way - they are simply placed into the screen buffer at the appropriate 
+memory location. Control characters, however, do not necessarily cause 
+anything to be placed in the buffer. They could be formatting characters 
+indicating placement of the buffer "pointer", the characteristics of fields,
+positioning of the cursor, etc. Therefore each  control character is 
+dealt with individually by the CMT in various routines. I have broken the 
+control characters down in the following tables: 
+
+CRT HANDLING OF EBCDIC CONTROL CHARACTERS TO ASCII (FROM HOST)
+
+
+EBCDIC    EBCDIC     ASCII           FUNCTIONAL TRANSLATION (IF NO
+CHAR.    FUNCTION    CHAR.           DIRECT EBCDIC-TO-ASCII TRANSLATION)
+  
+  00                   20 (SPACE)
+  03                   *               ETX
+  05                   *               PROGRAM TAB
+  0C                   *               FORM FEED
+  0D       CR          00
+  11                   *               SBA
+  12                   *               ERASE UNPROTECTED ALL 
+  13                   *               INSERT CURSOR
+  15     NEW LINE      00            
+  19  END OF MESSAGE   00              
+  1C      DUP          00              
+  1D                   *               START OF FIELD
+  1E       FM          00              
+  26                   *               ETB 
+  2D                   *               ENQ - Forward Abort when in
+                                             datastream
+  3C                   *               REPEAT TO ADDRESS
+  3F      SUB          00              
+
+ALL CHARACTERS NOT
+LISTED ABOVE BETWEEN
+00-40                  2D (DASH)
+
+* indicates that this character does not map directly to any one ASCII 
+character; rather it results in the execution of a routine that performs
+the function indicated in column 4.
+
+A note on reading the above table: columns 2 and 4 are very similar in that
+they both describe the EBCDIC 3270 function for the character. Column 2 is 
+for characters that have a direct one-to-one translation, whereas column 4 
+is for characters that map to a function rather than being translated to 
+one character.
+
+PRINTER CONTROL CHARACTERS are translated slightly differently. Characters 
+which have "no direct translation" are indicated as such; unless noted 
+otherwise, these control characters function in the prescribed IBM 3270 
+fashion, exactly as they do when sent to a CRT:
+
+EBCDIC               ASCII            
+
+ 03                   no direct translation - ETX
+ 05                   no direct translation - Program Tab. may produce 
+                       unpredictable results when sent to printer
+ 0C (Form Feed)       0C (FORM FEED)
+ 0D (CR)*             0D (CR)
+ 11                  no direct translation - SBA (Warning: SBA may give
+                       unexpected results if the size of the print line,
+                       which is determined by the WCC, is not taken into
+                       account)
+ 15 (New Line)*       0A 0D  (LF & CR)
+ 19 (End of Message)* 0A 0D  (last command sent - indicates end of data -
+                              rest of data in this Write-type command will
+                              be disregarded)
+ 1D                   Start of Field - no character sent to printer. The
+                        attribute character following it will be sent as a
+                        space (hex 20) to the printer
+ 26                   no direct translation - ETB
+ 2D                   no direct translation - ENQ acts as forward abort
+                        when part of the datastream 
+ 3C                   no direct translation - Repeat to Address
+
+ALL CHARACTERS NOT
+LISTED ABOVE BETWEEN
+00-40                 nothing sent to printer
+
+* This is how these characters are translated when the print line length is
+132, as indicated by bits 2 and 3 of the WCC.  When a line length of 40, 64, 
+or 80 is chosen, these characters are translated to a space and are essentially
+ignored.
+
+Note that the translation of the EBCDIC control characters 00-3F cannot
+be modified for CRT's OR Printers using the CHRMAP/REMAPC macros in the 
+tymfile.
+
+Non-Control Characters
+
+Translation of EBCDIC data characters (hex 40-FF) is performed in several 
+steps. They are as follows:
+
+1. Data characters translated via the APLEBC table. In this table all 
+"regular" EBCDIC characters are translated to themselves (i.e., EBCDIC C1 
+is still C1). In addition to these "regular" EBCDIC characters there is a 
+subset of EBCDIC used for APL (A Programming Language) which CMT does not 
+support. Since CMT is unable to properly translate APL characters the APLEBC 
+table translates all APL characters to EBCDIC dashes (hex 60) so that the 
+terminal user can see that SOMETHING was received from the host, as opposed 
+to sending a blank. Ultimately, of course, this EBCDIC 60 will be translated 
+to ASCII before being sent to the terminal. The APL characters are:
+
+   60, 8A-90, 9A-A0, AA-BF
+
+2. Having basically "stripped off" any APL characters or other unrecognized
+EBCDIC characters in step 1, CMT now places the character into the screen 
+buffer, with location in the buffer being influenced by screen formatting 
+orders (see control characters, above).
+
+3. Before being sent to the Optimizer, all characters in the screen buffer
+are marked as:  a) changed or not changed from the previous screen and b) 
+graphic or non-graphic (graphic = displayable). Spaces are not considered displayable characters, which explains why, particularly in the emulation of the
+TTY terminal type, it is sometimes noticeable that spaces at the end of a 
+line are not sent to the terminal. This information is used by the Optimizer 
+to determine whether to, for instance, repaint an entire line or just replace 
+a few of the characters.
+
+4. Once the Optimizer has determined which characters to send to the terminal 
+and how, the data from the screen buffer is output to the terminal, with each 
+character being translated according to the EBCASC table before being sent 
+out. The translation from EBCDIC to ASCII is one-for-one at this point and is 
+done according to the following table:
+
+TRANSLATION FOR EBCDIC DATA CHARACTERS (40-FF)
+
+ EBCDIC       ASCII         CHARACTER
+
+   40           20            SPACE   
+
+   4A           5B              [
+   4B           2E              .
+   4C           3C              <
+   4D           28              (
+   4E           2B              +
+   4F           7C              !
+   
+   50           26              &
+
+   5A           21              ]
+   5B           24              $ 
+   5C           2A              *
+   5D           29              )
+   5E           3B              ;
+   5F           5E              ^
+
+   60           2D              - (DASH)
+   61           2F              /
+
+   6A           7C              |
+   6B           2C              ,
+   6C           25              %
+   6D           5F              _ (UNDERLINE)
+   6E           3E              >
+   6F           3F              ?
+
+   79           60              `
+   7A           3A              :
+   7B           23              #
+   7C           40              @
+   7D           27              '
+   7E           3D              =
+   7F           22              "
+
+   81           61              a
+   82           62              b
+   83           63              c
+   84           64              d
+   85           65              e
+   86           66              f
+   87           67              g
+   88           68              h
+   89           69              i
+
+   91           6A              j
+   92           6B              k
+   93           6C              l
+   94           6D              m
+   95           6E              n
+   96           6F              o
+   97           70              p
+   98           71              q
+   99           72              r
+   A1           7E              ~ (tilde)
+   A2           73              s
+   A3           74              t
+   A4           75              u
+   A5           76              v
+   A6           77              w
+   A7           78              x
+   A8           79              y
+   A9           7A              z
+
+   C0           7B              {
+   C1           41              A
+   C2           42              B
+   C3           43              C
+   C4           44              D
+   C5           45              E
+   C6           46              F
+   C7           47              G
+   C8           48              H
+   C9           49              I
+   
+   D0           7D              }
+   D1           4A              J
+   D2           4B              K
+   D3           4C              L
+   D4           4D              M
+   D5           4E              N
+   D6           4F              O
+   D7           50              P
+   D8           51              Q
+   D9           52              R
+   
+   E0           5C              \
+
+   E2           53              S
+   E3           54              T
+   E4           55              U
+   E5           56              V
+   E6           57              W
+   E7           58              X
+   E8           59              Y
+   E9           60              Z
+
+   F0           30              0
+   F1           31              1
+   F2           32              2
+   F3           33              3
+   F4           34              4
+   F5           35              5
+   F6           36              6
+   F7           37              7
+   F8           38              8
+   F9           39              9
+   
+
+NOTE: All EBCDIC characters which are between hex 40-FF which are not APL 
+characters and which are not listed in the table above are translated to 
+nulls (hex 00).
+
+The above table indicates the default translation for each character. The
+translation for any character between 40-FF can be changed using the CHRMAP 
+macro in the tymfile.
+
+IMPORTANT FILE-TRANSFER NOTE (applies only to terminal-to-host translation):
+
+When CMT receives characteom the TERMINAL (ASCII characters), it 
+strips off the high-order bit from each 8-bit character. This effectively
+limits the ASCII character set to 128 characters (as opposed to 256). This
+is not an option and it is something that customers trying to send files 
+from terminal to host should be aware of.
+
+Also be aware that ASCII control characters (hex 00-1F and 80-9F) are not
+translated to EBCDIC characters in one-to-one fashion. Instead, the function 
+such control characters perform is based on the terminal keyboard mapping 
+macro defined for each individual terminal type. See the manuals CMTERM.ERS 
+and pages 80-81 of the CMTI.ERS manual for more on this.
+
+*******************
+*                 *
+* T E C H   T I P *
+*                 *
+*******************
+
+Edsel Garciamendez Budar
+Manager
+Network Analysis
+
+SUBJECT:   Satellite Window Size Computations
+
+OBJECTIVE:
+
+The purpose of this paper is to provide with an approximate formula to 
+determine the window size for satellite links with speeds over 9.6 KBPS.
+
+INTRODUCTION:
+
+The communications between two "smart" stations has to follow certain rules, 
+called protocols. One of these rules relates to the number of messages that 
+station 1 will send to station  before getting an acknowledgement. The simplest
+of these rules would imply station sending one message, and then waiting for 
+station 2 to respond with an acknowledgement to the first message before 
+sending the next one.
+
+This simple rule (stop-and-wait) creates slow and inefficient transmissions, 
+since the transmitter station can only send one message at a time. The delay 
+would be even worse if the transmission medium contains a satellite link. The
+reason for this is that any message takes to propagate (at the speed of light 
+of 300,000 km/sec) at least 0.24 seconds from one earth station to another one
+(assuming the satellite is located at about 36,000 km over the earth's 
+surface).
+
+COMPUTATION:
+
+The computation of the "suboptimal" window size depends on the
+maximum number of consecutive messages that can be in transit (outstanding) 
+before the transmitter receives an acknowledgement to the first message. 
+Hence, the maximum number of outstandingmessages (or "packets", as we will 
+call them from now on) is:
+
+                                                                            [1]
+Outstanding  Time to receive acknowledgement since packet 
+transmission
+
+                  = --------------------------------------------------------
+         packets            Time to transmit one packet
+
+
+                                                                            [2]
+                    4 * H * ( N +  d/c )     4 * B * U * H * ( N + d/c )
+                  = --------------------  =  ---------------------------
+                        p / ( B * U)                     p
+
+        where:
+
+        N = Nodal delay per packet (20 - 50 msecs / packet)
+        H = number of satellite Hops involved
+        d = Distance between the satellite and the earth (36,000 Km)
+        c = speed of light (300,000 Km/sec)
+        p = Packet size in bits (240 - 320 bits/packet)
+        B = Bandwidth of the satellite link (2.4, 4.8, 9.6, 19.2, 56 KBPS)
+        U = average bandwidth Utilization (50 %, 50 %, 50 %, 60 %, and 60 %
+                                                respectively)
+        WS = Window Size (see below).
+
+
+Please note that the term (N + d/c) = (0.02 + 0.12), and hence we 
+can simplify the above expression to:
+
+                                          [3]
+        Outstanding     B * U * H * 0.56
+                    =   ----------------
+          packets              p
+
+Finally, the window size (WS) can be simply computed by adding
+to the above formulas (either [1], [2], or [3]) the corresponding
+window sizes for their terrestrial counterpart (4, 4, 8, 12, and
+12 for 2.4, 4.8, 9.6, 19.2, and 56 KBPS links,
+respectively):
+
+    ******************************************************************
+    *     [4]                                                        *
+    *   Window      4 * B * U * H * ( N + d/c )       corresponding  *
+    *           =   ---------------------------   +    terrestrial   *
+    *    Size                    p                    window   size  *
+    *                                                                *
+    *                                                                *
+    *              [rounded to closest multiple of 4]                *
+    ******************************************************************
+
+COMMENTS:
+
+Expression [4] is by no means the "optimal" formulation for Tymnet's
+T201 link protocol. In fact, there are so many variables that have been left 
+out of this model, that they only make it a simple starting approximation. 
+The performance of the link should be monitored to adjust the window size of 
+the satellite link.
+
+The major items to consider are as follows:
+
+LINK QUALITY. If a satellite link does have a poor quality, and hence 
+retransmissions are likely, the window size should be reduced. If a node has 
+to retransmit frequently a full window worth of packets, the link may not be 
+able to take that load, and can crash.
+
+NODAL MEMORY. The addition of all link's window sizes cannot exceed a specific
+value (256 for node code versions under 5.20 and 512 for versions 5.20 and 
+above). This is due to memory management, and the satellite window size may 
+have to be adjusted depending the nodal configuration.
+
+PACKET SIZE. Tymnet allows variable packet sizes. The general observation is 
+that higher bandwidth links tend to produce bigger packets. But another 
+variable comes into play: higher bandwidth utilizations also tend to produce 
+larger packet sizes. Hence, the actual packet size depends on the nature of 
+the traffic (its intensity) as well.
+
+NODAL THROUGHPUT.  A possible bottleneck in a Tymnet transmission could be 
+due to a low nodal throughput. MAC III solo switchers can pump 30,000 CPS 
+(about 750 packets/second), while ISIS machines can only pump about 8,000 CPS 
+(at most 200 packets/sec). An earlier memo (3) limited the ISIS throughput to 
+only 40 packets/sec.
+
+TRADE OFFS. Small window sizes tend to create low throughput, and can even 
+generate too many retransmissions. The node may start retransmitting once it 
+reaches the full window of outstanding packets if it has not received an
+acknowledgement. On the other hand, a large window size will tend to
+produce high throughput in ideal circumstances. But once a retransmission is 
+required, the load on the link may be too much for it to handle.
+
+TERRESTRIAL WINDOW SIZE. Formula [4] added to the outstanding packets the 
+corresponding terrestrial window size (1, 2).  Although this addition may 
+sound logical (the terrestrial window being the ground basis, to which we 
+need to add the effect of the high satellite delays), it can push the window 
+size too high. In fact, formulas [1] through [3] can be considered as the 
+ideal window sizes for satellite links, since they already contain all the 
+elements involved in a satellite transmission.
+
+BANDWIDTH UTILIZATION. Although all of us would like to utilize any link at 
+100 %, the packet delays resulting from high utilizations make it 
+unacceptable. The queueing (or better, exponentially behaved) delays call for 
+band width utilizations somewhere between 50 and 80 %, depending on the link's
+bandwidth. That is the reason why we included bandwidth utilizations in the 
+above formulas.
+
+
+        EXAMPLE:
+
+        To compute the window size for a 56 KBPS satellite link between
+        Tokyo (Isis node 2242) and San Francisco (switcher node 3044),
+        we proceed as follows:
+
+        B = 56,000
+        U = 0.60 (60 %)
+        H = 1 satellite hop
+        N = 0.020 secs (20 miliseconds)
+        p = 320 bits (40 bytes)
+        Terrestrial window size = 12
+
+        Applying formula [4] we get:
+
+        WS = ( 4 x 56,000 x 0.60 x 1 x (0.02 + 0.12) / 320 )   +   12
+
+           = 58.8 + 12 = 68 or 72
+
+Now, special considerations have to still be analyzed. For example, the fact 
+that one node in an ISIS machine with 6 other connections, including 3 
+satellite links, makes the 68  too big a number to start with. If we do not 
+add the terrestrial window size of 12, we get 56. In fact, we had used 52 as 
+window sizes for our VitaLink 56 KBPS satellite links in the past. Hence, 
+this link may safely start with 52 as a window size.
+
+REFERENCES:
+
+(1) Garciamendez Budar, Edsel. Window Sizes for the Tymnet
+     Links. June 18, 1987.
+
+(2) Ma, Jason. MAC III Switcher Configuration Guidelines.
+      February 18, 1987.
+
+(3) Sharma, Ranjana. Window Size for Satellite Links.
+      September 27, 1985.
+
+*******************
+*                 *
+* T E C H   T I P *
+*                 *
+*******************
+
+Jerry Lucas
+X.25 Project Leader
+QSATS-STS
+
+SUBJECT:  Line Disconnects with Stratus Front-Ends 
+
+
+When talking to a Stratus Front-End, X.25 may experience occasional line 
+disconnects.  The symptom is that the Stratus Front End can send us a disc 
+frame, for no apparent reason.  The frame trace shows nothing else unusual.  
+
+The problem can happen with any number of sessions in progress; exhibiting no 
+definite pattern of recurrence.  This problem has occurred in multiple 
+interactions with Stratus Front Ends and in each case, was fixed by a 
+parameter change in the Stratus side - the parameter is "Line Error Count". 
+(This defaults to a value of 500, but should be increased to 1500, although 
+the number 1500 has no physical significance.)  
+
+Errors on the line have different "count" values in the Stratus scheme; 
+depending on the severity of the error.  The reason this occasionally happens 
+with Tymnet is that the time when no frames are being sent from either side 
+is viewed by Stratus as a line idle condition.  This condition increments 
+the line error count until the critical value is reached.
+
+We have never seen the problem with the line error count set at 1500, so we 
+believe this to be a safe value.    Hh#
