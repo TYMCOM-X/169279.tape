@@ -1,0 +1,41 @@
+
+::                                      Last updated by JWANG, 19-july-84
+
+:       *****************************************************
+:       *****    SPECIAL PATCH FILE FOR VERSION 2.01    *****
+:       *****      CREATED BY TYMNET INTERNATIONAL      *****
+:       *****           FILENAME : QBIT02.P01
+:       *****     TO BE ASSEMBLED AFTER PACX02.P01      *****
+:       *****************************************************
+
+PATCH(840719,1540,JWANG,PA0PTR,,9)
+QBPK    BC      7,0,6,80,2,3,0A,4,2
+CONPATCH(DAT230+8,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,5A)
+        JG      DAT030,,
+        JAL     R4,ELIR,,
+        LHL     R5,DPORT,,
+        TBT     R5,LOAD,,               :THIS PORT IS FOR GATEWAY LOADING?
+        JE      DAT240,,
+        TBT     R5,SEND,,
+        JE      DAT240,,
+        LHL     R1,IEDBUF,,
+        LIS     R5,0                    :COUNT FOR STORE Q-BIT PACKET QBPK
+COPYQ   LB      R0,QBPK,R5,
+        JAL     R4,WCI,,                :STORE INTO IEDBUF
+        AIS     R5,1                    :INCREMENT COUNT
+        CLHI    R5,9                    :END OF PACKET?
+        JL      COPYQ
+        LHL     R5,DPORT,,
+        RBT     R5,SEND,,
+        J       DAT240,,
+ENDPATCH(SEND QBIT SET PKT WITH 030A0402 TO THE LINK IF GATEWAY LOADING)
+
+
+:********************************************************
+
+PATCHREPORT                     :REPORT BYTES OF PATCH AREAS USED
+FINPATCH                        :MAKE FINAL REPORT ON SEGMENT USAGE
+
+
