@@ -1,0 +1,33 @@
+    lo   trace
+nentry    eq      20
+patch(881130,1200,bpc,trpsd,,8)
+trcpsd    wc      1000,0000
+conpatch(pa0ptr,,42+2*nentry)
+trcreg    ws      10       :save register area
+trcadr    hs      nentry   :last ?? jumps
+trcptr    hc      0        :ptr into trcadr
+conpatch(trace,,50)
+          stm     0,trcreg,,     :save all regs
+          l       0f,trcpsd+4,,  :last jump address
+          lr      0e,0f
+          srl     0e,$a17
+          nhi     0e,1
+          or      0f,0e
+          lhl     0e,trcptr,,    :get ptr
+          sth     0f,trcadr,0e,
+          ais     0e,2
+          nhi     0e,2*nentry-1  :mod 40
+          sth     0e,trcptr,,
+          lb      r14,hostab+20+hststs,,
+          jefs    .+4
+          hc      0
+          lm      0,trcreg,,
+          upsw    trcpsd,,
+conpatch(ipsd,,8)
+          wc      1000,exec
+conpatch(exec+2e,,6)
+          j       pa1ptr,,
+conpatch(pa1ptr,,0c)
+          ahm     1,fpanel,,
+          j       trbgn,,
+endpatch(enable h/w trace for BG)
