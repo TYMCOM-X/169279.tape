@@ -1,0 +1,1925 @@
+
+
+
+
+
+
+
+
+
+
+                                     TYMNET ENGINE
+
+
+
+
+                                DIAGNOSTICS USER'S GUIDE
+
+
+
+
+                           MAGNETIC TAPE TRANSPORT DIAGNOSTIC
+
+
+
+
+
+
+
+
+
+
+
+          ^                                                                  ^
+          ^  This document is the sole property and confidential informa-    ^
+          ^  tion of  Tymshare, Inc., and may  not be copied in  whole or    ^
+          ^  part or disclosed to any third party without the prior writ-    ^
+          ^  ten consent of Tymshare.                                        ^
+          ^                                                                  ^
+
+
+
+
+
+
+                                     Tymshare, Inc.
+                              Network Technology Division
+
+
+
+
+                                    1 November 1982
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+                                        CONTENTS
+                                        ________
+
+
+          1.0 OVERVIEW ..................................................... 1
+
+          2.0 DEDICATED MEMORY ALLOCATION .................................. 1
+
+          3.0 EQUIPMENT .................................................... 1
+
+          4.0 CONFIGURATION CONSTRAINTS .................................... 2
+
+          5.0 LOADING PROCEDURES ........................................... 2
+
+          6.0 OPERATING PROCEDURES ......................................... 2
+
+          7.0 COMMANDS ..................................................... 4
+
+             7.1 Executive Level Commands .................................. 4
+
+                7.1.1 Run Command .......................................... 4
+
+                7.1.2 Print Options Command ................................ 4
+
+                7.1.3 Help Command ......................................... 4
+
+                7.1.4 Ramp Command ......................................... 4
+
+                7.1.5 Controller Status Command ............................ 5
+
+                7.1.6 Controller Extended Status Command ................... 5
+
+                7.1.7 Device Option Command ................................ 5
+
+             7.2 Test Level Commands ....................................... 6
+
+                7.2.1 Test Command ......................................... 6
+
+                7.2.2 Loop Command ......................................... 6
+
+                7.2.3 Error Command ........................................ 6
+
+                7.2.4 Continue Command ..................................... 7
+
+                7.2.5 No Message Command ................................... 7
+
+                7.2.6 Records-per-File Command ............................. 7
+
+                7.2.7 Bytes-per-Record Command ............................. 7
+
+                7.2.8 Files Command ........................................ 7
+
+                7.2.9 Repeat Command ....................................... 8
+
+                7.2.10 Device Unready Command .............................. 8
+
+
+                                                                        Page i
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+                7.2.11 Read Command ........................................ 8
+
+                7.2.12 Write Command ....................................... 8
+
+                7.2.13 Backspace Command ................................... 8
+
+                7.2.14 Skip Command ........................................ 9
+
+                7.2.15 Write End-of-File Command ........................... 9
+
+                7.2.16 Compare Command ..................................... 9
+
+                7.2.17 Dump Command ........................................ 9
+
+                7.2.18 Data Command ........................................ 9
+
+                7.2.19 Read-Backspace Command ............................. 10
+
+                7.2.20 Scope Command ...................................... 10
+
+          8.0 DIAGNOSTIC DESCRIPTION ...................................... 10
+
+             8.1 Test 0 Description ....................................... 11
+
+             8.2 Test 1 Description ....................................... 11
+
+             8.3 Test 2 Description ....................................... 11
+
+             8.4 Test 3 Description ....................................... 12
+
+             8.5 Test 4 Description ....................................... 12
+
+             8.6 Test 5 Description ....................................... 13
+
+             8.7 Test 6 Description ....................................... 13
+
+          9.0 ERROR DESCRIPTIONS .......................................... 14
+
+             9.1 Unexpected System Errors ................................. 15
+
+             9.2 Test 0 Error Codes ....................................... 15
+
+             9.3 Test 1 Error Codes ....................................... 16
+
+             9.4 Test 2 Error Codes ....................................... 17
+
+             9.5 Test 3 Error Codes ....................................... 18
+
+             9.6 Test 4 Error Codes ....................................... 20
+
+             9.7 Test 5 Error Codes ....................................... 21
+
+             9.8 Test 6 Error Codes ....................................... 22
+
+
+
+                                                                       Page ii
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+          10.0 DATA PATTERNS .............................................. 24
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                      Page iii
+
+
+
+
+                                                               1 November 1982
+
+
+                           MAGNETIC TAPE TRANSPORT DIAGNOSTIC
+
+
+          SECTION 1.0 OVERVIEW
+          ____________________
+
+          The Magnetic Tape  Transport diagnostic  tests magnetic  tape trans-
+          ports and their associated interfaces.   This diagnostic can be used
+          either to verify the working condition of the hardware under test or
+          to aid in troubleshooting hardware problems.
+
+          The program  consists of  seven tests  (0 through  6).  Test 6  is a
+          utility test that  provides scope loop facilities.   Diagnostic mes-
+          sages and commands  are provided.  The messages  include error codes
+          and information relating to the status  of the diagnostic.  The com-
+          mands and messages  allow malfunctions to  be isolated to  the hard-
+          ware.  Error recovery is provided for certain data transfer errors.
+
+          The commands are entered via a  terminal connected to the multifunc-
+          tion board.   Entering the help command  will provide a list  of the
+          available commands.
+
+          One or two tape  transports may be tested  simultaneously, as speci-
+          fied by the device option command (see Section 7.1.7).
+
+
+          SECTION 2.0 DEDICATED MEMORY ALLOCATION
+          _______________________________________
+
+          This diagnostic uses,  in addition to the  standard dedicated memory
+          allocations (see Diagnostics Introduction),  the following dedicated
+                           ___________ ____________
+          memory allocations:
+
+             RCMD      A08 - Terminal read command
+
+             WCMD      A0A - Terminal write command
+
+             TTYADDR   A10 - Device address of the terminal
+
+          Note: The memory allocation START2 (location  A04) is not used inas-
+          much as a terminal is required for the operation of this diagnostic.
+
+
+          SECTION 3.0 EQUIPMENT
+          _____________________
+
+          To run the Magnetic Tape Transport diagnostic the Engine must have:
+
+               No less than 32K bytes of memory
+
+               Extended selector channel board (ESELCH)
+
+               TC10 tape controller
+
+
+
+
+
+
+                                                           EQUIPMENT    Page 1
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+               Magnetic tape transport (Kennedy 9000 or 9100)
+
+               Terminal (RS232C)
+
+          An additional tape transport (two total) may be used.
+
+
+          SECTION 4.0 CONFIGURATION CONSTRAINTS
+          _____________________________________
+
+          The terminal must be connected to the multifunction board.
+
+          The Memory  diagnostic and  the CPU  diagnostic must  have been  run
+          without error before the Magnetic Tape Transport diagnostic is run.
+
+          DMA devices may remain installed, all  interrupts are handled by the
+          diagnostic.
+
+
+          SECTION 5.0 LOADING PROCEDURES
+          ______________________________
+
+          The Magnetic  Tape Transport  diagnostic uses  the standard  loading
+          procedures described in Diagnostics Introduction.
+                                  ___________ ____________
+
+
+          SECTION 6.0 OPERATING PROCEDURES
+          ________________________________
+
+          Before running  the diagnostic, a  tape must  be placed on  the tape
+          transport and the transport must be  placed online.  The terminal is
+          used to  input commands  and to  display information.   A record  of
+          errors may  be obtained  by using  a hard  copy terminal  or a  line
+          printer.
+
+          After the  diagnostic is loaded,  it initializes and  starts itself.
+          If stopped, the diagnostic is restarted by pressing on the console:
+
+                                 DTA, A, 0, 0, ADR, RUN
+
+          After the  diagnostic is  started it  is in  the executive,  command
+          processor, mode and it outputs to the terminal:
+
+                               MAGNETIC TAPE TEST PROGRAM
+                               ________ ____ ____ _______
+
+                               MEMORY TYPE:
+
+          At the prompt, enter from the terminal either:
+
+                                       A, B, or H
+
+          where A indicates that the Engine  contains core memory, B indicates
+          that the Engine contains MOS memory, and H requests the executive to
+          display a  help message.  The memory  type message is  not displayed
+          again when the program is restarted.  It is only displayed after the
+          diagnostic is loaded.
+
+
+
+                                                OPERATING PROCEDURES    Page 2
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+          The executive then outputs:
+
+                         APPROX. INTERNAL TEMP: xxx.x DEG. F
+
+                         APPROX. INPUT VOLTAGE: yyy.yy VAC
+
+          where xxx.x is  degrees Fahrenheit (decimal) and yyy.yy  is volts ac
+          (decimal).
+
+          Note: If the value obtained from the multifunction board temperature
+          sensing circuit indicates  a temperature below 40.3  degrees Fahren-
+          heit or above 120 degrees Fahrenheit, the executive outputs:
+
+                                  INVALID TEMPERATURE
+
+          Any  deviations from  specified power  and temperature  requirements
+          should be  corrected.  See TYMNET  Engine Maintenance for  power and
+                                     ______  ______ ___________
+          temperature specifications.
+
+          The executive then displays  a prompt (*), which  indicates the pro-
+          gram is ready to accept commands.  Type at the terminal:
+
+                                        RUN<CR>
+
+          After the  run command  has been entered,  the program  executes the
+          default tests in  numerical order using the  default command values.
+          While the diagnostic is running, the  number of the test running and
+          the end-of-test message for each test  is displayed at the terminal.
+          The diagnostic  will run  until all  selected tests  have been  com-
+          pleted.  Testing may be terminated by striking the escape key on the
+          terminal twice during the execution of  a single test.  After strik-
+          ing escape twice, control is returned  to the executive and a prompt
+          (*) is output to the terminal.   The prompt indicates the program is
+          ready to  accept commands.  Striking the  escape key twice  will not
+          return control  to the executive during  tape rewind or  during data
+          dumps to a listing device.
+
+          Note: Test 0 must  be run before attempting to run  the other tests.
+          It is a basic  confidence test that ensures that the  tape system is
+          generally functional.  Test 0 is executed whenever the diagnostic is
+          newly loaded.
+
+          Placing the tape  transport offline terminates the  current test and
+          displays at the terminal:
+
+                                    DEVICE OFF-LINE
+
+          Control of the diagnostic is then  returned to the executive and the
+          prompt is displayed at the terminal.
+
+          When Test 3 is executed with the device unready command enabled (see
+          Section 7.2.10), the diagnostic displays at the terminal:
+
+                                  TURN DEVICE OFF-LINE
+
+
+                                                OPERATING PROCEDURES    Page 3
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+          Upon receipt of this message, momentarily  place the selected trans-
+          port offline and then return it online.  Test 3 will then continue.
+
+
+          SECTION 7.0 COMMANDS
+          ____________________
+
+          The  commands available  for use  with the  Magnetic Tape  Transport
+          diagnostic  are given  in the  following  sections.  The  diagnostic
+          responds  to errors  in  syntax with  a  question  mark and  another
+          prompt.
+
+
+          SECTION 7.1 Executive Level Commands
+          ____________________________________
+
+          Seven commands are available at the executive level of the program.
+
+
+          7.1.1 Run Command
+                ___________
+
+          Syntax: RUN
+
+          Default: None
+
+          Description: This command  starts execution of the  diagnostic using
+               the current state of all commands.
+
+
+          7.1.2 Print Options Command
+                _____________________
+
+          Syntax: OPTION
+
+          Default: None
+
+          Description: This command displays at the  terminal the state of all
+               commands (including current tests selected).
+
+
+          7.1.3 Help Command
+                ____________
+
+          Syntax: HELP
+
+          Default: None
+
+          Description: This  command lists all  valid commands,  their default
+               values, the  test or  tests that  are affected  by them,  and a
+               brief description of their use.
+
+
+          7.1.4 Ramp Command
+                ____________
+
+          Syntax: RAMP
+
+          Default: None
+
+
+
+                                                            COMMANDS    Page 4
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+          Description: This command causes the  selected transport to output a
+               signal by which the start/stop ramp timing may be adjusted with
+               an oscilloscope.  This function continues  until the escape key
+               on the terminal  is struck twice.   (See Operation  and Mainte-
+                                                        _________  ___ ______
+               nance Manual,  Model 9000 Digital  Tape Transport  or Operation
+               _____ ______   _____ ____ _______  ____ _________     _________
+               and Maintenance Manual, Model 9100 Vacuum Column Tape Transport
+               ___ ___________ ______  _____ ____ ______ ______ ____ _________
+               for the required procedures.)
+
+
+          7.1.5 Controller Status Command
+                _________________________
+
+          Syntax: STATUS
+
+          Default: None
+
+          Description: This  command displays at  the terminal  the controller
+               status byte format.
+
+
+          7.1.6 Controller Extended Status Command
+                __________________________________
+
+          Syntax: EXSTAT
+
+          Default: None
+
+          Description: This  command displays at  the terminal  the controller
+               extended status byte format.
+
+
+          7.1.7 Device Option Command
+                _____________________
+
+          Syntax: DEVOPT
+
+          Default: Device 0
+
+          Description: This command determines  whether transport 0, transport
+               1, or both are tested by the diagnostic.  The default is trans-
+               port 0.  To change the value,  enter, from the executive prompt
+               (*), at the terminal:
+
+                                         DEVOPT<CR>
+
+               The executive will then display at the terminal:
+
+                                  TEST DRIVE 0 ? ( Y OR N)
+
+               Enter an N to test only transport 1 and the executive will dis-
+               play:
+
+                                 ONLY DRIVE 1 WILL BE TESTED
+
+               Enter a Y to test transport 0 and the executive will prompt:
+
+                                   TEST DRIVE 1 ? (Y OR N)
+
+
+                                                            COMMANDS    Page 5
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+               Enter an N to test only transport 0 and the executive will dis-
+               play:
+
+                                 ONLY DRIVE 0 WILL BE TESTED
+
+               Enter a Y to  test both transports and the  executive will dis-
+               play:
+
+                              BOTH DRIVE 0 AND 1 WILL BE TESTED
+
+               The executive then displays a prompt (*) indicating the prog               is ready to accept commands.
+
+
+          SECTION 7.2 Test Level Commands
+          _______________________________
+
+          This section describes the  test level commands, their  default val-
+          ues, the  range of valid values,  and the syntax required  to change
+          the values.  All values shown are in hexadecimal.
+
+
+          7.2.1 Test Command
+                ____________
+
+          Syntax: TEST n,...
+
+          Default: Tests 0 - 5
+
+          Description: This command selects the tests  to be run.  Tests 0 - 6
+               may be  selected.  The  test numbers  are separated  by commas.
+               Test 0 must be  run first.  The tests  are run in the  order in
+               which they are entered.
+
+
+          7.2.2 Loop Command
+                ____________
+
+          Syntax: LOOP n
+
+          Default: 0
+
+          Description: This  command causes the  selected test(s) to  repeat n
+               times.  The value of n may range 0 - 7FFF.
+
+
+          7.2.3 Error Command
+                _____________
+
+          Syntax: ERROR nn
+
+          Default: None
+
+          Description: This  command displays the  definition of the  error as
+               specified by the  two digit error number, nn.  The  value of nn
+               may range 00 - F5.
+
+
+
+
+                                                            COMMANDS    Page 6
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+          7.2.4 Continue Command
+                ________________
+
+          Syntax: CONTIN n
+
+          Default: 0
+
+          Description: This command causes the selected  test to run until the
+               escape key  on the terminal  is struck twice.   If n is  0, the
+               command is disabled; if n is 1, the command is enabled.
+
+
+          7.2.5 No Message Command
+                __________________
+
+          Syntax: NOMSG n
+
+          Default: 0
+
+          Description: This command  suppresses all  output except  error mes-
+               sages.  If n is 0, the command is disabled; if n is 1, the com-
+               mand is enabled.
+
+
+          7.2.6 Records-per-File Command
+                ________________________
+
+          Syntax: RECFIL n
+
+          Default: 100
+
+          Description: This command determines the  number of records per file
+               used in  the tests.   The number  of records  per file,  n, may
+               range 1 - 400.
+
+
+          7.2.7 Bytes-per-Record Command
+                ________________________
+
+          Syntax: BYTES n
+
+          Default: FF
+
+          Description: This command determines the  number of bytes per record
+               used in  the tests.   The number  of bytes  per record,  n, may
+               range 2 - 400.
+
+
+          7.2.8 Files Command
+                _____________
+
+          Syntax: FILES n
+
+          Default: 1
+
+          Description: This command determines the number  of files to be read
+               or written  by the tests.   The number  of files, n,  may range
+               1 - 400.
+
+
+
+                                                            COMMANDS    Page 7
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+          7.2.9 Repeat Command
+                ______________
+
+          Syntax: REPEAT n
+
+          Default: 3
+
+          Description: This command determines the number of skips that are to
+               be performed.  The number of SKIPS, n, may range  1 - FF.
+
+
+          7.2.10 Device Unready Command
+                 ______________________
+
+          Syntax: DU n
+
+          Default: 0
+
+          Description: This  command tests the  device unready  function under
+               interrupt conditions (Test 3).  If n is 0, the command is disa-
+               bled; if n is 1, the command is enabled.
+
+
+          7.2.11 Read Command
+                 ____________
+
+          Syntax: READ n
+
+          Default: 1
+
+          Description: This command selects the read operation for Tests 3 and
+               6.  If n is 0, the command is  disabled; if n is 1, the command
+               is enabled.
+
+
+          7.2.12 Write Command
+                 _____________
+
+          Syntax: WRITE n
+
+          Default: 1
+
+          Description: This  command selects the  write operation for  Tests 3
+               and 6.  If n is 0, the command is disabled; if n is 1, the com-
+               mand is enabled.
+
+
+          7.2.13 Backspace Command
+                 _________________
+
+          Syntax: BKSPAC n
+
+          Default: 1
+
+          Description:  This  command  selects  the  backspace  operation  for
+               Tests 3 and 6.  If n is 0, the  command is disabled; if n is 1,
+               the command is enabled.
+
+
+
+
+                                                            COMMANDS    Page 8
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+          7.2.14 Skip Command
+                 ____________
+
+          Syntax: SKIP n
+
+          Default: 1
+
+          Description: This command selects the skip operation for Test 3.  If
+               n is 0, the command is disabled; if n is 1, the command is ena-
+               bled.
+
+
+          7.2.15 Write End-of-File Command
+                 _________________________
+
+          Syntax: WEOF n
+
+          Default: 0
+
+          Description: This command writes an end-of-file mark continuously to
+               the end of the tape for Tests 3  and 6.  If n is 0, the command
+               is disabled; if n is 1, the command is enabled.
+
+
+          7.2.16 Compare Command
+                 _______________
+
+          Syntax: COMPAR n
+
+          Default: 1
+
+          Description: This  command specifies a  data comparison for  Tests 3
+               and 6.  If n is 0, the command is disabled; if n is 1, the com-
+               mand is enabled.
+
+
+          7.2.17 Dump Command
+                 ____________
+
+          Syntax: DUMP n
+
+          Default: n
+
+          Description: This command  displays at the terminal  the read buffer
+               for each record read.  This is  useful for making data compari-
+               sons if data errors are encountered.  If n is 0, the command is
+               disabled; if n is 1, the command is enabled.
+
+
+          7.2.18 Data Command
+                 ____________
+
+          Syntax: DATA n
+
+          Default: 1
+
+          Description: This command prompts (DATA:) the user to enter a string
+               of up to 64 characters to be used as test data for Test 6.  The
+
+
+
+                                                            COMMANDS    Page 9
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+               write buffer is filled by repeating  the input string.  If n is
+               0, the command is disabled; if n is 1, the command is enabled.
+
+
+          7.2.19 Read-Backspace Command
+                 ______________________
+
+          Syntax: IRG n
+
+          Default 10
+
+          Description: This  command determines  the number  of read-backspace
+               functions to be performed in the gap data check in Test 5.  The
+               value of n may range 0 - FF.
+
+
+          7.2.20 Scope Command
+                 _____________
+
+          Syntax: SCOPE n
+
+          Default: 0
+
+          Description:  This command  determines the  functions performed  for
+               Test 6.  The value of n may range 0 - 5.
+
+               If n is 0, it disables scope loop operation for Test 6.
+
+               If n is 1, it specifies a write backspace-read scope loop oper-
+               ation that continues to the end of the tape.
+
+               If n is 2, it specifies a write only scope loop operation.
+
+               If n is 3, it specifies  a write backspace scope loop operation
+               (this should be avoided; it causes  excessive wear to the front
+               portion of the tape).
+
+               If n is 4, it specifies a read only scope loop operation.
+
+               If n is 5,  it specifies a continuous skip  operation that con-
+               tinues to the end of the tape, skip reverses to the begining of
+               the tape, and repeats.
+
+
+          SECTION 8.0 DIAGNOSTIC DESCRIPTION
+          __________________________________
+
+          The description and structure of each of the seven tests in the Mag-
+          netic Tape Transport diagnostic are described  in the following sec-
+          tions.  The time required for each test is doubled if two transports
+          are being  tested.  The  times given assume  that the  diagnostic is
+          executed  using the  default values  for  all commands  and that  no
+          errors are found.
+
+
+
+
+
+
+                                             DIAGNOSTIC DESCRIPTION    Page 10
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+          SECTION 8.1 Test 0 Description
+          ______________________________
+
+          Test 0 tests the write-backspace-read function of the tape transport
+          and detects errors during data transfers.
+
+          The test  generates  files  from  five   data   patterns  (see  Sec-
+          tion 10.0).  The data patterns are stored  in blocks of eight bytes.
+          Each block is a series of data that will switch the data lines under
+          worst case conditions.  As a file is generated, a block of data pat-
+          terns is repeatedly copied into the write buffer until the buffer is
+          full.  The  data in the  buffer is then written  onto the tape  as a
+          record.  The  record is backspaced, read  into the read  buffer, and
+          then the two buffers are compared to verify correct data transfer.
+
+          Note:  Test 0  is executed  each  time  a  tape transport  is  first
+          selected by  the device  option command and  when the  diagnostic is
+          first loaded.
+
+          The TEST, LOOP, CONTIN, NOMSG, DEVOPT, DUMP, and RECFIL commands are
+          applicable to this test.
+
+          Time required for test: 1.75 min
+
+
+          SECTION 8.2 Test 1 Description
+          ______________________________
+
+          Test 1 tests writing  and reading of variable length  records by the
+          tape transport.  This test assumes that  Test 0 has been run without
+          error.
+
+          The  test generates  files with  variable length  records using  the
+          write-backspace-read  function.  The  records are  generated in  the
+          write buffer.  They  have from 2 to FFF records,  depending upon the
+          length of  tape available.  The  data written  in the records  is an
+          incrementing series ranging from 00 - FF, depending on the length of
+          the record.   The total number of  files generated is  determined by
+          the files command.
+
+          The TEST, LOOP, CONTIN, NOMSG, DEVOPT,  RECFIL, FILES, and DUMP com-
+          mands are applicable to this test.
+
+          Time required for test: 15 sec
+
+
+          SECTION 8.3 Test 2 Description
+          ______________________________
+
+          Test 2 tests  the rewind and skip  functions of the  tape transport.
+          The test assumes that Tests 0 and 1 have been run without error.
+
+          The test generates a file with EOF  (end of file) marks at both ends
+          of the  file.  It then  rewinds the tape  and checks for  NMTN=1 (no
+          tape motion)  and BOT  (begining of  tape).  The  test skips  to the
+          beginning EOF mark  of the generated file and  then performs forward
+
+
+
+                                             DIAGNOSTIC DESCRIPTION    Page 11
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+          and reverse  skips between  the EOF marks  of the  file for  as many
+          times as specified by the repeat command.  The file is then read and
+          the write  and read  buffers are  compared to  verify that  the skip
+          operations did not incorrectly reposition the reader head.
+
+          The TEST, LOOP, CONTIN, NOMSG, DEVOPT, DUMP, RECFIL, and REPEAT com-
+          mands are applicable to this test.
+
+          Time required for test: 6 sec
+
+
+          SECTION 8.4 Test 3 Description
+          ______________________________
+
+          Test 3 tests  the tape transport,  controller, and  ESELCH functions
+          under device interrupt.  Interrupt reception, interrupt queuing, and
+          interrupt  disarm and  disable  functions  are checked.   This  test
+          assumes that Tests 0 - 2 have been run without error.
+
+          The read, write, device unready, skip, backspace, compare, and write
+          end-of-file commands select  the functions  to be  tested (see  Sec-
+          tion 7.2).  The  functions selected for  test by default  are write,
+          read, backspace, and skip.  The  test first checks whether interrupt
+          can be  disarmed, disabled,  and queued.  It  then generates  a file
+          ending with  an EOF mark,  backspaces over  the file, and  reads it.
+          The test  rewinds the tape  and skips  forward and reverse  over the
+          file.  All  functions are  performed under  interrupt.  If  only the
+          write and read  functions are specified, the tape  is rewound before
+          the file is read.  Enabling the write end-of-file command causes the
+          test to write EOF marks to the end of the tape.
+
+          The record size can be changed by the bytes-per-record command.  The
+          record size can range from 2  to 400 (hexadecimal) bytes per record.
+          The upper limit may  be increased by changing the  contents of loca-
+          tion X400.   The lower  limit cannot be  less than  2 and  the upper
+          limit must not be changed to a value greater than 7FFF.
+
+          The TEST,  LOOP, CONTIN, NOMSG,  DEVOPT, DUMP, RECFIL,  WRITE, READ,
+          WEOF, COMPAR, BKSPAC,  SKIP, and DU commands are  applicable to this
+          test.
+
+          Time required for test: 30 sec
+
+
+          SECTION 8.5 Test 4 Description
+          ______________________________
+
+          Test 4 tests device overflow by  executing write-long read-short and
+          write-short read-long routines.  It detects abnormal I/O conditions.
+          The test assumes that Test 0 has been run without error.
+
+          A record  is generated and  the same record  plus 32 bytes  is read.
+          The test detects  abnormal termination of the  read operation.  Then
+          overflow is checked by  reading a record shorter than  the one writ-
+          ten.
+
+
+
+                                             DIAGNOSTIC DESCRIPTION    Page 12
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+          The TEST, LOOP, CONTIN, NOMSG, DEVOPT, RECFIL, and DUMP commands are
+          applicable to this test.
+
+          Time required for test: 30 sec
+
+
+          SECTION 8.6 Test 5 Description
+          ______________________________
+
+          Test 5 tests  the proper  generation of  gaps between  records.  The
+          test assumes that Tests 0 and 4 have been run without error.
+
+          The test writes  long (512 byte) records  of all ones (FF)  onto the
+          tape.  It then rewinds the tape and writes 64 short records over the
+          same portion of the tape.  The data for the records is an increment-
+          ing series ranging  00 - FF, depending on the length  of the record.
+          Since backspace does not always stop at  the same point on the tape,
+          all the records are not written  directly over each other.  The data
+          for  the last  record  is written  in reverse  order.   The tape  is
+          rewound and the  record read.  The read is repeated  as specified by
+          the read-backspace (IRG)  command.  This ensures that  any data left
+          by the previously written records will be detected.
+
+          Note: Prolonged repetition of this test  will wear the front portion
+          of the tape (the oxide will wear and the tape may break).
+
+          The TEST,  LOOP, CONTIN, NOMSG, DEVOPT,  DUMP, and IRG  commands are
+          applicable for this test.
+
+          Time required for test: 12 sec
+
+
+          SECTION 8.7 Test 6 Description
+          ______________________________
+
+          Test 6 tests  the functions of the  tape transport specified  by the
+          read, write, backspace, compare, and write end-of-file commands (see
+          Section 7.2).  Using  the scope command,  the test  can be run  as a
+          scope loop (see Section 7.2.20).
+
+          The record size can be changed by the bytes-per-record command.  The
+          record size can range 2 to  400 (hexadecimal) bytes per record.  The
+          upper limit  may be increased by  changing the contents  of location
+          X400.  The  lower limit cannot  be less than  2 and the  upper limit
+          must not be changed to a value greater than 7FFF.  This test assumes
+          that Tests 0 - 2 have been run without error.
+
+          The scope  loop functions have the  highest priority.  If  the scope
+          command is disabled,  then read only has  highest priority, followed
+          by write end  of file.  The scope  loop and write  end-of-file func-
+          tions are executed continuously without error checking.  Scope loops
+          are stopped  by striking  the escape  key twice  or by  performing a
+          device unready abort sequence.  If the scope command is entered with
+          a value of five,  the test will skip forward to the  end of the tape
+          and then skip reverse to the  beginning.  This continues until stop-
+          ped by striking escape twice.
+
+
+                                             DIAGNOSTIC DESCRIPTION    Page 13
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+          If the scope command is disabled,  the default command settings gen-
+          erate a file,  backspace over it, and  read it.  The read  and write
+          buffers are compared.   If the backspace function is  not enabled, a
+          skip file reverse  is performed before the tape is  read.  More than
+          one file may be specified by the files command.
+
+          The TEST, LOOP,  CONTIN, NOMSG, DEVOPT, DUMP,  RECFIL, FILES, WRITE,
+          READ, BKSPAC, WEOF, BYTES, and SCOPE commands are applicable to this
+          test.
+
+          The test will run  until halted by striking the escape  key twice or
+          by performing a DU abort sequence.
+
+
+          SECTION 9.0 ERROR DESCRIPTIONS
+          ______________________________
+
+          The tests report errors as they  are encountered during execution of
+          the  test.   Some errors  cause  a  retry.  After  six  unsuccessful
+          attempts to retry, the executive displays at the terminal:
+
+                                 RECOVERY UNSUCCESSFUL
+
+          The program then completes the remainder of the current test.
+
+          There are four types  of messages:  status error,  data error, unex-
+          pected system error, and end-of-test messages.
+
+          For a status error the following message  is displayed at the termi-
+          nal:
+
+                                ERROR xxyy
+                                DEV dd STA ss EXTSTA ee
+
+          where
+
+               xx = test number
+               yy = error number
+               dd = device number
+               ss = device status
+               ee = extended device status
+
+          For a data error the following message is displayed:
+
+                                   ERROR xxyy
+                                   DEV dd
+
+                                   DATA          DATA
+                                   WRITTEN       READ
+
+                                   ww            rr
+
+
+
+
+
+
+                                                 ERROR DESCRIPTIONS    Page 14
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+
+          where
+
+               xx = test number
+               yy = error number
+               dd = device number
+               ww = data written
+               rr = data read
+
+          For an unexpected system error the following message is displayed:
+
+                                   ERROR xxFn
+                                   DEV dd STA ss
+                                   PSW pppp LOC llll
+
+          where
+
+               xx   = test number
+               Fn   = error number
+               dd   = interrupting device address
+               ss   = status received from interrupting device
+               pppp = current PSW when interrupt is sensed
+               llll = current location when interrupt is sensed
+
+          At the completion of each test, the following end-of-test message is
+          displayed:
+
+                                      TOTAL ERRORS
+                                      hhhh
+                                      END OF TEST
+
+          where
+
+               hhhh = total number of errors encountered (hexadecimal)
+
+
+          SECTION 9.1 Unexpected System Errors
+          ____________________________________
+
+          Unexpected system error messages are  displayed at the terminal.  If
+          an unexpected system  error occurs, the current test  is aborted and
+          control is returned to the executive.  The test is restarted by typ-
+          ing RUN<CR> on the terminal.  The state of the commands for the pre-
+          vious attempt remains unchanged.
+
+          Error codes  F0 to  FF are  reserved for  unexpected system  errors;
+          these are:
+
+               nnF2  Illegal instruction interrupt
+
+               nnF3  Machine malfunction interrupt
+
+               nnF4  External interrupt
+
+               nnF5  Memory access controller interrupt
+
+
+                                                 ERROR DESCRIPTIONS    Page 15
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+
+
+          SECTION 9.2 Test 0 Error Codes
+          ______________________________
+
+          Error
+          Number                       Cause
+          ______                       _____
+
+           0000    Device did not  respond (Verify that the  device address is
+                   correct and that the device interface is properly seated.)
+
+           0001    Timeout on NMTN (no tape motion) status of controller
+
+           0002    Timeout on NMTN status of controller during rewind
+
+           0004    Timeout on EOM (end of medium) status of controller
+
+           0005    Write EOF (end of file) error
+
+           0006    Read EOF error
+
+           0007    Skip/Backspace EOF error
+
+           0008    Backspace record error
+
+           0010    Write record error
+
+           0011    Read record error
+
+           0012    Condition code not zero after write
+
+           0013    Condition code not zero after read
+
+           0014    ESELCH write end address mismatch
+
+           0015    ESELCH read end address mismatch
+
+           0046    Data error
+
+           0047    Delimiter error (not reading or  reading past the delimiter
+                   set at the end of the data buffer)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                 ERROR DESCRIPTIONS    Page 16
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+
+
+          SECTION 9.3 Test 1 Error Codes
+          ______________________________
+
+          Error
+          Number                       Cause
+          ______                       _____
+
+           0100    Device did not  respond (Verify that the  device address is
+                   correct and that the device interface is properly seated.)
+
+           0101    Timeout on NMTN (no tape motion) status of controller
+
+           0102    Timeout on NMTN status of controller during rewind
+
+           0104    Timeout on EOM (end of medium) status of controller
+
+           0105    Write EOF (end of file) error
+
+           0108    Backspace record error
+
+           0110    Write record error
+
+           0111    Read record error
+
+           0112    Condition code not zero after write
+
+           0113    Condition code not zero after read
+
+           0114    ESELCH write end address mismatch
+
+           0115    ESELCH read end address mismatch
+
+           0146    Data error
+
+           0147    Delimiter error (not reading or  reading past the delimiter
+                   set at the end of the data buffer)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                 ERROR DESCRIPTIONS    Page 17
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+
+
+          SECTION 9.4 Test 2 Error Codes
+          ______________________________
+
+          Error
+          Number                       Cause
+          ______                       _____
+
+           0200    Device did not  respond (Verify that the  device address is
+                   correct and that the device interface is properly seated.)
+
+           0201    Timeout on NMTN (no tape motion) status of controller
+
+           0202    Timeout on NMTN status of controller during rewind
+
+           0204    Timeout on EOM (end of medium) status of controller
+
+           0205    Write EOF (end of file) error
+
+           0206    Read EOF error
+
+           0207    Skip/Backspace EOF error
+
+           0209    BOT (beginning of tape) error
+
+           0210    Write record error
+
+           0211    Read record error
+
+           0212    Condition code not zero after write
+
+           0213    Condition code not zero after read
+
+           0214    ESELCH write end address mismatch
+
+           0215    ESELCH read end address mismatch
+
+           0246    Data error
+
+           0247    Delimiter error (not reading or  reading past the delimiter
+                   set at the end of the data buffer)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                 ERROR DESCRIPTIONS    Page 18
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+
+
+          SECTION 9.5 Test 3 Error Codes
+          ______________________________
+
+          Error
+          Number                       Cause
+          ______                       _____
+
+           0300    Device did not  respond (Verify that the  device address is
+                   correct and that the device interface is properly seated.)
+
+           0301    Timeout on NMTN (no tape motion) status of controller
+
+           0302    Timeout on NMTN status of controller during rewind
+
+           0304    Timeout on EOM (end of medium) status of controller
+
+           0305    Write EOF (end of file) error
+
+           0307    Skip/Backspace EOF error
+
+           0308    Backspace record error
+
+           0310    Write record error
+
+           0311    Read record error
+
+           0320    No interrupt after rewind
+
+           0321    No interrupt after write EOF
+
+           0322    No EOM and  NMTN interrupt during WEOF (write  end of file)
+                   operation
+
+           0323    No NMTN interrupt during WEOF (write end of file) operation
+
+           0324    No interrupt after backspace EOF
+
+           0325    No interrupt after backspace record
+
+           0326    No EOM interrupt after write
+
+           0327    No EOM interrupt after read
+
+           0328    No ESELCH interrupt after write
+
+           0329    No ESELCH interrupt after read
+
+           0330    No interrupt on skip forward
+
+           0331    No interrupt on skip reverse
+
+           0332    No interrupt on DU (device unready) (0 - 1)
+
+           0333    DU not set after DU interrupt (0 - 1)
+
+
+                                                 ERROR DESCRIPTIONS    Page 19
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+
+           0334    No interrupt on DU (1 - 0)
+
+           0335    DU not set after DU interrupt (1 - 0)
+
+           0336    Interrupt not qued
+
+           0338    Disarm function failure
+
+           0339    Disable function failure
+
+           0346    Data error
+
+           0347    Delimiter error (not reading or  reading past the delimiter
+                   set at the end of the data buffer)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                 ERROR DESCRIPTIONS    Page 20
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+
+
+          SECTION 9.6 Test 4 Error Codes
+          ______________________________
+
+          Error
+          Number                       Cause
+          ______                       _____
+
+           0400    Device did not  respond (Verify that the  device address is
+                   correct and that the device interface is properly seated.)
+
+           0401    Timeout on NMTN (no tape motion) status of controller
+
+           0402    Timeout on NMTN status of controller during rewind
+
+           0404    Timeout on EOM (end of medium) status of controller
+
+           0405    Write EOF (end of file) error
+
+           0408    Backspace record error
+
+           0410    Write record error
+
+           0411    Read record error
+
+           0412    Condition code not zero after write
+
+           0413    Condition code not zero after read
+
+           0414    ESELCH write end address mismatch
+
+           0415    ESELCH read end address mismatch
+
+           0416    Error condition not detected
+
+           0417    ERR (error) bit not set on overflow
+
+           0418    ERR bit set during read long function
+
+           0446    Data error
+
+           0447    Delimiter error (not reading or  reading past the delimiter
+                   set at the end of the data buffer)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                 ERROR DESCRIPTIONS    Page 21
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+
+
+          SECTION 9.7 Test 5 Error Codes
+          ______________________________
+
+          Error
+          Number                       Cause
+          ______                       _____
+
+           0500    Device did not  respond (Verify that the  device address is
+                   correct and that the device interface is properly seated.)
+
+           0501    Timeout on NMTN (no tape motion) status of controller
+
+           0502    Timeout on NMTN status of controller during rewind
+
+           0504    Timeout on EOM (end of medium) status of controller
+
+           0505    Write EOF (end of file) error
+
+           0507    Skip/Backspace EOF error
+
+           0508    Backspace record error
+
+           0510    Write record error
+
+           0511    Read record error
+
+           0512    Condition code not zero after write
+
+           0513    Condition code not zero after read
+
+           0514    ESELCH write end address mismatch
+
+           0515    ESELCH read end address mismatch
+
+           0519    Tape motion error
+
+           0546    Data error
+
+           0547    Delimiter error (not reading or  reading past the delimiter
+                   set at the end of the data buffer)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                 ERROR DESCRIPTIONS    Page 22
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+
+
+          SECTION 9.8 Test 6 Error Codes
+          ______________________________
+
+          Error
+          Number                       Cause
+          ______                       _____
+
+           0600    Device did not  respond (Verify that the  device address is
+                   correct and that the device interface is properly seated.)
+
+           0601    Timeout on NMTN (no tape motion) status of controller
+
+           0602    Timeout on NMTN status of controller during rewind
+
+           0604    Timeout on EOM (end of medium) status of controller
+
+           0605    Write EOF (end of file) error
+
+           0608    Backspace record error
+
+           0610    Write record error
+
+           0611    Read record error
+
+           0612    Condition code not zero after write
+
+           0613    Condition code not zero after read
+
+           0614    ESELCH write end address mismatch
+
+           0615    ESELCH read end address mismatch
+
+           0646    Data error
+
+           0647    Delimiter error (not reading or  reading past the delimiter
+                   set at the end of the data buffer)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                 ERROR DESCRIPTIONS    Page 23
+
+
+
+
+          Magnetic Tape Transport Diagnostic                   1 November 1982
+
+
+          SECTION 10.0 DATA PATTERNS
+          __________________________
+
+          Five different  data patterns are  generated by the  diagnostic that
+          are used during Test 0.  They switch the data lines under worst case
+          conditions.  The data patterns for Test 0 are:
+
+               00FF00FF00FF00FF
+               0102040801020408
+               7FBFDFEFF7FBFDFE
+               AA55AA55AA55AA55
+               F00FF00FF00FF00F
+
+          The data  pattern for  Tests 1 - 5  is an  incrementing series  that
+          ranges 00 - FF.   The range may  be changed by  the bytes-per-record
+          command (see Section ).
+
+          The data pattern  for Test 6  is input after  a prompt that  is dis-
+          played when the data command is enabled (see Section 7.2.18).  Up to
+          64 characters may be entered for the pattern.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                      DATA PATTERNS    Page 24
+
+
+
+
+
+
+
+                                 READER'S COMMENT FORM
+
+                           Magnetic Tape Transport Diagnostic
+                             Publications Order Number 356
+
+
+          How was this document used?
+
+          _____    Marketing tool
+
+          _____    Technical reference
+
+          _____    Other ____________________________________________________
+
+
+                         ____________________________________________________
+
+
+          Your comments on this  document are welcome.  Please  list page num-
+          bers where appropriate and any suggestions for further improvement.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          Please send this form to: Network Technology Division
+                                    Documentation
+                                    TYMSHARE, Inc.
+                                    10261 Bubb Road
+                                    Cupertino, CA  95014
+
+
+
+
+
+
+    m ]Ÿ
