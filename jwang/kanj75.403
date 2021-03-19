@@ -1,0 +1,237 @@
+
+:
+: XCOM 4.03.
+: UPGRADED FROM KANJ75.301.
+: FILENAME: KANJ75.403
+: UPGRADED BY JWANG ON JUNE 1. 1988
+:-----------------------------------------------------------------------
+:
+:*************************************************************************
+: FILENAME :  KANJ75.301, 
+:             THIS PATCH IS ON CIRCUIT BASIS. THIS PATCH CAN BE INSTALLED
+:             INTO X.75 GATEWAY XCOM. FOR X.25 HOST XCOM, PLS USE KANJ25.301
+:             (THIS KANJ25.301 IS ON LINK BASIS).
+:************************************************************************
+:
+: THIS PATCH IS UPGRADED FROM (JWANG:37:8NEXTD.300 OF VERSION 3.00) TO
+: VERSION 3.01  (CHANGE 3.00 BY TOCHI-NSC.JAPAN)
+: 8NEXTENDED MODE HOST USE THE PARITY BIT AS A CONTROL BIT.
+: ANY ORIGINATOR CALL THIS HOST SHOULD ENABLE THE 8NEXTENDED CHARACTER
+: FUNCTION.
+: FUNCTION OF THIS PATCH:
+:   0. SET THE KANJI FLAG ON IF CALLED ADDRESS CONTAINS <CNTL K> OR
+:      USERNAME IN THE NEEDLE CONTAINS 'K.' AS THE FIRST TWO BYTES.
+:      THEN THE RESET OF THE PATCH FUNCTION WILL BE BASED ON THIS 
+:      KANJI FLAG.
+:   1. IF THE HIGHEST BIT (PARITY BIT) IS ON, TREAT THIS CHARACTER
+:      IN A NON-TERMINATOR. SO, SKIP CHECK THE PAD FORWARDING CHARACTER.
+:      DAMAC2 AT DAT120 AND DAT160.
+:   2. IF THE HIGHEST BIT ON, ECHO IT FOR FULLDUPLEX TERMINAL AND NOT ECHO
+:      IT BACK FOR HALFDUPLEX TERMINAL. OTHERWSIE, THE CODE HANDLES AS BEFORE.
+:      DAMAC1 AT DAT160.
+:      ALL THE CHARACTERS WHOSE HEX VALUE ARE IN THE RANGE '80 -- FF'
+:      ARE ASSUMED TO BE ECHOABLE. (OTHERWISE, WE NEED TO EXPAND
+:      ECHOABLE FROM THE RANGE 00-7F TO '00-FF'---ANOTHER PATCH
+:      IS REQUIRED FOR THIS CASE.)
+:   3. NOT ECHO '0A' FOR 8D, '0D' FOR '8A'.
+:      ECHO '0A' INSTEAD OF '8A' FOR '0D', '0D' NOT '8D' FOR '0A'.
+:      (SUPPOSE ECHO LF OR CR IS ENABLED ON THE SYSGEN---DEFINED ON TYMFILE)
+:      DAMAC1 AT DAT160.
+:   4. SEND ETM BACK TO ORIGINATOR AFTER CALL ACCEPTED PACKET RECEIVED FROM
+:      HOST (I.E., FROM THE LINK.)
+:   5. SEND LTM TO CONSAT WHEN XCOM RECEIVES 'LEVEL 1 PACKET-- INVITATION TO 
+:      CLEAR' FROM HOST.
+:   6. IF PADOPTION XONOFF IS GENNED IN THE SLOT, DON'T MASK OFF THE
+:      PARITY BIT FOR XONOFF CHARACTER.
+:
+:  *** THE INPARITY(...) SHOULD USE 'SAVE' OPTION
+:  *** OR USE DEFAULT.
+:
+:
+:********************limitation****************************************
+:
+: REVISED ON NOV 25, 1986 BY JWANG.
+:
+: SOME INSTRUCTIONS'S ADDRESS CHANGED FROM DAT160+?? TO DAT170-??
+: TO MAKE IT MORE GENERAL. THE JAPAN X.25 SLOT ISN'T GENERATED WITH
+: DNOP CONDITION. BUT KDD X.75 GATEWAY GENED WITH DNOP SET TO 1 AND
+: SO, ONE MORE INSTRUCTION WAS GENERATED BETWEEN DAT160 AND DAT170.
+: THIS FORCE THIS ORIGINAL PATCH GIVEN TO JAPAN DOESN'T FIT TO KDD.
+: THE CAHNGE FROM DAT160+?? TO DAT170-?? TO MAKE IT MORE GENERAL
+: AND THEN CAN BE USED FOR JAPAN AND KDD. 
+: DUE TO NO SYMBOL EXISTS BETWEEN DAT160 AND DAT170, THERE IS STILL
+: ONE LIMITATION STATED AS BELOW:
+: TO USE THIS PATCH,'PBCIND' SHOULDN'T BE DEFINED ON SYSGEN TIME.
+: OTHERWISE THE WHOLE SET OF INSTRUCTIONS UNDER 'IF \PBCIND' WILL
+:  BE GENERATED AND THE ADDRESS OF DAT170-?? NEEDS TO BE CHANGED.
+: THERE IS NO WAY TO GET RID OF THIS LIMITATION DUE TO NO SYMBOL
+: CAN BE USED BETWEEN DAT160 AND DAT170.********limitation*************
+:**********************************************************************
+:======================================================================
+:
+: PART 0. SET THE KANJI FLAG ON IF CALLED ADDRESS CONTAINS <CNTL K>
+:         OR USERNAME IN THE NEEDLE OCNTAINS 'K.' SA THE FIRST TWO BYTES.
+:
+:
+PATCH(860922,1200,JWANG,PA0PTR,,2*NDGRPS)
+KANJI  HS      NDGRPS
+CONPATCH(CLD050,,8)
+        J       PA1PTR,,
+        NOPR    0,0
+CONPATCH(PA1PTR,,26)
+        CLHI    R0,0B           :IS IT CONTROL K?
+        JN      KANJ10,,
+        SBT     R1,KANJI,,
+        J       CLD090,,
+KANJ10  CLHI    R0,0D
+        JE      CLD100,,
+        J       CLD050+8,,
+CONPATCH(NST118,,8)
+        J       PA1PTR,,
+        NOPR    0,0
+CONPATCH(PA1PTR,,32)
+        JAL     R4,GETCH,,
+        CLHI    R0,4B           :THE FIRST CHAR OF USERNAME IS K?
+        JN      KANJ20          :IF NOT, JUMP BACK
+        LB      R0,IRING+RING+IRSIZE,R14,
+        CLHI    R0,2E           :IS SECOND CHAR A DOT?
+        JN      KANJ20
+        LHL     R1,DPORT,,
+        SBT     R1,KANJI,,
+KANJ20  THI     R0,80
+        J       NST118+8,,
+CONPATCH(DDONE+34,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        RBT     R1,WIBMCA,,
+        RBT     R1,KANJI,,
+        J       DDONE+3A,,
+:
+:==========================================================================
+:
+: PART 1.
+:
+
+CONPATCH(DAT130-16,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,22)
+        LHL     R4,DPORT,,
+        TBT     R4,KANJI,,
+        JEFS    .+0A
+        CR      R0,R8           :PARITY BIT ON?
+        JN      DAT130-0A,,     :YES, NOT TERMINATOR
+        LB      R2,XMTASC,R8,   :CHECK TERMINATOR
+        J       DAT130-10,,
+CONPATCH(DAT170-16,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,22)
+        LHL     R4,DPORT,,
+        TBT     R4,KANJI,,
+        JEFS    .+0A
+        CR      R0,R8           :PARITY BIT ON?
+        JN      DAT170-0A,,     :YSE, NOT TERMINATOR
+        LB      R2,XMTASC,R8,   :CHECK TERMINATOR
+        J       DAT170-10,,
+:
+:==========================================================================
+: PART 2.
+:
+CONPATCH(DAT170-9E,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,4A)
+        TBT     R4,HLFDUP,,
+        JN      LFCR            :NO ECHO FOR HALFDUPLEX
+        LHL     R4,DPORT,,
+        TBT     R4,KANJI,,
+        JEFS    .+8
+        CR      R0,R8           :PARITY BIT ON?
+        JN      LFCR1           :ECHO IT BACK
+        TBT     R8,DETBL,R9,    :ECHOABLE? DEFINE ON TYMFILE/
+        JE      LFCR
+LFCR1   JAL     R4,PUTCH,,
+:======================================================================
+:
+: PART 3
+:
+LFCR    LHL     R4,DPORT,,
+        TBT     R4,KANJI,,
+        JEFS    .+0A
+        CR      R0,R8           :PARITY BIT ON?
+        JN      DAT170-24,,     :YES, SKIP INSERTING 0A OR 0D
+        J       DAT170-8C,,
+CONPATCH(DAT170-62,,4)
+        LHI     R0,0A
+CONPATCH(DAT170-2C,,4)
+        LHI     R0,0D
+:
+:============================================================
+:
+: PART 4.
+:
+CONPATCH(PCA310+44,,8)
+        J       PA1PTR,,
+        NOPR    0,0
+CONPATCH(PA1PTR,,24)
+        LHL     R4,DPORT,,
+        TBT     R4,KANJI,,
+        JN      PCA310+60,,     :SEND ETM
+        TBT     RL,ETM.F,,
+        JE      PCA340,,
+        J       PCA310+4C,,
+:**********************************************************************
+:
+: PART 5. SEND 'LTM' TO CONSAT at the time xcom receives
+:          Q-BIT packet 'invitation to clear' from Host.
+CONPATCH(RLEV12,,8)
+        J       PA1PTR,,
+        NOPR    0,0
+CONPATCH(PA1PTR,,46)
+        LHL     R1,DPORT,,
+        JLE     NOLTM
+        TBT     R1,KANJI,,
+        JE      NOLTM           :NOT TO SEND LTM
+        TBT     R1,TURKEY,,     :IS IT A TURKEY CALL?
+        JN      NOLTM           :IF NOT FROM CONSAT, SKIP SENDING LTM
+        CTLMSG(LTM)             :SEND LTM TO CONSAT
+NOLTM   LHL     R5,IPORT,,
+        TBT     R5,EXTCAL,,
+        J       RLEV12+8,,
+:
+: SEND LTM TO CONSAT WHEN CLEAR REQUEST RECEIVED FROM THE LINK
+:
+CONPATCH(RTCLR+0C,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,38)
+        LHL     R4,DPORT,,
+        JLE     TCLR05
+        TBT     R4,KANJI,,
+        JE      TCLR05
+        CTLMSG(LTM)
+TCLR05  LIS     R0,0
+        LB      R4,PCKSTE,R7,
+        J       RTCLR+12,,
+:
+:============================================================================
+: PART 6. IF PADOPTION XONOFF IS TURNED ON , SKIP MASKING OFF THE PARITY
+:         BIT WHEN WE COMPARE DATA FROM THE LINK WITH XON (11) AND XOFF (13)
+:         CHARACTERS.
+:
+   IF   PDO.|XONOF|
+CONPATCH(TDA141,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,20)
+        JAL     R4,PICKCH,,
+        LR      R7,R0
+        LHL     R4,DPORT,,
+        TBT     R4,KANJI,,
+        JE      TDA141+6,,              :WILL MASK OFF THE PARITY BIT
+        J       TDA141+0A,,             :WILL NOT TURN OFF PARITY BIT
+ENDPATCH(THE PADOPTION XONOFF TURNED ON, NOT MASK OFF PARITY BIT FOR XON/XOFF)
+   EI
+ENDPATCH(IF THE HOST IS 8NEXTENDED, SEND ETM TO ORIGINATOR AND FOLLOWINGS)
+ENDPATCH(ECHO 0A FOR 0D NOT 8D)
+ENDPATCH(ECHO 0D FOR 0A NOT 8A)
+ENDPATCH(ECHO THE CHARACTER IN WHICH THE PARITY BIT IS ON)
+ENDPATCH(THE CHARACTER WITH PARITY ON IN NOT TREATED AS TERMINATOR)
+ENDPATCH(SEND LTM WHEN INVITATION TO CLEAR RECEIVED FROM THE LINK)
+   
