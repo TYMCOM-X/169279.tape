@@ -1,0 +1,22 @@
+
+:****************************************************************
+:
+:	Patch by :		Stephane Fisbein - B.T. Tymnet - EurOps
+:	Patch to module :	XCOMDD.F43
+:	Version :		4.03
+:	Related NSR # :		4046
+:	Description :		X.75 will not include the ODNIC in the
+:				TNIC list of the Call Request packet if
+:	DNICNODE macro is not assembled. This is because R1 remains set
+:	to FACBUF instead of IECBUF at ESP959. This is what this patch
+:	fixes when we are transit net.
+
+  if	x.75
+patch(091890,1250,S/FISBEIN,ESP959+4,,6)
+	J	PA1PTR,,
+conpatch(PA1PTR,,12)
+	LHL	R1,IECBUF,,		: bufferlet pointer (WCI)
+	LHL	R8,ONI.LT,R3,R3		: get our DNIC
+	J	ESP959+0A,,		: back to source
+endpatch(Use IECBUF to insert ODNIC into TNIC list in Call Request)
+  ei	x.75
