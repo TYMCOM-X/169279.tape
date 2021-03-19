@@ -1,0 +1,1279 @@
+
+******************************************************************************
+*                                                                            *
+*                               T E C H T I P S                              *
+*                                                                            *
+******************************************************************************
+
+
+
+
+
+
+ 1.      Implementation of Memory Write Commands in ISIS DDT
+         Carl Langdon - STS
+
+ 2.      Procedures for Information Gathering for Nodal Outages
+         Doug Ellenberg - STS
+
+ 3.   	 Procedures for  NETALERT
+          Jeff Liu - STS
+
+ 4.      2400 bps Modems and XCOM Line Drops
+         Douglas Ellenberg - STS
+
+ 5.      X.PC slot Hang after password troubleshooting.
+         Jeff Liu - STS
+
+ 6.      CMT - All Ports in Cleanup Problem
+          Richard Ho - STS
+ 
+ 7.      USING X.PC FROM INTERNATIONAL LOCATIONS WITH X.3 PADS
+         Jeff Oliveto
+
+ 8.      Information on the Paper System and Definition of Ticket Fields
+         Matrona Busch - Network Operations
+
+ 9.      Multibasing and Multitargeting
+         Douglas Ellenberg - STS
+
+10.      UTS Questions
+         Achille Montini- Sirti
+
+11.      SNA/SDLC Field Guide
+         Ping Chu - STS
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Major contributors to this TIP include Paul Krumviede, John McKiernan,
+and Doug Ellenberg.
+
+Compiled and Edited by 
+Carl Langdon 
+Software Technical Support
+
+A problem was recently discovered with the implementation of memory
+write commands in ISIS DDT.  The format for such commands is W <ADDR>,
+<COUNT>, <DATA>, where COUNT is assumed to not exceed 64 Kb.  With the
+added support of extended memory (> 1 Mb) configurations, some changes
+were required in memory mapping for DDT processes.  These created the
+mandatory 64 Kb byte count limit to avoid corruption of low core.
+
+This requirement was not enforced in DDT, so any process which writes to
+ISIS slot memory can corrupt low core if it issues any write command
+with a large byte count (between 64 Kb and 128 Kb, depending on the
+supplied start address).
+
+Symptoms of this problem would be a machine stuck in a loop with a PC of
+ZERO, or in bootstrap (if the watch-dog timer was enabled), when
+attempting to do a write command.
+
+The only known occurrence of this problem occurred when loading SNA
+interface files from ELF into a machine running ISIS code greater than
+version 6.00.  Note that LOADII loads slots in 32 Kb increments to avoid
+this problem, so this is an extremely unlikely occurrence.
+
+Resolution:
+
+An ISIS NSR was submitted to protect ISIS from overwriting low core.
+This fix will not allow a request of the type described, preventing ISIS
+problems.  The slot load will be rejected and an error message given.
+
+SNA developers do not object to modifying their NAD command file to
+prevent attempts to issue these types of DDT requests.  Since the only
+known occurrence to date is with SNA interface files, changing those
+command files will eliminate the known problems.
+
+The SNA interface NAD CMD files should be modified as follows:
+
+Remove SEG5,S5SIZE;P      and add     LO    CMDLST
+       SEG6,S6SIZE;P                SEG5,CMDBLK-SEG5;P
+       SEG7,S7SIZE;P                  FO    CMDLST
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Doug Ellenberg
+Software Technical Support
+
+SUBJECT
+
+Procedures for Information Gathering for Nodal Outages
+
+This file is available in (TECHREF:38) NODE.DOC.  Appended below is a
+checklist, of sorts, that should be used as an outline of the minimum
+steps that should be taken in the event of a node outage.  The
+information gathered from the performance of these steps will allow for
+a speedy and accurate inspection of these outages.
+
+This is the first publication of these procedures.  It is intended that
+through use the procedures will expand into a more complete and useful
+document.  Eventually, the information may be sufficiently detailed and
+complete to call the document a field guide.
+
+Additional information:
+
+1.  The first section "Node crash and recover" is an attempt to gather
+sufficient information in one text file that will allow quick and
+accurate diagnosis of a node crash and recovery.  Typically, in these
+situations there is no way to gather the information necessary to return
+to the originator a correction to the problem.  We will be archiving
+these text files by crash type to attempt to spot patterns that are
+occurring prior to the crashes.  Unless there is a known problem of the
+type recorded, in these instances recommendations such as "set the node
+to enter boot upon software crash so a dump can be taken" may be
+returned.
+
+2.  Unless there is a pressing need for a quick response to a node crash
+and recover (i.e.., customer pressing for an answer, multiple
+occurrences of the same problem, crash right after an upgrade or just
+general concern) the information should be provided to STS as an RFI or
+Priority 5 escalation.  The data can also be sent in on an FYI basis for
+our archives.  The data will help in spotting trends from our central
+vantage point and may help in correcting future escalations.  Since the
+analysis will consist mostly of a text file review we should be able to
+turn these around rather quickly.
+
+3.  The section "Node drops from Network and does not recover" gives
+recommendations on physical inspection of the node.  If the site
+personal are FSC field engineers they may have additional steps they
+wish to perform prior to setting the node to boot.
+
+4.  The second section also attempts to provide information on how to
+verify if a dump is valid or not.  The reader should be familiar with
+the NAD exec file (ENGDIAG)ENGDMP.  The users manual is located in the
+file (ENGDIAG)ENGDMP.DOC located on most systems.
+
+Please use the check list prior to escalating node outage problems.  It
+will insure the information required is available for analysis and
+should reduce the turn around time of all Node Code and ISIS
+escalations.
+
+If you have any additions, corrections, or suggestions on this document
+please forward them via Ontyme to QSATS.D/Ellenberg and copy
+QSATS.TECHSERV.
+
+I'd like to thank Clive Rowe, Angela Healy, Scott Wedel, Sandra Nilluka,
+Paul Krumviede, Ed Mooring, Ron Vivier, Jim Stein and Gail Bubsey for
+their contributions to the formation of this document.
+
+This document is intended to provide a list of steps to be taken in the
+event of a Node Code or ISIS related nodal outage or problem.
+
+Symptom:  Node Code crash and recover.
+
+Steps:
+
+        INCLUDE ALL OUTPUT OF ANALYSIS IN A TEXT FILE ON THE 
+        SYSTEM THE NODE'S CONFIGURATION FILES ARE RESIDENT ON.
+
+1.  Do NOT take Dump.  A Dump of a node after it has recovered from a
+crash is of no value if the following steps are taken.
+
+2.  Pull crash detail from XRAY - Issue and record the output from the
+XRAY 'DC' command.  This will pull the summary and detailed crash
+history information.
+
+3.  Pull the patch history information - Issue and record the output
+from the XRAY 'PQ' command.  This will list the Node Code patches
+included in slot 0.  This is for comparison with the current patch file
+to verify what patches were in the node at the time of failure.
+
+4.  Pull the node descriptor information - Issue and record the output
+from the XRAY 'ND' command.  This will list the basic information about
+the node's configuration and network links.
+
+5.  Pull the complete Crypto Log - Issue and record all the messages in
+the node's Crypto log.  Issue the 'CL FF' command.  This will list the
+complete contents of the XRAY history of events log.
+
+6.  Inspect for memory problems - Issue and record the output of the
+XRAY 'QE' command (SOLO nodes only) or the DDT '?MEM' query.  This will
+verify if there are concurrent memory hardware problems that may be
+related to the Node Code outage.
+
+7.  Pull the Node Code-Dispatcher communication rings at the time of the
+crash - Issue and record the output of the XRAY 'DS' command.  This
+command prints the contents of the buffer used to save the Node Code
+Dispatcher communication rings saved at the time of the crash.  Note:
+This command is given privileged status.  The XRAY 'GP <security
+string>' command may have to be issued prior to the 'DS'.
+
+8.  Research the events happening prior to the crash of the node -
+Include a description of any information that may be related to the
+crash.  Items such as the type of traffic occurring prior to the node
+outage, slot details (reloads, file transfers, etc.), tests being run,
+or any information that can be garnered from the users.
+
+9.  Restore the original .NIB and .N00 files to the same system the
+configuration files exists.  If the files can not be restored, recreate
+them.  Indicate if the files are the originals or if they have been
+recreated.  These binary files would be used for node analysis if
+required.
+
+In summary:
+
+1.  No Dump required.
+2.  XRAY 'DC' output.
+3.  XRAY 'PQ' output.
+4.  XRAY 'ND' output.
+5.  XRAY 'CL FF' output.
+6.  XRAY 'QE' or DDT '?MEM' output.
+7.  XRAY 'DS' output. (Privileged command)
+8.  Include description of events prior to crash.
+9.  Restore the .NIB and .N00 files.
+
+Symptom:  Node drops from Network and does not recover.
+
+Steps:
+
+1.  If Node is not in Boot:
+
+    If on-site personal are available:
+
+    A.  Take front console readings.  Record display contents.  If WAIT
+BAR is on hit PSW key and record display.  If WAIT BAR is not on hit RUN
+and record display.  Repeat twice.  Hitting RUN and recording the
+display will show if the machine is stuck in a loop.
+
+    B.  Check the Microcode Parity Error Light on the ROM I/O board.
+Record condition (normal is on very faintly).  If on brightly AND the
+front console is locked this indicates the board has taken a Microcode
+parity error.
+
+    C.  Place node into Boot manually for either Dumping or reloading
+depending on how critical time is.  Note:  Putting node into Boot
+manually will overwrite some data in the lower memory area but should
+not effect the Dump to a great degree.
+
+2.  If Node is in Boot:
+
+    A.  If time permits, take a full engine Dump.  If time does not
+permit a full engine Dump take a 'C' Dump to record just the crash
+information (a 'C' Dump should take less than 2 minutes).  Note:  A 'C'
+Dump will not allow for extensive research into the problem but it is
+better than just the front panel console readings.
+
+3.  Verify the Dump.  After everything is under control run the
+(ENGDIAG)ENGDMP program on the Dump(s).  This program will verify if the
+Dump taken is readable.  An ISIS crash will be decoded by this program
+and most of the crash information will be displayed.  A Node Code crash
+will not be decoded but the Node Number field and Version Number fields
+must be valid for the Dump to be of any use.  If the ENGDMP program does
+not extract useful data from the Dump (i.e.., fields displayed all
+garbage, NAD sits at the ;G command for hours, etc.)  the Dump should be
+deleted.
+
+Note:  Two common causes for bad Dumps are:  1.  Starting the Dump at a
+non zero location and 2.  Escaping out of the Dump before LOADII returns
+the PDP system prompt.
+ 
+4.  Inspect the Probe log and neighbor nodes through their XRAY's to
+gather additional information on activities occurring prior to the
+crash.  Record this data in a text file.
+
+5.  Insure the original .NIB and .N00 files are available on the system
+the Dump resides.  If the original files can not be restored, regen
+them.  Indicate if the files are regenned or restored.
+
+             PLACE THE DUMP, .NIB, AND .N00 ON A SYSTEM AND IN 
+             A DIRECTORY WHERE  THEY  WILL  NOT  BE  DELETED.
+
+
+When either escalating, sending an RFI, or just providing FYI
+information for the crash archives, please include the problem
+description in the header information.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Jeff Liu
+Software Technical Support
+
+SUBJECT
+
+PROCEDURES FOR NETALERT
+                                                
+I.     NETALERT PROGRAM STATUS
+II.   WEEKLY UPDATING TYMSAT.NAT FILE
+III.  CHANGE CONFIG PARAMETERS
+IV.  TROUBLESHOOTING
+V.   SUBMIT THE NETALERT JOB ON PDP SYSTEM
+  
+I.    NETALERT STATUS
+ 
+NETALERT is running on system 25, 38 and 70
+ 
+           please log in: NETALERT:25;<psw>
+      or   please log in: NETALERT:28;<psw>
+      or   please log in: NETALERT:70;<psw>
+      or   TECHSERV
+ 
+      - type NODOUT
+ 
+If the time is 3 hours ahead of Pacific time then this system is
+currently runing the Netalert main job of reading and sending the node
+information to customers.
+ 
+      - systat(netalert)
+ 
+If system is runing the Netalert main job then following information is
+displayed.
+ 
+      ex:
+ 
+      6    DETACHED      ALERT   104      RN    11490.81  0:00:00 NETALERT
+ 
+      6    MSGLOG TMP  1     DUMP NETALERT
+ 
+If the system is not runing the Netalert main job then only the first
+line is displayed.
+ 
+     - Ed
+     * r MSGLOG
+     *$-30,$/
+ 
+Read 30 lines of Netalert message log which tells how many Netalert
+statuses are running.
+ 
+II.  WEEKLY UPDATING TYMSAT.NAT FILE
+ 
+TYMSAT.NAT file contains all node information, this file will be
+modified and copied to (Netalert:25,28,70) on weekly basis by Marketing
+support.  This file is vital information for the Netalert program.
+ 
+III. CHANGE CONFIG FILE
+    
+Filename CONFIG contains information used by Netalert program.  All
+parameters in this file are changeable while Netalert is running.
+Netalert will read this file and use the new value of parameters for the
+netalert job running.
+ 
+     ** Only Netalert support has the authority to change the 
+        parameter value.
+ 
+IV.  TROUBLESHOOTING
+    
+If only 1 user is having problems receiving messages, the cause may be a
+problem with their equipment or ontyme.
+ 
+To isolate the problem to their equipment, send them a test message.  If
+they do not receive the test message, the problem most likely is in
+their equipment.  If they do receive it, the problem is elsewhere.
+ 
+      pli: EMSALE
+      id? ALERT.SUP
+      key? <key>
+      ************** THIS IS A TEST MESSAGE ***************
+                                          ..........LK
+      :S RUSH BONY       (sometimes sending a rush message forces
+                          the other messages through.)
+      (get the message number)
+      :IMI BONY          (imitate that account)
+      :IN 
+
+      If the message is on the in-list, call up the customer to have 
+      them check to see if they received it.
+
+      :IMI OFF           (turn off the imitation)
+ 
+If nobody is receiving their messages, the problem most likely is with
+the netalert job running.
+   
+      Check as in section I to see if NETALERT is running.
+ 
+      - TYP NODOUT       (shows last message that was sent)
+ 
+If more than a certain number of nodes are out of the network, a one
+line message will be sent to customer to tell how many exceptions
+instead of a table.
+ 
+If there is a line in the TYMSAT.NAT file that is misaligned, no
+messages will be sent.
+    
+If PROBE is out of user blocks and NETALERT can not log in no message
+will be sent to customer.  The (netalert)MSGLOG records this situation.
+ 
+If MUX 1897 is down, then netalert will be in the status of building
+circuit to MUX and no message will be sent.
+ 
+If EMSALE ontyme is down, then no message will be sent to customers.
+(netalert)MSGLOG records this situation.
+          
+If system 25,38,70 are all down the NETALERT program is stopped nothing
+can be down at this status.
+ 
+V.    SUBMIT THE NETALERT JOB ON PDP SYSTEM
+ 
+If you do not find the ALERT job running on (netalert:25,33,or 38), you
+can use the SUBMIT program on PDP-10 to rerun NETALERT.
+ 
+Example :
+ 
+-submit
+ 
+TYMCOM-X Job Processor  %1(212)  09-May-88 08:43:20
+ 
+SUBMIT> date startup
+ 
+SUBMIT> insert aalert.ctl
+ 
+Name of log file: 
+OPTIONS[Insert]: mail error
+OPTIONS[Insert]: timelimit 10
+OPTIONS[Insert]: 
+Job "AALERT" Inserted.  Req# 523
+ 
+SUBMIT> list
+ 
+  Job     Req     Time   UserName      Next Run         Status              
+  ---     ---     ----   --------      --------         ------              
+ *ALERT   520     00:00  NETALERT      --Active--         Proc-Run        
+ *AALERT  523     00:10  NETALERT      --Active--         Proc-Run        
+ 
+SUBMIT> list
+ 
+  Job     Req     Time   UserName      Next Run         Status              
+  ---     ---     ----   --------      --------         ------              
+  AALERT  525     00:10  NETALERT      --Startup--      Queued-Wait       
+ *ALERT   524     00:00  NETALERT      --Active--         Proc-Run        
+ 
+SUBMIT> q
+ 
+After going through the above troubleshooting procedure and finding
+no match for the above items, then send and escalation to *** NETALERT.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Doug Ellenberg
+Software Technical Support
+
+SUBJECT
+
+2400 bps Modems and XCOM Line Drops
+
+There have been some recent problems with the Concord 224 modems and 2
+wire dedicated circuits.  The Concord modems transmit at -9db which is
+padded down -16db more by telco so the receiving signal is -25db which
+is border-line for being detected and causes a high signal to noise
+ratio to exist.  Straps can be cut on the modem to cause it to transmit
+at -3db.
+
+For details see CFB #100 which was entered on July 9, 1986.
+
+Thank you.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Jeff Liu
+Software Technical Support
+
+SUBJECT
+
+X.PC slot Hang after password troubleshooting.
+
+The X.PC User encountered several hangs after the user typed the password.
+This hang problem may be related to X.PC Driver or X.PC Server.
+If it is caused bver, it will have the following symptoms :
+ 
+1. CS will get more complaints from users. Not one or two calls,
+   but many calls.
+ 
+2. In the case of many users hanging after password, log in to
+   DDT for each x.pc slot and issue ?cpu.
+ 
+?cpu
+ 
+    SLOT  RATE   RATE  RING STATS
+          USER  SYSTEM ICPS OCPS
+ 
+     FF    10     0
+      0    47     7   460   404
+      1     0     0     0     0
+      2     0     0     0     0
+      3    23     8   156   396  (xpc slot)
+ 
+  When both figures of ICPS and OCPS show 0 instead of 156 and 396
+  then this is the slot where all users get hung.
+ 
+THE PROCEDURE FOR CS TO DETECT AND TROUBLESHOOT THE HANG PROBLEM:
+ 
+A. Log in to each X.PC slot and issue ?CPU to see if item 2 exists.
+ 
+B.  If you do see ICPS and OCPS both equal to zero then immediately call
+X.PC support (see your support list).
+ 
+C.  If you can not reach any support in 20 minutes then issue the
+following ddt commands for a couple of times for the slot which hangs
+the users :
+ 
+    ? BT
+    ? BRR 0 10
+      ...
+      ...
+ 
+    ? BT
+    ? BRR 0 10
+ 
+Record the output of these commands AND send it to QSATS.
+ 
+D. After issuing the above commands, dump the slot and BRING THE SLOT UP
+IMMEDIATELY so that X.PC can function normally again.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Richard Ho
+Software Technical Support
+
+SUBJECT
+
+CMT - All Ports in Cleanup Problem
+
+The problem of "All Ports in Clean-up, CMT looping" is coming back to
+haunt us again.  There have been several incidents reported to QSATS/STS
+about this problem for all CMT versions.
+
+In order for STS to find out the cause of the problem and the
+location/routine which CMT is looping at, the following steps should be
+taken when this problem occurs:
+
+-    in DDT, do "?BT" and "?BRR 0 10" several times to get the values of
+      the Program Counter and the values of the Background registers.  Keep
+      on doing this until you can see some sort of pattern, e.g., Program 
+      Computer repeats itself.
+
+-    Halt the slot and take a dump.
+
+-    If possible (during office hours), give us a call so we can work with
+      you on the problem.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Stephen White
+International Network Services
+
+SUBJECT
+
+USING X.PC FROM INTERNATIONAL LOCATIONS WITH X.3 PADS
+
+DISCUSSION
+
+Below you will find the test results and recommendations from
+Steve White pertaining to the certification of the X.PC driver for
+access to an X.PC Server via an X.75 gateway.  In short; International
+Technical Services agrees to support X.PC communication via an X.75
+gateway with the following restrictions:
+
+        o  Must be using X.PC driver version 4.02c
+
+        o  For the time being, access to public servers will be
+            restricted to caller/pre-paid sessions only
+
+NLT 6/27 we will provide a break down of X.PC's effect on international
+packet/segment fill and propose a solution to the current barring of
+collect/reverse charge gateway sessions.  Contact either
+
+1.0 MANAGEMENT SUMMARY
+
+X.PC driver version 4.02c (or higher) is needed for communication from
+international locations with X.3 PADs.  From all locations it is
+necessary to change the X.3 parameters from the default settings.
+
+While X.PC communication is possible from X.3 PADs, it may be
+inefficient unless the PC application is careful to optimize the use of
+the X.PC packet size and packet window.  Certain aspects of the server's
+behavior are also inefficient.  This report recommends changes to the
+server/driver interaction to increase efficiency/security.
+
+An address "3106972" is established for pre-paid inbound X.121
+addressing of the Tymnet public servers.  Further work is necessary
+before this address could be used for inbound "collect" calls.
+
+2.0 CONCLUSIONS
+
+X.PC driver versions 4.01 or less were found unsuitable for access via
+X.3 PADs.  A flaw in the 4.01 driver was identified which is corrected
+in release 4.02c available soon.  With a corrected driver and
+appropriate X.3 settings, X.PC can be used from X.3 PADs without
+difficulty.  The PC application should provide sufficient "script"
+capabilities to avoid cumbersome logon/setup sequences.
+
+The efficiency of X.PC is greatly affected by the extent to which the PC
+application makes intelligent use of the driver's PAD forwarding
+characteristics.  The relatively small X.PC packet window of 4 limits
+the responsiveness and throughput of certain applications.  However, if
+optimally configured, some applications approach the maximum throughput
+expected given the X.PC protocol overhead and the circuit
+characteristics.
+
+Future development of the server should consider using IIX.  This would
+allow the destination DTE additional control of the X.3 and X.PC PAD.
+Care would have to exercised in allowing a DTE to change the X.3 values
+since more than one host session may be in progress.  A future version
+of the driver/server could be designed to allow different X.PC PAD
+parameters to be in effect on different channels to overcome some of
+these problems.  Also for consideration, future specifications for the
+driver's PAD could mirror X.3 more closely to make it easier to control
+the X.3/X.PC PAD combination.
+
+The addition of IIX to the server would greatly enhance its capabilities
+and efficiency.  However, other less drastic changes in the server which
+could be effected quickly and would have great effect on efficiency and
+network security.  These include:  mapping gouging level of the primary
+and secondary circuits; adding an idletimer to the server so that data
+from the host to terminal is packetized more efficiently; mapping
+incoming usernames to a set of allowable; not exchanging idle RR's on
+channel zero if other channels are active; clearing the terminal session
+if no sessions are active and no call/session request is received within
+"T" (configurable) minutes after establishing X.PC communication.  This
+latter point would be pre-requisite to establishing full X.121
+addressing for X.PC servers accepting inbound international collect
+traffic.
+
+As a security issue, the server should have a means for checking that a
+user is permitted to access a host.  For example, major accounts such as
+MCIMAIL and EASYLINK use the Public Servers.  There is nothing to
+prevent a user entering "MCIXPC" at the "Please log in" and then
+requesting Easylink (ESL).  MCI ends up with the communication costs on
+the first session.  This is a serious flaw which should be corrected
+ASAP before major customers get upset.  Perhaps a "public domain" "XPC"
+username is required or just make the first session non-billable on
+domestic (intra-Tymnet) sessions.  Other solutions can also be found.
+
+An X.121 address has been established for Tymnet's Public Network X.PC
+servers.  The address 3106972 is intended to become for "Public" use.
+This address is valid from all inbound caller-paid gateways.  A method
+for allowing inbound collect calls to the server(s) needs to be found.
+One possible method is to have separate server hosts for collect
+traffic.  This is currently under consideration.
+
+Given the association of X.PC with the CCITT X series, it seems natural
+to suggest that the X.PC protocol specification might follow a similar 4
+year cycle of renewal.  Other networks have developed their own servers
+and are identifying the weaknesses of X.PC's specification first hand.
+I venture to suggest that if Tymnet wishes to continue as the driving
+force behind a universally acknowledged X.PC specification, establishing
+a forum and calendar for X.PC revision becomes essential.
+
+With the advent of X.32 (Dial X.25), X.PC may become less popular in
+North America, Europe and Japan.  However, there are many areas of the
+world where no other effective error correction techniques will be
+available for years to come.  International support may be of great
+importance to X.PC.
+
+A separate report will be made of the statistics on how X.PC affects the
+throughput and overall cost of inter-network sessions traversing X.75
+gateways.
+
+3.0 BACKGROUND TO TESTING
+
+The following reports on the tests of X.PC from foreign data networks
+utilizing CCITT X.3 PADs.  The report includes recommended X.3 PAD
+parameter settings, X.PC recommendations and notes to application
+writers who wish to use X.PC.
+
+Thanks are due to Richard Pekelney of Kensington Microware for his
+assistance with providing the X.PC diagnostic tools and a congenial test
+environment!
+
+Test hardware:  IBM PC/XT running DOS, version 4.01 X.PC driver and
+                Instant Mail Manager software.  
+
+                Hayes CCITT V.22bis modem at 1200bps
+                using international direct dial into foreign PDN.
+
+                An IBM PC tapped into the rs-232 between the "main" 
+                PC and modem was a convenient X.PC datascope.
+
+X.3 PAD parameters: CCITT 1980 X.3 parameters were the principal concern.
+                    Where 1984 values were supported they were disabled.
+                    National parameters were disabled if active by default.
+
+X.PC Server: Public Network (Version 1.005)
+
+Destinations:  X.25 to WU Easylink.  Network resident test host, async no IIX,
+               developed by ENS.
+
+4.0 SETTING THE X.3 PARAMETERS
+
+The following X.3 pad settings were used for the majority of test calls
+and were found quite suited to both batch and interactive type traffic:
+
+X.3 PARAMETER    VALUE    EFFECT
+
+ 1                0        disable PAD recall.  Essential.
+ 2                0        disable PAD echo.  Essential
+ 3                0        No data forwarding character.  Efficient.
+ 4               10        Idletimer, 10/20 second.  Short and universal.
+ 5                0        Flow control disabled.  Essential.
+ 6                x        Service signals.  Don't care, use zero for safety.
+ 7                8        On break, escape from data transfer state.
+ 8                0        Discard output, off. Essential.
+ 9                0        Padding after carriage return, off. Essential.
+10                0        Linefolding, off. Essential
+11                x        Binary speed.  Leave alone.  Essential.
+12                0        Flow control disabled.  Essential.
+13                0        Linefeed/Return insertion, off.  Essential.
+14                0        Linefeed padding, off. Essential.
+15                0        Line editing, off. Essential.
+16-18             0        Pad editing functions, disabled when 15=0.
+19-22             0        1984 parameters where available, should be zero.
+
+The overall effect is to make the PAD 8-bit transparent with an
+idletimer of 1/2 second.  Shorter values of the idletimer are not
+universally accepted by PADs and may not offer improvement.  Longer
+values may slow the transmission and cause the X.PC window to become
+exhausted.
+
+The action on <break> is a neat way to regain control of the X.3 PAD
+when not in X.PC packet mode, since pad recall is otherwise disabled.
+While in X.PC packet mode, a terminal break is sent as an "indication of
+break" packet and does not cause a true break signal to reach the X.3
+PAD.  Thanks to Richard for thinking of this!
+
+The above combination has been found satisfactory for both interactive
+and batch transmissions.  The PAD can be configured in this manner by
+sending the strings:-
+
+SET 1:0,2:0,3:0,4:10,5:0,6:0,7:8,9:0,10:0,12:0,13:0,14:0,15:0
+SET 19:0,20:0,21:0,22:0
+
+Note that the CCITT 1984 parameters were set in a separate string, this
+is to minimize the possibility that a 1980 PAD will reject the entire
+SET command.  Note, parameter 8 is invariably zero by default.
+
+Rarely, national PAD parameters may be active which cause the PAD to act
+in a non-transparent fashion.  Such a problem may manifest itself as an
+inability to EVER connect with the X.PC server or host successfully.
+Consult with the foreign data network personnel or TYMNET if a national
+PAD parameter appears to cause a problem.
+
+5.0 A NOTE ON MODEMS
+
+Modems are increasingly sophisticated.  Some use escape sequences for
+special functions and may interpret flow control (XON/XOFF) characters.
+Modems must act in a transparent mode and not respond to RTS/CTS or
+XON/XOFF flow control.  Flow control and error recovery are an inherent
+part of X.PC protocol.
+
+6.0 INTERACTION OF THE PC APPLICATION, X.PC PAD AND X.3 PAD
+
+Having configured the X.3 parameters to make the CCITT X.3 PAD
+transparent, it is the way in which the X.PC PAD forwards data to the
+CCITT X.3 PAD which becomes critical.
+
+The aim is to make optimal use of the X.PC window and minimize the
+number of segments transmitted across international links while
+providing good behavior of the application for the user.
+
+A segment is a data packet or up to 64 characters, whichever is the
+less:  the table below illustrates this.  International accounting is
+commonly based in Kilo-Segments.  A packet size of 128 is typical on
+international calls.  More on this under the section on optimization.
+
+Characters in Packet           Segments
+
+         1                         1
+        64                         1
+        65                         2
+       128                         2
+
+Data going from the PC to the host is first sent to the driver for
+transmission.  The X.PC PAD makes and sends X.PC data packets according
+to criteria of its own.  The factors involved are:-
+
+1) The data forwarding character is sent by the application (<cr> is default).
+
+2) The idletimer expires (1/6 second is default).
+
+3) The data packet is full.
+
+4) The data block received from the application to be forwarded will at
+   least half-fill an X.PC data packet.
+
+Once an X.PC packet is ready to be sent to the X.3 PAD it will be put
+out on the async line in a steady stream so that the X.3 idletimer (1/2
+second) will be unlikely to expire in the middle of the X.PC packet.
+
+Once the entire X.PC packet is received by the X.3 PAD or whenever there
+is a lull in the transmission from the PC, the X.3 PAD will forward the
+X.PC packet to the server if the 1/2 second X.3 idletimer expires.  If
+the X.25 packet becomes full in mid X.PC packet, the X.3 PAD will
+forward the X.PC data in separate packets.  This does not create any
+problems since (unlike XMODEM) X.PC is not critical of brief time-gaps
+in the middle of receiving a packet.
+
+7.0 OPTIMIZING
+
+7.1 BATCH (UPLOAD) APPLICATIONS
+
+The default X.PC PAD settings are not optimal for batch transfers from
+the PC to the host.
+
+The application can and should issue a request to change the driver's
+forwarding character to a null (hex 00).  This disables the X.PC driver
+from forwarding data based on any particular criteria.  The other three
+forwarding criteria remain in effect.
+
+The idletimer should not be disabled (0) since the final block of data
+may not otherwise get sent.
+
+The application should also (on uploads from the PC) take care to hand
+data to the driver in large chunks so that X.PC packets will be full of
+data.  Each block sent to the driver can be larger than a single X.PC
+packet.  Naturally, the last block of remaining data may be small - this
+will forward after 1/6 of a second idleline.
+
+Applications which hand data from a text file to the driver on a line by
+line basis, send more X.PC packets because each line tends to more than
+half fill an X.PC packet.  The X.PC window exhausts leading to
+unnecessary pauses in transmission as X.PC awaits acknowledgements.  The
+number of segments used for the transmission also tends to increase.
+This impacts the efficiency of the transfer and increases the overall
+cost of the session.
+
+7.2 BATCH (DOWNLOAD) APPLICATIONS
+
+The application control of the driver PAD is not critical for transfers
+from the host.  The driver's acknowledgements will be forwarded quickly
+from the X.PC PAD (1/6 second) and the X.3 PAD (1/2 second).
+
+The current version of the server is not IIX capable and does not use an
+idle timer when packetizing data from the host to the PC.  Data messages
+received from the host in the server "i-ring" are packetized exactly as
+received.  Since Tymnet is a character oriented network using
+multiplexed data packets, data can arrive in fragments.  This leads to
+sub-optimal use of the X.PC window which slows down the data transfer
+and increases the segment count.
+
+We recommend that the server be upgraded (or patched) to add an
+idletimer so that data in the i-ring from the host is more efficiently
+assembled into X.PC packets thereby making better use of the packet
+window.  This would benefit all users of X.PC, domestic and foreign.  A
+larger X.PC window would also help in this and other ways, but this is
+not a true solution to the general problem.
+
+The user can help the situation by gouging the session(s) with ^c
+(300-1200bps) or ^d (over 1200bps).  The control character is used as
+the first character of the username in the session/call request.  this
+significantly increases the packet fill and speeds the transfer.  Note
+that on inbound calls, the throughput class is automatically mapped to
+an appropriate gouging level by the X.75 gateway.  It would be
+beneficial if the server could be modified to "remember" the gouging
+level on incoming calls and automatically use the same gouging level
+when satisfying session/call requests.
+    
+7.3 INTERACTIVE APPLICATIONS
+
+The default X.PC PAD settings are reasonable for interactive sessions.
+The sessions are a mixture of interactive and uploading then the
+application should change the X.PC PAD forwarding character to null (hex
+00) for the upload.  If the application cannot for some reason switch
+parameters, the uploading will work but at reduced efficiency.
+
+Interactive sessions will work using the null data forwarding
+recommended for the batch upload.  The slight delay of 1/6th second at
+the end of each line is the only penalty.  Some applications may prefer
+to always use the null data forwarding character.
+
+Interactive sessions tend to receive many times more data than they
+send.  It is important for the user to remember to use ^c or ^d gouging
+on all sessions.  Use ^c for speeds up to 1200bps, ^d for higher speeds.
+The control character forms the first character of the username in the
+session/call request after X.PC is established.
+
+8.0 MINIMIZING THE SEGMENT COUNT
+
+A more detailed analysis of X.PC's impact on Segment accounting is the
+subject of a future report so just a few words here.  See section 6.0
+for a definition of a Segment.
+
+X.PC adds 8 characters of protocol overhead on each X.PC data packet.
+Therefore, the maximum number of data characters that can fit into one
+X.PC packet and still stay under 64 characters (1 segment) in total is
+56 characters.
+
+Batch applications will tend to fill packets and therefor use the
+segments efficiently.  Interactive applications may benefit by keeping
+command lines less than 56 characters long, remember to include the
+return and line-feed if present.  This is a minor concern for most
+applications.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Matrona Busch
+Network Operations
+
+SUBJECT
+
+Information on the Paper System and Definition of Ticket Fields
+
+DISCUSSION
+
+There are three different kinds of tickets in PAPER:
+
+  (1) Host Tickets
+  (2) Node Tickets 
+  (3) Line Tickets
+
+Following is information on the fields in the mainform of Host Tickets.
+The fields are very similar in Node and Line tickets with a few obvious 
+exceptions.  
+
+HOST TICKETS
+ 
+COLUMN 1
+ 
+NETWORK - 'TYMNET' refers to the public network; there is also a code
+for each private network.
+ 
+HOST TKT # - Trouble report number.
+ 
+NODE # - Node where host interface is located.
+ 
+KERNAL -  Node's kernal host number.
+ 
+HOST # -  Host interface number.
+ 
+SLOT -  Slot number on node where host interface resides.
+ 
+# PORTS - Number of ports on the interface (helps in determining
+severity of ticket based on the amount of ports effected by any
+anomaly).
+ 
+PRODUCT - Type of interface, e.g., X.25, X.75, 3270, SNA.
+ 
+S/W VERS - Version of code the node is running.
+ 
+S/W DIST - District where the technical support is located, e.g., INTL
+(International), ETSNY (Eastern Technical Support, New York).
+ 
+H/W DIST - FSC district for hardware support, e.g., WFOEB (Western Field
+Operations, East Bay), EFOMN (Eastern Field Operations, Manhattan).
+ 
+PRIMARY - unused field.
+ 
+OPEN BY - Initials of person opening ticket.
+ 
+ZONE -  Distance from the site for the H/W district.
+ 
+COLUMN 2
+ 
+SEVERITY - Measure of the impact of the outage on customer production.
+ 
+STATE -   Current state of the ticket (Open, Track, Closed, Monitor).
+
+          Open:  outage being pursued.
+          Closed:  problem has been resolved and trouble report has been 
+          closed.
+          Track:  used to document information about a particular problem
+          vs. documenting an outage.
+          Monitor:  problem has been resolved; ticket needs to be closed
+          with the customer.
+ 
+CONTROL GROUP - Which Network Operations group is pursuing the problem,
+TCSUP - National Customer Support, NETCO - Network Control.
+ 
+REFERRED TO - Which support group is currently working on the problem,
+INTL - External Network Services, STS - Software Technical Support.
+ 
+MGMT ESCAL - H1 - Hardware Management Levels notified (1-DM, 2-RM, etc).
+S1 - Software Management Levels notified.  T1 - Telephone Company
+Management Levels notified.
+ 
+TECH ESCAL -  Escalated to STS or HTS - yes or no.
+ 
+DE-ESCAL CODE - STS or HTS resolution code.  Listed once the ticket is
+de-escalated.
+ 
+DEFER 0/0 - Denotes if the current ticket has been deferred.  0/0 =
+Current Deferment time/Total Deferment Time.
+ 
+OPEN - The ZULU date and time ticket was opened.
+ 
+RESLV - The ZULU date and time the problem was resolved.
+ 
+CLOSE -  The ZULU date and time the ticket is closed (administratively)
+             in the ticketing system.
+ 
+ELAPS - The time between the opened and resolved fields.
+ 
+CLSCD - Close out code.  The code tells how the problem was resolved;
+hardware, software, modems, telco, etc.
+ 
+COLUMN 3
+ 
+CUSTOMER -  Customer company name.
+ 
+CONTACT -  Customer SITE contact.
+ 
+CPHONE -  Phone number for SITE customer contact.
+ 
+LOCALE - Location of node (city and state).
+ 
+RPTD BY - The contact who REPORTED the problem.
+ 
+RPHONE - Phone number for REPORTING customer contact.
+ 
+PLAN # - Customer maintenance contract (usually B4 in the public net).
+ 
+SITE HR - ZULU time when the customer site is manned.
+ 
+COM SPEC - Communications Specialist supporting this customer.
+ 
+CKT # -  Telephone company circuit number.
+ 
+TELCO # - Telephone company number to report problems for this circuit.
+ 
+RE TKT # - Telco or other ticket number referring to the same problem on
+this ticket.
+ 
+BILL/T40 -   unused field.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Douglas Ellenberg
+Software Technical Support
+
+TITLE
+
+Multibasing and Multitargeting
+
+QUESTION
+
+We are trying to get around the Sup's limitation of handling only six
+host numbers per group.  TRW's usernames are currently homed to a group
+with 11 host numbers in all, 7 of them are distribution hosts.  All 11
+have an associated hostcost statement.
+
+1) If we were to use multibasing for the distribution hoss, what would
+   be the algorithm used for assigning ckts if a) we didn't use hostcost
+   statements and b) if we did?   How many of these dhosts could we multi-
+   base?  Can they all be in the same group?  Is the limitation the same
+   as with any other type host, 6 in one group?
+
+The number of hosts the SUP will calculate destination costs to depends
+on the number defined in the SUP TARGET macro.  This is individual
+entries the SUP will use regardless if the host number is the same or
+different.  If TARGET is set for 6 and a username is multi-targeted to a
+GROUP that contains 11 usernames, only 6 of the hosts will ever be
+considered as destinations.  The SUP takes the lowest 6 host numbers and
+calculates paths based on total costs (links cost plus host cost).  The
+SUP chooses the lowest cost patc that host.
+
+Limitations of groups sizes is determined by the SUP FENCE macro.  Also
+see the file (JLIU:33)FIELD.GUD for NETVAL details.
+
+2) I'm assuming that we can have hostcost statements on multibased hosts
+   since I read so in an ontyme put together in March '86 by Cheryl London
+   in conversation with Carl L., Sandra N., Jerry L. and Ashok C.  Am I
+   correct or is the hostcost you were referring to just a cost created
+   from pure multibasing?
+
+Host cost is the cost a host reports to the SUP.  It can be defined to
+increase as additional users access the slot for load balancing
+purposes.  The interface must support this feature, refer to the
+specific interface's reference manual.  The purpose of having a host
+report a cost is to attempt to balance use of the host with other hosts
+the users are multi-targeted to.  Costs used need to take into account
+link costs to insure proper distribution of load is achieved.
+
+3) What are the possibilities of a hybrid group, e.g., multibasing 2
+   dhosts and simply using hostcost for the other 5 dhosts?
+
+You can only multi-base hosts on separate nodes.  The SUP will only look
+at the maximum number of destinations hosts defined in the TARGET macro
+to choose the lowest cost destination.  Each individual host is
+considered 1 destination as defined in the TARGET macro.  Ex:  If you
+have 20 separate multi-based hosts running (20 separate slots with the
+same host number) and the TARGET macro is defined as 6, a user homed to
+this host number will only be routed to 1 of 6 hosts every time.  14
+hosts will be ignored in the SUP's routing calculations (the SUP only
+has 6 spots defined in its table for cost calculations).
+
+Please note:  I know we can have more than 6 hosts in a group, but the
+Sup doesn't effectively service more than 6 until the first 6 go down or
+shut.
+
+6 is the default of the TARGET macro.  With this additional information
+take another look at the SUPGEN.DOC manual on page 32 to see if it makes
+more sense.
+
+1) How many host costs will a supervisor look at?
+  a.  Default?
+  b.  Maximum?
+  c.  macro this is defined in?
+
+The SUP will take into account the number of hosts defined in the TARGET
+macro when building circuits.  Each destination counts as 1 target in
+the SUP's table.  Ex:  If your username is multi-targeted to 7 hosts and
+the TARGET macro is set to 6, only the first 6 hosts will be considered
+as destinations when the SUP calculates the cheapest route.  Only if one
+of the first 6 is DOWN will the 7th ever be considered.
+
+This includes multi-based hosts also.  Each individual host counts as
+one target even though it has the same host number as the rest.  The
+TARGET macro, then, is the limitation for maximum number of multi-based
+hosts in your network.
+
+2) How many nodes can a multibased host be located on?
+
+  a.  Default?
+  b.  maximum?
+  c.  Macro this is defined in?
+
+There is no limit to the number of multi-based hosts you can have.
+Limits are that they must all be on separate nodes and the SUP will only
+route to the total defined in the TARGET macro.
+
+3) How many different host numbers can be in one group?
+   Where is this defined, netval?  Can it be altered?
+  a.  Default?
+  b.  maximum?
+  c.  Macro this is defined in?
+
+This is variable.  You can use exceptions to indicate effectively that
+the group contains all but one host in your network.  Individual entries
+are limited to 114 X 8.  114 is a page worth of host numbers and 8 pages
+is the max the FENCE macro will allow.  See the SUPGEN.DOC for defaults
+and the NETVAL Field Guide in (JLIU:33)FIELD.GUD for more specific
+details.  One note, the SUP and NETVAL need to be in sync.  You can not
+have NETVAL using more than the SUP will allocate.
+
+4) How many multibased hosts are allowed in the network?
+  a.  Default?
+  b.  Maximum?
+  c.  Macro this is defined in?
+
+This is unlimited but the number routed to is defined in the SUP TARGET
+macro (see #1).
+     
+Additional information will be addressed in a technotice about the
+recent Public Network increase of the Multi-Targeting from 6 to 14 (this
+has not been officially announced yet so don't tell anyone).
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Achille Montini
+Sirti
+
+SUBJECT
+
+UTS QUESTIONS
+
+Here is the result of the tests performed on UTS interfaces 
+about peripheral conditions . 
+     
+     UTS HIF Peripheral Status Responses to Host Processor Messages   
+     ---------------------------------------------------------- 
+ 
+__________________________________________________________________________
+Actual Status | Selection Poll |   TEXT/SD    | TEXT/SD/PI   |  TEXT/PI  |
+in UTS HIF    |   from HOST    |  from HOST   | from HOST    | from HOST |
+-------------------------------------------------------------------------| 
+              |                |              |              |           | 
+Periph.Resp.1 |  -Dle 5        | -Dle 1 Dle 5 |    Dle ?     |    Dle ?  |  
+              |  -Wait status  | -Wait status |    ...       |    ...    |
+    READY     |   from TIF     |  from TIF    |              |           |  
+              |  -Dle >        | -Dle >       |    Dle ;     |    Dle ;  |
+              |                |              |              |           |
+-------------------------------------------------------------------------| 
+              |                |              |              |           | 
+Periph.Resp.2 |  -Dle 5        | -Dle 1 Dle 5 |              |    Dle ?  |
+              |  -Wait status  | -Wait status |  Dle 1 Dle < |    ...    |    
+    ERROR     |   from TIF     |  from TIF    |              |           |  
+              |  -Dle <        | -Dle <       |              |    Dle ;  |   
+              |                |              |              |           |
+-------------------------------------------------------------------------| 
+              |                |              |              |           | 
+Periph.Resp.3 |  -Dle 5        | -Dle 1 Dle 5 |              |    Dle ?  |  
+              |  -Wait status  | -Wait status |  Dle 1 Dle : |    ...    |
+    ERROR     |   from TIF     |  from TIF    |              |           |  
+              |  -Dle :        | -Dle :       |              |    Dle ;  |   
+              |                |              |              |           |
+-------------------------------------------------------------------------| 
+              |                |              |              |           |
+NO PERIPHERAL |  -Dle 5        | -Dle 1 Dle 5 |              |    Dle ?  |  
+              |  -Wait status  | -Wait status |  Dle 1 Dle = |    ...    |    
+  RESPONSE    |   from TIF     |  from TIF    |              |           |   
+              |  -Dle =        | -Dle =       |              |    Dle ;  |   
+              |                |              |              |           |
+--------------------------------------------------------------------------
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Ping Chu
+Software Technical Support
+
+SUBJECT
+
+SNA/SDLC Field Guide
+
+The first draft of the SNA/SDLC Field Guide is now available at
+(TECHREF:38)SGUIDE.DOC.  You may either spool a copy or typ[e it on your
+printer.  Be sure to issue a "TTY FORM" command before you type out this
+document.  It is to form feed the pages properly.  Please direct your
+comments to the HQTECH SNA/SDLC support group.  If time permits, we will
+update this book to incorporate your input.
+
+The following is the list of chapters in the SNA/SDLC Field Guide:
+
+  1.  Message Format of SNA Virtual Host Mode
+  2.  SNA/SDLC Device Types
+  3.  3274C Control-Unit Customization Options
+  4.  SDLC Circuit-Build Procedure
+  5.  SNA Circuit-Build Procedure
+  6.  SDLC Circuit-Disconnect Overview
+  7.  SNA Circuit-Disconnect Overview
+  8.  Half-Second Logic of SNA Interfaces
+  9.  Timers of SNA Interfaces
+10.  SDLC Loop-Back Test
+11.  SNA Installaction Checklist
+12.  Crash Codes
+13.  SNA Error Messages
+14.  Response Time Consideration
+15.  SNA Trouble-Shooting Using Extended DDT
+16.  Common Problems in SNA Virtual Host Mode
+'Q_’
