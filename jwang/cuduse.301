@@ -1,0 +1,26 @@
+
+
+
+:
+: problem reported by : Mead World Headquarters
+: task:  Insert C/R after xcom extracts portion of username
+:        into CUD. CUDUSERNAME macro is gened in the slot file.
+
+
+    IF    CUD.MX!XOM
+PATCH(880825,1000,JWANG,CGTN30+4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,10)
+        AIS     R7,1            :ADD 1 FOR ADDITIONAL C/R
+        STB     R7,CUDSAV,,     :SAVE EXTRACTED LENGTH
+        SIS     R7,1            :CHANGE BACK TO ORIGINAL LENGTH
+        J       CGTN30+0A,,
+CONPATCH(CGTN50+6,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        LHI     R0,0D           :C/R
+        STB     R0,CUDSAV+1,R5, :APPEND C/R TO THE END OF CUD
+        L       R0,LIMSAV,,
+        JR      R0
+ENDPATCH(INSERT C/R AFTER XCOM EXTRACTS PORTION OF USERNAME INTO CUD)
+    EI
