@@ -1,0 +1,872 @@
+
+::	PATCH FILE FILENAME: SDLC02.P04
+::
+::      last change made by Ben Chen was on Oct. 11,1990
+
+::
+
+	RA	0		: HEXADECIMAL RADIX REQUIRED FOR PATCH FILE
+	LO	MAIN		: REQUIRED TO ACCESS PATCH.LIB
+::	NOTE:	The statement FO MAIN cannot be used in the patch file.
+::		Usage of this statement may cause assembly errors
+::		when assembling patches which follow in the patch file.
+
+::001)	Patch name : SY3024.204	- Ticket number : NONE
+:	PATCH FILE NUMBER	: 001
+:	ESCALATION NUMBER	: NONE, FOUND IN Q.A. TESTING
+:	CUSTOMER		: STS
+:
+:	PRODUCT CODE		: SDLC
+:	(DIR:SYS)FILENAME	: (SNAPAT:33)SY3024.204
+:	(DIR:SYS)ORIGINAL NAME	: (ROLAND:33)SY3024.P24
+:	VERSION			: 02.04
+:	REASON (NSR/PIR)	: NSR 002497 AND 002638
+:	AUTHOR			: ROLAND KISHMIRIAN
+:	DATE			: 02/16/89
+:
+:	DESCRIPTION OF PROBLEM	:
+:
+:	THE WRONG GAUGE CHARACTER IS SENT FOR LOGON DUE TO THE USE
+:	OF A HALFWORD INSTRUCTION INSTEAD OF A BYTE INSTRUCTION AND
+:	DUE TO THE NON-USE OF THE CFGPTR POINTERS FOR CFGTAB INDEXING.
+:
+:	DESCRIPTION OF PATCH	:
+:
+:	THE APPROPRIATE LNVC ENTRY OF CFGTAB IS CORRECTLY ACCESSED
+:	BY USING A LB INSTRUCTION INSTEAD OF A LHL INSTRUCTION AND
+:	BY USING THE APPROPRIATE CFGPTR ENTRY TO GET THE CORRECT
+:	INDEX REGISTER VALUE.
+:
+:	SUPERSEDED PATCH FILES	:
+:
+:	NO PATCHES ARE SUPERSEDED.
+:
+
+
+ IF	1-TYM1
+
+	LO	CKTHDL			: PATCH IS IN CKTHDL MODULE
+	LO	CTLDEF			: NEED CTLDEF MODULE DEFINITIONS
+	LO	FRNTND			: NEED FRNTND MODULE DEFINITIONS
+	LO	GBLDEF			: NEED GBLDEF MODULE DEFINITIONS
+	LO	MAIN			: NEED MAIN   MODULE DEFINITIONS
+
+	PATCH(890216,1300,R/KISHMIRIAN,MSGB2+7E,,06)
+	J	PA1PTR,,,		: JUMP TO PATCH1 AREA
+
+	CONPATCH(PA1PTR,,12)
+	LB	R1,DCBLKS+DCBLNM,R12,	: GET LINE NUMBER
+	LHL	R1,CFGPTR,R1,R1,	: GET PROPER CFGTAB ENTRY
+	J	MSGB2+7E+6,,,		: CONTINUE WITH PROGRAM
+
+	ENDPATCH( USE CORRECT CFGTAB ENTRY FOR GAUGE CHARACTER CHECK )
+
+	FO	CTLDEF			: DONE WITH CTLDEF MODULE DEFINITIONS
+	FO	FRNTND			: DONE WITH FRNTND MODULE DEFINITIONS
+	FO	GBLDEF			: DONE WITH GBLDEF MODULE DEFINITIONS
+:	FO	MAIN			: NEED MAIN MODULE FOR    PATCHLIB
+	FO	CKTHDL			: DONE WITH CKTHDL MODULE
+
+ EI	:(1-TYM1)
+
+
+::002)	Patch name : SY3019.204	- Ticket number : NONE
+:	PATCH FILE NUMBER	: 002
+:	ESCALATION NUMBER	: NONE, FOUND IN Q.A. TESTING
+:	CUSTOMER		: STS
+:
+:	PRODUCT CODE		: SDLC
+:	(DIR:SYS)FILENAME	:
+:	(DIR:SYS)ORIGINAL NAME	: (ROLAND:33)SY3019.204
+:	VERSION			: 02.04
+:	REASON (NSR/PIR)	: NSR 002639
+:	AUTHOR			: ROLAND KISHMIRIAN
+:	DATE			: 02/27/89
+:
+:	DESCRIPTION OF PROBLEM	:
+:
+:	THE LOOPBACK TEST FAILS IF THE LINE NUMBER IS GREATER THAN '1'.
+:	LINE NUMBERS FROM '2' THROUGH 'F' SHOULD BE ALLOWED.
+:
+:	DESCRIPTION OF PATCH	:
+:
+:	LINES '2' THROUGH 'F' ARE NOW ALLOWED.
+:
+:	SUPERSEDED PATCH FILES	:
+:
+:	NO PATCHES ARE SUPERSEDED.
+:
+
+	LO	BGTEST		: PATCH IS IN BGTEST MODULE
+	LO	BUFRTN		: NEED BUFRTN MODULE DEFINITIONS
+	LO	CMDLST		: NEED CMDLST MODULE DEFINITIONS
+	LO	CTLDEF		: NEED CTLDEF MODULE DEFINITIONS
+	LO	GBLDEF		: NEED GBLDEF MODULE DEFINITIONS
+	LO	MAIN		: NEED MAIN   MODULE DEFINITIONS
+	LO	SFGRCV		: NEED SFGRCV MODULE DEFINITIONS
+	LO	STATUS		: NEED STATUS MODULE DEFINITIONS
+
+	PATCH(890227,1500,R/KISHMIRIAN,LINE1,,06)
+	J	PA1PTR,,,
+
+
+	CONPATCH(PA1PTR,,(0F*0C)-4+10)
+	STM	R0,STSAVE,,	: SAVE ALL REGISTERS
+	LIS	R1,1		: GET LINE NUMBER
+	J	ONE1XT		: CHECK FOR VALID LINE NUMBER
+LINE2	STM	R0,STSAVE,,	: SAVE ALL REGISTERS
+	LIS	R1,2		: GET LINE NUMBER
+	J	ONE1XT		: CHECK FOR VALID LINE NUMBER
+LINE3	STM	R0,STSAVE,,	: SAVE ALL REGISTERS
+	LIS	R1,3		: GET LINE NUMBER
+	J	ONE1XT		: CHECK FOR VALID LINE NUMBER
+LINE4	STM	R0,STSAVE,,	: SAVE ALL REGISTERS
+	LIS	R1,4		: GET LINE NUMBER
+	J	ONE1XT		: CHECK FOR VALID LINE NUMBER
+LINE5	STM	R0,STSAVE,,	: SAVE ALL REGISTERS
+	LIS	R1,5		: GET LINE NUMBER
+	J	ONE1XT		: CHECK FOR VALID LINE NUMBER
+LINE6	STM	R0,STSAVE,,	: SAVE ALL REGISTERS
+	LIS	R1,6		: GET LINE NUMBER
+	J	ONE1XT		: CHECK FOR VALID LINE NUMBER
+LINE7	STM	R0,STSAVE,,	: SAVE ALL REGISTERS
+	LIS	R1,7		: GET LINE NUMBER
+	J	ONE1XT		: CHECK FOR VALID LINE NUMBER
+LINE8	STM	R0,STSAVE,,	: SAVE ALL REGISTERS
+	LIS	R1,8		: GET LINE NUMBER
+	J	ONE1XT		: CHECK FOR VALID LINE NUMBER
+LINE9	STM	R0,STSAVE,,	: SAVE ALL REGISTERS
+	LIS	R1,9		: GET LINE NUMBER
+	J	ONE1XT		: CHECK FOR VALID LINE NUMBER
+LINEA	STM	R0,STSAVE,,	: SAVE ALL REGISTERS
+	LIS	R1,0A		: GET LINE NUMBER
+	J	ONE1XT		: CHECK FOR VALID LINE NUMBER
+LINEB	STM	R0,STSAVE,,	: SAVE ALL REGISTERS
+	LIS	R1,0B		: GET LINE NUMBER
+	J	ONE1XT		: CHECK FOR VALID LINE NUMBER
+LINEC	STM	R0,STSAVE,,	: SAVE ALL REGISTERS
+	LIS	R1,0C		: GET LINE NUMBER
+	J	ONE1XT		: CHECK FOR VALID LINE NUMBER
+LINED	STM	R0,STSAVE,,	: SAVE ALL REGISTERS
+	LIS	R1,0D		: GET LINE NUMBER
+	J	ONE1XT		: CHECK FOR VALID LINE NUMBER
+LINEE	STM	R0,STSAVE,,	: SAVE ALL REGISTERS
+	LIS	R1,0E		: GET LINE NUMBER
+	J	ONE1XT		: CHECK FOR VALID LINE NUMBER
+LINEF	STM	R0,STSAVE,,	: SAVE ALL REGISTERS
+	LIS	R1,0F		: GET LINE NUMBER
+ONE1XT	CHI	R1,NLINES-1	: VALID LINE NUMBER?
+	JLEFS	LINEG		: YES
+	SVC	OUT,BIGNUM	: NO, PRINT ERROR MESSAGE
+LINEG	J	ONE1,,,		: CONTINUE PROCESSING
+
+  ENDPATCH( ALLOW ADDITIONAL LINES FOR LOOPBACK TESTS )
+	FO	BUFRTN		: DONE WITH BUFRTN MODULE DEFINITIONS
+	FO	CTLDEF		: DONE WITH CTLDEF MODULE DEFINITIONS
+	FO	CMDLST		: DONE WITH CMDLST MODULE DEFINITIONS
+	FO	GBLDEF		: DONE WITH GBLDEF MODULE DEFINITIONS
+:	FO	MAIN		: NEED MAIN MODULE FOR    PATCHLIB
+	FO	SFGRCV		: DONE WITH SFGRCV MODULE DEFINITIONS
+	FO	STATUS		: DONE WITH STATUS MODULE DEFINITIONS
+	FO	BGTEST		: DONE WITH BGTEST MODULE
+
+
+::003)	Patch name : HSMON5.204	- Ticket number : NONE
+:	PATCH FILE NUMBER	: 003
+:	ESCALATION NUMBER	: NONE, FOUND IN Q.A. TESTING
+:	CUSTOMER		: STS
+:
+:	PRODUCT CODE		: SDLC
+:	(DIR:SYS)FILENAME	: (SNAPAT:33)HSMON5.204
+:	(DIR:SYS)ORIGINAL NAME	: (ROLAND:33)HSMON5.204
+:	VERSION			: 02.04
+:	REASON (NSR/PIR)	: NSR 002640
+:	AUTHOR			: ROLAND KISHMIRIAN
+:	DATE			: 03/07/89
+:
+:	DESCRIPTION OF PROBLEM	:
+:
+:	FIVE DIGIT HOST NUMBERS ARE NOT SUPPORTED IN THE MONITOR
+:	FOR THE CHANGE LOGON DESTINATION COMMAND AND FOR THE DISPLAY
+:	HOST, DISPLAY CONFIG, DISPLAY LOGON, AND THE DISPLAY PVC COMMANDS.
+:
+:	DESCRIPTION OF PATCH	:
+:
+:	THE CODE WAS MODIFIED TO ALLOW FIVE DIGITS HOST NUMBERS
+:	UP TO AND INCLUDING A MAXIMUM VALUE OF 7FFF HEX (32767).
+:
+:	SUPERSEDED PATCH FILES	:
+:
+:	NO PATCHES ARE SUPERSEDED.
+:
+
+
+ IF	1-MONTOR
+ ELSE
+
+	LO	MONITR			: PATCH IS IN MONITR MODULE
+	LO	CTLDEF			: NEED CTLDEF MODULE DEFINITIONS
+	LO	GBLDEF			: NEED GBLDEF MODULE DEFINITIONS
+	LO	MAIN			: NEED MAIN   MODULE DEFINITIONS
+
+:	MONITOR COMMAND - DISPLAY HOST
+	PATCH(890307,1900,R/KISHMIRIAN,MHSTU1,,06)
+	J	PA1PTR,,,		: JUMP TO PATCH1 AREA
+
+	CONPATCH(PA1PTR,,20)
+:	GET HOST NUMBER
+	LHL	R5,HSTPTR,R2,R2		: GET HOSTAB ADDR
+	LHL	R9,HOSTAB+HSTNUM,R5,	: GET HSTNUM
+	LIS	R10,HSTMAX		: NUMBER OF DIGITS TO OUTPUT
+	LA	R11,0,R3		: PUT TO "ADDR" (MHSTT0 IS 0 DISP)
+	JAL	R4,BINDEC,,		: CONVERT TO DECIMAL
+	J	MHSTU1+06,,,		: RESUME PROGRAM LOGIC WITH HOST STATUS
+
+:	MONITOR COMMAND - DISPLAY CONFIG
+	CONPATCH(MCFGU1+046,,02)
+	LIS	R10,HSTMAX		: CONVERT TO THIS NUMBER OF DIGITS
+
+:	MONITOR COMMAND - DISPLAY LOGON
+M4HSLN	EQ	HSTMAX			: SET TO MAXIMUM NUMBER OF HOST DIGITS
+
+	CONPATCH(MLOGU0+012,,02)
+	LIS	R4,M4HSLN		: CLEAR THIS NUMBER OF DIGITS
+
+	CONPATCH(MLOGUR+012,,02)
+	LIS	R4,M4HSLN		: CLEAR THIS NUMBER OF DIGITS
+
+	CONPATCH(MLOGU5+016,,04)
+	CLHI	R8,M4HSLN		: GOT ALL HOST DIGITS?
+
+	CONPATCH(MLOGU6,,02)
+	LIS	R4,M4HSLN		: NUMBER OF DIGITS TO CONVERT
+
+:	MONITOR COMMAND - DISPLAY PVC
+	CONPATCH(MPVCUQ+0EE,,02)
+	LIS	R10,HSTMAX		: CONVERT TO THIS NUMBER OF DIGITS
+
+:	MONITOR COMMAND - CHANGE DHOST
+	CONPATCH(P2CDH1,,04)
+	CLHI	R1,HSMXVL		: RANGE CHECK FOR HOST NUMBER
+
+	ENDPATCH( ALLOW FIVE DIGIT HOST NUMBERS IN MONITOR COMMANDS )
+
+	FO	CTLDEF			: DONE WITH CTLDEF MODULE DEFINITIONS
+	FO	GBLDEF			: DONE WITH GBLDEF MODULE DEFINITIONS
+:	FO	MAIN			: NEED MAIN MODULE FOR    PATCHLIB
+	FO	MONITR			: DONE WITH MONITR MODULE
+
+ EI	:(1-MONTOR)
+
+
+::004)	Patch name : SY3016.204	- Ticket number : 026124
+:	PATCH FILE NUMBER	: 004
+:	ESCALATION NUMBER	: 026124, PATCH CORRECTION
+:	CUSTOMER		: ANZNET
+:
+:	PRODUCT CODE		: SDLC
+:	(DIR:SYS)FILENAME	: (SNAPAT:33)SY3016.204
+:	(DIR:SYS)ORIGINAL NAME	: (ROLAND:33)SY3016.204
+:	VERSION			: 02.04
+:	REASON (NSR/PIR)	: NSR 002641
+:	AUTHOR			: ROLAND KISHMIRIAN
+:	DATE			: 03/13/89
+:
+:	DESCRIPTION OF PROBLEM	:
+:
+:	A GOBBLER IS SENT WITHOUT CHECKING FOR A VALID PORT NUMBER.
+:	THIS CAUSES A DISPATCHER CRASH.
+:
+:	DESCRIPTION OF PATCH	:
+:
+:	A GOBBLER IS NOT SENT IF THE PORT NUMBER IS ZERO
+:	IN ORDER TO PREVENT A DISPATCHER CRASH.
+:
+:	SUPERSEDED PATCH FILES	:
+:
+:	THIS SUPERSEDES PATCH RESETX.202.
+:
+
+
+	LO	MISC			: PATCH IS IN MISC   MODULE
+	LO	OUTPUT			: PATCH IS IN OUTPUT MODULE
+	LO	CMDLST			: NEED CMDLST MODULE DEFINITIONS
+	LO	CTLDEF			: NEED CTLDEF MODULE DEFINITIONS
+	LO	FRNTND			: NEED FRNTND MODULE DEFINITIONS
+	LO	GBLDEF			: NEED GBLDEF MODULE DEFINITIONS
+	LO	MAIN			: NEED MAIN   MODULE DEFINITIONS
+
+	PATCH(890313,1900,R/KISHMIRIAN,RESETX+0C,,06)
+	J	PA1PTR,,,		: JUMP TO PATCH1 AREA
+
+	CONPATCH(PA1PTR,,12)
+	LHL	R1,DCBLKS+DCBPRT,R12,	: GET PORT NUMBER
+	JE	RESETX+1E,,,		: PORT NUMBER IS ZERO, DO NOT SEND
+	J	RESETX+12,,,		: RESUME PROGRAM LOGIC
+
+	CONPATCH(RSTDWN+28,,06)
+	J	PA1PTR,,,		: JUMP TO PATCH1 AREA
+
+	CONPATCH(PA1PTR,,12)
+	LHL	R1,DCBLKS+DCBPRT,R12,	: GET PORT NUMBER
+	JE	RSTDWN+3A,,,		: PORT NUMBER IS ZERO, DO NOT SEND
+	J	RSTDWN+2E,,,		: RESUME PROGRAM LOGIC
+
+	CONPATCH(RSTUP+0C,,06)
+	J	PA1PTR,,,		: JUMP TO PATCH1 AREA
+
+	CONPATCH(PA1PTR,,12)
+	LHL	R1,DCBLKS+DCBPRT,R12,	: GET PORT NUMBER
+	JE	RSTUP+1E,,,		: PORT NUMBER IS ZERO, DO NOT SEND
+	J	RSTUP+12,,,		: RESUME PROGRAM LOGIC
+
+  ENDPATCH( DO NOT SEND GOBBLER IF PORT NUMBER IS ZERO )
+	FO	CMDLST			: DONE WITH CMDLST MODULE DEFINITIONS
+	FO	CTLDEF			: DONE WITH CTLDEF MODULE DEFINITIONS
+	FO	FRNTND			: DONE WITH FRNTND MODULE DEFINITIONA
+	FO	GBLDEF			: DONE WITH GBLDEF MODULE DEFINITIONS
+:	FO	MAIN			: NEED MAIN MODULE FOR    PATCHLIB
+	FO	MISC			: DONE WITH MISC   MODULE
+	FO	OUTPUT			: DONE WITH OUTPUT MODULE
+  lo trace
+  lo ring
+  lo crash
+  lo timout
+  lo bid
+  lo bbufer
+  lo convrt
+  lo datime
+  lo gbldef
+  lo frntnd
+  lo siodef
+  lo sdlcfx
+  lo sfgrcv
+  lo sfgxmt
+  lo cmdlst
+  lo main
+  lo sfgptp
+  lo stctlm
+  lo bufrtn
+  lo input
+  lo output
+  lo ckthdl
+  lo dcbrtn
+  lo misc
+  lo tabini
+  lo monitr
+  lo status
+  lo bgtest
+  lo ctldef
+  lo sdlcdf
+
+::005)
+:       NSR #      : 2972
+:       PATCH NAME : CTLERR.202 for SDLC version 2.02
+:       ESCALATION : 212447 PARKER-HANNIFAN
+:                    212937 BABYLON-NET(MDICI)
+:       PROBLEM    : When an async PAD suer log in with subaddress from
+:                    X.25 interface to SDLC interface, the SDLC interface
+:                    crash with an crash code - 30. This problem is caused
+:                    due to an invalid command fetched in the "C094"
+:                    message. SDLC cannot understand such log in message
+:                    sent from X.25.
+:       SOLUTION   : If such invalid message received in IRING, SDLC should
+:                    zap this login circuit instead of crash the slot.
+:
+ 
+PATCH(881104,1130,D/FANG&BPC,CTLINV,,06)
+        J       PA1PTR,,                :Jump to patch area
+CONPATCH(PA1PTR,,0E)
+        AR      R14,RLEN                :Flush the remainder of data
+        LHI     R0,CLRIND,              :R0 has clear indication of MSGZAP
+        J       MSGZAP,,                :send the zap message
+ENDPATCH(Clear circuit when an invalid logon received in IRING)
+ 
+ 
+::006)
+:       NSR #      : 2968
+:       PATCH NAME : c097.tst
+:       CUSTOMER   : SEALAND  esc 212902
+:       PROBLEM    : When an async PAD suer log into x.25/x.75 gateway
+:                    and zap the circuit, SDLC will receive a IIX C097
+:                    and then crashed due to unable to process it.
+:       SOLUTION   : C097 is a clear information, therfore, we simply
+:                    zap this login circuit instead of crash the slot.
+:
+ 
+PATCH(890511,1830,bpc,tdliix+20,,2)
+        hc      id95m-tdliix
+ENDPATCH(Clear circuit when C097 iix msg received in IRING)
+ 
+ 
+ 
+::007)
+:******************************************************************
+:     NSR #: 2974
+: PATCHNAME: BPSHUT.204 (BPSHUT.TST)          PRODUCT VERSION: SDLC 2.04
+:   AUTHOR : JAMES WANG                          ORGANIZATION: STS
+:  CUSTOMER: EPA                                 DATE WRITTEN: JUNE 15, 1989
+: PROBLEM:
+:   IRLST ROUTINE SENDS 'A2' MSG FOR ALL SHUT STATIONS. SLOT CRASHED WHEN
+:   THE CODE SENDS 'A2' FOR THE INACTIVE BUT SHUT STATION.
+:   PART OF THE PATCH 'PATCH(890313,1900,R/KISHMIRIAN.....' NEEDS TO BE
+:   REMOVED FROM SDLC02.P04.
+:*****************************************************************************
+ 
+ 
+PATCH(890615,1500,JWANG,ILRST3+0C,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        LHL     RDCB,LSDTAB+LSDDCB,R11,         :GET DCB
+        JE      ILRST2,,                        :DCB NOT ASSIGNED, SKIP
+        J       ILRST3+12,,
+ENDPATCH(DO NOT SEND A2 MSG IF THAT STATION IS SHUT BUT NOT ACTIVE)
+
+::008)
+::  NSR # : 2971
+:---------------------------------------------------------------------
+: Patch name:  lg8084.tst            Product and Version:  sdlc 2.02
+:     Author:  ben chen                     Organization:  STS/QSATS
+:   Customer:  westnet                      Date Written:  01/25/89
+: Description of Problem:  tkt 222255
+:
+:---------------------------------------------------------------------
+ 
+: PROBLEM - When received iix msg 0005 bf, 0005 0a80 8400 87f3 e8f5
+:           f487 80 from gateway, lg84m only check status byte with
+:           01 (please login). if it is 0, we simply jump to tiixow
+:           and never flushed remaing data and eventually will cause
+:           slot crashed with cc=21.
+:
+: SOLUTION  flush remainging data in this case.
+ 
+PATCH(890125,1200,bpc,lg84m+14,,8)
+         ar    0e,2
+         lr    0,0
+         je    tiixow
+ENDPATCH(flush remaining data in 8084 msg)
+
+:
+:: 9)
+:: NSR : 3440
+:*************************************************************************
+: Patchname: ID87.TST                      Product Version: SDLC/QLLC 2.04
+:    Author: James Wang   (STS)
+:     DAte : Sept 22, 1989
+:    Customer: ANZNET
+:   Problem:
+:       X.25 sends IIX C087 (Called address) to QLLC. The address indicates
+:       destination line 0 and station address 1. Two stations under line 0
+:       defines OADR C1,MADR 1 and 'OADR C2,MADR 2'. The routine ID87 uses
+:       the value of OADR to match the station address in the C087. 
+:       Consequently, there is no matching address and then crashes.
+:       To fix the bug, we need use madr instead of oadr.
+:*************************************************************************
+
+PATCH(890922,1400,JWANG,ID87N4,,6)
+        LB      R4,LSDTAB+MADR,R13,
+ENDPATCH(USE MADR INSTAED OF OADR TO MATCH STN ADDR IN IIX C087 MSG)
+
+:: 10)
+:: NSR : 3425
+:******************************************************************
+: patchname: cc34.tst           sdlc version 2.04
+: upgraded by: james wang
+: upgraded from : CC36.TST
+: task: skip a frame if the received frame has zero length.
+:       save sio status in the table "RCVBUF". 6 bytes per entry.
+:*****************************************************************
+
+:      Patch REMOVED Jan. 27 - Too many problems with design
+
+
+:DATE>   JULY 2, 1986
+:VERSION>SDLC 1.12
+:PURPOSE> IF FRAME LEN = 0 IS RECEVIED, SKIP 2 BYTES
+:        AND CHECK IF RING NEEDS TO WRAP AROUND.
+
+PATCH(861124,1600,J/MCKIERNAN,PA0PTR,,0C4)
+RCVZRO  EQ      01
+RCVBFS  EQ      0C0
+        HS      0
+RCVBFP  HC      0
+RCVBUF  BS      RCVBFS
+CONPATCH(RSTRT1+1A,,6)
+RSTRT0  LH      R0,RBUF,R2,RSIO
+CONPATCH(RSTRT1+2C,,8)
+        J       PA1PTR,,
+        NOPR    0,0
+CONPATCH(PA1PTR,,6C)
+        JG      DATAIN,,
+        LHL     R4,RCVBFP,,
+        STB     RL,RCVBUF,R4,
+        LIS     R0,RCVZRO
+        STB     R0,RCVBUF+1,R4,
+        LB      R3,0,RSIO
+        STB     R3,RCVBUF+2,R4,
+        LB      R3,1,RSIO
+        STB     R3,RCVBUF+3,R4,
+        LB      R3,6,RSIO
+        STB     R3,RCVBUF+4,R4,
+        LB      R3,8,RSIO
+        STB     R3,RCVBUF+5,R4,
+        AIS     R4,6
+        CLHI    R4,RCVBFS
+        JLFS    RSTRT2
+        LIS     R4,0
+RSTRT2  STH     R4,RCVBFP,,
+        AIS     R2,2
+        LHL     R3,RBUFRM,RL,RL
+        CR      R2,R3
+        JLEFS   RSTRT4
+        LIS     R2,0
+RSTRT4  STH     R2,RINDEX,RL,RL
+        J       RSTRT0,,
+ENDPATCH(TO SKIP OVER FRAME IF RCV. LENGTH = 0)
+
+
+:: 11)
+::  NSR : 3417
+::sdlcDM.204
+::==============================================================
+::  THIS PATCH CONVERT UA TO DM WHEN TIF RECIEVES A RESPONCE
+::  FOR A DISC COMMAND. IT HAPPEND AT THE HANDSHAKING OF RD/DISC
+::  EXCHANGE BETWEEN HOST AND TERMINAL. 
+::  RELATING A LOGIC OF #26 OF (SOURCE)SDLC01.P12.
+::
+::  IT APPLYS FOR TIF(PRIMARY) INTERFACE ONLY.
+::  THIS IS FOR SDLC V2.XX
+::==============================================================
+
+  IF (\(PHDPTS))!(\(PHDMPS))
+
+PATCH(891102,1500,NIS.FURUTA&BPC,HPWND4+26,,4)
+        LHI     R2,DMCD         :NOT SET UA, PASS DM TO HIF
+ENDPATCH(CONV UA TO DM FOR DISC RESPONCE)
+  EI 
+
+:: 12)
+:: NSR : 3441
+:*********************************************************************
+: PATCHNAME: HSTER5.TST                         PRODUCT VERSION: 2.04
+:    AUTHOR: JAMES WANG                          ORGANIZATION: STS
+:  CUSTOMER: VAnet                               DATE WRITTEN: OCT 9,1989
+: DESCRIPTION OF THE PROBLEM:
+:      WHEN TIF IS HALTED TO ZAP THE CIRCUIT, HIF STAYS IN OPERATION MODE
+:      (HSOPC) AND CONTINUES TO PROCESS (XMIT & RCV) RR FRAMES.
+:      1. BUG WAS FOUND IN HSTER5. IT DOES NOT PREPARE LSAXMT BEFORE CALLING
+:         XSETRG.
+:      2. IN MSGZAP, BPTERM IS NOT SET DUE TO THE FLAG BPINIT IS NOT SET.
+:***************************************************************************
+
+  IF (\(SHDPTS))!(\(SHDMPS))
+PATCH(891009,1000,JWANG,HSTER5+8,,8)
+        J       PA1PTR,,
+        NOPR    0,0
+CONPATCH(PA1PTR,,1C)
+        LB     CBLKS+SCBREL,RSCB,
+        STB     R1,LCBTAB+LSAXMT,RLCB,
+        LHI     R1,XDM
+        JAL     RLINK5,SETPF,,
+        J       HSTER5+10,,
+CONPATCH(MSGZA2+2E,,2)
+        NOPR    0,0
+ENDPATCH(WHEN CIRCUIT IS ZAPPED BY HALTING TIF, HIF STAYS IN HSOPC)
+  EI
+
+:: 13)
+:: NSR : 3558
+:: patch name : ssdisp.tst
+:: problem : FG never dismissed and cause node code down
+::           symbol MODE was designed to indicate the protocol is in
+::           set up mode, however, code never maintain this flag correctly
+::           and cause slot in FG loop condition. eg, if one line receives
+::           SNRM then the next line never has a chance to get executed until
+::           timer expired.
+
+    IF  (\(SHDPTS))!(\(SHDMPS))
+PATCH(891109,1700,bpc,ssdis1-6,,2)
+        nopr    0,0
+ENDPATCH(aviod loop problem in set up mode)
+    EI
+
+     IF     (\(PHDPTS))!(\(PHDMPS))
+PATCH(891109,1700,JWANG,PXDIS2+14,,4)
+        NOP     0,0
+ENDPATCH(AVOID LOOP PROBLEM IN TIF)
+    EI
+
+:: 014)
+:: NSR : 3758
+::
+:**********************************************************************
+: Patchname: HPOPB4.TST                        (SDLC 2.40)
+:  Author  : James Wang     (STS)
+:  Customer: NIS            (Jan 25, 1990)
+: problem:  when RNR xmt timeout occurs, HPOPB4 routine uses wrong register
+:           as a offset to set flag LCRNRX on and causes a slot crash with
+:           14.
+:**************************************************************************
+
+  IF  (\(PHDPTS))!(\(PHDMPS))
+PATCH(900225,1000,JWANG,HPOPB4+10,,6)
+	SBT	R3,LCBTAB+LCRNRX,RLCB,
+ENDPATCH(USE CORRECT REGISTER TO SET FLAG LCRNRX ON WHEN RNR XMT TIMEOUT)
+  EI
+
+
+
+:: 015)
+:: NSR : 3757
+::
+:*****************************************************************
+:* Patchname: rport.tst    (sdlc 2.04)
+:     author: JAmes Wang   (STS)
+:     CUstomer: ANZNET
+:  problem:  After pvc req/confirmed, Oring receives lots of xid frames
+:            and then causes qutof1 to send backpresure to oring.
+:            Bug is here. the routine qutof1 does not prepare rport.
+:*********************************************************************
+
+
+PATCH(900307,1700,JWANG,QUTOF2-12,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        LHL     R1,DCBLKS+DCBPRT,RDCB,
+        JAL     R4,SLOR,,
+        J       QUTOF2-0C,,
+ENDPATCH(PREPARE RPORT WHEN SEND BACKPRESSURE TO ORING)
+
+
+:
+: 16)
+: NSR : 3941
+:
+:***********************************************************************
+: Patchname: ILRST.TST                 Product version: SDLC 2.04
+:   Author : James Wang                      organization: STS
+:  Customer: VA                              DAte written: APR 12, 1990
+: Description of problem:
+:   incoming line reset and the circuit state is changed to 2A for 
+:   non-active circuit. This circuit state change causes all incoming
+:   pvc request for this particular PU be rejected by the interface.
+:************************************************************************
+
+PATCH(900412,0900,JWANG,ILRST1+2A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,18)
+        SBT     R1,LCBTAB+BPINIT,R4,
+        LHL     RDCB,LSDTAB+LSDDCB,R11,
+        JE      ILRST2,,
+        J       ILRST1+30,,
+ENDPATCH(ILRST ACCIDENTLY CHANGE THE CIRCUIT STATE FOR NON-ACTIVE CIRCUIT)
+
+
+
+
+: 17)
+: NSR : 3942
+: PATCHNAME : OLRST1.TST           SDLC 2.04
+:
+: IN PVC AFTER RECEIVED 9F FROM NETWORK INTERFACE NEVER TRIED
+: TO RE-BUILD THE CKT DUE TO CIRCUIT IN WRONG STATE 09
+: (PVC CONFIRMATION RECEIVED).
+: 
+: WHAT'S HAPPENING WAS DSR DROPPED AT THAT TIME (BEFORE CKTHDL GOT
+: CALLED), INTERFACE WENT TO RESET STATE WHICH WILL CHANGE CKT STATE
+: FROM READY (02) TO PVC CONFIRM (09), AND CAUSED CKT NEVER RE-BUILT
+:
+PATCH(900525,1300,bpc,olrst1+2a,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,38)
+        SBT     R1,LCBTAB+BPINIT,R4,
+        LHL     RDCB,LSDTAB+LSDDCB,R11,
+        lhl     0c,dcblks+dcbprt,rdcb,
+        JE      OLRSTX,,
+        J       OLRST1+30,,
+olrstx  lcs     1,1
+        sth     1,dcblks+dcbtmo,rdcb,
+        lb      1,lsdtab+lsdrid,r11,
+        sbt     1,tflag,,
+        j       olrst2,,
+ENDPATCH(OLRST ACCIDENTLY CHANGE THE CIRCUIT STATE FOR NON-ACTIVE CIRCUIT)
+
+:18)
+: NSR : 3951
+:-------------------------------------------------------------------------
+: Patch name:	INVADR.TST		Product and Version:	SDLC 2.02
+:								SDLC 2.04
+:     Author:	Richard Ho		       Organization:	STS
+:   Customer:	Legent Morino		       Date Written:    05/17/90
+:    Ticket#:	300373	   			       NSR#: 
+:-------------------------------------------------------------------------
+:
+: Problem: SLCD HIF crashes when it received a "C087" message requesting
+:	   connection to an invalid line.
+:	
+: Solution: When an invalid line number is requested. We should just clear
+:	    the call.
+:
+:	
+PATCH(900517,1600,R/HO,ID87N3,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,16)
+	LB	R10,DCBLKS+DCBILN,RDCB,
+	CLHI	R10,NLINES		:Is line # greater than NLINES. 
+	JG	ID87MB,,		:Yes - Invalid line #. Clear the call.
+	J	ID87N3+6,,		:No - Valid line #. Back to source.
+ENDPATCH(CLEAR THE CALL WHEN REQUESTED LINE IS INVALID)
+
+:19)
+:
+: NSR : 4135
+:
+:---------------------------------------------------------------------
+: Patch name:  id8d02                Product and Version: sdlc 2.04
+:     Author:  ben chen                     Organization:  sts
+:   Customer:  MNSQANET                     Date Written:  11/01/90
+: Description of Problem:  crash code =14 due to instruction error
+:                          at id8d02+8
+:
+:---------------------------------------------------------------------
+        LO GBLDEF
+PATCH(110190,1400,bpc,id8d02+8,,6)
+        sth     r0,dcblks+activd,rdcb,
+ENDPATCH(slot crashed with cc=14 due to instruction error)
+
+:
+:20)
+: NSR : 4137
+:
+:***********************************************************************
+: Patchname: ID94M.TST                  Production version: SDLC 2.04
+:    Author: James Wang                    Organization   : STS
+:   Customer: NIS                            Date written : May 22, 1990
+: Problem: Before destination line is selected, IIX msg 'DM' received and
+:          then crashed. Need to flush this illegal msg.
+:**************************************************************************
+
+PATCH(900522,1000,JWANG,ID94M,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,18)
+        LB      R0,DCBLKS+DCBLNM,RDCB,
+        JL      FLSHRC,,
+        LB      R0,DCBLKS+DCBIMD,RDCB,
+        J       ID94M+6,,
+ENDPATCH(FLUSH IIX MSG DM BEFORE DEST LINE IS SELECTED)
+
+: 21)
+: NSR : 4136
+:
+:************************************************************
+: Patchname: inpdq8.tst           (sdlc 2.04)
+:   Author : JAmes Wang           (STS)
+:    Date  : APr 10, 1990
+:  Customer: NIS
+: Problem: XIQ message was cut into two messages in the network. 
+:          The sdlc interface does not handle well for the second part
+:          of ISIS message --> part of the 2nd message is treated
+:          as next new isis message and causes an illegal dispatcher
+:          port crash.
+:*********************************************************************
+
+PATCH(900410,1000,JWANG,INPDQ8+0C,,6)
+        LIS     R8,0
+        NOP     0,0,0
+ENDPATCH(FIX THE BUG IN INPDQ8 WHICH PROCESS THE SPLITTED xid MESSAGES).
+
+
+:
+: 22)
+: NSR : 4154
+:
+:*********************************************************************
+: Patchname: ID92M.TST                      Product version: SDLC 2.04
+:   Author : James Wang                       Organization : STS
+:  Customer: NIS                                      DAte : June 1, 1990
+: DEscription of the problem:
+:            WHen short IIX message C092 is received, the interface
+:            does not change the circuit state to 9. It stays in 8
+:            which is 'waiting for call accept or PVC confirmed'.
+:************************************************************************
+
+PATCH(900601,1000,JWANG,ID92M+4,,4)
+        J       ID92M8
+ENDPATCH(CHANGE THE CIRCUIT STATE  IF A SHORT iix CALL ACCEPT MESSAGE RCV'D)
+
+: 23)
+: NSR : 4155
+:
+:***********************************************************************
+: Patchname: clrlsd.tst                      product version : 2.04
+:    Author: James Wang                        Organization  : STS
+:  CUstomer: KAL                               Date          : may 2, 1990
+: description of the problem: 
+:            When wrong requested station number is not found, the circuit
+:            will be set in clearing state . this may cause the I/F to reject
+:            any new incoming circuit.
+:****************************************************************************
+
+PATCH(900502,1700,JWANG,CLRLSD,,4)
+        LHI     R0,22
+ENDPATCH(USE 22 INSTEAD OF 23 WHEN THE REQUESTED DEST STATION IS NOT FOUND)
+
+
+
+: * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+:	THIS MUST BE AFTER THE LAST PATCH IN THE PATCH FILE.
+:	THIS IS THE TOTAL NUMBER OF TYMFILE ERRORS, ASSEMBLY ERRORS,
+:	AND UNDEFINED SYMBOLS FOUND.
+
+	REMARK	%%CHECKING FOR UNDEFINED SYMBOLS
+
+UDFERR	UNCNT		:INITIALIZE NUMBER OF UNDEFINED SYMBOLS TO ZERO
+	UN		:LIST ALL UNDEFINED SYMBOLS
+ IF	UDFERR
+ ELSE
+	REMARK	%No undefined symbols found
+ EI
+	REMARK	%
+
+ IF	TYMERR!ASMERR!UDFERR	:TYMFILE, ASSEMBLY, OR UNDEFINED ERROR FOUND
+	REMARK	%% * * * *
+  IF	NTDASM		:NTD ASSEMBLER SWITCH SET, DO NOT STOP ASSEMBLY
+  ELSE			:NTD ASSEMBLER SWITCH NOT SET, STOP ASSEMBLY
+	REMARK	% * * * *   S Y S G E N   S T O P P E D
+	REMARK	% * * * *
+  EI	:(NTDASM)
+	REMARK	% * * * *   ;
+	NUMBER	$A TYMERR ;
+  IF	TYMERR-1
+	REMARK	 TYMFILE ERRORS FOUND.
+  ELSE
+	REMARK	 TYMFILE ERROR FOUND.
+  EI	:(TYMERR-1)
+	REMARK	% * * * *
+	REMARK	% * * * *   ;
+	NUMBER	$A ASMERR ;
+  IF	ASMERR-1
+	REMARK	 ASSEMBLY ERRORS FOUND.
+  ELSE
+	REMARK	 ASSEMBLY ERROR FOUND.
+  EI	:(ASMERR-1)
+	REMARK	% * * * *
+	REMARK	% * * * *   ;
+	NUMBER	$A UDFERR ;
+  IF	UDFERR-1
+	REMARK	 UNDEFINED SYMBOLS FOUND.
+  ELSE
+	REMARK	 UNDEFINED SYMBOL FOUND.
+  EI	:(UDFERR-1)
+	REMARK	% * * * *
+	REMARK	%
+  IF	NTDASM		:NTD ASSEMBLER SWITCH SET, DO NOT STOP ASSEMBLY
+  ELSE			:NTD ASSEMBLER SWITCH NOT SET, STOP ASSEMBLY
+	QUIT	1	:STOP ASSEMBLY, EXIT NAD
+  EI	:(NTDASM)
+ EI	:(TYMERR)
+
+	LO	MAIN		: MUST BE LAST STATEMENT IN PATCH FILE
+:				: IN ORDER TO ASSEMBLE CORRECTLY
+ [&u®
