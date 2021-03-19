@@ -1,0 +1,4024 @@
+
+
+
+
+
+
+
+                                   DXPI
+
+               Extended Processor Interface Test Package
+                                 Version 1.00
+
+
+
+
+
+
+
+
+
+
+
+
+                                      by
+
+                                  Pat Manley
+                                 Joe Salisbury
+
+                                    TYMNET
+                        Network Technology Development
+                                 June 5, 1986
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       Tymnet, Inc.'s proprietary rights are included in the information
+       disclosed  herein.   The  recipient,  by receiving this document,
+       agrees that neither this document nor the  information  disclosed
+       herein,  nor  any part thereof shall be reproduced or transferred
+       to  other  documents,  or  used  or  disclosed  to   others   for
+       manufacturing  or  for  any  other purpose except as specifically
+       authorized in writing by Tymnet, Inc.
+
+
+
+
+
+                             XPI Test Package
+
+
+
+
+
+
+
+
+
+
+
+                                   CONTENTS
+
+
+        1.  Overview...........................................   1
+            1.1   Version 1.00 Overview........................   2
+
+        2.  Applicable Documents...............................   3
+
+        3.  Equipment..........................................   4
+            3.1   Hardware Required............................   4
+            3.2   Firmware Required............................   4
+            3.3   Software Required............................   4
+
+        4.  Configuration Constraints..........................   5
+
+        5.  Loading Procedure..................................   6
+            5.1   Loading Into RAM.............................   6
+
+        6.  Operating Procedures...............................   8
+            6.1   Starting XPIBUG..............................   8
+            6.2   Starting the XPI Diagnostic..................   9
+            6.3   Default Testing..............................  10
+            6.4   Optional Testing.............................  12
+
+        7.  Menus..............................................  13
+            7.1   Main Menu....................................  13
+            7.2   Test Selection Menu..........................  14
+            7.3   Main Option Menu.............................  16
+            7.4   Common Option Menu...........................  17
+                  7.4.1   Scope Loop Mode......................  18
+            7.5   XPI RAM Test Option Menu.....................  19
+                  7.5.1   Address range option for XPI RAM
+                          Test.................................  20
+                  7.5.2   Data Pattern Option for the XPI RAM
+                          Test.................................  21
+            7.6   Ethernet Loopback Test Option Menu...........  22
+                  7.6.1   Ethernet Interface Commands
+                          Option...............................  23
+                  7.6.2   Interrupt Options....................  26
+                  7.6.3   DMA Option...........................  27
+                  7.6.4   Data Pattern Option..................  27
+                  7.6.5   Buffer Location Option...............  28
+                  7.6.6   Buffer Size Option...................  29
+                  7.6.7    Command or Loopback Testing
+                          Option...............................  29
+
+        8.  Halting the Diagnostic.............................  31
+            8.1   Abort Button.................................  31
+            8.2   Reset Button.................................  31
+            8.3   Break Key....................................  31
+
+
+
+
+                                  - i -
+
+
+
+
+
+
+
+
+
+
+
+        9.  Test Descriptions..................................  33
+            9.1   XPI RAM Test Description.....................  33
+                  9.1.1   Section One  - Basic Addressing
+                          Test.................................  33
+                  9.1.2   Section Two - Data Bit Test..........  34
+                  9.1.3   Section 3  - TAS Test ...............  37
+                  9.1.4   XPI RAM Test in Scope Loop Mode......  37
+                  9.1.5   XPI RAM Test Options.................  38
+                          9.1.5.1  Memory Address Range in
+                                   Test Option.................  38
+                          9.1.5.2  Data Pattern in Scope Loop
+                                   Mode Option.................  38
+            9.2   Ethernet Loopback Test Description...........  38
+                  9.2.1   Ethernet Interface Command
+                          Section..............................  39
+                  9.2.2   Ethernet Interface Loopback
+                          Section..............................  41
+                  9.2.3   Ethernet Loopback Test Scope Loop
+                          Mode.................................  42
+                  9.2.4   Ethernet Loopback Test Options.......  43
+                          9.2.4.1  Ethernet Interface Card
+                                   Command Selection...........  43
+                          9.2.4.2  Enable/Disable Interrupts
+                                   Option......................  43
+                          9.2.4.3  Enable/Disable DMA
+                                   Option......................  43
+                          9.2.4.4  Data Pattern Option.........  44
+                          9.2.4.5  Buffer Location Option......  44
+                          9.2.4.6  Packet Size.................  44
+                          9.2.4.7  Select Command Testing or
+                                   Data Transfer Testing
+                                   Option Description..........  45
+
+       10.  Error Messages.....................................  46
+            10.1  XPI RAM Test Error Messages..................  46
+                  10.1.1  Basic Addressing Test Section Error
+                          Messages.............................  46
+                  10.1.2  Data Bit Test Section Error
+                          Messages.............................  47
+                  10.1.3  TAS Test Section.....................  47
+            10.2  Ethernet Loopback Test Error Messages........  47
+                  10.2.1  Ethernet Interface Command Section
+                          Error Messages.......................  48
+                  10.2.2  Ethernet Interface Loopback Section
+                          Error Messages.......................  51
+                  10.2.3  Section 2 Error Code
+                          Descriptions.........................  51
+
+       11.  Fault Isolation....................................  54
+            11.1  XPI RAM Test Fault Isolation.................  54
+            11.2  Ethernet Loopback Test Fault Isolation.......  55
+
+
+
+                                  - ii -
+
+
+
+
+
+
+
+
+
+
+
+       12.  Interlan Ethernet Interface (NM10A) Registers......  56
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                 - iii -
+
+
+
+
+
+
+
+
+
+
+
+                             1.  Overview
+
+
+       This document describes the functions, features and usage of  the
+       Extended Processor Interface (XPI) Test Package.
+
+       XPI is hardware that  can  be  added  to  a  Tymnet  Engine.   It
+       consists  of  two boards, the XPI board and the Interlan Ethernet
+       interface board.  The XPI board is located in an  Engine  chassis
+       and  is  connected to the Engine through the Engine's I/O and DMA
+       busses.  The Interlan card is located in the bucket (APSS) and is
+       connected  to  the  XPI board and to the Ethernet cable.  Several
+       Engines may be connected to each other through XPI  cards  and  a
+       single Ethernet cable forming a cluster.
+
+       The XPI sub-system consists of a Motorola 68010 CPU,  256k  bytes
+       of memory, a memory management unit, a DMA controller, two serial
+       ports and interfaces to the Engine and  Ethernet  hardware.   The
+       Interlan  Ethernet  interface  card  contains the logic needed to
+       connect to an Ethernet cable.
+
+       The XPI hardware is used for two purposes.  First it  provides  a
+       very  high  speed  link  between the nodes, Engines, in a cluster
+       with the Ethernet cable.  Second, the XPI board can  do  some  of
+       the  processing  otherwise  done  by  the  Engine,  such  as  the
+       dispatcher functions.
+
+       There are plans for two diagnostics to test the XPI hardware. The
+       first  is  this one, the XPI Test Package, and second will be the
+       XPI System's Interaction Diagnostic.  Together these will provide
+       a  complete  test  of  all  the  XPI  hardware.  The XPI System's
+       Interaction Diagnostic will run all of the  functional  areas  of
+       the  XPI  hardware  concurrently  and  will  be  designed to find
+       problems caused by the interaction between  different  functional
+       areas.  The XPI Test Package consists of a series of basic tests,
+       where each one tests one functional area.
+
+       Unlike some of the other Engine diagnostics, this  one  does  not
+       run   under   the  Diagnostic  Monitor.   This  is  because  this
+       diagnostic is  written  in  68010  assembly  language  while  the
+       Diagnostic  Monitor  is written in Engine assembly language, NAD.
+       The XPI Test Package contains its own user interface in place  of
+       the Diagnostic Monitor.  Another difference of this diagnostic is
+       that the user interface is menu based rather  than  command  line
+       based.   Menus   control   the tests to be run and the options to
+       use while running the tests.
+
+       Also, unlike most other Engine diagnostics, the XPI Test  Package
+       does  not  run  by  itself.   In  the XPI board PROM is a program
+       called XPIBUG. This program is executed after power on and  after
+       the  reset  and  halt signals are lifted.  The initial release of
+
+
+
+       Page 1                XPI Test Package
+
+
+
+
+
+
+
+       Overview                                        June 5, 1986
+
+
+
+       this diagnostic will be a RAM resident version that is downloaded
+       from  a  host  system.  A  future  version  is planned to be PROM
+       resident with XPIBUG.  XPIBUG  provides  additional  capabilities
+       that  can  be  used  with  this diagnostic.  These include single
+       stepping,  breakpoints,  single  line  assembly/disassembly   and
+       reading/writing   of  memory.   XPIBUG  contains  facilities  for
+       downloading object code from the network.
+
+
+
+       1.1  Version 1.00 Overview
+
+
+       Version 1.00 of the XPI Test  Package  is  the  initial  released
+       version.  It  consists  of  only  two  of  the  nine  tests  that
+       eventually will be in this program.
+
+       The tests included are:
+
+            - XPI RAM Test
+
+             - Basic Addressing Section
+             - Data Bit Section
+             - TAS (Test and Set Instruction) Section
+
+
+            - Ethernet Loopback Test
+
+             - Ethernet Interface Command Section
+             - Ethernet Interface Loopback Section
+
+
+
+
+       The tests to be added later are:
+
+            - XPI Address Range Test
+
+            - XPI Memory Management Test
+
+            - XPI DMA Controller Test
+
+            - XPI/Engine I/O and Interrupts Test
+
+            - XPI/Engine DMA Interface Test
+
+            - Ethernet End-to-End Test
+
+
+
+
+
+
+
+       Page 2                XPI Test Package
+
+
+
+
+
+
+
+       Applicable Documents                            June 5, 1986
+
+
+
+                         2.  Applicable Documents
+
+
+       The user may find it useful to refer to the  following  documents
+       when running this diagnostic.
+
+
+            - ISIS/MXP External Reference Specification
+
+            - NM10A Ethernet Protocol Module User Manual
+
+            - Data sheets for 68901 and 68450 components
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       Page 3                XPI Test Package
+
+
+
+
+
+
+
+       Equipment                                       June 5, 1986
+
+
+
+                             3.  Equipment
+
+       3.1  Hardware Required
+
+
+       The XPI Test Package requires the following equipment:
+
+
+       - Engine or Mini-Engine with a minimum of 64K bytes of memory and
+         a display console.
+
+       - XPI Motherboard (P/N: 430230-001)
+
+       - An RS-232 terminal (4800 baud).
+
+       - If the XPI Test Package is to be loaded into  the  XPI  board's
+         RAM,  an  async  connection  (cable  P/N:  ASC140-20PP)  to the
+         network is needed.  (Currently, the XPI Test Package  can  only
+         execute from XPI RAM.)
+
+
+
+            NOTE:  From here on, references  to  Engines  also
+            apply to Mini-Engines.
+
+
+       In addition the XPI Test Package may have the following  optional
+       equipment:
+
+
+       - An Ethernet Interface (LAN) card (P/N: 430228-001) with 50  pin
+         ribbon  cable (P/N: 160186-001) to connect to the XPI board and
+         power cable (P/N:160195-002) to  conect  to  the  Engine's  AUX
+         POWER outlet.
+
+       - An APSS card cage, 'a bucket', to hold the interface card.
+
+
+       3.2  Firmware Required
+
+       XPIBUG  version 1.009
+
+       3.3  Software Required
+
+       The RAM resident version of this diagnostic is downloaded from  a
+       host  system  that  contains  the S record format of the program.
+       This file name will be "DXPI01.N00" in the SOURCE  directory  for
+       version 1.0.
+
+
+
+
+
+
+       Page 4                XPI Test Package
+
+
+
+
+
+
+
+       Configuration Constraints                       June 5, 1986
+
+
+
+                     4.  Configuration Constraints
+
+
+       The XPI board must  be  functioning  well  enough  to  allow  the
+       execution  of  a program in it. If the XPI Test Package is in the
+       XPI's PROM (not yet implemented), then the first  5.8k  bytes  of
+       RAM must be working. If the XPI Test Package is to be loaded into
+       the XPI's RAM, then the first 64k bytes of RAM must  be  working.
+       Also,  the  XPI's  terminal  and network connection ports must be
+       working.
+
+       The Engine that the XPI board is located in must be working  well
+       enough  to  to  execute a simple program to send a command to the
+       XPI board that will release the Reset signal on the 68010 CPU. As
+       long  as  the  reset  signal has not been released, the 68010 CPU
+       cannot execute any program.  Also, the Engine must be functioning
+       well enough to allow the XPI board to access the Engine's memory.
+
+       The functioning condition  of  the  Engine  can  be  verified  by
+       running  the  CPU  Diagnostic,  the Memory Diagnostic and the MAC
+       Diagnostic.
+
+       If the working state of the XPI board is known to be good, it can
+       be  used  to  check out the Engine's first megabyte of memory and
+       DMA bus.  The XPI RAM Test can be used for this purpose. See  the
+       test descriptions for details.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       Page 5                XPI Test Package
+
+
+
+
+
+
+
+       Loading Procedure                               June 5, 1986
+
+
+
+                         5.  Loading Procedure
+
+
+       Unlike the other diagnostics, the XPI Test  Package,  which  does
+       not  execute  in  the  Engine, cannot be loaded with the standard
+       loading procedures described  in  the  Diagnostics  Introduction.
+       The procedures needed are given here.
+
+
+       5.1  Loading Into RAM
+
+
+       When the program runs in  the  XPI  board's  RAM,  the  following
+       loading procedure is needed.
+
+       Connect a 4800  baud  RS-232  terminal  to  the  rightmost  DB-25
+       connector on the front of the XPI board.
+
+       Connect a network async line to the leftmost DB-25  connector  on
+       the front of the XPI board.
+
+       Refer to STARTING THE XPI DIAGNOSTIC in the  OPERATING  PROCEDURE
+       to begin the execution of the XPIBUG monitor program.
+
+       After XPIBUG begins execution, the following steps will  download
+       the  XPI  Diagnostic  from  a  remote  host  and begin diagnostic
+       execution.
+
+       NOTE:  The data enclosed in single quotes are  operator  terminal
+       input.   All  command  lines  are terminated by a carriage return
+       character <cr>.
+
+
+       - Type 'TM!<cr>' to go to the network and the host system.
+
+       - Disconnect the network async line connection for a few  seconds
+         to get a request for terminal identifier.
+
+       - Type the terminal identifier as appropriate.
+
+       - Log into a system that contains the diagnostic.
+
+       - Type '!<cr>' to get back to XPIBUG.
+
+       - Type 'LO ;X=TYPE DXPI01.N00<cr>' to transfer the diagnostic's S
+         record  format  file  from  the  host system to the XPI board's
+         async line.
+
+       Download transfer errors will be indicated  on  the  terminal  if
+       they  occur,  and the load will abort.  The S record file data is
+       echoed to the terminal as it is loaded.   It  will  take  several
+
+
+
+       Page 6                XPI Test Package
+
+
+
+
+
+
+
+       Loading Procedure                               June 5, 1986
+
+
+
+       minutes to load the diagnostic program.
+
+
+       - Type 'TM!<cr>' to get back to the host system.
+
+       - Log out of the host.
+
+       - Type '!<cr>' to get back to XPIBUG.
+
+       - Type 'GO 3000<cr>' to start the XPI Diagnostic.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       Page 7                XPI Test Package
+
+
+
+
+       Operating Procedures                            June 5, 1986
+
+
+
+                         6.  Operating Procedures
+
+
+
+       6.1  Starting XPIBUG
+
+
+       Since the XPI Diagnostic runs under the control of XPIBUG, XPIBUG
+       must be started before the diagnostic can be started.
+
+       Connect a 4800  baud  RS-232  terminal  to  the  rightmost  DB-25
+       connector  on  a  XPI  board  installed  in  an Engine.  (The RAM
+       version of the program will require an async line to be connected
+       to the leftmost DB-25 connector of the XPI board.)
+
+       Power up the Engine.  If an  Ethernet  Interface  (LAN)  card  is
+       connected to the XPI board, ensure that the loopback light on the
+       card turns on.  If it doesn't, check the connection of the  power
+       cable from the LAN card to the Engine's AUX POWER outlet.
+
+       Toggle  upwards  the  Watchdog  Timer  switch  on  the   Engine's
+       Multifunction board.  In a few seconds you should see the message
+       "Reset msg 0001" on the terminal (if LBOOT7 PROM's are  installed
+       on  the Multifunction board).  If not, the terminal is not set up
+       properly or there is a basic fault in the XPI board.
+
+       Turn off the Watchdog Timer on the Engine by setting  the  switch
+       on Multifunction Board to the middle position.  This is necessary
+       to keep the Engine from going into boot  and  resetting  the  XPI
+       board.
+
+       Start XPIBUG program execution by pressing the following keys  on
+       the  Engine's  display  console  to  enter and execute Engine OCR
+       instructions at Engine memory location 0.   The OCR  instructions
+       ensure  that  reset  is  deactivated  on  the  XPI board, the XPI
+       translate bit is set  for  execution  out  of  PROM,  and  XPIBUG
+       execution is started.
+
+
+       - DTA,SET to initialize the Engine and clear the PSW.
+
+       - REG,0,DTA,0,WRG to put 0 into  register  0  to  reset  the  XPI
+         board.
+
+       - REG,1,DTA,88,WRG to put 88 XPI device address into register 1.
+
+       - DTA,ADR,9,E,1,0,WRT to write 9E10 OCR instruction into location
+         0.
+
+       - DTA,ADR,C,8,ADR,0,WRT to clear  the  Engine/XPI  communications
+         area.
+
+
+
+       Page 8                XPI Test Package
+
+
+
+
+
+
+
+       Operating Procedures                            June 5, 1986
+
+
+
+       - DTA,ADR,SGL to single step the OCR instruction at location 0.
+
+       - REG,0,DTA,4,WRG to set up register 0 to lift reset and halt the
+         XPI.
+
+       - DTA,ADR,SGL to single step the OCR instruction at location 0.
+
+       - REG,0,DTA,8,WRG to reset the XPI and set the XPI translate bit.
+
+       - DTA,ADR,SGL to single step the OCR instruction at location 0.
+
+       - REG,0,DTA,E,WRG to lift reset and start XPIBUG execution.
+
+       - DTA,ADR,SGL to single step the OCR instruction at location 0.
+
+       The red LED on the XPI card should extinguish and the  green  LED
+       should light.  The XPIBUG prompt message "XPIBUG  1.009 - 17 JUNE
+       84 *>" should appear on the terminal.  If  it  does  not,  verify
+       that  the  terminal is connected correctly, verify that the Watch
+       Dog Timer is turned off, and repeat the previous procedure.
+
+
+
+       6.2  Starting the XPI Diagnostic
+
+
+       Before starting the XPI Diagnostic, memory must  be  initialized,
+       and  any  pending parity error interrupt bits reset to keep false
+       parity  errors  from  occurring  later  in  the  diagnostic  when
+       interrupts  are  enabled.  The following steps will fix incorrect
+       memory parity caused by powering up the XPI board.
+
+
+       - Type 'BI 0 3FFFE<cr>' to initialize memory.
+
+       - Type 'MM FFFF8B;O<cr>' to clear interrupt bits (O is the letter
+         o)
+
+       - Type '0<cr>'  (0 is the number zero).
+
+       - Type '0.<cr>'  (0 is the number zero).
+
+
+
+            NOTE:  The parity error  interrupt  that  must  be
+            cleared   is   created   when  XPIBUG  reads  some
+            uninitialized part of memory  while  starting  the
+            diagnostic.)
+
+
+
+
+
+
+       Page 9                XPI Test Package
+
+
+
+
+
+
+
+       Operating Procedures                            June 5, 1986
+
+
+
+       If the XPI Diagnostic is not located in the XPI PROM, then follow
+       the  loading  procedure  for  loading the diagnostic program into
+       RAM.
+
+       Start the diagnostic with the following XPIBUG commands:
+
+
+       - If the program is in PROM, type 'MT<cr>' to start it.  (not yet
+         implemented;  'MT<cr>'  currently  runs an older version of the
+         RAM Test.)
+
+       - If the program is in RAM, type 'GO 3000<cr>' to start it.
+
+       At this time the Main Menu of the XPI Diagnostic will  be  output
+       to  the terminal.  If it does not, verify the terminal connection
+       and repeat the initialization procedure above.
+
+
+
+       6.3  Default Testing
+
+
+       After the diagnostic  is  started  the  default  testing  can  be
+       selected from the main menu. This is a series of tests and option
+       settings that provide a checkout of the XPI board.  It  does  not
+       include testing of the Ethernet interface since the interface may
+       not be connected. In version 1.0 of the  XPI  Test  Package,  the
+       default testing consists only of the XPI RAM Test.
+
+       To execute the default tests, type '2' while in  the  Main  Menu.
+       This  will  run all the default tests.  After the tests have been
+       completed, the Main Menu will again be displayed. If  any  errors
+       are  found,  an error message will be output to the terminal. For
+       the value of  the  options  used  in  default  testing,  see  the
+       individual   test   descriptions   and  the  Common  Option  Menu
+       description.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       Page 10               XPI Test Package
+
+
+
+
+
+
+
+       Operating Procedures                            June 5, 1986
+
+
+
+            Default Testing Example:
+
+            -----Main Menu of the XPI Test Package_____
+
+            1 - Return to XPIBUG.
+            2 - Run the tests once each.
+            3 - Run the tests continuously.
+            4 - Select the tests to be run.
+            5 - Set the options.
+
+               To choose one of the five menu items, type the corresponding
+               number followed by a carriage return.
+
+            >
+
+
+       To run the default testing, type in at the terminal:
+
+       2<cr>
+
+       The program will then execute the default tests in  order.  While
+       the  program  is running, messages will be output to the terminal
+       for the start  of  each  test,  end  of  each  test,  information
+       specific  to  a  test,  any  errors  found and the pass and error
+       counts after all default tests have been run. After  the  default
+       testing  is  done and the pass and error count messages have been
+       output, the Main Menu will again be displayed  on  the  terminal.
+       The  program will then wait for another selection to be made from
+       the menu.
+
+       The Abort Button on the XPI board causes the program to stop. The
+       Main Menu is displayed.
+
+       The Break key on the terminal may  also  be  pressed  to  suspend
+       execution.  This  does not halt the testing immediately. Instead,
+       when the program  outputs a message to the terminal, it will stop
+       and  exit  to XPIBUG. Depending on where the program is executing
+       at the time the Break key is pressed, it may take a while  before
+       the  program  stops.  Once in XPIBUG, the XPI Test Package may be
+       restarted by giving XPIBUG the 'MT<cr>' command if the diagnostic
+       is in PROM (not yet implemented). If the diagnostic is in RAM, it
+       can be restarted with the 'GO 3000<cr>' command.
+
+       The Reset Button on  the XPI board may be  pressed.  This  causes
+       the  XPI  board  to be reset and XPIBUG to be restarted.  The XPI
+       Test Package may then be restarted by giving XPIBUG the  'MT<cr>'
+       command  if  the  diagnostic is in PROM (not yet implemented). If
+       the diagnostic is in RAM,  it  can  be  restarted  with  the  'GO
+       3000<cr>' command.
+
+
+
+
+
+       Page 11               XPI Test Package
+
+
+
+
+
+
+
+       Operating Procedures                            June 5, 1986
+
+
+
+       6.4  Optional Testing
+
+
+       The XPI Test Package has many options to control the  testing  of
+       the  hardware.  Some  of these options, such as enable scope loop
+       mode, effect all of the tests. Other options are specific to only
+       one  test. Tests to be  executed can be selected by the operator.
+       Details on these options can be found in the  test  descriptions,
+       the  Common  Option  Menu description and the Test Selection Menu
+       description.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       Page 12               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+                                 7.  Menus
+
+
+       The XPI Test Package is controlled through a series of menus.  In
+       all  the  menus an option can be selected by typing in the number
+       of that option followed by a carriage return.  In  some  cases  a
+       menu  option will cause a different menu to be displayed. For all
+       menus, except the Main Menu, the first selection  is  always  the
+       same.  The first, 1, is to return to the Main Menu. In some menus
+       the second, 2, is to return to the menu that called  the  current
+       menu.
+
+       In version 1.0 of the XPI Test Package, the following  menus  are
+       available.
+
+
+
+            - Main Menu
+
+                   - Test Selection Menu
+
+                   - Main Option Menu
+
+                          - Common Option Menu
+
+                          - XPI RAM Test Option Menu
+
+                          - Ethernet Loopback Option Menu
+
+       In some cases, selecting a choice from  a  menu  will  cause  the
+       program  to  request  information  to be typed into the terminal.
+       Instructions on the type of information  wanted  will  be  output
+       just  before  it is to be entered. After the information has been
+       input, the current menu will be redisplayed.
+
+       If an improper entry is made in a  menu,  the  diagnostic  either
+       displays  an error message or returns to XPIBUG.  In neither case
+       does the improper entry have any effect.  If an error message  is
+       displayed,   the  current  menu  will  be  redisplayed.   If  the
+       diagnostic returns to XPIBUG, all previous menu  selections  will
+       be deleted, and the user must restart the diagnostic.
+
+
+       7.1  Main Menu
+
+
+       This menu is the first to be displayed when the XPI Test  Package
+       is  started.  From  this menu the tests can be executed, the Test
+       Selection Menu called,  the  Main  Option  Menu  called,  or  the
+       diagnostic can exit to XPIBUG.
+
+
+
+
+       Page 13               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+       When the Main Menu is displayed the following is  output  to  the
+       terminal:
+
+
+            -----Main Menu of the XPI Test Package-----
+
+            1 - Return to XPIBUG.
+            2 - Run the tests once each.
+            3 - Run the tests continuously.
+            4 - Select the tests to be run.
+            5 - Set the Options.
+
+               To choose one of the five menu items, type the corresponding
+               number followed by a carriage return.
+
+            >
+
+
+       The '>' output is the prompt indicating that a  choice  from  the
+       menu can be made.
+
+       Description of the Main Menu choices:
+
+
+            1 - Exits the  XPI  Test  Package  and  returns  control  to
+                XPIBUG.
+
+            2 - Each of the tests currently selected is executed once in
+                order.   After all the selected tests have been executed
+                the Main Menu is again displayed.
+
+            3 - Each of the tests  currently  selected  is  executed  in
+                order.  When  all  the tests selected have been run they
+                are executed again. This continues until  the  Abort  or
+                Reset  Button is pushed on the XPI card or the Break key
+                is pressed on the terminal.
+
+            4 - The Test Selection Menu is displayed  which  allows  the
+                user to select which tests are to be executed.
+
+            5 - The Main Option Menu is displayed which allows the  user
+                to call the Common Option Menu or any of the test option
+                menus or reset all the options to their defaults.
+
+
+       7.2  Test Selection Menu
+
+
+       The selection of the tests to be executed can be made  from  this
+       menu.  It  also  indicates which tests are currently selected for
+       execution. These are shown by an '*' between the number  and  the
+
+
+
+       Page 14               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+       test title.
+
+       When the Test Selection Menu is displayed the following is output
+       to the terminal:
+
+
+            -----Test Selection Menu of the XPI Test Package-----
+
+            1  - Return to the Main Menu.
+            2  - Set the tests to be run to the defaults.
+            3  - Set all the tests to be run.
+            4  - Set no tests to be run.
+            5  * Memory Test.
+            6  - Ethernet Loopback Test.
+
+               To choose one the six menu items, type the corresponding
+               number followed by a carriage return.
+
+               Tests that are currently selected to be run are shown
+               by a '*' between the number and the test name.
+
+            >
+
+
+       The '>' output is the prompt indicating that a  choice  from  the
+       menu can be made.
+
+       Description of Test Selection Menu choices in version 1.0 of this
+       diagnostic:
+
+
+            1 - Causes the Main Menu to be displayed on the terminal.
+
+            2 - Selects the default tests.
+
+            3 - Selects all tests to be run.
+
+            4 - Deselects all tests.
+
+            5 - Select or deselect the XPI RAM Test.
+
+            6 - Select or deselect the Ethernet Loopback Test.
+
+       If any of the menu entries from number 5 or greater  is  selected
+       the program will output the following message:
+
+
+
+
+
+
+
+
+
+       Page 15               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+            Is this test to be added to or removed from those to be run?
+            Type 'A' to add or 'R' ro remove.
+
+            >
+
+
+       After an 'A' or 'R' has  been  entered  followed  by  a  carriage
+       return,  the  Test  Selection  Menu  will  be  redisplayed on the
+       terminal and it will indicate with an '*' those  tests  currently
+       selected. To run the tests selected, return to the Main Menu.
+
+
+       7.3  Main Option Menu
+
+
+       In addition to being able to set all options to  their  defaults,
+       the  Main  Option  Menu  can  select  any of the remaining option
+       menus.  There is an option menu for those options common  to  all
+       tests as well as a option menu for each test.
+
+       When the Main Option Menu is displayed the following is output to
+       the terminal:
+
+
+            -----Main Option Menu for the XPI Test Package-----
+
+            1 - Return to the Main Menu.
+            2 - Set All Options to the Defaults.
+            3 - Change Options Common to all Tests.
+            4 - Change Memory Test Options.
+            5 - Change Ethernet Loopback Test Options.
+
+               To choose one of the five menu items, type the corresponding
+               number followed by a carriage return.
+
+            >
+
+
+       The '>' output is the prompt indicating that a  choice  from  the
+       menu can be made.
+
+       Description of Main Option Menu choices in version  1.0  of  this
+       diagnostic:
+
+
+            1 - Causes the Main Menu to be displayed.
+
+            2 - Sets all the options to their default (i.e. the value of
+                the  option  when  the  program was first started). This
+                includes selecting the default tests.
+
+
+
+
+       Page 16               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+            3 - Display the Common Option Menu.
+
+            4 - Display the XPI RAM Test Option Menu.
+
+            5 - Display the Ethernet Loopback Option Menu.
+
+       If the options were set their defaults, then the Main Option Menu
+       will be displayed on the terminal again.
+
+
+       7.4  Common Option Menu
+
+
+       Options common to all tests are selectable from  this  menu.   An
+       asterick  (*)  in  the  following menu dislpay indicates that the
+       corresponding option is currently selected.
+
+            -----Common Option Menu for the XPI Test Package-----
+
+            1 - Return to the Main Menu.
+            2 - Return to the Main Option Menu.
+            3 - Set the Common Option to the defaults.
+            4 * Enable the Printout of Error Messages.
+            5 - Disable the Printout of Error Messages.
+            6 * Enable the Printout of Pass and Error Counts.
+            7 - Disable the Printout of Pass and Error Counts.
+            8 - Enable Scope Loop Mode.
+            9 * Disable Scope Loop Mode.
+
+               Options that are currently selected are shown by a '*' between the
+               number and the option name.
+
+               To choose one of the nine menu items, type the corresponding number
+               followed by a carriage return.
+
+            >
+
+
+       The '>' output is the prompt indicating that a  choice  from  the
+       menu can be made.
+
+       Description of the  Common Option Menu choices in version 1.0  of
+       this diagnostic:
+
+
+            1 - Causes the Main Menu to be displayed.
+
+            2 - Causes the Main Option Menu to be displayed.
+
+            3 - Set all the common options (those listed in  this  menu)
+                to  their default values (the value they are set to when
+
+
+
+       Page 17               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+                the program is first started) and redisplay  the  common
+                option menu.
+
+            4 - If the diagnostic encounters a fault, an  error  message
+                will be output.
+
+            5 - If the diagnostic encounters a fault, an  error  message
+                will  not  be  output.   (This  option also disables the
+                output of phase identification messages in the  Ethernet
+                Loopback Section.)
+
+            6 - At the end of each pass through the selected tests,  the
+                diagnostic will output a pass and error count.
+
+            7 - At the end of each pass through the selected tests,  the
+                diagnostic will not output a pass and error count.
+
+            8 - When the first selected test  is  started,  the  program
+                goes  into  scope  loop  mode.  This  mode  prevents the
+                program from outputting  pass and error counts. Only the
+                first  test selected will be executed while in the scope
+                loop mode. When in scope loop mode , a test never  ends.
+                See below on how to exit a test in the scope loop mode.
+
+            9 - This disables the entering of scope loop mode  when  the
+                selected test is executed.
+
+       To determine which test is executed first, when  more  more  than
+       one  is  selected, look at the Test Selection Menu. In this menu,
+       tests are listed in the order of execution.
+
+
+       7.4.1  Scope Loop Mode.
+
+
+       The scope loop mode is intended to be used as a tool  in  finding
+       the problem on a board once that board is know to be bad. It puts
+       a test into an endless loop so that signals on the board  can  be
+       seen  with  an  oscilloscope.  Each  test  has options that allow
+       operator selection of some test parameters  that  are  useful  in
+       scope loop mode.
+
+       When a test is entered with scope loop mode  enabled,  that  test
+       will  never  exit.  In  order for the user to gain control of the
+       diagnostic, one of the following methods must be used:
+
+
+       - Push the Abort Button (the rightmost button on the front of the
+         XPI  board).   This  causes the XPI Test Package to display the
+         Main Menu and wait for the user's input.
+
+
+
+
+       Page 18               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+       - Push the Reset Button (the leftmost button on the front of  the
+         XPI  board).   This causes the XPI board to be reset and XPIBUG
+         to be restarted.  If the XPI Test Package was in RAM,  use  the
+         XPIBUG command 'GO 3000<cr>' to restart the diagnostic.  If the
+         diagnostic is in the XPI's PROM (not yet implemented),  it  can
+         be  restarted  with the 'MT<cr>' command. In either case all of
+         the options and tests selected will be set to their defaults.
+
+
+       7.5  XPI RAM Test Option Menu
+
+
+       This menu allows the user to control the options that effect only
+       the XPI RAM test.
+
+       When the XPI RAM Test Option Menu is displayed the  following  is
+       output to the terminal:
+
+
+            -----XPI RAM Test Option Menu for the XPI Test Package-----
+
+            1 - Return to the Main Menu.
+            2 - Return to the Main Option Menu.
+            3 - Set the XPI RAM Test Options to the Default Values.
+            4 - Select the Address Range of RAM to be Tested.
+            5 - Data Pattern to Use in Scope Loop Mode.
+
+               To choose one of the five menu items, type the corresponding number
+               followed by a carriage return.
+
+            >
+
+
+       The '>' output is the prompt indicating that a  choice  from  the
+       menu can be made.
+
+       Description of each of XPI RAM Test Option Menu choices.
+
+
+            1 - Causes the Main Menu to be displayed.
+
+            2 - Causes the Main Option Menu to be displayed.
+
+            3 - Sets all the  options  listed  in  this  menu  to  their
+                default  values,  i.e.  to the value the option has when
+                the program is first started.
+
+            4 - The program prompts the user for the range of  addresses
+                to be tested.  See below for more details.
+
+
+
+
+
+       Page 19               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+            5 - The program prompts the user for the test  data  pattern
+                to use in scope loop mode.  See below for more details.
+
+
+       7.5.1  Address range option for XPI RAM Test
+
+
+       The address range option allows the user to select  the  area  of
+       memory  that is to be tested in the XPI RAM Test. Any combination
+       of low and high addresses may be used subject  to  the  following
+       constraints:
+
+
+       - The low address must be less than EFFFFC (hex.).
+
+       - The high address must be less than F00001 (hex.).  (The  actual
+         test range ends 1 byte before the high address entered.)
+
+       - The low address must be at least 5 less than the high address.
+
+       - The low address cannot be in the XPI's RAM address range (0  to
+         3FFFF hex.) with the high address in the Engine's address range
+         (E00000 to EFFFFF hex.).
+
+       In addition to the above constraints, the user cannot  select  an
+       address  in  RAM  that  is being used by the program. The program
+       uses the area that is located at the  bottom  of  XPI's  RAM  for
+       several  purposes.  The  amount  of  RAM  used  depends on if the
+       diagnostic is in PROM  (not  yet  implemented)  or  RAM  and  the
+       diagnostic's  version  number.  When  an  address is entered, the
+       program checks to see if it is in this range and  will  not  take
+       that value if it is.
+
+       When this menu selection, 4, is made the program outputs  to  the
+       terminal:
+
+
+            Type in the low address for the test range, one to six hex
+            digits followed by a carriage return.
+
+            >
+
+
+       Where the '>' indicates that  the  program  is  waiting  for  the
+       address  to  be  input. When the low address has been entered the
+       program outputs:
+
+
+
+
+
+
+
+
+       Page 20               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+            Type in the high address for the test range, one to six hex
+            digits followed by a carriage return.
+
+            >
+
+
+       When both address have been entered,the XPI RAM Test Option  Menu
+       is redisplayed. If either address entered is invalid, the program
+       outputs:
+
+
+            Address entered is outside the valid range.
+
+
+       or
+
+
+            The value input is not a valid address.
+
+
+       Also, if a digit is input that is not a valid hex digit, 0  to  9
+       or  A  to  F,  the following message is output and the diagnostic
+       exits to XPIBUG.  See the starting procedure on  how  to  restart
+       the  diagnostic.  In this case, the diagnostic is not erased from
+       memory if it is in RAM. When the  diagnostic  is  restarted,  all
+       option settings will be set to their defaults.
+
+
+            Invalid hex. digit.
+
+
+
+       7.5.2  Data Pattern Option for the XPI RAM Test
+
+
+       The data pattern option allows  the  user  to  select  what  data
+       pattern  to use for the XPI RAM Test in the scope loop mode.  The
+       diagnostic checks to see if the value  entered  is  a  valid  hex
+       number  no  more  than 32 bits long. When this option is selected
+       from the menu the program outputs:
+
+
+            Type in the data pattern to use, one to eight hex
+            digits, followed by a carriage return.
+            >
+
+
+       When the data pattern has been entered, XPI RAM Test Option  Menu
+       is redisplayed.
+
+       If a digit is input that is not a valid hex digit, 0 to 9 or A to
+
+
+
+       Page 21               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+       F,  the  following  message is output and the diagnostic exits to
+       XPIBUG.  See  the  starting  procedure  on  how  to  restart  the
+       diagnostic. In this case the diagnostic is not erased from memory
+       if it is in RAM. When the  diagnostic  is  restarted  all  option
+       settings will be set to their defaults.
+
+
+            Invalid hex. digit.
+
+
+       If more than 8 hex digits, excluding leading  0's,  are  entered,
+       the diagnostic also exists to XPIBUG.
+
+
+       7.6  Ethernet Loopback Test Option Menu
+
+
+       This menu allows the user to control the options that effect only
+       the XPI RAM test.
+
+       When the Ethernet Loopback Test Option  Menu  is  displayed,  the
+       following is output to the terminal:
+
+
+            -----Ethernet Loopback Test Option Menu-----
+
+            1 - Return to the Main Menu.
+            2 - Return to the Main Option Menu.
+            3 - Set the Ethernet Loopback Test Options to the Default Values.
+            4 - Select which of the Ethernet Interface Card Commands to Execute.
+            5 - Enable/Disable Interrupts During Data Transfer.
+            6 - Enable/Disable DMA During Data Transfer.
+            7 - Select Data Pattern.
+            8 - Select Location of Buffers.
+            9 - Select Size of Buffer.
+            10 - Test Commands and/or Loopback.
+
+               To choose one of the ten menu items, type the corresponding number
+               followed by a carriage return.
+
+            >
+
+
+       The '>' output is the prompt indicating that a  choice  from  the
+       menu can be made.
+
+       Description of Ethernet Loopback Test Option Menu choices.
+
+
+            1 -  Causes the Main Menu to be displayed.
+
+
+
+
+       Page 22               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+            2 -  Causes the Main Option Menu to be displayed.
+
+            3 -  Sets all the options  listed  in  this  menu  to  their
+                 default  values, i.e.  to the value the option has when
+                 the program is first started.
+
+            4 -  Displays the commands currently selected and allows the
+                 user to change these. See below for details.
+
+            5 -  Allows the user to enable or disable interrupts  during
+                 the data transfers in this test. See below for details.
+
+            6 -  Allows the user to enable or  disable  DMA  during  the
+                 data transfers in this test. See below for details.
+
+            7 -  Allows the user to  select  the  data  pattern  to  use
+                 during  data  transfers  in  this  test.  See below for
+                 details.
+
+            8 -  Allows the user to select the location  of  buffers  to
+                 use  during data transfers in this test.  See below for
+                 details.
+
+            9 -  Allows the user to select the size of the buffers, i.e.
+                 the  size  of  the  data  packets,  to  use during data
+                 transfers in this test.
+
+            10 - Allows the user to test Ethernet interface commands  or
+                 do  data  transfers  in loopback mode , or both command
+                 and data transfers.
+
+
+       7.6.1  Ethernet Interface Commands Option
+
+
+       Option 4 of the Ethernet Loopback Test Menu can be  used  by  the
+       user  to  select which interface commands are to be tested. These
+       are the commands that  can  be  sent  to  the  Interlan  Ethernet
+       interface  card.  Almost all of the commands can be tested in the
+       Ethernet Loopback Test. Refer to  the  Ethernet  LAN  manual  for
+       command  descriptions.   The code for the command in hex is given
+       in parenthesis.
+
+       The following commands can be selected  using  this  option.  But
+       even if they are selected, the program does not test them for the
+       reasons listed below:
+
+
+       - Perform Network Loopback Test (12)  - useless without  ethernet
+         cable connected
+
+
+
+
+       Page 23               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+       - Report Collision Delay Times (13) -  useless  without  ethernet
+         cable connected
+
+       - One of the Reserved Command Codes, (1A) - not  used  in  Tymnet
+         software and has unpredictable results
+
+       - Load Transmit Data (28) - not used in Tymnet software
+
+       - Load Transmit Data and Send (29) - tested in the other  section
+         of the test
+
+       - Load Physical Address (2C) - not used in Tymnet software
+
+       Here are the Interlan commands that can be tested in the Ethernet
+       Loopback  Test.  The  code  of  the  command  in  hex is given in
+       parenthesis.
+
+
+       - All  reserved  Interlan  commands  except   as   noted   above.
+         (00,0B,0C,14,15,16,17,1B,1C,1D,1E,1F,20,21,22,23,24,
+         25,26,27,2D,2E,2F,30,31,32,33,34,35,36,37,38,39,3A
+         ,3B,3C,3D,3E)
+
+       - Set Module Interface Loopback Mode (01)
+
+       - Set Internal Loopback Mode (02)
+
+       - Clear Loopback Mode (03)
+
+       - Set Promiscuous Receive Mode (04)
+
+       - Clear Promiscuous Receive Mode (05)
+
+       - Set Receive-On-Error Mode (06)
+
+       - Clear Receive-On-Error Mode (07)
+
+       - Go Offline (08)
+
+       - Go Online (09)
+
+       - Run On-Board Diagnostics (0A)
+
+       - Set Insert Source Address Mode (0D)
+
+       - Clear Insert Source Address Mode (0E)
+
+       - Set Physical Address to Default (0F)
+
+       - Set Receive All Multicast Packets (10)
+
+
+
+
+       Page 24               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+       - Clear Receive all Multicast Packets (11)
+
+       - Report and Reset Statistics (18)
+
+       - Load Group Addresses (2A)
+
+       - Delete Group Addresses (2B)
+
+       - Reset (3F)
+
+       When option 4 is selected from the menu, the program outputs:
+
+
+            00,01,02,03,04,05,06,07,08,09,0A,0B,0C,0D,0E,0F,
+            10,11,12,13,16,17,18,19,1A,1B,1C,1D,1E,1F,
+            20,21,22,23,24,25,26,27,28,29,2A,2B,2C,2D,2F,30,
+            31,32,33,34,35,36,37,38,39,3A,3B,3C,3D,3E,3F,
+
+            Type in the codes, 2 hex. digits, of the commands to be selected
+            or any of the following commands:
+
+            e - Exit to the Ethernet Loopback Option Menu,
+            n - No commands are to be selected for testing,
+            a - All allowed commands are to be selected for testing,
+
+            Each number and command must be separated by a comma. The input is
+            terminated by a carriage return.
+            Enter selections >
+
+
+       Depending on which commands are  currently  selected,  the  first
+       four  lines  of  this  output  will vary. The user returns to the
+       Ethernet Loopback Test Option Menu by inputing  an  'e'  or  'E'.
+       Otherwise,  the  program will again output the above and wait for
+       the user to select commands. The Abort Button,  Reset  Button  or
+       Break key may be used to exit command selection.
+
+       More than one command code selection can  be  made  on  a  single
+       line.  Codes must be separated by commas.  The input must consist
+       of spaces, commas, hex digits, a, A, n, N, e, E or  dashes.  Note
+       that either upper or lower case may be used.  Spaces in the input
+       are ignored.  The selections are made in the order entered.   Any
+       one entry or selection may be one of the following.
+
+
+               a or A = Select all allowed commands.
+
+               n or N = Deselect all commands.
+
+               e or E = Make  no  more  selections  and  return  to  the
+            Ethernet Loopback Option Menu.
+
+
+
+       Page 25               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+               xx = Select command that has the hex code xx.
+
+               xx - yy = Select the commands that  have  the  hex  codes
+            from xx to yy inclusive.
+
+
+
+            NOTE:  Only one range  selection  (xx-yy)  can  be
+            entered  on  a  single  line.  The range selection
+            must be the last entry on that line.
+
+
+       Examples:
+
+            To select only the Reset (3F) and Go Offline (09) commands:
+
+                                      n,3F,09
+
+            To  select  the  Reset  command  (3F)  and  the  first  five
+            commands:
+
+                                     n,3F,00-04
+
+            To return to the Ethernet Loopback Test Menu  enter  'e'  or
+            'E'.
+
+
+
+                 NOTE:  If there is an error in the input, the
+                 program  will  respond with the following and
+                 redisplay the above message.
+
+
+
+                 Invalid input, parameter ignored.
+
+
+
+       7.6.2  Interrupt Options
+
+
+       Option 5 of the Ethernet Loopback Test controls  whether  or  not
+       interrupts  will  be  used  while transferring data in this test.
+       When this option is picked from the menu, the program outputs the
+       following.
+
+
+            Enable or disable interrupts for the Ethernet Loopback Test.
+            Type "Y" to enable or "N" to disable.
+            >
+
+
+
+
+       Page 26               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+       Either an 'y' or 'n' should  be  input  followed  by  a  carriage
+       return. The input may be either upper or lower case. If no or bad
+       data is input the program will respond  with  the  following  and
+       redisplay the Ethernet Loopback Test Option Menu.
+
+
+            Invalid input, parameter ignored.
+
+
+
+       7.6.3  DMA Option
+
+
+       Option 6 of the Ethernet Loopback Test controls  whether  or  not
+       DMA  will  be  used in the data transfers in this test. When this
+       option  is  picked  from  the  menu,  the  program  outputs   the
+       following.
+
+
+            Enable or disable DMA for the Ethernet Loopback Test.
+            Type "Y" to enable or "N" to disable.
+            >
+
+
+       After the 'N' or 'Y', either upper or lower case can be used, has
+       been  entered  followed  by  a  carriage  return the program will
+       redisplay the menu. If  no  or  invalid  input  is  entered,  the
+       program will output the following message and redisplay the menu.
+
+
+            Invalid input, parameter ignored.
+
+
+
+       7.6.4  Data Pattern Option
+
+
+       Option 7 allows the user to select the data pattern  to  be  used
+       for  data  transfers  in  the  Ethernet Loopback Test.  When this
+       option  is  picked  from  the  menu,  the  program  outputs   the
+       following:
+
+
+            Input the data to be used in the Ethernet Loopback Test.
+            Enter up to eight hex digits followed by a carriage return.
+            >
+
+
+       After the data has been entered, the menu will be redisplayed. If
+       there is no input or too many digits input or invalid input, then
+       the program will output the following and redisplay the menu.
+
+
+
+       Page 27               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+            ::::The data input is invalid, try again.::::
+
+
+
+       7.6.5  Buffer Location Option
+
+
+       Option 8 determines where the buffers will be located during  the
+       data  transfers  in the Ethernet Loopback Test.  When this option
+       is picked from the menu, the program outputs the following:
+
+
+            Enter the starting address of the receive buffer.
+            Enter up to six hex digits followed by a carriage return.
+            >
+
+
+       After a valid input  followed  by  a  carriage  return  has  been
+       entered,  the  program  then  prompts  for  the  location  of the
+       transmit buffer.  If there is no input before the carriage return
+       or if the input is invalid, the program will output the following
+       message and again prompt the user for the buffer address.
+
+
+            ::::The data input is invalid, try again.::::
+
+
+       This is what the program outputs when prompting for the  location
+       of the transmit buffer.
+
+
+            Enter the starting address of the transmit buffer.
+            Enter up to six hex digits followed by a carriage return.
+            >
+
+
+       When valid data followed by a carriage return has  been  entered,
+       the  program  will redisplay the menu. If there is no data before
+       the carriage return or the data entered is invalid,  the  program
+       will  output  the  following  message  and  again  prompt for the
+       location of the transmit buffer.
+
+
+            ::::The data input is invalid, try again.::::
+
+
+       Valid input can only consist of up to six hex digits followed  by
+       a  carriage  return.  The  program  also  checks  to see that the
+       buffers do not ovelap the end of XPI RAM,  do  not  overlap  each
+       other,  and  do  not  overlap  RAM used by the program.  The PROM
+       based version of this diagnostic (not yet implemented)  uses  the
+
+
+
+       Page 28               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+       low part of RAM for exception (interrupt) vectors, some variables
+       and the stack. The RAM  based  version  of  this  diagnostic,  of
+       course,  uses  more  of RAM. In either case, the program will not
+       allow the buffers to use any of this area.
+
+
+       7.6.6  Buffer Size Option
+
+
+       Option 9 is used to set the size of the buffers used during  data
+       transfer  in  the  Ethernet  Loopback Test.  The buffer size used
+       determines the size of packets during data transfers.  When  this
+       option is picked from the menu, the program output the following:
+
+
+            Enter the size of packet to use in the Ethernet Loopback Test
+            in hexadecimal ( 40 thru 5E4 ).
+            >
+
+
+       When the number is entered followed by  a  carriage  return,  the
+       program will redisplay the Ethernet Loopback Test Option Menu. If
+       there is a non-hexidecimal character, the program will output the
+       following message and then redisplay the menu:
+
+
+            ::::The data input is invalid, try again.::::
+
+
+       The program also checks to see if a new buffer size setting  will
+       cause  the  buffers  to overlap.  If the new setting will cause a
+       buffer overlap, the program will ignore the new setting and  will
+       output the following message and then redisplay the menu:
+
+
+            **** WARNING ****
+            LAN buffers will overlap !
+
+
+
+       7.6.7   Command or Loopback Testing Option
+
+
+       Option 10 controls whether just the  Ethernet  commands  or  just
+       data  transfers  in  loopback  mode  or  both are tested when the
+       Ethernet Loopback Test is executed. This  command  picks  one  or
+       both  of  the  sections  of this test to be executed. Section one
+       tests the commands  and  section  two  tests  data  transfers  in
+       loopback  mode.   See the test description for details on what is
+       tested in each section. When this option is picked from the  menu
+       the program outputs the following message.
+
+
+
+       Page 29               XPI Test Package
+
+
+
+
+
+
+
+       Menus                                           June 5, 1986
+
+
+
+            Enter which section/s of the Ethernet Loopback you wish to execute.
+            "1" for section 1, "2" for section 2 or "B" for both sections
+            followed by a carriage return.
+            >
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       Page 30               XPI Test Package
+
+
+
+
+
+
+
+       Halting the Diagnostic                          June 5, 1986
+
+
+
+                         8.  Halting the Diagnostic
+
+
+       There are three ways that an operator may halt the execution of a
+       running  diagnostic program.  These either return the user to the
+       Main Menu or exit to XPIBUG.
+
+
+       8.1  Abort Button
+
+
+       This is the rightmost button on the front of the XPI board.  When
+       this button is pushed, the program immediately stops and displays
+       the Main Menu.
+
+       When the abort button  has  been  pushed,  the  tests  that  were
+       selected  and  the options that were set are not changed. This is
+       the recommended way to halt the program. If you want to exit this
+       diagnostic  and go back to XPIBUG, then push the Abort Button and
+       then pick option one of the Main Menu.
+
+
+       8.2  Reset Button
+
+
+       The Reset Button is the leftmost button on the front of  the  XPI
+       board.  This  button  will  completely reset the XPI hardware and
+       will require the XPI Test Package to be restarted.
+
+       The XPI Test Package  may  be  restarted  by  giving  XPIBUG  the
+       'MT<cr>'   command   if  the  diagnostic  is  in  PROM  (not  yet
+       implemented). If the diagnostic is in RAM, it  can  be  restarted
+       with  the  'GO 3000<cr>' command.  All the tests selected and the
+       option values will be set to their defaults when  the  diagnostic
+       is restarted.
+
+
+       8.3  Break Key
+
+
+       The third way to exit the XPI Test Package is to press the  Break
+       key  on the terminal. Unlike the two methods above, this does not
+       stop the diagnostic  right  away.  Instead  it  waits  until  the
+       diagnostic starts to output to the terminal. Instead of doing the
+       output, the diagnostic is stopped and XPIBUG is entered.
+
+       The XPI Test Package  may  be  restarted  by  giving  XPIBUG  the
+       'MT<cr>'   command   if  the  diagnostic  is  in  PROM  (not  yet
+       implemented). If the diagnostic is in RAM, it  can  be  restarted
+       with  the  'GO 3000<cr>' command.  All the tests selected and the
+       option values will be set to their defaults when  the  diagnostic
+
+
+
+       Page 31               XPI Test Package
+
+
+
+
+
+
+
+       Halting the Diagnostic                          June 5, 1986
+
+
+
+       is restarted.
+
+
+
+            NOTE:  Using the Break key to exit  from  a  scope
+            loop  will  not work. When in scope loop mode, the
+            XPI Test Package never  outputs  to  the  terminal
+            after the test has been entered, and the Break key
+            will not be detected.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       Page 32               XPI Test Package
+
+
+
+
+
+
+
+       Test Descriptions                               June 5, 1986
+
+
+
+                         9.  Test Descriptions
+
+
+       In version 1.0 of the XPI Test Package there are only the XPI RAM
+       Test  and  the  Ethernet  Loopback  Test.  Later versions of this
+       diagnostic will include more tests.
+
+       The total execution time of the  RAM  and  Loopback  Tests  is  7
+       minutes and 50 seconds.
+
+
+
+            NOTE:  All execution times  listed  are  for  test
+            runs with the default option values.
+
+
+
+       9.1  XPI RAM Test Description
+
+
+       This test is intended to execute a basic test of the XPI  board's
+       RAM.  The  XPI  RAM  Test consists of three sections. Section one
+       tests that each RAM location is addressed correctly. Section  two
+       tests  to  see  that  each  data  bit  can  be  written  and read
+       correctly. Section three tests the 68010's  TAS  instruction  and
+       its indivisible read-modify-write memory cycle.
+
+       This test runs with the Parity  Error  Interrupt  disabled.   Any
+       parity  errors  caused  by  this  test  won't  be  detected until
+       interrupts are enabled in phase 2,  section  2  of  the  Loopback
+       Test.
+
+       While this test was written to check XPI's RAM, it  can  also  be
+       used  as a basic test of the Engine's DMA bus and memory. See the
+       XPI RAM Test Option Description for details on how to do this.
+
+       The total execution time of the RAM Test  is  6  minutes  and  30
+       seconds.
+
+
+       9.1.1  Section One  - Basic Addressing Test
+
+
+       This section of the XPI RAM Test checks  that  locations  in  the
+       memory being tested can be accessed correctly. In particular this
+       section will find address  lines  tied  together,  address  lines
+       stuck  either  active  or  inactive, and other addressing faults.
+       Also, some data faults will cause an error in this section.
+
+       In this section, memory is treated as 32  bit  words.  The  68010
+       instructions  that  access  the  memory  under  test are longword
+
+
+
+       Page 33               XPI Test Package
+
+
+
+
+
+
+
+       Test Descriptions                               June 5, 1986
+
+
+
+       accesses (32 bit). Since the 68010's memory data bus is  only  16
+       bits  wide,  each memory access consists of two sequential 16 bit
+       memory  cycles.  In  this  description  I  will  talk  of  memory
+       locations as if they are 32 bits long.
+
+       This section consists of two passes through  memory.  The  passes
+       are  identical  except  in the direction in which they go through
+       the test memory. The first pass  starts  at  the  bottom,  lowest
+       address,  and  moves sequentially up to the top, highest address,
+       of the  memory  in  test.  The  second  pass  goes  the  opposite
+       direction  from  the top moving sequentially to the bottom of the
+       memory being tested.
+
+       In a pass through the memory under test, every location  has  its
+       address  written into that location. Once all locations have been
+       written to, they are read back in the order written  to  and  the
+       contents are checked. If a location does not have its own address
+       in it when it is read, an error is generated. If  error  messages
+       are  enabled  to  be  printed out, the diagnostic will output the
+       appropriate error code, the address of the failing location,  and
+       the data read.
+
+       When this section is  first  entered  the  following  message  is
+       output to the terminal.
+
+
+            *** Begin XPI RAM Test Section 1 ***
+
+
+       When this section is finished the program outputs this message.
+
+
+            *** XPI RAM Test Section 1 Completed ***
+
+
+       The total execution time of the Basic Addressing Test Section  is
+       2 seconds.
+
+
+       9.1.2  Section Two - Data Bit Test
+
+
+       The second section of the XPI RAM Test checks that every  bit  in
+       the  memory  under  test  can be accessed correctly. This is done
+       with a variation of a moving ones and zeros test.   This  section
+       will  find  data  bits  that are stuck active, data bits that are
+       stuck inactive, data bits  tied  together,  and  other  data  bit
+       faults.
+
+       This section makes a total of 529 passes through the memory  area
+       under  test.   Each  pass consists of writing the test pattern to
+
+
+
+       Page 34               XPI Test Package
+
+
+
+
+
+
+
+       Test Descriptions                               June 5, 1986
+
+
+
+       all locations, then reading it back and checking  the  data.  All
+       memory  accesses  in  this  section  are 68010 longword (32 bits)
+       accesses. Since the 68010's memory data bus is only 16 bits wide,
+       each  longword  access  consists  of  two  16  bit memory cycles.
+       Section Two uses longword accesses to write, read and  check  the
+       data.
+
+       Each of the following data patterns are used.
+
+                0000 0000
+
+                0000 0001    0000 0002    0000 0004    0000 0008
+                    .            .            .            .
+                    .            .            .            .
+                    .            .            .            .
+                1000 0000    2000 0000    4000 0000    8000 0000
+
+                0000 0003    0000 0006    0000 000C    0000 0018
+                    .            .            .            .
+                    .            .            .            .
+                    .            .            .            .
+                1800 0000    3000 0000    6000 0000    C000 0000
+
+                0000 0007    0000 000E    0000 001C    0000 0038
+                    .            .            .            .
+                    .            .            .            .
+                    .            .            .            .
+                1C00 0000    3800 0000    7000 0000    E000 0000
+
+                       .           .            .
+                       .           .            .
+                       .           .            .
+
+                       .           .            .
+                       .           .            .
+                       .           .            .
+
+                       .           .            .
+                       .           .            .
+                       .           .            .
+
+                1FFF FFFF    3FFF FFFE    7FFF FFFC    FFFF FFF8
+
+                3FFF FFFF    7FFF FFFE    FFFF FFFC
+
+                7FFF FFFF    FFFF FFFE
+
+                FFFF FFFF
+
+
+       Whenever the data read from a location in the memory  under  test
+
+
+
+       Page 35               XPI Test Package
+
+
+
+
+
+
+
+       Test Descriptions                               June 5, 1986
+
+
+
+       is  not  the  same  as  the data written to it, an error has been
+       detected.  If an error is found, the diagnostic outputs the error
+       code,  the address where the error was detected, the data written
+       to that location and the data read from that  location.  See  the
+       error description for more details.
+
+       When this section is executed, the following messages are  output
+       to  the  terminal  to  indicate that the program is continuing to
+       execute (not hung).
+
+
+            *** Begin XPI RAM Test Section 2 ***
+
+            Test DATA Pattern = 00000001
+            Test DATA Pattern = 00000003
+            Test DATA Pattern = 00000007
+            Test DATA Pattern = 0000000F
+            Test DATA Pattern = 0000001F
+            Test DATA Pattern = 0000003F
+            Test DATA Pattern = 0000007F
+            Test DATA Pattern = 000000FF
+            Test DATA Pattern = 000001FF
+            Test DATA Pattern = 000003FF
+            Test DATA Pattern = 000007FF
+            Test DATA Pattern = 00000FFF
+            Test DATA Pattern = 00001FFF
+            Test DATA Pattern = 00003FFF
+            Test DATA Pattern = 00007FFF
+            Test DATA Pattern = 0000FFFF
+            Test DATA Pattern = 0001FFFF
+            Test DATA Pattern = 0003FFFF
+            Test DATA Pattern = 0007FFFF
+            Test DATA Pattern = 000FFFFF
+            Test DATA Pattern = 001FFFFF
+            Test DATA Pattern = 003FFFFF
+            Test DATA Pattern = 007FFFFF
+            Test DATA Pattern = 00FFFFFF
+            Test DATA Pattern = 01FFFFFF
+            Test DATA Pattern = 03FFFFFF
+            Test DATA Pattern = 07FFFFFF
+            Test DATA Pattern = 0FFFFFFF
+            Test DATA Pattern = 1FFFFFFF
+            Test DATA Pattern = 3FFFFFFF
+            Test DATA Pattern = 7FFFFFFF
+            Test DATA Pattern = FFFFFFFF
+            *** XPI RAM Test Section 2 Completed ***
+
+
+       The total execution time of  the  Data  Bit  Test  Section  is  6
+       minutes and 20 seconds.
+
+
+
+
+       Page 36               XPI Test Package
+
+
+
+
+
+
+
+       Test Descriptions                               June 5, 1986
+
+
+
+       9.1.3  Section 3  - TAS Test
+
+
+       Section 3 of the XPI RAM Test checks out  the  indivisible  read-
+       modify-write   memory   cycle   of  the  68010.  The  only  68010
+       instruction that uses this type of memory cycle is the TAS, which
+       is  similar to the Engine's TSET instruction. The TAS instruction
+       reads a byte, checks its contents, and writes an '80' hexidecimal
+       back to that byte. There are two passes through this section. The
+       first writes all zeros to  the  area  of  memory  in  test,  then
+       performs  the  TAS  instruction on all bytes within this area and
+       each of these bytes is read and checked. If the value read is not
+       '80'  an  error  message  is  output  to  the terminal. The error
+       message consists of an error code, the  address  of  the  failing
+       location,  the  data read and the data expected.  The second pass
+       is the same except that a value of '80'  hexidecimal  is  written
+       instead  of  zeros before the TAS is done. Both passes go through
+       memory from the bottom,  lowest  address,  to  the  top,  highest
+       address.
+
+       Even though the read-modify-write memory cycle and byte transfers
+       are  not  supported  on the Engine's DMA bus, this section can be
+       run with the area under test in the Engine's memory.  This can be
+       done  because  of  the way the XPI's interface to the DMA bus was
+       designed. However this  section  is  a  very  poor  test  of  the
+       Engine's DMA bus and memory.
+
+       The total execution time of the TAS Test Section is 7 seconds.
+
+
+       9.1.4  XPI RAM Test in Scope Loop Mode
+
+
+       When the XPI RAM Test  is  executed  with  the  scope  loop  mode
+       enabled, none of the three sections above are executed. Instead a
+       separate test is executed.  All locations in the range of  memory
+       under  test  are  accessed  starting  from the lowest address and
+       continuing to the highest address.   Each  location  has  a  data
+       pattern  written into it and read back before going onto the next
+       location.  No checking of the data is done.  When the top of  the
+       memory  range  is  reached,  the  program  starts over at the low
+       address.  All accesses to the memory in  test  are  longword  (32
+       bit)  accesses.   The  data  used  is  that specified by the data
+       pattern in scope loop mode option.
+
+       The scope loop runs indefinitely until halted by the  user.   See
+       the section on how to halt the diagnostic for more details.
+
+       When the scope loop mode is entered in  the  XPI  RAM  Test,  the
+       following is output.
+
+
+
+
+       Page 37               XPI Test Package
+
+
+
+
+
+
+
+       Test Descriptions                               June 5, 1986
+
+
+
+            *** Begin XPI RAM Test Scope Loop ***
+            Press the abort button on the XPI board to exit.
+
+
+
+       9.1.5  XPI RAM Test Options
+
+
+       There two options that apply to the XPI RAM Test.   See  the  XPI
+       RAM Test Option Menu for details on how to select these options.
+
+
+       9.1.5.1  Memory_Address_Range_in_Test_Option
+
+
+       Default: From the first longword after the RAM area used  by  the
+       program to the last location in XPI's RAM.
+
+       This option allows the user to specify the area of memory,  which
+       may  include the first megabyte of Engine memory (E00000-EFFFFF),
+       to be tested.
+
+
+       9.1.5.2  Data_Pattern_in_Scope_Loop_Mode_Option
+
+
+       Default: The address of a location is used as the data  for  that
+       location.
+
+       This option allows the user to specify the  data  pattern  to  be
+       used when the XPI RAM Test is being executed with scope loop mode
+       enabled. If scope loop mode is not enabled, this  option  has  no
+       effect on the test.
+
+
+       9.2  Ethernet Loopback Test Description
+
+
+       This test is one of two that  check  out  the  Ethernet  hardware
+       attached  to  the  XPI board and the XPI board's interface to the
+       Ethernet hardware.  In version 1.0 of the XPI  Test  Package  the
+       second  Ethernet  test,  the  Ethernet  End-to-End Test, does not
+       exist. It will be added in a later  release  of  the  diagnostic.
+       The  reason that there are two tests for the Ethernet hardware is
+       to allow testing of the Interlan Ethernet interface card  without
+       being  connected  to the cable and to allow testing of a complete
+       set of Ethernet hardware.
+
+       The Ethernet Loopback Test is the one to use when  not  connected
+       to  the  Ethernet  cable  and transceiver.  This test can also be
+       used  when  the  cable  and  transceiver  are  connected  to  the
+
+
+
+       Page 38               XPI Test Package
+
+
+
+
+
+
+
+       Test Descriptions                               June 5, 1986
+
+
+
+       interface.   This  test  does  not  assume  that  the  cable  and
+       transceiver are connected, and if they  are  connected  the  test
+       simply  ignores  them.  This test can be run in a cluster without
+       effecting any other operating nodes in the cluster.  A cluster is
+       two or more Engines with XPI boards that are all connected to one
+       Ethernet cable.
+
+       The Ethernet Loopback Test  will  find  faults  in  the  Interlan
+       Ethernet   interface  card  and  the  XPI  board  circuitry  that
+       interfaces to this the Interlan  card.   It  will  not  find  any
+       faults in the Ethernet cable and transceiver.
+
+       There are two sections in this test. The first checks to see that
+       commands  to  the  Ethernet interface can be executed and respond
+       correctly.  The second puts the  interface  into  local  loopback
+       mode  and transmits data through it.  Either one or both of these
+       sections may be executed as controlled by an option.
+
+       When this test is started the following is output.
+
+
+            ******** Ethernet Loopback Test Starting ********
+
+
+       When this test is finished the following is output.
+
+
+            ******** Ethernet Loopback Test Finished ********
+
+
+       The total execution time of  the  Ethernet  Loopback  Test  is  1
+       minute and 20 seconds.
+
+
+       9.2.1  Ethernet Interface Command Section
+
+
+       In this section the commands of the Interlan  Ethernet  interface
+       are  tested.   Each command is issued to the interface and checks
+       are made for the proper results. Before any  command  is  tested,
+       the  interface  is  reset.   This  is  done  in  order to put the
+       interface into a known  state.   Not  all  of  the  commands  are
+       tested.  Those  that  are  not  tested  are  listed here with the
+       hexidecimal code for that command given in parenthesis.
+
+
+       - Perform Network Loopback Test (12)  - useless without  ethernet
+         cable connected
+
+       - Report Collision Delay Times (13) -  useless  without  ethernet
+         cable connected
+
+
+
+       Page 39               XPI Test Package
+
+
+
+
+
+
+
+       Test Descriptions                               June 5, 1986
+
+
+
+       - One of the Reserved Command Codes, (1A) - not  used  in  Tymnet
+         software and has unpredictable results
+
+       - Load Transmit Data (28) - not used in Tymnet software
+
+       - Load Transmit Data and Send (29) - tested in the other  section
+         of the test
+
+       - Load Physical Address (2C) - not used in Tymnet software
+
+       Here are the  Interlan  commands  that  can  be  tested  in  this
+       section.   The  code  of  the  command in hexidecimal is given in
+       parenthesis.
+
+
+       - All  reserved  Interlan  commands  except   as   noted   above.
+         (00,0B,0C,14,15,16,17,1B,1C,1D,1E,1F,20,21,22,23,24,
+         25,26,27,2D,2E,2F,30,31,32,33,34,35,36,37,38,39,3A
+         ,3B,3C,3D,3E)
+
+       - Set Module Interface Loopback Mode (01)
+
+       - Set Internal Loopback Mode (02)
+
+       - Clear Loopback Mode (03)
+
+       - Set Promiscuous Receive Mode (04)
+
+       - Clear Promiscuous Receive Mode (05)
+
+       - Set Receive-On-Error Mode (06)
+
+       - Clear Receive-On-Error Mode (07)
+
+       - Go Offline (08)
+
+       - Go Online (09)
+
+       - Run On-Board Diagnostics (0A)
+
+       - Set Insert Source Address Mode (0D)
+
+       - Clear Insert Source Address Mode (0E)
+
+       - Set Physical Address to Default (0F)
+
+       - Set Receive All Multicast Packets (10)
+
+       - Clear Receive all Multicast Packets (11)
+
+
+
+
+
+       Page 40               XPI Test Package
+
+
+
+
+
+
+
+       Test Descriptions                               June 5, 1986
+
+
+
+       - Report and Reset Statistics (18)
+
+       - Load Group Addresses (2A)
+
+       - Delete Group Addresses (2B)
+
+       - Reset (3F)
+
+
+       When this section is executed the following will be output.
+
+
+            ** Ethernet Interface Command Section Starting
+
+            Physical address = xxxxxxxxxxxx
+
+            Module I.D. = NM10A
+
+            Firmware I.D. = V05.00
+
+
+       The total execution time of the Ethernet Interface  Command  Test
+       Section is 20 seconds.
+
+
+       9.2.2  Ethernet Interface Loopback Section
+
+
+       Refer to the NM10A Ethernet  Protocol  Module  User  Manual  (UM-
+       MN10A)  for  information  on  the  LAN  interface operation. This
+       manual is required to fully understand the functions of this test
+       section.
+
+       Section 2 of Test 8 insures that data can be sent and received by
+       the LAN interface board.  The section is executed in four phases:
+
+            - PHASE 1 .... DMA and Interrupts disabled.
+
+            - PHASE 2 .... Interrupts enabled and DMA disabled.
+
+            - PHASE 3 .... DMA enabled and Interrupts disabled.
+
+            - PHASE 4 .... DMA and Interrupts enabled.
+
+       Variable packet lengths from  64  bytes  through  512  bytes  are
+       transmitted  and  received.  An  additional  packet 1508 bytes in
+       length is also transmitted and received. The packet data used  is
+       an  incremental  byte pattern. Byte values from 00 hex through FF
+       hex are used in the default mode.  Test options are available  to
+       the  operator  to  select  packet  size, data pattern, and buffer
+       locations. DMA  and  Interrupt  tests  may  also  be  enabled  or
+
+
+
+       Page 41               XPI Test Package
+
+
+
+
+
+
+
+       Test Descriptions                               June 5, 1986
+
+
+
+       disabled by the operator.
+
+       The LAN interface  is set to the following state in this test:
+
+            - Reset LAN interface .... command code 3F
+            - Internal loopback mode .... command code 02
+            - Set promiscuous receive mode .... command code 04
+            - Clear insert source address mode .... command code 0E
+
+       Test data is sent to the LAN internal  buffer.  A  Load  Transmit
+       Data  and  Send  command  (code  29) is issued. When this command
+       completes, the LAN buffer  is  read  and  verified.  The  current
+       packet  size  is  incremented by 1 and the test is repeated until
+       packet size 1508 is transmitted and verified.
+
+       A phase identification message is displayed at the  beginning  of
+       each test phase. These messages are:
+
+       Executing Test 8, Section 2, Phase 1
+
+       Executing Test 8, Section 2, Phase 2
+
+       Executing Test 8, Section 2, Phase 3
+
+       Executing Test 8, Section 2, Phase 4
+
+
+
+            NOTE:  These  phase  identification  messages  are
+            disabled if error messages are disabled.
+
+
+       The total execution time of the Ethernet Interface Loopback  Test
+       Section is 1 minute.
+
+
+       9.2.3  Ethernet Loopback Test Scope Loop Mode
+
+
+       Either section of the Ethernet Loopback Test can be run in  scope
+       loop  mode. If both sections are selected to be run when in scope
+       loop mode, only the first, Ethernet  Interface  Command,  section
+       will  be  executed.  Scope loop mode will continously execute the
+       selected section.  All output to the terminal is disabled in this
+       mode.  The  following  message  is  displayed once at the initial
+       execution of the test section in scope loop mode.
+
+
+            *** Begin Ethernet Loopback Test Scope Loop ***
+            Press the abort button on the XPI board to exit.
+
+
+
+
+       Page 42               XPI Test Package
+
+
+
+
+
+
+
+       Test Descriptions                               June 5, 1986
+
+
+
+       The scope loop runs indefinitely until the operator  presses  the
+       RESET or ABORT Button on the XPI board.
+
+
+       9.2.4  Ethernet Loopback Test Options
+
+
+       There are five options available in this test.  These options can
+       be  selected from the the Ethernet Loopback Test Option Menu. See
+       the description of this menu for more details.
+
+
+       9.2.4.1  Ethernet_Interface_Card_Command_Selection
+
+
+       Default: All interface commands are selected (except 14, 15,  and
+       2E).
+
+       This option allows the user  to  select  which  of  the  Interlan
+       Ethernet  Interface  Commands  are to be tested when the Ethernet
+       Interface Command Section is executed. This may be  of  use  when
+       there  is a failure that occurs only when a particular command is
+       being executed. See the Ethernet Loopback Test  Option  Menu  for
+       details  on  how  to  set  this  option  and for details on which
+       commands will not be tested even if selected.
+
+
+       9.2.4.2  Enable/Disable_Interrupts_Option
+
+
+       Default: Interrupts are enabled.
+
+       This option allows the user  to  either  enable  or  disable  I/O
+       interrupts on the XPI board during data transfers in the Ethernet
+       Loopback Test. This  option  effects  only  the  second  section,
+       Ethernet Interface Loopback Section.
+
+
+       9.2.4.3  Enable/Disable_DMA_Option
+
+
+       Default: DMA transfers are enabled.
+
+       This option allows the user to either enable or  disable  DMA  on
+       the XPI card during data transfers in the Ethernet Loopback Test.
+       This option effects only the second section,  Ethernet  Interface
+       Loopback Section.
+
+
+
+
+
+
+
+       Page 43               XPI Test Package
+
+
+
+
+
+
+
+       Test Descriptions                               June 5, 1986
+
+
+
+       9.2.4.4  Data_Pattern_Option
+
+
+       Default: Incremental hex byte data pattern.
+
+       This option allows the user to select the  data  pattern  to  use
+       during data transfers in the Ethernet Loopback Test.  This option
+       only  has  effect  in  Section  2,  Ethernet  Interface  Loopback
+       Section.   The  operator  may  select up to 8 hex digits. If less
+       than 8 digits are entered, leading zeros are padded to extend the
+       pattern  to  32 bits.  The transmitted data then consists of each
+       byte of the pattern in turn, repeating the sequence if necessary.
+       See  the  Ethernet Loopback Test Option Menu description for more
+       details on entering this option.
+
+
+       9.2.4.5  Buffer_Location_Option
+
+
+       Default: The buffer addresses are located in the  diagnostic  RAM
+       address space below 2000 hex.
+
+       This option allows the user to  select  where  the  transmit  and
+       receive  buffers  will  be  located  during  data transfers. This
+       option only has  effect  in  the  second  section,  the  Ethernet
+       Interface  Loopback  Section.   The  buffers  are  allowed  to be
+       anywhere in XPI RAM as long as they do not overlap each other and
+       do  not  use  any  of  the  RAM needed by the diagnostic. See the
+       Ethernet Loopback Test Option Menu description for  more  details
+       on  how  to  select  this option.  Version 1.0 of this diagnostic
+       does not allow buffers to be located in Engine RAM.
+
+       9.2.4.6  Packet_Size
+
+
+       Default:  Variable packet sizes from 64  to  512  bytes  and  one
+       transfer of 1508 bytes.
+
+       This option allows the user to select the size of packet  to  use
+       during  data transfers. This option only has effect in the second
+       section, the Ethernet Interface Loopback Section.   This  may  be
+       useful  if  only certain size packets are causing a failure.  Any
+       size packet from 64 bytes to 1508 bytes  can  be  used.  See  the
+       Ethernet Loopback Test Option Menu description for details on how
+       to select this option.
+
+
+
+
+
+
+
+
+
+       Page 44               XPI Test Package
+
+
+
+
+
+
+
+       Test Descriptions                               June 5, 1986
+
+
+
+       9.2.4.7  Select Command Testing or Data Transfer Testing Option
+                Description
+
+
+       Default: Execute both of the sections.
+
+       This option allows the user to select which of  the  sections  in
+       the  Ethernet  Loopback  Test  are  to  be  executed.  Either the
+       Ethernet Interface Command Test Section or the Ethernet Interface
+       Loopback  Test  Section or both may be selected. See the Ethernet
+       Loopback Test Option Menu for  details  on  how  to  select  this
+       option.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       Page 45               XPI Test Package
+
+
+
+
+
+
+
+       Error Messages                                  June 5, 1986
+
+
+
+                             10.  Error Messages
+
+
+       When a fault is found in the hardware under test,  the  XPI  Test
+       Package  displays  an  error message.  This message indicates the
+       type of fault found.  The  possible  error  messages  are  listed
+       below.
+
+
+       10.1  XPI RAM Test Error Messages
+
+
+
+       10.1.1  Basic Addressing Test Section Error Messages
+
+
+       If the error  occurs  in  the  first  pass  through  memory  ,the
+       following  error  message  format  is  used. The first pass tests
+       memory from the bottom of memory, the lowest address, to the  top
+       of memory, the highest address.
+
+
+            XPI RAM Test Section 1, Pass 1 Data Error!!
+            Test Address = xxxxxx
+            Data Read    = yyyyyyyy
+            Data Written = zzzzzzzz
+
+
+       Where xxxxxx = address of the failing memory location, yyyyyyyy =
+       the  data  read  from that location, zzzzzzzz = the data that was
+       expected to be in that location.
+
+       If the error occurred in the  second  pass  the  following  error
+       message  is  used.  The  second pass is the one that tests memory
+       from the top, highest address, of memory to  the  bottom,  lowest
+       address, of memory.
+
+
+            XPI RAM Test Section 1, Pass 2 Data Error!!
+            Test Address = xxxxxx
+            Data Read    = yyyyyyyy
+            Data Written = zzzzzzzz
+
+
+       Where xxxxxx = address of the failing memory location, yyyyyyyy =
+       the  data  read  from that location, zzzzzzzz = the data that was
+       expected to be in that location.
+
+
+
+
+
+
+
+       Page 46               XPI Test Package
+
+
+
+
+
+
+
+       Error Messages                                  June 5, 1986
+
+
+
+       10.1.2  Data Bit Test Section Error Messages
+
+
+       If an error occurs in this section the following error message is
+       output to the terminal.
+
+
+            Test Data Error!!
+            Test Address = xxxxxx
+            Data Read    = yyyyyyyy
+            Data Written = zzzzzzzz
+
+
+       Where xxxxxx = address of the failing memory location, yyyyyyyy =
+       the  data  read  from that location, zzzzzzzz = the data that was
+       expected to be in that location.
+
+
+       10.1.3  TAS Test Section
+
+
+       If an error occurs in this section the following error message is
+       output to the terminal.
+
+
+            TAS Instruction Error!!
+            Test Address = xxxxxx
+            Data Read    = yyyy
+            Data Written = 0080
+
+
+       Where xxxxxx = address of the failing memory location, yyyy = the
+       data read from that location.
+
+
+       10.2  Ethernet Loopback Test Error Messages
+
+
+       In setting up the Interlan Ethernet interface for testing,  there
+       are  errors  that  can occur before the actual testing can start.
+       The format of the error message is:
+
+
+            Error 8000, Test Aborted!
+
+
+       For any of these errors, it is assumed that there are faults that
+       prevent the testing of the hardware.  (This message can be caused
+       by loose or improperly connected power and 50 pin logic cables or
+       by a very bad Ethernet Interface card.)
+
+
+
+
+       Page 47               XPI Test Package
+
+
+
+
+
+
+
+       Error Messages                                  June 5, 1986
+
+
+
+       10.2.1  Ethernet Interface Command Section Error Messages
+
+
+       All the error messages in  this  section  are  of  the  following
+       formats.
+
+
+            Error 81xx, H_REG = yy
+
+
+       or
+
+
+            Error 81xx, S_REG = zz
+
+
+       Where xx = the error code, yy = contents of the H_REG  (Handshake
+       Register)  of  the Interlan Ethernet interface, and zz = contents
+       of  the  S_REG  (Status  Register)  of  the   Interlan   Ethernet
+       interface.   See   the   Interlan   Ethernet   interface   module
+       documentation for more details on the meaning of  the  H_REG  and
+       S_REG contents.
+
+       See the appendix for  a  description  of  the  registers  on  the
+       Interlan Ethernet interface module.
+
+       The error codes in this section are:
+
+
+            8100 -  H_REG contents are  not  equal  to  expected  before
+                   Reset command issued.
+
+            8101 -  H_REG contents  are  not  equal  to  expected  after
+                   reading  the  maximum possible number of status words
+                   and before the Reset command is issued.
+
+            8102 -  H_REG contents are not equal to expected immediately
+                   after issuing the Reset command.
+
+            8103 -  H_REG contents are not equal to expected  after  the
+                   Reset command has had time to finish.
+
+            8104 -  S_REG contents are not equal to expected  after  the
+                   Reset command has had time to finish.
+
+            8105 -  H_REG contents  are  not  equal  to  expected  after
+                   reading  the  S_REG  after  the Reset command has had
+                   time to finish.
+
+            8106 -  H_REG contents are  not  equal  to  expected  before
+                   issuing one of the Interlan Ethernet interface type I
+
+
+
+       Page 48               XPI Test Package
+
+
+
+
+
+
+
+       Error Messages                                  June 5, 1986
+
+
+
+                   commands.
+
+            8107 -  H_REG contents  are  not  equal  to  expected  after
+                   issuing one of the Interlan Ethernet interface type I
+                   commands.
+
+            8108 -  S_REG contents  are  not  equal  to  expected  after
+                   issuing one of the Interlan Ethernet interface type I
+                   commands.
+
+            8109 -  H_REG contents  are  not  equal  to  expected  after
+                   reading  the  S_REG after issuing one of the Interlan
+                   Ethernet interface type I commands.
+
+            8110 -  H_REG contents are  not  equal  to  expected  before
+                   issuing the Run On-Board Diagnostics command.
+
+            8111 -  H_REG contents  are  not  equal  to  expected  after
+                   issuing the Run On-Board Diagnostics command.
+
+            8112 -  S_REG contents  are  not  equal  to  expected  after
+                   issuing the Run On-Board Diagnostics command.
+
+            8113 -  H_REG contents  are  not  equal  to  expected  after
+                   reading  the  S_REG  after  issuing  the Run On-Board
+                   Diagnostics command.
+
+            8114 -  H_REG contents are  not  equal  to  expected  before
+                   issuing the Report and Reset Statistics command.
+
+            8115 -  H_REG contents  are  not  equal  to  expected  after
+                   issuing the Report and Reset Statistics command.
+
+            8116 -  The counts of the error  conditions  were  not  zero
+                   when read from the S_REG after issuing the Report and
+                   Reset Statistics command.
+
+            8117 -  The number of bytes to read from the S_REG  was  not
+                   62  after  issuing  the  Report  and Reset Statistics
+                   command.
+
+            8118 -  H_REG contents  are  not  equal  to  expected  after
+                   issuing the Report and Reset Statistics command.
+
+            8119 -  H_REG contents are  not  equal  to  expected  before
+                   issuing the Load Group Addresses command.
+
+            8120 -  H_REG contents  are  not  equal  to  expected  after
+                   sending a byte of a group address.
+
+
+
+
+
+       Page 49               XPI Test Package
+
+
+
+
+
+
+
+       Error Messages                                  June 5, 1986
+
+
+
+            8121 -  H_REG contents  are  not  equal  to  expected  after
+                   issuing the Load Group Addresses command.
+
+            8122 -  S_REG contents  are  not  equal  to  expected  after
+                   issuing  the  Load  Group  Addresses command when the
+                   maximum number of addresses were sent.
+
+            8123 -  S_REG contents  are  not  equal  to  expected  after
+                   issuing  the  Load  Group Addresses command when more
+                   than the maximum number of addresses were sent.
+
+            8124 -  H_REG contents are  not  equal  to  expected  before
+                   issuing the Load Group Addresses command.
+
+            8125 -  H_REG contents  are  not  equal  to  expected  after
+                   sending a byte of a group address.
+
+            8126 -  H_REG contents  are  not  equal  to  expected  after
+                   issuing the Load Group Addresses command.
+
+            8127 -  S_REG contents  are  not  equal  to  expected  after
+                   issuing  the  Load  Group  Addresses  command with an
+                   incomplete group address sent.
+
+            8128 -  H_REG contents are  not  equal  to  expected  before
+                   issuing the Delete Group Addresses command.
+
+            8129 -  H_REG contents  are  not  equal  to  expected  after
+                   sending a byte of a group address.
+
+            8130 -  H_REG contents  are  not  equal  to  expected  after
+                   issuing the Delete Group Addresses command.
+
+            8131 -  S_REG contents  are  not  equal  to  expected  after
+                   issuing  the  Delete Group Addresses command with the
+                   maximum number of group addresses sent.
+
+            8132 -  S_REG contents  are  not  equal  to  expected  after
+                   issuing  the Delete Group Addresses command with more
+                   than the maximum number of group addresses sent.
+
+            8133 -  H_REG contents are  not  equal  to  expected  before
+                   issuing the Delete Group Addresses command.
+
+            8134 -  H_REG contents  are  not  equal  to  expected  after
+                   sending a byte of a group address.
+
+            8135 -  H_REG contents  are  not  equal  to  expected  after
+                   issuing the Delete Group Addresses command.
+
+
+
+
+
+       Page 50               XPI Test Package
+
+
+
+
+
+
+
+       Error Messages                                  June 5, 1986
+
+
+
+            8136 -  S_REG contents  are  not  equal  to  expected  after
+                   issuing  the  Delete Group Addresses command where an
+                   incomplete group address was sent.
+
+
+       10.2.2  Ethernet Interface Loopback Section Error Messages
+
+
+       This section of the User Guide Document will describe  the  error
+       codes  that  are  displayed in Test 8, Section 2. All error codes
+       are  four hex digits in length. The most significant  two  digits
+       are  always  equal to 82 hex which indicates the test and section
+       number. The specific error detected will  be  identified  in  hex
+       digits three and four of the error code.
+
+       Digit three of the error code indicates, wherever  possible,  the
+       functional  area  in  which  the error occured. Digit four of the
+       error code specifys the the specific failure.
+
+       Additional error identification is obtained from  the  phase  and
+       error  messages that are displayed on the operator terminal.  The
+       purpose of this test section is to transfer variable length  data
+       packets  to  the  LAN  interface  and  to verify reception of the
+       packets by internal loopback circuitry. The section  is  executed
+       in  four  phases.   The  phases  differ  in  the  method  of data
+       transmission to and from the LAN interface and if interrupts  are
+       used  for  status  control.   A  phase indentification message is
+       displayed when each phase begins execution.   The  phase  message
+       and  the  error  message with its error code identify the failing
+       functional area.
+
+
+       10.2.3  Section 2 Error Code Descriptions
+
+
+
+            8200 -  A   failure  was   detected   when   attempting   to
+                   initialize  the  LAN  interface  to internal loopback
+                   mode. Further testing is suspended since it  is   not
+                   possible to execute data transfers. Test 8, Section 1
+                   should be executed  successfully as a prerequisite to
+                   Section 2 execution.
+
+            82xx -  LAN   command   completion   Status   Register   was
+                   incorrect.  Error  code  field  (xx)  is  the  Status
+                   Register contents. The range of this field is 01  hex
+                   to 7F hex.
+
+            82Fx -  Error codes 82FB thru 82FF indicate an error occured
+                   in the transfer of command ,status or data on the LAN
+                   interface.
+
+
+
+       Page 51               XPI Test Package
+
+
+
+
+
+
+
+       Error Messages                                  June 5, 1986
+
+
+
+            82FF -  LAN  interface  handshake  register  was  incorrect.
+                   This  register  is used to syncronize the transfer of
+                   information to and from the interface.
+
+            82FE -  A Status Block (SBA) Interrupt was not received from
+                   the LAN interface.  An interface command should cause
+                   an SBA interrupt to occur.
+
+            82FD -  A Receive Block (RBA)  Interrupt  was  not  received
+                   from  the  LAN  interface.   An  RBA interrupt should
+                   occur when receive  data  is  available  in  the  LAN
+                   buffer.
+
+            82FC _  The data received from the LAN did not compare  with
+                   the data that was transmitted to the LAN.
+
+            82FB -  An incorrect number of bytes  were  transfered  from
+                   the  LAN interface.  The length of all data transfers
+                   are verifed in this test section.
+
+            82Ex -  Error codes 82Ex  indicate  an  error  was  detected
+                   while  transfering data to the LAN interface utlizing
+                   channel 1 of the 68450 DMA controller.
+
+            82E1 -  The DMA controller Error Register was not  equal  to
+                   00 hex at the completion of a DMA transfer on channel
+                   1. Any bit set in this register  indicates  an  error
+                   condition.
+
+            82E2 -  The DMA  terminal  count  was  not  correct  at  the
+                   completion of a transfer on channel 1. The  length of
+                   all packets sent to the LAN interface are verified.
+
+            82E3 -  The DMA Memory Address Register was not  correct  at
+                   the completion of a DMA transfer on channel 1.
+
+            82E4 -  The  DMA  Status  Register  did  not   indicate   an
+                   operation  complete  status.  The  Status Register is
+                   polled for operation complete status when  interrupts
+                   are disabled in this test section.
+
+            82E5 -  A DMA interrupt did not occur at the completion of a
+                   DMA transfer on channel 1.
+
+            82Dx -  Error codes 82Dx indicate an error occured when  DMA
+                   channel 0 is used to transfer LAN buffer data to RAM.
+
+            82D1 -  DMA controller channel  0  Error  Register  was  not
+                   equal to 00 hex at the completion of a DMA transfer.
+
+
+
+
+
+       Page 52               XPI Test Package
+
+
+
+
+
+
+
+       Error Messages                                  June 5, 1986
+
+
+
+            82D2 -  The DMA Terminal Count Register was not equal to  00
+                   hex at the completion of a channel 0 DMA transfer.
+
+            82D3 -  The DMA Memory Address Register was not  correct  at
+                   the completion of a channel 0 DMA transfer.
+
+            82D4 -  The  DMA  Status  Register  did  not   indicate   an
+                   operation  complete  status for channel 0. The Status
+                   Register  is  polled  for  completion   status   when
+                   interrupts are disabled during testing.
+
+            82D5 -  A DMA interrupt did not occur at the completion of a
+                   channel 0 DMA transfer.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       Page 53               XPI Test Package
+
+
+
+
+
+
+
+       Fault Isolation                                 June 5, 1986
+
+
+
+                             11.  Fault Isolation
+
+
+       Any one of several components can cause an  error  that  the  XPI
+       Test  Package  will detect. These components include, but are not
+       limited to; the XPI motherboard, the Interlan Ethernet interface,
+       the APSS card cage, the Ethernet transceiver, the Ethernet cable,
+       the Engine's DMA bus, the Engine's memory,  the  MAC  board,  and
+       miscellaneous  cables and connectors. The problem is to determine
+       which of these components is failing so that it can be  replaced.
+       This  section  of  the  manual  gives  some general guidelines on
+       determining the failing component.
+
+       Each test of the XPI Test Package  is  discussed  and  the  error
+       messages are related to the probable points of failure. Note that
+       no matter how complete one attempts to be, there will  always  be
+       some  failures  that  will  give  confusing  indications and this
+       discussion will not identify these. Fortunately, these situations
+       are  not  common.  At this time, no attempt is made to relate the
+       results of this diagnostic to the results of other diagnostics in
+       order to further pinpoint the failing component.
+
+       No attempt is made here to isolate a failure to any  more  detail
+       than  a  board or other major component. To isolate further, look
+       at the details of  the  error  message  and  at  the  appropriate
+       schematics.  Also  the use of a scope and the scope loop mode may
+       be needed.
+
+
+       11.1  XPI RAM Test Fault Isolation
+
+
+       With this test there are two main cases to consider. One is  when
+       the  test  is  being  run in the XPI's on-board RAM. The other is
+       when the test is being run in the Engine's memory. It is best  to
+       run  the  test in the XPI's on-board RAM before running it in the
+       Engine's memory. See the XPI RAM Test  Option  Menu  for  how  to
+       select the area the test is to be run in.
+
+       If there are errors only when testing  the  XPI's  on-board  RAM,
+       then the failure is almost sure to be on the XPI motherboard.
+
+       If there are errors only when testing the Engine's  memory,  then
+       the failure is probably on the Engine's DMA bus, the MAC board or
+       the Engine's memory. There is a small chance that the failure  is
+       on  the  XPI motherboard.  Running the Engine's Memory Diagnostic
+       will help to further isolate the failure.
+
+       If there are errors when testing both the XPI's on-board RAM  and
+       the  Engine's  memory,  then  the  failure is probably on the XPI
+       board. There also may a possibility of more than one  failure  in
+
+
+
+       Page 54               XPI Test Package
+
+
+
+
+
+
+
+       Fault Isolation                                 June 5, 1986
+
+
+
+       this case.
+
+
+       11.2  Ethernet Loopback Test Fault Isolation
+
+
+       This test deals with the  Ethernet  hardware.  In  particular  it
+       tests  the  Interlan  Interface  Module.  The  probable causes of
+       failure listed here assume that the XPI RAM test found no  errors
+       when  testing the XPI's on-board RAM. Other hardware also used in
+       this test is the cable going to the Ethernet interface,  the  DMA
+       logic on the XPI board, and the interrupt logic on the XPI board.
+       No checking at all  is  done  on  the  Ethernet  transceiver  and
+       Ethernet cable.
+
+       If the XPI RAM Test reported any errors, see  the  XPI  RAM  Test
+       Fault Isolation section of this manual.
+
+       If error code 8000 occurs, then something is wrong with the basic
+       functioning of the Ethernet hardware. The most probable causes of
+       failure are the lack of power to the Ethernet interface  or  that
+       the  cable  from  the  XPI board to the Ethernet interface is not
+       connected.  The  next  most  likely  failure  is   the   Ethernet
+       interface. There is a small possibility that the XPI board itself
+       caused the failure.
+
+       If the only errors that occur  are  those  that  pertain  to  DMA
+       errors,  then the failure is probably in the DMA logic on the XPI
+       board. If the only errors that occur are those  that  pertain  to
+       interrupt  error,  then  the failure is probably in the interrupt
+       logic on the XPI board.
+
+       With any other errors in this test, there is a  high  probability
+       that  the  failure  is  on  the Interlan Ethernet interface card.
+       There is a small possibility that  the  failure  is  on  the  XPI
+       board.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       Page 55               XPI Test Package
+
+
+
+
+
+
+
+       Interlan Ethernet Interface (NM10A) Registers   June 5, 1986
+
+
+
+             12.  Interlan Ethernet Interface (NM10A) Registers
+
+
+       There are five registers on the Ethernet interface  that  can  be
+       accessed  by  the  68010  on  the XPI board. These form the major
+       means of passing data and control information  to  and  from  the
+       interface.  These  are  those  registers  with  their address, in
+       hexidecimal, given inside the parenthesis.
+
+
+            C_REG  command register (FFFF01) accepts the  command  codes
+                   (write only)
+
+            S_REG  status register (FFFF03) holds the status (read only)
+
+            T_DATA transmit data register (FFFF05) accepts the  data  to
+                   be output (write only)
+
+            R_DATA receive data register (FFFF07)  holds  incoming  data
+                   (read only)
+
+            H_REG  handshake register (FFFF0B) contains the  handshaking
+                   signals (read only)
+
+       Each of these registers is a byte in size,  therefore  only  byte
+       memory  transfers  can be done to them. With the Report and Reset
+       Statistics and Report Collision Delay Times  commands  a  lot  of
+       status  information is returned through the S_REG. R_DATA is used
+       only for incoming data packets. The H_REG indicates if the R_DATA
+       and S_REG can be read or the T_DATA can be written to.
+
+
+                   _________________________________________________
+                   |     |     |     | ___ | ___ |     | ___ |     |
+            H_REG  |    Reserved     | TDE | RBA | RDF | SBA | SRF |
+                   _________________________________________________
+
+
+
+            TDE Transmit Data buffer Empty, 0  =  no  data  in  transmit
+                buffer.
+
+            RBA Read Block Available, 0 = not  all  received  data  read
+                yet.
+
+            RDF R_DATA Full, 1 = a byte of data in  R_DATA  can  now  be
+                read.
+
+            SBA Status Block Available, 0 = not all  status  information
+                read yet.
+
+
+
+
+       Page 56               XPI Test Package
+
+
+
+
+
+
+
+       Interlan Ethernet Interface (NM10A) Registers   June 5, 1986
+
+
+
+            SRF S_REG Full, 1 = a byte of status in  S_REG  can  now  be
+                read.
+
+
+
+            NOTE:  The reserved bits in the H_REG are shown as
+            zeros  in  the  error  messages  that the XPI Test
+            Package outputs.
+
+
+       In general, if the S_REG contents are zero after  a  command  has
+       been  executed  by  the  Ethernet interface, then the command was
+       completed successfully.  Any other value indicates an unusual  or
+       error condition occurred.  See the NM10A Ethernet Protocol Module
+       User Manual for further details. Here are the codes used  in  the
+       S_REG for the Run On-board Diagnostics and Reset commands.
+
+
+            00 -  success, no failure found when on-board test ran.
+
+            01 -  ROM checksum error found.
+
+            02 -  memory error found on Ethernet interface's memory.
+
+            03 -  address error, an error was found  while  reading  the
+                 interface's Ethernet address.
+
+            04 -  loopback  error,  transmitting  a  test  in   internal
+                 loopback mode failed.
+
+
+
+            NOTE:  There is a red LED on the Interlan Ethernet
+            interface  card. This LED will be turned on if any
+            of the above errors  are  found  when  either  the
+            RESET or RUN DIAGNOSTIC commands are run.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       57                    XPI Test Package
+
+
+
+
+    !rx·
