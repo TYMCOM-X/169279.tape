@@ -1,0 +1,194 @@
+O BASE7 BASE4.
+
+DBSET BASE7.
+
+CLEAR.
+
+DEFINE TEXT 5 REFGRP$.
+
+DEFINE TEXT 2 DM$.
+
+DEFINE TEST HNN$.
+
+DEFINE REAL STRT.
+
+DEFINE REAL STP.
+
+DEFINE REAL TOT1 TOT2 TOT3 TOT4.
+DEFINE REAL TRNV1 TRNV2 TRNV3 TRNV4.
+DEFINE REAL REW1 REW2 REW3 REW4.
+DEFINE REAL R1 R2 R3 R4.
+DEFINE REAL RPER1 RPER2 RPER3 RPER4.
+DEFINE REAL EL1 EL2 EL3 EL4.
+DEFINE REAL ELH1 ELH2 ELH3 ELH4.
+
+SET FMSG OFF.
+SET FERR OFF.
+
+TYPE "     ".
+TYPE "Please Enter Refer Group ID (exmp. ETSNY) ".
+ACCEPT REFGRP$.
+TYPE "     ".
+TYPE "     ".
+TYPE "Please Enter START Date (X22 Format) ".
+ACCEPT STRT.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "Please Enter STOP Date (X22 Format) ".
+ACCEPT STP.
+TYPE "     ".
+TYPE "     ".
+TYPE "********************************************************".
+TYPE "CAUTION - ELM must be moved to BASE7 before accurate.   ".
+TYPE "                   Statistics can be obtained.          ".
+TYPE "             Contact NSSC to accomplish ELM move.       ".
+TYPE "     **********************************************".
+TYPE "     ".
+TYPE "     ".
+TYPE "Assure Printer Echo is ON and Depress ENTER <continue> ".
+ACCEPT DM$.
+TYPE "     ".
+TYPE "     ".
+TYPE "     ".
+TYPE "BT North America".
+TYPE "Customer Service & Support".
+TYPE "Software Support Performance / " REFGRP$.
+TYPE "=====================================================================".
+
+F SDAT ge strt and le stp.
+
+SEA SVER EQ 1.
+
+SEA MAINT CT REFGRP$.
+
+EV TRNV1 EQ MAX SYSRECNO.
+
+EV EL1 EQ MEAN ELM.
+
+EV ELH1 EQ EL1/60.
+
+MAP TO BASE4 VIA TNUM.
+
+SEA HN EQ 4.
+
+EV TOT1 EQ MAX SYSRECNO.
+
+EV REW1 EQ TRNV1-TOT1.
+
+EV R1 EQ REW1/TOT1.
+
+EV RPER1 EQ R1*100.
+
+
+TYPE "   ".
+TYPE "Sver       Trnvs     Tkts     ELM     ** Rework".
+TYPE "------     -----     ----     ---     ---------".
+TYPE TRNV1 TOT1 ELH1 REW1 "/" RPER1 "%"
+FORMAT 'SVER 1' 3X I3.1 6X I3.1 4X F3.1 7X  I2 1X A1 F3.1 A1 END.
+
+DBSET BASE7.
+
+F SDAT ge strt and le stp.
+
+SEA SVER EQ 2.
+
+SEA MAINT CT REFGRP$.
+
+EV TRNV2 EQ MAX SYSRECNO.
+
+EV EL2 EQ MEAN ELM.
+
+EV ELH2 EQ EL2/60.
+
+MAP TO BASE4 VIA TNUM.
+
+SEA HN EQ 4.
+
+EV TOT2 EQ MAX SYSRECNO.
+
+EV REW2 EQ TRNV2-TOT2.
+
+EV R2 EQ REW2/TOT2.
+
+EV RPER2 EQ R2*100.
+
+TYPE "----------------------------------------------".
+TYPE TRNV2 TOT2 ELH2 REW2 "/" RPER2 "%"
+FORMAT 'SVER 2' 3X I3.1 6X I3.1 4X F3.1 7X  I2 1X A1 F3.1 A1 END.
+
+
+DBSET BASE7.
+
+F SDAT ge strt and le stp.
+
+SEA SVER EQ 3.
+
+SEA MAINT CT REFGRP$.
+
+EV TRNV3 EQ MAX SYSRECNO.
+
+EV EL3 EQ MEAN ELM.
+
+EV ELH3 EQ EL3/60.
+
+MAP TO BASE4 VIA TNUM.
+
+SEA HN EQ 4.
+
+EV TOT3 EQ MAX SYSRECNO.
+
+EV REW3 EQ TRNV3-TOT3.
+
+EV R3 EQ REW3/TOT3.
+
+EV RPER3 EQ R3*100.
+
+TYPE "----------------------------------------------".
+TYPE TRNV3 TOT3 ELH3 REW3 "/" RPER3 "%"
+FORMAT 'SVER 3' 3X I3.1 6X I3.1 4X F3.1 7X  I2 1X A1 F3.1 A1 END.
+
+
+DBSET BASE7.
+
+F SDAT ge strt and le stp.
+
+SEA SVER EQ 4.
+
+SEA MAINT CT REFGRP$.
+
+EV TRNV4 EQ MAX SYSRECNO.
+
+EV EL4 EQ MEAN ELM.
+
+EV ELH4 EQ EL4/60.
+
+MAP TO BASE4 VIA TNUM.
+
+SEA HN EQ 4.
+
+EV TOT4 EQ MAX SYSRECNO.
+
+EV REW4 EQ TRNV4-TOT4.
+
+EV R4 EQ REW4/TOT4.
+
+EV RPER4 EQ R4*100.
+
+TYPE "----------------------------------------------".
+TYPE TRNV4 TOT4 ELH4 REW4 "/" RPER4 "%"
+FORMAT 'SVER 4' 3X I3.1 6X I3.1 4X F3.1 7X  I2 1X A1 F3.1 A1 END.
+TYPE "----------------------------------------------".
+
+TYPE "   ".
+TYPE "   ".
+TYPE "Notes".
+TYPE "-----".
+TYPE "TRNVS = Turnovers".
+TYPE "TKTS  = Tickets Handled".
+TYPE "ELM   = Elapsed Time (hrs.) - no defer time considered".
+TYPE "Rework = # tickets handled multiple times             ".
+TYPE "         % of tickets handled multiple times.         ".
+
+CLOSE.
+QUIT.
