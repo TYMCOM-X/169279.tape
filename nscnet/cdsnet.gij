@@ -1,0 +1,185 @@
+:------------------------------------------------------------------
+:
+: INTERFACE : CMTI
+: VERSION   : 11.01
+:
+:       SUPPORT CDS YOU GAIJI PATCH
+:
+:-----------------------------------------------------------------
+:
+        LO      TM
+PATCH(900816,1600,NIS.KOBAYASHI,I2J,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,10)
+        STH     R0,SVICD,,
+        LR      R5,R0                   :FROM SOURCE
+        CHI     R0,IBM.SP               :FROM SOURCE
+        J       I2J+6,,                 :BACK SOURCE
+CONPATCH(ERRI2J,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,58)
+        LHL     R0,SVICD,,              :GET HOST KANJI CODE
+        NI      R0,0FFFF
+        LIS     R2,0                    :INDX ZERO SET
+GAI01   LHL     R3,IBMKAN,R2,           :GET HOST KANJI CODE
+        CLI     R3,0FFFF                :TABLE END?
+        JEFS    GAI02                   :YES END
+        CR      R0,R3                   :KANJI CODE MATCH?
+        JNFS    GAI03                   :NO MATCH
+        LHL     R0,JISKAN,R2,           :SET JIS KANJI CODE
+        J       EXTI3J,,                :BACK SOURCE
+GAI03   AIS     R2,2                    :COUNT UP
+        J       GAI01
+GAI02   LIS     R5,P.PRNT               :FROM SOURCE
+        TBT     R5,DIABIT,R12           :FROM SOURCE
+        JEFS    GAI04                   :NO PROCESS CRT
+        LI      R0,INVKPR               :FROM SOURCE
+        J       EXTI3J,,                :BACK SOURCE
+GAI04   LI      R0,INVKCR               :FROM SOURCE
+        J       EXTI3J,,                :BACK SOURCE
+CONPATCH(PA0PTR,,11A)
+SVICD   HS      1
+:		IBM host input keys KANJI code table
+IBMKAN	HC	041B1
+	HC	041B2
+	HC	041B3
+	HC	041B4
+	HC	041B5
+	HC	041B6
+	HC	041B7
+	HC	041B8
+	HC	041B9
+	HC	041BA
+	HC	041F1
+	HC	041F2
+	HC	041F3
+	HC	041F4
+	HC	041F5
+	HC	041F6
+	HC	041F7
+	HC	041F8
+	HC	041F9
+	HC	041FA
+	HC	0446D
+	HC	0446E
+	HC	06C63
+	HC	06C64
+	HC	06C65
+	HC	06C66
+	HC	06C67
+	HC	06C68
+	HC	06C69
+	HC	06C6A
+	HC	06C6B
+	HC	06C6C
+	HC	06C6D
+	HC	06C6E
+	HC	06C76
+	HC	06C77
+	HC	06C78
+	HC	06C79
+	HC	06C7A
+	HC	06C7B
+	HC	06C7C
+	HC	06C7D
+	HC	06C7E
+	HC	06C7F
+	HC	06C80
+	HC	06C81
+	HC	06C82
+	HC	06C83
+	HC	06C84
+	HC	06C85
+	HC	06C86
+	HC	06C87
+	HC	06C88
+	HC	06C89
+	HC	06C8A
+	HC	06C8B
+	HC	06C8C
+	HC	06C8D
+	HC	06C8E
+	HC	06C8F
+	HC	06C90
+	HC	06C91
+	HC	06C92
+	HC	06C93
+	HC	06C94
+	HC	06C95
+	HC	06C96
+	HC	06C97
+        HC      0427F
+        HC      0FFFF                   :END FLG
+:		JIS GAIJI KANJI code table
+JISKAN	HC	0A2AF
+	HC	0A2B0
+	HC	0A2B1
+	HC	0A2B2
+	HC	0A2B3
+	HC	0A2B4
+	HC	0A2B5
+	HC	0A2B6
+	HC	0A2B7
+	HC	0A2B8
+	HC	0A2B9
+	HC	0A2BA
+	HC	0A2BB
+	HC	0A2BC
+	HC	0A2BD
+	HC	0A2BE
+	HC	0A2BF
+	HC	0A2C0
+	HC	0A2C1
+	HC	0A2C2
+	HC	0A2C3
+	HC	0A2C4
+	HC	0A2C5
+	HC	0A2C6
+	HC	0A2C7
+	HC	0A2C8
+	HC	0A2C9
+	HC	0A2CA
+	HC	0A2CC
+	HC	0A2CD
+	HC	0A2CE
+	HC	0A2CF
+	HC	0A2D0
+	HC	0A2D1
+	HC	0A2D2
+	HC	0A2D3
+	HC	0A2D4
+	HC	0A2D5
+	HC	0A2D6
+	HC	0A2D7
+	HC	0A2D8
+	HC	0A2D9
+	HC	0A2DA
+	HC	0A2DB
+	HC	0A2DC
+	HC	0A2DD
+	HC	0A2DE
+	HC	0A2DF
+	HC	0A2E0
+	HC	0A2E1
+	HC	0A2E2
+	HC	0A2E3
+	HC	0A2E4
+	HC	0A2E5
+	HC	0A2E6
+	HC	0A2E7
+	HC	0A2E8
+	HC	0A2E9
+	HC	0A2EA
+	HC	0A2EB
+	HC	0A2EC
+	HC	0A2ED
+	HC	0A2EE
+	HC	0A2EF
+	HC	0A2F1
+	HC	0A2F2
+	HC	0A2F3
+	HC	0A2F4
+        HC      0A1C9
+        HC      0FFFF                   :END FLG
+ENDPATCH(Chemical Data Service GAIJI support)
+        FO      TM
