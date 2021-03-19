@@ -1,0 +1,331 @@
+.	<<	TSI.SYS	>>
+.SEC(SYSTEM DESCRIPTION)
+.SS(SYSTEM OVERVIEW)
+     The TSI MDCSC with an engine compatible with their Pegasus/Spirit
+systems capable
+of functioning as a communications node in Tymnet networking applications.
+The product consists of a functionally equivalent CPU II and MAC III
+implemented in LSI gate arrays with 1 megabyte of memory on a single
+micro-code-driven Engine Processor board and an intelligent, microprocessor
+driven Input/Output Controller board functionally equivalent to the SIO
+Motherboard/Daughtercard system of the Standard Engine designed specifically
+for data communications.
+.SKIP
+
+     The micro-code-driven Engine Processor (EP) utilizes 256 general purpose
+registers, each 32 bits wide and supports special instructions to
+facilitate the implementation of Tymnet technology.  The available CPU
+power is equivalent to the Standard Engine with a MAC III and 10 MHz CPU
+II installed.
+.SKIP
+
+     The microprocessor driven I/O Controller (IOC) is based on a 16-bit
+virtual memory/virtual machine technology and supports Tymnet Sync,
+SIO Async and SIO HDLC communication protocols with true DMA available
+for high-speed channel I/O data transfers.
+.SKIP
+
+     Eight (8) communication ports are supported in full duplex or half
+duplex modes.  SIO Async transmission speeds are available from 50 to
+9600 bps.  Synchronous transmission rates are supported from 2400 to
+64K bps.  Internal clocking is provided on ports 2 through 7 for
+interface applications and ports 0 through 7 for loopback diagnostic
+capabilities.  Interface signals conform to EIA RS-232-C, CCITT V.24
+and CCITT V.35 recommendations.
+.SKIP
+
+     System configuration is software defined and controlled.  Any of the 8
+communication ports can be individually configured to support bit (HDLC),
+byte synchronous (Esync), Tymnet T201 (Tymsync) or asyncronous (Async)
+protocols.
+.SKIP
+
+     TSI engine is supplied in an aluminum compact desk top package complete
+with power supply and cooling fans.  The front panel contains two status
+indicator LEDs (RUN and DIAG FAIL) for easy identification of system
+operating status.
+
+.SS(EP)
+
+     The Engine Processor utilizes 256 registers, each 32-bits wide.  The EP
+microcode is clocked at 10 MHz therefore each microcycle period is 100
+nanoseconds.  The EP board is the functional equivalent of the CPU II, 
+ROM I/O and MAC III (with dynamic not static memory) boards.  The CPU
+is logically divided into an Arithmetic Logic Unit (ALU) with 32-bit
+capability and an Instruction Execution Unit (IEU) which supports the
+64-bit wide microcode (25-bits control ALU, 26-bits control IEU, 13
+general purpose bits).  The instruction set is object compatible with
+the Standard engine except for Mac and I/O related instructions.  The
+microcode supports the current instructions to the TTY/CONSOLE (device
+02x), the WDT (device 05x), emulated sync (device 20x-2Fx) and SIO
+(device 80x).  Both Front Console and TTY functions are combined
+in the terminal console facility.  The EP uses an internal bus with 24
+address bits and 16 data bits for accessing both memory and I/O.  All 
+memory address registers are 24-bits although only 20 are used in virtual 
+address relocation.  The memory design supports byte write operations 
+eliminating the need for microcode to simulate byte writes with a 
+read-modify-write as in the Standard Engine.  The byte address field
+of the virtual address consists of 10-bits resulting in 1024 byte page sizes.
+Each memory requestor may drive the Physical-Virtual signal active to cause
+memory address Virtual Relocation.
+.SKIP
+
+     The MAC monitors the state of the Physical/Virtual control signal for
+each address requested for relocation.  If the Physical/Virtual signal is not
+set by the requestor an absolute physical address is generated.  All I/O
+requests for memory access are unrelocated, physical accesses.  Priority of
+the memory bus requestors is first to memory refresh, second to I/O channel
+and third to CPU.  Memory cycle time is 400 nanoseconds.  The Mac Segment
+register field is 14-bits wide.  The Mac Segment register field itself is
+only 6-bits allowing for 64 pages/segment with a segment size of 64K bytes.
+The maximum memory per context is 1 Mbyte and the maximum memory for the MAC
+with 16 contexts is 16 Mbytes.
+.SKIP
+
+     The Mac diagnostic registers save both the virtual and the physical
+address of the memory location causing the error interrupt.  Only 
+the virtual address of the last correctly fetched instruction is saved.
+Error Address registers must be read prior to reading the Interrupt Status
+register at 340x which will reset the error registers.  Error Address registers
+are read at 344x (Physical) and 348 (Virtual) rather than at 348x and 34Ax
+as on the Standard engine.  Bit 0 will be set if DMA was accessing memory at
+time of error, reset if CPU (bit 0 being the left-most, LSB digit of the 
+register).  Only bits 0 through 23 are used.The memory subsystem performs
+single-bit error detection via parity across 16-bit halfwords but like the
+HDLC micro engine contains no Error Correction Circuitry (ECC).  The boot-
+strap macrocode writes into every memory location to initialize the
+parity data.  The 16-bit memory data bus is a tri-state bidirectional bus.
+The main memory is implemented with 150 nanosecond access time 256K X 9-bit 
+Single In-line Packages (SIPs) organized as two banks of 16 data bits.
+.BEGIN BOX
+                  EP MEMORY ALLOCATION MAP
+
+ABSOLUTE PHYSICAL ADDRESS |     DESIGNATED USE
+        ------------------------------------------
+       F0000-FFFFFx       | CHANNEL 0 BUS MEMORY WINDOW
+        1300-EFFFFx       | AVAILABLE MEMORY
+         700- 12FFx       | RESERVED FOR BOOT
+         540 - 6FFx       | RESERVED FOR ISIS
+         400 - 53Fx       | SYNC u-CODE LINE DESCRIPTORS
+         3F0 - 3FFx       | S-BUS INTERFACE
+         370 - 3EFx       | I/O CHANNEL INTERFACE REGISTER HARDWARE
+         300 - 36Fx       | MAC REGISTER HARDWARE
+         2E0 - 2FFx       | RESERVED FOR ISIS
+         2D0 - 2DFx       | SYSTEM LOAD COMMUNICATION AREA
+          D0 - 2CFx       | I/O INTERRUPT VECTOR DISPATCH TABLE
+          C8 -  CFx       | AVAILABLE MEMORY (WAS ENG/XPI MESSAGE AREA)
+          BC -  C7x       | USAGE NOT KNOWN!!!
+          9C -  BBx       | SVC VECTOR DISPATCH TABLE
+          98 -  9Bx       | NEW PSW FOR SVC
+          90 -  97x       | NEW PSW+PC FOR MAC VIOLATION INTERRUPT
+          74 -  8Fx       | RESERVED FOR ISIS
+          70 -  73x       | ISIS ENTRY POINT
+          6C -  6Fx       | ISIS CRASH TABLE POINTER
+          48 -  6Bx       | BOOT ENTRY POINTS
+          40 -  47x       | USAGE NOT KNOWN!!!
+          38 -  3Fx       | NEW PSW+PC FOR MEM PARITY ERR (MALFUNCTION)
+          30 -  37x       | NEW PSW + PC FOR ILLEGAL ISTRUCTION TRAP
+          28 -  2Fx       | USAGE NOT KNOWN!!!
+          20 -  27x       | OLD PSW+PC FOR MEM PARITY ERR (MALFUNCTION)
+          1C -  1Fx       | RESERVED FOR TRACE ROUTINE
+          18 -  1Bx       | NEW PC FOR TRACE TRAP
+          10 -  17x       | OLD PSW+PC FOR TRACE TRAP
+           0 -   Fx       | A BRANCH TO HERE HALTS WITH LOW MEM ERROR
+.END
+     The IEU (Instruction Execution Unit) controls and monitors instruction
+reads, writes and executions.  The IEU commands the MAC to fetch instructions
+from Engine memory, decodes the instructions and executes a sequence of
+microcode operations (resident on EP ROM) to perform the specified 
+instructions.  When sequencing through the microcode, control signals are
+generated to control the ALU, test ALU flags and respond to interrupts.  Seven
+levels of interrupts are incorporated on the TSI EP.  There exist for each
+interrupt, a microcode interrupt service routine whose execution entry point
+is stored in dedicated microcode locations.
+.BEGIN BOX
+ENTRY POINT VECTOR | INTERRUPT SERVICE ROUTINE
+------------------   -------------------------
+        60x        | Power Fail Interrupt (Level 6/NMI)
+        A0x        | Console Interrupt (Level 5/NMI)
+        E0x        | Main Mem Parity Error (Level 4/Maskable PSW bit-2=0)
+       120x        | MAC Violation (Level 3/Maskable PSW bit-5=0)
+       160x        | ATN0 (600 Hz RTC/maskable PSW bit-1=0)
+       1A0x        | ATN1 (IOC I/O/Maskable PSW bit-8=0)
+       1E0x        | ATN2 (Channel 0 Command I/O/Maskable PSW bit 9=0)
+.END
+      The IEU contains the Engine PSW (Program Status half-Word) whose
+specific bit interpretations are detailed in the Engine pocket guides and 
+Engine documents.
+
+
+.SS(I/O CONTROLLER)
+
+     The intelligent Input/Output Controller (IOC) is based on the Motorola
+68010 microprocessor technology also clocked at 10 MHz resulting in 100
+nanosecond microcycle time as on the EP.  Standard engine Multifunction card
+TTY I/O, Real-Time-Clock (RTC) interrupts, Watch-Dog-Timer (WDT) and Bootstrap
+functions are implemented on the IOC via the Motorola 68901 multifunction
+peripheral (MFP) device.  The IOC presents itself to the EP as an SIO
+Motherboard device address 80x servicing I/O from 8 communications ports plus
+one TTY port.  Zilog Z8530 Serial Communications Controllers (SCCs) emulate
+the Z80 Serial Input Output (SIO) devices of the Tymnet Engine SIO
+daughter-cards as implemented in IOC Firmware.  IOC processes are managed by
+IOC instructions and constants resident in on-board ROM.  On-board static RAM
+stores dynamic arrays and I/O data.  Ports 0 through 3 are located on the IOC
+board proper and ports 4 through 7 are on a 4 port SCC daugther-card
+piggybacked to the IOC via ribbon connectors.
+.SKIP
+
+     Ports 0 and 1 have true DMA capability in the HDLC mode and support line
+speeds of up to 64K bps.  In emulated sync and sio-async modes ports 0 and 1
+must interrupt the EP for accesses to memory the same as ports 2 through 7
+always must.  Requests for memory access from the IOC are arbitrated by the EP
+along with memory refresh request and CPU request.  Tymsync (Tymnet Sync),
+Async, and HDLC communications protocols are available.  The system
+configuration is software defined and controlled.  Individual ports can be
+configured to support bit-oriented, byte synchronous,or Tymnet T201 protocols.
+.SKIP
+     
+     Unlike the HDLC Micro Engine I/O board, the TSI IOC has a single internal
+bus to which all devices are connected.  The bus is comprised of the necessary
+bidirectional data, unidirectional address and bidirectional control lines
+which propagate Function Codes, Interrupt requests, Interrupt acknowlegements,
+Read/Write requests and Data Transferred acknowledgements for the M68010
+microprocessor.  The M68010 supports 7 levels of interrupts, 5 of which are
+implemented on the IOC.  Interrupt requests are encoded for prioritization and
+presented to the M68010 for service.  If the incoming interrupt level is
+greater than the present interrupt being serviced, the M68010 will push the
+context of the interrupted process onto the stack and assert an interrupt
+acknowledge to the requestor via address lines 1 through 3 which respond the
+level of the successful interrupt request along with  a Function code of 3
+which are decoded back to the requestor.  Upon receipt of IACK (Interrupt
+Acknowledge) the requestor places a vector on the address bus which points
+to a service routine for the particular interrupt.  Service routines complete
+with a RTE (Return from Exception) instruction to the M68010 at which time
+the interrupted process' context is retrieved from the stack and completed.
+.BEGIN BOX
+ENTRY POINT VECTOR | INTERRUPT SERVICE ROUTINE
+------------------   -------------------------
+        7Cx        | WATCHDOG TIMEOUT (Level 7/NMI)
+       12Cx        | SCC SERVICE REQUESTS (Level 6)
+       128x        | DMA SERVICE REQUESTS (Level 5)        
+        70x        | ATN1 REQUESTS (Level 4)
+       114x        | MFP SERVICE REQUESTS (Level 3)
+
+NOTE:  Interrupts 4 and 7 assert VPA (Valid Peripheral Address).  During
+       an Interrupt Acknowledge cycle, when VPA is asserted the   M68010
+       assert VMA and complete a normal M6800 read cycle.  The processor 
+       will then use an internally generated vector that  is  a function 
+       of the interrupt being serviced.    This process is Autovectoring
+       and 7 autovectors exist for the M68010 from 25d to 31d.The M68010
+       will then place a vector on the bus and initiate   a  synchronous
+       bus cycle.
+.END
+     The 24-bit address bus of the M68010 provides 16 MBytes of address
+space.  Devices are each given a unique address on the bus in the upper
+4 KBytes of memory space from FFF000 to FFFFFFx.  Devices are accessed by
+placing the device address on the address bus along with the appropriate
+data and control signals.  The IOC has access to Engine main memory but
+the EP can only access IOC RAM via channel command words implemented through
+Engine microcode.
+.BEGIN BOX
+                  IOC MEMORY ALLOCATION MAP
+ABSOLUTE PHYSICAL ADDRESS |   DESIGNATED USE
+     ------------------------------------------
+       FFFFF0-FFFFFFx     | SCC 3 - PORTS 6,7
+       FFFFE0-FFFFEFx     | SCC 1 - PORTS 2,3
+       FFFFD0-FFFFDFx     | SCC 2 - PORTS 4,5
+       FFFFC0-FFFFCFx     | SCC 0 - PORTS 0,1
+       FFFF80-FFFFBFx     | M68901 MFP REGISTERS
+       FFFE81x            | BIT PORT ENABLE
+       FFFE61-FFFE7Fx     | SSR MODE (SENSE STATUS REQUEST)
+       FFFE51-FFFE5Fx     | SSR CLOCK
+       FFFE40-FFFE4Fx     | DIAG ENABLE
+       FFFE20-FFFE3Fx     | ENGINE MEMORY BUS LOCK
+       FFFE00-FFFE1Fx     | WATCHDOG TIMER RESET
+       FFFD00-FFFDFFx     | M68450 REGISTERS
+       8F0022x            | CHANNEL 0 HALT I/O
+       8F0020x            | CHANNEL 0 START I/O
+       8003C0x            | IOC TO EP ATN1 MAILBOX INTERRUPT FLAG
+       800380x            | EP TO IOC MAILBOX INTERRUPT FLAG
+       800370x            | CONSOLE TO EP MAILBOX INTERRUPT FLAG
+       8F0004x            | CHANNEL 0 ATN2 TO EP INTERRUPT
+       800000-8FFFFFx     | 1 MBYTE EP MAIN MEMORY
+       400000-41FFFFx     | 128 KBYTE IOC RAM
+       000000-01FFFFx     | 128 KBYTE IOC ROM
+
+NOTE:  For reference, please observe that reading addresses in the 8XXXXXx
+       range from the IOC as presented from the IOCbug process,are exactly
+       the same addresses in the 0XXXXXx range  from the EP perspective as
+       presented from the ENGbug process.
+
+
+
+
+
+
+
+
+
+
+.END
+.SS(BLOCK DIAGRAM)
+.BEGIN BOX
+BLOCK DIAGRAM EXTRACTED AND ABBREVIATED FROM TSI MAINTENANCE MANUAL
+______________________________________________________________
+|    -----------                                -----------  |
+|    |   ALU   |        ________________________|1 MEG MEM|  |
+|    -----------   _____|______                 -----------  |
+|     ||     ||    |MEM TIMING|                  || ||  ||   |
+|    ___________   ------------   ___________   -----------  |
+|    |   IEU   |   _____|______   | REFRESH |   |   MAC   |  |
+|    -----------   |  ARBITOR |   -----------   -----------  |
+|      |  | | |    ------------     |             |  |  |    |
+|      |  | |  \____/     |   \_____/             |  |  |    |
+|      |  |  \____________|_CONTROL______________/   |  |    |
+|      |   \____________|_|__DATA___________________/   |    |
+|       \_____________|_|_|_ADDRESS____________________/     |
+|                   | | | |  (EP)                            |
+--------------------|-|-|-|-----------------------------------
+                    | | | |
+____________________|_|_|_|___________________________________
+|                 __|_|_|_|__ _______ _______ _______ _______|
+|                 |   BUS   | |68010| |68450| | RAM | | ROM ||
+|                 |INTERFACE| ------- ------- ------- -------|
+|                 -----------  | | |   | | |   | | |   | |   |
+|    ----ADDRESS<-----|--|-|   | | |   | | |   | | |   | |   |
+|    | ----DATA<------|->| |___|_|_|___|_|_|___|_|_|___| |   |
+|    | | -CONTROL<--->|  |_|_____|_|_____|_|_____|_|_____|   |
+|    | | |            |__|_|_______|_______|_______|         |  
+|    | | |             | | |________________________         |
+|    | | |             | |_________|_______|_____  |         |
+|    | | |             |_________|_|_____|_|___ |  |         |    
+|    | | |                    _|_|_|_ _|_|_|_ |_|__|_        |
+|    | | |                    |68901| |Z8530| |Z8530|        |
+|    | | |                    ------- ------- -------        |
+|    | | |                  (IOC)|      | |     | |          |
+-----|-|-|-----------------------|------|-|-----|-|-----------
+     | | |                  _____|____ _|_|_____|_|_
+     | | |                  |TTY PORT| | PORTS 0-3 |
+     | | |                  ---------- -------------
+_____|_|_|___________________
+|    | | |________________  |
+|    | |_____|__________ |  |
+|    |_______|_|______ | |  |
+|           _|_|_|_ _|_|_|_ |
+|           |Z8530| |Z8530| |
+|           ------- ------- |
+|  (DCARD)    | |     | |   |
+--------------|-|-----|-|----
+              | |     | |
+             -------------
+             | PORTS 4-7 |
+             -------------
+.END
+
+
+
+
+
+
+
+   
