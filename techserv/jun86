@@ -1,0 +1,1536 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TTTTTTTT   EEEEEE    CCCCCC    HHH   HHH   TTTTTTTT   IIII   PPPPP       SSSS
+TTTTTTTT   EEEEEE   CCC   CC   HHH   HHH   TTTTTTTT   IIII   PP   PP    SS  SS
+   TT      EE       CC         HHH   HHH      TT       II    PP    PP   SS
+   TT      EEEE     CC         HHHHHHHHH      TT       II    PPPPPPP     SSSS
+   TT      EE       CC         HHH   HHH      TT       II    PP             SS
+   TT      EEEEEE   CC    CC   HHH   HHH      TT      IIII   PP         SS  SS 
+   TT      EEEEEE    CCCCCC    HHH   HHH      TT      IIII   PP          SSSS 
+
+
+
+
+
+
+
+
+
+ 
+                                 June 01, 1986
+
+
+
+                              TABLE OF CONTENTS
+                              -----------------
+
+
+
+TYMNET CONTERPARTS FROM RAW ACCTING DATA FOR "PPSN GENERIC REQUIREMENTS. . .01
+
+INFO ON HOW TO CORRECT THE SUP TIME; by A Chippa . . . . . . . . . . . . . .07
+
+THE NEW OPTION FOR ACCOUNTING HOST NUMBER IN BBXS; by N Shkla. . . . . . . .08
+
+RING DECODING GUIDE FOR BBXS; by N Shukla. . . . . . . . . . . . . . . . . .09
+
+FULL/LIMITED RELEASE REPORTS, as of 15 MAY; by D Fowler. . . . . . . . . . .12
+
+TWO NEW USER-WRITTEN SUBROUTINES IN FOCUS VERSION 5.0; by D Siler. . . . . .18
+
+MAKING STAGING WORK FOR YOU; by D Zisa . . . . . . . . . . . . . . . . . . .20
+
+PUBLIC NETWORK CODE GENERATION - PROCEDURAL UPDATE; by B Agua. . . . . . . .22
+
+QUALITY ASSURANCE S/W RELEASE PROCEDURE; by J Gomes. . . . . . . . . . . . .25
+
+NTCN 3.01 LOGIN ERROR MESAGE; by S Tsui. . . . . . . . . . . . . . . . . . .27
+
+NODECODE MEM REQUIREMENTS; by J Burrough . . . . . . . . . . . . . . . . . .28
+
+
+
+
+
+
+                                     01
+                                  --------
+
+
+   TYMNET COUNTERPARTS FROM RAW ACCTING DATA FOR "PPSN GENERIC REQUIREMENTS"
+   ------------------------------------------------------------------------
+   ------------------------------------------------------------------------
+
+
+Written by : Shirley Chiang, Mgr. HQ Application's Support
+      Date : May 14, 1986
+
+
+
+
+      A total of 55 fields are identified from Bell Corp.'s "PPSN Generic
+   Requirements - TA 00301" Appendix A, page A1 through A27.
+
+      The purpose of this document is to provide the Tymnet counterparts,
+   from the raw accounting data, for these 55 items.
+
+
+
+
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+ 1.  Call Type
+
+     PVC indicator is used in X.25 but currently not being reported to
+     Supervisor's accounting.  Latest news says it will be reported in
+     version 3.02 of X.25 scheduled to be released in July, 86.
+
+     PVC indicator is in Msg. type 14.15.00.ff, where ff=0001 as a flag.
+
+ 2.  Sensor Type
+
+     We are not sure of the definition and therefore unable to give answers
+     unless more explanations are provided.
+
+     From here on, this type of situation will be marked as D.N.C. for
+     Definition Not Clear.
+
+ 3.  Sensor Id.
+
+     D.N.C.
+
+ 4.  Recording Office Type
+
+     D.N.C.
+
+ 5.  Recording Office Id.
+
+     D.N.C.
+
+ 6.  Connect Date
+
+     (If this means the start date/time of a network login session:)
+
+     = timestamp (GMT from 01/01/74 in seconds) on the block where Msg. 
+       type 01 for a session is recorded.  The timestamp can be converted
+       to create the standard MM/DD/YY HH:MM:SS format.
+
+ 7.  Timing Indicator
+
+     Not directly reflected in raw accounting data.  May be obtained by
+     analysing the start/termination time explained in Item #16 and 17.
+
+ 8.  Study Indicator
+
+     N/A. (Not Applicable in Tymnet Accounting)
+
+ 9.  Originating Sensor Id.
+   
+     D.N.C.
+
+10.  Terminating Sensor Id.
+
+     D.N.C.
+
+11.  Originating SR (service region)
+
+     Tymnet Accounting provides the the node/host information of the origi-
+     nation/destination point into/out the Network.  It does not capture
+     the phone numbers of the private or public dial-up accesses unless:
+
+      A.  if the dial-up number is entered after the password (in the login
+          string) and treated as part of the project code, then it will
+          be recorded in multiple Msg. type 13's;
+
+      B.  in order for the project code to be reported, the destination host
+          or host interface must do something special.  It must turn a flag
+          on in ISIS segment "E", so the destination node will capture
+          everything entered after the password up to 27 characters
+          and ship it to the supervisor as accounting Msg. type 13's.
+          Usually this is handled as a patch which may be incorperated
+          or assembled into the code when project code is desired.  Con-
+          sultation with Tymnet technical support shall be needed in search
+          of such a patch for various interfaces.
+
+     Orig. node is in Msg. type 2, bit 4 - 15,
+     orig. host is in Msg. type 4.2, bit 16 -31,
+     dest. node is in Msg. type 4.1, bit 16 -31,
+     dest. host is in Msg. type 3, bit 12 - 20.
+
+12.  Originating SA-EPN (service area-end point number)
+
+     See Item #11.
+
+13.  Terminating SR
+
+     See Item #11.
+
+14.  Terminating SA-EPN
+
+     See Item #11.
+
+15.  Network User Id.
+
+     A. If this means the unique Tymnet invoice or session number:
+   
+        = Msg. type 01, bit 8 - 31, where bit 8 - 11 is prefixed by 
+          Supervisor number as each Supervisor keeps its own set
+          of numbers up to 20 bits long to assign to every logon session.
+          In order to make the invoice/session number unique, the Supervisor
+          number is then prefixed to the 20 bit sequential numbers.
+
+     B.  If this means the user name:
+
+        = multiple Msg. type 4.0, where each Msg. type 4.0 contains up to
+          three characters of the user name string.
+
+     C.  If this means the NUI in X.25:
+
+        NUI will be part of the calling/called address and is dependent
+        on how it is structured and specified in X.25.
+        (Reference Tymnet X.25/X.75 Reference Manual, Chapter 2)
+        (Also see Item #31, 32 for detail on calling/called address)
+
+16.  Connect Time
+
+     See item #6.
+
+17.  Elapsed Time
+
+     If this means the session duration time:
+
+     = (termination GMT) - (start GMT), where termination GMT is the timestamp
+     of the block when the last accounting message (could be type 9, 10, 11
+     or 14) is recorded for the session.
+
+     In Tymnet's own billing process, program will flag if the termination
+     indicator (Msg. type 14) is received.  Otherwise, it will hold the
+     last accounting message (for the session) for six hours as a graceful
+     waiting period, and then uses the timestamp of that last accounting
+     message as the termination time and artificially generates a termination
+     code of 84.
+
+18.  Charging & Packet Indicator
+
+     Definition not clear for Packet Indicator.
+
+     Charging Indicator as used in X.25:
+
+     = Msg. type 14.0.7.nm, where nm is a two byte field,
+       n = 0 for normal charge (i.e. charge to orig. DTE),
+         = 1 for reverse charge (i.e. charge to terminating DTE),
+       m = 0 for originating from host or FEP
+         = 1 for originating from terminal or PAD.
+
+       (X.25 defaults to reverse charge.)
+
+19.  Termination Cause Indicator
+
+     = Msg. type 10, 11 or 12, and/or msg. type 14.0.0.vv where
+       vv is a 16 bit value ranging from 1 to 32 and providing
+       a supplement to the termination reasons indicated in Msg.
+       10, 11 or 12.
+
+       Occasionally Msg. type 14.0.15.nm may be sent by X.25/X.75 as
+       an additional supplement for more detailed termination causes,
+       where n = call clear cause,
+             m = diagonostic code.
+
+20.  Rate Period 1 Segment Count
+
+     Segment count or packet count is reported by X.25/X.75:
+
+     = Msg. type 14.1 through 14.8.  May be reported by both the orig. 
+       and destination interfaces.
+
+     Tymnet internal billing normally uses orig. p/s count.  If orig.
+     p/s count is not presented, then destination p/s count will be used.
+
+     Rate period can be obtained by comparing the session elapsed time.
+
+21.  Rate Period 2 Segment Count
+
+     See Item #20.
+
+22.  Rate Period 3 Segment Count
+
+     See Item #20.
+
+23.  Rate Period 4 Segment Count
+
+     See Item #20.
+
+24.  Originating Service Type
+
+     Not directly reflected in raw accounting data.  Must read the orig.
+     node/host and match with some kind of external table (of SWB's)
+     to identify the type of service or application running within
+     the origination point or terminal interface.
+
+     Orig. node is in Msg. type 2, bit 4 - 15,
+     orig. host is in Msg. type 4.2, bit 16 - 31.
+
+25.  Terminating Service Type
+
+     Similar process needed to identify the termination host or host
+     interface.
+
+     Termination or destination node is in Msg. type 4.1, bit 16 - 31,
+     termination or destination host is in Msg. type 3, bit 12 - 20.
+
+26.  Priority
+
+     N/A.
+
+27.  Segment Size
+
+     If this means the segments generated by X.25 interface:
+
+     not recorded in raw accounting data.  It is dynamically calcu-
+     lated by X.25, some segments may carry more data, some less.
+     In general, guess-timated average is around 22 characters per segment.
+
+28.  Fast Select
+
+     Only applicable in X.25/X.75.
+
+     = Msg. type 14.15.1.  But this is not being reported by X.25/X.75.
+     Version 3.02 of X.25 will report this information as accounting
+     addendum to the Supervisor.  Version 3.02 is scheduled to be released
+     in July, 86.
+
+     When it is implemented, this message will be reported only when
+     Fast Select is requested;otherwise, no such message will even be
+     seen in the raw accounting data.
+
+29.  Present Date
+
+     Generated by SWB.
+
+30.  Present Time
+  
+     Generated by SWB.
+
+31.  Originating DNIC
+
+     = Msg. type 14.10 through 14.13, calling DTE address reported by
+     X.25/X.75.  The first 4 BCD digits are the originating DNIC,
+     followed by another 10 digits for supplementary network id 
+     which is determined by X.25 parameter structures.
+
+32.  Terminating DNIC
+
+     Same as Item #31,
+
+     = Msg. type 14.2 through 14.5 for called DTE address.
+
+33.  Transit Network 1 DNIC
+
+     Reported by X.25/X.75:
+
+     = Msg. type 14.6.nm, where nm is the four BCD digits of DNIC.
+     Multiple Msg. type 14.6.nm will be recorded for multiple transit
+     network DNIC's.  However, one additional such message will also
+     be recorded signaling the ending of the stream where:
+       n = FF (a constant value in hex.),
+       m = the total number of transit networks just previously being
+           reported.
+
+34 - 36  Transit Network 2 - 4 DNIC
+
+     See Item #33.
+
+37.  Local Service Type
+
+     D.N.C.
+
+38.  Tarriff Utility
+
+     Only applicable in DATAPAC for Tymnet.
+
+     = Msg. type 14.18.sssssbbb.  (Reference Acount.doc, Msg. 14.18)
+
+39.  Call id. Billing
+
+     Call id is applicable in X.25/X.75.
+
+     If it is part of the calling/called address, then the 10 BCD digits
+     immediately following the DNIC may be the call id.
+
+     In the case for X.75, call id is reported in Msg. 14.9 which is
+     normally used for the gateway invoice number.
+
+40.  Date
+
+     D.N.C. (If this means the connect date, then see Item #6.)
+
+41.  Auxiliary Sensor Id.
+
+     N/A. or D.N.C.
+
+42.  Service Region
+
+     D.N.C.
+
+43.  Service Area - End Point Number
+
+     D.N.C.
+
+44.  Intrastate Call Aggregate Holding Time
+
+     N/A or D.N.C.
+
+45.  Interstate Call Aggregate Holding Time
+
+     N/A or D.N.C.
+
+46.  Recording Interval End Time
+
+     If this means the interval of node reporting accounting addendum,
+     then it is known to be 15 - 20 minutes and is a function of 
+     Tymnet ISIS/Node Code.
+
+47.  Count of Intrastate attempts
+
+     Not directly reflected in raw data.  Must first go through external
+     table process to identify the location or site of the orig. and
+     dest. interfaces to determine whether the session is an intrastate
+     or interstate one, then must sort out the sessions and verify 
+     the termination reasons and analyse the patterns of the logins.
+     This is strictly an application process utilizing the information
+     provided by the raw data.
+
+48.  Count Of Interstate Attempts
+     
+     See Item #47.
+
+49.  Count Of Intrastate Packet Segment
+
+     This will be another example of application process.
+
+     The packet/segment count is obtainable in Msg. type 14.1 thru 14.8.
+
+50.  Count of Interstate Packet Segment
+
+     Same as Item #49.
+
+51.  Counter Reset
+   
+     N/A.
+
+52.  Connecting DNIC
+
+     See Item #33.
+
+53.  Trunk Id
+
+     N/A.
+
+54.  Logical Channel Number
+
+     The X.25 LCN is not currently being reported as accounting addendum
+     to the Supervisor.
+
+55.  International Data Number
+    
+     If this means the DNIC, see Item #39.
+
+
+
+                                     07
+                                  --------
+
+
+                     INFO ON HOW TO CORRECT THE SUP TIME                 
+                     -----------------------------------
+                     -----------------------------------
+
+
+Written by : Ashok Chippa, Network Support Consultant
+      Date : May 01, 1986
+
+
+
+
+      The command used to correct the Superclock time is:   FTIME  and is of 
+   the following format:    
+     
+             :FTIME n 
+     
+   where n is the number of seconds (in decimal), by which the Superclock time
+   is to be changed.  
+     
+   To increase time by n (>0) seconds, issue
+             :FTIME n                (:FTIME +n  does not work) 
+     
+   To decrease time by n (>0) seconds issue
+             :FTIME -n
+     
+      The Superclock can be updated only when the GMT is of the form XXXXX000
+   (an 8 digit hex. number).  Therefore this command may take anywhere from 
+   1 sec to 1 hr 8 minutes.  An 'ESC' will abort the command.   
+     
+      The FTIME command only updates the Superclock, but in order for the 
+   active Supervisor to reset its time, the ETIME command has to be used.
+
+
+
+
+                                     08
+                                  --------
+
+
+             THE NEW OPTION FOR ACCOUNTING HOST NUMBER IN BBXS
+             -------------------------------------------------
+             -------------------------------------------------
+
+
+Written by : Nirmala Shukla, HQ Network Support Consultant
+      Date : May 12, 1986
+
+
+
+
+      ALL SUBSEQUENT ASSEMBLIES FOR BBXS CODE FOR VERSION 3.06, 5.02 AND
+   6.01 MUST INCLUDE THE FOLLOWING STATEMENT IN THEIR TYMFILES FOR TIF AND 
+   HIF.
+
+   OPTION(ACCOUNT,12345)      :FIVE DIGIT ACCOUNTING HOST #
+
+
+      THE SYMBOL "ACCOUNT" WILL NOW BE USED TO SET THE ACCOUNTING HOST NUMBER
+   IN PSEUDO-NEEDLE REQUESTS FOR ALL TERMINAL I/F LINES.
+
+      EXISTING TERMINAL INTERFACE SLOTS NEED NOT BE TAKEN DOWN IF THE NUMBERS
+   PREVIOUSLY GENERATED BY THE "LOCATION" MACRO HAVE BEEN ASSIGNED TO THE SLOT
+   WHICH GENERATED THEM.  NIB FILES FOR THOSE EXISTING SLOTS NEED NOT BE 
+   RE-ASSEMBLED UNTIL THE SLOT'S CONFIGURATION IS CHANGED.
+
+      HOST INTERFACE LINES WILL CONTINUE TO USE THE NETWORK HOST NUMBER AS THE
+   ORIGINATING HOST NUMBER FOR ALL HOST-ORIGINATED CALLS.
+
+
+
+                                     09
+                                  --------
+
+
+                        RING DECODING GUIDE FOR BBXS
+                        ----------------------------
+                        ----------------------------
+
+
+Written by : Nirmala Shukla, HQ Network Staff Consultant
+      Date : May 12, 1986
+
+
+
+
+      The following "Ring Decoding Guide", is very helpful for all of us who
+   are supporting RJE products for 5.02 and above.  Currently there is no
+   documentation available on this subject, which can help us decode the 
+   Rings.
+
+      I would like to express my sincere gratitude to Eric Buell who helped me
+   obtain the following information.
+
+
+
+RING DECODING GUIDE FOR DATA MESSAGES IN BBXS
+----------------------------------------------
+
+Value		Name		Meaning
+-----		----		-------
+
+08xx		ID.SDF		Escaped data byte.
+				Data is xx-8
+
+0908xx		ID1.SCF		Character Set.
+				xx = 08 = ASCII
+				     09 = EBCDIC
+
+0909xx		ID2.SCF		Dialect.
+				Version 5.01
+					xx = 09 = A2780
+					     0A = E2780
+					     0B = A3780
+					     0C = E3780
+					     0D = AXPRT
+					     0E = EXPRT
+					     0F = AVMB
+					     10 = EVMB
+					     11 = AHASP
+					     12 = EHASP
+				Version 5.02
+					xx = 09 = A2780
+					     0A = E2780
+					     0B = A3780
+					     0C = E3780
+					     0D = AXPRT
+					     0E = EXPRT
+					     0F = AVMB
+					     10 = EVMB
+					     80 = AHASP
+					     81 = EHASP
+					     82 = AMLI
+					     83 = EMLI
+
+                               VERSION 6.01
+
+                                        xx = 09 TO 83 = SAME AS 5.02
+                                             11 = ADDCMP
+                                             12 = EDDCMP
+
+090Axx		ID3.SCF		Mode.
+				xx = 08 = Discard Mode
+				     09 = Native Mode
+				     0A = Virtual Mode
+
+090Bxx		IDE.SCF		Remote Error Reason.
+				xx is formatted as mmmppppp, where mmm is
+				the message number and ppppp is the remote
+				port number.
+				mmm = 1 = Unknown error on host interface
+				      2 = No answer to ring on host interface
+				      3 = Host interface has no clocks
+				      4 = Disconnect on host interface
+
+090Cxx		IDF.SCF		Multi-leaving Output Virtual Circuit.
+				Host line number = xx-8
+
+090Dxx		IDV.SCF		Multi-leaving, Total OVCs Requested.
+				Number of OVCs = xx-8
+
+090E		ID4.SCF		Startup.
+
+090F		ID5.SCF		Hasp Signon Record (not used).
+
+0910		ID6.SCF		Hasp Signof Record (not used).
+
+0911		ID7.SCF		End Transmission.
+				(Equivalent to EOT)
+
+0912		ID8.SCF		End File (not used).
+
+0913		ID9.SCF		End Connection (not used).
+
+0914		IDA.SCF		Green Ball (not used).
+
+0915		IDB.SCF		End-To-End Acknowledgement Request.
+
+0916		IDC.SCF	To-End Acknowledgement.
+
+0917xxxx	IDN.SCF		OVC Host Number.
+				Host Number = xxxx
+
+0918		IDI.SCF		Interrupt Output.
+				(Equivalent to RVI)
+
+0919		IDP.SCF		Interrupt Output.
+				(Equivalent to EOT)
+
+091A		IDY.SCF		Implicit Yellow Ball.
+				(Used with the BABT line option).
+
+091B		IDO.SCF		Implicit Orange Ball.
+				(Used with the BABT line option).
+
+091C		IDS.SCF		Start of Transmission.
+
+0940xx-097Fxx			Duplicate Data Compression.
+				Byte xx is repeated (40-40)+3 to (7F-40)+3 times
+
+0980-09FF			Blank Compression.
+				Blank is repeated (80-80)+2 to (FF-80)+2 times
+
+0A		ID.BB		Begin Block.
+
+0B		ID.BH		Begin Header.
+				(Equivalent to SOH)
+
+0C		ID.TR		Transparency.
+				(Equivalent to DLE)
+
+0D		ID.BT		Begin Text.
+				(Equivalent to STX)
+
+0E		ID.EB0		End Block.
+				(Equivalent to ETB)
+
+0F		ID.EB1		End Block.
+				(Equivalent to ETX)
+
+10		ID.EOR		End Record.
+				(Equivalent to ITB)
+
+11 through FF	DATA		Data Characters.
+
+
+
+                                     12
+                                  --------
+
+
+               FULL/LIMITED RELEASE reports, as of 15 MAY 86
+               ---------------------------------------------
+               ---------------------------------------------
+
+
+Written by : Dianna Fowler, HQQA
+      Date : May 15, 1986
+
+
+
+
+                             FULL RELEASE REPORT
+
+
+      The  monthly PRODUCTS IN FULL RELEASE report,  as of 15 MAY 86 is 
+      attached for your reference use.  This report is comprised of all 
+      fully released products and their respective version of code.
+
+      Any  product or product version number that is not  contained  in 
+      this report will be considered in beta test,  limited release  or 
+      unsupported.   If  you  have a customer requesting  BETA  TEST or 
+      LIMITED  release  products,  you MUST HAVE APPROVAL  FROM  TYMNET 
+      QUALITY ASSURANCE before installation. If you have a customer who 
+      has  a  product  with a version number that is older  than  those 
+      specified,  please contact HQ  Technical  Services to assure that 
+      the version is still supported,  as it is Technical Services  who 
+      supports the majority of these products.
+
+      This  report  is  put  out  by  Tymnet  Quality  Assurance.   Our 
+      definition  of  a fully released product may differ from that  of 
+      Baseline   or others.    Please  keep  in  mind that the   Tymnet 
+      Quality   Assurance definition  of  a product with  Full  Release 
+      Status  is   a  product which  has been proven reliable  and  has 
+      general  accesibility  to all customers.
+
+      Please  review the following report,  and as soon as you have any 
+      updates,  changes,  deletions or additions, notify me IMMEDIATELY 
+      at:
+                            ONTYME: QSATS.D/FOWLER
+                            PHONE: (408) 942-5363
+
+      Thank you for your assistance!
+
+
+
+
+
+
+=================================================================
+
+                 PRODUCTS IN FULL RELEASE REPORT
+                            15 MAY 86
+
+The  following report is comprised of all fully released products 
+and  their respective version of code.   For  your  conveinience, 
+products  will be sectioned by category,  also their acronym will 
+be given.
+
+(note: changes are denoted by an asterisk - *)
+
+
+CATEGORY   PRODUCT                                  VERSION
+-----------------------------------------------------------
+ELECTRONIC MESSAGE SYSTEM
+     ONTM: Ontyme                                     17.33
+     ONTM: Ontyme                                     17.10
+     ONTM Database Restore                             1.06
+
+GATEWAY INTERFACES
+     I2G1: ISIS Gateway                                4.07
+     I2G1: ISIS Gateway                                4.04
+     I2G1: ISIS Gateway                                4.03
+
+MENU SERVICE
+     MSVO: MENU SERVICE                                1.11
+
+NETWORK ACCOUNTING
+     RAM: Raw Accounting Merger                       10.07
+     RAM: Raw Accounting Merger                       10.05
+
+NETWORK CIRCUIT-MULTIPLEXING UTILITY
+     MUX: Multiplexor                                  3.02
+
+NETWORK CIRCUIT-REBUILDING UTILITY
+     REBUILD: Rebuild                                  5.06
+
+NETWORK CODE-GENERATING UTILITIES
+     CPAS: Concurrent Pascal Compiler                  1.01
+     CPAS: Concurrent Pascal Compiler                  1.00
+     MERLIN:  Merge & Link                             2.01
+     MERLIN: Merge & Link                              1.60
+     NAD: Node Assembler/Debugger                      1.10
+     PNUC: Pascal Nucleus                             10.06
+     PNUC: Pascal Nucleus                              8.02
+
+NETWORK CODE-LOADING UTILITIES
+     ELF: Engine Load Facility                         3.10
+     ELF: Engine Load Facility                         3.05
+     LOAD II: Load II                                  2.16
+     LOAD II: Load II                                  2.12
+     LOAD II: Load II                                  1.16
+
+NETWORK COMMUNICATIONS SOFTWARE
+     NODE: Node Code                                   5.06
+
+NETWORK DISK-FORMATTING UTILITY
+     MSCTST: MSC Stand Alone Disk Diagnostic           4.00
+
+NETWORK MANAGEMENT     
+     ACCT: Accounting Slave for Sup                    5.01
+     ERLG: Error Log Slave for Sup                     7.01     
+     SUP: Supervisor                                  41.01
+     SYSM:  System Message Slave for Sup               5.01 
+     UN2: UN2 Slave under Sup code                     5.01
+     UTIL: Utility Slave for Sup                       1.02
+
+NETWORK MONITORING
+     PRB: Probe                                       35.01
+     NCDM: Network Console Disk Maint.                 1.00
+     NCRE: Network Console Resource Est.               1.00
+     NEM: Network Event Monitor                        4.07
+     NMDM: NEM Disk Maintenance                        1.03
+     NMRE: NEM Resource Estimator                      1.00
+     NTCN: Network Console                             3.01
+     NTCN: Network Console                             3.00
+     NTCN: Network Console                             2.06
+**   TMCS: Tymnet Monitor & Control System            10.00
+     TMCS: Tymnet Monitor & Control System             7.08
+     TMDM: TMCS Disk Maintenance                       2.01
+     TMDM: TMCS Disk Maintenance                       1.03
+     TMDM: TMCS Disk Maintenance                       1.02
+     TMDM: TMCS Disk Maintenance                       1.01
+     TMRE: TMCS Resource Estimator Prog.               2.00
+     XRAY: XRAY                                        5.06
+
+** = WITHOUT RELOAD & ALARM FUNCTIONS
+
+NETWORK PLANNING SYSTEM
+     CONFIGURATOR                                      2.00
+     LLTA                                              1.00
+     MDR                                               1.00    
+     PLANET                                            2.00
+     PMED                                              1.00
+     PORTS                                             1.00
+     TMDT                                              2.00
+     TYMTAP                                            1.10
+
+NETWORK VALIDATIONS
+     NVAL: Network Validations                         2.05
+     NVAL: Network Validations                         1.16
+     NVAL: Network Validations                         1.14
+     NVDM: Netval Disk Maintenance Pgm.                1.02
+
+NODE OPERATION SYSTEMS
+     DDT: Dynamic Debugging Tool                       5.08
+     ISIS: Internally Switched Interface System        5.08
+
+OPERATIONS MANAGERS
+     TOM: Tymcom Operations Manager                    2.03
+
+*PORT SWITCH MODULE
+     PSM: Port Switch Module - Hardware
+
+SNA TERMINAL & HOST INTERFACE
+     SNA: Systems Network Architecture                 1.03
+
+TYMNET NETWORK HOST INTERFACE
+     ACOM: Async Tymcoms                               2.03
+
+TYMNET NETWORK TERMINAL INTERFACE
+     ISCS: ISIS Consolidated Consat                    3.05
+     ISCS: ISIS Consolidated Consat                    3.04
+
+X.25/X.75 NETWORK INTERFACE
+     XCOM: X.25/X.75 Interface                         3.01
+     XCOM: X.25/X.75 Interface                         2.02
+
+X780/HASP/MULTILEAVING
+     BBXS: X780/HASP/Multileaving (includes Power/     5.02
+           MLI and RSCS/VMB)
+     BBXS: X780/HASP/Multileaving (inc. Power/MLI      5.01
+           and RSCS/VMB)
+     BBXS: X780/HASP/Multileaving                      3.06
+
+3270 NETWORK INTERFACES
+     CMTI: 3270 Character Mode Terminal                2.06
+     CMTI: 3270 Character Mode Terminal                2.03
+     CMTI: 3270 Character Mode Terminal                2.00
+     PBH: 3270 Host Interface                          7.03
+     PBH: 3270 Host Interface                          7.02
+     PBH: 3270 Host Interface                          7.01
+     PBT: 3270 Terminal Interface                      5.03
+     PBT: 3270 Terminal Interface                      5.02
+     PBT: 3270 Terminal Interface                      5.01
+
+
+                           LIMITED RELEASE REPORT
+
+
+      The  following  report  will  inform and update  you  each  month 
+      regarding  products that are upgraded to LIMITED  RELEASE.   This 
+      report entails;   product name and version (and location of  test 
+      site(s) when information is supplied).
+
+      A  product  which  is  in limited  release  has  undergone  "Beta 
+      Testing"  and corresponding "Completion Criteria" (see Beta  Test 
+      Guide-lines).   It is the responsibility of Product Marketing, HQ 
+      Technical  Services,   and HQ Support to review beta test results 
+      of the product to determine suitability for limited release.
+
+      Upon reaching limited release, a product is then available to our 
+      customers,  but  not  yet released to  the  open  market.   These 
+      limited release products are supported by HQ Tech.
+
+      All  changes to this report are denoted by an asterisk (*) in the 
+      left hand column.  If you have any updates to this report, please 
+      send me an Ontyme (QSATS.D/FOWLER) or call me at 408-942-5363.
+
+      Thank You For All Your Support!
+
+
+
+
+
+
+=========================================================================
+
+                          LIMITED RELEASE REPORT
+
+                              AS OF 15 MAY 86
+                                                       
+=========================================================================
+
+
+PRODUCT:    3270 PBH (BSC HIF)
+  VERSION:  7.05
+        
+
+PRODUCT:    3270 PBT (BSC TIF)
+  VERSION:  5.05
+              (Unrestricted Use)
+
+
+*PRODUCT:   PTI   Polled Terminal Interface
+  VERSION:  6.00
+
+
+PRODUCT:    RAM   Raw Accounting Merger
+  VERSION:  11.04
+
+
+PRODUCT:    SNA W/LU3 Printer Support
+  VERSION:  1.04 (Formerly 1.05)
+
+
+*PRODUCT:   SUPERVISOR
+  VERSION:  41.04
+              
+
+PRODUCT:    VIP HIF
+  VERSION:  2.02
+
+
+PRODUCT:    VIP TIF
+  VERSION:  2.02
+
+
+PRODUCT:    X.PC Network Server
+  VERSION:  1.05
+
+
+
+                                     18
+                                  --------
+
+
+            TWO NEW USER-WRITTEN SUBROUTINES IN FOCUS VERSION 5.0
+            -----------------------------------------------------
+            -----------------------------------------------------
+
+
+Written by : Dianne Siler, Remote Computing Svcs Co.
+      Date : May 19, 1986
+
+
+ 
+
+   Have you ever wanted to prompt a user for a field in the database but
+   there were multiple spellings possible and the user needed to know the  
+   correct spelling in order to retrieve the record?
+ 
+   There is finally an answer in Focus 5.0 . . . A new subroutine called:
+ 
+                                   SOUNDEX
+   Try it ... You'll like it ...
+    
+   The calling sequence is:
+    
+               SOUNDEX(NUMCHAR,INPUT,OUTPUT)
+    
+   Where:  NUMCHAR    (alpha)   Two character field containing the length
+                                of the input field.
+    
+           INPUT      (alpha)   Input alpha field of length NUMCHAR.
+    
+           OUTPUT     (alpha)   Four character output.
+   
+   NOTE:  If NUMCHAR is not between 1 and 99 then '****' is returned
+          in OUTPUT.
+ 
+   SOUNDEX can be used for phoenetic ("sounds like") searches, for
+   example in surname searches.  The algorithm retains the first
+   character of INPUT and assigns a digit to represent each of the
+   next 3 'significant' sounds (determined by the algorithm).
+ 
+   Example:
+ 
+        cms type soundex focexec
+ 
+        -PROMPT &SOUND.A10.ENTER APPROXIMATE COUNTRY NAME.
+        -SET &SOUND=EDIT(&SOUND ^^ '          ','9999999999');
+        DEFINE FILE CAR
+        TESTSOUND/A4 WITH COUNTRY=SOUNDEX('10','&SOUND^',TESTSOUND);
+        COUSOUND/A4=SOUNDEX('10',COUNTRY,COUSOUND);
+        TEST/I1=IF COUSOUND EQ TESTSOUND THEN 1 ELSE 0;
+        END
+        TABLE FILE CAR
+        PRINT COUNTRY COUSOUND TESTSOUND TEST
+        END
+ 
+        ex soundex
+        ENTER APPROXIMATE COUNTRY NAME
+ 
+        italli
+        >
+ 
+
+
+        COUNTRY     COUSOUND  TESTSOUND  TEST
+        -------     --------  ---------  ----
+ 
+        ENGLAND     E524      I340          0
+        JAPAN       J150      I340          0
+        ITALY       I340      I340          1   <=== NOTE THE 'MATCH'
+        W GERMANY   W265      I340          0
+        FRANCE      F652      I340          0
+ 
+ 
+   There is a second new user subroutine available in release 5.0 of Focus.
+   The subroutine called UPCASE will translate all lower case characters
+   in a Dialogue Manager variable or in a field into their upper case
+   equivalent.
+ 
+   The calling sequence is:
+ 
+               UPCASE(NUMCHAR,INPUT,OUTPUT)
+    
+   Where:   NUMCHAR    (numeric)   The number of characters in the field
+                                   INPUT.
+ 
+            INPUT      (alpha)     The input character string of length
+ 
+            OUTPUT     (alpha)     The resultant character string of length
+                                   NUMCHAR with lower case letters
+                                   translated to upper case
+ 
+   Note:  If NUMCHAR is less than or equal to zero, blanks are returned
+   in OUTPUT.
+ 
+   This routine can be expecially useful when using CRTFORM LOWER for
+   data entry where not all fields are to be retained in lower case
+   such as the key fields.
+ 
+   Example:
+ 
+        cms type upcase focexec
+ 
+        -SET &TEXT = '123456789012345678901234567';
+        -CRTFORM LOWER
+        -"ENTER TEXT BELOW:
+        -"<&TEXT>"
+        -TYPE YOU HAVE INPUT THE FOLLOWING TEXT:  &TEXT
+        -SET &UPTEXT=UPCASE(27,&TEXT,'A27');
+        -TYPE  IN UPPER CASE, IT IS:   &UPTEXT
+ 
+        >
+        ex upcase
+        YOU HAVE INPUT THE FOLLOWING:  qwertyuiopasdfghjklzxcvbnm 1234567890
+        IN UPPER CASE, IT IS:          QWERTYUIOPASDFGHJKLZXCVBNM 1234567890
+        >
+ 
+   If you have any trouble with either of these new user-written subroutines
+   please send an Ontyme to ACS.FOCUS.
+
+
+
+                                     20
+                                  --------
+
+
+                         MAKING STAGING WORK FOR YOU  
+                         ---------------------------
+                         ---------------------------
+
+
+Written by : Doug Zisa, Mgr. Network Sys Staging Unit
+      Date : May 21, 1986
+
+
+
+     
+      Detailed configuration information is often required to integrate the 
+   hardware and software during the staging process. There are often several 
+   alternative configuration choices for any one issue. NSSU will not presume
+   to know the customer's expectations. Therefore, when a configuration 
+   question arises in the staging process which is judged to be significant, 
+   the staging process may be suspended or rescheduled pending clarification 
+   of the configuration discrepancy.
+     
+     
+                   CONFIGURATION  CONCERNS
+     
+      The following information must be obviously apparent to the staging 
+   staff by default or by information previously provided by the technical 
+   staff of the order originator:
+     
+     
+           1. Connector panel connectivity   
+     
+           2. Cluster interconnectivity - Board and card addressing   
+                                          and interconnectivity   
+     
+           3. LAN configuration    
+     
+           4. Target code TYMFILE, CMD, and BND file locations   
+     
+           5. Target code TYMFILE reconciliation to the hardware 
+              configuration 
+     
+           6. Any place a decision is needed which will affect the    
+              installation process at the customer site   
+     
+     
+      The above information is required at the time the equipment is released
+   from manufacturing to NSSU. NSSU will not preview orders for technical 
+   integrity. When information is needed, staging will continue as possible 
+   until the answers are provided. Some delay is probable.  
+     
+     
+                   PROCEDURE - DISCREPANCY CORRECTION AND TRACKING 
+     
+           The process will be as follows for each incident:
+     
+           1. The NSSU stager will add a mail message to the order in 
+              question addressed to the following people if they are
+              identified in the OES order:  TYMNET Technical Contact,    
+              Salesperson, TYMNET Order Coordinator  
+     
+           2. The OES mail message will identify the discrepancy or question    
+              in detail
+     
+           3. The OES mail message will estimate (from NSSU's perspective) the  
+              probable delay in days or weeks, which will usually be
+              cumulative to the response time of the query.    
+     
+           4. The OES order coordinator will reschedule the staging commit 
+              date and subsequent ship date.    
+        
+           5. Phone conversation between principles is encouraged, however,
+              corrective action will only commence upon receipt of the   
+              authorizing mail message from the OES order coordinator.   
+     
+     
+                   SMART ORDERING - DISCREPANCY PREVENTION    
+     
+      A means to insure that NSSU has all the needed information to prevent 
+   delays in staging is to complete and deliver one of the following forms 
+   to NSSU prior to the equipment arriving in staging.  The forms are located
+   in NSSU directory on systems 28 and 56. Each form identifies the location 
+   of the sunpporting document and related forms.
+     
+           The file names are:
+     
+           SECONF.FRM      for stand-alone ENGINES with PSM buckets   
+     
+           PSCONF.FRM      for Port Switched clusters  
+     
+           MPCONF.FRM      for MPX cluster systems
+     
+     
+
+
+
+                                     22
+                                  --------
+
+
+             PUBLIC NETWORK CODE GENERATION - PROCEDURAL UPDATE
+             --------------------------------------------------
+             --------------------------------------------------
+
+
+Written by : Beryl Agua, Mgr. Project Implementation
+      Date : May 22, 1986
+
+
+
+
+      THIS ONTYME IS AN INFORMATIONAL GUIDELINE AS TO HOW BACKUP REQUESTS AND 
+   PUBLIC NETWORK CODE ISSUES ARE HANDLED IN PROJECT IMPLEMENTATION.  THERE 
+   HAVE BEEN SOME SLIGHT REVISIONS TO THE BACKUP REQUEST PROCEDURES.  PLEASE
+   NOTE THE FOLLOWING TOPICS OF INTEREST THAT WILL BE ADDRESSED:
+
+
+   I.   BACKUP REQUESTS
+
+   II.  BACKUP REQUEST PROCEDURES - INTERNAL
+
+   III. CODE ISSUES - SHORT TERM
+
+   IV.  CODE ISSUES - LONG TERM
+
+
+      IT IS IN PROJECT IMPLEMENTATION'S BEST INTEREST TO ENSURE CUSTOMER 
+   SATISFACTION AS WELL AS INTERNAL COMPLIANCE.  WE ARE INTERESTED IN ANY 
+   PROBLEMS YOU MAY BE EXPERIENCING SO THAT WE CAN TAKE THE NECESSARY STEPS TO
+   ALLEVIATE THEM IN THE FUTURE.  PLEASE FORWARD ANY COMMENTS OR SUGGESTIONS 
+   TO ME DIRECTLY.  I CAN BE REACHED AT (408)942-5180, TYMOPS.B/AGUA, IN 
+   NETWORK OPERATIONS, SAN JOSE, CALIFORNIA.
+
+   THANK YOU
+
+
+
+
+I.  BACKUP REQUESTS
+    ______ ________
+
+    A.  BACKUP REQUESTS ARE FOR SLOT CODE ONLY UNLESS ONE OF THE FOLLOWING
+        SITUATIONS OCCUR:
+
+        1.  THE REQUEST IS FOR A LAB MACHINE.
+
+        2.  PRIOR APPROVAL HAS BEEN GIVEN BY THE MANAGER OF PROJECT 
+            IMPLEMENTATION TO BACKUP PUBLIC NETWORK NODE CODE.
+
+
+    B.  THERE IS AN EXEC PROGRAM AVAILABLE VIA ONTYME TO SUBMIT A BACKUP
+        REQUEST.  TO ACCESS THE PROGRAM, TYPE THE FOLLOWING COMMAND:
+
+        EXEC *** FORMS.BACKUP
+
+        THIS FILE HAS BEEN VALIDATED ON ALL INTERNAL HOSTS.  PLEASE COMPLETE
+        FULLY AND ACCURATELY.  IT IS IMPORTANT THAT THE CKSUMS ARE INCLUDED
+        AS REQUESTED PER THE FORMAT.  ALL BACKUP REQUESTS ARE THEN SENT TO 
+        THE ONTYME ID, TYMOPS.BACKUP.
+
+    C.  SLOT CODE WILL ONLY BE BACKED UP FROM THE FOLLOWING REGIONAL 
+        DIRECTORIES:
+
+        WATECH   -   WESTERN REGIONAL DIRECTORY
+        CENTCODE -   CENTRAL REGIONAL DIRECTORY
+        METTECH  -   EASTERN REGIONAL DIRECTORY
+        INTLTECH -   EXTERNAL NETWORK SERVICES
+        PNTS     -   PRIVATE NETWORK GATEWAYS
+        PACTECH  -   PACIFIC RIM DIRECTORY
+        TMCSCODE -   NETWORK QUALITY CONTROL
+
+    D.  CODE FOR NODES BELOW 5000 IS AVAILABLE ON SYSTEM 25 (PRIMARY) AND
+        70 (SECONDARY).  CODE FOR NODE 5000 AND ABOVE IS LOCATED ON
+        SYSTEM 54 (PRIMARY) AND 33 (SECONDARY).  SLOT CODE WILL ONLY 
+        BE BACKED UP FROM THE DESIGNATED PRIMARY SYSTEM (25 OR 54).  BACK-
+        UPS WILL ONLY BE ACCEPTED FROM THE SECONDARY SYSTEM (70 OR 33)
+        IF THE PRIMARY SYSTEMS ARE DOWN.
+
+    E.  ALL BACKUP REQUESTS WILL BE COMPLETED BY 12 NOON THE SAME DAY THE
+        ONTYME IS RECEIVED.  THE SAME AFTERNOON, A BACKUP SUMMARY REPORT
+        IS RELEASED STATING THE STATUS OF ALL BACKUP REQUESTS RECEIVED 
+        THAT MORNING.  IT IS EXTREMELY IMPORTANT THAT THE FIELD MONITOR
+        THIS REPORT TO ENSURE BACKUP REQUEST COMPLETION.  THERE MAY
+        BE SOME DELAYS DUE TO CIRCUMSTANCES BEYOND OUR CONTROL, i.e., 
+        host out of ports, system down, THUS INHIBITING OUR TIME FACTORS.
+
+    F.  A BATCH REQUEST IS SENT THE SAME EVENING TO TAPE ALL FILES WORKED
+        ON THAT SAME DAY TO THE SECONDARY SYSTEMS VIA FEDERAL EXPRESS.
+
+
+II.  BACKUP REQUEST PROCEDURES - INTERNAL
+     ------ ------- ----------
+
+     A.  ONTYMES FOR THE USERNAME TYMOPS.BACKUP ARE PULLED ROUTINELY, FIRST
+         THING EVERY MORNING.  THE BACKUP REQUESTS RECEIVED ARE THEN DISTRI-
+         BUTED AMONGST THE INSTALLATION COORDINATORS IN PROJECT IMPLEMENTATION.
+         PLEASE NOTE THAT BACKUPS ARE ONLY PULLED ONCE EACH DAY.
+
+     B.  THE CKSUMS ON THE BACKUP REQUEST ARE COMPARED TO THE CURRENT CKSUMS
+         IN THE DESIGNATED REGIONAL DIRECTORY.  REQUESTS MAY BE REJECTED AT
+         THIS POINT FOR ONE OF THE FOLLOWING REASONS:
+
+         1.  THE CKSUMS ON THE BACKUP REQUEST DO NOT MATCH THE CURRENT 
+             CKSUMS IN THE DESIGNATED REGIONAL DIRECTORY.
+
+         2.  NO FILES WERE FOUND IN THE DESIGNATED DIRECTORY/SYSTEM.
+
+         3.  THE SLOT REQUESTED TO BE BACKED UP EXCEEDS THE SLOT CORE ALLOCA-
+             TION ON THE TYMFILE AND THERE IS NO ROOM FOR EXPANSION.
+
+     C.  A DIRECTORY OF THE NODE TO BE BACKED UP IS DONE FOR (2) CHECKS:
+
+         1.  THERE MAY BE A TEMPORARY FILE AVAILABLE.  THIS WOULD SIGNAL
+             A PENDING PROJECT REQUIRING SPECIAL TREATMENT.
+ 
+         2.  WHICH FILES NEED TO BE DELETED  TO ACCOMODATE THE NEW INCOMING
+             FILES.
+
+     D.  THE SLOT CODE IS THEN RENAMED FROM THE DESIGNATED REGIONAL DIRECTORY
+         TO THE TYMNET OR TYM5 DIRECTORY.
+
+     E.  A NEW BND FILE IS CREATED USING THE MERLIN PROGRAM.  THIS NEW BND
+         FILE INCLUDES ALL OF THE MOST CURRENT SLOT CODE IN THE TYMNET OR
+         TYM5 DIRECTORY.
+
+     F.  THE NEW FILE IS THEN DECLARED "ALL READ READ".  THE CODE CAN NOW
+         BE ACCESSED BY ALL USERS.
+
+
+III.CODE ISSUES - SHORT TERM
+    ---- ------   ----- ----
+
+    A.  A CODE GENERATOR IS AVAILABLE ON A (24) HOUR BASIS SIMPLY BY
+        CONTACTING NETWORK CONTROL.  NETWORK CONTROL WILL THEN 'BEEP' THE 
+        CODE GENERATOR ON-CALL.  PLEASE NOTE THAT THE CODE GENERATOR IS ONLY
+        RESPONSIBLE FOR PUBLIC NETWORK NODE CODE.
+
+    B.  SHORT TERM CODE ISSUES SHOULD BE SUBMITTED VIA ONTYME TO THE MANAGER
+        OF PROJECT IMPLEMENTATION.  AS A RESULT, THE CODE WILL BE CORRECTED
+        WITHIN (24) HOURS AND LOADED THE FOLLOWING EVENING.  EITHER A VERBAL
+        PHONE CALL OR WRITTEN RESPONSE WILL BE SENT BACK TO THE CONCERNED
+        INDIVIDUAL WITHIN (48) HOURS, CONFIRMING THAT WE HAVE COMPLETED
+        THEIR REQUEST.
+
+    C.  IN URGENT SITUATIONS (CUSTOMER OUT OF NET), A PHONE CALL WILL SUFFICE,
+        FOLLOWED BY AN ONTYME.  THE CODE IS CORRECTED IMMEDIATELY AND LOADED
+        WHEN POSSIBLE, DEPENDING ON WHETHER OR NOT ANY OTHER CUSTOMERS WILL BE 
+        AFFECTED.
+
+    D.  IN CASES WHERE THE TYMFILE IS INDEED CORRECT, THE CODE IS REGENNED
+        TO COVER A POSSIBLE GLITCH IN THE ASSEMBLY.
+
+
+IV. CODE ISSUES - LONG TERM
+    ---- ------   ---- ----
+
+    A.  A FORMAL REQUEST CAN BE SENT DIRECTLY TO THE MANAGER OF PROJECT
+        IMPLEMENTATION REGARDING LONG TERM CODE ISSUES.
+
+    B.  A RESPONSE WILL BE GENERATED BACK TO THE ORIGINATOR ACKNOWLEDGING
+        RECEIPT OF REQUEST AND LONG TERM GOALS.  TIME FACTORS ARE ALSO
+        DISCUSSED.
+
+    C.  AN ONGOING EXCHANGE WILL CONTINUE UNTIL THE LONG TERM CODE
+        ISSUE HAS BEEN ADDRESSED AND/OR RESOLVED.
+
+
+
+                                     25
+                                  --------
+
+
+                QUALITY ASSURANCE SOFTWARE RELEASE PROCEDURE          
+                --------------------------------------------
+                --------------------------------------------
+
+
+Written by : John Gomes, Mgr. HQQA
+      Date : May 22, 1986
+
+
+
+
+    ON MAY 30TH 1986, THE QUALITY ASSURANCE ORGANIZATION WILL TAKE OVER
+    SOFTWARE DISTRIBUTION FROM NTD.  THE NEW PROCEDURE FOR THIS PROCESS
+    IS ATTACHED FOR YOUR REFERENCE.
+
+
+    TYPES OF DIRECTORIES
+
+    Software  products  will  be  submitted from the  NTD  Beta  Test 
+    directory  into the  QA Beta Test  Directory.  See  the following
+    figure:
+
+
+            |--------------|    |     |-------------|
+            |     NTD      |    |     |    *QA      |
+            |  Beta Test   |--->--->--|  Beta Test  |
+            |  Directory   |    |     |  Directory  |
+            |--------------|    |     |-------------|
+                                |            |
+                                |            |
+                                |     |-------------|
+                                |     |     QA      | Limited Release
+                                |     |   Source    |
+                                |     |  Directory  | Full Release
+                                      |-------------|
+    
+         * = Note - All products contained in the NTD beta test
+         directory will not neccessarily be contained in the
+         QA beta test directory.  QA has the right to selectively
+         place products in this directory.
+    
+    
+    NAMING CONVENTION FOR VERSION NUMBERS FOR ALL DIRECTORIES
+    
+    The  procedure for version numbers will be as  follows:
+    
+         - Beta Test Products will begin with x.x1.
+           (For example - 2.01)
+    
+         - Beta Test Products will increment by one when a new
+           release is submitted.
+           (For example - 2.01 to 2.99) (A PIR has been submitted to
+           change the numbering scheme in ISIS from octal to decimal)
+    
+         - Once the beta test product is approved for limited release
+           it will retain the same version number. 
+           
+    
+    
+    PATCHES
+ 
+    Patches  will  only  be made to products which are in  a  release 
+    state.  Only  patches which have a Network Software Report  (NSR) 
+    and which are tested will be entered in the QA Source  Directory.   
+    (Note - For beta test products a new version will be submitted to 
+    QA.   Exception - If the customer is down or unable to adequately 
+    use the product a patch will be accepted with an approved NSR.)
+    
+    NUMBER OF RELEASES
+    
+    There  will only be 1 beta test version of a product at  any  one 
+    time. (Note - Customers must upgrade to latest beta test version. 
+    Exception  - Customer may use existing version,  but must upgrade 
+    if  a  re-gen or bug fix is needed.)   Once approved for  limited 
+    release  (Length  of beta test will be approximately  90  days.),  
+    the product will be transferred to the source directory, where it 
+    will reside until replaced.  When the next version enters limited 
+    release,  the  old  full released version will be deleted  in  18 
+    months and will no longer be supported.
+    
+    RELEASE NOTICES
+    
+    All  product  release notices will be submitted by  NTD  Baseline 
+    Distribution  to Quality Assurance.   All release notices against 
+    products  in  limited  and full release will  be  distributed  by 
+    Quality Assurance to *** alltech.  Beta Test release notices will 
+    be  distributed  by Quality Assurance to the  Regional  Technical 
+    Managers.   It will be responsibility of the RTMs to notify their 
+    staff  of new beta test releases for customer  upgrade  purposes.  
+    The format for the release notices will be similar to NTDs.   The 
+    exception  will  be the change of the NTD contact to a  Technical 
+    Services or Quality Assurance representative.  
+
+    MONITORING OF PRODUCTS 
+    
+    The QA Manager will monitor the beta test  reports to assure that 
+    products move in a reasonable amount of time from beta to source.  
+    QA  will  obtain  the  anticipated release  dates  from  NTD  for 
+    scheduling  purposes.  QA will review pertinent test results  and 
+    will  consult  with  Technical Services,  Marketing and  NTD  for 
+    approval  for  limited  release.  Products which are  in  limited 
+    release  will  be  considered  for  full  release  by  the  above 
+    departments  in  approximately 90 days.   QA will  be  the  final 
+    release authority for all products.
+    
+
+
+
+                                     27
+                                  --------
+
+
+                        NTCN 3.01 LOGIN ERROR MESSAGE
+                        -----------------------------
+                        -----------------------------
+
+
+Written by : Shiao-Ming Tsui, HQ Network Staff Consultant
+      Date : May 23, 1986
+
+
+
+
+      Network Console version 3.01, in public network, displays "login error:
+   25 (or 26 or 27)" instead of a host not available message when an accssed
+   XOM host does not exist in the network.  This is caused by a mis-matched 
+   I/O parameter in Network Console 3.01 and Pascal Nucleus 11.12.  Before
+   the new version is released, please bear in mind the "login error: #" 
+   message stands for "Host not available thru net".
+
+
+
+                                     28
+                                  --------
+
+
+                         NODECODE MEM REQUIREMENTS
+                         -------------------------
+                         -------------------------
+
+
+Written by : John Burrough
+      Date : May 22, 1986
+
+
+
+
+      The memory needed for 5.06 nodecode for a Tymnet-II, ISIS machine, in
+   decimal kilobytes, is as follows:
+
+   108 +
+   if ZITEL specified then 1 +
+   2 * SILINS +                       (2K per SIO line)
+   .11 * NSLOT +
+   .4 * (NLUS0-SILINS) +              (.4K per sync line)
+   x * NDP +                          (x = .26 (REBILD) or .1 (not REBILD))
+   y * NPTHR +                        (y = .35 (REBILD) or .26 (not REBILD))
+   .21 * NXUBLK +                     (# XRAY users - default = 3)
+   3.75 * XLINKS +
+   sum(memory requirements for all TIILNKS)
+   KB.
+
+   The memory requirement for a TIILNK = 1.55 + (.271 * windowsize).
+
+      I figured this formula out by playing around with the TYMFILE, trying
+   100's of different configurations, and also by checking the listing of 
+   nodecode to make sure the parameters were relatively independent.  Still, 
+   this formula seems to predict a little high - as much as 10% over.  So be 
+   advised.
+
+X:f9û
