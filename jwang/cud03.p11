@@ -1,0 +1,276 @@
+:
+: Special patch for MayneNet to pass the username in the CUD to
+: Host after this username is used to built a circuit to X.25 host.
+:
+: NONTN OPTION IS ON IN THE SLOT TYMFILE FOR OTHER IMPORTANT PURPOSE
+: IN THE MAYNENET X.25 GATEWAY CONNECTING TO AUSTPAC.
+:
+:------------------------------------------------------------------------------
+:
+:  The x.25 gateway slot code will check the call user data field
+:  in the call request packet coming from AUSTPAC. The code expects
+:  that the call user data field contains correct username and
+:  password and may also contain host number.
+:  In phase 1, the code expect that the call user data field contains 
+:              correct username and correct password and correct host
+:              host number if there is any.
+:              The username will be saved in CUDNAM after it has been
+:              sent to SUP. After the circuit is built to host and
+:              starts to talk IIX, the username (not including Host# and
+:              password) will be appended to IIX message C089.
+:  In phase 2, it will handle all other cases such as---
+:              1. Nothing is in the call user data field of call request 
+:                 packet coming from AUSTPAC. (i.e., only Protocol ID
+:                 in the call user data field). In this case, user will be
+:                 prompted for PLEASE LOGIN:.
+:              2. Call user data field contains wrong password. User will 
+:                 be prompted for ERROR, TYPE PASSWORD.
+:              3. Call user data field contains correct username but no
+:                 password. User will be prompted for PASSWORD
+:              4. Call user data field contains wrong username. User will
+:                 be prompted for ERROR,TYPE USERNAME.
+:  
+:  (PHASE3 is added on AUG 3, 1986)
+:  In phase 3, the patch is modified to accept th calls from some
+:              terminal which sends th pair CR-LF in the data string.
+:              This extra LF brings some trouble---crash the Tymnet
+:              curreent X.25 interface. The user from this particular
+:              type terminal is always prompted for second time PASSWORD
+:              because the LF afteer username is sent with password to SUP
+:              as the first character of password. Two major works on
+:              this phase.
+:              1. Rconn routine: discard the LF if the code find it when
+:                 the code tries to format the loging string to B3 message.
+:                 this will avoid the invalid password.(see next line.)
+:                   USERNAME CR LF    PASSWORD CR LF
+:                   ----------- ----------------- --
+:                     (1)           (2)           (3)
+:                 part (2) is treated as password sent to SUP.
+:                 part (3) is left in IDBUF.
+:              2. clean up the IDBUF when we receive B6 message. The only
+:                 thing we need to care is that IDBUF may contains Call-User
+:                 Data at the time we receive B6.
+:                 Because this patch was designed based on the fact that
+:                 CUD in the Call request should be used as loging string
+:                 sent to SUP and pass the username part to Host. So,
+:                 Call user data will be never saved in the IDbuf. We have
+:                 created anothr storage CUDNAM to save username in order
+:                 to pass it to Host.
+:
+:  In all cases, the username is used for building a circuit to X.25 Host.
+:  The same username in CUD field of Call Request packet should be passed
+:  to X.25 Host. Password and Host number are not passed to the Host.
+: Task 1. save login string in CUDNAM on the routine ICP050 and TDA100
+: Task 2. Append username excluding password to IIX Call user data
+:         at TOK145.
+:
+::
+: ADD THE LINE '1[PASSCUD:' IN THE X.25 SLOT COMMAND FILE TO ENABLE THIS PATCH.
+:
+::
+: FORMAT OF CUDNAM
+:       32(decimal) BYTES FOR EACH PORT
+:        _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+:       |_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|
+:        ^ ^ ^ ^ ^
+:        | | | | |___BEGINNING OF CUD
+:        | | | |_____LENGTH OF CUD
+:        | | |_______GAUGING LEVEL 
+:        | |_________01
+:        |___________LENGTH OF TOTAL LOGING STRING
+
+  IF  \PASSCUD
+  IF   X.25
+:***************************************************************************
+: PHASE 1 -- CALL USER DATA FIELD IN THE CALL REQUEST PACKET CONTAINS
+:            CORRECT USERNAME AND PASSWORD.
+:**************************************************************************
+:
+: PART 1 -- SAVE CUD WHEN COPY THE LOGING STRING FROM IEDBUF TO IDBUF
+:
+:
+PATCH(860404,0900,JWANG,PA0PTR,,NIPORT*20)
+CUDNAM  BS      NIPORT*20               : STORAGE FOR SAVING CUD
+CONPATCH(ICP050,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,32)
+        LHL     R7,IPORT
+        SLLS    R7,5
+        STB     R8,CUDNAM,R7,           :LENGTH OF TOTAL LOGIN STRING
+        LIS     R6,1
+ICP055  LR      R1,R5                   :IEDBUF
+        JAL     R4,GCI,,
+        STB     R0,CUDNAM,R7,R6         :SAVE IN CUDNAM
+        AIS     R6,1
+        LR      R1,R9                   :IDBUF
+        JAL     R4,WCI,,
+        SIS     R8,1
+        JG      ICP055
+        J       ICP060,,                :FINISH COPING
+
+:
+:
+: PART 2 -- APPEND USERNAME FORM CUDNAM TO IIX MESSAGE C089
+:
+CONPATCH(TOK145+1E,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,6A)
+        LR      R4,R4
+        JN      TOK145+24,,             :IF NOT EMPTY, THIS PATCH NOT USED
+        LHL     R8,IPORT
+        SLLS    R8,5
+        LB      R6,CUDNAM+3,R8,         :GET LENGHT OF CUD IN CUDNAM
+        JE      TOK035,,                :IF LENGTH 0, THIS PATCH IS NOT USED
+        LIS     R7,1
+        LR      R1,R5                   :IDBUF
+TOK149  LB      R0,CUDNAM+3,R8,R7       :GET USERNAME FROM CUD
+        NHI     R0,7F
+        CLHI    R0,0D                   :c/r ?
+        JE      TOK152
+        CLHI    R0,3A                   :COLON?
+        JE      TOK152
+        CLHI    R0,3B                   :SEMICOLON?
+        JE      TOK152
+        JAL     R4,WCI,,
+        AIS     R7,1
+        SIS     R6,1
+        JE      TOK152
+        J       TOK149
+TOK152  LIS     R0,0                    :ZERO OUT THE LENGTH IN CUDNAM
+        STB     R0,CUDNAM+3,R8,
+        LHL     R2,IPORT
+        LHL     R3,DPORT
+        SIS     R7,1                    :GET THE TOTAL LENGTH OF IDBUF
+        J       TOK260,,
+
+:*************************************************************************
+:: PHASE 2
+:  THIS PHASE INCLUDES THE FOLLOWING CASES:
+:    1. CALL USER DATA IS NOT PRESENTED IN THE CALL USER DATA. USER
+:       IS PROMPTED FOR 'PLEASE LOGIN:'.
+:    2. PASSWORD IS NOT PRESENTED IN CALL USER DATA OR WRONG PASSWORD
+:       IS PRESENTED IN CUD. USER WILL BE PROMPTED FOR 'PASSWORD'.
+:    3. WRONG USERNAME IS PRESENTED IN CUD. USER IS PROMPTED FOR '
+:       'ERROR, TYPE USERNAME'.
+:***************************************************************************
+
+:
+:
+: PART 1 -- APPEND THE USERNAME EVEN IF THE PACKET STATE IN IN FLOW CONTROL
+:           PFLOWC (decimal 7).
+:           APPEND THE USERNAME IN THE CASE THAT CALL USER DATA FIELD DOESN'T
+:           CONTAINS USERNAME.
+CONPATCH(TOK140+4,,4)
+        J       TOK145          :iF THE CALL USER DATA FIELD DOESN'T CONTAIN
+                                :USERNAME. USER WILL BE PROMPTED FOR 
+                                :PLEASE-LOG-IN:. IN THIS CASE, WE NEED APPEND
+                                :USERNAME.
+CONPATCH(TOK145+0A,,4)
+        JG      TOK035          :WHEN USER IS PROMPTED FOR USERNAME
+                                :OR PASSWORD OR EVEN PLEASE-LOGIN,
+                                : THE PACKET STATE IS PFLOWC.
+                                :IN THESE CASES, WE STILL NEED TO 
+                                :APPEND THE USERNAME TO CALL USER DATA
+:
+:
+: PART 2 -- SET THE FLAG ON IF THE USER IS PROMPTED FOR PASSWORD.
+:           THIS FLAG IS USED TO DETERMINE WHETHER WE NEED TO RESTORE
+:           THE DATA SENT FROM USER TO CUDNAM OR NOT. THIS FLAG IS USED
+:           IN PART 3.
+CONPATCH(PA0PTR,,NDGRPS*2)
+PASWD   HS      NDGRPS          :SET IF THE USER IS PROMPTED FOR PASSWORD
+CONPATCH(LOGS30,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,3A)
+        LHL     R5,DPORT
+        CLHI    R7,3            :SUP SENDS ERROR-TYPE-PASSWORD?
+        JE      SPSWD           :IF YES, SET BIT ON
+        CLHI    R7,5            :SUP ASKS FOR PASSWORD?
+        JE      SPSWD           :IF YES, SET BIT ON
+        RBT     R5,PASWD        :RESET BIT
+        JAL     R13,PROMPT,,    :PROMPT MESSAGE TO USER
+: 
+: ZERO OUT THE USERNAME LENGTH ON THE CUDNAM
+:
+        LHL     R5,IPORT
+        SLLS    R5,5
+        LIS     R0,0
+        STB     R0,CUDNAM+3,R5,
+        JR      R12
+SPSWD   SBT     R5,PASWD        :SET BIT ON
+        JAL     R13,PROMPT,,    :PROMPT MESSAGE TO USER
+        JR      R12
+:
+: PART 3 -- USER SENDS OUT THE DATA SUCH AS PASSWORD OR USERNAME AFTER
+:           USER RECEIVES THE SUP MESSAGE BECAUSE OF THE WRONG USERNAME
+:           OR WRONG PASSWORD OR OTHER REASONS.
+:           WHEN X.25 CODE RECEIVES THIS DATA PACKET, HOW DOES THE CODE
+:           KNOWS THIS DATA PACKET CONTAINS USERNAME OR PASSWORD?
+:           IF IT IS USERNAME, WE NEED RESTORE IT TO CUDNAM. iF IT IS THE 
+:           PASSWORD, WE SHOULDN'T RESTORE IT TO CUDNAM.
+:
+CONPATCH(TDA100-8,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,4E)
+        JE      TDA300,,
+        JAL     R4,WCI,,
+        LHL     R7,DPORT
+        RBT     R7,PASWD,,              :THIS DATA PACKET CONTAINS PASSWORD?
+        JN      TDA100,,                :YIF YES, DON'T RESTORE IT TO CUDNAM
+        LHL     R7,IPORT                :GET IPORT#
+        SLLS    R7,5
+:
+: NOW, USER RE-ENTER THEE USERNAMEE. THE USERNAME MAY COME
+: FROM THE LINK WITH MORE THAN ONE DATA PACKETS.
+: WE NEED ACCUMULATE THESE DATA PACKETS WHICH CONTAINS
+: PART OF THE USERNAME TOGETHER.
+        LB      R8,CUDNAM+3,R7,
+TDA103  JAL     R4,PICKCH,,             :GO GET A CHAR
+        JAL     R4,WCI,,                :WRITE INTO IDBUF
+        STB     R0,CUDNAM+4,R7,R8       :RESTORE THE NEW USERNAME
+        AIS     R8,1
+        LR      R6,R6                   :SEE IF DONE
+        JN      TDA103                  :NOT DONE,JUMP BACK TO THE LOOP
+        STB     R8,CUDNAM+3,R7,         :RESTORE THE LENGTH OF NEW USERNAME
+        J       TDA300,,
+:**********************************************************************
+: Phase 3.  Added on Aug 3, 1986
+:    1. discard LF from login string.
+:    2. clear thee IDbuf when the I/F receives B6 message.
+:********************************************************************
+
+:
+: PART 1.
+:
+CONPATCH(RCON50+0E,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1E)
+        JAL     R4,GCI,,
+        LR      R6,R0
+        NHI     R6,7F
+        CLHI    R6,0A           :IS IT A LF?
+        JE      RCON50+28,,     :DISCARD IT.
+        LR      R6,R0
+        J       RCON50+14,,
+:
+: PART 2.
+:
+CONPATCH(ICNCC,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1E)
+        LHL     R1,DPORT,,
+        SLLS    R1,2
+        AHI     R1,IDBIA
+        JAL     R4,EMPTY,,              :EMPTY THE IDBUF,R1,R2,R3,R4 IS USED
+        JAL     R4,GETH,,
+        J       ICNCC+6,,
+ENDPATCH(SPECIAL PATCH FOR MAYNENET TO PASS CALL USER DATA TO HOST)
+  EI  X.25
+  EI  PASSCUD
+
+
+:::***********************************************************
+PATCHREPORT
+FINPATCH
+
+   
