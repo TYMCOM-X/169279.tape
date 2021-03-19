@@ -1,0 +1,474 @@
+*******************************************************************************
+*                                                                             *
+*                                                                             *
+*               T      E      C      H             T      I      P     S      *
+*                                                                             *
+*                          N o v e m b e r    1 9 8 8                         *
+*                                                                             *
+*                                                                             *
+*******************************************************************************
+
+
+
+
+
+
+
+
+
+
+
+
+1.   Problems with SNA HIF connecting to the latest rev. level of IBM System 38
+     Richard Ho
+
+2.   Five-Digit Host Numbers Not Supported in SNA 1.04 or SNA 3.03
+     Peter O'Harrow
+
+3.   TMCS Upgrade Using TMDM Version 10.20 
+     Ted Yeh 
+
+4.   In the extended DDT of 7.01 the symbols used in the foreground trace
+     Phil Sneddon 
+
+5.   AS/400 information
+     Steve Kim
+
+6.  Use of BNDNTF and GLU.PACTLU in sysgen of SNA  Host Interface
+    Dawn Danaher & Jerry Hall
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+     
+Richard Ho
+
+SUBJECT:
+
+Problems with SNA HIF connecting to the latest rev. level of IBM System 38 
+
+
+We have recently encountered problems with SNA HIF connecting to the
+latest rev.  level of IBM System 38 (Rev.  8, ECF Ref.  16) where system
+38 violates the SNA protocol by not responding to the NOTIFY request
+correctly, causing problems with terminating the session and releasing
+the LU.
+     
+IBM has issued a patch to correct this problem. The IBM patch name for this
+patch is LV19310.  Information on patch installation for IBM System 38  can
+be found in the IBM System 38 Operator's Guide.   
+     
+If you have any new SNA HIF to IBM System 38 installation, please check
+with your customer to make sure that the above patch is installed.
+     
+On the TYMNET side, The following configuration is recommended for SNA
+HIF connecting to IBM System 38:
+     
+In the Tymfile:
+     
+        OPTION(RSHTSW,YES) 
+        OPTION(BNDNTF,YES) 
+     
+In the command file:
+     
+        1[RSHUCL 
+        1[SYS38  
+     
+The above SNA HIF configuration is known to work perfectly with IBM Sys 38 
+for several of our customers. 
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Peter  O'Harrow 
+
+SUBJECT:
+
+Five-Digit Host Numbers Not Supported in SNA 1.04 or SNA 3.03.                 
+
+We have recently seen problems arising from numbers to SNA Interfaces.
+Presently available SNA software (versions 1.04 and 3.03) does not
+support host numbers exceeding four digits in length.  This issue is
+currently being addressed by Development.  The fix for this situation
+will likely be deployed in a re-release of the "I" file, but other
+alternatives are also being explored.
+ 
+In the meantime, Project Implementation will cease issuing five-digit
+host numbers to new SNA installations.  Should you already have a
+five-digit host number assigned for a pending installation, please
+submit a request to have P.I.  reassign a four-digit host number for
+that installation.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Ted Yeh 
+
+SUBJECT:
+
+TMCS Upgrade Using TMDM Version 10.20 
+
+We experienced a range error during a recent TMCS upgrade using TMDM
+10.20.  The error was caused by the value of position field in a HOST
+LOCATION record which was too big.  The value should be in the range of
+0 to 7.  TMCS version 11 has expended it from 0 to 255.
+
+You need to check the position value before the upgrade by LIST HOSTS
+LOCATIONS command and change it by SET HOST LOCATION command in TMCS.
+Example:
+
+                        LIST HOSTS LOCATIONS                           
+
+                         2523      168     1                          
+                          ...                                           
+                         3206      254     8     <--- out of range      
+                          ...                                           
+                        10520     7822    21     <--- out of range   
+                          ...                                          
+
+                       SET HOST LOCATION 254 3206 0
+                       SET HOST LOCATION 7822 10520 0                
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Phil Sneddon 
+
+SUBJECT:
+
+BBXS 7.01 extended DDT Symbols in Foreground Trace Mode
+
+1) The symbols in the foreground trace are not of much value by
+themselves to someone who is not fairly familiar with the code.  Their
+main purpose is to provide a cryptic trail of certain routines called or
+events which occurred during the normal processing of the interface.
+There are about 70 possible symbols you could see in the trace, most of
+which I've never encountered.  Here is a brief description:
+
+    HLTPTP - the protocol processing portion of the code received an
+             indication to halt processing.
+
+    PTPERR - the error routine SETERR was called, due to an error on the
+             sync line.
+
+    PTPSIN - the background signaled the foreground to stop input.  One
+             reason could be the PVC was zapped
+
+    RCVRTY - retry the last receive operation.
+
+    a couple of others - 
+
+    TMOCTS - a timeout occurred while waiting for CTS to come high.
+
+    TMOXMT - timeout occurred while waiting for transmit to complete, a
+             likely cause would be loss of clocking.
+
+2) The symbols you listed from the BSCTRC command are all foreground
+states the interface could possibly enter.  Although the BSCTRC command
+has more generally useful information than the FGTRC (foreground)
+command, the states themselves aren't of much value without a fairly
+good knowledge of the code, or at least a listing in front of you.  Some
+of the states and their meanings are -
+
+    SLBID  - This state is only encountered when the remote-bidding option
+             has been enabled for the line.  It means the interface received
+             a remote-bid request from the network and has sent an ENQ to
+             the local device. Send Local BID
+
+    SXMT   - The interface has control of the line and has sent a data block
+             to the local device.
+
+    SRWACK - The interface is waiting for the PVC to build or for more
+             buffers to become available, so it responds to data or ENQ's
+             with WACK's.
+
+    a few other states - 
+
+    SIDLE  - The interface is in an idle state, waiting for the local device
+             to bid for the line or for data to come from the network.
+
+    SRBID  - This state is only encountered when the remote-bidding option
+             has been enabled for the line.  The interface received an ENQ
+             from the local device and sent a remote bid request through
+             the network to the remote interface.
+
+    SBID   - The interface is bidding for the line (non end-to-end bidding)
+
+    SRCAN  - This state is only encountered when the remote bidding option
+             has been enabled for the line.  The interface had sent out a
+             remote bid request and before receiving the permit, it canceled
+             the request and is waiting for an end-to-end acknowledgement
+             of the cancelation.
+
+3)  No, there is currently no document which explains these DDT traces.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Steve Kim 
+
+SUBJECT:
+
+AS/400 Information
+
+IBM is actively marketing AS/400s.  Tymnet is currently conducting
+marketability evaluation, where results will be made available
+on March 1, 1989.
+
+The following is provided for information only.
+
+This is to address your requests for information on IBM's new AS/400.  I
+will try to enlighten you on IBM's strategic positioning, AS/400's
+capabilities, and AS/400's impact on Tymnet.
+
+1.  IBM's positioning of the AS/400
+
+Application System/400 (AS/400), code named "Silverlake" by IBM, is
+being used to provide a long term integration along the micro, the mini
+and the low-end mainframe market.  IBM is providing 6 models of AS/400;
+B10, B20, B30, B40, B50 and B60.  B10 and B20 are table top models that
+are comparable to low-end S/36.  B60 could be said to address the
+low-end mainframe market since it has twice the power of the S/38; it is
+comparable to a 4381 mainframe.
+
+AS/400 supports the 5250 SNA controllers and terminals.
+
+2.  AS/400 options
+
+Visually, a AS/400 low-end model is the size of a 2 drawer file cabinet
+to where the high-end model B60 is the size of a 4 drawer file cabinet.
+
+AS/400 B10 and B20 have asynchronous dial-up capability, since they are
+designed to be desk top models.  B10 and B20's desk top design has its
+down fall since they can not be upgraded to higher models.  AS/400 B20,
+B30, B40 and B50 can be upgraded for higher level processing and
+attachments.
+
+AS/400 will provide file transfer via PC Support facilities.  PC Support
+is currently available on S/36 and S/38.  AS/400 does not provide
+support for IND$FILE for file transfer.
+
+AS/400 uses the same racks used by the 9370s.
+
+
+                                       IBM AS/400
+
+
+Model                       B10      B20      B30      B40      B50      B60
+
+W/S Controller                1        1        3        5        8       12
+Max. Local W/S               40       40      120      200      320      480
+Max. Comm lines               8        8       16       32       32       32
+I/O Card Slots                4        4       14       24       39       71
+MIPS                        0.6      0.8      1.1      1.4      2.1      3.3
+
+Price ($K)                 19.0     33.5     26.5     62.5    133.5    229.5
+
+
+                                         IBM S/38
+
+Model                       100      200      300      400      600      700
+
+MIPS                        0.5      0.8      1.0      1.3      1.7      1.9
+
+Price ($K)                 44.5     62.3    104.3    129.3    156.3    204.3
+
+
+
+                               AS/400            S/38              S/36
+
+Max comm. lines                 32                14                 8
+Max local terminals            480               256                56
+MIPS                           3.3               1.9               0.8
+
+
+* MIPS (Million Instructions Per Second) is a form of measuring the
+  processing power of the CPU.
+
+A.  S/38 can only support 56Kb on intersystem communications where
+    AS/400 can support intersystem communications of 64Kb and 4Mb with the
+    token ring connection (soon to be 16Mb on the token ring).
+
+B.  AS/400 has 2 times the processing power of the S/38 and 4 times the
+    processing power of the S/36.
+
+C.  AS/400 provides better price/performance than S/3X with more
+    flexibility combined with a smaller foot print.
+
+D.  Operating environments of all 6 models of AS/400s are compatible.
+
+3.  IBM's migration of S/3X users.
+
+S/3X applications can be executed on AS/400.  S/38 applications can be
+taken directly to the AS/400.  IBM provides an encapsulation program
+which can execute S/38 programs without re-compilations or
+modifications.  The programs will run about twice as fast as it did on
+S/38 since the AS/400 processors are faster.
+
+S/36 source code must be re-compiled and ported to the new AS/400
+operating environment.  Executable object code can not be ported to the
+AS/400 as in S/38.  Even with the re-compilation, S/36 applications will
+not execute faster on the AS/400 because of the addressing scheme used
+on S/36.
+
+AS/400's new applications are backwards compatible to the S/3X with
+minor modifications.
+
+The AS/400 provides support for 3270 devices like current S/3X, through
+3X74 remote controllers.  Existing S/3X's X.25 support is also available
+on AS/400.
+
+4.  AS/400's impact on IBM's SAA strategy.
+
+AS/400 accompanies IBM's future commitment of supporting LU 6.2 under
+the OS/400 environment.  AS/400's support of the token ring is the key
+to the integration of the PS/2s on token ring LAN, AS/400s, S/3X and
+3270 mainframes (through PU 2.1 support).
+
+The token ring support allows high speed host-to-host communication.
+Indications are that IBM will enhance token ring support from 4Mb to
+16Mb within next 6 months.
+
+5.  AS/400 impact on Tymnet.
+
+AS/400 will open up Tymnet's 5250 SNA market.  Harnessing twice the
+processing power of the S/38, 5250 customers can generate enough traffic
+to justify a cost of a HIF on Tymnet.  Even with smaller AS/400 models,
+intersystem connectivity through the token ring allows users the access
+to multiple hosts through a single HIF on Tymnet.
+
+6.  Conclusion
+
+AS/400 will establish the 5250 SNA as a valid market for Tymnet.
+Intersystem connectivity will allow hosts to share information among
+multiple user communities.  IBM's token ring with 16 Mb will not only
+provide us with connectivity to a cluster of AS/400s but to the token
+ring local area network and to the 3270 hosts.
+
+In addition, a number of LAN vendors are actively pursuing gateways
+between the token ring and the Etherlink so the Ethernet connectivity
+could be the inevitable prize for IBM.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Dawn Danaher
+Jerry Hall
+
+SUBJECT:
+
+Use of BNDNTF and GLU.PACTLU in sysgen of SNA  Host Interface
+
+Have you ever wondered how the BNDNTF and the GLU.PACTLU statements work
+together to help the SNA host interface communicate properly with your
+customer's FEP?  If so, read on...
+
+... OPTION(BNDNTF,YES/NO)  and  GLU.PACTLU(...)
+
+From TYMNET's code point of view:
+
+BNDNTF stands for "If you receive a BIND from a PLU (primary logical
+unit), otherwise known as an application, and there is no one logged in,
+how will the host interface respond?  Will it tell the PLU that it will
+NOTIFY the SSCP when it someone logs in to the interface or will it send
+an LUSTAT msg to the PLU?"  The dialog in answer to a BIND is on a
+PLU-SLU session.  If the customer would like a NOTIFY, set the option to
+yes.  If the customer's application is expecting a LUSTAT, set the
+option to no.
+
+The ACTLU response is on an SSCP to LU session.  The long statement says
+"sessions cannot be started".  The short statement says "sessions can be
+started to this lu".
+
+The ACTLU response that you gen in should correspond as below:
+
+If BNDNTF = yes, then set the GLU.PACTLU to the long statement
+(100D010100850000000C06010001000000)
+
+If BNDNTF = no, then set the GLU.PACTLU to (020D02)
+
+------------------------------------------------------------
+What happens when the FEP talks to the SNA HIF?
+------------------------------------------------------------
+
+OPTION(BNDNTF,YES)
+GLU.PACTLU(100D010100850000000C06010001000000)
+
+       FEP                         SNA HIF
+       ---                         -------
+
+       SNRM ----------------------->
+            <----------------------- UA
+
+       ACTPU ---------------------> 
+             <--------------------- +RSP
+
+       ACTLU -------------------->
+             <-------------------- +RSP (long message)
+              Control vector key `0C' = 01 which means
+              sessions cannot be started.
+
+       BIND ----------------------->
+      Since this is sent from the PLU, the PLU might not know that
+      sessions cannot be started - some BINDs are automatically sent.
+           <----------------------- -RSP (SENSE CODE = 0845)
+            Permission rejected, the SSCP will be "notified" via the
+            `0C' control vector key.
+ 
+           <----------------------- NOTIFY
+           With the control vector key `0C' = 03 which means
+           sessions can now be started.
+       +RSP----------------------->
+
+
+------------------------------------------------------------
+OPTION(BNDNTF,NO)
+GLU.PACTLU(020D02)
+
+       FEP                         SNA HIF
+       ---                         -------
+
+       SNRM ----------------------->
+            <----------------------- UA
+
+       ACTPU ---------------------> 
+             <--------------------- +RSP
+
+       ACTLU -------------------->
+             <-------------------- +RSP (short message)
+              Error recovery activation, sessions can be started.
+
+       BIND -------------------->
+            <-------------------- -RSP (sense code = 080A)
+             Permission rejected, secondary LU will not notify.
+
+            <-------------------- LUSTAT (04 08 2B)
+             Component available, presentation integrity lost.
+             (This will cause the USS message, the "VTAM BANNER",
+             to be resent.)
+       +RSP -------------------->
+
+
+Source of info : pg. 15 SNA Sysgen Manual
+                 IBM Formats pgs 5.1-20, 8-5, 9-7, and 9-20
+
+TYMNET REFERENCE MATERIAL:     (techref:38)
+                                sna###.*
+ 
