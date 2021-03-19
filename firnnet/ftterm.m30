@@ -1,0 +1,139 @@
+
+        SUBTTL TPF MACROS FOR THE IBM FTTERM 3101 IN CHARCTER MODE
+ 
+FT3101  MACRO [
+        BGNTRM("46"54"54"45"52"4D"2D"33"31"30"31)	:FTTERM-3101
+        CTLDEF(0,1,1,0,2,0,3,0,4,0,7,0,8,0,0C,1)
+        CTLDEF(0D,00,0E,01)
+        STRDEF("1B"4C"1B"48)
+        CLRDEF("1B"4C"1B"48)    :ERASE SCREEN, HOME CURSOR
+        SPCDEF(SPCVT1)          :SET TO FIRST POSITION OF EACH LINE
+        MCDEF(MCSCS)            :MOVE CURSOR ADDR.
+        XERDEF(XERSCS)          :ERASE BETWEEN
+        PRTDEF(1)               :PRINTER CAPABILITY
+        SIZDEF(BUFSIZ)          :24x80 SCREEN
+        LSZDEF(LINSIZ)          :LINE SIZE
+        SDPDEF(SDPVT1)          :SET GRAPHIC RENDITION
+        OUTDEF(OUTVT1)          :OUTPUT CHARACTERS
+        CTRDEF(FRTRM)           :KEYBOARD CHAR. DEF.
+        ERSDEF(ERSVT1)          :ERASE WITHIN LIMITS
+        INCDEF(INCVT1)          :INSERT CHAR.
+        DELDEF(INCVT1)          :DELETE CHAR.
+        LKBDEF("00)             :LOCK KEYBOARD
+        UKBDEF("00)             :UNLOCK KEYBOARD
+        BPRDEF("10"12)		:BEGIN PRINTING STRING
+        FPRDEF("10"14)		:FINISH PRINTING STRING
+        DATDEF(0)               :TILDE NOT A CONTROL CHAR.
+        STADEF($A24)            :line 24 as default status line
+        BSTDEF(PRESENT,"1B"59"38"204BMYJOB)	:FILE TRANSFER 25TH STATUS LINE
+        FSTDEF(ABSENT)
+        SCDEF(ABSENT)                   :SAVE CURSOR STRING DEF.
+        EELDEF(PRESENT,"1B"49)          :ERASE TO END OF LINE
+        ESLDEF(ABSENT)                  :ERASE FROM START OF LINE
+        EESDEF(PRESENT,"1B"4C)          :ERASE TO END OF SCREEN
+        ESSDEF(ABSENT)                  :ERASE FROM START OF SCREEN
+        RCDEF(ABSENT)                   :RESTORE CURSOR POSITION
+        LIDEF(PRESENT,"1B"5B"30"6D)	:SET LOW INTENSITY DISPLAY
+        HIDEF(PRESENT,"1B"5B"31"6D)	:SET HIGH INTENSITY DISPLAY
+        KDEF(4)                 :DEF. CHAR. COUNT FOR MOVE CURSOR
+        CFDEF(1,3,3,1)          :COST FOR CHANGE IN RENDITION
+        ESZDEF(2)               :NO. CHAR. IN ERASE
+        OPTDEF(0E000)           :OPTIMIZATION POSSIBLE
+        GRTDEF(GRTVT1)          :GRAPHIC STATE CHANGE TABLE
+        ENDTRM                  :END TERMINAL DEF.
+]
+:
+: KEYBOARD FUNCTIONS FOR THE FTTERM IN CHARACTER MODE
+:
+:    NOTE: THE ALT KEY ON THE IBM 3101 IS EQUIVALENT TO THE CTRL KEY ON
+:          THE IBM PC.
+ 
+FRTRM   MACRO [
+        level1(a.soh,1,statln)          :^A status display key
+        LEVEL1(A.SUB,1,KILL)            :ZAP CIRCUIT (ALT-Z)
+        LEVEL1(A.CR,1,FCNENT)           :RETURN = ENTER(ALT-M)
+        LEVEL1(A.LFED,1,NEWLIN)         :NEWLINE (ALT-J)
+        LEVEL1(A.ETX,1,FCNCLR)          :CLEAR (ALT-C)
+        LEVEL1(A.EOT,1,DELCHA)          :DELETE CHARACTER (ALT-D)
+        LEVEL1(A.DC2,1,RESET)           :RESET KEYBOARD (ALT-R)
+        LEVEL1(A.DEL,1,DELCHA)          :LET DELETE BE A DELETE
+        LEVEL1(A.HT,1,FLDTAB)           :TAB CHARACTER (ALT-I)
+        LEVEL1(A.STX,1,BACKTA)          :BACKTAB CHARACTER (ALT-B)
+        LEVEL1(A.BS,1,BACKTA)           :BACKTAB CHARACTER (ALT-H)
+        LEVEL1(A.ENQ,1,EEOF)            :ERASE TO END OF FIELD (ALT-E)
+        LEVEL1(A.BEL,1,NOTHNG)          :SOUND BELL
+        LEVEL1(A.ESC,0)                 :   <ESCAPE>
+          LEVEL2(A.HT,1,BACKTA)         :BACKTAB
+          LEVEL2(A.SI,1,BACKTA)         :BACKTAB
+          LEVEL2(A.A,1,CURUP)           :CURSOR UP
+          LEVEL2(A.B,1,CURDON)          :CURSOR DOWN
+          LEVEL2(A.C,1,CURRT)           :CURSOR RIGHT
+          LEVEL2(A.D,1,CURLEF)          :CURSOR LEFT
+          LEVEL2(A.H,1,HM3101)          :3101 HOME CURSOR - 1ST SCREEN POSN
+          LEVEL2(A.I,1,EEOF)            :ERASE TO END OF FIELD
+          LEVEL2(A.K,1,DELCHA)          :ERASE INPUT KEY-DEL. CHAR.(ESC-K)
+          LEVEL2(A.LK,1,CURSEL)         :CURSOR SELECT
+          LEVEL2(A.L,1,FCNCLR)          :CLEAR SCREEN
+          LEVEL2(A.M,1,HOME)            :3270 HOME CURSOR - 1ST UNPROT FLD
+          LEVEL2(A.LM,1,HOME)           :3270 HOME CURSOR - 1ST UNPROT FLD
+          LEVEL2(A.R,1,INSMOD)          :INSERT MODE
+          LEVEL2(A.DEL,1,INSMOD)        :INSERT MODE
+          LEVEL2(A.LR,1,REDSPY)	        :REDISPLAY
+          LEVEL2(A.S,1,NOTHNG)          :DISABLE CANCEL KEY
+          LEVEL2(A.LS,1,NOTHNG)         :RESERVED FOR SYSTEM REQUEST KEY
+          LEVEL2(A.U,1,NOTHNG)          :DISABLE PRINT LINE KEY
+          LEVEL2(A.V,2,NOTHNG)          :DISABLE PRINT MSG KEY
+          LEVEL2(A.W,1,NOTHNG)          :DISABLE PRINT PAGE KEY
+                                        :<< F I L E   T R A N S F E R >>
+          LEVEL2(A.GT,1,BEGXFR)         :BEGIN FILE TRANSFER
+          LEVEL2(A.LTH,1,ENDXFR)        :END FILE TRANSFER     
+          LEVEL2(A.LA,0)
+            LEVEL3(A.CR,1,FCNF1)        :PF-1
+          LEVEL2(A.1,1,FCNF1)           :PF-1
+          LEVEL2(A.LB,0)
+            LEVEL3(A.CR,1,FCNF2)        :PF-2
+          LEVEL2(A.2,1,FCNF2)           :PF-2
+          LEVEL2(A.LC,0)
+            LEVEL3(A.CR,1,FCNF3)        :PF-3
+          LEVEL2(A.3,1,FCNF3)           :PF-3
+          LEVEL2(A.LD,0)
+            LEVEL3(A.CR,1,FCNF4)        :PF-4
+          LEVEL2(A.4,1,FCNF4)           :PF-4
+          LEVEL2(A.LE,0)
+            LEVEL3(A.CR,1,FCNF5)        :PF-5
+          LEVEL2(A.5,1,FCNF5)           :PF-5
+          LEVEL2(A.LF,0)
+            LEVEL3(A.CR,1,FCNF6)        :PF-6
+          LEVEL2(A.6,1,FCNF6)           :PF-6
+          LEVEL2(A.LG,0)
+            LEVEL3(A.CR,1,FCNF7)        :PF-7
+          LEVEL2(A.7,1,FCNF7)           :PF-7
+          LEVEL2(A.LH,0)
+            LEVEL3(A.CR,1,FCNF8)        :PF-8
+          LEVEL2(A.8,1,FCNF8)           :PF-8
+          LEVEL2(A.LI,1,FCNF9)          :PF-9
+          LEVEL2(A.9,1,FCNF9)           :PF-9
+          LEVEL2(A.LJ,1,FCNF10)         :PF-10
+          LEVEL2(A.0,1,FCNF10)          :PF-10
+          LEVEL2(A.DASH,1,FCNF11)       :PF-11
+          LEVEL2(A.EQ,1,FCNF12)         :PF-12
+          LEVEL2(A.EXCL,1,FCNF13)       :PF-13
+          LEVEL2(A.AT,1,FCNF14)         :PF-14
+          LEVEL2(A.PND,1,FCNF15)        :PF-15
+          LEVEL2(A.DOL,1,FCNF16)        :PF-16
+          LEVEL2(A.PCT,1,FCNF17)        :PF-17
+          LEVEL2(A.CART,1,FCNF18)       :PF-18
+          LEVEL2(A.AND,1,FCNF19)        :PF-19
+          LEVEL2(A.STAR,1,FCNF20)       :PF-20
+          LEVEL2(A.LPAR,1,FCNF21)       :PF-21
+          LEVEL2(A.RPAR,1,FCNF22)       :PF-22
+          LEVEL2(A.UNDR,1,FCNF23)       :PF-23
+          LEVEL2(A.PLUS,1,FCNF24)       :PF-24
+          LEVEL2(A.LU,1,FCNPA1)         :PA-1
+          LEVEL2(A.COM,1,FCNPA1)        :PA-1
+          LEVEL2(A.LV,1,FCNPA2)         :PA-2
+          LEVEL2(A.PER,1,FCNPA2)        :PA-2
+          LEVEL2(A.LW,1,FCNPA3)         :PA-3
+          LEVEL2(A.SLSH,1,FCNPA3)       :PA-3
+]
+ 
