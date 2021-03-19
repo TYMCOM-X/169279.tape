@@ -1,0 +1,1358 @@
+
+
+
+                        Documentation Revisions
+
+
+
+                        Last date of update 9-13-84 FAK
+
+
+X.25/X.75 Reference Manual version 2.02 dated September 30, 1983
+--------------------------
+
+add the following NEW MACRO after the CHARGE macro on page 46   :FAK 17-Sep-84
+                                                                :FAK 17-Sep-84
+CHRGENATIONAL(op1)                                              :FAK 17-Sep-84
+                                                                :FAK 17-Sep-84
+Default: none                                                   :FAK 17-Sep-84
+Range: 1 to 8 decimal digits                                    :FAK 17-Sep-84
+       1st digit must be > 0                                    :FAK 17-Sep-84
+Description: This statement can be used to effect the Reverse Charge facility   :FAK 17-Sep-84
+        processing. The 1 - 8 significant digits, when specified, will  :FAK 17-Sep-84
+        force Reverse Charging on packet mode DTEs which use a Calling  :FAK 17-Sep-84
+        Address whose beginning digits match the op0 digits. PLease review the  :FAK 17-Sep-84
+        CHARGE statement to avoid conflicting specifications.   :FAK 17-Sep-84
+                                                                :FAK 17-Sep-84
+                                                                :FAK 17-Sep-84
+Page 47 - Modify CHARGE statement description                   :FAK 17-Sep-84
+                                                                :FAK 17-Sep-84
+-CPT    specifies that calls from a non-packet mode DTE are to be paid by the :FAK 17-Sep-84
+        called party (ie. Reverse Charging is ON (1))           :FAK 17-Sep-84
+                                                                :FAK 17-Sep-84
+Page 48 - Add to the NOTE paragraph                             :FAK 17-Sep-84
+                                                                :FAK 17-Sep-84
+When reverse charge is subscribed to all packets traversing the network will :FAK 17-Sep-84
+have a reverse charge facility.                                 :FAK 17-Sep-84
+                                                                :FAK 17-Sep-84
+
+Page 92 - Add statement TRANSPAC and its description as follows:
+
+
+Page 64 - Correct table in CSITTC description so that maximum CPS for TC
+1 is 32, not 64.  GML 6/7/84
+
+Page 79 - In the description of CLDADR "spid" is a number of digits
+(either 0 or 2), and not the digits themselves.
+
+change Section PAD Break Statement (Page 84)
+
+   PADBREak(termbr,brchar)
+
+   Default:
+        termbr- 2
+        brchar-  none
+
+   Range:
+        termbr - 0, 1, 2, 4, 5, 20, 21
+        brchar - 0 - 9, 0B, 0C, 0E - 1F
+                                                      Page 2
+
+
+  Description:
+     brchar is used to define an optional method of generating a break
+     signal.  When defined, the occurance of the character in the data
+     stream from the nonpacket mode DTE to the interface will cause
+     a break to be simulated (ie. a logical break).  The action on break
+     is set by the first parameter to the PADBREak macro. FAK 7/10/84
+
+Page 99 - correct BUFFERPOOL description so that minimum number of
+characters is 3584, not 3840 (in one case). GML 6/13/84
+
+THE FOLLOWING PREFIX DOCUMENTATION SHOULD BE PLACED UNDER LINK SPECIFIC
+STATEMENTS AS A NEW FEATURE IN THE X.25/X.75 REFERENCE MANUAL
+
+        International Prefix Feature
+
+             This   feature  addresses  limitations  in the  1980   CCITT  
+             specification  concerning   cross-network   addressing   and  
+             provides    for   additional flexibility in configuring XCOM 
+             interfaces  for networks whose  addressing  requirements  do 
+             not  conform to the CCITT specification.  International  and 
+             Private   networks   in Europe are those in which these  two 
+             situations  are most evident. 
+
+             The   mechanism  employed  by this feature allows  for   the  
+             "addition"   or  "removal"  of  the  beginning  digits  (ie.  
+             prefix)  from   the  CALLED  and CALLING addresses  of  Call 
+             Request  and Call Accept packets within an  XCOM  Interface.  
+             This   feature  will affect packets going both TO  and  FROM  
+             the link and is usable by both X.25 and X.75 interfaces.
+
+             Four   different  statements  (macros) with  parameters  are 
+             provided  to  configure  the  Prefix   feature.   All   four 
+             statements are functionally independent of one another which 
+             allows for the specification of one,  two, three or all four 
+             statements on a per link basis.  These macros allow  for the  
+             independent  manipulation of the CALLED and CALLING  address 
+             fields in the following two CCITT packet types,
+
+                       Call Requests / Incoming Call          
+                       Call Accept / Call Confirmation      
+
+             Each    packet  type  has  two  associated  statement  types 
+             (macros);  one which affects packets going "TO the Link" and 
+             one  which  affects packets coming  "FROM  the  Link".  Each 
+             statement  will allow for the matching and then the addition 
+             or  removal  of digits (starting  at the  beginning  of  the 
+             address,  (ie.  the prefix) based on a boolean true or false  
+             of the match digits. The macros are,
+         
+                  PFXFLR - Modify Call Request addresses "FROM the Link" 
+                  PFXTLR - Modify Call Request addresses "TO the Link" 
+                  PFXFLA - Modify Call Accept addresses "FROM the Link" 
+                  PFXTLA - Modify Call Accept addresses "TO the Link" 
+
+             The   four   prefix  configuration statements  which  follow 
+                                                      Page 3
+
+
+             share    the   same  format.   The  general  format  of  the 
+             statements are,
+         
+                  macroname(a,b,b',c,d,d')
+         
+                  where,
+                       a, b, b' are for CALLED ADDRESS processing
+                       c, d, d' are for CALLING ADDRESS processing
+                       a  and  c are optional and specify the  string  of 
+                            digits  (ie. 0 to 9)  to  use  to  match  the 
+                            address,  the  matching  begins at the  first 
+                            digit of the address.
+                       b, b',  d,  d' are optional and specify the digits 
+                            to  ADD.   If  a  minus  sign  precedes   the 
+                            parameter  (ex.    -b)  then  the  number  of 
+                            address  digits  to REMOVE from the packet is 
+                            specified.
+         
+
+                  the logic,
+                       b is done if "a" is TRUE (match)
+                       b' is done if "a" is FALSE (no match)
+                       d is done if "c" is TRUE (match)
+                       d' is done if "c" is FALSE (no match)
+                       the  TRUE (match) condition is assumed if  "a"  or 
+                            "c" are not specified.
+                       if an action parameter (ie. b, b', d or d') is not 
+                            present in the specification,  then no action 
+                            is  taken  against  the  address  which  that 
+                            parameter  effects,  when that  parameter  is 
+                            selected  by the matching logic (ie.  TRUE or 
+                            FALSE).
+
+         
+                  other  parameters (ie.   keywords) which may be used in 
+                  place of  the above,
+         
+                       CLR - for b,   b',   d,   d' CLR can be  specified 
+                            which  will  clear  the  CALL  if  the  logic 
+                            evaluation is satisfied
+         
+                       TLR  and    FLR   - these  keywords  can  only  be  
+                            specified    in    the   PFXTLA   or   PFXFLA 
+                            configuration  statements.   In  the   PFXTLA 
+                            statement  the  keyword FLR can be  used  for 
+                            either or  both "a"  and "c".   In the PFXFLA 
+                            statement     the     keyword     TLR     may
+                            be   used  for either or both "a"  and   "c".  
+                            When specified these keywords will cause  the 
+                            TRUE  or  FALSE  action for the  Call  Accept 
+                            packet addresses to be determined  from   the
+                            associated  Call  Request  packet  evaluation 
+                            process  (ex.  if the processing  of  a  Call 
+                            Request  packet  by   the  PFXTLR   statement 
+                            resulted in a FALSE  action  for  the  Called 
+                                                      Page 4
+
+
+                            Address,   then   the   processing   of   the 
+                            associated  Call Accept packet by the  PFXFLA 
+                            statement will "automatically" result in  the  
+                            execution   of   the FALSE action   for   the  
+                            Called  Address   if  the  TLR  keyword  were 
+                            specified   in   the  "a" parameter field  of 
+                            the PFXFLA statement).
+
+        Prefix Statements
+
+             PFXFLR(a,b,b',c,d,d')
+
+             Default: TRUE condition if "a" or "c" not specified,
+                  all parameters are optional 
+             Range: up to 10 digits may be specified for each parameter
+             Description:  This  statement  describes the "IF Match  THEN 
+             TRUE  Action/ELSE  FALSE  Action"  logic to be used  on  the 
+             Called  and  Calling  addresses  in Call   Request   packets 
+             which arrive "FROM the link".   In addition to  the matching 
+             and  subsequent address digit addition or removal  described 
+             above a  specific Call Requests match/nomatch evaluation can  
+             be   automatically applied  to  the  associated Call  Accept 
+             packet thru the use of  the  FLR keyword in the PFXTLA macro 
+             (see above for more information)
+
+
+             PFXTLR(a,b,b',c,d,d')
+
+             Default: TRUE condition if "a" or "c" not specified,
+                  all parameters are optional 
+             Range: up to 10 digits may be specified for each parameter
+             Description:  This  statement describes the "IF  Match  THEN 
+             TRUE  Action/ELSE  FALSE  Action"  logic to be used  on  the 
+             Called  and  Calling  addresses  in Call   Request   packets 
+             which are sent "TO the link".   In addition to  the matching  
+             and    subsequent   address  digit  addition   or    removal  
+             described    above      a     specific     Call     Requests  
+             match/nomatch   evaluation  can   be automatically   applied 
+             to  the  associated Call Accept packet thru the  use of  the 
+             TLR  keyword  in  the  PFXFLA  macro  (see  above  for  more 
+             information)
+             
+
+             PFXTLA(a,b,b',c,d,d')
+
+             Default: TRUE condition if "a" or "c" not specified,
+                  all parameters are optional 
+             Range: up to 10 digits may be specified for each parameter
+             Description:  This  statement describes the "IF  Match  THEN 
+             TRUE  Action/ELSE  FALSE  Action"  logic to be used  on  the 
+             Called  and  Calling   addresses  in Call   Accept   packets 
+             which are sent "TO the link".  In addition  to  the matching 
+             and  subsequent address digit addition or removal  described 
+             above a  specific  Call Accepts match/nomatch evaluation can 
+             be  based  on  the evaluation  described in the PFXFLR macro 
+                                                      Page 5
+
+
+             for  an  associated Call  Request by using the  keyword  FLR 
+             instead of a match string.
+
+             A  Call  Accept packet containing no addresses is assumed to  
+             be    a    non-extended    Call   Accept   packet   and   no 
+             modifications  are performed on  that packet  regardless  of 
+             this statement specification.
+
+
+             PFXFLA(a,b,b',c,d,d')
+
+             Default: TRUE condition if "a" or "c" not specified,
+                  all parameters are optional 
+             Range: up to 10 digits may be specified for each parameter
+             Description:  This  statement  describes the "IF Match  THEN 
+             TRUE  Action/ELSE  FALSE  Action"  logic to be used  on  the 
+             Called  and  Calling  addresses  in  Call   Accept   packets 
+             which arrive "FROM the link".  In addition  to  the matching 
+             and  subsequent address digit addition or removal  described 
+             above a  specific  Call Accepts match/nomatch evaluation can 
+             be  based  on  the evaluation  described in the PFXTLR macro 
+             for  an  associated Call  Request by using the  keyword  TLR 
+             instead of a match string.
+
+             A  Call  Accept packet containing no addresses is assumed to  
+             be    a    non-extended    Call   Accept   packet   and   no 
+             modifications  are performed on  that packet  regardless  of 
+             this statement specification.
+
+
+        Prefix Specification Examples
+
+             In  the  following examples assume that the statements  have 
+             been specified on a single link.  Assume both Hosts 907  and 
+             908  have been specified on the same link.  Further assume a 
+             loopback situation of the following form,
+
+                  Call  Request packet from Host 907   to  Host      
+                  908 then the Call is Accepted from Host 908   
+                  to Host 907.
+                  
+
+          Example 1
+           
+           Statements
+                        PFXTLR(3106,2203)
+                        PFXTLA(3106,2203)
+                        PFXFLR(993106,-2)
+                        PFXFLA(993106,-2)
+             
+             If  a  Call  Request is received "FROM the  Link"  with  the 
+             addresses           
+                       993106000908,3106000907 
+                       (format called,calling)
+             the PFXFLR macro will transform the addresses into
+                                                      Page 6
+
+
+                       3106000908,3106000907 
+                  (these  addresses  will  be  the  addresses  understood 
+                  within the network for all internal processing)
+             An  Incoming  Call sent "TO the Link" with the address
+                       3106000908,3106000907 
+             will cause the PFXTLR macro to transform the addresses into
+                       22033106000908,3106000907
+
+             If a  Call Confirmation is received "FROM the Link" with the 
+             addresses 
+                       993106000908,3106000907 
+                       (format called,calling)
+             the PFXFLA macro will transform the addresses into
+                       3106000908,3106000907 
+                  (these addresses wil be the addresses understood within 
+                  the network for all internal processing)
+             A Call Accept sent "TO the Link" with addresses
+                       3106000908,3106000907 
+             will cause the PFXTLA macro to transform the addresses into
+                       22033106000908,3106000907
+
+
+
+          Example 2
+
+           Statements
+                        PFXFLR(009,31060,3106,0,3106)
+                        PFXTLR(31060,-2,-4,3106,-7)
+                        PFXFLA(06,31,3106,907,3106000)
+                        PFXTLA(31060,-10,00,3106,9)
+
+           Address set 1:
+             If a Call Req.  is received "FROM the Link" with the addr's  
+                       00908,000907 
+                   (format called,calling)
+             the PFXFLR macro will transform the addresses into
+                       3106000908,3106000907 
+                  (these  addresses  will  be  the  addresses  understood 
+                  within the network for all internal processing)
+             An   Incoming Call sent "TO the Link" with the addresses
+                       3106000908,3106000907 
+             will cause the PFXTLR macro to transform the addresses into
+                       06000908,907 
+
+             If a  Call Conf. is received "FROM the Link" with the addr's  
+                       06000908,907 
+                  (format called,calling)
+             the PFXFLA macro will transform the addresses into
+                       3106000908,3106000907 
+                  (these addresses wil be the addresses understood within 
+                  the network for all internal processing)
+             A Call Accept sent "TO the Link" with the addresses
+                       3106000908,3106000907 
+             will cause the PFXTLA macro to transform the addresses into
+                       nothing,93106000907
+                                                      Page 7
+
+
+
+
+           Address set 2:
+             If  a Call Req.  is received "FROM the Link" with the addr's
+                       908,000907 
+                   (format called,calling)
+             the PFXFLR macro will transform the addresses into
+                       3106908,3106000907 
+                  (these  addresses  will  be  the  addresses  understood 
+                  within the network for all internal pring)
+             An  Incoming Call sent  "TO  the Link" with the addresses
+                       3106908,3106000907 
+             will cause the PFXTLR macro to transform the addresses into
+                       908,907 
+
+
+             If a  Call Conf. is received "FROM the Link" with the addr's 
+                       908,907 
+                  (format called,calling)
+             the PFXFLA macro will transform the addresses into
+                       3106908,3106000907 
+                  (these addresses wil be the addresses understood within 
+                  the network for all internal processing)
+             then the Call Accept sent "TO the Link" with the addresses
+                       3106908,3106000907 
+             will cause the PFXTLA macro to transform the addresses into
+                       003106908,93106000907
+
+
+
+          Example 3
+
+           Statements
+                        PFXFLR(993106,-2,3,106,3,-2)
+                        PFXTLA(FLR,1,2,FLR,3,4)
+
+           Address set 1:
+             If a Call Req. is received "FROM the Link" with the addr's
+                       993106000908,106000907 
+                       (format called,calling)
+             the PFXFLR macro will transform the addresses into
+                       3106000908,3106000907 
+                  (these  addresses  will  be  the  addresses  understood 
+                  within the network for all internal processing)
+             An   Incoming Call sent "TO the Link" or a Call Confirmation 
+             received  "FROM the Link" will result in no address changes. 
+             No  statements  (macros)  were specified  for  those  packet 
+             types.  However,  the  Call Accept associated with the  Call 
+             Req. above, sent "TO the Link" with the addresses
+                       3106000908,3106000907 
+             will cause the PFXTLA macro to transform the addresses into
+                       13106000908,33106000907
+
+           Address set 2:
+             If  a Call Req. is received "FROM the Link" with the  addr's
+                                                      Page 8
+
+
+                       106000908,993106000907 
+                       (format called,calling)
+             the PFXFLR macro will transform the addresses into
+                       3106000908,3106000907 
+                  (these  addresses  will  be  the  addresses  understood 
+                  within the network for all internal processing)
+             An  Incoming Call sent "TO the Link" or a  Call Confirmation 
+             received "FROM the Link" will result in no address changes.
+             No  statements  (macros)  were specified  for  those  packet 
+             types.  However,  the  Call Accept associated with the  Call 
+             Req. above, sent "TO the Link" with the addresses 
+                       3106000908,3106000907 
+             will cause the PFXTLA macro to transform the addresses into
+                       23106000908,43106000907
+
+
+END OF PREFIX DOCUMENTATION FOR INSERTION IN X.25/X.75 REFERENCE  MANUAL
+SUBMITTED BY F KOTULAK 6/5/84
+
+
+
+After Section 2.9.3 ADD
+
+PCNL(lpc,hpc)
+
+Default: None
+Range: 1 - 255
+Description:
+This macro is LINK dependent and specifies the number of channels to be
+reserved as PVC channels for this link. A PVC channel is not explicitly
+defined, however, until a PVCHANNEL macro is created for that channel. The
+PCNL macro must be specified if a PVC is desired on a particular link. "lpc"
+specifies the lowest PVC channel for this link. "hpc" specifies the highest
+PVC channel for this link and may not be higher than the number 255.
+The maximum number of PVC channels which may be reserved across the interface
+is 4095.
+
+
+ADD Section 2.9.15
+
+PVCHANNEL(ochan,dhost,dlink,dchan,ulog,pst,psr,pwt,pwr,tct,tcr)
+
+Range: channel must be within specified PCNL range
+Description:
+
+The specification of a PCNL macro is required. This macro is LINK
+dependent and must be specified within a link option group. Only ONE PVC
+channel may be described per macro call and only 255 macro calls are allowed
+per link and/or across the interface (ie. all links). All parameters are to be
+specified in decimal.
+
+This macros purpose is to provide network and packet level information
+regarding the PVC and to provide information that will enable the validation
+of the circuit at the time the circuit is built.
+
+                                                      Page 9
+
+
+The description and default for each parameter follows;
+
+ochan - Originating (our) PVC channel number. No default.
+
+dhost - The destination Host number for this PVC. No default.
+
+dlink - The destination Link number for this PVC. No default.
+
+dchan - The destination channel number for this PVC. No default.
+
+ulog - This specifies the username that will be used to log into the network
+at the time the PVC circuit is built. The username will be constructed by
+taking the value in this field and concatenating a ":dhost;<cr>" to it.
+Therefore, the username must be of the NULL password type. This parameter must
+be present when the host number at this end of the circuit (ie. in this
+interface) is higher than "dhost". Do not specify this parameter if this ends'
+host number is less than "dhost".
+
+pst - The CCITT specified encoding of "packet size" for transmitting. Default
+7.
+
+psr - The CCITT specified encoding of "packet size" for receiving. Default 7.
+
+pwt - The packet window size for transmission. Default 2.
+
+pwr - The packet window size for receiving. Default 2.
+
+tct - Transmission thruput class. Default 7.
+
+tcr - Reception thruput class. Default 7.
+
+
+
+Other PVC information (from the view of the interface):
+
+ To the Host (over the Link)
+         Once all interfaces are properly configured (both host  and  slot),
+         the  Host-Network interface for a PVC is the same as a SVC with the
+         following exception.  All level 3 packets that deal with Call setup
+         (ie.  Call Request, etc.) or Call clearing should not be recognized
+         nor sent by either side. A reset packet will be sent by the network
+         to both Hosts (DTE's) if any illegal packets arrive on the channel.  
+         This conforms with the CCITT 1980 specification.
+
+ To the Network
+         Since the "normal" call request and call accept scenario  does  not
+         exist for a PVC, a PVC goes through a special setup sequence at the
+         time the interface first comes up  or  after  the  network  becomes
+         available  following  the loss of circuits due to a network outage.
+         In both of the above cases a circuit rebuild sequence is  attempted
+         every  60  seconds  until  the  circuit is re-established.  The DTE
+         interface with the "higher" host number is responsible for building
+         the circuit.
+
+         In the case where a Host goes out of the network, the circuit  will
+                                                     Page 10
+
+
+         remain  UP.   A  series  of reset packets as described in the CCITT
+         specification will be used to notify the other interface  and  Host
+         (DTE)  of  the  PVC's  operational status.  This will eliminate any
+         delay from the application's viewpoint when the downed  Host  comes
+         back  into the network.  It will also eliminate any unnecessary use
+         of the bandwidth for timer activated status messages.
+
+FAK changes "After Section 2.9.3 ADD" to here 12-1-83
+
+
+Include information where document may be found.  GML 11/1/83
+
+add Section 2.9.16
+
+  CLDMAPPING(adr1,adr2) 
+    
+  Default: none
+  Range: adr1 = 1 - 15 digits of address
+         adr2 = 1 - 14 digits of address
+
+  Description:
+    This macro can be used to generate a mapping table for
+    converting a called address received from the link to a called 
+    address that is actually used by a Tymnet technology based X.25/X.75
+    interface in generating a network login string and for subsequent use 
+    of the called address.  It is intended to be used at an X.25 interface
+    of an independent network based on Tymnet technology which connects to
+    a public data network based on non-Tymnet technology.  Since the address
+    structure is usually different between the two networks, an address 
+    mapping is often necessary.
+
+    If the CLDMAPPING macro is used, it only applies within the
+    current link option group.
+
+    If this macro is specified one or more times in a link option
+    group, the called address in a call request packet will be compared
+    with a list of addresses consisting of the first parameter of the
+    CLDMAPPING macro calls specified for this L.O.G.
+    This comparison will be made between each address in the above 
+    mentioned list in its entirety and the same number of digits 
+    of the called address in the call packet.  If a match is found, 
+    the corresponding second parameter appended with the remaining
+    digits of the called address in the call request packet will
+    be used as the called address for subsequent processing.  
+    If the length of the called address after the address translation
+    is greater than 14 digits, the call will be cleared with the
+    cause code set to "local procedure error" and diagnostic code set to 
+    "invalid called address".
+
+    This address translation will be performed after prefix handling
+    if there is any.
+
+
+    Example:
+
+                                                     Page 11
+
+
+      HOSTLINK(500,0)
+        CLDMAPPING(234219200138,2342000150)
+        ODNIC(2342)
+        Called address after prefix processing : 23421920013821
+        Login string sent to supervisor  X2500300:000150.21;<cr>
+        Called address sent to the destination : 234200015021
+
+
+Add the following to the description of macro PKTOPT in Section 2.9.1:
+
+
+        +TRGPF  the interface will send a login string of the form
+                "username:Gdnic;<CR>" or "username:GdnicTtnic;<CR>"
+                to request the target profile support from the network
+                supervisor whenever the DNIC of the call address in the call
+                request packet received from the link is not in ODNIC list
+                and the GATEWAY or RPOAGATEWAY macros, if there is any,
+                fail to supply a login string.  The "Ttnic" portion will be
+                included in the login string only if an RPOA facility
+                request is included in the call request.
+
+        -TRGPF  the interface will clear the call if the above mentioned 
+                condition is encountered.
+
+Section 2.13.6  Default host number for the HIHOSTNNUMBER macro is changed
+to 6000 decimal.  GML 3/6/84
+
+change Section PAD National Option Statement (Page 87)
+
+   PADNATional(nopt,op1)
+
+   Default:
+        nopt -  00
+        opt1 -  -nopass
+
+   Range:
+        nopt - 00 - FF
+        opt1 - (-nopass, nopass)
+  Description:
+     op1 provides for the deletion of national pad parameters from
+     Q-bit messages from a declared X.28 pad.
+
+
+change Section National Options Marker Statement (Page 74)
+   References to non-CCITT terminal parameters in the description of
+   +/-PASSTOX shall be removed since they are governed by the +/-NOPASS
+   in the PADNATional statement now.
+
+Page 137 add error message "FRMOPT(DWDSC) is only supported for LAP"
+
+XOM User's Guide version 2 dated October 1, 1982
+----------------
+
+In general, any Modify command with an ON/OFF switch (0/1) may also specify
+"no change" (FFFF).  FFFF may also be used to specify "all".
+                                                     Page 12
+
+
+
+Section 2.1.11 Address Links Query returns a different format now.
+        Response:       host number
+                        index
+                        low address
+                        high address
+                        links0-15
+                        links16-31
+        Description: index is the ordinal, or position, of that entry
+                within the internal tables.  It has an integer value >=1.
+                Other response fields are the same.
+        Example:
+                Command:
+                87 398
+                Response:
+                398 1 3 5 C000 0000
+                398 2 7 8 4000 0000
+                398 3 9 9 8000 0000
+        This response indicates host 398 has three entries numbered 1 2 3
+                as seen in the second column.  Other fields are the same.
+
+Section 2.1.78 Telenet Options Query should be changed to refer to TFAC
+        rather than NFTAC (actually NTFAC).
+
+After section 2.1.86 add MAXHOST Query:
+        Reference: MAXHOSTS
+        Command: BA
+        Parameters: none
+        Response: maximum number of hosts possible
+        Description: This command displays the maximum number of hosts
+                allowed on the interface
+
+        Example:
+                Command:
+                BA
+                Response:
+                4
+
+                This response indicates that a total of four hosts
+                may be specified for the interface.
+
+Section 2.2.4 Host Status Query host status field has been expanded from 
+        one byte to two bytes.  The first byte of the field, if present,
+        displays the last error code received in a Host Unacceptable
+        message for this host, with the high order bit set (80).  If
+        none has been received then only the low order byte is displayed,
+        which has the same value as previously.  The error codes are:
+                0 host table full (in node code), appears as 80.
+                1 impostor, rejected by Supervisor, appears as 81.
+                2 imposter, rejected by node, appears as 82.
+                3 illegal host on restricted node, appears as 83.
+
+Section 3.1.8 Modify Address LInks requires a different format now.
+        Parameters:     host number
+                        new entry flag
+                                                     Page 13
+
+
+                        index
+                        low address
+                        high address
+                        links0-15
+                        links16-31
+        Description: Two new parameters have been added.  The new entry flag
+                may have a value of either 0 or 1.  A value of 0 indicates
+                a change or removal of an existing entry.  A value of 1
+                indicates a request to add a new entry.  The index gives the
+                position after which to add the entry, or the entry to
+                be changed or deleted.
+        Example:
+                Command:
+                88 398 1 6 12 20 C000 0000
+                88 398 0 4
+                88 398 0 2 6 9 4000 0000
+        These commands add an entry after the current sixth entry,
+        delete the fourth entry, and modify the second entry. Note
+        that the index value will change for those entries following a
+        deleted entry.
+
+Section 3.2.49 Modify as follows:
+        called address length (0 - 0E; FF to turn CLDADR off)
+        line 4 in the Description
+        ... A command containing only link number with length FF and no
+        address values specifies that a system generated value should 
+        be used ...
+
+Section 3.2.59 Modify Telenet Options should be changed to refer to TFAC
+        rather than NTFAC.
+
+Section 3.2.66 add change directive to host modify command:
+        value   host status
+          5     change a host number
+
+        Example: 83 <host1> 5 <host2> changes host1 to host 2 without affecting
+        any options for host1. (Remove host1 resets all host options to 
+        defaults.)
+
+
+
+
+----------------------------------------------------------------------
+
+TMCS User's Guide Version 5.6 July 23, 1982
+-----------------
+
+Page 72, add additional node reports from XCOM slot:
+
+39 - ignored a Clear Request packet; too long
+
+
+
+
+      Addressing Standards in TYMNET                   September 30, 1982       
+                                                     Page 14
+
+
+
+
+                     Addressing Standards in TYMNET
+                             David Montagna
+
+      A new addressing  standard has been defined  by NTD to be  used in
+      all TYMNET technology public networks.  Changes have been  made to
+      the network  Supervisor to accommodate  this standard.   This paper
+      describes  a  new  login  format,  the  addressing  standard,  and
+      requirements for its implementation.   It is expected that  the new
+      standard will begin to go into affect on October 1, 1982.
+
+      In the following discussion, certain paragraphs are marked  in the
+      margin.  The key for this marking is as follows.
+
+>>>     This indicates considerations that need to be made  for username
+      validations.
+
+>>      This  indicates  considerations   that  need  to  be   made  for
+      accounting.
+
+>       This indicates considerations that need to be made when upgrading
+      older interfaces to interfaces that support the new standard.
+
+
+                            New Login Format
+
+      A  change  has been  made  to  the login  format  accepted  by the
+      supervisor.  This new format  allows both a network address  and a
+      subaddress  to   be  specified.   The   network  address   is  the
+      destination host number and as  in the past it may follow  a colon
+      after the username.  If subaddressing is desired, a period  and up
+      to  four  digits may  follow  the destination  host  number.  When
+      subaddressing  of  a  home host  is  desired,  the  period follows
+      immediately  after  the  colon.   Subaddressing  digits   are  not
+      currently checked for validity by the supervisor (except to insure
+      that they are  digits and do  not exceed four).   If subaddressing
+      digits are present they are sent to the destination as part of the
+      username.   The  colon and  period  but not  the  destination host
+      number are also included.
+
+              example   FRED:398.12;pw;
+
+                FRED:.12; is sent to host number 398
+
+              example   FRED:.123;pw;
+
+                FRED:.123; is sent to the home host for FRED.
+
+
+
+                                       1
+      Addressing Standards in TYMNET                   September 30, 1982       
+
+
+                                                     Page 15
+
+
+>>>     This new  login format  will be used  to address  TYMCOM subhost
+      addresses as well as for  the new CONSAT port addressing.   It can
+      be entered at any  TYMSAT and will also  be used by X.25  and X.75
+      interfaces as  described later.  Note  that usernames of  the form
+      NAMEnn should no longer be validated for subhost  addressing.  The
+      network will no longer be responsible for access restriction based
+      on subaddressing.  If specific subhost restrictions  are required,
+      separate host numbers must be assigned.
+
+
+                            X.121 Addressing
+
+      CCITT standard  X.121 defines a  universal standard  structure for
+      addressing data terminals that  insures that a data terminal  on a
+      public  network  can  be  accessed  using  the  same  address from
+      anywhere in the world.
+
+      A data terminal is defined as any addressable entity  connected to
+      the network, i.e., user  terminals, host computers and  host front
+      ends.  The address consists of a Data Network  Identification Code
+      (DNIC) and a  Network Terminal Number (NTN).   The DNIC is  a four
+      digit  number  used  to  uniquely  identify  a  particular  public
+      network.   For  example,  the TYMNET  domestic  public  network is
+      assigned  the DNIC  3106.  X.121  allows an  NTN to  be up  to 10
+      digits in  length.  The  NTN is not  otherwise restricted  and the
+      definition of its format is left to the network implementors.
+
+      The format of the NTN for public networks using  TYMNET technology
+      will be as follows.
+
+           a)  If DNIC does not indicate the local network, NTN may
+               be of any format of from zero to ten digits.
+
+           b)
+               0 + <5 digit host number> + <0 to 4 digit subaddress>
+
+               This format is used as a called or  calling address.
+               The host  number is a  destination host  number with
+               leading zeros.  The subaddress is optional.
+
+           c)  7 + <5 digit host number>
+
+               This format is used only as a calling  address.  The
+               host number is an originating only host number (less
+               than  65532).   A  call  cannot  be  placed  to this
+               number.
+
+
+
+                                       2
+      Addressing Standards in TYMNET                   September 30, 1982       
+
+
+     >       The  supervisor  has not  yet  implemented originating
+           only  host  numbers.   When  this  is  implemented,  the
+                                                     Page 16
+
+
+           destination interface will be informed that the  call is
+           from  an originate  only host.   For an  interim period,
+           TYMSATs  report "accounting"  host numbers  greater than
+           16000 and host numbers  in this range can  be considered
+           origination only.
+
+           d)  77 + <4 digit node number> + <4 digit port number>
+
+               This format is used only as a calling  address.  The
+               origination  node  number is  used  for  reports for
+               nodes that do  not report origination  host numbers.
+               As this  should only occur  for Varian  Tymsats, the
+               port number can be  assumed to be the  physical port
+               number on the Varian.
+
+           e)  9 + <1 to 9 digits>
+
+               This format  is used  to indicated a  2 to  10 digit
+               Network User Number (NUN) that is used as a username
+               and  does  not indicate  the  actual  destination or
+               origination of a call.  The leading 9 is included in
+               the username.  If entered  at a TYMSAT for  calls to
+               an X.25 or  X.75 interface, the called  interface can
+               be  optioned  to  substitute  the  DNIC+NUN  for the
+               actual calling  address.  If  present in  the called
+               address field of a call request from an X.25 or X.75
+               interface, the  NUN will be  used as a  username and
+               will be left in the called address field if the call
+               is to an X.25 or X.75 interface.
+
+           f)  Not present or the single digit 9
+
+               This format  is used  only as  a called  address and
+               indicates a  request for a  direct call  (no address
+               specified).   The  call  will  be  placed  using the
+               Network User  Identifier given (NUI,  i.e., username
+               and password).
+
+           g)  First digits of 1  through 6 and 8 are  reserved for
+               future expansion.
+
+
+                               X.25 Calls
+
+      When an X.25 DCE receives a call request from the link, the NTN of
+
+
+                                       3
+      Addressing Standards in TYMNET                   September 30, 1982       
+
+
+      the called address must follow the format specified in a),  b), e)
+      or f) above.
+
+      If a) then only  the DNIC is used  for routing.  A local  table of
+                                                     Page 17
+
+
+      DNICs is referenced to obtain a login string that is multitargeted
+      to  all the  gateways to  the specified  network.  If  the gateway
+      reached is  a Tymnet/Tymnet  gateway (i.e.,  not an  X.75 gateway)
+      then the digits following the DNIC will be examined and a username
+      string  will be  passed  to the  other network  using  the methods
+      described in b) and "X.75 calls" below.  In this case  the gateway
+      login  is transparent  to  the user.   All logon  prompts  and the
+      "interlink established" message from the Tymnet/Tymnet gateway are
+      suppressed.  For the case  of X.25 the username will  be X25.<orig
+      host  >.<our DNIC>  (where our DNIC and  orig host are  the values
+      for the originating interface).  For calls from X.75 the name will
+      be X75.<calling DNIC>.<our DNIC>.  In both cases the password will
+      be null.  This  username is only valid  in the called  network and
+      should be restricted to only originate on  Tymnet/Tymnet gateways.
+      It should be additionally restricted to only allow access to hosts
+      allowing international access.
+
+>>>     The usernames  in the  table should be  validated to  only allow
+      calls to international gateways.  In the future the table  will be
+      eliminated and the Supervisor will perform the routing.  This will
+      be  necessary  to  provide  security  for  public  dial  access as
+      described later.
+
+      If b) then the DNIC is that of the domestic network.  The DNIC may
+      either be specified or  omitted.  If omitted, the leading  zero of
+      the  NTN  will serve  to  indicate  a local  call  (in  which case
+      additional leading zeros are not necessary).  A login string will
+      be sent to the supervisor consisting of a username, a colon, the 5
+      digit destination host number  and, if a subaddress is  present, a
+      period and the subaddressing digits.  The username  is constructed
+      by prefixing "X25." to the 5 digit originating host number  of the
+      link that placed the call.  (The prefix "X25." may be  replaced by
+      any 4 character string on a per link basis at system generation or
+      with the XOM).
+
+>>>     This username has a null password.   Its class is  restricted to
+      originating only from its  own host number.  The username  has the
+      colon  option  and  therefore its  possible  destinations  must be
+      specifically stated in the seed username assigned to the customer.
+      Note  that  if calls  are  to  be placed  from  this  interface to
+      destinations not  owned by this  customer then both  this customer
+      and  the  customer  to  be  called  must  give  permission  to the
+      administrations  network  validations  department  before  a  seed
+
+
+                                       4
+      Addressing Standards in TYMNET                   September 30, 1982       
+
+
+      username containing the destination  host number is added  to this
+      customers  account.  The  username will  always be  used  with the
+      colon option.  Therefore,  the home host will  not be use  and the
+      username  cannot  itself  be  multitargeted.   In  order  to allow
+      multitargeting  at the  destination, the  destination  host number
+      should be multibased.
+                                                     Page 18
+
+
+
+>>      Calls placed using  this username should  only be billed  to the
+      owner of the username in the case where the accounting record does
+      not indicate reverse charging.  If reverse charging  is indicated,
+      the owner of the called  host will be billed.  Calls  to nonpacket
+      mode DTEs  (i.e., TYMCOMS  and not  X.25/X.75 interfaces)  will be
+      cleared  by the  X.25  DCE if  reverse charging  is  requested and
+      format b) is used.
+
+>       Before interfaces using this format may be installed in any X.25
+      that  originates  domestic  calls  the  above  username   must  be
+      validated  unless  the  following  condition  is  met.   Formerly,
+      addresses     of    this     type    were     of     the    format
+      DNIC+<4 digit host>+<0 to 6 digit subaddress>.   All   the  digits
+      following the  DNIC were used  as a numeric  username.  Therefore,
+      during the transition, a special global option will exist  so that
+      NTN less than 6 digits will be treated as a usernames.  Also, If 6
+      or more  digits are specified  and the first  6 digits  indicate a
+      number greater  or equal to  n (where n  is defined by  the global
+      option) then the  entire NTN will be  treated as a  username.  The
+      default for n is 4000.   This will cause all host  numbers greater
+      or equal  to 40  and using  the 4  digit format  to be  treated as
+      usernames.  For example, 005012  in the old format  indicates host
+      50  subaddress 12  but  host 5012  in  the new  format.   With the
+      temporary option set to 4000, host numbers above 3999 will  not be
+      allowed and 005012 will be used as a username.
+
+      Format  c)  will  be  created  for  calling  addresses   when  the
+      originating host number is known.  This is currently the  case for
+      host numbers above 16000.
+
+      Format  d)  will  be  created  for  calling  addresses   when  the
+      originating host number is not known.  This is the case for Varian
+      Tymsats.
+
+      If format e)  is specified, the  interface username X25.  + <orig-
+      node-number>  will  not  be  used and  the  NUN  will  be  used as
+      specified in e) above.
+
+>>      In this case billing should be done as in case b).
+
+
+
+                                       5
+      Addressing Standards in TYMNET                   September 30, 1982       
+
+
+      If format f) is specified, the interface will look for  a username
+      string in the call user data field of the call request.  This is a
+      request for a direct call.
+
+>>      Billing should be done as in case b).  The username and password
+      are always striped from the  call user data field.  An  option will
+      exist in the called X.25 interface which allows the  username (and
+      its separator) to  be put into  the CUD field  preceding anything
+                                                     Page 19
+
+
+      already there.  This options can be specified for X to X calls.
+
+
+                               X.75 Calls
+
+      X.75 calls are identical to X.25 calls except that for case b) the
+      username  that  is  constructed  is  "X75."  plus  the originating
+      network  DNIC (obtained  from  the calling  address).   The "X75."
+      prefix  can  be changed  on  a per  link  basis as  in  X.25.  The
+      originating network  DNIC is used  to allow restrictions  based on
+      network of origination.
+
+>>>     The X75.<orig-net> username must be validated to  only originate
+      on  gateways connected  to this  originating network  (or networks
+      connected  to  this originating  network).   A new  group  must be
+      created  that  contains  only  those  domestic  hosts  that  allow
+      international access.  The X75.<orig-net> username should  only be
+      valid to terminate on this group.
+
+>>      Accounting should be  done based on international  agreements in
+      effect.
+
+>       Compatibility consiteratoins are the same as in X.25
+                             TYMSAT logins
+
+      TYMSAT logins will be as defined in the section describing the new
+      login format.  The  command mode login  syntax for the  CONSAT PAD
+      will be described at a later date.
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                       6
+
+the following PVC APPENDIX has been added to provide additional release
+information to the end reader as well as to aid the documentation department
+in preparing the PVC reference section
+
+                   XCOM - PVC Feature for X.25 Interfaces
+                  Feature Description and Reference Manual
+                           Author: Frank Kotulak
+                        Major Interface Development
+                        Network Technology Division
+                               Tymshare, Inc.
+                              10261 Bubb Road
+                            Cupertino, CA  95014
+                                                     Page 20
+
+
+                           Date November 30, 1983
+                          Proprietary Information
+doc:  (NETMID)PVC.DOC
+X.25 PVC Feature Documentation. Proprietary Information Nov-30-83     Page 2
+Table of Contents
+     1. Introduction
+        1.1 Feature Abstract
+        1.2 Applicable Documents
+     2. Interface Description
+        2.1 To the Host
+        2.2 To the Network
+     3. Tymfile Parameter Description
+        3.1 PCNL
+        3.3 PVCHANNEL
+     4. Other Considerations
+        4.1 Configuring
+        4.2 Error Handling
+                A. Host Down
+                B. Circuit Down
+                C. Illegal Packets
+                D. Tymfile Inconsistencies
+        4.3 Miscellaneous
+                A. Data packets after RESET
+                B. Username Specification
+        4.4 Accounting
+     GLOSSARY
+X.25 PVC Feature Documentation. Proprietary Information Nov-30-83     Page 3
+Introduction
+     1.  Introduction
+       1.1 Feature Abstract
+         This document  describes  the  CCITT  specified  Permanent  Virtual
+         Circuit  feature  for  the  X.25 protocol as developed for the XCOM
+         interface by the Network Technology  Division  of  Tymshare,  Inc..
+         The PVC Feature conforms to the Host-Network communication protocol
+         as specified  by  CCITT  1980.   However,  because  of  the  Tymnet
+         transport   mechanism  used  within  the  network,  certain  Tymnet
+         required information must be specified  at  the  time  the  PVC  is
+         configured.    The   only   known  non-conformity  with  the  CCITT
+         specification as currently defined is in the number of PVC channels
+         allowed  per  link.   CCITT describes a maximum PVC channel/link of
+         4095.  The PVC Feature as described herein,  currently  supports  a
+         maximum of 255 PVC channels/link.  
+       1.2 Applicable Documents
+         CCITT X.25 Reccommendation, 1980
+         X.25/X.75 Interface Reference Manual, 1981
+         (NETMID)TUR.DOC
+X.25 PVC Feature Documentation. Proprietary Information Nov-30-83     Page 4
+Interface Description
+     2.  Interface Description
+       2.1 To the Host
+         Once all interfaces are properly configured (both host  and  slot),
+         the  Host-Network interface for a PVC is the same as a SVC with the
+         following exception.  All level 3 packets that deal with Call setup
+         (ie.  Call Request, etc.) or Call clearing should not be recognized
+         nor sent by either side, under any circumstances.  A  reset  packet
+                                                     Page 21
+
+
+         will  be  sent  by the network to both Hosts (DTE's) if any illegal
+         packets arrive on the channel.  This conforms with the  CCITT  1980
+         specifications.
+       2.2 To the Network
+         The development of a new X.25 dialect level (ie.  Turkey level) was
+         required  to  implement  a  PVC feature.  Therefore, to communicate
+         through the network as a PVC both interfaces must be able  to  talk
+         Turkey level 2 or higher.
+         Since the "normal" call request and call accept scenario  does  not
+         exist for a PVC, a PVC goes through a special setup sequence at the
+         time the interface first comes up  or  after  the  network  becomes
+         available  following  the loss of circuits due to a network outage.
+         In both of the above cases a circuit rebuild sequence is  attempted
+         every  60  seconds  until  the  circuit is re-established.  The DTE
+         interface with the "higher" host number is responsible for building
+         the circuit.
+         The circuit rebuild sequence which creates the PVC consists  of  an
+         exchange  of  IIX  Turkey Level 2 messages which confirm and verify
+         that this PVC is going to the right host, link and channel and that
+         the  two  separately  configured  interfaces  have  been  correctly
+         configured.  A 60 second retry rebuild sequence will begin if there
+         is  a  validity  problem.  Also, it is during this message exchange
+         that the interfaces indicate to each  other  the  status  of  their
+         respective DTE's (ie.  "up" or "down").
+         In the case where a Host goes out of the network, the circuit  will
+         remain  up.   A  series  of reset packets as described in the CCITT
+         specification will be used to notify the other interface  and  Host
+         (DTE)  of  the  PVC's  operational status.  This will eliminate any
+         delay from the application's viewpoint when the downed  Host  comes
+         back  into the network.  It will also eliminate any unnecessary use
+         of the bandwidth for timer activated status messages.
+X.25 PVC Feature Documentation. Proprietary Information Nov-30-83     Page 5
+Tymfile Parameters
+     3.  Tymfile Parameter Description
+       3.1 PCNL(lc,hc)
+         This macro is LINK dependent and specifies the number  of  channels
+         to  be  reserved  as  PVC  channels  for  this link.  The number of
+         channels that may be described for each link is from 1 to  255.   A
+         PVC  channel  is not explicitly defined, however, until a PVCHANNEL
+         macro is  created  for  that  channel.   The  PCNL  macro  must  be
+         specified if a PVC is desired on a particular link.  "lc" specifies
+         the lowest PVC channel for this link.  "hc" specifies  the  highest
+         PVC  channel  for  this  link and may not be higher than the number
+         255.
+X.25 PVC Feature Documentation. Proprietary Information Nov-30-83     Page 6
+Tymfile Parameters
+       3.2 PVCHANNEL(ochan,dhost,dlink,dchan,ulog,pst,psr,pwt,wr,tct,tcr)
+         This macro requires the specification of a PCNL macro.  This  macro
+         is LINK dependent and must be specified within a link option group.
+         Only ONE PVC channel may be described per macro call and  only  255
+         macro calls are allowed per link.
+         This  macros  purpose  is  to  provide  network  and  packet  level
+         information  regarding the PVC and to provide information that will
+         enable the validation of the circuit at the  time  the  circuit  is
+         built.  All values are given in decimal.
+                                                     Page 22
+
+
+         The description and default for each parameter follows;
+           ochan        
+             Originating (our) PVC channel number.  No default.
+           dhost
+             The destination Host number for this PVC.  No default.
+           dlink
+             The destination Link number for this PVC.  No default.
+           dchan
+             The destination channel number for this PVC.  No default.
+           ulog
+             This specifies the username that will be used to log  into  the
+             network  at  the  time  the PVC circuit is built.  The username
+             will be constructed by taking  the  value  in  this  field  and
+             concatenating  a  ":dhost;<cr>" to it.  Therefore, the username
+             must be of the NULL password  type.   This  parameter  must  be
+             present  in  the interface which is supporting the highest host
+             number for this channel.  This parameter should not be  present
+             in  the interface which supports the lower host number for this
+             channel.
+           pst
+             The CCITT specified packet size CODE for transmit.  Default 7
+           psr
+             The CCITT specified packet size CODE for receiving.  Default 7.
+           pwt
+             The packet window size for transmission.  Default 2.
+           pwr
+             The packet window size for receiving.  Default 2.
+           tct
+             Transmission thruput class.  Default 7.
+           tcr
+             Reception thruput class.  Default 7.
+X.25 PVC Feature Documentation. Proprietary Information Nov-30-83     Page 7
+Considerations
+     4.  Other Considerations
+       4.1 Configuring
+         All PVC macros must "physically" be specified within a link  option
+         group.
+         Only one PCNL macro per link.
+         The PVC "absolute" channel range as currently implemented is from 1
+         to 255.
+         The network side should always be viewed as the DCE  in  all  other
+         Tymfile specifications for the "best" operation of the PVC.
+         No XOM's defined for PVC's, though  usernames  can  be  added  thru
+         patching.
+       4.2 Error Handling
+         A.  Host Down
+           If  a  PVC  connected  DTE  becomes  disconnected  (ie.    "down"
+           condition  on  the  link  or  channel) a RESET packet is sent and
+           delivered to the other connected DTE.  The cause byte  indication
+           is  "Out  of  Order".   The  PVC  circuit will remain "up" in the
+           network.
+           Any data, RR or RNR packets sent by the "up" DTE to  the  network
+           after  the  RESET  has  been  sent  and confirmed, will result in
+           another RESET "Out of Order" being sent by the interface  to  the
+           "up" DTE.
+                                                     Page 23
+
+
+           When the "down" Host (DTE) reconnects to the network a RESET "DTE
+           Operational"  will  be sent and delivered to the other DTE.  Data
+           transmission can then resume.
+         B.  Circuit Down
+           If a PVC's network  circuit  is  lost  (ie.   physical  break  in
+           internodal links or one of the interface slots supporting the PVC
+           "crashes") all active PVC interfaces will notify their respective
+           DTE's via a RESET "Network Congestion".
+           Any data, RR or RNR packets sent by the "up" DTE to  the  network
+           after  the  RESET  has  been  sent  and confirmed, will result in
+           another RESET "Out of Order" being sent by the interface  to  the
+           "up" DTE.
+           When the network problem is  corrected  a  PVC  circuit  will  be
+           rebuilt  between  the  DTEs  within 60 seconds.  A RESET "Network
+           Operational"  is  sent  by  the  network  to  each   DTE.    Data
+           transmission can then resume.
+X.25 PVC Feature Documentation. Proprietary Information Nov-30-83     Page 8
+Considerations
+         C.  Illegal Packets
+           Call Request, Call Accept, Clear Request and  Clear  Confirmation
+           packets  should  not be sent by a DTE on a PVC and are considered
+           "invalid" packets.
+           If an "invalid" packet is received a RESET "Invalid Packet"  will
+           be sent to both DTEs.
+         D.  Tymfile Inconsistencies
+           The information supplied in the PVCHANNEL macro on one  interface
+           is  compared  and  validated with the information supplied in the
+           PVCHANNEL macro on the other interface.  If their is a validation
+           problem  this  is  considered  to  be a Tymfile inconsistency.  A
+           (9Ah) PVC Confirmation IIX Turkey level 2 message  will  be  sent
+           between  interfaces  indicating  a reject.  When a reject occurs,
+           the circuit will be  zapped  and  a  60  second  circuit  rebuild
+           sequence will begin.
+           Note, support personnel should look for this situation in  the  I
+           and  O  rings if the PVC circuit does not create itself and there
+           are no known network problems.  Refer to (NETMID)TUR.DOC for  the
+           message format.
+       4.3 Miscellaneous
+         A.  Data Packets and RESETS
+           The sending of data packets by the DTE after confirming  an  "Out
+           of  Order"  or "Network Congestion" RESET packet, conforms to the
+           proposed 1984  CCITT  specification.   If  the  DTE's  x.25  code
+           continues  to send data packets and multiple PVCs are configured,
+           the physical link between DTE and DCE could degrade  quickly.   A
+           tight  DATA-RESET-RESET  CONF.   loop  will occur on each channel
+           until the network or host problem is  corrected.   The  NPSI  IBM
+           X.25 package currently works this way.  
+         B.  Usernames
+           Usernames specified in the PVCHANNEL macro must be  validated  in
+           the  network such that no password is required and a <CR> need be
+           sent following the semicolon.
+       4.4 Accounting
+         The  existing  accounting  system  in  Xcom,  contains  no  special
+         provisions for PVC's.
+X.25 PVC Feature Documentation. Proprietary Information Nov-30-83     Page 9
+                                                     Page 24
+
+
+GLOSSARY
+     PVC
+       Permanent Virtual Circuit is a circuit which is immediately available
+       for  the  transmission  of information between two hosts.  A PVC does
+       not require explicit login or logoff from the network.  Once a PVC is
+       built  it  remains  in  existence until a network outage "kills" that
+       circuit.  Once the "outage is corrected, the circuit will be  rebuilt
+       automatically.  User intervention should never be required.  Unless a
+       Host is "down" or the  network  is  "down"  a  PVC  circuit  type  is
+       quaranteed to be up and available.
+     SVC
+       Switched Virtual Circuit is a circuit that is  explicitly  built  and
+       torn down by the user through the use of logon/logoff procedures.  No
+       quarantees regarding network availability are made for a  user  of  a
+       SVC.  An SVC is the "normal" x.25/x.75 circuit type.
+
+                                
+
+
+
+q î
