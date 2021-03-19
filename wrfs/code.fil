@@ -1,0 +1,557 @@
+-TYP DI2122.TYM
+:*****************************************************************************
+:              FILE:   KERNAL TYMFILE
+:      COMPANY NAME:   DIALOG                EQUIPMENT:   MINI ENGINE
+:          LOCATION:   MINNEAPOLIS           FOOTPRINT:   2
+:       NODE NUMBER:   2122                     MANNED:   Y
+:       KERNAL HOST:   122                        SITE:   TYMNET
+:       SLOT NUMBER:   FF                    SITE I.D.:   6214
+:       KERNAL CODE:   5.08                  NODE CODE:   5.06
+:          INITIALS:   REF                        DATE:   4-15-86
+:*****************************************************************************
+:>>>>>>>>>>>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+:   DI2122.TYM INITIAL CONFIGURATION & GEN.  MSK  4/4/84
+:   ADDED SITE AND HARDWARE INFORMATION TO HEADER.   REF  10-18-85
+::   *ADDED WEST PUBS MINNEAPOLIS NEIGHBOR (2210).  9/23/86 BY MSK
+::   *ADDED XLINK AND SYNC PORT 3 FOR WEST SUP INITIAL INSTALL.  UPGRADED
+::    S0CORE FROM 170 TO 175.  10-1-86 BY MSK
+::   *DELETED XLINK.  ADDED TIILNK(2211). REDEFINED S.REF(3) FROM XLINK PORT
+::    TO 2211 PORT.  UPGRADED S0CORE FROM 175 TO 185K.  UPGRADED NODE CODE
+::    FROM 5.06 TO 5.10.  UPGRADED CONSAT FROM 3.04 TO 3.05.  2/13/87 BY MSK
+:*****************************************************************************
+
+:               HARDWARE CONFIGURATION
+ENGINE  EQ      1               :  1 IF HARDWARE IS TYMNET ENGINE
+MICRO   EQ      2               :* ENHANCED SYNC/ASYNC
+ZITEL   EQ      1               : 1 IF USING ZITEL MAC
+N.ADA    EQ     1               : 1 IF NEW STYLE ASYNC CARD
+ASYNEW   EQ     2               : 1 IF NEW AND OLD ASYNC ROUTINES
+CONSAT   EQ     1               : 1 IF CONSAT PRESENT ON NODE
+NASYNG   EQ     2               : NUMBER OF ASYNC GROUPS 2 PER CARD
+BAUDR    EQ     2               : 0 FOR 1200 BAUD INTERRUPTS
+LBOOT    EQ     1               : RESERVED CORE FOR BOOT LOADER
+
+:               ISIS CONFIGURATION CONSTRAINTS
+NSLOT   EQ      1               : NO. OF SLOTS TO CONNECT
+NLU     EQ      4               :  MAX. NO. OF LOGICAL UNITS/SLOT
+
+:               NODE CONFIGURATION
+TII     EQ      1               :  1 IF TYMNET-II ON NODE
+NDP     EQ      $A 32           :  LIMIT DISPATCHER PORTS
+PTHRU   EQ      0               :1 IF PASSTHROUGH INHIBIT
+MACHNM  EQ      $8 2122         : NODE NUMBER
+HST0    EQ      $A 222          :  ISIS KERNEL HOST NUMBER
+NLINES  EQ      4               :  NO. OF LINKS (MUST BE.LE.NLUS0)
+OPTION(REBLD)
+
+:               NETWORK CONFIGURATION
+        TIILNK(2075)    
+        TIILNK(2011)
+        TIILNK(2210)    : WEST PUBS MINNEAPOLIS 
+        TIILNK(2211)    : WEST PUBS MINNEAPOLIS
+
+
+:        SLOT 0 NODE CODE
+S0CORE  EQ      $A 185          :SLOT 0 CORE
+NLUS0   EQ      4 
+S0L0    S.REF(0)
+S0L1    S.REF(1)                
+S0L2    S.REF(2)                : WEST PUBS MINNEAPOLIS - NODE 2210
+S0L3    S.REF(3)                : WEST PUBS MINNEAPOLIS - NODE 2211
+
+:       SLOT 1 - DIALOG - CONSAT - 
+S1CORE  EQ      $A 38           :SLOT 1 CORE SIZE IN KB
+S1LIC   EQ      0               :SLOT 1 LICENSES
+NLUS1   EQ      2
+S1L0    A.REF(0)
+S1L1    A.REF(1)
+
+        END
+
+-TYP DI2122.T01
+:*************************************************************************
+:          FILE:  CONSAT                 
+:  COMPANY NAME:  DIALNET
+:   NODE NUMBER:  2122                      LOCATION: MINNEAPOLIS, MI
+:   KERNAL HOST:  122
+:   SLOT NUMBER:  01
+:       VERSION:  3.04                          DATE: 9-13-85
+:      INITIALS:  REF
+:*************************************************************************
+:>>>>>>>>>>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<
+:: DI2122.T01 CONFIGURED 19 PORT CONSAT SLOT
+:: ADDED PARITY TO ALL PORTS. OUTDIAL PORTS 18 & 19 4-16-85 LDB
+:: REMOVED OUTDIAL PORTS PER CUSTOMER REQUEST 7-16-85 LDB
+:: CHANGED DR2122.T01 TO DI2122.T01   REF  9-13-85
+::   *CHANGED PAR TO NOPAR.  9/23/86 BY MSK
+:***********************************************************************
+
+:       Declare target node, slot
+        LOCATION(2122,1)
+
+:       Declare configuration
+        DECLARE(ASYNC,32)
+	GLOBAL(X3ON)
+
+:       Origination host
+        ACHOST(21122)
+ 
+:       LOG-IN MESSAGE
+	LTEXT(ULMSG,Dialog Information Services' DIALNET)
+        LTEXT(TIDM,)
+
+:	TID AT 1200
+	TID120(0-31)
+
+:	SPECIFY PARITY
+	PVCRNG(0-18)
+	PVCEX(0-18,NOPAR)
+
+:	OUTDIAL HOSTS
+:	ADRPRT(19-20,822,0,ZERO)
+:	PVCRNG(19-20)
+:	PVCEX(19-20,AID,TID15,NOPAR)
+
+ 
+
+
+-TYP DI2122.CMD
+;;*****************************************************************************
+;;              FILE:   KERNAL
+;;      COMPANY NAME:   DIALOG
+;;       NODE NUMBER:   2122                   LOCATION:   MINNEAPOLIS, MN
+;;       KERNAL HOST:   122
+;;       SLOT NUMBER:   FF
+;;           VERSION:   5.08                       DATE:   3-26-86
+;;          INITIALS:   REF
+;;*****************************************************************************
+;;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+;;   DI2122.CMD INITIAL CONFIGURATION.   MSK   4/4/84
+;;*****************************************************************************
+;@(SOURCE)I2IS05.I08
+;ADI2122.TYM
+;AGOODGY.LST
+;ASTATS.NAD
+;@(SOURCE)I2IS05.R08
+;@(SOURCE)I2T205.R08
+;@(SOURCE)I2IG05.R08
+;X(SOURCE)I2IS05.P08
+1;FDI2122.BIN
+70;T0,SUMTBL;PINTLEN,IEND-INTLEN;P%PSEGF,SFSIZE;P%Q
+
+-TYP DI2122.C00
+;;*****************************************************************************
+;;              FILE:   NODE CODE
+;;      COMPANY NAME:   DIALOG
+;;       NODE NUMBER:   2122                   LOCATION:   MINNEAPOLIS, MN
+;;       KERNAL HOST:   122
+;;       SLOT NUMBER:   0
+;;           VERSION:   5.10                       DATE:   3-26-86
+;;          INITIALS:   MSK
+;;*****************************************************************************
+;;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+;;   DI2122.C00 INITIAL CONFIGURATION & GEN.  MSK  4/4/84
+;;*****************************************************************************
+;;
+;A(SOURCE)TII05.I10
+;@DI2122.TYM
+;@GOODGY.LST
+;A(SOURCE)TII05.R10
+;A(SOURCE)TII05.F10
+;@(SOURCE)TII05.P10
+1;FDI2122.N00
+;X(SOURCE)TIII05.WRT
+
+-TYP DI2122.C01
+;;****************************************************************************
+;;           FILE:   CONSAT
+;;   COMPANY NAME:   DIALOG
+;;    NODE NUMBER:   2122               LOCATION:   MINNEAPOLIS, MN
+;;    KERNEL HOST:   122
+;;    SLOT NUMBER:   1
+;;        VERSION:   3.05                   DATE:   4-8-86
+;;       INITIALS:   MSK
+;;****************************************************************************
+;;>>>>>>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+;;   * UPGRADED TO VERSION 3.04 ON 5/8/84 BY MSK
+;;   GENNED WITH PATCH TO CORRECT PORT HANG PROBLEM 5-2-85 LDB/BJM
+;;   * CHANGED DR2122.C01 TO DI2122.C01  MSK  9-13-85
+;;****************************************************************************
+;;
+;@(SOURCE)ISCS03.I05
+;@DI2122.T01
+;@(SOURCE)ISCS03.R05
+;X(DIALNET)ISCS03.P05
+1;FDI2122.N01
+CTA,CTASIZ;PSEG0,S0SIZE;PSEG1,S1SIZE;PSEG9,S9SIZE;P%P
+%Q
+
+-TYP DI2122.MER
+DI2122.BND:=DI2122.BIN,DI2122.N00,DI2122.N01
+
+-R NAD
+1.5
+;X   DI2122.CMD
+
+;;*****************************************************************************
+;;              FILE:   KERNAL
+;;      COMPANY NAME:   DIALOG
+;;       NODE NUMBER:   2122                   LOCATION:   MINNEAPOLIS, MN
+;;       KERNAL HOST:   122
+;;       SLOT NUMBER:   FF
+;;           VERSION:   5.08                       DATE:   3-26-86
+;;          INITIALS:   REF
+;;*****************************************************************************
+;;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+;;   DI2122.CMD INITIAL CONFIGURATION.   MSK   4/4/84
+;;*****************************************************************************
+;@   (SOURCE)I2IS05.I08
+
+End of assembly
+;A   DI2122.TYM
+
+End of assembly
+;A   GOODGY.LST
+
+End of assembly
+;A   STATS.NAD
+
+===========================
+Slot	Ticks	Core	LUs 
+===========================
+  0	4	185	4
+  1	5	38	2 
+=========================== 
+Tots:	9	223	6 
+===========================
+ 
+End of assembly
+;@   (SOURCE)I2IS05.R08
+
+SYNC 1A4E 22BA
+CLOCKS 22BA 2D28
+FLASH 2D28 2FD2
+KCAREA 2FD2 31F4
+TTY 31F4 3500
+KERNEL 3500 6840
+DDT 6900 8C00
+   690d bufferlets allocated to dispatcher
+DISPAT 8C00 0D000
+End of assembly
+;@   (SOURCE)I2T205.R08
+
+   Slot 0 CTA assembled at: 0D000x, 2E400x bytes
+End of assembly
+;@   (SOURCE)I2IG05.R08
+
+.............................................
+
+
+
+    ***  ISIS-II  ***
+      Version 5.8d
+TYMNET-II, Version 724.65o
+    KERNEL host is 222
+1 interface slots
+
+ expects 1 async board, device address is 0C1
+   SUPPORTS NEW ASYNC CHARACTER DRIVER ONLY.
+	enhanced async microcode
+        enhanced sync microcode
+
+node 2122 has 4 sync lines: 
+line 0d is physical line 0
+line 1d is physical line 1
+line 2d is physical line 2
+line 3d is physical line 3
+
+Slot configurations:
+
+slot 1 has 38 K-bytes of core, from 3D200 to 469FF
+2 logical unit
+L.U. 0 is async group 0
+L.U. 1 is async group 1
+
+***Highest location used in this configuration is 46A00
+
+Requires 284d k-bytes of core
+
+
+
+
+.............................................
+
+End of assembly
+;X   (SOURCE)I2IS05.P08
+
+;; Patch file for ISIS version 5.08
+
+;;	Patch to correct an erroneous illegal instruction trap when using
+;;	the ?STAT command.
+
+LO KERNEL
+LO DDT
+QSTAT+10]   STH 0,SYNVEC,8   STH R0,OLDPSW+2,R8
+
+
+;;	Perform patches which require assembly.
+
+;@   (SOURCE)I2IS05.Q08
+
+End of assembly
+1;F   DI2122.BIN
+
+70;T
+0,SUMTBL;P
+INTLEN,IEND-INTLEN;P
+%P
+SEGF,SFSIZE;P
+%Q
+EXIT
+
+-R NAD
+1.5
+;X   DI2122.C00
+
+;;*****************************************************************************
+;;              FILE:   NODE CODE
+;;      COMPANY NAME:   DIALOG
+;;       NODE NUMBER:   2122                   LOCATION:   MINNEAPOLIS, MN
+;;       KERNAL HOST:   122
+;;       SLOT NUMBER:   0
+;;           VERSION:   5.10                       DATE:   3-26-86
+;;          INITIALS:   MSK
+;;*****************************************************************************
+;;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+;;   DI2122.C00 INITIAL CONFIGURATION & GEN.  MSK  4/4/84
+;;*****************************************************************************
+;;
+;A   (SOURCE)TII05.I10
+
+End of assembly
+;@   DI2122.TYM
+
+End of assembly
+;@   GOODGY.LST
+
+End of assembly
+;A   (SOURCE)TII05.R10
+
+End of assembly
+;A   (SOURCE)TII05.F10
+
+
+TYMNET-II Node Code, Version 5.10, ISIS Node
+
+Node: 2122  Kernel Host: 222
+
+Ports:		Lines:		Links:
+   256d Pthru	     4d Sync	     4d TIILNK
+     3d Xray	     0d SIO	     0d XLNK
+		     4d Total	     4d Total
+    32d Disp
+     2d Krnl
+
+Maximum number of circuits =  322d 
+
+
+Bufferlet storage space:
+
+  4670x bytes (  18d KB) for  322d circuit buffers ( 56d bytes per circuit)
+  2AEEx bytes (  11d KB) for   50d history buffers (219d bytes per termination)
+  715Ex bytes (  29d KB) for  322d total circuits  ( 90d bytes per circuit)
+
+
+Memory used by this configuration = 2E400x, 185d KB.
+
+Optimal amount of memory for this configuration =   179d  KB.
+
+End of assembly
+;@   (SOURCE)TII05.P10
+
+
+PATCH added on 841227 at 1100 by GAZEL.
+     Starts at DZHS02+22 and is 6x bytes long
+	Continues at PATCH1+0 and is 16x bytes long
+	Continues at DZHS02+32 and is 4x bytes long
+<<< FIX HOST REPORTING PROBLEM >>>
+
+PATCH added on 841116 at 1000 by JIM.
+     Starts at ATLNR1+0A and is 4x bytes long
+	Continues at KSPEE4+4 and is 4x bytes long
+	Continues at XND26+26 and is 4x bytes long
+<<< FIX 'MS' LINE SPEED REPORTING >>>
+
+PATCH added on 850926 at 1100 by TONY.
+     Starts at GMTCAL and is 6x bytes long
+	Continues at PATCH1+1E and is 18x bytes long
+	Continues at GMTCA1+0A and is 6x bytes long
+	Continues at PATCH1+30 and is 14x bytes long
+<<< PATCH FOR GMTCAL ROUTINE >>>
+
+PATCH added on 850913 at 1500 by JIM.
+     Starts at NTDSIO and is 6x bytes long
+	Continues at PATCH1+3E and is 14x bytes long
+<<< FIX SIO BUFFER COUNT ERROR REPORTING >>>
+
+PATCH added on 851106 at 150 by SNILLUKA.
+     Starts at TRCS20 and is 0Ax bytes long
+<<< FIX XRAY MASKING ALGORITHM FOR TRACE COMMANDS >>>
+
+PATCH added on 851113 at 1400 by JIM.
+     Starts at LDRP20+12 and is 4x bytes long
+	Continues at LDRP20+1A and is 4x bytes long
+	Continues at LDRP40 and is 4x bytes long
+<<< FIX LINE DIAGNOSTIC REPORTING >>>
+
+PATCH added on 860421 at 1430 by GAZEL.
+     Starts at LEP09R+3A and is 2x bytes long
+	Continues at LEP09R+3E and is 2x bytes long
+<<< PATCH TO FIX 2E63 CRASH >>>
+
+PATCH added on 860626 at 1040 by GAZEL.
+     Starts at XND25 and is 6x bytes long
+	Continues at PATCH1+52 and is 22x bytes long
+<<< FIX 5-DIGIT NEIGHBOR >>>
+
+PATCH added on 860905 at 1400 by JIM.
+     Starts at ATTDIE and is 6x bytes long
+	Continues at PATCH1+74 and is 3Ax bytes long
+<<< FIXES MULTI-LINE RESET PROBLEMS >>>
+
+PATCH added on 861114 at 1500 by ALIN.
+     Starts at GETPWR+18 and is 6x bytes long
+	Continues at PATCH1+0AE and is 1Ax bytes long
+<<< fix XRAY GP command >>>
+End of assembly
+1;F   DI2122.N00
+
+;X   (SOURCE)TIII05.WRT
+
+SEG0,RSEG0;P
+SEG1,S1SIZE;P
+SEGD,SDSIZE;P
+SEGF,SFSIZE;P
+CTA,CTASIZ;P
+%P
+%Q
+EXIT
+
+-R NAD
+1.5
+;X   DI2122.C01
+
+;;****************************************************************************
+;;           FILE:   CONSAT
+;;   COMPANY NAME:   DIALOG
+;;    NODE NUMBER:   2122               LOCATION:   MINNEAPOLIS, MN
+;;    KERNEL HOST:   122
+;;    SLOT NUMBER:   1
+;;        VERSION:   3.05                   DATE:   4-8-86
+;;       INITIALS:   MSK
+;;****************************************************************************
+;;>>>>>>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+;;   * UPGRADED TO VERSION 3.04 ON 5/8/84 BY MSK
+;;   GENNED WITH PATCH TO CORRECT PORT HANG PROBLEM 5-2-85 LDB/BJM
+;;   * CHANGED DR2122.C01 TO DI2122.C01  MSK  9-13-85
+;;****************************************************************************
+;;
+;@   (SOURCE)ISCS03.I05
+
+End of assembly
+;@   DI2122.T01
+
+End of assembly
+;@   (SOURCE)ISCS03.R05
+
+Start.Lib Version 0.05
+DATA 20 32
+STATUS 10000 10204
+CONVRT 10204 1028C
+DATIME 1028C 1049C
+SIGNAL 1049C 1049C
+DATA 0A2 420
+DATA 1049C 1090A
+CONSAT 1090A 11A0F
+PVC 11A0F 11F44
+LOGGER 11F44 1236E
+DATA 420 580
+CRASH 580 1246C
+CONSAT 1268E 12BBC
+BUFFER 12C16 12F52
+TIMOUT 12F52 13004
+ISIS 13004 137F8
+STATUS 137F8 13C76
+MERLIN 1610 142D4
+CRASH 142D4 143CC
+DEFAULT AREA PROTECTIONS ASSUMED.
+
+SEGMENT 0-length 6356d, requires 1900x bytes of core.
+SEGMENT 1-length 17484d, requires 4500x bytes of core.
+SEGMENT 2-length 10372d, requires 2900x bytes of core.
+SEGMENT 3-length 2048d, requires 800x bytes of core.
+SEGMENT 0E-length 288d, requires 200x bytes of core.
+       37d K-bytes of core
+
+
+
+  CONSAT configuration - version 3.05
+----------------------------------------
+
+Node:	2122
+Slot:	1
+Default Origination host:	21122
+
+PVC ports:	19
+
+ASYNC ports:	32
+
+----------------------------------------
+
+
+
+
+End of assembly
+;X   (DIALNET)ISCS03.P05
+   ?
+DEL *.TMP
+
+Undefined opcode   ?
+R MERLIN
+
+Undefined opcode   ?
+@DI2122.MER
+
+Undefined not allowed   ?
+R CKSUM
+
+Undefined opcode   ?
+DI2122.*
+
+Undefined not allowed
+Syntax error   ?
+
+
+
+
+DATE
+SYS
+BYE
+
+Undefined not allowed   ?
+
+EXIT
+
+-SEND WRFS
+TYPE LETTER:
+; PCOM v1.63 - processed: (DIALNET)DI2122.ADT = (DIALNET)DI2122.ASM
+; Options: DETACH  LOG NOAPPEND SUPERSEDE LICENSE 
+; Limits: TIME:60 TRULIMIT:0 
+; Status: completed.
+; Output recorded in file (DIALNET)DI2122.ADT.
+
+mail waiting
+-LOGOUT
+1342.75 tru
+terminal time: 0:07:41
+ 
