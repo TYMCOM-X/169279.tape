@@ -1,0 +1,478 @@
+: ******************************************************************
+: **                  PROPRIETARY INFORMATION                     **
+: **                                                              **
+: **  This  source code listing constitutes the proprietary pro-  **
+: **  perty of TYMNET.  The recipient, by receiving this program  **
+: **  listing, agrees that neither this listing nor the informa-  **
+: **  tion disclosed herein nor any part thereof shall be repro-  **
+: **  duced or transferred to other documents or used or dis-     **
+: **  closed to others for manufacturing or for any other purpose **
+: **  except as specifically authorized in writing by TYMNET.     **
+: ******************************************************************
+: **                   PROGRAM IDENTIFICATION                     **
+: **                                                              **
+: **  Version Number     : 1.00		 Release Date : 09/12/86  **
+: **                                                              **
+: **  File Name          : FRNG01.R00                             **
+: **                                                              **
+: **  File Description   : ISIS FRING.LIB                         **
+: **                                                              **
+: **  File Abstract      : initial release                        **
+: **                                                              **
+: ******************************************************************
+: **                CONFIGURATION SPECIFICATION                   **
+: **                                                              **
+: **  Core Memory Requirement:                                    **
+: **                                                              **
+: **  Basic Code Size:                                            **
+: **                                                              **
+: **  Additional Code Size per Tymfile Parameter Unit:            **
+: **                                                              **
+: **  Estimated Code Growth for Next 12 Months:                   **
+: **                                                              **
+: **  Sample Configurations:                                      **
+: **                                                              **
+: **  Hardware/Firmware Requirements:                             **
+: **                                                              **
+: **  Other Software Requirements:                                **
+: **                                                              **
+: **  Slot Limitations:                                           **
+: **                                                              **
+: ******************************************************************
+: **                   DOCUMENT SPECIFICATION                     **
+: **                                                              **
+: **  Software Requirements Specification       :                 **
+: **                                                              **
+: **  Functional Specification (GED)            :                 **
+: **                                                              **
+: ******************************************************************
+: **                      MAINTENANCE HISTORY                     **
+: **                                                              **
+: **  Ver   Date    By   PIR/NSR         Reason for Change        **
+: ** ----- -------- ---  -------- ------------------------------  **
+: **                                                              **
+: ******************************************************************
+: **                 SUBROUTINE IDENTIFICATION                    **
+: **                                                              **
+: **  Routine Abstract   :                                        **
+: **                                                              **
+: **  Calling Sequence   :                                        **
+: **                                                              **
+: **  Parameters         :                                        **
+: **                                                              **
+: **  Returned Values    :                                        **
+: **                                                              **
+: **  Side Effects       :                                        **
+: **                                                              **
+: **  Optional Comments  :                                        **
+: **                                                              **
+: ******************************************************************
+	SUBTTL	ISIS Ring Handling Routines	- FRNG01.R00
+:*******************************************************************
+	RA	0		:	FRING.LIB
+
+:	ISIS RING HANDLERS
+
+:	This package is the fast, efficient ring handler set
+:	The following CONSTRAINTS apply:
+:	1.  Once started, register 14 or 15 is dedicated to that
+:		operation, until it is "ended".
+:	2.  If a new operation is started before the previous operation is
+:		"ended", the previous operation is aborted, and the
+:		appropriate ring is effectively left unchanged.
+:
+:	This package now permits simultaneous input and output!!!
+:		R15 is used for output operations
+:		R14 is used for input operations
+
+:*: NOTE: ISIS II will soon use negative indexing, like this ring package.
+:*:	To convert this package, remove all lines with ':*:' in them,
+:*:	and change all occurrences of 'LHL R15/R14' to 'LH R15/R14'.
+
+:	The package contains both utility and primitive routines:
+
+:	utility routines are called with link R5,
+:	they preserve registers R6--R14.
+:	OCS	Output Canned String
+:		R2 = port #, R3 = pointer to string (SC format)
+:		OCS will output string as a data message to the specified
+:		port. OCS goes to completion, and "ends the operation.
+:	OCM	Output Canned Message
+:		R2 = port #, R3 = pointer to string (SC format)
+:		OCM will output the string as a message to the specified port
+:		OCM goes to completion, and "ends the operation.
+:	OBS	Output Byte String
+:		R2 = number of characters, R3 = pointer to string
+:		OBS will output specified string into the current message
+:		message must have already been "started", and is NOT "ended".
+
+:	primitive input routines.  All link on R4, & preserve R1-R3, R5-R13, R15:
+:	LOOK	Determine if an input message exists...normal return if not
+:		skip (4) return if so, and then:
+:		R1 = port number
+:		R2 = message type code (peek)
+:		On skip return, condition codes are set such that JE will
+:		succeed on port 0.  The port number will have been removed
+:		from the message but the message code will not have been
+:		removed (you get a peek at it).
+:	GETCH	Get a character, returned in R0.
+:	GETH	Get a halfword, returned in R0.  An even number of bytes 
+:		should have been removed previously for expected results.
+:	GETW	Get a word, returned in R0.  An even number of halfwords 
+:		should have been removed previously for expected results.
+:	FLUSH	Flush away ("end") remainder of input message.  R0 is number
+:		of bytes remaining to flush.
+:	ELIR	End-Logical-Input-Record.  "Ends" current message, sets
+:		up pointers for next message.
+
+:	Primative output routines.  All link on R4, preserve R1-R3, R5-R14,
+:	unless used for arguments, or otherwise specified:
+:	SPACE	Returns R0 = number of characters of space available in	
+:		output ring. Sets up R15 for "start" of message.
+:	ROOM	R0 = number of characters required for next message,
+:		returns when that much room is available in output ring.
+:		MAY DISMISS.
+:		sets up R15 for "start" of message. SMASHES R1.
+:	SLOR	Start Logical Output Record.
+:		R0 = number of bytes required.
+:		R1 = port #
+:		R2 = message type code.
+:		Provides function of ROOM, PUTH, and PUTCH for first 3 chars
+:		of message. MAY DISMISS. SMASHES R3.
+:	PUTCH	places character in R0 in next position of ring.
+:	PUTH	places halfword in R0 in next position of ring.  Even number
+:		of bytes have been output previously in this message.
+:	PUTW	places word in R0 in next position of ring.  Even number of
+:		halfwords should have been output previously in this message.
+:	ELODR	End Logical Output Data Record
+:		places byte count into message type to make data message,
+:		then "ends" message.  Smashes R0, R1.
+:	ELOR	End Logical Output Record
+:		"ends" message.
+
+:	CONVENTIONS:
+:	ROUTINES USE DEDICATED REGISTERS:
+:	R15	OUTPUT RING INDEX
+:	R14	INPUT RING INDEX
+:
+:	NOTE....
+:		IRSIZE AND ORSIZE MUST EACH BE LESS THAN 32K.
+
+	GL	IRING,ORING,IRSIZE,ORSIZE
+	GL	OCS,OCM,OBS
+	GL	LOOK,GETCH,GETH,GETW,FLUSH,ELIR
+	GL	SPACE,ROOM,SLOR,PUTCH,PUTH,PUTW,ELODR,ELOR
+        GL      PUTRCD
+
+	MO	.,RING
+NFMI	EQ	0		:RELATIVE INDEX OF NEXT-FILL-MESSAGE-INDEX
+CEI	EQ	2		:RELATIVE INDEX OF CURRENT-EMPTY-INDEX
+RING	EQ	4		:RELATIVE INDEX OF START OF RING DATA
+
+:	DEFINE DATA AREA
+	SEG	A.RING		:RINGS IN RING AREA
+
+:	THE DISPATCHER OUTPUT RING
+ORING	HS	0		:OUTPUT BLOCK START ADDRESS
+	HC	0		:OUTPUT NEXT FILL MESSAGE INDEX
+	HC	0		:OUTPUT CURRENT ENTRY INDEX
+	BS	ORSIZE		:THE OUTPUT RING
+
+:	THE DISPATCHER INPUT RING
+IRING	HS	0		:INPUT BLOCK START ADDRESS
+	HC	0		:INPUT NEXT FILL MESSAGE INDEX
+	HC	0		:INPUT CURRENT EMPTY INDEX
+	BS	IRSIZE		:THE INPUT RING
+
+:	CODE AREA
+	SEG	A.CODE
+:	INPUT ROUTINES
+
+:	LOOK AT A RING ENTRY
+:	NORMAL RETURN IF RING EMPTY
+:	ELSE SKIP RETURN, PORT RETURNED IN R1
+:	MESSAGE TYPE RETURNED IN R2
+:	ALL REGISTERS SET UP FOR TRANSFER
+:	POSITION IS ADVANCED PAST PORT#
+	IF	\LOOK;.LOOK.	 HS	0;	ELSE;LOOK	 HS	0;	EI
+	LHL	R14,CEI+IRING,,	:GET CURRENT EMPTY INDEX
+	CLH	R14,NFMI+IRING,,	:TEST IF CAUGHT UP
+	JER	R4		:EMPTY...NORMAL RETURN
+	SHI	R14,IRSIZE	:*: CONVERT TO NEGATIVE INDEX
+	LHL	R1,IRING+RING+IRSIZE,R14,	:GET PORT #
+	AIS	R14,2		:BUMP POINTER PAST PORT #
+	LB	R2,IRING+RING+IRSIZE,R14,	:GET MESSAGE TYPE
+	LR	R1,R1		:SET CONDITION CODES
+	J	4,R4		:THEN SKIP RETURN
+
+:	GET A CHARACTER FROM THE INPUT RING
+:	CHARACTER RETURNED IN R0
+GETCH	LB	R0,IRING+RING+IRSIZE,R14,	:GET THE CHAR
+	AIS	R14,1		:BUMP INDEX
+	JLR	R4		:RETURN IF NOT
+	LHI	R14,-IRSIZE	:ELSE FOLD IT
+	JR	R4		:AND EXIT
+
+:	GET A HALF-WORD FROM THE INPUT RING
+:	ASSUME HAVE REMOVED AN INTEGRAL NUMBER OF HALF-WORDS FROM RECORD
+:	HALF-WORD RETURNED IN R0
+GETH	LHL	R0,IRING+RING+IRSIZE,R14,	:GET THE DATA
+	AIS	R14,2		:BUMP INDEX
+	JLR	R4		:RETURN IF NOT
+	LHI	R14,-IRSIZE	:ELSE FOLD IT
+	JR	R4		:AND EXIT
+
+:	GET A WORD FROM THE INPUT RING
+:	ASSUME HAVE REMOVED AN INTEGRAL NUMBER OF WORDS FROM RECORD
+:	WORD RETURNED IN R0
+GETW	L	R0,IRING+RING+IRSIZE,R14,	:GET THE DATA
+	AIS	R14,4		:BUMP INDEX
+	JLR	R4		:RETURN IF NOT
+	LHI	R14,-IRSIZE	:ELSE FOLD IT
+	JR	R4		:AND EXIT
+
+:	FLUSH AN INPUT RECORD
+:	NUMBER OF CHARS TO FLUSH IN R0
+FLUSH	AR	R14,R0		:ADVANCE RING AND FALL THROUGH
+
+:	END LOGICAL INPUT RECORD
+ELIR	AIS	R14,3		:FORCE TO NEXT WORD
+	NHI	R14,-4
+	JLFS	ELIR2		:NO
+	SHI	R14,IRSIZE	:YES
+ELIR2
+	AHI	R14,IRSIZE	:*: CONVERT TO POSITIVE INDEX
+	STH	R14,CEI+IRING,,
+	JR	R4		:AND EXIT
+
+:	OUTPUT ROUTINES
+
+:	OUTPUT "CANNED" MESSAGE
+:	LINK ON R5
+:	R2 = PORT #
+:	R3 = POINTER TO STRING (FORMAT: n\B1\...\Bn)
+OCM	LB	R0,0,R3		:GET COUNT n
+	AIS	R0,5		:COMPUTE SPACE REQUIREMENTS
+	NHI	R0,-4
+	JAL	R4,ROOM		:INSURE THERE IS ROOM
+	LR	R0,R2		:COPY PORT #
+	JAL	R4,PUTH		:PLACE PORT NUMBER
+	LB	R2,0,R3		:GET COUNT AGAIN
+	J	OCS1		:SKIP TO PLACE THE STRING
+
+:	OUTPUT "CANNED" STRING
+:	LINK ON R5
+:	R2 = PORT #
+:	R3 = POINTER TO TEXT STRING (FORMAT n\B1\...\Bn)
+OCS	LB	R0,0,R3		GET COUNT n
+	AIS	R0,6		:COMPUTE SPACE REQUIREMENTS
+	NHI	R0,-4
+	JAL	R4,ROOM		:INSURE THERE IS ROOM
+	LR	R0,R2
+	JAL	R4,PUTH		:PLACE PORT NUMBER
+	LB	R2,0,R3
+	LR	R0,R2		:GET THE COUNT n
+	JAL	R4,PUTCH	:PLACE IT...MESSAGE TYPE 1-7D
+OCS1	AIS	R3,1		:BUMP SOURCE CHARACTER POINTER
+	LB	R0,0,R3		:GET THE NEXT CHARACTER
+	JAL	R4,PUTCH	:PLACE IT INTO RING
+	SIS	R2,1		:REDUCE COUNT
+	JGBS	OCS1		:REPEAT UNTIL ALL CHARACTERS PLACED
+	JAL	R4,ELOR		:END LOGICAL OUTPUT RECORD
+	JR	R5		:THEN EXIT
+
+:	OUTPUT A BYTE STRING
+:	LINK ON R5
+:	R3 = POINTER TO STRING
+:	R2 = NUMBER OF CHARACTERS TO OUTPUT FROM STRING
+OBS1	AIS	R3,1		:BUMP CHARACTER POINTER
+OBS	LB	R0,0,R3		:GET THE NEXT CHARACTER
+	JAL	R4,PUTCH	:PLACE IT INTO RING
+	SIS	R2,1		:REDUCE COUNT
+	JGBS	OBS1		:REPEAT UNTIL ALL CHARACTERS PLACED
+	JR	R5		:THEN EXIT
+
+:	FIND SPACE IN THE RING (HOW BIG A MESSAGE IT WILL TAKE)
+:	RETURNS R0 = NUMBER OF CHARS OF SPACE
+SPACE	LCS	R0,4		:SET MASK
+	LHL	R15,NFMI+ORING,,
+	NH	R0,CEI+ORING,,	:FORCE EMPTIER TO WORD BOUNDARY
+	SR	R0,R15		:SPACE BETWEEN US AND EMPTIER
+	JGFS	SPACE1		:SKIP IF NO WRAP-AROUND
+	AHI	R0,ORSIZE	:ELSE CORRECT FOR WRAP
+SPACE1	SIS	R0,4		:CORRECT FOR POSSIBLE OVERFLOW
+	SHI	R15,ORSIZE	:*: CONVERT TO NEGATIVE INDEX
+	JR	R4		:AND RETURN
+
+:	INSURE THERE IS ROOM IN THE RING (DISMISS IF NECESSARY)
+:	EXPECTS R0 = NUMBER OF CHARACTERS OF SPACE
+ROOM	LHL	R15,NFMI+ORING,,
+	SHI	R15,ORSIZE	:*: CONVERT TO NEG. INDEX
+ROOM1	LCS	R1,4		:SET MASK
+	NH	R1,CEI+ORING,,	:FORCE HIM TO WORD BOUNDARY
+	SHI	R1,ORSIZE	:*:
+	SR	R1,R15		:CHECK RELATIVE POSITIONS
+	JGFS	ROOM2		:SKIP IF HE'S AHEAD OF US
+	JER	R4		:EQUAL...HE'S EMPTY...GO DO IT
+	AHI	R1,ORSIZE		:HE'S BEHIND US
+ROOM2	SIS	R1,4		:ALLOW FOR POTENTIAL OVERFLOW
+	CR	R0,R1
+	JLER	R4		:ROOM EXISTS...GO DO IT
+	SVC	DISMISS,0
+	J	ROOM1		:AND GO TRY AGAIN
+
+:	START LOGICAL OUTPUT RECORD
+:	PROVIDES FUNCTION OF ROOM, PUTH, & PUTCH FOR FIRST 3 CHARS OF MESSAGE
+:	R0 = NUMBER OF CHARACTERS OF SPACE REQUIRED
+:	R1 = PORT #
+:	R2 = MESSAGE CHARACTER CODE
+SLOR	LHL	R15,NFMI+ORING,,
+	SHI	R15,ORSIZE	:*: CONVERT TO NEG. INDEX
+SLOR1	LCS	R3,4		:SET A MASK
+	NH	R3,CEI+ORING,,	:FORCE RECEIVER TO WORD BOUNDARY
+	SHI	R3,ORSIZE	:*:
+	SR	R3,R15
+	JGFS	SLOR2
+	AHI	R3,ORSIZE	:ACCOUNT FOR POSSIBLE RING FOLDING
+SLOR2	SIS	R3,4		:ALLOW FOR POTENTIAL OVERFLOW
+	CR	R3,R0
+	JGEFS	SLOR3		:SKIP IF WE CAN GO
+	SVC	DISMISS,0
+	JBS	SLOR1
+SLOR3	STH	R1,ORING+RING+ORSIZE,R15,	:OK...PLACE MESSAGE
+	STB	R2,2+ORING+RING+ORSIZE,R15,
+	AIS	R15,3		:BUMP PAST THESE CHARACTERS
+	JR	R4		:AND EXIT
+
+:	PUT A CHARACTER INTO THE RING
+:	R0 = CHARACTER
+PUTCH	STB	R0,ORING+RING+ORSIZE,R15,	:PLACE THE CHARACTER
+	AIS	R15,1		:BUMP INDEX
+	JLR	R4		:SKIP IF NOT
+	LHI	R15,-ORSIZE	:ELSE WRAP AROUND
+	JR	R4		:AND EXIT
+
+:	PUT A HALF-WORD INTO THE RING
+:	R0 = HALF-WORD
+PUTH	STH	R0,ORING+RING+ORSIZE,R15,	:PLACE THE HALF-WORD
+	AIS	R15,2		:BUMP INDEX
+	JLR	R4		:EXIT IF NOT
+	LHI	R15,-ORSIZE	:ELSE WRAP AROUND
+	JR	R4		:AND EXIT
+
+:	PUT A WORD INTO THE RING
+:	R0 = WORD
+PUTW	ST	R0,ORING+RING+ORSIZE,R15,	:PLACE THE WORD
+	AIS	R15,4		:BUMP INDEX
+	JLR	R4		:SKIP IF NOT
+	LHI	R15,-ORSIZE	:ELSE WRAP AROUND
+	JR	R4		:AND EXIT
+
+:	END LOGICAL OUTPUT DATA RECORD
+ELODR	LHL	R1,NFMI+ORING,,	:GET START OF THIS MESSAGE
+	SHI	R1,ORSIZE	:*: CONVERT TO NEG. INDEX
+	LR	R0,R15		:COPY MESSAGE END
+	SR	R0,R1		:COMPUTE SIZE OF THIS MESSAGE
+	JGEFS	ELODR2		:SKIP IF NO WRAP-AROUND
+	AHI	R0,ORSIZE		:ELSE CORRECT FOR WRAP
+ELODR2	SIS	R0,3		:MAKE ALLOWANCE FOR HEADER
+	JER	R4		:EXIT IF ZERO LENGTH MESSAGE
+	STB	R0,2+ORING+RING+ORSIZE,R1,	:INSERT MESSAGE TYPE INTO MESSAGE
+				:AND FALL THROUGH
+
+:	END LOGICAL OUTPUT RECORD
+ELOR	AIS	R15,3
+	NHI	R15,-4
+	JLFS	ELOR2
+	LHI	R15,-ORSIZE	:FOLD IF NECESSARY
+ELOR2
+	AHI	R15,ORSIZE	:*: CONVERT BACK
+	STH	R15,NFMI+ORING,,	:NOW ADVANCE POINTER TO NEXT MESSAGE
+	JR	R4		:AND EXIT
+
+PUTRCD  EQ      .
+        :PUT RECORD ROUTINE - THIS ROUTINE WILL OUTPUT AN ENTIRE DATA RECORD
+        :INCLUDING OPENING AND CLOSING THE RING.  NO ADDITIONAL WORK IS
+        :REQUIRED BY THE USER
+
+        :::PARAMETER REQUIREMENTS:::
+        :PORT NUMBER CONTAINED IN FIRST HALFWORD OF BUFFER
+        :DATA CHARACTER COUNT INCLUDING HEADER (3 CHARA) IN 3RD BYYE OF BUFFER
+        :INPUT BUFFER ADDRESS IN R2
+
+        ::      R2 = INPUT BUFFER ADDRESS (EVEN BOUNDARY - WORD OR HALFWORD)
+        ::      R4 = LINK REGISTER
+        ::      
+        ::      R0 = WORK REGISTER (BYTE INDEX)
+        ::      R1 = WORK REGISTER (WORD INDEX)
+        ::      R3 = WORK REGISTER (DATA REGISTER)
+        ::      R5 = WORK REGISTER (INPUT BUFFER INDEX)
+
+        LB      R0,2,R2                 :GET BYTE COUNT FROM INPUT RECORD
+        JER     R4                      :IF BYTE COUNT = '0', RETURN TO USER
+	LHL	R15,NFMI+ORING,,
+	SHI	R15,ORSIZE	        :CONVERT TO NEG. INDEX
+RECD1	LCS	R3,4		        :SET A MASK
+	NH	R3,CEI+ORING,,	        :FORCE RECEIVER TO WORD BOUNDARY
+	SHI	R3,ORSIZE
+	SR	R3,R15
+	JGFS	RECD2
+	AHI	R3,ORSIZE	        :ACCOUNT FOR POSSIBLE RING FOLDING
+RECD2	SIS	R3,4		        :ALLOW FOR POTENTIAL OVERFLOW
+	CR	R3,R0
+	JGEFS	RECD3		        :SKIP IF WE CAN GO
+	SVC	DISMISS,0
+	JBS	RECD1
+RECD3   EQ      .
+
+
+        :	PUT WORDS INTO THE RING TO END OF WORD INPUT
+        LR      R1,R0                   :COPY BYTE COUNT TO REG 1
+        NHI     R1,0FC                  :ADJUST FOR WORD FETCH/STORE
+        SR      R0,R1                   :SET REG 0 EQUAL TO LEFTOVER BYTES
+        LIS     R5,0                    :RESET INPUT BUFFER PTR
+
+RECD5   L       R3,0,R2,R5              :FETCH WORD FROM INPUT BUFFER
+	ST	R3,ORING+RING+ORSIZE,R15,        :PLACE THE WORD
+        AIS     R5,4                    :BUMP INPUT INDEX
+	AIS	R15,4		        :BUMP RING INDEX
+	JLFS	RECD6		        :SKIP IF NOT
+	LHI	R15,-ORSIZE	        :ELSE WRAP AROUND
+RECD6   EQ      .
+        SIS     R1,4
+        JG      RECD5
+
+        LR      R0,R0                   :AND BYTES LEFT OVER?
+        JE      RECD9                   :NO, GO END LOGICAL RECORD
+RECD7   LB      R3,0,R2,R5              :GET ONE BYTE
+        STB     R3,ORING+RING+ORSIZE,R15,       :PLACE THE CHARACTER
+        AIS     R5,1                    :BUMP INPUT INDEX
+        AIS     R15,1                   :BUMP RING INDEX
+        JLFS    RECD8
+        LHI     R15,-ORSIZE             :ELSE WRAP AROUND
+RECD8   SIS     R0,1
+        JG      RECD7
+
+        :	END LOGICAL OUTPUT DATA RECORD
+RECD9   EQ      .
+	LHL	R1,NFMI+ORING,,	        :GET START OF THIS MESSAGE
+	SHI	R1,ORSIZE	        :CONVERT TO NEG. INDEX
+	LR	R0,R15		        :COPY MESSAGE END
+	SR1		        :COMPUTE SIZE OF THIS MESSAGE
+	JGEFS	RECD10		        :SKIP IF NO WRAP-AROUND
+	AHI	R0,ORSIZE	        :ELSE CORRECT FOR WRAP
+RECD10	SIS	R0,3		        :MAKE ALLOWANCE FOR HEADER
+	STB	R0,2+ORING+RING+ORSIZE,R1,	:INSERT MESSAGE TYPE INTO
+				                :MESSAGE AND FALL THROUGH
+:	END LOGICAL OUTPUT RECORD
+        AIS	R15,3
+	NHI	R15,-4
+	JLFS	RECD11
+	LHI	R15,-ORSIZE	:FOLD IF NECESSARY
+RECD11  EQ      .
+	AHI	R15,ORSIZE	:*: CONVERT BACK
+	STH	R15,NFMI+ORING,,	:NOW ADVANCE POINTER TO NEXT MESSAGE
+        JR      R4                      :FINISHED - RETURN TO USER
+
+	EM
+   Ci
