@@ -1,0 +1,1896 @@
+: **********************************************************************
+:       INTERNATIONAL TEST SLOT VERSION 2.02  20-SEPT-85   BBT
+: **********************************************************************
+:
+: 20-SEP-85  Changed host key to make sure it is always 0 prior to
+:            sending it to rings.  Set ISIS CNTRL word to 0C --BBT
+:
+	TITLE	International Test Host Version 2.02  20-Sept-85  BBT
+: 
+: Some definitions required by various modules, and not wanted in the
+: .T0# file :
+:
+ECHO	eq	1		: Enable Consat echo
+ENGINE	eq	1
+MAXCHAR	eq	30		: Allow 30 character messages (TX limit)
+MAXHST	eq	1		: Allow only one host
+NTOUT	eq	0
+IRSIZE	eq	$a 8*maxprt	: Size of IRING
+ORSIZE	eq	$a 40*maxprt	: Size of ORING
+PRODID	eq	$0 99		: Product ID (experimental)
+CNTRL	eq	$0 0C		: allow number of ports may be changed
+	GL	START
+	SUBTTL	ISIS Assembly Switch Definitions	- START.LIB
+
+	REMARK %Start.Lib Version 
+SREV	EQ	0;	NUMBER SREV; REMARK .0
+SLEV	EQ	05;	NUMBER SLEV
+
+: Version 0.05 01/19/83 MDS
+:	Delete Remark regarding incompatibility with ISIS 5.00
+: Version 0.04 03/12/82  MDS
+:	Add new fields to SYS SVC Sub-operand definitions,
+:	per ISIS2 v.5.01
+: Version 0.03 03/08/82  MDS
+:	Add new fields to Seg F table per ISIS 5.01
+:	(note - Start.lib ** NOT ** compatible with ISIS 5.00
+:	because SLCNT and LCX were reversed in 5.00 )
+: Version 0.02  12/08/81  MDS
+:	Add QSTART remark, add I/O sub-ops for mother board.
+:	Delete ISIS (one) code - force ISIS2
+: Version 0.01  01/08/81  MDS
+:	Correct relative addresses of local clock index and values.
+
+	RA	0		:	START.LIB
+
+:	this file should always be assembled IMMEDIATELY AFTER the *.TYM file
+
+
+ISIS2	EQ	1	:Force ISIS2 for other library routines
+			:Note - ISIS 1 is no longer supported
+
+:			ISIS - II Version
+:
+:	The following parameters should be defined in the *.TYM file:
+:	MAXHST	maximum number of hosts associated with this interface slot
+:	MAXPRT	number of highest port associated with this interface slot
+:			(number of ports - 1)
+:	IRSIZE	 number of bytes to provide for input ring, from dispatcher
+:	ORSIZE	 number of bytes to provide for output ring, to dispatcher
+:	CNTRL	dispatcher control bits
+:	ENGINE	set to 1 if executing on a Tymnet Engine
+
+:	the following symbols MUST be defined SOMEWHERE in the assembly:
+:	IRING	the start of the input ring, from dispatcher
+:	ORING	the start of the output ring, to dispatcher
+:	ENTRY	the location of the first instruction to be executed
+
+:	the following symbols are defined for convenience:
+:	RATE	the rate of the fast clock (ticks/second)
+:	NRATE	word containing the value of RATE
+:	FASTC	word containing  realtime fast clock
+:	SLOWC	word containing  realtime slow clock (1-second)
+:	GMT	word containing GMT clock
+:	TEMPER	byte containing machine temperature
+:	VOLTS	byte containing machine voltage
+:	VERNO	halfword containing ISIS version number
+:	WWVBT	word containing WWVB time
+:	HOSTX	halfword containing kernel host number
+:	NODEX	halfword containing kernel node number
+:	LCX	halfword, offset of local clocks within seg F
+:	SLCNT	halfword, number of slots known to ISIS dispatcher
+:	LCT	halfword, pointer to crash table
+:	MAXP0	halfword, highest port 0 msg. #
+:	MAXMSG	halfword, highest msg # for all other ports
+:	LP0LST	halfword, length table for port 0 msgs.
+:	LENGTH	length table for msgs. all other ports
+:	R0-R15	symbolic names for the registers
+:	SEGn	the start address of segment n (0-0E)
+:	HOSTS	halfword array of host numbers as known by the dispatcher (R/O)
+:	PORTS	halfword array of ports/host as known by dispatcher (R/O)
+:
+:	the following symbols MAY be defined. defaults used otherwise
+:	APROTn	protection byte for area n. default area 1 write protected,
+:		other areas execution protected.
+:	HOSTn	host number for host position n. default none.
+:	HPRTn	number of ports for host position n. default none.
+:	DSTART	user DDT execution start address. default none.
+:	QSTART  user DDT query handler start address, default none.
+:	FPANEL	halfword cell for front panel display. default cell allocated
+:	FRISIS	bit array for input backpressure (1=no backpressure) default
+:			array allocated.
+:	TOISIS	bit array for output backpressure (1=no backpressure) default
+:			array allocated.
+:	VERSION	version number for slot code (default zero)
+:	PCTTBL	bit array for indicating terminating character for project
+:			code. (default none)
+:	REVLEV	revision level for slot code (default zero)
+:	A.DATA	segment number for data area. Default 0
+:	A.CODE	segment number for code area. Default 1
+:	A.BDAT	segment number for based data. Default 2.
+:	A.RING	segment number for rings. Default 2.
+:	A.BUFF	segment numberfor buffer(let)s. Default 2.
+:
+:	in addition most SVC calls have been assigned symbolic names.
+
+	GL	FASTC,SLOWC,RATE,NRATE,GMT,TEMPER,VOLTS,VERNO,HOSTX,NODEX,SLOTNO
+	GL	R0,R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12,R13,R14,R15
+	GL	IRSIZE,ORSIZE,CNTRL
+	GL	ENTRY,IRING,ORING,ENGINE,LCX
+	GL	VERREV,COREST,FPANEL,HOSTS,PORTS,FRISIS,TOISIS
+
+:	DEFINE SEG 15d LOCATIONS
+RATE	EQ	$A 600		:clock rate, ticks per second
+NRATE	EQ	0F0000		:word, contains RATE
+FASTC	EQ	0F0004		:word, contains fast clock (ticks)
+SLOWC	EQ	0F0008		:word, contains slow clock (seconds)
+GMT	EQ	0F000C		:word, contains GMT (seconds since 1/1/72)
+TEMPER	EQ	0F0010		:byte, contains machine temperature
+VOLTS	EQ	0F0011		:byte, contains machine voltage
+VERNO	EQ	0F0012		:halfword, ISIS version number
+WWVBT	EQ	0F0014		:word, WWVB time (format ??)
+HOSTX	EQ	0F0018		:halfword, kernel host number
+NODEX	EQ	0F001A		:halfword, kernel node number
+
+: Local clocks displacements
+
+LCX	EQ	0F001C	:1/2 word, contains offset of LOCLKS within seg F
+: LOCLKX and LOCLKS must be referenced by the pointer in LCX
+:LOCLKX	EQ	LOCLKS-2 :1/2 word, index to current clock from LOCLKX
+:LOCLKS	EQ	Seg F + contents of LCX
+			:clocks for slots, array of word entries per slot
+			:1st halfword is user ticks, 2nd is sys ticks for slot
+
+SLCNT	EQ	0F001E		:halfword, number of dispatcher slots
+LCT	EQ	0F0020		:halfword, pointer to crash table
+MAXP0	EQ	0F0022		:halfword, max. msg. # for port 0
+MAXMSG	EQ	0F0024		:halfword, max. msg #, all non-0 ports
+LP0LST	EQ	0F0026		:halfword, offset to port 0 msg length table
+LENGTH	EQ	0F0028		:byte table, lengths of non-0 port msgs
+
+:	Define Registers
+R0	EQ	0
+R1	EQ	1
+R2	EQ	2
+R3	EQ	3
+R4	EQ	4
+R5	EQ	5
+R6	EQ	6
+R7	EQ	7
+R8	EQ	8
+R9	EQ	9
+R10	EQ	$A 10
+R11	EQ	$A 11
+R12	EQ	$A 12
+R13	EQ	$A 13
+R14	EQ	$A 14
+R15	EQ	$A 15
+
+:	AREA DEFINITIONS
+	GL	A.DATA,A.CODE,A.BDAT,A.RING,A.BUFF
+:
+  IF	\A.DATA
+  ELSE
+A.DATA	EQ	0	:DEFAULT DATA AREA
+  EI
+
+  IF	\A.CODE
+  ELSE
+A.CODE	EQ	1	:DEFAULT CODE AREA
+  EI
+
+  IF	\A.BDAT
+  ELSE
+A.BDAT	EQ	2	:DEFAULT BASED DATA AREA
+  EI
+
+  IF	\A.RING
+  ELSE
+A.RING	EQ	2	:DEFAULT RING AREA
+  EI
+
+  IF	\A.BUFF
+  ELSE
+A.BUFF	EQ	2	:DEFAULT BUFFER AREA
+  EI
+
+:	SVC DEFINITIONS
+:
+	GL	DISMIS,FASTD,SYS,RSTRT.,CFGND.,DBGON.,DBGOF.,TSTDB.
+	GL	FREEZ.,THAW.,TFREZ.,RDDTR.,RDDTP.,RBREG.,RBPSD.
+	GL	RFREG.,RFPSD.,RDMAC.,RBMAC.,RFMAC.,SET1P.,SETP.,SETBE.
+	GL	SETFE.,IO,IOQRY.,CSYNI.,CSYNO.,FSYNO.,TIISC.
+	GL	CSUPF.,CSUPR.,FREZS.,THAWS.,ALARM.,RSCLK.,SSCLK.,SUDIA.
+	GL	SFREZ.,HALT.,SHALT.
+	GL	TIISI.,CASYN.,CPRT.,FPRT.,CSIO.,CMBRD.,FMBIN.,FMBOT.
+	GL	SHARE,K.IN,K.OUT,KIO,BDISC,SDISC
+:
+DISMIS	EQ	0	:DISMISS SVC
+FASTD	EQ	1	:FAST DISMISS SVC
+:
+SYS	EQ	2	:SYS SVC
+
+:	SYS SVC SUBOPERANDS
+RSTRT.	EQ	0	:Restart syscall
+CFGND.	EQ	1	:Connect foreground syscall
+DBGON.	EQ	2	:Debug mode ON syscall
+DBGOF.	EQ	3	:Debug mode OFF syscall
+TSTDB.	EQ	4	:Test debug mode syscall
+FREEZ.	EQ	5	:Freeze slot syscall
+THAW.	EQ	6	:Thaw slot syscall
+TFREZ.	EQ	7	:Test freeze syscall
+RDDTR.	EQ	8	:Read DDT register syscall
+RDDTP.	EQ	9	:Read DDT PSD syscall
+RBREG.	EQ	0A	:Read background register syscall
+RBPSD.	EQ	0B	:Read background PSD syscall
+RFREG.	EQ	0C	:Read foreground register syscall
+RFPSD.	EQ	0D	:Read foreground PSD syscall
+RDMAC.	EQ	0E	:Read DDT MAC register syscall
+RBMAC.	EQ	0F	:Read background MAC register syscall
+RFMAC.	EQ	10	:Read foreground MAC register syscall
+SET1P.	EQ	11	:Set 1 protect syscall
+SETP.	EQ	12	:Set protection syscall
+SETBE.	EQ	13	:Set background execution addr syscall
+SETFE.	EQ	14	:Set foreground execution addr syscall
+LMAC.	EQ	15	:Set up MAC from CTA (DDT only)
+CSUPF.	EQ	16	:Check SUP freeze state
+CSUPR.	EQ	17	:Check SUP run Q state
+FREZS.	EQ	18	:Freeze the SUP
+THAWS.	EQ	19	:Thaw the SUP
+ALARM.	EQ	1A	:Set/Clear alarm
+RSCLK.	EQ	1B	:Read the super-clock
+SSCLK.	EQ	1C	:Set the super-clock
+SUDIA.	EQ	1D	:Set user diagnostic
+UCORE.	EQ	1E	:Get slot physical addr & size (DDT only)
+SFREZ.	EQ	1F	:Super-freeze slot
+HALT.	EQ	20	:Halt the slot
+SHALT.	EQ	21	:Super-halt the slot
+SVSPY.	EQ	22	:Start/Stop SPY
+DISCO.	EQ	23	:Disconnect Logical Unit
+
+IO	EQ	3	:I/O SVC
+:	I/O SUBOPERANDS
+IOQRY.	EQ	8000	:Query I/O attributes
+CSYNI.	EQ	0	:Connect SYNC input
+CSYNO.	EQ	1	:Connect SYNC output
+FSYNO.	EQ	2	:Force SYNC output
+CASYN.	EQ	3	:Connect ASYNC
+CPRT.	EQ	4	:Connect Printer
+FPRT.	EQ	5	:Force Printer
+TIISC.	EQ	6	:T-II SYNC Connect
+TIISI.	EQ	7	:T-II SYNC Idle test
+CSIO.	EQ	8	:Connect SIO
+CMBRD.	EQ	9	:Connect SIO mother board
+FMBIN.	EQ	0A	:Force mother board input
+FMBOT.	EQ	0B	:Force mother board output
+SHARE	EQ	04	:Shared device SVC
+K.IN	EQ	0A	:Kernel Input SVC
+K.OUT	EQ	0B	:Kernel Output SVC
+KIO	EQ	0D	:Kernel-I/O (general) SVC
+BDISC	EQ	0E	:Big disc SVC (obsolete)
+SDISC	EQ	0F	:Small disc SVC (obsolete)
+
+	IF	IRSIZE&3;	REMARK	%IRSIZE should be multiple of 4
+IRSIZE	EQ	(IRSIZE!3)+1;	EI
+	IF	ORSIZE&3;	REMARK	%ORSIZE should be multiple of 4
+ORSIZE	EQ	(ORSIZE!3)+1;	EI
+
+  IF	\MAXPRT
+  ELSE
+	REMARK	%PLEASE DEFINE MAXPRT. NPORTT ASSUMED.
+MAXPRT	EQ	NPORTT-1
+HPRT0	EQ	MAXPRT
+  EI
+
+  IF	\MAXHST
+  ELSE
+	REMARK	%PLEASE DEFINE MAXHST. 1 ASSUMED.
+MAXHST	EQ	1
+HOST0	EQ	HOSTNO
+  EI
+
+
+:	DEFINE START OF SEGMENTS
+Q	EQ	0
+	NOLIST
+	RE	0F
+  IF	\SEG|Q|
+	GL	SEG|Q|
+  ELSE
+	SEG	Q
+	GL	SEG|Q|
+SEG|Q|
+  EI
+Q	EQ	Q+1
+	ER
+	LIST
+
+:GENERATE DIAGNOSTICS
+Q	EQ	0
+	NOLIST
+QQ	EQ	0;	RE	0F
+	IF	((Q*10000)%SEG|Q|)&7FFFFFFF
+QQ	EQ	1;	REMARK	%SYMBOL SEG
+	NUMBER	Q
+	REMARK	 IS NOT DEFINED PROPERLY. VALUE IS 
+	NUMBER	SEG|Q|
+	EI
+Q	EQ	Q+1;	ER
+	LIST
+
+	IF	QQ;
+	REMARK	%START.LIB **MUST** be assembled FIRST!!%;
+	EI
+	SUBTTL	ISIS Ring Handling Routines	- FRING.LIB
+:******************************************************************
+:
+:	This program is the sole property and confidential
+:	information of Tymshare, Inc., and may not be copied
+:	in whole or in part or disclosed to any third party
+:	without the prior written consent of Tymshare.
+:
+:*******************************************************************
+	RA	0		:	FRING.LIB
+
+:	ISIS RING HANDLERS
+
+:	This package is the fast, efficient ring handler set
+:	The following CONSTRAINTS apply:
+:	1.  Once started, register 14 or 15 is dedicated to that
+:		operation, until it is "ended".
+:	2.  If a new operation is started before the previous operation is
+:		"ended", the previous operation is aborted, and the
+:		appropriate ring is effectively left unchanged.
+:
+:	This package now permits simultaneous input and output!!!
+:		R15 is used for output operations
+:		R14 is used for input operations
+
+:*: NOTE: ISIS II will soon use negative indexing, like this ring package.
+:*:	To convert this package, remove all lines with ':*:' in them,
+:*:	and change all occurrences of 'LHL R15/R14' to 'LH R15/R14'.
+
+:	The package contains both utility and primitive routines:
+
+:	utility routines are called with link R5,
+:	they preserve registers R6--R14.
+:	OCS	Output Canned String
+:		R2 = port #, R3 = pointer to string (SC format)
+:		OCS will output string as a data message to the specified
+:		port. OCS goes to completion, and "ends the operation.
+:	OCM	Output Canned Message
+:		R2 = port #, R3 = pointer to string (SC format)
+:		OCM will output the string as a message to the specified port
+:		OCM goes to completion, and "ends the operation.
+:	OBS	Output Byte String
+:		R2 = number of characters, R3 = pointer to string
+:		OBS will output specified string into the current message
+:		message must have already been "started", and is NOT "ended".
+
+:	primitive input routines.  All link on R4, & preserve R1-R3, R5-R13, R15:
+:	LOOK	Determine if an input message exists...normal return if not
+:		skip (4) return if so, and then:
+:		R1 = port number
+:		R2 = message type code (peek)
+:		On skip return, condition codes are set such that JE will
+:		succeed on port 0.  The port number will have been removed
+:		from the message but the message code will not have been
+:		removed (you get a peek at it).
+:	GETCH	Get a character, returned in R0.
+:	GETH	Get a halfword, returned in R0.  An even number of bytes 
+:		should have been removed previously for expected results.
+:	GETW	Get a word, returned in R0.  An even number of halfwords 
+:		should have been removed previously for expected results.
+:	FLUSH	Flush away ("end") remainder of input message.  R0 is number
+:		of bytes remaining to flush.
+:	ELIR	End-Logical-Input-Record.  "Ends" current message, sets
+:		up pointers for next message.
+
+:	Primative output routines.  All link on R4, preserve R1-R3, R5-R14,
+:	unless used for arguments, or otherwise specified:
+:	SPACE	Returns R0 = number of characters of space available in	
+:		output ring. Sets up R15 for "start" of message.
+:	ROOM	R0 = number of characters required for next message,
+:		returns when that much room is available in output ring.
+:		MAY DISMISS.
+:		sets up R15 for "start" of message. SMASHES R1.
+:	SLOR	Start Logical Output Record.
+:		R0 = number of bytes required.
+:		R1 = port #
+:		R2 = message type code.
+:		Provides function of ROOM, PUTH, and PUTCH for first 3 chars
+:		of message. MAY DISMISS. SMASHES R3.
+:	PUTCH	places character in R0 in next position of ring.
+:	PUTH	places halfword in R0 in next position of ring.  Even number
+:		of bytes have been output previously in this message.
+:	PUTW	places word in R0 in next position of ring.  Even number of
+:		halfwords should have been output previously in this message.
+:	ELODR	End Logical Output Data Record
+:		places byte count into message type to make data message,
+:		then "ends" message.  Smashes R0, R1.
+:	ELOR	End Logical Output Record
+:		"ends" message.
+
+:	CONVENTIONS:
+:	ROUTINES USE DEDICATED REGISTERS:
+:	R15	OUTPUT RING INDEX
+:	R14	INPUT RING INDEX
+:
+:	NOTE....
+:		IRSIZE AND ORSIZE MUST EACH BE LESS THAN 32K.
+
+	GL	IRING,ORING,IRSIZE,ORSIZE
+	GL	OCS,OCM,OBS
+	GL	LOOK,GETCH,GETH,GETW,FLUSH,ELIR
+	GL	SPACE,ROOM,SLOR,PUTCH,PUTH,PUTW,ELODR,ELOR
+
+	MO	.,RING
+NFMI	EQ	0		:RELATIVE INDEX OF NEXT-FILL-MESSAGE-INDEX
+CEI	EQ	2		:RELATIVE INDEX OF CURRENT-EMPTY-INDEX
+RING	EQ	4		:RELATIVE INDEX OF START OF RING DATA
+
+:	DEFINE DATA AREA
+	SEG	A.RING		:RINGS IN RING AREA
+
+:	THE DISPATCHER OUTPUT RING
+ORING	HS	0		:OUTPUT BLOCK START ADDRESS
+	HC	0		:OUTPUT NEXT FILL MESSAGE INDEX
+	HC	0		:OUTPUT CURRENT ENTRY INDEX
+	BS	ORSIZE		:THE OUTPUT RING
+
+:	THE DISPATCHER INPUT RING
+IRING	HS	0		:INPUT BLOCK START ADDRESS
+	HC	0		:INPUT NEXT FILL MESSAGE INDEX
+	HC	0		:INPUT CURRENT EMPTY INDEX
+	BS	IRSIZE		:THE INPUT RING
+
+:	CODE AREA
+	SEG	A.CODE
+:	INPUT ROUTINES
+
+:	LOOK AT A RING ENTRY
+:	NORMAL RETURN IF RING EMPTY
+:	ELSE SKIP RETURN, PORT RETURNED IN R1
+:	MESSAGE TYPE RETURNED IN R2
+:	ALL REGISTERS SET UP FOR TRANSFER
+:	POSITION IS ADVANCED PAST PORT#
+	IF	\LOOK;.LOOK.	 HS	0;	ELSE;LOOK	 HS	0;	EI
+	LHL	R14,CEI+IRING,,	:GET CURRENT EMPTY INDEX
+	CLH	R14,NFMI+IRING,,	:TEST IF CAUGHT UP
+	JER	R4		:EMPTY...NORMAL RETURN
+	SHI	R14,IRSIZE	:*: CONVERT TO NEGATIVE INDEX
+	LHL	R1,IRING+RING+IRSIZE,R14,	:GET PORT #
+	AIS	R14,2		:BUMP POINTER PAST PORT #
+	LB	R2,IRING+RING+IRSIZE,R14,	:GET MESSAGE TYPE
+	LR	R1,R1		:SET CONDITION CODES
+	J	4,R4		:THEN SKIP RETURN
+
+:	GET A CHARACTER FROM THE INPUT RING
+:	CHARACTER RETURNED IN R0
+GETCH	LB	R0,IRING+RING+IRSIZE,R14,	:GET THE CHAR
+	AIS	R14,1		:BUMP INDEX
+	JLR	R4		:RETURN IF NOT
+	LHI	R14,-IRSIZE	:ELSE FOLD IT
+	JR	R4		:AND EXIT
+
+:	GET A HALF-WORD FROM THE INPUT RING
+:	ASSUME HAVE REMOVED AN INTEGRAL NUMBER OF HALF-WORDS FROM RECORD
+:	HALF-WORD RETURNED IN R0
+GETH	LHL	R0,IRING+RING+IRSIZE,R14,	:GET THE DATA
+	AIS	R14,2		:BUMP INDEX
+	JLR	R4		:RETURN IF NOT
+	LHI	R14,-IRSIZE	:ELSE FOLD IT
+	JR	R4		:AND EXIT
+
+:	GET A WORD FROM THE INPUT RING
+:	ASSUME HAVE REMOVED AN INTEGRAL NUMBER OF WORDS FROM RECORD
+:	WORD RETURNED IN R0
+GETW	L	R0,IRING+RING+IRSIZE,R14,	:GET THE DATA
+	AIS	R14,4		:BUMP INDEX
+	JLR	R4		:RETURN IF NOT
+	LHI	R14,-IRSIZE	:ELSE FOLD IT
+	JR	R4		:AND EXIT
+
+:	FLUSH AN INPUT RECORD
+:	NUMBER OF CHARS TO FLUSH IN R0
+FLUSH	AR	R14,R0		:ADVANCE RING AND FALL THROUGH
+
+:	END LOGICAL INPUT RECORD
+ELIR	AIS	R14,3		:FORCE TO NEXT WORD
+	NHI	R14,-4
+	JLFS	ELIR2		:NO
+	SHI	R14,IRSIZE	:YES
+ELIR2
+	AHI	R14,IRSIZE	:*: CONVERT TO POSITIVE INDEX
+	STH	R14,CEI+IRING,,
+	JR	R4		:AND EXIT
+
+:	OUTPUT ROUTINES
+
+:	OUTPUT "CANNED" MESSAGE
+:	LINK ON R5
+:	R2 = PORT #
+:	R3 = POINTER TO STRING (FORMAT: n\B1\...\Bn)
+OCM	LB	R0,0,R3		:GET COUNT n
+	AIS	R0,5		:COMPUTE SPACE REQUIREMENTS
+	NHI	R0,-4
+	JAL	R4,ROOM		:INSURE THERE IS ROOM
+	LR	R0,R2		:COPY PORT #
+	JAL	R4,PUTH		:PLACE PORT NUMBER
+	LB	R2,0,R3		:GET COUNT AGAIN
+	J	OCS1		:SKIP TO PLACE THE STRING
+
+:	OUTPUT "CANNED" STRING
+:	LINK ON R5
+:	R2 = PORT #
+:	R3 = POINTER TO TEXT STRING (FORMAT n\B1\...\Bn)
+OCS	LB	R0,0,R3		GET COUNT n
+	AIS	R0,6		:COMPUTE SPACE REQUIREMENTS
+	NHI	R0,-4
+	JAL	R4,ROOM		:INSURE THERE IS ROOM
+	LR	R0,R2
+	JAL	R4,PUTH		:PLACE PORT NUMBER
+	LB	R2,0,R3
+	LR	R0,R2		:GET THE COUNT n
+	JAL	R4,PUTCH	:PLACE IT...MESSAGE TYPE 1-7D
+OCS1	AIS	R3,1		:BUMP SOURCE CHARACTER POINTER
+	LB	R0,0,R3		:GET THE NEXT CHARACTER
+	JAL	R4,PUTCH	:PLACE IT INTO RING
+	SIS	R2,1		:REDUCE COUNT
+	JGBS	OCS1		:REPEAT UNTIL ALL CHARACTERS PLACED
+	JAL	R4,ELOR		:END LOGICAL OUTPUT RECORD
+	JR	R5		:THEN EXIT
+
+:	OUTPUT A BYTE STRING
+:	LINK ON R5
+:	R3 = POINTER TO STRING
+:	R2 = NUMBER OF CHARACTERS TO OUTPUT FROM STRING
+OBS1	AIS	R3,1		:BUMP CHARACTER POINTER
+OBS	LB	R0,0,R3		:GET THE NEXT CHARACTER
+	JAL	R4,PUTCH	:PLACE IT INTO RING
+	SIS	R2,1		:REDUCE COUNT
+	JGBS	OBS1		:REPEAT UNTIL ALLACTERS PLACED
+	JR	R5		:THEN EXIT
+
+:	FIND SPACE IN THE RING (HOW BIG A MESSAGE IT WILL TAKE)
+:	RETURNS R0 = NUMBER OF CHARS OF SPACE
+SPACE	LCS	R0,4		:SET MASK
+	LHL	R15,NFMI+ORING,,
+	NH	R0,CEI+ORING,,	:FORCE EMPTIER TO WORD BOUNDARY
+	SR	R0,R15		:SPACE BETWEEN US AND EMPTIER
+	JGFS	SPACE1		:SKIP IF NO WRAP-AROUND
+	AHI	R0,ORSIZE	:ELSE CORRECT FOR WRAP
+SPACE1	SIS	R0,4		:CORRECT FOR POSSIBLE OVERFLOW
+	SHI	R15,ORSIZE	:*: CONVERT TO NEGATIVE INDEX
+	JR	R4		:AND RETURN
+
+:	INSURE THERE IS ROOM IN THE RING (DISMISS IF NECESSARY)
+:	EXPECTS R0 = NUMBER OF CHARACTERS OF SPACE
+ROOM	LHL	R15,NFMI+ORING,,
+	SHI	R15,ORSIZE	:*: CONVERT TO NEG. INDEX
+ROOM1	LCS	R1,4		:SET MASK
+	NH	R1,CEI+ORING,,	:FORCE HIM TO WORD BOUNDARY
+	SHI	R1,ORSIZE	:*:
+	SR	R1,R15		:CHECK RELATIVE POSITIONS
+	JGFS	ROOM2		:SKIP IF HE'S AHEAD OF US
+	JER	R4		:EQUAL...HE'S EMPTY...GO DO IT
+	AHI	R1,ORSIZE		:HE'S BEHIND US
+ROOM2	SIS	R1,4		:ALLOW FOR POTENTIAL OVERFLOW
+	CR	R0,R1
+	JLER	R4		:ROOM EXISTS...GO DO IT
+	SVC	DISMISS,0
+	J	ROOM1		:AND GO TRY AGAIN
+
+:	START LOGICAL OUTPUT RECORD
+:	PROVIDES FUNCTION OF ROOM, PUTH, & PUTCH FOR FIRST 3 CHARS OF MESSAGE
+:	R0 = NUMBER OF CHARACTERS OF SPACE REQUIRED
+:	R1 = PORT #
+:	R2 = MESSAGE CHARACTER CODE
+SLOR	LHL	R15,NFMI+ORING,,
+	SHI	R15,ORSIZE	:*: CONVERT TO NEG. INDEX
+SLOR1	LCS	R3,4		:SET A MASK
+	NH	R3,CEI+ORING,,	:FORCE RECEIVER TO WORD BOUNDARY
+	SHI	R3,ORSIZE	:*:
+	SR	R3,R15
+	JGFS	SLOR2
+	AHI	R3,ORSIZE	:ACCOUNT FOR POSSIBLE RING FOLDING
+SLOR2	SIS	R3,4		:ALLOW FOR POTENTIAL OVERFLOW
+	CR	R3,R0
+	JGEFS	SLOR3		:SKIP IF WE CAN GO
+	SVC	DISMISS,0
+	JBS	SLOR1
+SLOR3	STH	R1,ORING+RING+ORSIZE,R15,	:OK...PLACE MESSAGE
+	STB	R2,2+ORING+RING+ORSIZE,R15,
+	AIS	R15,3		:BUMP PAST THESE CHARACTERS
+	JR	R4		:AND EXIT
+
+:	PUT A CHARACTER INTO THE RING
+:	R0 = CHARACTER
+PUTCH	STB	R0,ORING+RING+ORSIZE,R15,	:PLACE THE CHARACTER
+	AIS	R15,1		:BUMP INDEX
+	JLR	R4		:SKIP IF NOT
+	LHI	R15,-ORSIZE	:ELSE WRAP AROUND
+	JR	R4		:AND EXIT
+
+:	PUT A HALF-WORD INTO THE RING
+:	R0 = HALF-WORD
+PUTH	STH	R0,ORING+RING+ORSIZE,R15,	:PLACE THE HALF-WORD
+	AIS	R15,2		:BUMP INDEX
+	JLR	R4		:EXIT IF NOT
+	LHI	R15,-ORSIZE	:ELSE WRAP AROUND
+	JR	R4		:AND EXIT
+
+:	PUT A WORD INTO THE RING
+:	R0 = WORD
+PUTW	ST	R0,ORING+RING+ORSIZE,R15,	:PLACE THE WORD
+	AIS	R15,4		:BUMP INDEX
+	JLR	R4		:SKIP IF NOT
+	LHI	R15,-ORSIZE	:ELSE WRAP AROUND
+	JR	R4		:AND EXIT
+
+:	END LOGICAL OUTPUT DATA RECORD
+ELODR	LHL	R1,NFMI+ORING,,	:GET START OF THIS MESSAGE
+	SHI	R1,ORSIZE	:*: CONVERT TO NEG. INDEX
+	LR	R0,R15		:COPY MESSAGE END
+	SR	R0,R1		:COMPUTE SIZE OF THIS MESSAGE
+	JGEFS	ELODR2		:SKIP IF NO WRAP-AROUND
+	AHI	R0,ORSIZE		:ELSE CORRECT FOR WRAP
+ELODR2	SIS	R0,3		:MAKE ALLOWANCE FOR HEADER
+	JER	R4		:EXIT IF ZERO LENGTH MESSAGE
+	STB	R0,2+ORING+RING+ORSIZE,R1,	:INSERT MESSAGE TYPE INTO MESSAGE
+				:AND FALL THROUGH
+
+:	END LOGICAL OUTPUT RECORD
+ELOR	AIS	R15,3
+	NHI	R15,-4
+	JLFS	ELOR2
+	LHI	R15,-ORSIZE	:FOLD IF NECESSARY
+ELOR2
+	AHI	R15,ORSIZE	:*: CONVERT BACK
+	STH	R15,NFMI+ORING,,	:NOW ADVANCE POINTER TO NEXT MESSAGE
+	JR	R4		:AND EXIT
+	EM
+	SUBTTL	ISIS STARTUP AND CRASH LIBRARY	- CRASH.LIB
+        REMARK  %CRASH.LIB    11-15-84 AWT
+	REMARK	%THIS VERSION HAS AN OPTION FOR EXTENDED CRASH PROCESSING.
+
+:******************************************************************
+:
+:	This program is the sole property and confidential
+:	information of Tymshare, Inc., and may not be copied
+:	in whole or in part or disclosed to any third party
+:	without the prior written consent of Tymshare.
+:
+:*******************************************************************
+	RA	0		:	CRASH.LIB	MFR 07/14/81
+
+:       Set UPSW to turn off tracing.
+:       Added CTIME and CRTIME to save crash times in GMT.
+:       Added a NCRSAV option to keep old copies of crash tables.
+:         April 13, 1983 AWT
+:
+:	Changed the supervisor's log message to report the PRODID.
+:	Sep. 20, 1982 SCY.
+:	ENTRY2 (restart service) changed to clear input and output
+:	rings PRIOR to issuing Restart SVC to prevent crash-loop if
+:	Dispatcher has crashed. June 17, 1982 MDS.
+
+:			ISIS - II Version
+:
+	GL	CRASH,CRASHC,CPOINT,CFROM,CRREG,ENTRY,START,CRAT,CRSHCT,CRSTOP
+        GL      PRODID,NCRSAV,CTIME,CRTIME,EXCRSH
+	MO	.,CRASH
+
+
+:	Generalized crash package.
+:	Handles both software and hardware crashes.  On any crash, the
+:	registers are saved in CRXREG, and CRSHCT is incremented.
+:	Software crashes occur via  JAL R10,CRASH .  CRASH saves (R10) in cell
+:	CPOINT.  Software crashes may be "good" or "bad"...if "good", the
+:	calling sequence is:
+
+:		JAL	R10,CRASH
+:						from a bad one
+:		HC	0		:this key distinguishes a good crash
+:		BC	4*L,Y		:first byte is 4*register linked to
+:						routine, Y is the reason
+:	then register (L) is saved in CFROM, and Y is saved in CRASHC
+
+:	in the event of a hardware failure, CPOINT contains the instruction
+:	address at the time of failure, CRASHC contains the failure reason,
+:	and CFROM is set =-1.
+
+:	On completion of crash, transfers to label START, defined
+:	in the user code.
+:
+:	The symbol CRSTOP may be set to 0 or 1.  If 1 the crash routine will
+:	be executed only once.  the second time through the crash area will
+:	be set up as specified above and then registers will be restored to
+:	their entry value and the slot will be frozen. If it is thawed it
+:	will restart.
+:
+:       The symbol NCRSAV defines the number of crash tables to be saved.
+:       It will be set to 1 by default. (In TYMFIL CRSHTB macro is used
+:       to define NCRSAV)
+:
+:       Entering :R CRAT,CRTSIZ (or 4C) will dump the last 
+:       crash table, CRAT+CRTLEN (or 50),CRTSIZ will dump the    
+:       previous crash table and so on.
+:
+:       CTIME,4 gives the last crash time (in GMT), CTIME+CRTLEN,4
+:       gives the previous crash time and so on.
+:
+:	The symbol EXCRSH, if set to 1, allows a JAL to label
+:	CRSH.P out of the crash routine for extended crash processing.
+:	The link is R5.  EXCRSH is defaulted to 0.
+:
+:
+
+  IF	\CRSTOP
+  ELSE
+CRSTOP	EQ	0
+  EI
+  
+  IF    \NCRSAV                 :# OF CRASH TABLES TO SAVE
+  ELSE                          :IT MAY BE DEFINED IN TYMFIL
+NCRSAV  EQ      1               :OTHERWISE IT IS 1 BY DEFAULT
+  EI
+
+  IF	\EXCRSH			:DEFAULT TO NO EXTENDED CRASH HANDLING
+  ELSE
+EXCRSH	EQ	0
+  EI
+
+
+CRTENT  EQ      .               :CRASH TABLE ENTRY
+        ORG     0
+CRSHCT	HS	1		:CRASH COUNT...HOW MANY TIMES CRASHED
+CRASHC	HS	1		:CRASH CODE (INIT'ED TO MANUAL RESTART)
+CPOINT	HS	2		:WHERE CRASH OCCURED
+CFROM	HS	2    		:WHERE CRASH WAS CALLED FROM
+CRXREG	HS	20		:CRASH REGISTER SAVE AREA
+CRTSIZ  WS      0               :SIZE OF CRASH TABLE WITHOUT CRTIME
+CRTIME  WS      1               :REAL TIME OF CRASH (GMT)
+CRTLEN  WS      0               :LENGTH OF CRASH TABLE WITH CRTIME
+        ORG     CRTENT  
+
+        SEG     A.DATA
+        HS      0
+CTIME   WS      1               :STORAGE FOR CRASH TIME OF LAST CRASH
+CRAT    BS      CRTLEN*NCRSAV   :STORAGE FOR CRASH TABLE(S)
+CRREG   EQ      CRAT+CRXREG
+RGSTOR  WS      10              :TEMPORARY STORAGE FOR REGISTERS
+FGNDFL	HS	1		:FOREGROUND FLAG
+
+TRBOFF  WC      0,FAIL0         :TRACE BIT OFF, GO TO FAIL0
+TRCOFF  WC      0,CRASH0        :TRACE BIT OFF, GO TO CRASH0
+PSWSAV  WC      0,START         :RESTORE PSW,  GO TO INITIALIZATION CODE
+CHFLAG  WC      0               :USED FOR ANY CHANGES ON PSW
+
+
+	SEG	A.CODE		:CODE AREA
+CRSHCD	BC	1	:MANUAL RESTART
+	BC	0	:POWER FAILURE
+	BC	0E	:PARITY ERROR
+	BC	10	:DISPATCHER CRASH
+	BC	11	:ILLEGAL INSTRUCTION
+	BC	12	:ILLEGAL SVC
+	BC	13	:SYSTEM CRASH
+	BC	14	:PROTECTION VIOLATION
+	BC	15	:NON-RECOVERABLE DEVICE CHECK
+	BC	16	:WATCH FROG TIMER - - TIME OUT
+
+	RA	0
+:	GENERAL MACHINE FAILURE
+FAIL	HS	4		:PSD SAVED HERE
+	HS	4		:R0,R1 SAVED HERE
+        ST      R0,RGSTOR,,     :SAVE R0
+        ST      R2,RGSTOR+4,,   :SAVE R2
+        JAL     R2,SAVPSW       :SAVE CURRENT PSW
+        L       R0,RGSTOR,,     :RESTORE R0
+        L       R2,RGSTOR+4,,   :RESTORE R2
+        UPSW    TRBOFF          :TRACE BIT OFF AND CONTINUE
+FAIL0   LB      R0,CRSHCD,R1    :CONVERT CRASH REASON
+	CLHI	R0,12		:TEST IF ILLEGAL SVC
+	JNFS	FAIL1		:NO...SKIP
+	LHL	R0,FGNDFL	:DID FOREGROUND CAUSE THE CRASH?
+	JN	ENTRY2		:YES....JUMP OVER
+FAIL1   STM     R0,RGSTOR,,     :SAVE REGISTERS
+        JAL     R2,PSHTBS       :PUSH DOWN CRASH TABLES
+        L       R1,GMT,,        :GET GMT CLOCK
+        ST      R1,CTIME,,      :SAVE IT AS THE CRASH TIME
+        LM      R0,RGSTOR,,     :RESTORE REGISTERS
+        STM     R2,CRAT+CRXREG+8,, :SAVE THE REGISTERS
+        STH     R0,CRAT+CRASHC,,  :SAVE CRASH CODE
+        LM      R12,FAIL          :GET THE REST
+        STM     R14,CRAT+CRXREG,,  :SAVE R0 & R1
+        ST      R13,CRAT+CPOINT,, :SAVE FAILURE ADDRESS
+	LCS	R1,1
+        ST      R1,CRAT+CFROM,,   :FLUSH PLACE CALLED FROM
+        J       ENTRY1            :AND SKIP TO START UP AGAIN
+
+
+
+:	CRASH ROUTINE AND GENERAL INITIALIZER
+:	IF "GOOD" CALL TO CRASH, HAS HALFWORD 0'S FOLLOWING,
+:	THEN BYTE WITH 4*LINK REGISTER, THEN BYTE WITH CRASH REASON
+
+CRASH   ST      R0,RGSTOR,,     :SAVE R0
+        ST      R2,RGSTOR+4,,   :SAVE R2         
+        JAL     R2,SAVPSW       :SAVE CURRENT PSW
+        L       R0,RGSTOR,,     :RESTORE R0
+        L       R2,RGSTOR+4,,   :RESTORE R2
+        UPSW    TRCOFF          :TRACE BIT OFF AND CONTINUE
+CRASH0  STM     R0,RGSTOR,,     :SAVE REGISTERS
+        JAL     R2,PSHTBS       :PUSH DOWN THE CRASH TABLES
+        L       R1,GMT,,        :GET GMT CLOCK
+        ST      R1,CTIME,,      :SAVE IT AS THE CRASH TIME
+        LM      R0,RGSTOR,,     :RESTORE REGISTERS
+        STM     R0,CRAT+CRXREG,, :SAVE REGISTERS AND
+        ST      R10,CRAT+CPOINT,,                    
+	LIS	R0,$A10		:FAKE UNKNOWN CRASH
+	LCS	R1,1		:FROM NOWHERE
+	LHL	R2,0,R10	:CHECK WHERE CALLED FROM
+	JNFS	CRASH1		:NOT KNOWN...USE DEFAULT
+	LB	R0,3,R10	:GET CRASH CONDITION
+	LB	R2,2,R10	:GET CALLING REGISTER
+        L       R1,CRAT+CRXREG,R2 :GET CONTENTS OF REGISTER
+        
+CRASH1  STH     R0,CRAT+CRASHC,, :SAVE CRASH CODE
+        ST      R1,CRAT+CFROM,,  :SAVE PLACE CRASHED FROM
+	JFS	ENTRY1
+
+:	ENTER HERE WITH RESTART
+ENTRY	LIS	R0,1		:LOAD CRASH CODE REGISTER
+        STH     R0,CRAT+CRASHC,, :STORE IT
+ENTRY1	LIS	R1,1
+        AHM     R1,CRAT+CRSHCT,, :SAVE INTERESTING DATA
+
+  IF	CRSTOP		:IF STOPPING ON CONSECUTIVE CRASHES
+	CLHI	R0,1
+	JLE	ENTRY2		:IF POWER FAILURE OR MANUAL RESTART
+	OHI	R0,0CC00	:CRASH INDICATOR FOR FRONT PANEL
+	STH	R0,FPANEL,,	:SET PANEL TO BAD CRASH
+   IF	EXCRSH
+	JAL	R5,CRSH.P,,	:GO DO EXTENDED CRASH PROCESSING
+   EI	EXCRSH
+        LM      R0,CRAT+CRXREG,, :RESTORE REGISTERS
+	SVC	SYS,HALT.	:HALT THE SLOT
+  EI	CRSTOP
+
+	LIS	R0,1		:WANT SECOND WORD OF PSD
+	SVC	SYS,RFPSD.	:READ FOREGROUND PSD
+	CLI	R0,.		:TEST IF FOREGROUND IS EXECUTING THIS INSTRUCTION
+	JNFS	ENTRY2		:SKIP IF NOT
+	STH	R0,FGNDFL	:SET THE FOREGROUND FLAG
+
+ENTRY2		: NOW RESET OUTPUT RING, REPORT CRASH
+  IF	CRSTOP
+  ELSE
+   IF	EXCRSH
+	JAL	R5,CRSH.P,,	:GO DO EXTENDED CRASH PROCESSING
+   EI	EXCRSH
+  EI	CRSTOP
+	LIS	R0,0
+	ST	R0,ORING,,	:EMPTY OUTPUT RING
+	ST	R0,IRING,,	:EMPTY INPUT RING
+
+	LA	R0,FAIL		:LOAD TRAP AREA ADDRESS
+	SVC	SYS,RSTRT.	:RESTART SVC
+	JAL	R10,CRASH	:NON-SKIP RETURN...CRASH
+
+
+	LIS	R0,0
+	STH	R0,FGNDFL	:CLEAR THE FOREGROUND FLAG
+
+	JAL	R4,SPACE,,	:SET UP FOR DIAGNOSTIC
+	LHI	R0,0300
+	JAL	R4,PUTW,,	:PORT 0 + DIAGNOSTIC MESSAGE + PAD
+	LHL	R0,CRAT+CRSHCT,,
+	JAL	R4,PUTCH,,	:HW4 LOW = CRASH COUNT
+	LIS	R0,0
+	JAL	R4,PUTCH,,	:RESERVED BYTE
+	LIS	R0,1
+	JAL	R4,PUTCH,,	:REPORT TYPE = 1
+	LHL	R0,CRAT+CRASHC,,
+	JAL	R4,PUTCH,,	:HW3 HIGH = CRASH CODE
+	LHI	R0,PRODID
+	JAL	R4,PUTCH,,	:HW2 LOW IS PRODUCT ID
+	JAL	R4,ELOR,,	:END LOGICAL OUTPUT RECORD
+        L       R1,CHFLAG,,     :SEE IF PSW HAS BEEN CHANGED
+        CLHI    R1,1
+        JNFS    CURPSW          :NO CHANGE, GO TO USE CURRENT PSW
+        LIS     R1,0
+        ST      R1,CHFLAG,,     :RESET CHFLAG FOR FUTURE PSW CHANGE
+        UPSW    PSWSAV          :INITIALIZE WITH RESTORED PSW
+CURPSW  J       START,,         :INITIALIZE WITH CURRENT PSW
+
+SAVPSW  LIS     R0,1            :GET PC OF BACKGROUND PSD
+        ST      R0,CHFLAG,,     :ALSO INDICATE PSW WILL BE MODIFIED
+        SVC     SYS,RBPSD.      :READ BACKGROUND PSD
+        CLI     R0,.            :IS IT RUNNING?
+        JNFS    ISFGND          :NO, IT MUST BE FOREGROUND JOB
+        LIS     R0,0            :GET PSW OF BACKGROUND JOB
+        SVC     SYS,RBPSD.
+        ST      R0,PSWSAV,,     :SAVE IT
+        JR      R2              :RETURN
+ISFGND  LIS     R0,0            :GET PSW OF FORGROUND JOB
+        SVC     SYS,RFPSD.
+        ST      R0,PSWSAV,,     :SAVE IT
+        JR      R2              :RETURN
+
+
+PSHTBS  LHI     R1,CRTLEN*NCRSAV-CRTLEN*2
+        JLR     R2              :IF ONLY 1 CRASH TABLE, SKIP AND RETURN
+PUSHIT  LM      R6,CRAT,R1      :PUSH DOWN THE CRASH TABLE
+        STM     R6,CRAT+CRTLEN,R1
+        LM      R6,CRAT+CRTLEN/2,R1
+        STM     R6,CRAT+CRTLEN+CRTLEN/2,R1
+        SHI     R1,CRTLEN
+        JGEBS   PUSHIT
+        L       R1,CTIME,,
+        ST      R1,CRAT+CRTSIZ,,
+        JR      R2              :RETURN
+         
+	EM
+
+	SUBTTL	Data Conversion Routines	- CONVRT.LIB
+:******************************************************************
+:
+:	This program is the sole property and confidential
+:	information of Tymshare, Inc., and may not be copied
+:	in whole or in part or disclosed to any third party
+:	without the prior written consent of Tymshare.
+:
+:*******************************************************************
+:
+	RA	0
+:
+	MO	.,CONVRT
+:
+	GL	BINDEC,BINHEX
+:
+:*****************************************************************
+:
+:	BINDEC IS A ROUTINE TO CONVERT INTERNAL BINARY REPRESENTATION OF
+:	DATA TO ASCII DECIMAL CHARACTERS.
+:
+:	ARGUMENTS: R9 CONTAINS THE BINARY NUMBER
+:	           R10 CONTAINS NUMBER OF DIGITS OF OUTPUT
+:	           R11 POINTS TO OUTPUT AREA
+:	LINK ON R4
+:
+:****************************************************************
+:
+	SEG	A.DATA
+:
+RSAVE	HS	10	:REGISTER SAVE AREA
+:
+	SEG	A.CODE
+:
+DIGIT	AC	/0123456789ABCDEF/
+:
+:	FIRST CHECK FOR A NEGATIVE NUMBER
+:		IF FOUND, PUT A LEADING '-' (MINUS SIGN) IN FIELD
+BINDEC	STM	R8,RSAVE	:PRESERVE REGISTERS
+	LR	R9,R9		: TEST FOR NEGATIVE NUMBER
+	JGEFS	NOTNEG		:JUMP IF NOT NEGATIVE
+	LHI	R12,$0 00AD	:'ASCII '-'
+	STB	R12,0,R11
+	SIS	R10,1		: ROOM FOR ONE LESS DIGIT
+	AIS	R11,1		: DITTO
+	JLE	RTRN		:NO ROOM FOR DIGIT AFTER MINUS SINE
+:	COMPLEMENT THE NUMBER TO POSITIVE
+	XI	R9,-1
+	AIS	R9,1
+NOTNEG	SIS	R11,1
+	LIS	R12,$A 10	: DIVISOR
+DIVIDE	SR	R8,R8		: CLEAR HI ORDER BITS OF DIVIDEND
+	DR	R8,R12		:GET LOW DIGIT IN R9
+	LB	R13,DIGIT,R8	:GET ASCII EQUIVALENT OF DEC NUMBER
+	STB	R13,0,R10,R11	:STORE IN REVERSE ORDER
+	SIS	R10,1		:DECREMENT COUNTER
+	JGBS	DIVIDE		: KEEP LOOPING
+RTRN	LM	R8,RSAVE	:RESTORE THE REGISTERS
+	JR	R4		:AND RETURN
+:
+:******************************************************************
+:
+:	BINHEX IS A ROUTINE TO CONVERT INTERNAL BINARY REPRESENTATION OF
+:	DATA TO ASCII HEX CHARACTERS. A SPACE CHARACTER IS APPENDED ON THE
+:	END OF THE HEX CHARACTER STRING.
+:	ARGUMENTS: R8 - ADDRESS OF WHERE TO PUT ASCII CHARACTERS
+:			   THIS REGISTER IS RETURNED UPDATED TO NEXT AVAIL
+:				LOCATION
+:	           R9 - BYTE COUNT
+:		   R10 - START ADDRESS OF MEMORY TO BE PROCESSED
+:	LINKS R4
+:
+:******************************************************************
+BINHEX	STM	R9,RSAVE	:PRESERVE REGISTERS
+LOOP	LB	R11,0,R10	:LOAD BYTE
+	LBR	R12,R11		:COPY THE BYTE
+	SRHLS	R12,4		:GET FIRST DIGIT
+	LB	R13,DIGIT,R12	:GET ASCII CHARACTER
+	STB	R13,0,R8	:STORE THE CHARACTER
+	LIS	R12,0F		:LOAD MASK
+	NR	R12,R11		:MASK OFF HIGH DIGIT
+	LB	R13,DIGIT,R12	:GET ASCII CHAR
+	STB	R13,1,R8	:STORE THE CHARACTER
+	SIS	R9,1		:DECREMENT LOOP COUNT
+	JGFS	REPEAT		:MORE TO DO?
+	LHI	R13,$0 0A0	:LOAD SPACE CHARACTER
+	STB	R13,2,R8	:STORE IT
+	AIS	R8,3		:INCREMENT STRING POINTER
+	LM	R9,RSAVE	:RESTORE THE REGISTERS
+	JR	R4		:AND RETURN
+:
+REPEAT	AIS	R8,2		:INCREMENT STRING POINTER
+	AIS	R10,1		:INCREMENT BYTE ADDRESS
+	J	LOOP		:REPEAT
+
+	EM
+:
+	SUBTTL	GMT Clock Conversion Routines	- DATIME.LIB
+:******************************************************************
+:
+:	This program is the sole property and confidential
+:	information of Tymshare, Inc., and may not be copied
+:	in whole or in part or disclosed to any third party
+:	without the prior written consent of Tymshare.
+:
+:*******************************************************************
+:
+	RA	$0 0A
+:
+	MO	.,DATIME
+:
+	GL	DATIME,TMSTMP,DATE
+:
+:***************************************************************
+:
+:	THIS PROCEDURE CONVERTS THE GMT CLOCK
+:	RELATIVE TO 1/1/74 FROM SECONDS TO
+:	DDMMMYY HH:MM (GMT) OR
+:	DDMMMYY HH:MM:SS (GMT)
+:
+:	PARMS
+:		R3 = # OF SECONDS SINCE 1/1/74 (BEYOND1/1/76)
+:		R4 = CHARACTERS OF OUTPUT (13 OR 16)
+:		R5 = ADDRESS OF OUTPUT STRING
+:		R6 = LINK REGISTER
+:	ALL REGISTERS ARE PRESERVED
+:
+:**************************************************************
+:
+	SEG	A.DATA
+:
+RSAVE	HS	$020	:REGISTER SAVE AREA
+:
+	SEG	A.CODE
+DATIME	STM	R0,RSAVE	:PRESERVE THE REGISTERS
+	S	R3,SEC745	
+:	MAKE TIME RELATIVE TO 1/1/76 - THE START OF
+:	A 'QUAD-YEAR'.  'QUAD-YEAR' = 1 LEAP
+:	YEAR + 3 REGULAR YEARS.  THERE ARE
+:	24 QUADS PLUS 4 REG YEARS IN A CENTURY
+:
+	SR	R2,R2		: CLEAR HI ORDER BYTES
+	D	R2,SECDAY	:QUOTIENT IS # OF DAYS
+:				:REMAINDER IS TIME
+	LR	R14,R2		:COPY TIME OF DAY
+	SR	R2,R2		:CLEAR HI ORDER BYTES
+	D	R2,QUADAY	:DIVIDE BY DAYS IN A QUAD
+:
+:	QUOTIENT(R3) IS NUMB. OF QUAD YEARS
+:	REMAINDER(R2) IS # OF DAYS INTO QUAD-YEAR
+:
+	LHI	R8,76		:BASE YEAR
+	SLLS	R3,2		:QUAD YEAR * 4
+	AR	R8,R3		:ADD TO BASE YEAR
+	LA	R7,LEPYEA	:POINT TO DAYS IN MONTH
+	C	R2,W366		:IS IT IN CURRENT YEAR?
+	JL	MONTHD		:JUMP IF SO
+	S	R2,W366		:SUBTRACT DAYS IN YEAR
+	AIS	R8,1		:ADD 1 TO YEAR
+	LR	R11,R2		:GET REMAIN DAYS IN QUAD
+	SR	R10,R10
+	D	R10,W365	:AND DIVIDE BY REGYEAR
+:	R11 HAS ADDTL YEARS
+:	R10 HAS DAYS IN YEAR
+	LR	R2,10
+	AR	R8,R11
+	LI	R7,REGYER	:POINT TO DAYS IN MONTHS
+:
+:	DAYS IN R2
+:	YEAR IN R8
+MONTHD	SR	R6,R6		:MONTH COUNTER
+	AIS	R2,1		:MAKE 1/1/76 = DAY 1
+MONLOP	LR	R9,R2		:SAVE DAYS
+	LB	R3,0,R6,R7	:GET DAYS IN MONTH
+	SR	R2,R3		:AND SUBTRACT FROM DAYS IN YEAR
+	JLEFS	DAZE		:IF MINUS OR ZERO WE'RE IN THE MONTH
+	AIS	R6,1		:INCREMENT INDEX
+	JBS	MONLOP
+:
+:	DAYS IN R3
+:	MONTH NUMBER - 1 IN R6
+:	YEAR IN R8
+:
+:	SAVE R4 AND R5
+DAZE	SIS	R4,8		:SUBTRACT OUT DATE LENGTH
+	LR	R13,R4		:PRESERVE IT
+	LR	R11,R5		:COPY OUPUT AREA POINTER
+:
+:	CONVERT DAY
+	LIS	R10,2		:# OF OUTPUT CHARACTERS
+	JAL	R4,BINDEC	:CONVERT TO DECIMAL ASCII
+:
+:	MOVE IN MONTH
+	AIS	R11,2
+	SLHLS	R6,2		:MULTIPLY MONTH NUMBER BY 4
+	L	R4,MONTHS,R6	:GET THE NAME IN R4
+	STB	R4,2,R11
+	SRLS	R4,8
+	STB	R4,1,R11
+	SRLS	R4,8
+	STB	R4,0,R11
+	AIS	R11,3
+:
+:	CONVERT YEAR
+	LR	R9,R8
+	LIS	R10,2
+	JAL	R4,BINDEC	:CONVERT TO CHARACTERS
+	LHI	R3,$00A0	:ASCII SPACE
+	STB	R3,2,R11	:PUT IT AFTER DATE
+	LHI	R5,3,R11	:SET UP OUTPUT POINTER
+	LR	R4,R13		:COPY LENGTH ARGUEMENT
+	LR	R3,R14		:COPY TIME OF DAY
+	JFS	TIME1		:JUMP
+:*************************************************************
+:
+:	GET THE TIME STAMP
+:
+:	TIME STAMP ROUTINE
+:		THIS ROUTINE CONVERTS THE FULLWORD GMT TIME OF DAY
+:	TO HH:MM OR HH:MM:SS
+:
+:	PARAMETERS:
+:		R3 = FULLWORD TIME OF DAY (GMT CLOCK)
+:		R4 = 5 OR 8 (# OF CHARACTERS TO OUTPUT)
+:		R5 = FULLWORD ADDRESS OF OUTPUT
+:		R6 = LINK REGISTER
+:
+:	DIVIDE TIME BY SECONDS PER DAY.  THE REMAINDER
+:	IS THE SECONDS IN THIS DAY, WHICH IS WHAT THIS
+:	ROUTINE IS ALL ABOUT
+:
+:****************************************************************
+TMSTMP	STM	R0,RSAVE	:PRESERVE THE REGISTERS
+  IF \TIMZON
+	AHI	R3,TIMZON*$A3600	:TIME ZONE CONVERSION
+  EI
+TIME1	SR	R8,R8		:INDEX FOR OUTPUT AREA
+:
+	SR	R2,R2		:CLEAR HI-ORDER BITS
+	D	R2,SECDAY
+:		SECONDS NOW IN R2
+	LR	R3,R2		:GET READY FOR
+	SR	R2,R2		:ANOTHER DIVIDE
+	D	R2,TENOUR	:GET TENS OF HOURS
+	JAL	R6,ASCOUT	:PRINT IT OUT IN ASCII
+	DH	R2,OURS		:GET HOURS
+:		R2 HAS REMAINDER, R3 HAS QUOTIENT
+	JAL	R6,ASCOUT	:PRINT IT OUT
+	LHI	R3,$00BA	:COLON
+	JAL	R6,PRTOUT
+	DH	R2,TENMIN
+	JAL	R6,ASCOUT
+	DH	R2,MIN
+	JAL	R6,ASCOUT
+:	THE CONDITION CODE HAS BEEN SET -
+:	SET IF ANY MORE CHARACTER WANTED
+	JE	RETRN		:JUMP IF ONLY 5 CHAR
+:
+:	PUT IN COLON BEFORE SECONDS
+	LHI	R3,$00BA
+	JAL	R6,PRTOUT
+	DH	R2,TENSEC
+	JAL	R6,ASCOUT
+	LR	R3,R2		:GET SECONDS IN R3
+	JAL	R6,ASCOUT
+RETRN	LM	R0,RSAVE	:RESTORE THE REGISTERS
+	JR	R6		:RETURN
+:
+:
+ASCOUT	AHI	R3,$00B0
+PRTOUT	STB	R3,0,R8,R5
+	AIS	R8,1	: UPDATE INDEX
+	SIS	R4,1
+	JR	R6
+:
+:****************************************************************
+:
+:	THIS ROUTINE RETURNS A FULLWORD REPRESENTATION OF THE DATE
+:	AND TIME. THE FORMAT OF THE RESULT IS MMDDHHMM WHERE
+:	MM, DD, HH, & MM REPRESENT MONTH, DAY, HOUR, & MINUTES RESPECTIVELY
+:	ALL IN DECIMAL FORMAT. I.E. DEC 12 13:41 WOULD BE 12121341.
+:
+:	IF THE SYMBOL TIMEZON IS DEFINED IT SHOULD BE THE TIME-ZONE
+:	CORRECTION FACTOR FROM CUT (COORDINATED UNIVERSAL TIME)
+:	I.E. PST IS -8.
+:
+:	PARMS
+:		R3 = GMT CLOCK VALUE
+:		R6 = RESULT FULLWORD
+:
+:	LINKS R5
+:
+:	PRESERVES REGISTERS R7 - R15
+:
+:******************************************************************
+DATE	STM	R7,RSAVE	:PRESERVE THE REGISTERS
+	S	R3,SEC745
+:	MAKE TIME RELATIVE TO 1/1/76 - THE START OF
+:	A 'QUAD-YEAR'.  'QUAD-YEAR' = 1 LEAP
+:	YEAR + 3 REGULAR YEARS.  THERE ARE
+:	24 QUADS PLUS 4 REG YEARS IN A CENTURY
+:
+	SR	R2,R2		: CLEAR HI ORDER BYTES
+	D	R2,SECDAY	:QUOTIENT IS # OF DAYS
+:				:REMAINDER IS TIME
+	LR	R14,R2		:COPY TIME OF DAY
+	SR	R2,R2		:CLEAR HI ORDER BYTES
+	D	R2,QUADAY	:DIVIDE BY DAYS IN A QUAD
+:
+:	QUOTIENT(R3) IS NUMB. OF QUAD YEARS
+:	REMAINDER(R2) IS # OF DAYS INTO QUAD-YEAR
+:
+	LHI	R8,76		:BASE YEAR
+	SLLS	R3,2		:QUAD YEAR * 4
+	AR	R8,R3		:ADD TO BASE YEAR
+	LA	R7,LEPYEA	:POINT TO DAYS IN MONTH
+	C	R2,W366		:IS IT IN CURRENT YEAR?
+	JL	MNTHD		:JUMP IF SO
+	S	R2,W366		:SUBTRACT DAYS IN YEAR
+	AIS	R8,1		:ADD 1 TO YEAR
+	LR	R11,R2		:GET REMAIN DAYS IN QUAD
+	SR	R10,R10
+	D	R10,W365	:AND DIVIDE BY REGYEAR
+:	R11 HAS ADDTL YEARS
+:	R10 HAS DAYS IN YEAR
+	LR	R2,10
+	AR	R8,R11
+	LI	R7,REGYER	:POINT TO DAYS IN MONTHS
+:
+:	DAYS IN R2
+:	YEAR IN R8
+MNTHD	SR	R6,R6		:MONTH COUNTER
+	AIS	R2,1		:MAKE 1/1/76 = DAY 1
+MLOOP	LR	R9,R2		:SAVE DAYS
+	LB	R3,0,R6,R7	:GET DAYS IN MONTH
+	SR	R2,R3		:AND SUBTRACT FROM DAYS IN YEAR
+	JLEFS	DAZE1		:IF MINUS OR ZERO WE'RE IN THE MONTH
+	AIS	R6,1		:INCREMENT INDEX
+	JBS	MLOOP
+:
+:	DAYS IN R9
+:	MONTH NUMBER - 1 IN R6
+:	YEAR IN R8
+:
+DAZE1	AIS	R6,1		:CONVERT TO MONTH NUMBER
+	LB	R6,DECMAL,R6	:CONVERT TO DECIMAL REPRESENTATION
+	SLLS	R6,8		:MOVE IT OVER
+	LB	R9,DECMAL,R9	:CONVERT DAY TO DECIMAL
+	OR	R6,R9		:OR IT IN
+	SLLS	R6,8		:SHIFT IT OVER
+	LR	R2,R14		:COPY SECONDS IN THE DAY
+	DH	R2,OURS		:R3 HAS NUMBER OF HOURS
+	LB	R3,DECMAL,R3	:CONVERT TO DECIMAL
+	OR	R6,R3		:OR IT IN
+	SLLS	R6,4		:SHIFT IT OVER
+	DH	R2,TENMIN	:R3 HAS TENS OF MINUTES
+	OR	R6,R3		:OR IT IN
+	SLLS	R6,4		:SHIFT IT OVER
+	DH	R2,MIN		:R3 HAS MINUTES
+	OR	R6,R3		:OR IT IN
+:
+	LM	R7,RSAVE	:RESTORE REGISTERS
+	JR	R5		:RETURN
+:
+DECMAL	XC	0001020304050607080910111213141516171819202122232425262728293031
+SECDAY	WC	24*60*60	:SECONDS IN A DAY
+TENOUR	WC	10*60*60	:TENS OF HOURS
+OURS	HC	60*60		:HOURS
+TENMIN	HC	10*60		:TENS OF MINS
+MIN	HC	60		:MIN
+TENSEC	HC	10		:TENS OF SECS
+  IF	\TIMZON
+SEC745	WC	24*60*60*365*2-TIMZON*60*60	:SECONDS IN 74 & 75 PLUS 
+						:TIME-ZONE CORRECTION
+  ELSE
+SEC745	WC	24*60*60*365*2	:SECONDS IN 74 AND 75
+  EI
+W365	WC	365
+W366	WC	366
+QUADAY	WC	4*365+1
+LEPYEA	BC	31,29,31,30,31,30,31,31,30,31,30,31
+REGYER	BC	31,28,31,30,31,30,31,31,30,31,30,31
+	WS	0
+MONTHS	AC	/ Jan/
+	AC	/ Feb/
+	AC	/ Mar/
+	AC	/ Apr/
+	AC	/ May/
+	AC	/ Jun/
+	AC	/ Jul/
+	AC	/ Aug/
+	AC	/ Sep/
+	AC	/ Oct/
+	AC	/ Nov/
+	AC	/ Dec/
+	EM
+
+	RA	0	:RADIX TO HEX
+
+ SUBTTL CLOCK TEST HOST VERSION 2.01 - MAIN PROGRAM
+ SEG 1
+:
+.GT.	MACRO(P1,P2)[((P2)-(P1))^-(7*5)]
+:
+ IF .GT.(MAXPRT,$A31)
+ REMARK %***** ERROR, NO MORE THAN 31 PORTS SHOULD BE SPECIFIED!!! *****%
+ EI
+:
+: ************************ BRING UP HOST *******************************
+:
+START	LI	R0,0		: ZERO PORT BIT ARRAYS
+	ST	R0,UPORTS	: \
+	ST	R0,BPORTS	:  \
+	ST	R0,FSPEED	:   \
+	LIS	R0,0E		: LENGTH OF MESSAGE
+	LIS	R1,0		: PORT FOR MESSAGE
+	LHI	R2,10		: MESSAGE TYPE, EXTENDED HOST STATUS
+	JAL	R4,SLOR		: START MESSAGE
+	LI	R0,0		: KEY = 0
+	JAL	R4,PUTCH	: SEND KEY
+	LHI	R0,HOST0	: GET HOST NUMBER
+	EXHR	R0,R0		: INTO FIRST FOUR BITS
+	LHI	R4,MAXPRT	: GET NUMBER OF PORTS
+	STH	R4,NPRTS	: SAVE NUMBER OF PORTS AVAILABLE
+	OR	R0,R4		: MAKE WORD: HST0/MAXPRT
+	JAL	R4,PUTW		: SEND HOST NUMBER AND PORT FLAG
+	LI	R0,0		: RH=0, STATUS=0 (ANSWERED), HKEY=0
+	JAL	R4,PUTW		: SEND IT
+	LHI	R0,PRODID	: GET PRODUCT ID
+	JAL	R4,PUTH		: SEND IT
+	JAL	R4,ELOR		: END LOGICAL OUTPUT RECORD
+	JAL	R13,RHA		: REPORT HOST AVAILABILITY
+:
+: *************** LOOP WAITING FOR SOMETHING TO HAPPEN *****************
+:
+LOOP	SVC	DISMISS		: DISMISS A LOT
+	JAL	R4,LOOK		: SEE IF INPUT MESSAGE, GET TYPE IN R2
+	J	MAIN		: NO MESSAGE, GO SEE IF ANYTHING ELSE TO DO
+	JE	TOILT1		: FLUSH PORT 0 MESSAGES
+	LR	R2,R2		: SET CONDITION FLAGS FOR MESSAGE TYPE
+	JE	HELLO		: IF TYPE=0 THEN NEEDLE, PROCESS LOGIN
+	STH	R1,TPORT	: SAVE PORT NUMBER IN CASE WE NEED IT
+	CHI	R2,9E		: NOW SEE IF DATA INPUT
+	JL	GETDATA		: IF LESS THAN 9E THEN DATA, GO SEE WHAT...
+	CHI	R2,9F		: SEE IF ZAP
+	JE	ZAPIT		: IF SO, GO ZAP CIRCUIT
+	CHI	R2,0A0		: APPLY BACKPRESSURE?
+	JE	APBP		: GO DO IT
+	CHI	R2,0A1		: RELEASE BACKPRESSURE?
+	JE	REBP		: GO DO IT
+	CHI	R2,0AE		: BREAK RECIEVED?
+	JE	PRBK		: GO PROCESS BREAK IF SO
+TOILET	SHI	R2,9E		: NEITHER, GET OFFSET INTO LENGTH TABLE
+	LB	R0,TBL1,R2	: GET LENGTH FROM TABLE 1 OF > 9E MESSAGES
+	JFS	FLUSHIT		: GO FLUSH MESSAGE (IGNORE IT)
+TOILT1	LB	R0,TBL2,R2	: GET LENGTH FROM TABLE 2 OF RPORT 0 MESSAGE
+FLUSHIT	JAL	R4,FLUSH	: FLUSH MESSAGE (OF LENGTH R0)
+	J	LOOP		: LOOP BACK TO SEE IF ANY MORE DATA
+:
+: ************* ROUTINES TO SET AND RESET BACKPRESSURE ****************
+:
+APBP	SBT	R1,BPORTS	: APPLY BACKPRESSURE
+BPRT	JBS	TOILET		: FLUSH MESSAGE
+REBP	RBT	R1,BPORTS	: RELEASE BACKPRESSURE
+				: MAYBE WE SHOULD GOBBLE HERE?
+	JBS	BPRT		: FLUSH MESSAGE (USING 2 SHORT JUMPS)
+:
+: ************* NEEDLE RECIEVED, SET UP USER, INIT ********************
+:
+HELLO	SBT	R1,UPORTS	: SET BIT HIGH FOR LOGGED IN PORT
+	STH	R1,TPORT	: STORE PORT NUMBER
+	JAL	R4,GETH		: GET HALFWORD LENGTH OF NEEDLE IN R0
+	JAL	R4,FLUSH	: FLUSH REMAINDER OF NEEDLE
+	LH	R4,NPRTS	: GET NUMBER OF PORTS
+	SIS	R4,1		: DECREMENT
+	STH	R4,NPRTS	: SAVE NUMBER OF PORTS
+	JAL	R13,RHA		: REPORT HOST AVAILABILITY
+:
+: ********************* SEND BANNER TO USER ****************************
+:
+BANNER	LH	R2,TPORT	: GET THIS LOGINS PORT NUMBER BACK
+	LA	R3,BMSGL		: POINT TO BANNER MESSAGE
+	JAL	R5,OCS		: OUTPUT CANNED STRING
+:
+: ************** MAIN LOOP, SEE IF ANYTHING TO DO **********************
+:
+MAIN	LH	R6,UPORTS	: SEE IF ANY USERS LOGGED IN
+	LH	R5,UPORT1	: 1ST HALFWORD=R6, 2ND=R5
+	OR	R5,R6		: CHECK IF ZERO
+	JE	LOOP		: NO USERS, LOOP LOOKING FOR LOGIN
+:
+: **************** SEND MESSAGE TO EACH USER LOGGED IN *****************
+:
+MESS	LHI	R13,0		: PORT COUNTER
+MESS1	SVC	DISMISS		: BE NICE TO THE CPU
+	AIS	R13,1		: INCREMENT PORT
+	CHI	R13,MAXPRT+1	: HAVE WE CHECKED ALL PORTS?
+	JE	LOOP		: IF SO, LOOP
+	TBT	R13,UPORTS	: IS THERE A USER
+	JEBS	MESS1		: CHECK NEXT PORT IF NOT
+	TBT	R13,BPORTS	: SEE IF BACKPRESSURED
+	JN	MESS1		: DONT SEND ANYTHING IF SO
+MESS3	LR	R2,R13		: GET PORT NUMBER
+	STH	R2,TPORT	: SAVE PORT NUMBER
+:				: NOW SEE IF WE HAVE TO UPDATE THE TIME
+	L	R3,GMT,,	: GET NUMBER OF SECS SINCE REF
+	LIS	R4,8		: SIZE OF BUFFER
+	LA	R5,TMBUF	: ADDRESS OF BUFFER
+	JAL	R6,TMSTMP	: GET TIME INTO BUFFER
+	LH	R6,TPORT	: GET PORT
+	TBT	R6,FSPEED	: FAST SPEED?
+	JN	MESS4		: THEN DON'T CHECK TIME
+	LHI	R6,6		: POINT TO SECONDS (TENS DIGIT)
+	LB	R12,TMBUF,R6	: GET DIGIT
+	LH	R6,TPORT	: GET PORT
+	LB	R11,TICKS,R6	: GET LAST TICK
+	CR	R11,R12		: SAME?
+	JE	MESS1		: YES, LOOP AND LOOK AT NEXT PORT
+	STB	R12,TICKS,R6	: SAVE NEW TICK FOR THIS PORT
+:
+MESS4	LR	R2,R6		: GET PORT NUMBER
+	LA	R3,TIMEIS	: GET 'TIME IS MESSAGE'
+	JAL	R5,OCS		: SEND MESSAGE
+	LH	R2,TPORT	: PORT NUMBER
+	LA	R3,TMBUF-1	: POINT TO TIME STRING (ACTUALLY TO COUNT)
+	JAL	R5,OCS		: SEND TIME
+	LH	R2,TPORT	: PORT NUMBER
+	LA	R3,TAIL		: REMAINING TEXT AND CRLF
+	JAL	R5,OCS		: SEND IT
+	J	MESS1		: LOOK AT THE REST OF THE PORTS
+:
+: ********** USER TYPED SOMETHING, SEE IF IT IS A COMMAND **************
+:
+GETDATA	STH	R1,TPORT	: SAVE PORT NUMBER MESSAGE CAME IN ON
+	JAL	R4,GETCH	: GET CHARACTER COUNT INTO R0
+	CLHI	R0,1		: SEE IF LONGER THAN 1 CHAR TEXT STRING
+	JLE	GETD1		: IF NOT, JUST GET CHAR
+	STH	R0,TEMP		: SAVE LENGTH
+	JAL	R4,GETCH	: ELSE, GET FIRST CHAR
+	STH	R0,TEMP1	: STORE CHAR
+	LH	R0,TEMP		: GET OLD LENGTH
+	SIS	R0,1		: DECREMENT LENGTH TO FLUSH
+	JAL	R4,FLUSH	: AND THROW THE REST AWAY
+	LH	R0,TEMP1	: GET CHAR BACK
+	JFS	GETD2		: GO PROCESS CHARACTER
+GETD1	JAL	R4,GETCH	: GET CHARACTER
+	JAL	R4,ELIR		: END LOGICAL INPUT RECORD, SET UP FOR NEXT
+GETD2	NHI	R0,7F		: STRIP PARITY
+	LH	R2,TPORT	: GET THIS PORT
+	CHI	R0,51		: 'Q'?
+	JE	ZAPEM0		: IF SO, ZAP AND CLEAN UP
+	CHI	R0,71		: 'q'?
+	JE	ZAPEM0		: DITTO
+	CHI	R0,03		: CONTROL-C ?
+	JE	ZAPEM0		: DITTO
+	CHI	R0,04		: CONTROL-D ?
+	JE	ZAPEM0		: DITTO
+	CHI	R0,1B		: ESCAPE ?
+	JE	ZAPEM0		: DITTO
+	CHI	R0,13		: CONTROL-S, USER BACKPRESSURE
+	JE	USBP		: USER SET BACKPRESSURE ROUTINE
+	CHI	R0,11		: CONTROL-Q, USER TURNED OF BP
+	JE	USRBP		: USER RELEASED BP ROUTINE
+	CHI	R0,46		: 'F'?
+	JE	GOFAST		: SET FAST BIT
+	CHI	R0,66		: 'f'?
+	JE	GOFAST		: DITTO
+	CHI	R0,53		: 'S'?
+	JE	GOSLOW		: TURN OFF FAST BIT
+	CHI	R0,73		: 's'?
+	JE	GOSLOW		: DITTO
+BPRET	J	LOOP		: IF NOT A COMMAND, LOOP
+:
+: ************** USER SET OR RELEASED BACKPRESSURE, DO IT **************
+:
+USBP	SBT	R2,BPORTS	: SET BIT
+	JBS	BPRET		: SHORT WAY TO LOOP
+USRBP	RBT	R2,BPORTS	: TURN OFF BIT
+BPRT1	JBS	BPRET		: SHORT WAY BACK
+:
+: *************** USER WANTS FAST OR SLOW SPEED, SET BIT ***************
+:
+GOFAST	SBT	R2,FSPEED	: SET BIT
+	JBS	BPRT1		: RETURN
+GOSLOW	RBT	R2,FSPEED	: TURN OFF BIT
+	JBS	BPRT1		: LOOP
+:
+: ************ USER ISSUED QUIT COMMAND, SAY GOODBYE AND ZAP ***********
+:
+ZAPEM0	LH	R2,TPORT	: GET PORT NUMBER OF QUIT COMMAND
+	LA	R3,BYEL		: GET 'GOODBYE' MESSAGE
+	JAL	R5,OCS		: SEND IT
+	LH	R2,TPORT	: GET PORT
+ZAPEM1	LA	R3,ZAPMSG	: ZAPPER FOR CIRCUIT
+	JAL	R5,OCM		: ZAP CIRCUIT
+	LH	R2,TPORT	: GET PORT
+	RBT	R2,UPORTS	: TURN OFF THIS PORT
+	RBT	R2,BPORTS	: TURN OFF BACKPRESSURE TOO
+	RBT	R2,FSPEED	: AND MAKE SURE SLOW SPEED
+	LH	R2,NPRTS	: GET NUMBER OF PORTS
+	AIS	R2,1		: INCREMENT
+	STH	R2,NPRTS	: SAVE IT BACK
+	JAL	R13,RHA		: REPORT HOST AVAILABILITY
+	J	LOOP		: WAIT FOR ANOTHER LOGIN ETC.
+:
+: ********** ZAPPER RECIEVED ON PORT, RETALIATE WITH ZAPPER ************
+:
+ZAPIT	STH	R1,TPORT	: STORE PORT NUMBER
+	LIS	R0,1		: LENGTH OF ZAPPER
+	JAL	R4,FLUSH	: FLUSH MESSAGE
+	LH	R2,TPORT	: RESTORE PORT NUMBER
+	J	ZAPEM1
+:
+: ************** BREAK RECIEVED, USER WANTS TO LOG OFF *****************
+:
+PRBK	LB	R0,1		: LENGTH TO FLUSH
+	JAL	R4,FLUSH	: FLUSH BREAK INDICATION
+	J	ZAPEM0		: GO LOG HIM OFF
+:
+: ***************** REPORT HOST PORT AVAILABILITY **********************
+:
+RHA	LIS	R0,0A		: LENGTH OF MESSAGE
+	LIS	R1,0		: PORT FOR MESSAGE
+	LHI	R2,0A		: MESSAGE TYPE, REPORT HOST AVAILABILITY
+	JAL	R4,SLOR		: START MESSAGE
+	LI	R0,0		: KEY = 0
+	JAL	R4,PUTCH	: SEND IT
+	LHI	R0,HOST0	: GET HOST NUMBER
+	EXHR	R0,R0		: INTO FIRST FOUR BITS
+	LH	R4,NPRTS	: GET NUMBER OF PORTS REMAINING
+	OR	R0,R4		: MAKE WORD: HST0/NPRTS
+	JAL	R4,PUTW		: SEND HOST NUMBER AND PORT FLAG
+	LHI	R0,0		: RH=0
+	JAL	R4,PUTH		: SEND IT
+	JAL	R4,ELOR		: END LOGICAL OUTPUT RECORD
+	JR	R13		: RETURN
+:
+: ************************** DATA AREA *********************************
+:
+	SEG 0
+:
+	BND 4
+ZAPMSG	HC	019E	: SENT TO ZAP CIRCUIT
+	BND 4
+TPORT	WS	1	: USED FOR TEMPORARY STORAGE OF PORT NUMBER
+UPORTS	HS	1	: FIRST HALFWORD OF LOGGED IN USER BIT ARRAY
+UPORT1	HS	1	: SECOND HALFWORD
+BPORTS	WS	1	: BACKPRESSURE FLAGS (1=BP APPLIED)
+FSPEED	WS	1	: IF FAST SPEED (NOT EVERY 10 SECS)
+NPRTS	HS	1	: NUMBER OF PORTS REMAINING
+TEMP	HS	1	: TEMPORARY STORAGE
+TEMP1	HS	1	: DITTO
+	BND 4
+	BC	8	: SIZE OF TIME MESSAGE
+TMBUF	BS	8	: WHERE TO PUT TIMESTAMP
+	BND 4
+:			: TABLE OF MESSAGE LENGTHS FOR > 9E
+:
+TBL1	BC	                                          01,01 :<- 9
+        BC      01,01,01,01,01,01,01,01,01,01,01,01,01,01,01,01 :<- A
+	BC	02,03,04,02,02,02,08,06,01,02,01,01,01,01,02,01 :<- B
+	BC	01,06                                           :<- C
+:                ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^
+:                |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+:                0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
+	BND 4
+:			: MESSAGE LENGTHS FOR RPORT 0 MESSAGES
+:
+TBL2	BC	01,01,02,07,0A,06,06,09,09,05,08,05,08,01,04,01 :<- 0
+	BC	0C                                              :<- 1
+:                ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^  ^
+:                |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+:                0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
+	BND 4
+TICKS	BS	MAXPRT	: SPACE FOR TIME SECONDS TENS DIGITS / PORT
+	BND 4
+:			: BANNER MESSAGE
+:
+BMSGL
+BMSG
+	BND 4
+			: 'TIME IS MESSAGE'
+:
+TIMEIS	SC	/Zulu:/
+	BND 4
+:			: TEST DATA
+:
+TAIL SC / [ F=Fast|S=Slow|^S=Stop|^Q=Start|Q,^C,^D,ESC and Break=Quit ]"8D"8A/
+	BND 4
+:			: SENT WHEN USER QUITS
+:
+BYEL
+BYEBYE
+:
+: **********************************************************************
+:
+        SUBTTL  Control Table Allocation and Diagnostics - FINISH.LIB
+ 
+:**********************************************************************
+:                                                                     *
+:       This program is the sole property and confidential            *
+:       information of Tymshare, Inc., and may not be copied          *
+:       in whole or in part or disclosed to any third party           *
+:       without the prior written consent of Tymshare.                *
+:                                                                     *
+:**********************************************************************
+
+	RA	0		:	FINISH.LIB
+
+:	this file should always be assembled LAST!
+
+:ALLOCATE FPANEL IF USER HAS NOT
+  IF	\FPANEL
+  ELSE
+	SEG	A.DATA
+FPANEL  HS      1
+  EI
+  IF	\FRISIS
+  ELSE
+	SEG	0
+FRISIS	HS	$A (MAXPRT+15)/16
+  EI
+  IF	\TOISIS
+  ELSE
+	SEG	0
+TOISIS	HS	$A (MAXPRT+15)/16
+  EI
+
+:GENERATE DIAGNOSTICS
+Q	EQ	0
+	NOLIST
+	RE	0F
+SEG|Q|	EQ	SEG|Q|&07FFFFFFF
+	IF	SEG|Q|%(Q*10000)
+	REMARK	%"SEG
+	NUMBER	Q
+	REMARK	" has been redefined
+	EI
+
+  IF	1-(\PATCH0)
+	SEG	0
+PATCH0	WS	20	:SEGMENT ZERO PATCH AREA
+  EI
+  IF	1-(\PATCH1)
+	SEG	1
+PATCH1	WS	20	:SEGMENT ONE PATCH AREA
+  EI
+  IF	1-(\PATCH2)
+	SEG	2
+PATCH2	WS	20	:SEGMENT TWO PATCH AREA
+  EI
+:	DEFINE SIZES
+	SEG	Q
+S|Q|SIZE EQ	.-SEG|Q|
+Q	EQ	Q+1
+	ER
+	LIST
+
+:	BITCH IF ANY SEGMENTS OVERFLOW
+	NOLIST
+Q	EQ	0;	RE	0F;	IF	S|Q|SIZE-10000;	REMARK	%Segment 
+	NUMBER	Q;	REMARK	- overflow, exceeded by 
+	NUMBER	$A ($0S|Q|SIZE-10000);	REMARK	d bytes;	EI
+Q	EQ	Q+1;	ER
+	LIST
+
+      IF        \XMEMRY
+      ELSE
+XMEMRY  EQ      0
+      EI
+
+:	SET UP CTA TABLE
+  IF	SESIZE
+	REMARK	%SEGMENT E IS RESERVED FOR CTA. REMOVE OTHER ALLOCATIONS.%%
+  ELSE
+	SEG	0E
+      IF        XMEMRY
+CTA     WC      CNTRL+$01000    :Control flags
+      ELSE
+CTA	WC	CNTRL	:CONTROL FLAGS
+      EI
+
+	WC	CTASIZ	:SIZE OF CTA AREA
+AREAS
+Q	EQ	0
+	RE	0E
+	WC	S|Q|SIZE	:AREA SIZE
+Q	EQ	Q+1
+	ER
+
+	HC	0E	:NUMBER OF PROTECTION BYTES
+    IF	\APROT0
+	BC	APROT0	:SET AREA 0 PROTECTION
+    ELSE
+	REMARK	%DEFAULT AREA PROTECTIONS ASSUMED.%
+	BC	6	:EXECUTION PROTECTED
+    EI
+    IF	\APROT1
+	BC	APROT1	:SET AREA ONE PROTECTION
+    ELSE
+	BC	5	:WRITE PROTECTED
+    EI
+Q	EQ	2
+	RE	0C
+    IF	\APROT|Q|
+	BC	APROT|Q|
+    ELSE
+	BC	6	:EXECUTION PROTECTED
+    EI
+Q	EQ	Q+1
+	ER
+
+	WC	ENTRY	:ENTRY POINT ADDRESS
+    IF	\DSTART
+	WC	DSTART	:DDT START ADDRESS
+    ELSE
+	WC	0	:NO USER DDT CODE
+    EI
+
+	WC	FPANEL	:ADDRESS OF FRONT PANEL DISPLAY CELL
+
+	WC	HOSTS	:HOST TABLE ADDRESS
+	WC	PORTS	:PORT TABLE ADDRESS
+	WC	PTABLE	:PERMUTER TABLE ADDRESS
+	WC	IRING	:INPUT RING ADDRESS
+	WC	ORING	:OUTPUT RING ADDRESS
+	WC	FRISIS	:ADDRESS TO INPUT BACKPRESSURE BIT ARRAY
+	WC	TOISIS	:ADDRESS OF OUTPUT BACKPRESSURE ARRAY
+  IF	\PCTTBL
+	WC	PCTTBL	:PROJECT CODE TERMINATION TABLE
+  ELSE
+	WC	0	:NULL TABLE
+  EI
+COREST	WS	1	:ABSOLUTE CORE ADDRESS OF START OF SLOT
+	HC	MAXHST	:MAXIMUM HOSTS FOR SLOT
+	HC	MAXPRT	:HIGHEST PORT NUMBER FOR SLOT
+	HC	IRSIZE	:INPUT RING SIZE
+	HC	ORSIZE	:OUTPUT RING SIZE
+SLOTNO	HS	1	:SLOT NUMBER (SUPPLIED BY ISIS)
+VERREV	HS	0
+  IF	\VERSION
+	BC	VERSION	:VERSION NUMBER
+  ELSE
+	BC	0
+  EI
+  IF	\REVLEV
+	BC	REVLEV	:REVISION LEVEL
+  ELSE
+	BC	0
+  EI
+
+    IF	\QSTART
+	WC	QSTART	:DDT QUERRY START ADDRESS
+    ELSE
+	WC	0	:NO USER CODE
+    EI
+        HC      EMMAC0-CTA
+    IF  \NMACSS
+        HC      NMACSS          :Number of MAC Register Sets
+    ELSE
+        HC      0               :No extended MAC sets
+    EI
+        HC      0               :Segments to be saved
+
+    IF \PRODID
+    ELSE
+      IF  \HID0
+PRODID  EQ      HID0            :Define PRODID as alias
+      ELSE
+      EI  :HID0
+    EI :PRODID
+
+    IF \PRODID
+      IF PRODID-$a255
+        REMARK  %PRODID is too large%
+        QUIT    1
+      EI
+      IF PRODID-$a48
+      ELSE
+        REMARK  %PRODID is too small%
+        QUIT    1
+      EI
+    ELSE
+        REMARK  %PRODID - Slot Product id must be defined%
+        QUIT    1
+    EI :PRODID
+        HC      PRODID          :slot Product id
+
+	WS	10	:RESERVED FOR FUTURE EXPANSION
+
+HOSTS	HS	0	:BEGINNING OF HOST TABLE
+Q	EQ	0
+	RE	MAXHST
+    IF	\HOST|Q|
+	HC	HOST|Q|	:HOST NUMBER
+    ELSE
+	HC	0	:NO ASSEMBLED IN HOST NUMBER
+    EI
+Q	EQ	Q+1
+	ER
+
+PORTS	HS	0	:BEGINNING OF PORT TABLE
+Q	EQ	0
+	RE	MAXHST
+    IF	\HPRT|Q|
+	HC	HPRT|Q|
+    ELSE
+	HC	0	:NO ASSEMBLED IN NUMBER OF PORTS
+    EI
+Q	EQ	Q+1
+	ER
+
+PTABLE	HS	MAXPRT+1	:PERMUTER TABLE
+
+EMMAC0  WS      0               :Extended Memory MAC Register sets
+    IF XMEMRY
+      IF \NMACSS
+        EXPMAC
+        REMARK  %Using Extended Memory Option%
+        NUMBER  $a NMACSS
+        REMARK  MAC Register sets allocated%
+        NUMBER  $a EMEMR3
+        REMARK k allocated on non-zero meg
+      ELSE
+        REMARK  %NMACSS must be specified with extended memory%
+        QUIT    1
+      EI        :NMACSS
+    EI          :XMEMRY
+
+CTASIZ	EQ	.-CTA	:CTA AREA SIZE
+SESIZE	EQ	.-CTA	:SEG E SIZE
+  EI
+
+:	TELL MEMORY REQUIREMENTS
+Q	EQ	0
+QQ	EQ	0
+QQQ	EQ	0
+	RE	0F
+	IF	S|Q|SIZE
+	REMARK	%SEGMENT 
+	NUMBER	Q
+	REMARK	-length 
+QQQ	EQ	S|Q|SIZE
+	NUMBER	$A QQQ
+	REMARK	d, requires 
+Q3	EQ	(S|Q|SIZE+0FF)&(@0FF);	NUMBER	Q3
+QQ	EQ	QQ+Q3
+	REMARK	x bytes of core.
+	EI
+Q	EQ	Q+1
+	ER
+
+:	GIVE FINAL SIZES
+	REMARK	%       
+	NUMBER	(QQ+$03FF)/400$A	:FORCE TO BASE 10 FOR OUTPUT
+	REMARK	d K-bytes of core
+
+	UN		:spew out all undefined symbols
+	END
+ CpeQ
