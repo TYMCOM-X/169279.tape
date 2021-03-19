@@ -1,0 +1,270 @@
+
+.	<<	PICO.MNT	- 	Maintenance Information	>>
+
+.SEC(MAINTENANCE INFORMATION)
+.SS(DIAGNOSTIC TOOLS)
+     At System Power Up time the PICO IOC Firmware will intiate a System
+Reset strobe from the M68010 which results in the initialization of the
+DMAC, MFP and IOC SCC I/O devices.  Default SCC template values are loaded
+from the ROM into the SCC Control Structure.  The Real Time Clock is fired
+up and the Watch Dog Timer is enabled.  As there is no code being executed
+at this moment the timer will of course expire and a non-maskable Level 7
+interrupt will be issued to the M68010.  The subsequent Level 7 service
+routine will set a bit in IOC RAM and vector to the Power On initialization
+routine entry point and execute the BOOT routine.  The BOOT code is written
+into Engine RAM at 700x to 10E2x and EF000x to EFFFEx and executed from
+RAM.  BOOT code then issues resets to the Watch Dog Timer to prevent it's
+expiration, reconfigures the SCC templates for channels 0 to 3 and scans
+for down-line-load headers on channels 0 to 3.  Successful execution of
+this sequence at Power Up time implies a large percentage of hardware is
+functional.  Failure to execute the Power On sequence will result in an
+error event and the current PSW, Register contents and the address of the last
+successfully executed instruction fetched, along with the contents of the
+address will be displayed at the ENGbug prompt.  Physical evidence of
+success or failure may be the state of the GREEN (PASS) LED 1 or the RED
+(FAIL) LED 2 located on the IOC PCB edge adjacent to the I/O port 2
+connector.  If the system fails to turn on the RED LED at power on and
+then extinguish it, the Power Up sequence has failed
+
+     The PICO Firmware has 10 Self-Tests which can be invoked via the IOCbug
+function.  Execution of the Self-Tests can be accomplished by disabling the
+Watch Dog Timer and changing from the ENGbug prompt to the IOCbug prompt.
+The Watch Dog Timer is disabled by enterring a lower case wd off[CR].  The
+IOCbug prompt is acquired by enterring [CNTL]N two times sequentially.  The
+proper syntax for invoking the Self-Test(s) is ST X[CR], where X is an
+integer from 0 to 9.  Self-Tests 0 to 8 execute in approximately 10 seconds
+or less.  Self-Test 9 requires 25 minutes to completion.  At the completion
+of each test the user will be returned to the ENGbug prompt.  A failure to
+complete should return the PSW, Register contents and the address of the last
+successfully executed instruction fetched.  
+
+.break
+.BEGIN BOX 
+
+SELF TEST CODE             TEST FUNCTION
+
+      0                    Executes ST 1 through 8                     
+      1                    IOC Static RAM test
+      2                    Z8530 SCC test
+      3                    M68450 DMAC test
+      4                    M68901 MFP test
+      5                    Engine Front Panel Interface test
+      6                    Engine Instruction test
+      7                    Engine MAC test
+      8                    Engine Interrupt test
+      9                    Extended Engine RAM test
+
+.END
+.SS(SELF TESTS DESCRIPTORS)
+ST 1:  A non-destructive IOC Static RAM test.  Each RAM location is read
+and written with the complement of the read data.  The address is read again
+and verfied.  If correct, the data is complemented again, rewritten and 
+verified.
+
+ST 2:  A Z8530 SCC series of three subtests.  Data is written into the
+SCC control Registers 12 and 13 to verify that the data and control signals
+are functional.  The SCCs are put into internal loopback mode, data is
+transmitted in the ASYNC mode at 4800 baud, received and verified as received.
+The actual I/O line drivers are not tested by this test.  Verify that the
+SCCs generate interrupts correctly for transmit and receive characters.
+
+ST 3:  An M68450 DMAC series of four subtests.  Data is written to all
+accessable internal DMAC registers and read back for verifcation.  The DMAC
+is initialized for DMA memory to memory transfers and data is transferred to
+IOC RAM address space to verify that data, address and control logics are
+functional in DMA bus transactions.  Data transfer completion should cause a
+DMAC normal completion interrupt.  Transferred data and DMAC status are
+verified correct.  Transfer a byte count of zero bytes of data and verify
+a DMAC error interrupt is properly executed.  Program the SCC channels 0
+and 1 for internal loopback and enable DMAC transfers from RAM to SCC and
+back from SCC to RAM.  Verify that SCC transmit buffer empty and receive
+buffer full status conditions generate DMA requests and that data is 
+transferred correctly.
+
+ST 4:  A Multi-Function Peripheral functional test.  M68901 internal
+registers are written into and read back for verification.  The four
+MFP timers are setup and tested to be functional and MFP generated
+timer interrupts are verified.  The USART used for the local Console
+and TTY is set to internal loopback and data is transferred in the ASYNC
+mode at 4800 baud to verify transmit and receive functions.  USART transmit
+and receive interrupts are tested.
+
+ST 5:  A very basic test to verify that the code for the Front Panel
+Interface is functional.  This interface is used by the IOC to control
+and monitor NEP board functions.
+
+ST 6:  A series of subtests verify Engine instruction fetch, decode and
+execution logic.  ALU functions and memory read/writes are verified.
+
+ST 7:  A test of MAC error detection and interrupt handling functions.  MAC
+access violations are generated and the resultant interrupt status is
+verified.  MAC Execute Protect and Write Protect violation interrupts are
+verified.  MAC Segment Present and Segment Length violation interrupts are
+verified.  MAC Write Interrupt violation is verified.  The Engine memory
+Bus Lock function is tested.
+
+ST 8:  ATN0, ATN1 and ATN2 interrupts are generated and verified.
+
+ST 9:  A 25 minute test of the 1024K bytes of main Engine memory.  The
+existing Engine Memory Diagnostic which is down-line-loaded on other Tymnet
+products would require non-trivial modifications to execute properly on
+the PICO Engine.  Most of the existing Engine Diagnostic tests would require
+addressing relocation to avoid accesses to PICO special mailbox memory
+areas.  The Low memory test, memory relocation routine, functional block
+test,  battery backup test and memory chip specifics in error messages
+would all require changes so the Self-Test is designed to be comprehensive
+and exceeds the minimal basic confidence level of the other Self-Tests.
+
+     Engine memory addresses 8F0000x through 8F003Fx are not modified by
+the ST commands.  This area of Engine RAM  is reserved for the Channel 0
+command driver which the ISIS utilizes for SCC template manipulation.
+
+.SS(STANDALONE DOWN-LINE-LOAD DIAGNOSTICS)
+DCPU:  Version 4 of the CPU diagnostic, which is the current version at
+this date, is executable on the PICO Engine.  The CPU diagnostic is designed
+to be a comprehensive test of the instruction set, registers, arithmetic and
+logic operations, addressing modes and illegal instruction interrupts which
+makes it the logical choice to load immediately after execution of the Self-
+Test at System Bring-up, regular PM (preventative maintenance) and whenever
+troubleshooting the PICO Engine!  As the PICO Engine utilizes a "virtual"
+console a 1200 baud capable terminal (CRT) or terminal emulator is required.
+Execution of the diagnostic presumes the PICO is healthy enough to accept
+a synchronous down-line-load from either a Tymnet Sync or Tymnet SIO line.
+When loaded the Front Console will display 300000000> which will alternate
+with the error display 000000000>.  If an F1 is displayed at this time it
+is an indication that a hardware malfunction prevented the diagnostic from
+detecting the type of MAC installed, amount of memory available, presence
+of SIO Mboard address 80x or the type of system it loaded onto.  From the 
+terminal enterring [CNTL]N one time is analogous to logging onto the TTY 
+port of the Standard Engine. 
+.begin box
+The user will be greeted by the banner display:
+
+ENGINE CPU DIAGNOSTIC - VERSION 4.0 (04-30-87)
+
+SYSTEM FOUND = TSI CONTROLLER
+
+TSI MAC FOUND
+
+SIO BOARD X"80" FOUND
+
+MEMORY FOUND
+000000 - 0FFFFF
+
+* (Ready to accept commands!!!  Enter RUN[CR])
+.END
+     One complete pass through the diagnostic with the terminal at 1200 baud
+will require exactly 50 seconds.  The default LOOP value is set to 5 iterations
+of the diagnostic which will require 4 minutes 10 seconds if error free.  The
+CPU diagnostic is comprised of 15 tests all of which are executable on PICO
+and all are executed by default.  There are no subsequent nondefault tests
+to execute after main program execution is complete.  Any errors incurred
+will be displayed to the terminal and the program will continue to completion
+unless the user specifies to halt on error condition.  The diagnostic can be
+restarted at any time in the TTY mode by enterring GO A00[CR] or in the ENGbug
+mode by enterring INI[CR] followed by GD A00[CR].  Refer the the specific
+DCPU.DOC file found in the (ENGDIAG) directory in the Public Network Systems
+for more CPU diagnostic specifics.
+
+
+DMAC:  Version 7.0 of the MAC diagnostic, which is the current version at
+this date, is executable on the PICO Engine.  The MAC diagnostic is useful
+to test the MAC gate array on the NEP board.  The diagnostic will test all
+Segmentation registers, the Segmentation register select and relocation and
+protection.  This diagnostic will not test the DMA circuitry of the system!
+It is useful to help in fault isolation  and debug of suspect MAC errors and
+it is also appropriate to execute this test at System Bring-up, regular PM
+and of course, whenever troubleshooting the PICO Engine.  DMAC will be 
+loaded just as the DCPU diagnostic is and at the end of the down-line-load,
+the Front Console will display 200000000> which again will alternate with 
+the error display 000000000>.  As in DCPU, if an F1 system error is displayed
+at this time it is an indication that a hardware malfunction prevented the
+program from detecting the type of MAC found or the presence of SIO Mboard
+device address 80.  Except for the MAC circuitry under test, the hardware 
+must be known to pass the Self-Tests and DCPU to be of any value!  Again,
+from the terminal, enter [CNTL]N one time to enter the TTY mode of operation.
+.begin box
+The user will be greeted by the banner display:
+
+TTY TSI MAC FOUND
+
+SIO BOARD X"80" FOUND
+
+MEMORY FOUND
+000000-0FFFFF
+
+BLOCK NUMBER     MEMORY ADDRESS     MEMORY TYPE
+ 00 - 0F         000000-0FFFFE      TSI DRAM
+
+* (Ready to accept commands!!!  Enter RUN[CR])
+.END
+     One complete pass through the diagnostic with the terminal at 1200 baud
+will require 2 minutes 20 seconds.  The default LOOP value is set to 1 
+iteration.  Tests 2 (Segmentation Register Set), 3 (Relocation) and 4 
+(Protection) are selected for execution by default.  Test 5 (Multi-Meg)
+is not appropriate for use on PICO Engines and test 6 (Relocation Scope
+Loop) will not run on PICO so again there are no nondefault tests to execute
+after main program execution is complete.  If any errors are encounterred the
+test will continue and display the error count at the end of the test(s).
+The diagnostic can be restarted at any time in the TTY mode by enterring
+GO A00[CR] or in the ENGbug mode by enterring INI[CR] followed by GD A00[CR].
+Refer to DMAC.DOC in the (ENGDIAG) directory of the Tymnet Public Network
+Systems for additional MAC diagnostic specifics.
+
+
+DSIO:  Version 3.0 of the I/O diagnosticc , which aagain is the current
+version at this date, is executable on the PICO Engine.  DSIO is useful
+to exercise the Serial I/O subsystem of PICO Engine.  The subsystem is
+comprised of a DMA interface for channels 0 and 1, interface circuitry
+to SCC channels 2 through 7 which handshake with the NEP CPU, scratchpad
+static RAMs which buffer control information and dat, the actual serial
+I/O buses which propagate transmitted and received data and the I/O level
+shifters and transceivers.  The diagnostic will test all 8 channels in
+HDLC, ASYNC and ESYNC modes.  I/O timing should be set to 9600 baud for
+the most reliable results.  Channels 2 through 7 should be physically
+configured to output an internally sourced transmit clock  and to receive
+an external receive clock.  When properly configured a standard 630030-001
+Rev A loopback plug may be utilized to loopback data, clocks and control
+signals.  The loopback plug will short DTR out back to DSR in the I/O
+channels should be strapped to ignore DCD and recognize DSR to pass the control
+signal tests.  RTS and CTS signals require no strapping.  Synchronous modems
+configured for Local Analog Loopback may also be used with the diagnostic as
+long as the hardware and software straps reflect the externally sourced I/O
+timing signals.  When loaded the Front Panel will display 400000000>
+alternating with 000000000> the error display.  Should the diagnostic fail
+to detect the type of MAC found or the presence of SIO Mboard device address 80
+an error code of F1 will be displayed and the diagnostic halts.  To
+enter the TTY mode to execute the program from the terminal enter [CNTL]N
+one time.
+.begin box
+The user will be greeted with the banner display:
+
+SIO DIAGNOSTIC - VERSION 3.0 (Nov-30-1987)
+
+SYSTEM TYPE FOUND = TSI CONTROLLER OR NANO ENGINE
+
+TSI MAC OR NANO ENGINE MAC FOUND
+
+SIO BOARD X'80' FOUND
+
+MEMORY FOUND
+000000-0FFFFF
+
+*(Ready to accept commands!!!  Enter SELT[CR])
+.END
+     The diagnostic should respond to the SELT command by displaying
+that channels 0 through 7 exist and prompt the user to enter the channel
+number(s) to exercise.  Should an error be encounterred during program
+execution, an error message will be displayed, an error counter updated
+and the program will continue until completion unless the user specifies
+to halt on error conditions.  DSIO consist of 9 tests, all of which are
+executed by default on the PICO Engine, so again there are no subsequent
+non-default tests to select after main program execution.  The program
+may be resarted at any time in the TTY mode by enterring GO A00[CR] or
+from the ENGbug prompt by enterring [INI] followed by GD A00[CR].  Please
+refer to the latest DSIO.DOC file available in (BETADIAG) directories
+of Tymnet Public Network Systems for addtional operating instructions,
+loopback plug requirements and available options as this is a recently
+enhanced version of DSIO!
+
+ 
