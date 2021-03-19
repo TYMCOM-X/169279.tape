@@ -1,0 +1,2901 @@
+                                                               October 27, 1986
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TTTTTTTTTTT EEEEEEEEE  CCCCCCCC  HHH    HHH TTTTTTTTTTT IIIIIIIIIII  PPPPPPP
+TTTTTTTTTTT EEEEEEEEE CCCCCCCCCC HHH    HHH TTTTTTTTTTT IIIIIIIIIII PPPPPPPPP
+    TTT     EEE       CCC     CC HHH    HHH     TTT         III     PPP    PPP
+    TTT     EEEEE     CCC        HHHHHHHHHH     TTT         III     PPP    PPP
+    TTT     EEEEE     CCC        HHHHHHHHHH     TTT         III     PPPPPPPPP
+    TTT     EEE       CCC     CC HHH    HHH     TTT         III     PPP
+    TTT     EEEEEEEEE CCCCCCCCCC HHH    HHH     TTT     IIIIIIIIIII PPP
+    TTT     EEEEEEEEE  CCCCCCCC  HHH    HHH     TTT     IIIIIIIIIII PPP
+
+
+
+
+
+
+
+
+
+
+                               November 01, 1986
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     MMDDYY.TIP
+                                                               October 27, 1986
+
+
+
+
+
+
+
+                                   TABLE OF CONTENTS
+
+        Section                                                            Page
+
+
+
+        1.   SDLC VERSION 2.02 SYSGEN ERRORS                                  1
+
+
+        2.   SUBMISSION OF PATCH FILES TO TECH SVCS                           3
+
+
+        3.   UNSUPPORTED TMCS VERSION 10.10                                   5
+
+
+        4.   EXPLANATION OF RECORD IN ACCOUNTING FILE                         7
+
+
+        5.   TELECOMMUNICATIONS MGMT NOTIFICATION PROCEDURES                  8
+          5.1   TROUBLE TICKET/INCIDENT HANDLING PROCEDURES                  13
+
+
+        6.   ENHANCED SECURITY DEVICES                                       18
+
+
+        7.   PUBLIC OUTDIAL - Status Update                                  22
+
+
+        8.   FRONT CONSOLE NODECODE DISPLAY                                  24
+
+
+        9.   MTEXT LENGTH IN X.25                                            26
+
+
+        10.  UNEXPLAINABLE CRASHES                                           27
+
+
+        11.  SOLO NODE DOES NOT RECOVER FROM POWER FAILURE                   28
+
+
+        12.  VERSION 6.01 CONSAT ALERT                                       29
+
+
+        13.  NETWORK CONSOLE PASSWORD CHANGES                                30
+
+
+        14.  RAM GENERATES INCOMPLETE RECORDS                                31
+
+
+                                                                     MMDDYY.TIP
+                                                               October 27, 1986
+
+
+        15.  PRODUCT RELEASE REPORTS                                         34
+
+
+        16.  SPECIFYING HALF/FULL DUPLEX MODE                                36
+
+
+        17.  SDLC NETWORK DELAYS                                             37
+
+
+        18.  TYMNET'S SUPPORT OF MSNF CONNECTIONS                            40
+
+
+        19.  TECH ALERT CRSTOP                                               41
+
+
+        20.  X.25 FEATURE REQUESTS                                           42
+
+
+        21.  UNSUPPORTED RELEASES OF X.25                                    43
+
+
+        22.  TWO NEW FEATURES IN PATCH FILE SYSTEM                           44
+
+
+        23.  TECH ALERT - REGISTER REFRESH PATCH                             45
+
+
+        24.  RETRIES-NETREPLTO-REPLYTO MACROS                                46
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     MMDDYY.TIP
+        SDLC VERSION 2.02 SYSGEN ERRORS                        October 27, 1986
+
+
+
+
+
+
+                         1 -  SDLC VERSION 2.02 SYSGEN ERRORS
+
+
+
+
+
+
+
+        Written by : Ping Chu, HQ Network Staff Consultant
+              Date : October 06, 1986
+
+
+
+
+
+
+
+        This  memo  lists a  number  of inconsistent  definitions  between SDLC
+        version 2.02 SYSGEN document and INIT file.  Please use the recommended
+        ways to get around the gen errors.
+
+
+        1.  MAPADDR macor is only required in TIF as stated in sysgen 
+            manual.  However, it gives error message if not coded in the 
+            HIF tymfile.  One way to circumvent the error message is to 
+            also define it in the HIF tymfile even though it is redundant.
+
+
+        2.  PVC.RTPUT and PVC.TTPUT macros, if coded in the LINE level, will
+            give PVC Configuration Error status in the PVC RESPONSE packet.
+            To get around this error condition, we need to define these
+            two macros in the PU level temporarily until they get fixed in
+            the INIT file.
+
+
+        3.  POLLTIMER macro defines T timer value at 1/4 second. The INIT file
+            should be changed to REMARK as T timer value times 1/4 second, as
+            opposed to a second currently.
+
+
+        4.  NETREPLYTO macro defines T timer value at 1/10 second. The INIT
+            file should then be changed to REMARK as T timer value times 1/10
+            second, as opposed to a second currently.
+
+
+        5.  For a PVC line, it gives error message when DHOST macor is defined
+            in the LINE level even though the sysgen manual permits it to be
+            defined in the LINE level. To circumvent this problem temporarily,
+            we need to define it in the PU level.
+
+                                           1                         MMDDYY.TIP
+        SDLC VERSION 2.02 SYSGEN ERRORS                        October 27, 1986
+
+
+        6.  In the sysgen manual, the MGOODGUY macro of SDLC Op monitor should
+            not only define the USERNAME but also the AUTHORIZATION LEVEL, 
+            which allows the user to DISPLAY or CHANGE SDLC network infor-
+            mation.
+
+
+        7.  In the sample tymfile of SDLC 2.02, the comments on LINE 0 of 
+            GROUP 0 and LINE 1 of GROUP 1 are totally reversed.  LINE 0 of 
+            GROUP 0 should be an Incoming PVC line, and LINE 1 of GROUP 1 
+            should be an Outgoing PVC line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                           2                         MMDDYY.TIP
+        SUBMISSION OF PATCH FILES TO TECH SVCS                 October 27, 1986
+
+
+
+
+
+
+                      2 -  SUBMISSION OF PATCH FILES TO TECH SVCS
+
+
+
+
+
+
+
+        Written by : Linda Kypke, HQ Technical Administrator
+              Date : October, 1986
+
+
+
+
+
+
+
+        THIS NOTICE SERVES TO ANNOUNCE  A RECENT MODIFICATION, MADE BY  NTD, TO
+        THE NSR SYSTEM.   THE MODIFICATION WAS MADE  TO ALLOW FOR THE  ENTRY OF
+        PATCH  FILE INFORMATION,  WHICH WILL  BE REVIWED  BY TECH  SERVICES FOR
+        IMPLEMENTATION INTO OUR "PATCH FILE DATABASE".
+
+
+        THIS PATCH FILE DATABASE WAS CREATED, BY JEFF LIU, IN ORDER THAT WE MAY
+        ORGANIZE ALL  OUR PATCH  FILES UNDER  (1) DIRECTORY  AND KEEP  TRACK OF
+        WHICH  PATCH FILES  ARE STILL  WAITING IMPLEMENTATION  INTO BETA/SOURCE
+        RELEASE CODE.
+
+
+        WE WANT TO TAKE THIS OPPORTUNITY  TO LET YOU KNOW THAT ANY  PATCHES YOU
+        HAVE EITHER WRITTEN  OR KNOW ABOUT, WHICH  ARE NOT INCLUDED IN  BETA OR
+        RELEASED VERSIONS OF CODE, 'MUST' BE IDENTIFIED AND PROVIDED TO  US FOR
+        APPROVAL AND  IMPLEMENTATION INTO  OUR DATABASE.   AT THIS  POINT, ONLY
+        THOSE PATCHES RESIDING IN OUR PATCHFILE DIRECTORY, WILL BE SUPPORTED BY
+        TECH SVCS AND NTD.   (SO BE SURE TO  GET ANY OUTSTANDING PATCHES  IN TO
+        US).
+
+
+        NOW TO GET BACK TO THE  NSR MODIFICATION. . .UPON ENTERING A  "NEW" NSR
+        INTO THE SYSTEM, YOU WILL NOW BE PROMPTED TO FILL OUT ONE OF TWO FORMS.
+        THE 2ND FORM WILL PROMT YOU FOR THESE ADDITIONAL DETAILS:
+
+           CURRENT FILENAME AND CHECKSUM    :
+           ORIGINAL FILENAME (IF APPLICABLE):
+           SUPERCEDED PATCH FILES           :
+           REVISIONS INVOLVED               :
+           DESCRIPTION OF PATCH             : (PLEASE ALSO INCLUDE THE NAME 
+                                              OF THE CUSTOMER, IN THIS FIELD,
+                                              TO WHICH THIS PATCH APPLIES.)
+
+                                           3                         MMDDYY.TIP
+        SUBMISSION OF PATCH FILES TO TECH SVCS                 October 27, 1986
+
+
+        (TECH SVCS HAS  PREVIOUSLY BEEN ENTERING THEIR  PATCH FILE INFO  VIA AN
+        'EXEC'   FORM THROUGH  ONTYME [:EXEC  *** FORMS.PATCHFILE].   THIS FORM
+        WILL,  NOW, ONLY  BE USED IF YOU ARE NOTIFYING US OF A PATCH  WHICH HAS
+        BEEN SUBMITTED  VIA A PIR).
+
+
+        IF YOU WOULD LIKE TO KNOW  MORE ABOUT OUR PATCH FILE DATABASE  AND  ON-
+        LINE DIRECTORY, PLEASE SEE   (TECHREF:56)PATCH.PRO
+
+
+
+        SPECIAL NOTE  - JEFF LIU  HAS ALSO WRITTEN  A PROGRAM  ON (TECHREF:56),
+        WHICH  WILL DO  SEARCHES  ON THE  PATCHES  RESIDING IN  OUR  PATCH FILE
+        DIRECTORY.  TO RUN THIS  PROGRAM, SIMPLY GIVE THE COMMAND  'RUN PATCH'.
+        THE PROGRAM WILL PROMPT YOU FROM THERE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                           4                         MMDDYY.TIP
+        UNSUPPORTED TMCS VERSION 10.10                         October 27, 1986
+
+
+
+
+
+
+                          3 -  UNSUPPORTED TMCS VERSION 10.10
+
+
+
+
+
+
+
+        Written by : John Gomes, HQ QA Manager - and- Shiao-Ming Tsui
+              Date : October 02, 1986
+
+
+
+
+
+
+
+        Effective  10/15,  TMCS version 10.10 will no longer be supported.
+
+        Problems   with   this   product have  recently   been   discovered  by
+        Tymnet   Headquarters,   which   will  present   difficulties   to  our
+        customer base. (Please see attached ontyme from Shiao-Ming Tsui).
+
+        TMCS  version  10.20  is  now in  full  release.   Please  upgrade your
+        customer to this version.  The only restriction with TMCS Version 10.20
+        is that it does not support Tymnet-I technology.  Version 10.00 will be
+        the last version to support T-I.
+
+        If  you have  any questions or concerns,   please send me an  Ontyme or
+        call me at 408-942-5142.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                           5                         MMDDYY.TIP
+        UNSUPPORTED TMCS VERSION 10.10                         October 27, 1986
+
+
+
+
+
+
+
+
+        [By Shiao-Ming Tsui, HQ Network Staff Consultant]
+
+
+
+        The status of TMCS version 10.10 is being reviewed at this time.   If a
+        private network  is only  using $ENABLE TYMNETONE  option for  the TMCS
+        slot,  STS  recommends TMCS  '10.00'  over TMCS  10.10.   The following
+        outstanding bugs have been found in TMCS 10.10:
+
+          -  SET and CLEAR HOST LOCATION commands are not working correctly.
+             If a host location has been set wrong, the host location
+             cannot be reset or cleared.
+          -  The five digit accounting host number is not reported correctly.
+          -  Some out lines are not in the DISPLAY LINE output.
+          -  In SINGLE_HOST_STATUS_MESSAGE facility, SET HOST MESSAGE command
+             cannot set a new message over the old one if the host already
+             has one host status message.
+
+        TMCS 10.20 has the following facilities available:
+
+          - SHUT_LINK_TABLE_MAINTENANCE facility copies the Shut Link Table
+            from the active Sup to the inactive Sups.
+          - Accepts 5 digit node numbers.
+          - New formats on the log messages for OnTyme, RAM, Kernel, TMCS
+            XCOM, and MXP.
+          - Multiple host status message
+          - Corrects the bugs listed above, with TMCS, Version 10.10
+
+        TMCS 10.10 also has the problem  that you CAN NOT make mistakes  in the
+        SET/CLEAR HOST LOCATION commands.  Once  a mistake is made in  the host
+        location  file,  the problem  cannot  be cleared  until  TMCS  10.20 is
+        loaded.  Then the host locations  which have been set wrong need  to be
+        manually entered again.  TMCS 10.00 does not have this problem.
+
+
+        TMCS version 10.20  does not support T-I.   TMCS Version 10.00  will be
+        the last version to support T-I.
+
+
+        Due to these concerns, STS recommends the use of TMCS version  10.00 or
+        10.20 over version 10.10.
+
+
+
+
+
+
+
+                                           6                         MMDDYY.TIP
+        EXPLANATION OF RECORD IN ACCOUNTING FILE               October 27, 1986
+
+
+
+
+
+
+                     4 -  EXPLANATION OF RECORD IN ACCOUNTING FILE
+
+
+
+
+
+
+
+        Original Question by : V. Bohan, TNSC 
+                 Response by : Gail Bubsey, HQ Network Staff Consultant
+                        Date : October 07, 1986
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+
+        Can you supply me with  an explanation of the record in  the accounting
+        file for record "type 1, subtype E and F":
+
+        1E1002D <- this work is followed by zero
+        1F1002F <- same
+
+
+
+
+
+        RESPONSE:
+
+
+
+        Record Type 1, subtype E, indicates a gap in invoice numbers due to the
+        initialization of the Sup,  INITA.  The invoice number in  this message
+        is 1002D... indicating that it is from 2001.
+
+        Record Type 1, subtype F, indicates that this invoice number  refers to
+        a command  circuit.  It will  not be followed  by any  further reports,
+        i.e.  character  counts,  etc.  This  invoice  number  is  1002F, again
+        indicating that the message is from 2001.
+
+
+
+
+
+
+
+                                           7                         MMDDYY.TIP
+        TELECOMMUNICATIONS MGMT NOTIFICATION PROCEDURES        October 27, 1986
+
+
+
+
+
+
+                 5 -  TELECOMMUNICATIONS MGMT NOTIFICATION PROCEDURES
+
+
+
+
+
+
+
+        Written by : Pat Diamond, Field Engineering 
+              Date : October, 1986
+
+
+
+
+
+
+
+        The attached procedures  are the 'Management Notification'  process and
+        'Dispatch' process which Field Service Company is currently using.
+
+
+
+
+
+          *******************************************************************
+                            F I E L D   S E R V I C E   C O M P A N Y
+
+                   TELECOMMUNICATIONS MANAGEMENT NOTIFICATION PROCEDURES
+
+          *******************************************************************
+
+
+
+
+        LEVEL ONE PRIORITY (Catastrophic outage)
+        ========================================
+
+
+        Level One Priority is defined as a catastrophic outage and requires all
+        resource be directed towards correction.
+
+        Level  One  Priority  is  envoked  by  the  TYMNET  Manager  of Network
+        Operations or his designee, with immediate notification to:
+
+                    a) National Telecom Manager - FIELD SERVICE COMPANY
+                    b) VP of Operations - TYMNET
+                    c) VP of Field Operations - FIELD SERVICE COMPANY
+                    d) Director of Quality - TYMNET
+                    e) Director of Developement - TYMNET
+
+                                           8                         MMDDYY.TIP
+        TELECOMMUNICATIONS MGMT NOTIFICATION PROCEDURES        October 27, 1986
+
+
+                    f) Area Director of fault locale - FIELD SERVICE COMPANY
+
+        Example:
+
+        No supervisor available/able to take over the network.
+
+
+        SEVERITY LEVEL 1  (Highest)
+        ==========================
+
+
+        Severity Level 1 is defined as an outage presenting a severe  impact on
+        customer(s)  business.  That  is,  any  problem  that  causes  loss  of
+        production  and CANNOT  BE CIRCUMVENTED.  Management  notification will
+        occur at the following intervals and levels:
+
+        4  Hours   District Manager (Duty Mgr)   Envoked by the NCO via
+                                                 telephone and status added
+                                                 in ticket memo of same.
+
+        8  Hours   Regional Manager              Envoked by NCO via telephone
+                                                 and follow up ontyme copying
+                                                   a) District Manager
+                                                   b) Area Director
+                                                   c) National Telecom Manager
+                                                   d) Manager-originating 
+                                                      group-TYMNET.
+
+        12 Hours   Area Director                 Envoked by Network Operations
+                                                 Manager via telephone 
+                                                 referencing 8 hour
+                                                 notification ontyme.
+
+        24 Hours   VP of Field Operations        Envoked by Network Operations 
+                                                 Manager via telephone and 
+                                                 followup ontyme copying
+                                                   a) District Manager
+                                                   b) Regional Manager
+                                                   c) Area Director
+                                                   d) National Telecom Manager
+                                                   e) Manager-originating
+                                                      group-TYMNET.
+
+
+        Notification ontymes will be in memo form and contain the following:
+
+                          1) Ticket #
+                          2) Severity Level
+                          3) Node/Host #
+                          4) Location
+                          5) Customer
+                          6) Brief discription of problem
+
+
+                                           9                         MMDDYY.TIP
+        TELECOMMUNICATIONS MGMT NOTIFICATION PROCEDURES        October 27, 1986
+
+
+        Status due to the originatioup at every two (2) hour interval
+
+
+        Examples:
+
+        Node failure (remaining down or repeatedly crashing)
+        Failed line to dead-ended node.
+        Slot line failures disabling the entire slot.
+        Slot outages when both unusable and required.
+        Private access ports (PAP), Leased/Dedicated line, or autodial login.
+        Pilot number failure.
+
+
+        SEVERITY LEVEL 2  (High)
+
+        =======================
+
+
+        Severity Level 2 is a serious problem where service is partially inter-
+        rupted or impaired and CANNOT BE CIRCUMVENTED.  Management notification
+        will occur at the following intervals and levels:
+
+        12 Hours   District Manager (Duty Mgr)   Envoked by NCO via telephone
+                                                 and status added to ticket
+                                                 memo of same.
+
+        24 Hours   Regional Manager              Envoked by NCO via telephone
+                                                 and follow up ontyme copying
+                                                   a) District Manager
+                                                   b) Area Director
+                                                   c) National Telecom Manager
+                                                   d) Manager-originating 
+                                                      group-TYMNET.
+
+        36 Hours   Area Director                 Envoked by Network Operations
+                                                 Manager via telephone 
+                                                 referencing 24 hour 
+                                                 notification ontyme.
+
+        48 Hours   VP of Field Operations        Envoked by Network Operations
+                                                 Manager via telephone and 
+                                                 followup ontyme copying
+                                                   a) District Manager
+                                                   b) Regional Manager
+                                                   c) Area Director
+                                                   d) National Telecom Manager
+                                                   e) Manager-originating 
+                                                      group-TYMNET.
+
+
+        Notification ontymes will  be in memo form  and contain the  format and
+        information as used in severity 1 above.
+
+
+                                          10                         MMDDYY.TIP
+        TELECOMMUNICATIONS MGMT NOTIFICATION PROCEDURES        October 27, 1986
+
+
+        Status due to the originating group at every four (4) hour interval.
+
+
+        Examples:
+
+        Slots (partially usable)
+        Internodal links
+        Slot lines (if partially disabling slot)
+        Gateway (network access still available)
+        Async access (x% of rotray ports not available)
+
+
+        SEVERITY LEVEL 3  (Medium or low)
+
+        ================================
+
+
+        Severity  level  3  has  a  medium  impact  on  production  and  CAN BE
+        CIRCUMVENTED.   Management  notification will  occur  at  the following
+        intervals and levels:
+
+        24 Hours   District Manager (Duty Mgr)   Envoked by NCO via telephone
+                                                 and status added to ticket
+                                                 memo of same.
+
+        48 Hours   Regional Manager              Envoked by NCO via telephone
+                                                 and follow up ontyme copying
+                                                   a) District Manager
+                                                   b) Area Director
+                                                   c) National Telecom Manager.
+                                                   d) Manager-originating 
+                                                      group-TYMNET.
+
+        72 Hours   Area Director                 Envoked by Network Operations
+                                                 Manager via telephone 
+                                                 referencing 48 hour 
+                                                 notification ontyme
+
+        96 Hours   VP of Field Operations        Envoked by Network Operations
+                                                 Manager via telephone and
+                                                 followup ontyme copying
+                                                   a) District Manager
+                                                   b) Regional Manager
+                                                   c) Area Director
+                                                   d) National Telecom Manager
+                                                   e) Manager-originating 
+                                                      group-TYMNET.
+
+
+        Notification ontymes will be in  memo form and contain the  same format
+        and information as with severity 1 above.
+
+
+
+                                          11                         MMDDYY.TIP
+        TELECOMMUNICATIONS MGMT NOTIFICATION PROCEDURES        October 27, 1986
+
+
+        status due to the originating group at twelve (12) hour intervals.
+
+
+        Example:
+
+
+        Internodal  lines  (if  part  of link,  a  portion  of  which  is still
+        operational)  Slots if  service is  available.  Node  crashes  that are
+        self-resored  and do  not repeat  in 24  hours.  All  async  access not
+        previously defined in severity level 1 and 2.
+
+
+
+        SEVERITY LEVEL 4  (Tracking)
+
+        ===========================
+
+
+        Severity level 4  problems are ones that  have no observable  impact on
+        production.  Notifications  will occur  at  Network  Operations Manager
+        discretion (i.e. the Unit  Manager will assimilate pertinant  data such
+        as  type  of  problem  and  lenght  of  time  info  (via   ticket)  for
+        informational purposes.
+
+        Status due  to the  originating group  at every  twenty four  (24) hour
+        interval.
+
+        Examples:
+
+        Host  end-user problems   i.e.  monitoring for  stability  after higher
+        severity  is resolved.   P.M. refered  to Network  Operations  48 hours
+        prior to scheduled pm.
+
+
+        NOTATIONS  (All severity levels)
+
+        ===============================
+
+
+        Inability  to  contact  the apropriate  manager  for  notification will
+        result  in immediate  notification to  the next  level manager  for all
+        severity levels.
+
+        At VP level notification, if unavailable, the National  Telecom Manager
+        will assume that level  of authority. The National Telecom  Manager may
+        escalate  to  the  FSC  President  as  necessary  in  the  event  of VP
+        unavailable.
+
+        Any upgrade in severity  level by the control group  requires immediate
+        notification to the FSC Network Operations Manager.
+
+        Control  groups that  require ticket  monitoring beyond  24  hours will
+        refer the ticket to themselves for that purpose.
+
+                                          12                         MMDDYY.TIP
+        TELECOMMUNICATIONS MGMT NOTIFICATION PROCEDURES        October 27, 1986
+
+
+        Deferments can only be envoked by the following management levels :
+             a) Severity Level 1            Regional Manager or above.
+             b) Severity Level 2 or below   District Manager or above.
+
+
+        All reference to Managers and Management Levels in this documnet, refer
+        to FIELD SERVICE COMPANY Management unless otherwise noted.
+
+        NCO refers to Network Control Operator - FIELD SERVICE COMPANY.
+
+        At first  level notification,  "District Manager"  is point  of contact
+        during normal business hours. "Duty Mgr" is point of contact during un-
+        manned or standby hours.
+
+
+
+
+
+
+                   5.1  TROUBLE TICKET/INCIDENT HANDLING PROCEDURES
+
+
+
+
+
+
+
+        **********************************************************************
+
+                            F I E L D   S E R V I C E   C O M P A N Y
+
+                      TELECOMMUNICATIONS TROUBLE TICKET/INCIDENT HANDLING
+                                              PROCEDURES
+
+        **********************************************************************
+
+
+        THIS  PROCEDURE  DOCUMENTS  THE  PROCESS  IN  WHICH  FSC  PERSONNEL ARE
+        DISPATCHED USING  THE CENTRAL  DISPATCH CHAD  SYSTEM ON  TYMNET NETWORK
+        PRODUCT OUTAGES.
+
+
+        TICKET/INCIDENT HANDLING AND TURNOVER FLOW   
+        ===========================================  
+
+        I.  A TROUBLE TICKET IS OPENED IN THE TYMNET TROUBLE TRACKING    
+            SYSTEM "PAPER" BY;   
+             
+            A)  TYMNET NETWORK CONTROL CENTER (PUBLIC NETWORK)
+            B)  TYMNET NATIONAL CUSTOMER SUPPORT (PUBLIC NETWORK)  
+            C)  TYMNET NETWORK SYSTEMS SUPPORT CENTER (PRIVATE NETS)    
+            D)  TYMNET V.A. NETWORK CONTROL FACILITY (VA PRIVATE NET)   
+             
+
+                                          13                         MMDDYY.TIP
+        TELECOMMUNICATIONS MGMT NOTIFICATION PROCEDURES        October 27, 1986
+
+
+        II. THE TYMNET TROUBLE TICKET IS PATHED/REFERED TO CENTRAL NETWORK    
+            OPERATIONS, FSC TELECOMMUNICATIONS SUPPORT, BY THE ORIGINATING  
+            TYMNET GROUP.   
+             
+        III.CENTRAL NETWORK OPERATIONS (CFO-OPS) CONTACTS FSC CENTRAL 
+            DISPATCH AND OPENS AN INCIDENT IN THE CHAD SYSTEM BY: 
+             
+            A) IDENTIFYING SELF AS TELECOMMUNICATIONS SUPPORT 
+             
+            B) SUPPLY SYSTEM ID/NODE NUMBER WHICH IS A SEVEN  
+               DIGIT FIELD, "NNXXXXX" WHERE;   
+             
+                  NN = NETWORK NUMBER CONTAINED IN THE TYMNET 
+                       NETWORK PROFILE DATABASE
+             
+               XXXXX = NODE NUMBER.   
+             
+                             1) ALL SINGLE DIGIT NETWORK NUMBERS   
+                                CONTAIN A LEADING ZERO (0).    
+             
+                                    EXAMPLES;  
+                                      TYMNET PUBLIC NET = 1 = 01   
+                                      DECNET PRIVATE NET= 4 = 04   
+                                      BOFANET PRIV NET = 12 = 12   
+                                      CHASE PRIVATE NET= 14 = 14   
+             
+                              2) ALL NODE NUMBERS CONTAIN FIVE DIGITS    
+                                 IN WHICH A FOUR DIGIT NODE NUMBER  
+                                 CONTAINS A LEADING ZERO (0).  
+             
+                                    EXAMPLES;  
+                                      NODE NUMBER 3547 = 03547
+                                      NODE NUMBER 2001 = 02001
+                                      NODE NUMBER 10252= 10252
+                                      NODE NUMBER 10047= 10047
+             
+                              3) SYSTEM ID/NODE NUMBER EXAMPLES;    
+             
+                                      TYMNET PUBLIC NODE 3547 =    
+                                           0103547  
+                                      TYMNET PUBLIC NODE 10252 =   
+                                           0110252  
+                                      DECNET PRIVATE NODE 2001 =   
+                                           0402001  
+                                      BOFANET  PRIV. NODE 2041 =   
+                                           1202041  
+                                      CHASENET PRIV.NODE 10047 =   
+                                           1410047  
+             
+                              4) TYMNET NETWORK PROFILE DATABASE    
+                                 NETWORK NUMBERS;    
+             
+                                 01 TYMNET        14 CHASENET  
+
+                                          14                         MMDDYY.TIP
+        TELECOMMUNICATIONS MGMT NOTIFICATION PROCEDURES        October 27, 1986
+
+
+                                 02 BUBBNET       15 CODAN
+                                 03 TRWNET        16 BPNET
+                                 04 DECNET        17 DUNET
+                                 05 ITALNET       18 UCSLNET   
+                                 06 SWEDNET       19 AVISO
+                                 07 NETHERNET     20 DIALNET   
+                                 08 SUNNET        21 MGTNET    
+                                 09 SWISNET       22 STAGENET  
+                                 10 UCCPAC        23 GEONET    
+                                 11 XEROXNET      24 KERRYNET  
+                                 12 BOFANET       25 DUPONT/FSC
+                                 13 VANET         27 INSNET    
+                                                  28 HONGKONG BANK  
+            C) SUPPLY TYMNET TROUBLE TRACKING "PAPER" TICKET NUMBER
+             
+            D) SUPPLY PAGING CALL BACK NUMBER FOR FIELD ENGINEER.  
+             
+                              1) DURING THE HOURS BETWEEN 0700 AND  
+                                 2400 MONDAY THROUGH FRIDAY, THE CALL    
+                                 BACK NUMBER SUPPLIED IS FOR THE    
+                                 NETWORK OPERATIONS CENTER
+                                 GEOGRAPHICALLY RESPONSIBLE FOR
+                                 WHERE THE TROUBLE IS LOCATED. 
+                                    EFO 203/562-1885 
+                                    CFO 800/624-8594   BANDS 0 AND 5,    
+                                        IN AND OUT OF STATE ACCESS  
+                                    WFO 408/446-7930 
+             
+                              2) ALL OTHER HOURS AND WEEK-ENDS, CENTRAL  
+                                 NETWORK OPERATIONS IS THE CALL BACK
+                                        800/624-8594 
+             
+            E) CHAD SUPPLIES THE INCIDENT NUMBER AND PAGES THE
+               ASSIGNED FIELD ENGINEER.    
+             
+                              1) CHAD FOLLOWS NORMAL DISPATCH PAGING
+                                 AND ESCALATION PROCEDURES TO TURN  
+                                 INCIDENT OVER TO THE FIELD.   
+             
+            F) CENTRAL NETWORK OPERATIONS INPUT'S THE INCIDENT NUMBER   
+               ON THE TYMNET PAPER TICKET AND PATHS/REFERS SAME TO 
+               THE APPROPRIATE GEOGRAPHICAL NETWORK OPERATIONS OFFICE   
+               TRANSFER CONTROL OF THE TYMNET TICKET.    
+             
+            G) CONTROLLING NETWORK OPERATIONS GROUP ACCESSES  
+               CHAD TO OBTAIN IDENTITY OF FIELD ENGINEER 
+               PAGED FOR THE INCIDENT/TICKET.  
+             
+            H) UPON CALL BACK FROM FIELD ENGINEER PAGED BY CHAD,   
+               CONTROLLING NETWORK OPERATIONS GROUP INPUTS DISTRICT
+               REFERAL IN TYMNET PAPER TICKET. 
+             
+             
+
+                                          15                         MMDDYY.TIP
+        TELECOMMUNICATIONS MGMT NOTIFICATION PROCEDURES        October 27, 1986
+
+
+        IV. FIELD ENGINEER RESPONSIBLE FOR INCIDENT/TICKET, PROVIDES 
+            STATUS UPDATES THROUGH TYMNET TICKET SYSTEM WHERE POSSIBLE 
+            AND/OR VIA TELEPHONE TO APPROPRIATE NETWORK OPERATIONS GROUP.    
+             
+            A) DURING THE HOURS BETWEEN 0700 AND 2400 MONDAY  
+               THROUGH FRIDAY THE FIELD ENGINEER PROVIDES STATUS   
+               TO THE NETWORK OPERATIONS GROUP GEOGRAPHICALLY 
+               IN CONTROL OF THE TICKET.  
+                             1) EFO 203/562-1885   
+                             2) CFO 800/624-8594     BANDS 0 AND 5,    
+                                    IN AND OUT OF STATE ACCESS    
+                             3) WFO 408/446-7930   
+             
+            B) DURING ALL OTHER HOURS/DAYS THE FIELD ENGINEER 
+               PRIVIDES STATUS TO CENTRAL NETWORK OPERATIONS  
+                                800/624-8594   
+             
+            C) STATUS UPDATES TO TICKET FOLLOW NORMAL PROCEDURE    
+               INTERVALS AS DEFINED IN TELCOM.PROCEDURE01, UNTIL   
+               RESOLUTION OF TROUBLE OCCURS.   
+             
+            D) NETWORK OPERATIONS FOLLOW NORMAL MANAGEMENT NOTIFI- 
+               CATION PROCEDURES AS DEFINED IN TELCOM.PROCEDUE01,  
+               UNTIL RESOLUTION OF TROUBLE AND TICKET CLOSING OCCURS.   
+             
+        V.  UPON FIELD ENGINEERING'S COMPLETION OF CORRECTIVE ACTION 
+            RESOLVING THE TROUBLE, THE RESPONSIBLE FIELD ENGINEER 
+            CONTACTS THE CONTROLLING NETWORK OPERATIONS GROUP VIA 
+            TELEPHONE WITH THE FOLLOWING MINIMAL INFORMATION REQUIRED 
+            TO CLOSE THE TYMNET TROUBLE TICKET AND CHAD INCIDENT;  
+             
+            A) TYMNET PAPER TICKET:  
+             
+                              1) VERBAL EXPLAINATION OF CORRECTIVE  
+                                 ACTION. I.E. REPLACED MODEM ETC.   
+
+            B) CHAD INCIDENT:   
+             
+                              1) INCIDENT NUMBER
+                              2) PRODUCT ACTION CODE 
+                              3) ASSET AND SERIAL NUMBER OF EQUIP   
+                                 MENT SERVICED. 
+                              4) PART NUMBER (IF PARTS REPLACED/USED)    
+                              5) ARRIVAL TIME/DATE ON SITE
+                              6) SERVICE COMPLETION TIME/DATE  
+                              7) O/T LABOR HOURS IF APPLICABLE 
+                              8) REGULAR TRAVEL HOURS
+                              9) O/T TRAVEL HOURS IF APPLICABLE
+                             10) COMMNETS (OPTIONAL) IF ACTION NOT  
+                                  COVERED BY PRODUCT ACTION CODE.    
+             
+            *** NOTE *** THE ITEM "V" PROCEDURE/REQUIREMENTS ARE TO BE USED 
+                         UNTIL FURTHER NOTICE.
+
+                                          16                         MMDDYY.TIP
+        TELECOMMUNICATIONS MGMT NOTIFICATION PROCEDURES        October 27, 1986
+
+
+             
+        VI. TYMNET TROUBLE TRACKING PAPER TICKET AND CHAD INCIDENT CLOSED BY; 
+             
+            A) CONTROLLING NETWORK OPERATIONS GROUP INPUTS CLOSING 
+               RESOLUTION MEMO ON TYMNET TROUBLE TICKET AND REFERS 
+               SAME TO ORIGINATING TYMNET GROUP.    
+             
+            B) CONTROLLING NETWORK OPERATIONS GROUP CONTACTS  
+               CENTRAL DISPATCH WITH DATA  PROVIDED BY THE FIELD   
+               IN ITEM "V,B" AND CLOSES CHAD INCIDENT.   
+
+
+        *** NOTATIONS ***   
+
+        DURING  MANNED  HOURS   FOR  EASTERN,  CENTRAL,  AND   WESTERN  NETWORK
+        OPERATIONS,  ALL  TYMNET   TROUBLE  TICKETS  ARE  PROCESSED   PER  THIS
+        PROCEDURE, AND NOTIFICATION/ESCALATION PROCEDURE TELCOM.PROCEDURE01.
+
+        DURING  UNMANNED  HOURS  FOR EASTERN  AND  WESTERN  NETWORK OPERATIONS,
+        CENTRAL NETWORK OPERATIONS WILL PROCESS ALL PRIVATE NETWORK TICKETS PER
+        THIS      PROCEDURE,     AND      NOTIFICATION/ESCALATION     PROCEDURE
+        TELCOM.PROCEDURE01.
+
+        DURING  UMNANNED  HOURS  FOR EASTERN  AND  WESTERN  NETWORK OPERATIONS,
+        CENTRAL  NETWORK  OPERATIONS  WILL PROCESS  ALL  TYMNET  PUBLIC NETWORK
+        TICKETS SEVERITY  1 AND  2 PER THIS  AND TELCOM.PROCEDURE01.  THIS WILL
+        ALSO  APPLY TO  SEVERITY 3  TICKETS WHEN  NECESSARY, BASED  ON  TYPE OF
+        TROUBLE REPORTED.
+
+        ADDITIONALLY,  DURING UNMANNED  EAST  AND WEST  HOURS,  CENTRAL NETWORK
+        OPERATIONS   WILL PROCESS TYMNET  TROUBLE TICKETS SEVERITY 3  AND BELOW
+        BY OPENING THE    CHAD INCIDENT WITH A REQUEST TO DEFER DISPATCH PAGING
+        UNTIL  NORMAL    MANNED  HOURS  OCCUR IN  THE FIELD.  I.E.  0800 MONDAY
+        THROUGH FRIDAY.
+
+        FSC DISTRICT  MANAGERS ARE RESPONSIBLE  FOR UPDATING THE  CHAD DATABASE
+        WITH  INSTALLATION AND DE-INSTALLATION OF NETWROK PRODUCTS.
+
+        ALL  REFERENCE IN  THIS PROCEDURE  TO "NETWORK  OPERATIONS",  REFERS TO
+        FIELD   SERVICE  COMPANY TELECOMMUNICATIONS SUPPORT  (EASTERN, CENTRAL,
+        AND WESTERN  NETWORK OPERATIONS).
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          17                         MMDDYY.TIP
+        ENHANCED SECURITY DEVICES                              October 27, 1986
+
+
+
+
+
+
+                            6 -  ENHANCED SECURITY DEVICES
+
+
+
+
+
+
+
+        Written by : Gordon Smith, Product Marketing
+              Date : October 08, 1986 
+
+
+
+
+
+
+        NEW CERTIFICATION PROGRAM  --  ENHANCED SECURITY DEVICES
+
+
+
+
+        A  couple  months ago,  Marketing  and NTS  began  a  new certification
+        program for  enhanced security  devices that can  be used  with Tymnet.
+        The following is an explanation of what these new technologies  are and
+        a description of the first product to complete certification.
+
+
+
+        Security Technologies
+        -------- ------------
+
+        There  are  a  number  of  technologies  that  this  program   will  be
+        addressing.  The first of these, "token" based security devices, we are
+        moving ahead with  full steam.  The next,  security-call-back, requires
+        the use of Public Outdial and will emerge as that new  service emerges.
+        The third, encryption for async dialup devices accessing  hosts through
+        the network,  is longer term  and will require  the development  of new
+        products that are not currently on the market.
+
+
+        "Token" Based Security Devices
+
+        This  is new  and exciting  stuff.   There are  at least  a  half dozen
+        vendors introducing products  with this techology  now.  Each one  is a
+        little different  but they  are all implementations  of the  same basic
+        idea.  The common  goal is to give  every user a unique  "token" device
+        that they  must have in  their possession when  they attempt  to access
+        their host system or they don't get in.
+
+
+                                          18                         MMDDYY.TIP
+        ENHANCED SECURITY DEVICES                              October 27, 1986
+
+
+        The way they  work is the  following.  All users  who wish to  access a
+        host system are  issued a unique token  device.  These devices  come in
+        all shapes and sizes.  Some look like little calculators.   Others look
+        like credit cards with small LED displays.  And still others  are small
+        boxes that  are attached between  the user's terminal  or PC  and their
+        modem.
+
+        At the host side is a  front-end box that can be connected to  a Tymnet
+        Asynchronous Host Interface (Async Tymcom) and to the host itself via a
+        series of  async ports.  (Some  vendors are developing  X.25 interfaces
+        and host based software systems that can use X.25.)
+
+        When a  user logs into  Tymnet, we connect  them to the  front-end box.
+        Then the following happens:
+
+          1) The front-end box prompts the user to identify themselves, 
+             e.g., requests that they enter a username and password.
+
+          2) If the user is successfully identified, the box will send 
+             the user a randomly generated number (usually around six 
+             digits long).
+
+          3) For the "calculator-like" token devices, the user reads the 
+             number off their screen and enters it into the calculator.
+
+          4) The calculator then encrypts the number, using an algorithm 
+             and seed that only it and the front-end box know, producing 
+             a new number.
+
+          5) Finally, the user sends the new number to the  front-end box to
+             prove that he is in possession of the token device issued to him.
+
+          6) Concurrently the host encrypts the same random number.  If the
+             encrypted numbers match, the front-end box lets them access the 
+             host system.
+
+
+        Other token products do essentially the same thing.  Some  vendors have
+        found ways to eliminate some of the manual entering and  re-entering of
+        data.  Others provide various bells and whistles that the others don't.
+
+        Below is a  brief description of the  product line of  MicroFrame, Inc.
+        which we have certified.  You  can see some of the  possible variations
+        on this common theme that they have done.
+
+
+        Security-Call-Back
+
+        This is a mature, tried-and-true security method.  What is new  is that
+        we will be able to support it soon on Tymnet using Public Outdial.
+
+        Basically,  security-call-back works  as follows.   A front-end  box is
+
+
+                                          19                         MMDDYY.TIP
+        ENHANCED SECURITY DEVICES                              October 27, 1986
+
+
+        (again) required  at the user's  host site.  Users  login to  this box,
+        identify themselves, and  then hang up.   The front-end box  then calls
+        them back  at a  pre-established phone number  (using Outdial)  to make
+        sure that they are who they  claim to be, e.g., that they are  not some
+        kid making a call from their bedroom.
+
+        We are currently working with two vendors who plan to develop security-
+        call-back front-end boxes that  can work with Public Outdial.   (By the
+        way, these same front-end  boxes can also support the  "token" security
+        approach.) We hope to be able  to announce some good news on this  in a
+        few months.
+
+
+
+        MicroFrame Certification
+        ---------- -------------
+
+        The following is  a brief description  of the MicroFrame  "token" based
+        product line  that we  have certified.  A  more detailed  and technical
+        announcement will be coming out soon.
+
+        MicroFrame's front-end  box that goes  at the host  site is  called the
+        Datalock 4000.  They also offer three types of end-user  token devices.
+        The first of these, the  PassKEY, is a small calculator-like  device as
+        described above.  The other two are boxes that are attached between the
+        user's  terminal  or PC  and  their async  dialup  modem.   These boxes
+        perform similar kinds of number exchanges and number encryptions as the
+        PassKEY except that they do it automatically without user intervention.
+        The  way  they  differ  is  the  means  by  which  the  human  end-user
+        "activates" the  box.  Their first  product, the DataKEY,  requires the
+        user  to  unlock the  device  using  a data  encoded  key.   The second
+        product,  the MagnaKEY,   requires the  user to  run their  credit card
+        through a  reader built into  the box.  The  PassKEY is  obviously more
+        mobile  and less  expensive.  The  DataKEY and  MagnaKEY are  more user
+        friendly.
+
+        If you'd like more information please contact:
+
+            Elliot Sands
+            MicroFrame, Inc.
+            2551 Route 130
+            Cranbury, NJ  08512
+
+            (609)395-7800
+
+
+        ***********************************************************************
+
+        I'd like to  thank Ron Vivier (NTS)  and Wayne Bartlett  (Security) for
+        the effort and enthusiasm they put into this project.  I'd also like to
+        thank B J Chang and Bill Soley of NTD for their guidance.
+
+
+
+                                          20                         MMDDYY.TIP
+        ENHANCED SECURITY DEVICES                              October 27, 1986
+
+
+        Wayne  Bartlett, in  case you  don't know,  is an  excellent  source of
+        information on security matters.
+
+        Bob Fultz will be providing Product Marketing support for  this program
+        and should be contacted  if your customer requests certification  of an
+        enhanced security device.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          21                         MMDDYY.TIP
+        PUBLIC OUTDIAL - Status Update                         October 27, 1986
+
+
+
+
+
+
+                          7 -  PUBLIC OUTDIAL - Status Update
+
+
+
+
+
+
+
+        Written by : Gordon Smith, Product Marketing
+              Date : October 10, 1986 
+
+
+
+
+
+
+        Here's the latest status:
+
+
+
+          * Last night we loaded the new Consat/Outdial code into the Dallas 
+            2400 bps rotary.  We expect to get the remaining four cities of 
+            the first round October deployment (Houston, New York, San Jose, 
+            and Kansas City) up in the next couple of weeks.  (As some of you
+            may have heard, we hit a snag when we attempted to bring up the 
+            first site a couple weeks ago.  That problem has been resolved,
+            and we are now proceeding.)
+
+          * The (Preliminary) Public Outdial User Manual is now done.  It is 
+            available on Ontyme *** Outdial.User/Manual  (caution: it is 
+            rather lengthy).
+
+          * Two other Ontyme files have also been set up.  *** Public.Outdial
+            is a copy of the beta test announcement sent out a few weeks ago.
+            It contains all sorts of useful information.  The other is 
+            *** Outdial.  Validations which describes how Public Outdial user-
+            names are being set up (thanks Vida).
+
+          * The November Public Outdial expansion cities have been selected. 
+            They are:
+                 Denver
+                 Miami
+                 Detroit
+                 Atlanta
+                 Boston
+
+            We plan to add five more cities in December/January, but have not
+            yet finalized the list.  (There is still time to provide input.)
+
+
+                                          22                         MMDDYY.TIP
+        PUBLIC OUTDIAL - Status Update                         October 27, 1986
+
+
+
+
+
+
+        Lastly,   Bob   Fultz   will   be   taking   over   Product  Management
+        responsibilites for Public Outdial.  All questions, concerns, requests,
+        etc. should be addressed to him.  I have decided to move on.   Today is
+        my last day at Tymnet.
+
+        This has been a long but very enjoyable and rewarding project.  It gave
+        me an opportunity to work with some of the best people in Tymnet.  Alot
+        of people went "above and beyond  the call of duty" on this one  - alot
+        of  hard  work.  In  particular,  I'd  like to  thank  Dede  Cash, Fred
+        Canning, Bob Barone, Dennis Moulton,  and Phil Leever of MIS  for their
+        many long  hours.  Scott Wedel,  Chris Black, and  Dan Lasater  for the
+        quality of  their work  and professionalism  - NTD  at it's  best.  Ron
+        Vivier, Ed  Blair, August  Cattaneo, and  Jim Stein  of NTS  for coming
+        through again and again and  again.  And Jack Snavely for  always being
+        there  to drive  things through  Operations when  the going  got tough.
+        Thanks.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          23                         MMDDYY.TIP
+        FRONT CONSOLE NODECODE DISPLAY                         October 27, 1986
+
+
+
+
+
+
+                          8 -  FRONT CONSOLE NODECODE DISPLAY
+
+
+
+
+
+
+
+        Original Question by : Pam Pobat, Field CC
+                 Response by : Sandra Nilluka, HQ Network Staff Consultant
+                        Date : October 08, 1986 
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+
+        MY QUESTION IS ABOUT THE NUMBER REPRESENTING 'CIRCUITS  TERMINATING' ON
+        THE FRONT ENGINE  CONSOLE.  IS THIS  ONLY A REPRESENTATION  OF CIRCUITS
+        THAT  ORIGINATE OUTSIDE  NODE  3646, MEANING  A USER  DIALS  THE PUBLIC
+        ACCESS  NUMBER AND  LOGS INTO  THEIR X.25,  3270/CMT  INTERFACES.  WHAT
+        ABOUT THE CIRCUITS THAT ORIGINATE  OUT OF THEIR ATI-8 SLOT?   I BELIEVE
+        THESE  CIRCUITS DO  NOT GO  THROUGH  SLOT 0,  WHICH IS  WHAT  THE FRONT
+        CONSOLE INDICATES IT IS MONITORING BY THE INDICATION AT THE FAR LEFT OF
+        THE CONSOLE,THEREFORE, ARE THEY NOT INCLUDED IN THE CIRCUIT TERMINATING
+        INDICATION?
+
+        A CUSTOMER WAS TRYING  TO DO A TEST TO  SEE IF THIS NUMBER WAS  TRUE TO
+        ACTUAL USERS LOGGED ON, HOWEVER, WAS FINDING IT TO BE OFF BY ONE OR TWO
+        AT TIMES.
+
+        PLEASE GIVE ME A CLEAR UNDERSTANDING OF WHAT CIRCUITS ARE, OR  ARE NOT,
+        COUNTED IN THE CIRCUIT TERMINATING COUNTER.
+
+
+
+
+
+
+        RESPONSE:
+
+
+
+        The number for  circuits terminating is  the count of  virtual circuits
+
+
+                                          24                         MMDDYY.TIP
+        FRONT CONSOLE NODECODE DISPLAY                         October 27, 1986
+
+
+        that  terminate  on this  node  (through nodecode).   It  includes both
+        active nodecode dispatcher ports and active kernel ports.  Kernel ports
+        are DDT users;  dispatcher ports are slot  circuits.  Xray counts  as a
+        kernel port only when it is accessed through DDT slot 0.
+
+        In summary, the variations you noticed are caused by DDT circuits.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          25                         MMDDYY.TIP
+        MTEXT LENGTH IN X.25                                   October 27, 1986
+
+
+
+
+
+
+                               9 -  MTEXT LENGTH IN X.25
+
+
+
+
+
+
+
+        Written by : Larry Iverson, Field CC
+              Date : October 13, 1986 
+
+
+
+
+
+
+
+        EVEN THOUGH THE MANUAL SAYS THAT text CAN BE 256 CHARACTERS  LONG, text
+        CAN ONLY BE 141d CHARACTERS LONG.
+
+
+        THE LONGEST ISIS DATA MESSAGE  CAN ONLY BE 9Dx (157d) BYTES  LONG.  THE
+        INTERFACE ADDS 10x (16d) CHARACTERS TO YOUR MESSAGE IN THE FORM  OF THE
+        MESSAGE  'call  connected'.   THIS LEAVES  8Dx  (141d)  BYTES  FOR YOUR
+        MESSAGE.
+
+
+        WHEN YOU TALK  TO YOUR CUSTOMERS, DON'T  FORGET TO MAKE  ALLOWANCES FOR
+        <CR>s AND <LF>s.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          26                         MMDDYY.TIP
+        UNEXPLAINABLE CRASHES                                  October 27, 1986
+
+
+
+
+
+
+                              10 -  UNEXPLAINABLE CRASHES
+
+
+
+
+
+
+
+        Written by : Sandra Nilluka, HQ Network Staff Consultant
+              Date : Octiber 13, 1986
+
+
+
+
+
+
+        SYMPTOM:  Unexplainable Crashes
+
+        PROBLEM:  CPU and/or MAC Register Corruption.
+                  CPU and MAC registers degrade over a period of time; they
+                  must be reloaded periodically.
+
+        SOLUTION:  Store and reload the registers periodically.  This must be
+                   performed by the kernel, as it requires privileged mode.
+
+                   The function is implemented in recently released Isis patch
+                   files listed below:
+                       (SOURCE)I2IS05.Q08
+                       (SOURCE)I2IS07.Q00
+                        (QSATS)I2IS07.PAC
+                  Please incorporate this patch into ALL Isis kernels, as
+                  follows:
+                     .for version 5.08, re-gen.
+                     .for version 7.00, re-gen.
+                     .for version 7.03, add ;A(QSATS)I2IS07.PAC and re-gen.
+
+                  This function is not yet implemented in Nodecode for Solo
+                  kernels, such as Switchers and Solo Consats.
+
+
+        CIRCUMVENTION:  For nodecode Solo kernels, there is none; code changes
+                        are required.  A tech alert will be issued upon avail-
+                        ability of solution for nodecode Solo kernels.
+
+
+
+
+
+
+
+                                          27                         MMDDYY.TIP
+        SOLO NODE DOES NOT RECOVER FROM POWER FAILURE          October 27, 1986
+
+
+
+
+
+
+                  11 -  SOLO NODE DOES NOT RECOVER FROM POWER FAILURE
+
+
+
+
+
+
+
+        Written by : Sandra Nilluka, HQ Network Staff Consultant
+              Date : October 13, 1986
+
+
+
+
+
+
+        SYMPTOM:  Solo Node does not recover from power failure.
+
+        PROBLEM:  CPU register are unreliable upon power-up; register E of
+                  set D, the 3600-baud interrupt timer, causes an illegal
+                  instuction interrupt if it is negative, and can be upon
+                  power-up.  If so, the node will continuously crash, and
+                  will drop out of the network.
+
+        SOLUTION:  In power-up logic, immediately ensure that register E of
+                   set D is not in danger of going negative, by loading a
+                   large positive number into it.
+
+                   This is implemented in the following recently released
+                   patch files:
+                     (SOURCE)TII05.P10
+                     (QSATS)TII05.PAA
+                     (QSATS)TII05.PAB
+                     (QSATS)TII05.PAD
+
+                   Please incorporate this fix into ALL your Solo nodes,
+                   Switchers or Solo Consats, as follows:
+                    .for Nodecode 5.06, add ;A(QSATS)TII05.PAA and re-gen.
+                    .for Nodecode 5.07, add ;A(QSATS)TII05.PAB and re-gen.
+                    .for Nodecode 5.10, re-gen.
+                    .for Nodecode 5.11, add ;A(QSATS)TII05.PAD and re-gen.
+
+                  Contact STS if you are using a version other than those
+                  listed above.
+
+
+
+
+
+
+                                          28                         MMDDYY.TIP
+        VERSION 6.01 CONSAT ALERT                              October 27, 1986
+
+
+
+
+
+
+                            12 -  VERSION 6.01 CONSAT ALERT
+
+
+
+
+
+
+
+        Written by : Bryan Wing, HQ Network Staff Consultant
+              Date : October 14, 1986 
+
+
+
+
+
+
+
+         Currently there exists an incompatibility between x.25  interfaces and
+        and  version 6.01  consat with  IIX capabilities.   The x.25  slot will
+        most  likely lose  (crash) if  it receives  an IIX  capable  call.  For
+        those of you wishing to test version 6.01 consat, I urge you to contact
+        me  via  ontyme (qsats.b/wing).   You  should already  have  a betatest
+        agreement signed.  DON'T TAKE ANY CHANCES WITH THIS ONE!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          29                         MMDDYY.TIP
+        NETWORK CONSOLE PASSWORD CHANGES                       October 27, 1986
+
+
+
+
+
+
+                        13 -  NETWORK CONSOLE PASSWORD CHANGES
+
+
+
+
+
+
+
+        Written by : Karen Lynas, Validations
+              Date : October 16, 1986
+
+
+
+
+
+
+
+        Network Console  users can  change their  passwords within  the Network
+        Console host 4238.  Once  logged into 4238 the following  procedure has
+        been established:
+
+             *prof
+
+             prof>mod 
+
+             mod>cha pass
+
+             password: (type desired password)
+             type again: (type it again)
+
+             mod>upd (this updates the disk)
+
+             prof>ret
+
+             *q
+
+
+             The user can not make any other changes to their profile.
+             Any questions or problems please contact me at (408)942-5339
+
+
+
+
+
+
+
+
+
+
+
+                                          30                         MMDDYY.TIP
+        RAM GENERATES INCOMPLETE RECORDS                       October 27, 1986
+
+
+
+
+
+
+                        14 -  RAM GENERATES INCOMPLETE RECORDS
+
+
+
+
+
+
+
+        Written by : Shirley Chiang, Mgr. Interface Support Dept.
+              Date : October 21, 1986 
+
+
+
+
+
+
+
+        There  have been  some misconceptions  on how  RAM (the  Raw Accounting
+        Merger) handles  the raw data  merge process and  how it  generates the
+        incom plete records.
+
+        The following, three, situations have been frequently observed but mis-
+        understood  as  'anomalies' from  RAM  data by  the  customers  and our
+        technical support people.  They were:
+
+            1.  Quite a few session records without any information but
+                the session/invoice number.
+
+            2.  Large number of incomplete session records with only the 
+                start/stop, date/time, connect time and i/o character count.
+
+            3.  Erroneous node numbers appeared in the records.  These node 
+                numbers did not exist in the network.
+
+            Here is the scenario:
+
+
+        I.  Situation #1 -
+        ------------------
+
+        These  types  of  records  are  sessions  built  for  command circuits.
+        Supervisor  only generates  accounting  preamble message  (type  1) for
+        command  circiuts and  mark  the IRC  code in  msg.  type #1  as  0F to
+        indicate such a  session.  Therefore there  will not be  any accounting
+        data for the  command circuit sessions.   Usually this type  of session
+        occurred during node take-over or Sup swaps.
+
+
+        II. Situation #2 -
+
+                                          31                         MMDDYY.TIP
+        RAM GENERATES INCOMPLETE RECORDS                       October 27, 1986
+
+
+        ------------------
+
+
+        Usually the large number of incomplete records were created by frequent
+        use  of  the DRAIN  command  and  by the  execution  of  checkpoint; an
+        interval set up  in RAM's tymfile parameter  CHKPT to allow  RAM check-
+        point the long,  enduring sessions out of  the memory to tape.   If the
+        customer's  checkpoint interval has been set too short, it  would cause
+        much  of  the  session records  to  be  written to  tape  prior  to the
+        termination information being collected.
+
+        Let me briefly  explain a little bit  about RAM's collection  and merge
+        process and reasons for the occurrence of incomplete records.
+
+
+
+                 RAM's collection & merge process:
+
+                 -  Request raw acct. data blocks from Account Slave
+             
+                 -  Create, in the memory resident Session Pool, an entry per
+                     session number/invoice number
+                 
+                 -  Keep updating each entry (session record) with information
+                     such as i/o character count until termination information
+                     is collected for the session.  Then it marks the record 
+                     as complete (position 2, value = 1) and write to tape
+
+                 -  Under four circumstances, incomplete records are generated
+                     and written to tape:
+
+                    1.  32 minutes elapsed after the last updated infor. for 
+                        the session has been collected and still no termina-
+                        tion info. followed in.  RAM marks this record as 
+                        "incomplete" (position 2, value = 2) and flags it as 
+                        "missing log-out infor." (position 238, value = 1).  
+                        In the mean time, RAM also artificially generates a 
+                        termination code of 83.
+
+                    2.  A session lasted longer than the check point interval 
+                        set by the CHKPT tymfile parmete.  RAM holds in the 
+                        pool and keeps updating to the record until it reaches 
+                        the check-point time, the record is then written to 
+                        tape, flagged as "incomplete", "missing log-out" and 
+                        possibly "missing log-in" (position 237, value = 1), 
+                        and as "check-pointed" (position 236, value = 1)
+
+                    3.  When Session Pool is full, RAM will be paused.
+                        No more collection can continue and the pool
+                        must be drained.  During the draining, RAM writes
+                        all the records currently holding in the pool to 
+                        tape and flags them as "incomplete", "missing log-in",
+                        and "missing log-out".
+
+                                          32                         MMDDYY.TIP
+        RAM GENERATES INCOMPLETE RECORDS                       October 27, 1986
+
+
+          
+                    4.  More updates to an on-going session are still being 
+                        collected after it had already been written to tape 
+                        (caused by one of the three previously described 
+                        conditions).  Now RAM has to create a new entry 
+                        (though not a new session) in the pool which 
+                        apparently won't have any log-in information.  If this
+                        record is check-pointed or drained again before its 
+                        termination information is collected, it will be 
+                        flagged as "incomplete", "missing log-in", "missing 
+                        log-out" or "check-pointed".
+
+                   The complete information for a session may be contained in
+                   one primary record or one set of the primary and secondary
+                   records or it may be scattered in several incomplete records
+                   on the same tape or across multiple tapes.
+
+
+        I  strongly suggest  the  Field CC  convey this  concept  of incomplete
+        record  processing  to  the  customer.   Customer  billing applications
+        should be designed to accomodate the above mentioned conditions  and be
+        able to consolidate multi-record sessions.
+
+
+        III.Situations #3 -
+        -------------------
+
+        I suspect this may be caused by some kind of problem conditions  on the
+        gateway nodes  as one-shot problem.   This is strictly  my speculation.
+        I'd like to  see a ticket opened  against the interface it  involves as
+        soon as this problem reoccurs.
+
+
+        IV.  Final suggestion:
+        ----------------------
+
+          -  Lengthen the checkpoint interval.  For example, from 2 hours to
+             9 hours, CHKPT(4) should be changed to CHKPT(12) in RAM tymfile.
+
+          -  Enlarge the size of the primary and/or secondary session pool by
+             adjusting the values of MXSES0 and MXSES1 parameters in RAM
+             tymfile.  Be sure you do not exceed the slot memory allocation
+             in doing so.
+
+
+        After incoperating the  changes in your gen  and reloading the  slot, a
+        dramatic  decrease  in  the  number  of  incomplete  records  should be
+        expected.
+
+        Let me know if you still have questions on this matter.
+
+
+
+
+                                          33                         MMDDYY.TIP
+        PRODUCT RELEASE REPORTS                                October 27, 1986
+
+
+
+
+
+
+                             15 -  PRODUCT RELEASE REPORTS
+
+
+
+
+
+
+
+        Written by : Diana Houge, Q.A. Administrator
+              Date : October 20, 1986
+
+
+
+
+
+
+
+        The   Monthly   Beta,  Limited   and  Full Release   reports   are  now
+        available   for   your review.    Highlights  for this  period  are  as
+        follows:
+
+        NEW PRODUCTS IN BETA TEST:
+
+             -  ELF  Engine Load Facility  4.01  (Private Net Product)
+             -  I2G1  ISIS Gateway  4.11
+             -  TII  Node Code  5.14
+             -  ATC  Async Terminal Concentrator  1.26
+
+
+        NEW PRODUCTS IN LIMITED RELEASE:
+
+
+        NEW PRODUCTS IN FULL RELEASE:
+
+             -  BBXS  X780/Multileaving  6.01
+
+
+        PRODUCTS NO LONGER SUPPORTED
+
+             -  ACOM  2.06 (Beta)
+                Customers must upgrade to beta version 3.00.
+                New customers must be approved before installation.
+
+             -  CMTI  3.01 (Beta)
+                Customers must upgrade to beta version 4.00.
+                New customers must be approved before installation.
+
+             -  ISCS  4.02 and 5.00 (Beta)
+                Customers must upgrade to beta version 6.00.
+
+                                          34                         MMDDYY.TIP
+        PRODUCT RELEASE REPORTS                                October 27, 1986
+
+
+                New customers must be approved before installation.
+
+             -  PBH  8.01, 8.03, and 8.04 (Beta)
+                Customers must upgrade to beta version 8.02 or 10.00.
+                New customers must be approved before installation.
+
+             -  PBT  6.00, 6.02, 6.03, 6.04, and 6.05 (Beta)
+                Customers must upgrade to beta version 6.01 or 9.00.
+                New customers must be approved before installation.
+
+             -  TMCS  10.10 (Full)
+                Customers must upgrade to 10.20.
+
+
+        NUMBER OF PRODUCTS AND SITES
+
+             -  39 Beta Test Products
+             -  147 Beta Test Sites
+             -  8 Limited Release Products
+             -  13 Limited Release Sites
+
+        The complete beta,   limited and full release  reports can be  found on
+        System  56  in  the TECHREF directory.   File  names  are  as follows:
+
+             -  BETA.OCT  (Beta Test Report)
+             -  FULLIM.OCT  (Full and Limited Release Reports)
+
+        SITES  WHICH DO NOT HAVE THE PROPER APPROVALS AND A  SIGNED   BETA TEST
+        AGREEMENT, WILL NOT BE INSTALLED.  To receive approval for a  Beta Test
+        Site, use :EXEC ***  BETA.REQUEST.  To receive  approval for  a Limited
+        Release Site, use :EXEC *** LIMITED.REQUEST
+
+        If   you  require additional  information  on the  beta  test  program,
+        please  read the Beta Test Guidelines (***   BETA.TESTGUIDELINES), call
+        me at 408-942-5142, or send me an Ontyme - QSATS.J/GOMES.
+
+        Thank you for your continued support.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          35                         MMDDYY.TIP
+        SPECIFYING HALF/FULL DUPLEX MODE                       October 27, 1986
+
+
+
+
+
+
+                        16 -  SPECIFYING HALF/FULL DUPLEX MODE
+
+
+
+
+
+
+
+        Original Question by : Carol Anderson, Field CC
+                 Response by : Adea Lee, HQ Network Staff Consultant
+                        Date : October 15, 1986
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+        "IS IT  TRUE THAT  THE SDLC  EXTENSION CORD  ONLY SUPPORTS  HALF DUPLEX
+        TRANSMISSION?   IF  SO, DOES  ANOTHER  WAY EXIST  TO  SUPPORT  THE MSNF
+        CONNECTIONS BETWEEN SNA NETWORKS?"
+
+        IT IS  MY UNDERSTANDING THAT  IT IS CORRECT  THAT WE SUPPORT  ONLY HALF
+        DUPLEX MODE WITH OUR SDLC PRODUCT FROM A PROTOCOL STANDPOINT,  BUT THAT
+        THE  ACTUAL  TRANSMISSION  MEDIUM   IS  FULL  DUPLEX.   WHAT   ARE  THE
+        IMPLICATIONS OF THIS LIMITATION.   DOES THIS SAME RESTRICTION  APPLY TO
+        OUR SNA PRODUCT?
+
+
+        RESPONSE:
+
+        In response to your  question, regarding full-duplex mode, our  SDLC or
+        SNA  products currently  do not  support full-duplex  mode  in protocol
+        level. By protocol level, I mean the software not the  hardware (actual
+        transmission media). In other words, SDLC or SNA interface can only run
+        half-duplex in software level, but can run either half-duplex  or full-
+        duplex in hardware level.
+
+        Two  macros  are involved  in  SDLC  or SNA  interface  to  specify the
+        half/full duplex mode:
+
+        ****For hardware transmission, use RTSCTS macro--
+            RTSCTS(yes) ---half-duplex
+            RTSCTS(no)  ---full-duplex
+
+        ****For software level, use DATAMODE macro --
+            DATAMODE(half) --half-duplex
+            DATAMODE(full)---full-duplex
+
+                                          36                         MMDDYY.TIP
+        SDLC NETWORK DELAYS                                    October 27, 1986
+
+
+
+
+
+
+                               17 -  SDLC NETWORK DELAYS
+
+
+
+
+
+
+
+        Original RFI by: Mike Hofbauer
+            Written by : John Mckiernan, HQ Network Staff Consultant
+                  Date : October 15, 1986
+
+
+
+
+
+
+        1:  The average CPS rate per device is as follows -
+
+            Each transaction is 1431 bytes total.
+            Each device enters 16 such per hour.
+
+            (1431 * 16) / 3600 = 6.36 CPS per device
+
+        2:  For your worst case interface configuration, given the
+            above, the interface CPS rate is as follows -
+
+            08 lines w/ 04 CU's each (04 DEV/CU)
+
+            (8 * 4 * 4) * 6.36 = 814.08 CPS
+
+            A more likely interface configuration is perhaps -
+
+            06 lines w/ 03 CU's each (02 DEV/CU)
+
+            (6 * 3 * 2) * 6.36 = 228.96 CPS
+
+            If you wish to pursue further testing, please detail
+            the environment which must be simulated.
+
+        3:  A potential Node Code 'link saturation' problem can be
+            seen in the worst case configuration if the connection
+            to the neighbor node is 9600 BPS or less .  You will
+            see below why I recommend using 19200 BPS lines.
+
+        4:  If the concentration of ISIS nodes to SWITCHER nodes
+            is 12 to 01 , then each SWITCHER node will handle a
+            user data throughput of 2747.52 CPS , assuming use
+            of the lower interface CPS figure given above.
+
+                                          37                         MMDDYY.TIP
+        SDLC NETWORK DELAYS                                    October 27, 1986
+
+
+
+            12 * 228.96 = 2747.52 CPS
+
+
+        Using the above, it would be possible to simulate the
+        environment of the proposed network, with minor limits
+        on the accuracy.  The major obstacle to this testing is
+        the hardware requirements (04 nodes minimum) .  I do not
+        have these available to me and will request either QA or
+        NTD to provide them in the future if required.  Testing
+        will require agreements with 'resource managers' in HQ
+        or QA or NTD .  Please indicate your need for further
+        studies.
+
+        To return to your previous question of a network delay
+        less than 03 seconds, it seems highly unlikely that we
+        can meet that objective for the following reasons -
+
+        1:  Serialization of the 'typical' transaction you have
+            provided requires the following times at various
+            line speeds -
+
+            1200 MS at  9600 BPS
+             600 MS at 19200 BPS
+             204 MS at 56000 BPS
+
+        2:  Typical 'holding time' for the involved nodes will
+            be approximately 100 MS .  This is allowing at most
+            02 Foreground units and 01 Background unit.  Each of
+            these units is 25 MS and 50 MS respectively.  Times
+            for this represent the queueing and processing delay
+            introduced by each involved node beyond the delays of
+            line serialization.
+
+        3:  For various configurations as you provided or as may
+            be advisable, the overall 'network delay' would be
+            (at least) the following -
+
+            CU -- IN -- SW -- SW -- IN -- FE
+
+            NOTE - 'CU' means Customer device
+                   'FE' means Customer system
+                   'IN' means ISIS     Node
+                   'SW' means SWITCHER Node
+                   '--' means serialized line
+
+            If - All interface lines            are  9600 BPS
+                 All Node Code lines (IN to SW) are  9600 BPS
+                 All Node Code lines (SW to SW) are 56000 BPS
+
+                 (1200 * 04) + 204 + (100 * 04) = 5404 MS
+
+                 Subtracting 1200 MS for comparison to a direct
+
+                                          38                         MMDDYY.TIP
+        SDLC NETWORK DELAYS                                    October 27, 1986
+
+
+                 connection at 9600 BPS, we have added 4204 MS .
+
+            If - All Terminal interface lines   are  9600 BPS
+                 All Host     interface lines   are  9600 BPS
+                 All Node Code lines (IN to SW) are 19200 BPS
+                 All Node Code lines (SW to SW) are 56000 BPS
+
+                 (1200 * 02) + ( 600 * 02) + 604 = 4204 MS
+
+                 Subtracting 1200 MS for comparison to a direct
+                 connection at 9600 BPS, we have added 3004 MS .
+
+            If - All Terminal interface lines   are  9600 BPS
+                 All Host     interface lines   are 19200 BPS
+                 All Node Code lines (IN to SW) are 19200 BPS
+                 All Node Code lines (SW to SW) are 56000 BPS
+
+                 (1200 * 01) + ( 600 * 03) + 604 = 3604 MS
+
+                 Subtracting 1200 MS for comparison to a direct
+                 connection at 9600 BPS, we have added 2404 MS .
+
+            If - All Terminal interface lines   are 19200 BPS
+                 All Host     interface lines   are 19200 BPS
+                 All Node Code lines (IN to SW) are 19200 BPS
+                 All Node Code lines (SW to SW) are 56000 BPS
+
+                 ( 600 * 04) + 604 = 3004 MS
+
+                 Subtracting 1200 MS for comparison to a direct
+                 connection at 9600 BPS, we have added 1804 MS .
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          39                         MMDDYY.TIP
+        TYMNET'S SUPPORT OF MSNF CONNECTIONS                   October 27, 1986
+
+
+
+
+
+
+                      18 -  TYMNET'S SUPPORT OF MSNF CONNECTIONS
+
+
+
+
+
+
+
+        Original Question by : Carol Anderson, Field CC
+                 Response by : Mary Chalmers, Product Mktg.
+                        Date : October 16, 1986
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+
+        MY  CUSTOMER IS  INTERESTED IN  TYMNET'S SUPPORT  OF  MSNF CONNECTIONS.
+        THEY ARE AWARE  THAT WE SUPPORT  MSNF WITH THE  SDLC PRODUCT IN  A HALF
+        DUPLEX  MODE  ONLY  AND  ARE  LOOKING  FOR  AN  ALTERNATIVE.  ALTHOUGH,
+        DEPENDING  UPON THE  APPLICATION,  I DO  NOT PERCEIVE  THE  HALF DUPLEX
+        LIMITATION TO BE OVERLY SIGNIFICANT,  I WOULD LIKE YOUR INPUT  PRIOR TO
+        RESPONDING  TO  THE CUSTOMER.   IT  IS MY  UNDERSTANDING  THAT  MNSF IS
+        UNNECESSARY WITH TYMNET'S SNA.   I DO NOT HAVE AN UNDERSTANDING OF MSNF
+        AND  WOULD LIKE  A  COMPREHENSIVE EXPLANATION  OF HOW  TYMNET  CAN BEST
+        SUPPORT THIS REQUIREMENT.
+
+
+
+        RESPONSE:
+
+
+
+        IBM's MSNF  is a host  based software facility  that allows  a terminal
+        attached to  one IBM host  to "passthru" to  another IBM host  and work
+        with  an application on that host.  While the SDLC product  can support
+        a  host-to-host connection,  most Tymnet  networks prefer  to  have the
+        switching done in the network.  The SNA HIF eliminates the need for the
+        customer to  link together its  mainframes with MSNF  or the  newer SNI
+        software from IBM  because the network  does all the  switching between
+        different hosts.   Both MSNF and SNI are very intensive to  install and
+        maintain and that is one of the major reasons why Tymnet is a very good
+        alternative for getting users into multiple IBM hosts.
+
+
+
+                                          40                         MMDDYY.TIP
+        TECH ALERT CRSTOP                                      October 27, 1986
+
+
+
+
+
+
+                                19 -  TECH ALERT CRSTOP
+
+
+
+
+
+
+
+        Written by : Gail Bubsey, HQ Network Staff Consultant
+              Date : October 22, 1986
+
+
+
+
+
+
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+                                  T E C H   A L E R T
+
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+        If you have chosen for some  reason to implement CRSTOP in any  of your
+        interface code, please  note that upon a  crash, there is no  change of
+        status message  for the  host sent to  Isis and  therefore to  Probe or
+        TMCS.
+
+        In the case of customers  who are heavily dependent upon NSSC  for host
+        monitoring, this means that they will not realize that a slot  has gone
+        down, and the customer will not be notified.
+
+        If you  are tracking  a particular problem,  and the  use of  CRSTOP is
+        recommended, then go ahead and install it.  It is recommended, however,
+        that  once the  problem is  resolved, CRSTOP  be removed  from  the now
+        stable interfaces.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          41                         MMDDYY.TIP
+        X.25 FEATURE REQUESTS                                  October 27, 1986
+
+
+
+
+
+
+                              20 -  X.25 FEATURE REQUESTS
+
+
+
+
+
+
+
+        Written by : Carl Langdon, Mgr. Network Support Dept.
+              Date : October 22, 1986
+
+
+
+
+
+
+
+        ALL REQUESTS FOR  FEATURES (NOT BUG  FIXES), FOR PUBLIC  NET CUSTOMERS,
+        MUST  COME  FIRST FROM  SALES  TO MARKETING  (NSMS.D/SPIELLER)  AND NOT
+        DIRECTLY  FROM  FIELD  COMMUNICATION CONSULTANTS  TO  THE  X.25 SUPPORT
+        GROUP.
+
+        FOR PRIVATE NETS, ALL REQUESTS  FOR FEATURES (NOT BUG FIXES)  MUST COME
+        FIRST FROM SALES TO MARKETING (TYM.P/HIDY).
+
+        BY FOLLOWING  THIS PROCEDURE  WE CAN  MAINTAIN BETTER  PRODUCT CONTROL.
+        MARKETING CAN REVIEW THE BUSINESS CASE FOR EACH CUSTOMER,  AND FEATURES
+        REQUESTED  FROM SEVERAL  CUSTOMERS CAN  BE MORE  QUICKLY  RECOGNISED AS
+        GENERALLY NEEDED IN THE SOURCE CODE.
+
+        YOUR ADHERENCE TO THIS REVIEW PROCEDURE WILL STRENGTHEN OUR  PRODUCT AS
+        WE MOVE FORWARD TO MORE STABLE CODE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          42                         MMDDYY.TIP
+        UNSUPPORTED RELEASES OF X.25                           October 27, 1986
+
+
+
+
+
+
+                          21 -  UNSUPPORTED RELEASES OF X.25
+
+
+
+
+
+
+
+        Written by : John Gomes, Mgr. QA and Certification
+              Date : October 24, 1986
+
+
+
+
+
+
+
+        Effective  30 November 1986,  X.25 versions 3.00,  2.02 and   2.01 will
+        no  longer   be supported.    All customers  must  upgrade   to version
+        3.01 (full release), before the effective date.
+
+        If   you   have   any technical  questions   regarding   version  3.01,
+        please  contact  Software Technical Services.   If you  have  any other
+        concerns,  please contact me  via Ontyme (QSATS.J/GOMES)  or  call 408-
+        942-5142.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          43                         MMDDYY.TIP
+        TWO NEW FEATURES IN PATCH FILE SYSTEM                  October 27, 1986
+
+
+
+
+
+
+                      22 -  TWO NEW FEATURES IN PATCH FILE SYSTEM
+
+
+
+
+
+
+
+        Written by : Jeff Liu, HQ Network Staff Consultant
+              Date : October 24, 1986
+
+
+
+
+
+
+        Two new features have been added to PATCH FILE SYSTEM.
+         
+        1. User can run patch file system in his current directory, on system
+           56, by entering 'RUN (techref)PATCH' as opposed to: 'gfd 
+           (techref:56) and entering 'RUN PATCH'.
+         
+        2. Added a field to show the version number in the summary report 
+           'REPORT.P01'.  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          44                         MMDDYY.TIP
+        TECH ALERT - REGISTER REFRESH PATCH                    October 27, 1986
+
+
+
+
+
+
+                       23 -  TECH ALERT - REGISTER REFRESH PATCH
+
+
+
+
+
+
+
+        Written by : Gail Bubsey, HQ Network Staff Consultant
+              Date : October 24, 1986
+
+
+
+
+
+
+
+        The latest versions  of the Isis 5.08  and 7.00 patch file  contained a
+        patch to correct a problem  with degrading registers.  It has  now been
+        discovered that if  this patch is installed  on an engine  running high
+        speed interrupts (BAUDR EQ 2) you will run the risk of garbage on async
+        ports.   While  the fix  this  patch provides  is  needed,  its current
+        implementation provides  too small of  a processing window  for heavily
+        loaded async  engines.  At  this time, we  recommend that  for machines
+        experiencing async port problems you regen the ISIS kernal.  A modified
+        patch to provide a larger process window is currently being  tested and
+        will be released soon.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          45                         MMDDYY.TIP
+        RETRIES-NETREPLTO-REPLYTO MACROS                       October 27, 1986
+
+
+
+
+
+
+                        24 -  RETRIES-NETREPLTO-REPLYTO MACROS
+
+
+
+
+
+
+
+        Original Question by : Carol Melowitz, Field CC
+                 Response by : Adela Lee, HQ Network Staff Consultant
+                        Date : October 27, 1986
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+
+        THE SDLC MANUAL,  THAT I HAVE, TALKS  ABOUT REPLYTO AND RETRIES,  BUT I
+        DON'T  FIND NETREPLYTO  .   CAN YOU  PROVIDE  ME WITH  A  MORE DETAILED
+        EXPLANATION OF  EACH ONE OF  THESE TIMERS AND  HOW THE WORK  IN VERSION
+        1.12?
+
+
+
+
+
+
+        RESPONSE:
+
+
+        I hope the following information helps:
+
+        1) RETRIES macro --
+           This macro is used in many places.
+           At the TIF ---
+           a) It counts the number of SNRMs sent to a CU.
+
+           b) When a receive timeout ocurrs (specified by REPLTYO) during NRM,
+              it counts the number of RRs sent to a CU. If the number of 
+              receive timouts exceed the first argument of this macro, the TIF 
+              will jump from NRM to NDM for that particular CU.
+           
+
+           At the HIF ---
+           a) Only the first argument is used in the HIF.
+
+                                          46                         MMDDYY.TIP
+        RETRIES-NETREPLTO-REPLYTO MACROS                       October 27, 1986
+
+
+
+           b) It counts the number of SNRMS ignored from the host in between
+              SNRMs sent across the network. With RETRIES defined as (5,0,0) 
+              at HIF, the HIF will sned one SNRM to the net. for every other 5
+              SNRMs rcv'ed from the host. This is to avoid too many 
+              unnecessary SNRMs to absorb the command list and to relieve the
+              network traffic as well. The same implementation applies for XID 
+              and TEST frames.
+
+        2) NETREPLYTO macro ---
+           This macro is only used at the HIF served as a netwrok receive 
+           timer.  During NDM, this timer is set once a SNRM is sent across the
+           network.  If the proper response comes back from the netwrok before 
+           the timer expires:  The HIF will transmit the response out to the 
+           host.
+
+           If the proper response is not received when the timer expires :
+              THe HIF will take the first argument of RETRIES macro as a 
+              counter and decrease it by one. The HIF will jump from xmt. to 
+              receive state on the link. It will then keep checking for a 
+              response from the net. for every SNRM received on the link, but
+              won't pass it to the network until the coutner reaches 0.
+
+              The same implementation applies for XID and TEST frames. This 
+              timer needs to bo set less than the host's SNRM polling rate.
+
+        3) REPLYTO macro ---
+           This is receive timer used at both TIF and HIF. It specifies how
+           long each interface will stay in receive state before going to 
+           transmit state. It is only used during NRM. When this timer expires,
+           the retry counter (the first argument of RETRIES macro) will be 
+           decreased by one.
+
+
+
+        The SYSGEN and ERS manuals  have been revised lately by NTD  and should
+        be  released  to  (DNDSPEC:33)  shortly.  When  these  two  manuals are
+        available under sys 33, please  take a look at them becuase  the usages
+        and definitions of the macros mentioned above are  described thoroughly
+        in both manuals.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          47                         MMDDYY.TIP
+     i"I›
