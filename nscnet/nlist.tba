@@ -1,0 +1,1498 @@
+100      !       \\\ Node's slot information display program \\\
+110      !       \\\ Date        : 27 sep 1988               \\\
+120      !       \\\  Up date    : 23 may 1989 by kaneta
+130      !       \\\  Up date    : 16 JUN 1989 By kaneta
+140      !       \\\  Author     : M.Yamauchi                \\\
+150      !
+160      !       This problem has diag mode and maintenance mode
+170      !
+180      !       DIAG mode       : At main menu type 'D' then goes to diag mode.
+190     wrt$=DST$+NODE$+'.T'+TYM$
+200      !                       : Diag mode has check all node and product.
+210      !
+220      !       MAINTENACE mode : At main manu type 'D' and then goes to diag
+230      !                       : And select 2(product information).
+240      !                       : And this mode when you type 'M', up date
+250      !                       : specify product file. If you type 'A' , enter
+260      !                       : all product maintenance mode.
+
+270      integer a,b,c,d,i,j,k,l
+280     tab$='(nsccode)tab.sit'
+290     open tab$ , input , 1
+300     input from 1 in form 'r' : S$   ! Read tab character from S$
+310     close 1
+320      on escape goto 10790
+330      on error goto  10600
+340      on file 1 goto 10690
+350      on file 2 goto 10510
+360      on file 3 goto 10970
+370      on endfile 2 goto 6400
+380     on file 6 goto 12510
+390     on endfile 6 goto 12460
+400     on file 7 goto 13150
+410     on endfile 7 goto 13180
+420     on file 4 goto 13230
+430     on endfile 4 goto 13230
+440      on file 5 goto 11040
+450     on file 8 goto 13870
+460     on endfile 8 goto 13900
+470      DST$='(NSCCODE)'
+480      NS$='NS'
+490      MER$='MER'
+500     TYM$='TYM'
+510     header$='No.  < SITE >  < NODE > PROD   VERSION  LU DESCRIPTION'
+
+520     !
+530     !///// Main menu display and check key in.
+540     !
+550     print char(27)+char(91)+char(50)+char(74)
+560     print char(27)+char(91)+char(72)
+570     temp$=''
+580     testlu$=''
+590     rds$=''
+600     titlelu=0
+610     diagtitle=0
+620     diagm=0
+630     diagl=0
+640     startflag=0
+650     endflag=0
+660     cmd=0
+670     counter=0
+680     print ' '
+695     print '          NODE INFORMATION DISPLAY SYSTEM        '
+710     print '          DATE : ':DATE:'                        ':
+690    !print '   <<< NODE slot information display system >>> '+date
+715     print ' '
+720     print ' '
+730     print ' '
+740     print '         1. NODE number input'
+750     print ' '
+760     print '         2. Select area SITE NAME'
+770     print ' '
+780     print '         3. Product information'
+790     print ' '
+800     print '         4. Node slot memory size check'
+810     print ' '
+820     print '         5. Node or Node slot history check'
+830     print ' '
+840     print '         S. Search lu description'
+850     print '        SS. Search slot command file'
+860    !print '         T. Type out tymfile     C. Type out cmdfile'
+870     print !         L. Type out logfile'
+880     print '         D. Maintenance mode     E. End'
+890     print ' '
+900     print ' '
+910     print '         Select number   > ';
+920     input in form "r" : key$
+930     if key$='1' then goto 1150
+940     if key$='2' then goto 6790
+950     if key$='D' or key$='d' then goto 3390
+960     if key$='E' or key$='e' then goto 10430
+970     if key$='3' then goto 8540
+980     if key$='4' then goto 12050
+990     if key$='SS' or key$='ss' then cmd=1
+1000     if key$='s' or key$='S' or cmd=1 then diagl=1
+1010     if key$='s' or key$='S' or cmd=1 then diagp=1
+1020     if key$='s' or key$='S' then mainte=0
+1030     if key$='s' or key$='S' then titlelu=1
+1040     if cmd=1 then counter=1
+1050     if key$='s' or key$='S' or cmd=1 then goto 4510
+1060     if key$='l' or key$='L' or key$='5' or key$='c' or key$='C' or key$='t' or key$='T' then goto 13510
+1070     if key$='' then goto 550
+1080     print ' '
+1090     print 'Select number '+key$+' is invalid. Please type again !!'
+1100     gosub 10310
+1110     goto 550
+
+1120     !
+1130     !///// Search node number key in process
+1140     !
+1150     print ' '
+1160    !close 8
+1170     close 1
+1180     close 4
+1190     print 'Type in NODE No. or Return (E =end) > ';
+1200     input in form "r": NODE$
+1210     if node$='' then goto 550
+1220     if node$='E' or node$='e' then goto 10430
+1230     a=length(NODE$)
+1240     if a=4 then gosub 13290 ELSE GOTO 1290
+1250     goto 1560
+
+1260     !
+1270     !///// When node file can't find send error message
+1280     !
+1290     print ' '
+1300     print 'NODE NUMBER '+NODE$+' is not exist.'
+1310     print 'Please type again !!'
+1320     if diag=0 then goto 1150
+1330     if diag=1 then goto 3050
+
+1340     !
+1350     !///// Node number is not exist. So send error message.
+1360     !
+1370     print ' '
+1380     print 'NODE NUMBER '+start$+' is not exist.'
+1390     print 'Please type again !!'
+1400     print ' '
+1410     goto 2710
+
+1420     !
+1430     !///// Node number is not exist. So send error message.
+1440     !
+1450     if end$='' then goto 1510
+1460     print ' '
+1470     print 'NODE NUMBER '+end$+' is not exit.'
+1480     print 'Please type again !!'
+1490     print ' '
+1500     goto 2710
+1510     end$=start$
+1520     goto 2890
+
+1530     !
+1540     !///// Open search merlin file
+1550     !
+1560    close 1
+1570    site$='no found '
+1580    kern$=right(node$,3)
+1590    node$=right(node$,4)
+1600    infile$=DST$+NS$+NODE$+'.'+MER$
+1610    open infile$,input,1
+1620     if lookflag=1 then print 'infile$= '+infile$
+1630    if loc(1)=1 then goto 1680
+1640    goto 10690
+
+1650    !
+1660    !///// Search node slot exist or not in merlin file.
+1670    !
+1680    input from 1 in form 'r': rd$
+1690    if merflag=1 then print
+1700    if merflag=1 then print 'Merlin file is > '+rd$
+1710    if lookflag=1 then print rd$
+1720    cnt=33
+1730    slot=1
+1740    text$=','
+1750    a=length(rd$)
+1760    title=1
+1770    loop=0
+1780    cnt=index(rd$,text$,cnt)
+1790    if cnt=0 then goto 10890
+1800    loop=1
+1810    look1$=substr(rd$,cnt+1,1)
+1820    look2$=substr(rd$,cnt+2,1)
+1830    look3$=substr(rd$,cnt+3,1)
+1840    look4$=substr(rd$,cnt+4,1)
+1850    look5$=substr(rd$,cnt+5,1)
+1860    if lookflag=1 then print look1$;look2$;look3$;look4$;look5$
+1870    if look1$=',' and look2$=',' then goto 2100
+1880    if look1$=',' and look2$='n' then goto 2010
+1890    if look1$=',' and look2$='N' then goto 2010
+1900    if look1$='N' then wrt$=substr(rd$,cnt+1,10)
+1910    if look1$='n' then wrt$=substr(rd$,cnt+1,10)
+1920    tym$=right(wrt$,2)
+1930    NOD$=substr(wrt$,1,6)
+1940    wrt$=DST$+NOD$+'.T'+TYM$
+1950     if cmd=1 then wrt$=DST$+NOD$+'.C'+TYM$
+1960    if lookflag=1 then print 'wrt$= '+wrt$
+1970   !if lookflag=1 then print 'diag= ';diag,' areaflag= ';areaflag;' mainte= ';mainte
+1980    if lookflag=1 then print 'cnt=';cnt
+1990    cnt=cnt+9
+2000    gosub 2250
+2010    cnt=cnt+1
+2020    slot=slot+1
+2030    !if lookflag=1 then print 'after gosub 1690 cnt=';cnt
+2040    !if cnt+10 = a then gosub 1590
+2050    if cnt+10 > a and diag=0 and areaflag=0 then goto 1150
+2060    if cnt+10 > a and diag=0 and areaflag=1 then goto 8250
+2070    if cnt+10 > a and ( mainte=1 or diagp=1 ) then goto 3050
+2080    if cnt+10 > a and diag=1 and areaflag=0 then goto 3050
+2090    goto 1780
+2100    cnt=cnt+2
+2110    slot=slot+2
+2120    goto 1780
+
+2130    !
+2140    !///// Find node and slot number
+2150    !
+2160    wrt$=substr(rd$,cnt+1,10)
+2170    tym$=right(wrt$,2)
+2180    NODE$=substr(wrt$,1,6)
+2190    if lookflag=1 then print 'wrt$= '+wrt$+'  node$= '+node$+'  tym$= '+tym$
+2200    gosub 2250
+2210    return
+
+2220    !
+2230    !///// Open node's slot tymfile and search information
+2240    !
+2250    open wrt$,input,2
+2260    if loc(2)=1 then goto 2270
+2270    sflg=1
+2280    luflag=0
+2290    site$='no found '
+2300    prod$='? what '
+2310    vers$='? no found ?'
+2320    node$='?????'
+2330    kern$='???'
+2340    slot$='  ??'
+2350    lu$='? no found LU description'
+2360    input from 2 in form 'r': rds$
+2370    if lookflag=1 and cmd=1 then print 'rds$= '+rds$
+2380    b=length(rds$)
+2390    if cmd=1 then goto 13940
+2400    if cmd=1 and ecmd=1 then goto 6460 
+2410    if cmd=1 then goto 2360
+2420    j=index(rds$,': ',2)
+2430    if sflg=1 then goto 6320
+2440    i=index(rds$,'SITE ',0)
+2450    if i > 0 then goto 5580
+2460    !gosub 17000
+2470    !rds$=temp$
+2480    p=index(rds$,'PROD',0)
+2490    if p > 0 then goto 5640
+2500    v=index(rds$,'VERSIO',0)
+2510    if v > 0 then goto 5690
+2520    n=index(rds$,'NODE',0)
+2530    if n > 0 then goto 5750
+2540    k=index(rds$,'KERN',0)
+2550    if k > 0 then goto 5790
+2560    if title=1 then gosub 6580
+2570    s=index(rds$,'SLOT',0)
+2580    if s > 0 then goto 5830
+2590    l=index(rds$,'LU DE',0)
+2600    if l > 0 and luflag=0 then goto 5910
+2610    if l > 0 and luflag=1 then goto 6010
+2620    h=index(rds$,': ',15)
+2630    if h > 0 then goto 6170
+2640    en=index(rds$,':*',0)
+2650    if en > 0 and luflag=0 then goto 6400
+2660    if en > 0 and luflag=1 then goto 6460
+2670    goto 2360
+
+2680    !
+2690    !///// Check key in start and end node number for diag mode
+2700    !
+2710    print ' '
+2720    if mainte=1 then goto 2970
+2730    print 'Type start node No. (Min=2001) > ';
+2740    input in form "r": start$
+2750    if start$='' then start$='2001'
+2770    print 'Type end   node No. (Max=9999) > ';
+2780    input in form "r": end$
+2782    !if end$='' and diagl=0 then goto 3390
+2784    !if end$='' and diagl=1 then goto 550
+2786    if end$='' then end$='2500'
+2788    PRINT
+2789    PRINT 'Search start node = '+start$+' & end node = '+end$
+2790    PRINT ' '
+2800    if cmd=1 then print '< '+testlu$+' is exist in following slot file >'
+2810    if cmd=1 then print char(10)+char(13)+'...  Search  node/slot'
+2820    dstart=1
+2830    diag=1
+2840    a=length(start$)
+2850    aa=length(end$)
+2860    if a=4 and aa=4 then goto 2890
+2870    if a <> 4 then goto 1370
+2880    if aa <> 4 then goto 1450
+2890    strt=val(start$)
+2900    if strt <= 2000 then goto 2710
+2910   ende=val(end$)
+2920    NODE$=start$
+2930    strt=val(start$)
+2940    strt=strt-1
+2950    goto 3060
+
+2960    !///// Define node number for maintenance mode
+2970    start$='2001'
+2980    end$='2500'
+2990    diag=1
+3000    dstart=1
+3010    strt=val(start$)
+3020    ende=val(end$)
+3030    goto 3060
+
+3040    !///// Check wethere search was end or not
+3050    strt=strt+1
+3060    if dstart=1 then goto 3340
+3070    strt$=str(strt)
+3080    strt$=right(strt$,4)
+3090    NODE$=strt$
+3094    NODECK1$=right(NODE$,1)
+3095    NODECK2$=right(NODE$,2)
+3096    NODECK3$=right(NODE$,3)
+3097    NODECK11=val(NODECK1$)
+3098    NODECK21=val(NODECK2$)
+3099    NODECK31=val(NODECK3$)
+3100    if NODECK11 >= 8 then goto 3050
+3101    if NODECK21 >= 80 then goto 3050
+3102    if NODECK31 >= 800 then goto 3050
+3105    if ende => strt and diagp=0 then gosub 13290
+3110    if ende => strt then goto 1560
+3120    if strt-1 = ende then diag=0
+3130    if smanual=1 then goto 3210
+3140    if lookcomment=1 then goto 3170
+3150    if diagl=0 and diagp=1 and counter=0 then print 'No found product '+test$
+3160    if diagl=1 and diagp=1 and counter=0 then print '>>>>> Search finished <<<<<'
+3170    print ' '
+3180    if mainte=1 then goto 3210
+3190    print 'Diag finished ,type (return)  > ';
+3200    input in form "r" : dd$
+3210    diag=0
+3220    diagp=0
+3230    counter=0
+3240    if scnt=1 and smanual=1 then goto 3250
+3250    if mainte=1 then print on 4 in form 'r': message3$
+3260    close 4
+3270    if diagl=1 and dd$='' then goto 550
+3280    if diagc=1 then goto 8540
+3290    if mainte=1 and smanual=1 then goto 6790
+3300    if mainte=1 and pmanual=0 then goto 5290
+3310    if mainte=1 and pmanual=1 then goto 4090
+3320    if diagl=0 and dd$='' then goto 3390 else goto 550
+3330    goto 3390
+3340    dstart=0
+3350    goto 3070
+
+3360    !
+3370    !///// Diag main menu display and check key in.
+3380    !
+3390    print char(27)+char(91)+char(50)+char(74)
+3400    print char(27)+char(91)+char(72)
+3410    pmanual=0
+3420    mainte=0
+3430    lookflag=0
+3440    diagp=0
+3450    lookcomment=0
+3460    diagtitle=1
+3470    print ' '
+3480    print '     <<<<< Diagnostic mode menu >>>>>  '+date
+3490    print ' '
+3500    print '     1. Node information'
+3510    print ' '
+3520    print '     2. Product information'
+3530    print ' '
+3540    print '     3. Node slot memory size check'
+3550    print ' '
+3560    print '     S. Set comment display flag'
+3570    print '     D. Debug flag status display'
+3580    print '     L. Look tymfile comment'
+3590    print '    S1. Check only (NSCNET)'
+3600    print '    S2. Check only (NSCCODE)'
+3610    print ' '
+3620    print '     E. End'
+3630    print '     R. Return to main manu ( Type return Key )'
+3640    print ' '
+3650    print '           Select number > ';
+3660    input in form "r": key$
+3670    if key$='1' then goto 2710
+3680    if key$='2' then goto 4090
+3690    if key$='3' then goto 11840
+3700    if key$='E' or key$='e' then goto 10430
+3710    if key$='' then goto 550
+3720    if key$='R' or key$='r' then goto 550
+3730    if key$='BELL' or key$='bell' then goto 11100
+3735    if key$='TIME' or key$='time' then goto 15000
+3740    if key$='s' or key$='S' then lookcomment=1
+3750    if key$='l' or key$='L' then lookcomment=1
+3760    if key$='l' or key$='L' then goto 3980
+3770    if key$='m' or key$='M' then merflag=1
+3780    if key$='m' or key$='M' then goto 3650
+3790    if key$='d' or key$='D' then lookflag=1
+3800    if key$='d' or key$='D' then goto 3650
+3810    if key$='S1' or key$='s1' then DST$='(NSCNET)'
+3820    if key$='S1' or key$='s1' then print 'Search directry is only '+DST$
+3830    if key$='S1' or key$='s1' then gosub 10310
+3840    if key$='S1' or key$='s1' then goto 3390
+3850    if key$='S2' or key$='s2' then DST$='(NSCCODE)'
+3860    if key$='S2' or key$='s2' then print 'Search directry is only '+DST$
+3870    if key$='S2' or key$='s2' then gosub 10310
+3880    if key$='S2' or key$='s2' then goto 3390
+3890    if lookcomment=1 then goto 3650
+3900    print ' '
+3910    print '     Invalid select number'
+3920    print '     Pleasem type again !!'
+3930    gosub 10310
+3940    goto 3390
+
+3950    !
+3960    !///// Display search product name
+3970    !
+3980    diagp=1
+3990    dstart=1
+4000    diag=1
+4010    print ' '
+4020    if smanual=1 then print ' Search site name is    >    '+xsite$
+4030    if ( pmanual=1 or mainte=1 ) and smanual=0 and diagl=0 then print '    Search product is      >   '+test$
+4040    goto 2710
+
+4050    !
+4060    !///// Diag mode's search product menu display
+4070    !///// and check key in.
+4080    !
+4090    print char(27)+char(91)+char(50)+char(74)
+4100    print char(27)+char(91)+char(72)
+4110    pmanual=0
+4120    mainte=0
+4130    pcnt=0
+4140    PRINT ' '
+4150    print ' <<<<< Product information menu >>>>>  '+date
+4160    print ' '
+4170    print ' '
+4180    print '  1.ISCS  2.ACOM  3.XCOM   4.MSV   5.MCP'
+4190    print ' '
+4200    print '  6.SDLC  7.PBH   8.PBT    9.SNA  10.CMT'
+4210    print ' '
+4220    print ' 11.BBXS 12.XPC  13.ISRM'
+4230    print ' '
+4240    PRINT ' 14.MUX  15.RAM  16.ELF   17.TMCS 18.NETVAL'
+4250    PRINT ' '
+4260    PRINT ' 19.TEST HOST(DNIC 4406)  20.NEM'
+4270    PRINT ' '
+4280    print ' '
+4290    print ' M. Maintenance only specify product'
+4300    print ' A. Maintenance all product'
+4310    print ' R. Return to main menu ( Type return Key )'
+4320    print ' E. End'
+4330    print ' '
+4340    print '     Select product number > ';
+4350    input in form "r" : key$
+4360    if key$='1' or key$='2' or key$='3' or key$='4' then goto 4950
+4370    if key$='5' or key$='6' or key$='7' or key$='8' then goto 4950
+4380    if key$='9' or key$='10' or key$='11' or key$='12' then goto 4950
+4390    if key$='13' or key$='14' or key$='15' or key$='16' then goto 4950
+4400    if key$='17' or key$='18' or key$='19' or key$='20' then goto 4950
+4410    if key$='21' or key$='22' then goto 4950
+4420    if key$='E' or key$='e' then goto 10430
+4430    if key$='' then goto 550
+4440    if key$='R' or key$='r' then goto 550
+4450    if key$='m' or key$='M' then goto 4840
+4460    if key$='a' or key$='A' then goto 4760
+4470    print ' '
+4480    print 'Select number '+key$+' is invalid. Please type again !!'
+4490    gosub 10310
+4500    goto 4090
+
+4510    !///// Input search lu description character
+4520    PRINT ' '
+4530    if cmd=1 then print '**** This mode search file only all node ****'
+4540    if cmd=1 then print '**** slot command file.                  ****'
+4550    if cmd=1 then print char(10)+char(13)+'Type in search file name >';
+4560    if cmd=1 then goto 4600
+4570    print '**** This mode search character only all node ****'
+4580    print '**** slot tymfile LU DESCRIPTION              ****'
+4590    print char(10)+char(13)+'Type in search character in LU DESCRIPTION > ';
+4600    input in form "r" : testlu$
+4610    print ' '
+4620    rds$=testlu$
+4630    if cmd=1 then cmd=2
+4640    gosub 14040
+4650    if cmd=2 then cmd=1
+4660    testlu$=temp$
+4670    if cmd=1 then print 'Search file is >'+testlu$
+4680    if cmd=1 then goto 4700
+4690    print 'Search character is > '+testlu$
+4700    print ' '
+4710    if cmd=1 then cmdcnt=1
+4720    goto 3980
+
+4730    !
+4740    !///// Send message 'Maintenance mode entered'.
+4750    !
+4760    mainte=1
+4770    pmanual=0
+4780    print ' '
+4790    print '     <<<<< Maintenance mode entered !! >>>>>'
+4800    gosub 10310
+4810    goto 5290
+
+4820    !
+4830    !///// Start Product set for maintenance.
+4840    print '   < Entered manual mode ! >'
+4850    PRINT '     Select product number > ';
+4860    input in form "r" :key$
+4870    pmanual=1
+4880    mainte=1
+4890    pcnt=val(key$)
+4900    if pcnt => 21 then goto 4840
+4910    goto 4960
+
+4920    !
+4930    !///// Make file name from key in number
+4940    !
+4950    pmanual=1
+4960    if key$='1' then test$='ISCS'
+4970    if key$='2'  then test$='ACOM'
+4980    i$='3' then test$='XCOM'
+4990    if key$='4' then test$='MSV'
+5000    if key$='5' then test$='MCP'
+5010    if key$='6' then test$='SDLC'
+5020    if key$='7' then test$='PBH'
+5030    if key$='8' then test$='PBT'
+5040    if key$='9' then test$='SNA'
+5050    if key$='10' then test$='CMT'
+5060    if key$='11' then test$='BBXS'
+5070    if key$='12' then test$='XPC'
+5080    if key$='13' then test$='ISRM'
+5090    if key$='14' then test$='MUX'
+5100    if key$='15' then test$='RAM'
+5110    if key$='16' then test$='ELF'
+5120    if key$='17' then test$='TMCS'
+5130    if key$='18' then test$='NETVAL'
+5140    if key$='19' then test$='DNIC'
+5150    if key$='20' then test$='NEM'
+5160    final$=dst$+test$+'.prd'
+5170    if mainte=1 then open final$, output,4
+5180    message1$='This information drawed up at '+date
+5190    message2$=' '
+5200    message3$=':END'
+5210    if mainte=1 then print on 4 in form 'r': message2$
+5220    if mainte=1 then print on 4 in form 'r': message1$
+5230    if mainte=1 then print on 4 in form 'r': message2$
+5240    goto 3980
+
+5250    !
+5260    !///// Count up automatic and set key in number for
+5270    !///// product maintenance mode.
+5280    !
+5290    pcnt=pcnt+1
+5300    diagtitle=1
+5310    if pcnt=1 then key$='1'
+5320    if pcnt=2 then key$='2'
+5330    if pcnt=3 then key$='3'
+5340    if pcnt=4 then key$='4'
+5350    if pcnt=5 then key$='5'
+5360    if pcnt=6 then key$='6'
+5370    if pcnt=7 then key$='7'
+5380    if pcnt=8 then key$='8'
+5390    if pcnt=9 then key$='9'
+5400    if pcnt=10 then key$='10'
+5410    if pcnt=11 then key$='11'
+5420    if pcnt=12 then key$='12'
+5430    if pcnt=13 then key$='13'
+5440    if pcnt=14 then key$='14'
+5450    if pcnt=15 then key$='15'
+5460    if pcnt=16 then key$='16'
+5470    if pcnt=17 then key$='17'
+5480    if pcnt=18 then key$='18'
+5490    if pcnt=19 then key$='19'
+5500    if pcnt=20 then key$='20'
+5510    if pcnt > 20 then mainte=0
+5520    if pcnt > 20 then goto 4090
+5530    goto 4960
+
+5540    !
+5550    !///// Make slot information to display from node's slot
+5560    !///// tymfile comment.
+5570    !
+5580    site$=substr(rds$,j+2,b-j-1)
+5590    sitel$=left(site$+'     ',9)
+5600    i=0
+5610    if lookcomment=1 then print ' '
+5620    if lookcomment=1 then print ':SITE NAME       : '+site$
+5630    goto 2360
+5640    prod$=substr(rds$,j+2,b-j-1)
+5650    prod$=left(prod$+'      ',7)
+5660    p=0
+5670    if lookcomment=1 then print ':PRODUCT ID      : '+prod$
+5680    goto 2360
+5690    vers$=substr(rds$,j+2,b-j-1)
+5700    vers$=left(vers$+'          ',12)
+5710    versl$=left(vers$,7)
+5720    v=0
+5730    if lookcomment=1 then print ':VERSION         : '+vers$
+5740    goto 2360
+5750    node$=substr(rds$,j+3,b-j-1)
+5760    n=0
+5770    if lookcomment=1 then print ':NODE NUMBER     : '+'0'+node$
+5780    goto 2360
+5790    kern$=substr(rds$,j+3,b-j-1)
+5800    k=0
+5810    if lookcomment=1 then print ':KERNEL HOST     : '+'0'+kern$
+5820    goto 2360
+5830    !slot$=substr(rds$,j+2,b-j-1)
+5840    slot$=str(slot)
+5850    slot$=left(' '+slot$+' ',4)
+5860    slotlu$=right(slot$,2)
+5870    s=0
+5880    slat$=right(slot$,2)
+5890    if lookcomment=1 then print ':SLOT NUMBER     : '+slat$
+5900    goto 2360
+5910    lu$=substr(rds$,j+2,b-j-1)
+5920    slc=index(lu$,testlu$,0)
+5930    if lookcomment=1 then print ':LU DESCRIPTION  : '+lu$
+5940    l=0
+5950    if diagl=1 then goto 5980
+5960    if diagp=1 or mainte=1  then goto 9500 else goto 5970
+5970    print slot$+' '+prod$+' '+vers$+'  '+lu$
+5980    luflag=1
+5990    if slc > 0 and diagl=1 then print sitel$+' '+node$+' .'+slotlu$+' '+prod$+' '+versl$+'  '+lu$
+6000    goto 2360
+6010    lu$=substr(rds$,j+2,b-j-1)
+6020    !rds$=lu$
+6030    !gosub   17000
+6040    !lux$=temp$
+6050    SLC=INDEX(LU$,TESTLU$,0)
+6060    ! lux$=''
+6070    !print temp$
+6080    if diagp=1 or mainte=1  then goto 6100
+6090    print '                           '+lu$
+6100    if ( mainte=1 or diagp=1 ) and addlu=1 then print '                                        '+lu$
+6110    if slc > 0 and diagl=1 then  print sitel$+' '+node$+' .'+slotlu$+' '+prod$+' '+versl$+'  '+lu$
+6120    if mainte=1 and addlu=1  then print on 4 in form 'r': '                                        '+lu$
+6130    luflag=1
+6140    l=0
+6150    if lookcomment=1 then print ':LU DESCRIPTION  : '+lu$
+6160    goto 2360
+6170    lu$=substr(rds$,j+2,b-j-1)
+6180    SLC=INDEX(LU$,TESTLU$,0)
+6190    if lookcomment=1 then print ':                : '+lu$
+6200    if diagp=1 or mainte=1 then goto 6220
+6210    print '                           '+lu$
+6220    if ( mainte=1 or diagp=1 ) and addlu=1 then print '                                        '+lu$
+6230    if slc > 0 and diagl=1 then  print sitel$+' '+node$+' .'+slotlu$+' '+prod$+' '+versl$+'  '+lu$
+6240    if mainte=1 and addlu=1 then print on 4 in form 'r': '                                        '+lu$
+6250    luflag=1
+6260    h=0
+6270    l=0
+6280    goto 2360
+
+6290    !
+6300    !///// Search tymfile 1st line (:*******************)
+6310    !
+6320    ss=index(rds$,':*',0)
+6330    if ss = 0 then goto 2360
+6340    ss=1
+6350    sflg=0
+6360    goto 2360
+
+6370    !
+6380    !///// Display node's slot information
+6390    !
+6400    if diagp=1 or mainte=1 then goto 9940 else goto 6410
+6410    print ' '+slot$+'  '+prod$+' '+vers$+'  '+lu$
+6420    close 2
+6430    luflag=0
+6440    addlu=0
+6450    return
+6460    close 2
+6470    luflag=0
+6480    addlu=0
+6490    scmd=0
+6500    ecmd=0
+6510    ecmd1=0
+6520    ecmd2=0
+6530    return
+
+6540    !
+6550    !///// Display node's slot information title and
+6560    !///// header.
+6570    !
+6580    if diagp=1 then goto 6660
+6590    print ' '
+6600    print ' '
+6610    print 'Site = '+site$+'   '+'Node = '+node$+'   '+'K-Host = '+kern$+'   '+'Engine ='+engine$
+6620    print ' '
+6630    print 'SLOT PRODUCT VERSION       <<<<<<<<< LU DESCRIPTION >>>>>>>>>>'
+6640    print'---------------------------------------------------------------'
+6650    if  ( diagp=1 or mainte=1 )  and diagtitle=1 and diagl=0 then print header$
+6660    if  diagp=1 and mainte=0 and titlelu=1 and diagl=1 then print 'SITE NAME'+' '+'< NODE >'+' '+'PRODUCT'+' '+'VERSION'+'  '+'<<<<<<<< LU DESCRIPTION >>>>>>>>'
+6670    if ( diagp=1 or mainte=1 ) and diagtitle=1 and lookcomment=0 then print header$
+6680    if mainte=1 and diagtitle=1 then print on 4 in form 'r': header$
+6690    if ( diagp=1 or mainte=1 ) and diagtitle=1 and lookcomment=0 then print '-----------------------------------------------------------------------'
+6700    if mainte=0 and titlelu=1 and diagl=1 then print '------------------------------------------------------------------------'
+6710    if mainte=1 and diagtitle=1 then print on 4 in form 'r': '----------------------------------------------------------------------'
+6720    if titlelu=1 then titlelu=0
+6730    if diagtitle=1 then diagtitle=0
+6740    title=0
+6750    return
+
+6760    !
+6770    !///// Display site node menu and check key in.
+6780    !
+6790   print char(27)+char(91)+char(72)
+6800   print char(27)+char(91)+char(50)+char(74)
+6810    smanual=0
+6820    print ' '
+6830    print '  <<<< NETWORK SITE NAME >>>>  '+date
+6840    PRINT ' '
+6850    PRINT ' '
+6860    PRINT '   1. AKITA      2. ATSUGI       3. UTSUNOMIYA   4. URAWA'
+6870    PRINT '   5. OITA       6. OKAYAMA      7. OSAKA'
+6880    PRINT '   8. KANAZAWA   9. KAGOSHIMA   10. KUMAMOTO    11. KYOTO'
+6890    PRINT '  12. KORIYAMA  13. KOBE'
+6900    PRINT '  14. SAPPORO   15. SHIZUOKA    16. SENDAI'
+6910    PRINT '  17. TAKAMASTU 18. TAKASAKI    19. CHIBA       20. TSUCHIURA'
+6920    PRINT '  21. TOYAMA    22. TOKUYAMA    23. TOKYO'
+6930    PRINT '  24. NAHA      25. NAGOYA      26. NAGASAKI    27. NAGANO'
+6940    PRINT '  28. NIIGATA'
+6950    PRINT '  29. HAMAMATSU 30. HIROSHIMA   31. FUKUI       32. FUKUOKA'
+6960    PRINT '  33. MATSUYAMA 34. MITO        35. MORIOKA'
+6970    PRINT '  36. YOKOHAMA  37. YONAGO      38. KUDAN'
+6980    PRINT ' '
+6990    print '   R. Return to main menu ( Type retun Key )'
+7000    print '   E. End        U. user node'
+7010    print ' '
+7020    PRINT ' '
+7030    PRINT '                 Select number   > ';
+7040    input in form "r" : key$
+7050    if key$='' then goto 550
+7060    if key$='R' or key$='r' then goto 550
+7070    if key$='E' or key$='e' then goto 10430
+7080    if key$='1' or key$='2' or key$='3' or key$='4' then goto 7410
+7090    if key$='5' or key$='6' or key$='7' or key$='8' then goto 7410
+7100    if key$='9' or key$='10' or key$='11' or key$='12' then goto 7410
+7110    if key$='13' or key$='14' or key$='15' or key$='16' then goto 7410
+7120    if key$='17' or key$='18' or key$='19' or key$='20' then goto 7410
+7130    if key$='21' or key$='22' or key$='23' or key$='24' then goto 7410
+7140    if key$='25' or key$='26' or key$='27' or key$='28' then goto 7410
+7150    if key$='29' or key$='30' or key$='31' or key$='32' then goto 7410
+7160    if key$='32' or key$='32' or key$='33' or key$='34' then goto 7410
+7170    if key$='35' or key$='36' or key$='37' or key$='38' then goto 7410
+7180    if key$='u' or key$='U' then goto 11290
+7190   !if key$='38' or key$='39' or key$='40' then goto 6000
+7200    if key$='yamachan' or key$='YAMACHAN' then goto 7290
+7210    if key$='lookflag' or key$='LOOKFLAG' then lookflag=1
+7220    print ' '
+7230    print 'Select number '+key$+' is invalid. Please type again !!'
+7240    gosub 10310
+7250    goto 6790
+
+7260    !
+7270    !///// Start Site set for maintenance.
+7280    !
+7290    smanual=1
+7300    mainte=1
+7310    print '    < Maintenance mode entered ! >'
+7320    print '     Type site number            > ';
+7330    input in form "r" : key$
+7340    skey=val(key$)
+7350    if skey => 38 then goto 7310
+7360    print ' '
+7370    goto 7410
+
+7380    !
+7390    !///// From key in number make file name for search.
+7400    !
+7410    if key$='1' then sitefile$=Dst$+'AKITA.SIT'
+7420    if key$='2' then sitefile$=Dst$+'ATSUGI.SIT'
+7430    if key$='3' then sitefile$=Dst$+'UTSUNO.SIT'
+7440    if key$='4' then sitefile$=Dst$+'URAWA.SIT'
+7450    if key$='5' then sitefile$=Dst$+'OITA.SIT'
+7460    if key$='6' then sitefile$=Dst$+'OKAYAM.SIT'
+7470    if key$='7' then sitefile$=Dst$+'OSAKA.SIT'
+7480    if key$='8' then sitefile$=Dst$+'KANAZA.SIT'
+7490    if key$='9' then sitefile$=Dst$+'KAGOSH.SIT'
+7500    if key$='10' then sitefile$=Dst$+'KUMAMO.SIT'
+7510    if key$='11' then sitefile$=Dst$+'KYOTO.SIT'
+7520    if key$='12' then sitefile$=Dst$+'KORIYA.SIT'
+7530    if key$='13' then sitefile$=Dst$+'KOBE.SIT'
+7540    if key$='14' then sitefile$=Dst$+'SAPPOR.SIT'
+7550    if key$='15' then sitefile$=Dst$+'SHIZUO.SIT'
+7560    if key$='16' then sitefile$=Dst$+'SENDAI.SIT'
+7570    if key$='17' then sitefile$=Dst$+'TAKAMA.SIT'
+7580    if key$='18' then sitefile$=Dst$+'TAKASA.SIT'
+7590    if key$='19' then sitefile$=Dst$+'CHIBA.SIT'
+7600    if key$='20' then sitefile$=Dst$+'TSUCHI.SIT'
+7610    if key$='21' then sitefile$=Dst$+'TOYAMA.SIT'
+7620    if key$='22' then sitefile$=Dst$+'TOKUYA.SIT'
+7630    if key$='23' then sitefile$=Dst$+'TOKYO.SIT'
+7640    if key$='24' then sitefile$=Dst$+'NAHA.SIT'
+7650    if key$='25' then sitefile$=Dst$+'NAGOYA.SIT'
+7660    if key$='26' then sitefile$=Dst$+'NAGASA.SIT'
+7670    if key$='27' then sitefile$=Dst$+'NAGANO.SIT'
+7680    if key$='28' then sitefile$=Dst$+'NIIGAT.SIT'
+7690    if key$='29' then sitefile$=Dst$+'HAMAMA.SIT'
+7700    if key$='30' then sitefile$=Dst$+'HIROSH.SIT'
+7710    if key$='31' then sitefile$=Dst$+'FUKUI.SIT'
+7720    if key$='32' then sitefile$=Dst$+'FUKUOK.SIT'
+7730    if key$='33' then sitefile$=Dst$+'MATSUY.SIT'
+7740    if key$='34' then sitefile$=Dst$+'MITO.SIT'
+7750    if key$='35' then sitefile$=Dst$+'MORIOK.SIT'
+7760    if key$='36' then sitefile$=Dst$+'YOKOHA.SIT'
+7770    if key$='37' then sitefile$=Dst$+'YONAGO.SIT'
+7780    if key$='38' then sitefile$=Dst$+'KUDAN.SIT'
+7790   !if key$='39' then sitefile$=Dst$+'xxxxxx.SIT'
+7800   !if key$='40' then sitefile$=Dst$+'xxxxxx.SIT'
+7810    goto 7850
+
+7820    !
+7830    !///// Open search file for site node.
+7840    !
+7850    if smanual=0 or usersit=1 then open sitefile$, input,3
+7860    if smanual=1 then open sitefile$, output ,4
+7870    if smanual=1 then goto 7910
+7880    if lookflag=1 then print 'sitefile$= '+sitefile$
+7890    if loc(3)=1 then goto 8120
+7900    goto 10970
+7910    priod=index(sitefile$,'.',10)
+7920    xsite$=substr(sitefile$,10,priod-10)
+7930    text1$=':*****  This is node list for NLIST SYSTEM'
+7940    text2$=':******************************************'
+7950    text3$=': '
+7960    text4$=':*****  DATE : '
+7970    text5$=':*****  SITE : '
+7980    message3$=':END'
+7990    print on 4 in form 'r' : text2$
+8000    print text2$
+8010    print on 4 in form 'r' : text1$
+8020    print text1$
+8030    print on 4 in form 'r' : text5$+xsite$
+8040    print text5$+xsite$
+8050    print on 4 in form 'r' : text4$+date
+8060    print text4$+date
+8070    oldnode$=''
+8080    goto 3980
+
+8090    !
+8100    !///// Search node number and check search is end or not
+8110    !
+8120    bflag=1
+8130    areaflag=1
+8140    input from 3 in form 'r': area$
+8150   !if lookflag=1 then print 'area$= '+area$
+8160    if bflag=1 then goto 8390
+8170    e1=index(area$,'END',0)
+8180    e2=index(area$,'end',0)
+8190   !print 'e1= ',e1,'e2= ',e2
+8200    if e1 > 0 or e2 > 0 then goto 8280
+8210    NODE$=substr(area$,3,4)
+8220   !if lookflag=1 then print 'node$= '+node$
+8230    gosub 13290
+8240    goto 1560
+8250    goto 8140
+
+8260    !
+8270    !///// Site node display finished , so close file and
+8280    close 3
+8290    close 1
+8300    close 2
+8310    print ' '
+8320    print 'Type Return key then return to menu';
+8330    input in form "r" : key$
+8340    nagasa=length(key$)
+8350    areaflag=0
+8360    if usersit=1 then goto 11290
+8370    if nagasa > 0 then goto 6790
+8380    goto 6790
+8390    bb=index(area$,':*',0)
+8400    if bb > 0 then goto 8140
+8410    bflag=0
+8420    NODE$=substr(area$,3,4)
+8430   !if lookflag=1 then print 'node$= '+node$
+8440    goto 8230
+
+8450    !///// wait here till return key in.
+8460    !
+8470    gosub 10310
+8480    print 'This option will be open in the future !!'
+8490    print ' '
+8500    goto 550
+
+8510    !
+8520    !///// Display product menu and check key in.
+8530    !
+8540    print char(27)+char(91)+char(50)+char(74)
+8550    print char(27)+char(91)+char(72)
+8560    mainte=0
+8570    pcnt=0
+8580    diagc=0
+8590    diagtitle=1
+8600    print ' '
+8610    print ' <<<<< Product information menu >>>>>  '+date
+8620    print ' '
+8630    print ' '
+8640    print '  1.ISCS  2.ACOM  3.XCOM   4.MSV   5.MCP'
+8650    print ' '
+8660    print '  6.SDLC  7.PBH   8.PBT    9.SNA  10.CMT'
+8670    print ' '
+8680    print ' 11.BBXS 12.XPC  13.ISRM'
+8690    print ' '
+8700    PRINT ' 20.MUX  21.RAM  22.ELF  23.TMCS  24.NETVAL'
+8710    PRINT ' '
+8720    PRINT ' 25.TEST HOST(DNIC 4406) 26.NEM'
+8730    PRINT ' '
+8740    print ' '
+8750    print ' L. Search current product information'
+8760    print ' R. Return to main menu ( Type retun Key )'
+8770    print ' E. End'
+8780    print ' '
+8790    print '     Select product number > ';
+8800    input in form "r" : key$
+8810    if key$='1' or key$='2' or key$='3' or key$='4' then goto 8990
+8820    if key$='5' or key$='6' or key$='7' or key$='8' then goto 8990
+8830    if key$='9' or key$='10' or key$='11' or key$='12' then goto 8990
+8840    if key$='13' or key$='14' or key$='15' or key$='20' then goto 8990
+8850    if key$='21' or key$='22' or key$='23' or key$='24' then goto 8990
+8860    if key$='25' or key$='26' then goto 8990
+8870    if key$='L' or key$='l' then diagc=1
+8880    if key$='L' or key$='l' then goto 4090
+8890    if key$='E' or key$='e' then goto 10430
+8900    if key$='' then goto 550
+8910    if key$='R' or key$='r' then goto 550
+8920    print ' '
+8930    print 'Select number '+key$+' is invalid. Please type again !!'
+8940    gosub 10310
+8950    goto 8540
+
+8960    !
+8970    !///// From key in number make file name for search.
+8980    !
+8990    if mainte=1 then goto 9000 else print ' '
+9000    if key$='1' then test$=dst$+'ISCS.PRD'
+9010    if key$='2'  then test$=dst$+'ACOM.PRD'
+9020    if key$='3' then test$=dst$+'XCOM.PRD'
+9030    if key$='4' then test$=dst$+'MSV.PRD'
+9040    if key$='5' then test$=dst$+'MCP.PRD'
+9050    if key$='6' then test$=dst$+'SDLC.PRD'
+9060    prod$=left(prod$+'    ',4)
+9070    if key$='7' then test$=dst$+'PBH.PRD'
+9080    if key$='8' then test$=dst$+'PBT.PRD'
+9090    if key$='9' then test$=dst$+'SNA.PRD'
+9100    if key$='10' then test$=dst$+'CMT.PRD'
+9110    if key$='11' then test$=dst$+'BBXS.PRD'
+9120    if key$='12' then test$=dst$+'XPC.PRD'
+9130    if key$='13' then test$=dst$+'ISRM.PRD'
+9140    if key$='20' then test$=dst$+'MUX.PRD'
+9150    if key$='21' then test$=dst$+'RAM.PRD'
+9160    if key$='24' then test$=dst$+'NETVAL.PRD'
+9170    if key$='25' then test$=dst$+'DNIC.PRD'
+9180    if key$='26' then test$=dst$+'NEM.PRD'
+9190    goto 9230
+
+9200    !
+9210    !///// Open file for product and display information.
+9220    !
+9230    close 5
+9240    open test$,input,5
+9250    input from 5 in form 'r' :rd$
+9260    gosub 9320
+9270    print rd$
+9280    goto 9250
+
+9290    !
+9300    !///// Check wethere there is more information or not.
+9310    !
+9320    cnt=index(rd$,':END',0)
+9330    if cnt > 0 then close 5
+9340    if cnt > 0 then goto 9400
+9350    return
+
+9360    !
+9370    !///// Product display finished ,so send end message
+9380    !///// and wait here untill return key in.
+9390    !
+9400    PRINT ' '
+9410    print 'Product list out finished. Type return > ';
+9420    input in form "r": key$
+9430    if key$='' then goto 8540
+9440    goto 8540
+
+9450    !
+9460    !///// Check wethere there is search product or not.
+9470    !///// If there is product name on tymfile comment , then display
+9480    !///// information.
+9490    !
+9500    if smanual=1 then goto 9740
+9510    newnode$=node$
+9520    newslot$=slot$
+9530    rds$=prod$
+9540    gosub   14040
+9550    prod$=temp$
+9560    temp$=''
+9570    SPC=INDEX(PROD$,TEST$,0)
+9580    PROD$=LEFT(PROD$+'   ',4)
+9590    if spc > 0 and ( newnode$ <> oldnode$ or newslot$ <> oldslot$ ) then counter=counter+1 else goto 9730
+9600    addlu=1
+9610    luflag=1
+9620    counter$=str(counter)
+9630    counter$=right('  '+counter$,3)
+9640    prod$=left(prod$+'    ',4)
+9650    sit=index(site$,' ',1)
+9660    sit$=substr(site$,0,sit-1)
+9670    site$=left(site$+'     ',8)
+9680    result$=counter$+'  '+site$+'  '+node$+' .'+slotlu$+'  '+prod$+'  '+versl$+'  '+lu$
+9690    print result$
+9700    if mainte=1 then print on 4 in form 'r': result$
+9710    oldnode$=newnode$
+9720    oldslot$=newslot$
+9730    goto 5980
+9740    xsite=index(site$,xsite$,0)
+9750    ysite=index(site$,'/',0)
+9760    zsite=index(site$,'-',0)
+9770    scnt=scnt+1
+9780    if lookflag=1 then print xsite;ysite;vsite
+9790    if xsite > 0 then newnode$=node$
+9800    if xsite > 0 and ysite=0 and zsite=0 and  oldnode$='' then goto 9860
+9810    if xsite > 0 and ysite=0 and zsite=0 and  oldnode$ <> newnode$ then goto 9860
+9820    goto 5980
+
+9830    !
+9840    !/////
+9850    !
+9860    result$=text3$+newnode$
+9870    print result$
+9880    print on 4 in form 'r': result$
+9890    oldnode$=node$
+9900    goto 5980
+
+9910    !
+9920    !///// Same as above comment !
+9930    !
+9940    if smanual=1 then goto 10100
+9950    SPC=INDEX(PROD$,TEST$,0)
+9960    PROD$=LEFT(PROD$+'   ',4)
+9970    if spc > 0  then counter=counter+1 else goto 10060
+9980    counter$=str(counter)
+9990    counter$=right('  '+counter$,3)
+10000    sit=index(site$,' ',1)
+10010    sit$=substr(site$,0,sit-1)
+10020    site$=left(site$+'     ',8)
+10030    result$=counter$+'  '+site$+'  '+node$+' .'+slotlu$+'  '+prod$+'  '+versl$+'  '+lu$
+10040    if mainte=1 or diagp=1 then print result$
+10050    if mainte=1 and luflag=0  then print on 4 in form 'r': result$
+10060    luflag=0
+10070    addlu=0
+10080    close 2
+10090    return
+10100    xsite=index(site$,xsite$,0)
+10110    vsite=index(site$,'-',0)
+10120    ysite=index(site$,'/',0)
+10130    scnt=scnt+1
+10140    if lookflag=1 then print xsite;vsite;ysite
+10150    if xsite > 0 then newnode$=node$
+10160    if xsite > 0 and ysite=0 and zsite=0 and  oldnode$='' then goto 10210
+10170    if xsite > 0 and ysite=0 and zsite=0 and  oldnode$ <> newnode$ then goto 10210
+10180    luflag=0
+10190    close 2
+10200    return
+10210    result$=text3$+newnode$
+10220    print on 4 in form 'r': result$
+10230    print result$
+10240    oldnode$=node$
+10250    luflag=0
+10260    close 2
+10270    return
+
+10280    !
+10290    !///// Wait timer
+10300    !
+10310   i=0
+10320   i=i+1
+10330   if i < 100000 then goto 10320
+10340   return
+
+10350   !
+10360   j=0
+10370   j=j+1
+10380   if j < 20000 then goto 10370
+10390   return
+
+10400   !
+10410   !///// Send finish message and end.
+10420   !
+10430   close 1
+10440    close 6
+10450   print 'finished'
+10460   end
+
+10470   !
+10480   !///// There was node's slot number in merlin file , but
+10490   !///// no found in nsccode. So send this message.
+10500   !
+10510   if title=1 then gosub 6580
+10520   if diagp=1 then goto 10560
+10530    if left(tym$,1)='0' then slot$=' '+right(tym$,1)
+10540    if left(tym$,1)='1' then slot$=tym$
+10550   print ' '+slot$+' '+' ------- ------------ '+' file not found '+wrt$
+10560   goto 2010
+
+10570   !
+10580   !///// Send error message.
+10590   !
+10600   close 1
+10610   close 2
+10620     print char(07)
+10630   if mainte=1 then goto 4090
+10640   print 'Error occured at program line No. ';errln
+10645   print 'Please report this program error to NIS.KANETA'
+10650   goto 10430
+
+10660   !
+10670   !///// No found merlin file in nsccode , so send error message.
+10680   !
+10690   close 1
+10700   close 2
+10710   if diagp=1 then goto 10730
+10720   print 'file not found '+infile$
+10730   if diag=0 and areaflag=0 then goto 1150
+10740   if diag=1 and areaflag=0 then goto 3050
+10750   if diag=0 and areaflag=1 then goto 8250
+
+10760   !
+10770   !///// Recive escape code. So send accept message.
+10780   !
+10790   close 1
+10800   close 2
+10810   print CHAR(10)+CHAR(13)
+10820   print char(07)
+10830   print char(07)
+10840   print 'escape accepted'
+10850   goto 10430
+
+10860   !
+10870   !///// As merlin file has only ####.N00 , so send this message.
+10880   !
+10890   if loop=1 then goto 10920
+10900   if diagp=1 then goto 10920
+10910   print 'This node have only '+NS$+NODE$+'.N00'
+10920   if diag=0 and areaflag=0 then goto 1150
+10930   if diag=1 and areaflag=0 then goto 3050
+10940   if diag=0 and areaflag=1 then goto 8250
+
+10950    !///// As no found sitefile , so send this message
+10960    !
+10970   close 3
+10980   print 'file not found '+sitefile$
+10990   areaflag=0
+11000   gosub 10310
+11010   goto 6790
+
+11020    !///// As no found specify product, so send this message
+11030    !
+11040   close 5
+11050   print 'file not found '+test$
+11060   gosub 10310
+11070   goto 8540
+
+11080    !///// Bell check test
+11090    !
+11100   print char(07)
+11110   gosub 10360
+11120   gosub 10360
+11130   print char(07)
+11140   bell=bell+1
+11150   gosub 10360
+11160   if bell < 4 then goto 11130
+11170   gosub 10360
+11180   gosub 10360
+11190   print char(07)
+11200   gosub 10360
+11210   print char(07)
+11220   print 'Bell chek test'
+11230   print ' '
+11240   print 'Thank you !!'
+11250   gosub 10360
+11260   goto 3390
+
+11270    !///// Display user company site menu and key in check
+11280    !
+11290   usersit=0
+11300   print char(27)+char(91)+char(72)
+11310   print char(27)+char(91)+char(50)+char(74)
+11320   print ' '
+11330   print '   <<< User company name >>>  '+date
+11340   print ' '
+11350   print ' 1.KINOKUNIYA    2.NIHON-HODO    3.NIKOMART      4.KYOWA-HAKKO'
+11360   print ' '
+11370   print ' 5.MARUBENI      6.MARUENE       7.HEIWASEIMEI   8.JACOS'
+11380   print ' '
+11390   print ' 9.HITACH JOHO-NET SERVICE      10.JAPIO'
+11400    print ' '
+11410   print '11.NIHON DIGITAL EQUIPMENT      12.SUMISU BERNEY SHOKEN'
+11420   print ' '
+11430   print ' G. Return to site main manu'
+11440   print ' R. Return to main manu ( Type return Key )'
+11450   print ' E. End'
+11460   print ' '
+11470   print ' '
+11480   print '                 Select number   > ';
+11490   input in form "r": key$
+11500   if key$='G' or key$='g' then goto 6790
+11510    if key$='' then goto 550
+11520   if key$='R' or key$='r' then goto 550
+11530   if key$='E' or key$='e' then goto 10430
+11540   if key$='1' or key$='2' or key$='3' or key$='4' then goto 11650
+11550   if key$='5' or key$='6' or key$='7' or key$='8' then goto 11650
+11560   if key$='9' or key$='10' or key$='11' or key$='12' then goto 11650
+11570  !if key$='5' or key$='6' or key$='7' or key$='8' then goto 17000
+11580  !if key$='5' or key$='6' or key$='7' or key$='8' then goto 17000
+11590   print ' '
+11600   print 'Select number '+key$+' is invalid. Please type again !!'
+11610   gosub 10310
+11620   goto 11290
+
+11630   !///// From key in number make file name for search
+11640   !
+11650   if key$='1' then sitefile$=dst$+'KINOKU.SIT'
+11660   if key$='2' then sitefile$=dst$+'NIHONH.SIT'
+11670   if key$='3' then sitefile$=dst$+'NIKOMA.SIT'
+11680   if key$='4' then sitefile$=dst$+'KYOWA.SIT'
+11690   if key$='5' then sitefile$=dst$+'MARUBE.SIT'
+11700   if key$='6' then sitefile$=dst$+'MARUEN.SIT'
+11710   if key$='7' then sitefile$=dst$+'HEIWAS.SIT'
+11720   if key$='8' then sitefile$=dst$+'JACOS.SIT'
+11730   if key$='9' then sitefile$=dst$+'HITACHI.SIT'
+11740   if key$='10' then sitefile$=dst$+'JAPIO.SIT'
+11750   if key$='11' then sitefile$=dst$+'NIHOND.SIT'
+11760   if key$='12' then sitefile$=dst$+'SUMISU.SIT'
+11770  !if key$='1' then sitefile$=dst$+'KINOKUNIYA.SIT'
+11780  !if key$='1' then sitefile$=dst$+'KINOKUNIYA.SIT'
+11790  !if key$='1' then sitefile$=dst$+'KINOKUNIYA.SIT'
+11800  !if key$='1' then sitefile$=dst$+'KINOKUNIYA.SIT'
+11810  !if key$='1' then sitefile$=dst$+'KINOKUNIYA.SIT'
+11820   usersit=1
+11830   goto 7850
+11840   diagm=1
+11850   print ' '
+11860   print ' '
+11870   print ' Type start node No. > ';
+11880   input in form 'r' : node$
+11890   if node$='' then goto 3390
+11900   print ' Type end   node No. > ';
+11910   input in form 'r' : end$
+11920   a=length(node$)
+11930   aa=length(end$)
+11940   if a=4 and aa=4 then goto 11980
+11950   if a <> 4 then goto 11870
+11960   if aa=0 then goto 11980
+11970   if aa <> 4 then goto 11900
+11980   if aa=0 then end$=node$
+11990   strt=val(node$)
+12000   ende=val(end$)
+12010   if ende-strt >=0 then goto 12020 else goto 11860
+12020   startflag=1
+12030   strt=strt-1
+12040   goto 12050
+12050   if stotal > 1 then print ' '
+12060   if startflag=1 then goto 12940
+12070   if stotal > 1 and endflag=1 then print 'Total tymfile core is > '+stotal$+'d k-bytes of core'
+12080   if stotal > 1 and endflag=1 then gosub 12990
+12090   print char(13)
+12100   if diagm=0 then goto 12130
+12110   if diagm=1 then gosub 12830
+12120   if diagm=1 then goto 12170
+12130     print 'Type Node No. or Return (E = end) ';
+12140     INPUT IN FORM 'R':node$
+12150     if node$='' then goto 550
+12160     if node$='E' or node$='e' then goto 10430
+12170     print char(13)
+12180     Z$=DST$+'NS'+NODE$+'.TYM'
+12190   GOSUB 13290
+12200      print ' '
+12210      print 'Search file is > '+z$+'   Engine = '+engine$
+12220   endflag=1
+12230        print ' '
+12240        print 'SLOT  CORE SIZE  PRODUCT COMMENT'
+12250        print '--------------------------------------------------------'
+12260   stotal=0
+12270   total=0
+12280      OPEN Z$,INPUT,6
+12290      INPUT FROM 6 IN FORM 'R':B$
+12300      FOR I=1 TO 80
+12310      IF SUBSTR(B$,I,1)=' ' THEN GOTO 12340
+12320      IF SUBSTR(B$,I,1)='' THEN GOTO 12340
+12330      GOTO   12360
+12340      NEXT I
+12350      GOTO 12290
+12360      IF SUBSTR(B$,I+2,4)='CORE' THEN GOTO 12400
+12370      C$=B$
+12380   goto 12290
+12390   gosub 12530
+12400      gosub 12560
+12410      gosub 12750
+12420          print slot$+'  '+core$+'  '+lu$
+12430         C$=B$
+12440      GOTO 12290
+12450      END
+12460      close 6
+12470      goto 12050
+12480      close 6
+12490      GOTO 12050
+12500      CLOSE 6
+12510      PRINT 'File not found '+z$
+12520      GOTO 12050
+12530   L=length(B$)
+12540   if L < 4 then input from 6 in form 'r' :B$
+12550   return
+12560          slot$=substr(b$,2,1)
+12570   LL=length(S$)
+12580          slot$=right('     '+slot$,4)
+12590          L1=length(b$)
+12600          c=index(b$,'$',0)
+12610          core$=substr(b$,c,L1-c+1)
+12620   L2=length(core$)
+12630   total$=substr(core$,4,L2-2)
+12640   f=index(total$,' ',0)
+12650   for i=1 to 77
+12660   if substr(total$,i,LL)=S$ then goto 12810
+12670   next i
+12680   if f >=1 then total$=substr(total$,0,f-1)
+12690   if lookflag=1 then print 'Total$='+total$+'***'
+12700   if lookflag=1 then print 'f=',f
+12710   if lookflag=1 then print 'i=',i
+12720   total=val(total$)
+12730      core$=left('   '+core$+'  ',9)
+12740      return
+12750      L3=length(c$)
+12760      S=index(c$,'-',0)
+12770  if s > 0 then  lu$=substr(c$,S+2,L3-S-1)
+12780   stotal=stotal+total
+12790   stotal$=str(stotal)
+12800      return
+12810   total$=left(total$,i-1)
+12820   goto 12690
+12830   if startflag=1 then goto 12850
+12840   if startflag=0 then strt=strt+1
+12850   strt$=str(strt)
+12860   node$=right(strt$,4)
+12870   if ende >= strt then return
+12880   if strt-1 = ende then diagm=0
+12890   close 6
+12900   print 'Diag finished , type return > ';
+12910   input in form 'r' : key$
+12920   if key$='' then goto 3390
+12930   goto 3390
+12940   startflag=0
+12950   goto 12090
+
+12960   !
+12970   !///// Search total require memory size from logfile
+12980   !
+12990   nodelog$=DST$+'NS'+NODE$+'.LOG'
+13000   open nodelog$ , input , 7
+13010   input from 7 in form 'r' : C$
+13020   for i=0 to 80
+13030   if substr(c$,I,1)=' ' then goto 13060
+13040   if substr(c$,I,1)='' then goto 13060
+13050   goto 13080
+13060   next I
+13070   goto 13010
+13080   if substr(c$,I,8)='Requires' then goto 13100
+13090   goto 13010
+13100   b=length(c$)
+13110   c$=substr(c$,10,b-8)
+13120   print 'Logfile result is     >  '+C$
+13130   close 7
+13140   return
+13150   print 'File not found '+nodelog$
+13160   if diagm=1 then goto 12110
+13170   if diagm=0 then goto 12090
+13180   close 7
+13190   goto 12050
+
+13200   !
+13210   !///// As no found specify file , so set this message
+13220   !
+13230   engine$='? NO FOUND'
+13240   close 4
+13250   return
+
+13260   !
+13270   !///// Search kind of engine
+13280   !
+13290   file$=DST$+'NS'+NODE$+'.TYM'
+13300   if lookflag=1 then print file$
+13310   open file$, input ,4
+13320   input from 4 in form 'r': aa$
+13330   for j=0 to 5
+13340   if substr(aa$,j,1)=' ' then goto 13370
+13350   if substr(aa$,j,1)='' then goto 13370
+13360   goto 13390
+13370   next j
+13380   goto 13320
+13390   i=index(aa$,'ENGINE',0)
+13400   ii=index(aa$,':',5)
+13410   if i=0 then goto 13320
+13420   l=length(aa$)
+13430   if i > 0 and ii > 0 then engine$=substr(aa$,ii+1,l-ii)
+13440   II=0
+13450   if lookflag=1 then print 'Engine ='+engine$
+13460   close 4
+13470   return
+
+13480   !
+13490   !///// Check history of node's slot file
+13500   !
+13510   print ' '
+13520   if key$='L' or key$='l' then keyflag=4
+13530   if key$='5' then keyflag=1
+13540   if key$='c' or key$='C' then keyflag=2
+13550   if key$='t' or key$='T' then keyflag=3
+13560   close 8
+13570   print 'Type in NODE No. or Return > ';
+13580   input in form "r" : node$
+13590   if node$='' then goto 550
+13600   if node$='E' or node$='e' then goto 10430
+13610   if keyflag=1 or keyflag=3 then print 'Type in SLOT No.(xx) or ym > ';
+13620   if keyflag=2 then print 'Type in SLOT No.(xx) or md > ';
+13630   if keyflag=4 then print 'Type in SLOT No.(xx) or og > ';
+13640   input in form "r" : slot$
+13650   print ' '
+13660   if keyflag=1 or keyflag=3 then e$=dst$+ns$+node$+'.T'+slot$
+13670   if keyflag=2 then e$=dst$+ns$+node$+'.C'+slot$
+13680   if keyflag=4 then e$=dst$+ns$+node$+'.L'+slot$
+13690   if lookflag=1 then print e$
+13700   a=length(node$)
+13710   b=length(slot$)
+13720   if lookflag=1 then print a : b
+13730   if a <> 4 then goto 13870
+13740   if b <> 2 then goto 13870
+13750   open e$ , input ,8
+13760   input from 8 in form 'r' : f$
+13770   if keyflag=1 and substr(f$,1,1)=':' then goto 13820
+13780   if keyflag=1 and substr(f$,1,1) <> ':' then goto 13840
+13790   !if keyflag=2 and substr(f$,1,1) <> '' then goto 14500
+13800   !if keyflag=2 and substr(f$,1,1) = '' then goto 14600
+13810   if keyflag=2 or keyflag=3 or keyflag=4 then goto 13820
+13820   print f$
+13830   goto 13760
+13840   print ' '
+13850   close 8
+13860   goto 13510
+13870   print 'File not found '+e$
+13880   close 8
+13890   goto 13510
+13900   print '>>>>> End search <<<<<'
+13910   goto 13510
+
+13920   ! Search file only all node slot command file.
+13930   !
+13940   gosub 14040
+13950   count$=str(counter)
+13960   count$=right('  '+count$,3)
+13965   if wrt$=oldwrt$ then goto 2400
+13970   if scmd > 0 then print count$+' '+wrt$
+13980   ecmd1=index(rds$,'.n0',0)
+13990   ecmd2=index(rds$,'.N0',0)
+14000   if ecmd1 > 0 or ecmd2 > 0 then ecmd=1
+14010   if scmd > 0 then counter=counter+1
+14015   if scmd > 0 then oldwrt$=wrt$
+14020   goto 2400
+14030   ! Change rds$ to uppercase if lowercase letters
+14040   if cmd=1 then goto 14050 else goto 14140
+14050   temp$=''
+14060   skp1=index(rds$,';@',0)
+14070   skp2=index(rds$,';A',0)
+14080   skp3=index(rds$,';a',0)
+14090   skp4=index(rds$,';X',0)
+14100   skp5=index(rds$,';x',0)
+14110   if skp1 > 0 or skp2 > 0 or skp3 > 0 or skp4 > 0 or skp5 > 0 then goto 14120 else goto 14210
+14120   !for cnt = 1 to length(rds$)-1
+14130   !next cnt
+14140   for letter = 1 to length(rds$)
+14150   lcode$=substr(rds$,letter,1)
+14160   code=asc(lcode$)
+14170   if code > 96 and code < 123 then code = code-32
+14180   temp$=temp$+char(code)
+14190   next letter
+14200    if lookflag=1 then print temp$
+14210   scmd=index(temp$,testlu$,0)
+14220   return
+
+15000   ! Display current time stamp
+15010   gosub 10300
+15015   gosub 10300
+15017   gosub 10300
+15020   print char(27)+char(91)+char(50)+char(74)+char(27)+char(91)+char(72)
+15030   print '         Current time is '+date
+15040   goto 15010
+     I
