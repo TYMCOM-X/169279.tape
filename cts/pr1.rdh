@@ -1,0 +1,633 @@
+:logfile sp2012.ge1
+:time 300
+WATCH DAY
+DATE
+SYS
+WHO .
+; **********************************************************************
+;           FILE   COMMAND FILE FOR NETVAL                            
+;   COMPANY NAME   Southwestern Bell Telephone                        
+;    NODE NUMBER   2012                       LOCATION ST. LOUIS      
+;    KERNEL HOST   524                            HOST 194            
+;    SLOT NUMBER   1                                                  
+;        VERSION   5.10                                                 
+; **********************************************************************
+;
+;  Sample command file for NETVAL Version 5.10
+;
+copy (source)nval05.i10+(swbnet)sp2012.a01+(source)nval05.r10
+sp2012.z01
+run (source)cppro
+sp2012.z01
+sp2012.z01
+run (source)cpas1
+sp2012.x01
+sp2012.y01
+sp2012.z01
+run (source)objnib
+sp2012.x01
+sp2012.x01
+
+run (source)staddr
+sp2012.y01
+sp2012.y01
+run (source)nad
+;a(source)pnuc13.i02
+;a(source)nval05.m10
+;a(swbnet)sp2012.t01
+;a(source)pnuc13.r02
+;x(source)nval05.p10
+%fsp2012.x01
+;g
+;asp2012.y01
+;4seg2[;\
+.[spsize:
+1;fsp2012.n01
+sege,sesize;pseg0,s0size;pseg1,s1size;pseg2,spsize;p%p%q
+;;
+;;  The following file displays disc save data only (Supervisors)
+;; To use, repleace "SZ" with the number of sectors IN DECIMAL per
+;; cylinder for the disk that NETVAL is to be saved on:
+$aSZ\cylsz:
+;@(source)nval05.D10
+%q
+TYPE sp2012.T01
+TYPE sp2012.A01
+TYPE sp2012.C01
+type sp2012.cd1
+R CKSUM
+sp2012.T01
+sp2012.A01
+sp2012.Cd1
+sp2012.NI1
+
+del sp2012.x01,sp2012.y01,sp2012.z01
+del *.tmp
+un/purge
+
+:logfile sp2012.gd1
+:time 200
+WATCH DAY
+DATE
+SYS
+WHO .
+; **********************************************************************
+;           FILE   COMMAND FILE FOR NETVAL DISK MAINTENANCE                           
+;   COMPANY NAME   Southwestern Bell Telephone                        
+;    NODE NUMBER   2012                       LOCATION ST. LOUIS      
+;    KERNEL HOST   524                            HOST 194            
+;    SLOT NUMBER   1                                                  
+;        VERSION   5.09                                                 
+; **********************************************************************
+;
+;
+;  Sample command file for NETVAL Disk Maintenance Version 5.10
+;
+copy (source)nvdm05.i10+(swbnet)sp2012.a01+(source)nvdm05.r10
+sp2012.zd1
+run (source)cppro
+sp2012.zd1
+sp2012.zd1
+run (source)cpas1
+sp2012.xd1
+sp2012.yd1
+sp2012.zd1
+run (source)objnib
+sp2012.xd1
+sp2012.xd1
+
+run (source)staddr
+sp2012.yd1
+sp2012.yd1
+run (source)nad
+;a(source)pnuc13.i02
+;a(source)nval05.m09
+;a(swbnet)sp2012.t01
+;a(source)pnuc13.r02
+;x(source)nval05.p09
+%fsp2012.xd1
+;g
+;asp2012.yd1
+;4seg2[;\
+.[s2size:
+1;fsp2012.nd1
+sege,sesize;pseg0,s0size;pseg1,s1size;pseg2,s2size;p%p%q
+
+TYPE sp2012.T01
+TYPE sp2012.A01
+TYPE sp2012.C01
+type sp2012.cd1
+R CKSUM
+sp2012.T01
+sp2012.A01
+sp2012.Cd1
+sp2012.NI1
+
+delete sp2012.xd1,sp2012.yd1,sp2012.zd1
+del *.tmp
+un/purge
+
+:****************************************************************************
+:          FILE: MT6002.T01
+:  COMPANY NAME: SWB LAB NET  
+:   NODE NUMBER: 2012
+:   KERNEL HOST:  524
+:   SLOT NUMBER: 01
+:       VERSION: 5.09
+:          DATE: 06/06/90
+:
+:****************************************************************************
+: REVISION HISTORY:
+: Installed into Microlink-II 06/26/90                    rdh/mctssl
+:****************************************************************************
+
+
+NVHOST(194,UP)		: The Netval HOST number,
+			: initial host state (UP or SHUT).
+
+NVSSIZ(790)       	: The Netval slot size in ***k bytes.
+
+NVUSRS(7)		: The total number of Netval terminals available.
+			: NVUSRS MUST EQUAL the total number of all
+			: types of validators that will have access to
+			: Netval (refer to the NVAL05.A05 file value,
+			: MAXIMUM_VALIDATOR).
+
+NVSUPS(4)		: The total number of Supervisors that Netval will
+			: update.  NVSUPS MUST EQUAL the total number of
+			: EXPECTED Supervisors (refer to the NVAL05.A05 file
+			: value, MAXIMUM_EXPECTED_SUPERVISORS).
+
+NVDISK(0,1)		: The ISIS logical units for Netval disks 0, 1, 2,
+			: and 3 respectively.  0 and 1 are required, 2 and 3
+			: are optional.  If only 2 disks are specified,
+			: omit the last 2 arguments totally.
+
+			: Netval disk 0 contains the CUD and CUD parameter
+			: file.  It can be the actual Supervisor MUD file.
+
+			: NETVAL disk 1 contains the CONFIGURATION, NODE_HOST,
+			: CLASS_GROUP, CUD/MUD buffers, OPERLOG, and
+			: MUD_UPDATE files.
+
+			: If values for units 2 and 3 are included, Netval
+			: must have 2 physical disk drives and LOGICAL_VOLUMES
+			: must be ENabled in the NVAL05.A05 file.  Disk units
+			: 0 and 1 should be on one physical disk, and disk
+			: units 2 and 3 should be on the other physical disk.
+
+			: NETVAL disk 2 contains the same files as disk 0
+			: and must be the same size as unit 0.
+
+			: NETVAL disk 3 contains the same files as disk 1
+			: and must be the same size as unit 1.
+
+NVTAPE(2)		: The ISIS logical units for Netval tapes 0 and 1
+			: respectively.  Unit 1 is optional.
+
+
+NVMEND			: Must be last line of file.
+
+        ******************************************************************
+        **                  PROPRIETARY INFORMATION                     **
+        **                                                              **
+        **  BT  TYMNET's  proprietary  rights  are  included  in  the   **
+        **  information disclosed herein.  The recipient, by receiving  **
+        **  this document,  agrees that neither this document nor the  **
+        **  information disclosed herein nor any part thereof shall be  **
+        **  reproduced  or  transferred to other documents or used  or  **
+        **  disclosed  to  others for manufacturing or for  any  other  **
+        **  purpose  except as specifically authorized in  writing  by  **
+        **  BT  TYMNET.                                                 **
+        ******************************************************************
+        ================================================================
+                      TYMNET NETWORK TECHNOLOGY DEVELOPMENT
+
+                            SOFTWARE RELEASE FORM          PAGE 1 OF 2
+        ================================================================
+	RELEASE FILE:  NVAL05.X10
+	PRODUCT ID:    NVAL (0044)                   VERSION:  5.10(.02)
+	PRODUCT NAME:  Netval
+	RELEASED BY:   Nancy Holt  			DATE:  07/27/90
+	MANAGER:       Romolo Raffo
+        RELEASED TO LIMITED BY :  Romolo Raffo          DATE:  08/20/90
+                                  Roger Babcock
+                                  Mark McMillan
+        ================================================================
+        *** RELEASE *** RELEASE *** RELEASE *** RELEASE *** RELEASE ***
+
+	CONFIGURATION REQUIREMENT CHANGES
+   	   CORE SIZE:  Basic system: 288k   (Code: 213k)  plus: 1 * AP
+     	     (AP = total memory reguirements of access
+	       profile calculated in NVAL05.A10)
+     	     (CB = sectors in a CUD block; TB =   sectors in Class/group Table)
+     	     each licensed user, add:	    (2k * CB) + (0.25k * TB) + (2 * AP)
+     	     each password only user, add:          3k + (0.5k * CB)
+     	     each Supervisor, add:	            2k + (0.5k * CB)
+     	     LOGICAL_VOLUMES enabled, add:         64k
+     	     VALIDATE_X25_NAMES enabled, add:       2k
+    	     PACK_CLASS_AND_GROUP_TABLE enabled, add:
+       	       (MAXIMUM_LIST_INSTANCES_IN_GLOBAL_ACCESS * 6) +
+		(MAXIMUM_GLOBAL_ACCESS * 10)
+     	     INCLUDE_DUMP enabled, add:              4k
+     	     FORCE_PASSWORD_CHANGE enabled, add:    14k
+       	     each 100 Passtable entries, add:        1k
+     	     GLOBAL_PASSWORD_ONLY_LOGIN enabled, add: 8.5k
+       	     each 100 Passtable entries, add:       .6k
+       	     each password only user, add:	    1AP
+     	     NO_SELF_PASSWORD_CHANGE enabled, add:  .6k
+     	     INCLUDE_DNIC enabled, add:		    22k
+     	     BEFORE_UP_V43 disabled, add:     1AP + 41k
+	     OVERFLOW_CUD_ENTRIES enabled add: (.75k * CB) + 1AP
+	
+   	HARDWARE: Engine with disk and tape
+	
+	OTHER SOFTWARE: (TYPE, VERSION)
+  	  Concurrent PASCAL Preprocessor (CPPRO), version 1.0
+  	  Concurrent PASCAL Compiler (CPAS1), version 1.00
+  	  PASCAL Object to NIB Converter (OBJNIB), version 1.5
+  	  Statement to Address Generator (STADDR), version 1.1
+  	  PASCAL Nucleus (PNUC), version 13.02
+  	  Network Assembler and Debugger (NAD), version 1.5
+  	  Netval Disk Maintenance Program (NVDM), version 5.10
+        ================================================================
+        RELEASE FILES :  (username)filename    checksum  chk date  new
+
+          SOURCE      : (source)NVAL05.R10     4PONJIZ3  07/17/90  yes
+
+          COMMAND     : (source)NVAL05.C10     4GIGRER8  08/20/90  yes
+
+          PARAMETER   : (source)NVAL05.T10     8RUTJAT0  05/21/90  yes
+
+          PATCH FILE  : (source)NVAL05.P10     4JAPNAM2  05/21/90  no
+
+          OTHER       :
+  	    Initialize: (source)NVAL05.I10     4WUWHOL1  06/27/90  yes
+  	    Config    : (source)NVAL05.A10     0WIBSOC9  06/05/90  yes
+	    Macro     : (source)NVAL05.M10     3WAXPIM1  05/21/90  no
+  	    Sup Disk  : (source)NVAL05.D10     8BELJEN3  05/21/90  no
+
+        =================================================================
+                     TYMNET NETWORK TECHNOLOGY DEVELOPMENT
+
+                       SOFTWARE RELEASE DESCRIPTION       PAGE  2  OF  2
+        ================================================================
+        SUPPORTING DOCUMENTATION      (username)filename        doc date
+
+        PRODUCT SPECIFICATION:
+	  external specification (dndspec:38)ntv506.ers		11/16/88
+	  conversion document    (dndspec:38)ntc502.ers		07/12/88
+	  operator guide         (dndspec:38)nto502.ers		07/12/88
+
+
+        CHANGE DESCRIPTION: 	 (source)nval05.y10		08/20/90
+
+        ==================================================================
+        BRIEF SUMMARY OF CHANGES:
+        
+        08/20/90 CHANGES:
+        
+        Code released to limited release.
+
+
+        07/27/90 CHANGES:
+
+	Add parameter MAXIMUM_CONVERT_BLOCK_SIZE_IN_SECTORS to config
+	file to allow change to of CUD block size in reformat command.
+
+	NSR #3971:  Correct check for X.25 username to be FALSE if
+	NO PASSWORD REQUIRED in user's options.
+
+	Correct display user and display directory for hang problem.
+(* **********************************************************************)
+(*           FILE   COMMAND FILE FOR NETVAL                            *)
+(*   COMPANY NAME   Southwestern Bell Telephone                        *)
+(*    NODE NUMBER   2012                       LOCATION ST. LOUIS      *)
+(*    KERNEL HOST   524                            HOST 194            *)
+(*    SLOT NUMBER   1                                                  *)
+(*      VERSION   5.10                                                 *)
+(* **********************************************************************
+(***********************************************************************)
+(* 06/06/90 Installed Log-II netval                        rdh/ctsl    *)
+(* 08/02/90 Allow zero length password per Maureen&Seth   rdh/wtssl    *)
+(* 08/27/90 Upgrade to version 5.10 to fix X250 usernms   rdh/wtssl    *)
+(***********************************************************************)
+(*									*)
+(*	Nt2751.a01   Netval Configuration File		     	        *)
+(*									*)
+(*									*)
+(************************************************************************)
+$disable BEFORE_SUP_V43
+
+
+const
+  MAXIMUM_ACCESS_ENTRY = 60;
+
+
+  MAXIMUM_ORIGIN_DESTINATION = 6;
+
+
+  DISK_UNIT_ZERO_SIZE = 795530 (* in sectors *);
+
+
+  DISK_UNIT_ONE_SIZE = 18126 (* in sectors *);
+
+
+  OPERLOG_FILE_LENGTH = 1024 (* sectors *);
+
+
+  MUD_SUP_VERSION = 430 (* 43 is version, 0 is revision *);
+
+    MAXIMUM_EXPECTED_SUPERVISORS = 4;
+
+    MAXIMUM_NORMAL_CUD_BLOCK = 30119;
+
+
+$enable OVERFLOW_CUD_ENTRIES
+
+  NUMBER_OF_OVERFLOW_BLOCKS = 3019;
+
+$if BEFORE_SUP_V43 (***) MAXIMUM_CUD_BLOCK_SIZE_IN_SECTORS = 16;
+
+$ifnone BEFORE_SUP_V43 (***) MAXIMUM_MUD_BLOCK_SIZE_IN_SECTORS = 16;
+
+(***) NETVAL_CUD_IS_A_MUD = FALSE (* TRUE or FALSE *);
+
+
+  CONSISTENCY_RESTARTABLE = TRUE (* TRUE or FALSE *);
+
+
+  RUN_AUTO_CONSISTENCY_ON_SUP_INIT = TRUE  (* TRUE or FALSE *);
+
+
+$enable INCLUDE_GAN
+$if INCLUDE_GAN (***) INCLUDE_GAN = TRUE (* TRUE or FALSE *);
+$ifnone INCLUDE_GAN (***) INCLUDE_GAN = FALSE;
+
+
+(***) INCLUDE_DISTRICT = TRUE (* TRUE or FALSE *);
+
+(***) MINIMUM_PASSWORD_SIZE = 0 (* if zero, no minimum size *);
+
+(***) MAXIMUM_PASSWORD_SIZE = 30;
+
+(***) REQUIRE_NONALPHANUMERIC = FALSE (* TRUE or FALSE *);
+
+
+$disable name_legal_password
+
+(***) CLASS_0_GROUP_0_ASSIGNABLE = TRUE;
+
+
+$enable allow_hosts_on_no_password
+
+$enable validate_x25_names
+
+(***) PROGRAMMER_NAME_SIZE = 7 (* acutal no. of characters in name *);
+
+
+(* The username must be in UPPER case, and filled	*)
+(* out to 20 characters.  (USERNAME_TEXT_MAX)		*)
+
+(***) PROGRAMMER_NAME = 'NETPRIV             ';
+
+
+  PROGRAMMER_ENTRY_CHANGEABLE = FALSE;
+
+
+  NVDM_OPERATOR_NAME_SIZE = 8 (* acutal no. of characters in name *);
+
+(* The username must be in UPPER case, and filled	*)
+(* out to 20 characters.  (USERNAME_TEXT_MAX)		*)
+
+  NVDM_OPERATOR_NAME = 'NETVALOP            ';
+
+
+$disable LOGICAL_VOLUMES
+
+
+$disable NO_PASSWORD_ONLY_VALIDATORS
+
+$disable UPDATE_CUD_ON_CHANGE_FAIL
+
+
+
+$enable CHANGES_TO_OPER_LOG
+
+
+$disable UUNSassignable_by_user
+
+(***) MAXIMUM_HOST = 4096;
+
+  MAXIMUM_ORIGIN_HOST = maximum_host + 28289;
+
+
+(***) MAXIMUM_NODE = 2047;
+
+(***) MAXIMUM_CLASS = 150;
+
+(***) MAXIMUM_CLASS_TABLE_SIZE = 48 * 256;
+
+(***) MAXIMUM_GROUP = 150;
+
+(***) MAXIMUM_GROUP_TABLE_SIZE = 48 * 256;
+
+$enable INCLUDE_DNIC
+
+(***) MAXIMUM_DNIC_TABLE_SIZE = 20 * 256;
+
+
+$disable PACK_CLASS_AND_GROUP_TABLE
+
+(***) MAXIMUM_LIST = 700;
+
+(***) MAXIMUM_NAMED_LIST_NAME_SIZE = 28;
+
+$disable INCLUDE_LIST_DESCRIPTIONS
+
+(***) MAXIMUM_NAMED_LIST_DESCRIPTION_SIZE = 0;
+
+(***) MAXIMUM_NAMED_LIST_ENTRY = 150;
+
+
+(***) MAXIMUM_LISTS_IN_GLOBAL_ACCESS = 150;
+
+
+  NUMBER_OF_PASSWORD_ONLY_VALIDATORS = 4;
+
+  MAXIMUM_LICENSED_VALIDATORS = 3;
+
+  FIRST_CIRCUIT_RETRY_DELAY = 60 (* in seconds *);
+
+  MAXIMUM_CIRCUIT_RETRY_DELAY = (32 * 60) (* in seconds *);
+
+  MAXIMUM_UN2_RETRIES = 4;
+
+  CONSISTENCY_REPORT_INTERVAL = 32 (* report every 32 blocks *);
+
+  SEND_TABLE_DELAY = 60 (* seconds *);
+
+  MAXIMUM_TAPE_RETRIES = 16;
+
+  TAPE_BLOCKING_FACTOR = 8 (* in CUD blocks *);
+
+$disable INCLUDE_DUMP
+
+  ASCII_DUMP_BLOCKING_FACTOR = 12;
+
+
+  TERMINAL_TIMEOUT = 5 (* in minutes *);
+
+
+$disable CONVERT_0_TO_1 (* incarnation 0 --> incarnation 1 *)
+
+$enable FORCE_PASSWORD_CHANGE
+
+$disable REQUEST_FPC_START
+
+  MAXIMUM_EFFECTIVE_PERIOD = 365 (* days *);
+
+  NUMBER_OF_PASSTABLE_ENTRIES = 300;
+
+ MINIMUM_GANPASS_PERIOD = 1;
+
+ MAXIMUM_GANPASS_PERIOD = 365;
+
+$disable GLOBAL_PASSWORD_ONLY_LOGIN
+
+$enable NO_SELF_PASSWORD_CHANGE
+
+
+$disable CONVERT_TO_MUD_II
+
+$disable REQUEST_AUX_OR_NORMAL_CIRCUIT			
+
+$enable REQUEST_COLLECT_CALL				
+
+$enable REQUEST_GLOBAL_EXCEPTION
+
+$enable REQUEST_PRIORITY_STOP
+
+$disable REQUEST_REQUIRE_HOSTNAME					
+
+$enable REQUEST_USER_HOST_OK				
+
+$enable PASSWORD_RESTRICTED_FROM_PAD
+
+
+  CONVERT_OVERFLOW_BLOCKS = 13;
+
+  MAXIMUM_NORMAL_CONVERT_BLOCKS = 2039;
+
+        ******************************************************************
+        **                  PROPRIETARY INFORMATION                     **
+        **                                                              **
+        **  BT  TYMNET's  proprietary  rights  are  included  in  the   **
+        **  information disclosed herein.  The recipient, by receiving  **
+        **  this document,  agrees that neither this document nor the  **
+        **  information disclosed herein nor any part thereof shall be  **
+        **  reproduced  or  transferred to other documents or used  or  **
+        **  disclosed  to  others for manufacturing or for  any  other  **
+        **  purpose  except as specifically authorized in  writing  by  **
+        **  BT  TYMNET.                                                 **
+        ******************************************************************
+        ================================================================
+                      TYMNET NETWORK TECHNOLOGY DEVELOPMENT
+
+                            SOFTWARE RELEASE FORM          PAGE 1 OF 2
+        ================================================================
+	RELEASE FILE:  NVAL05.X10
+	PRODUCT ID:    NVAL (0044)                   VERSION:  5.10(.02)
+	PRODUCT NAME:  Netval
+	RELEASED BY:   Nancy Holt  			DATE:  07/27/90
+	MANAGER:       Romolo Raffo
+        RELEASED TO LIMITED BY :  Romolo Raffo          DATE:  08/20/90
+                                  Roger Babcock
+                                  Mark McMillan
+        ================================================================
+        *** RELEASE *** RELEASE *** RELEASE *** RELEASE *** RELEASE ***
+
+	CONFIGURATION REQUIREMENT CHANGES
+   	   CORE SIZE:  Basic system: 288k   (Code: 213k)  plus: 1 * AP
+     	     (AP = total memory reguirements of access
+	       profile calculated in NVAL05.A10)
+     	     (CB = sectors in a CUD block; TB =   sectors in Class/group Table)
+     	     each licensed user, add:	    (2k * CB) + (0.25k * TB) + (2 * AP)
+     	     each password only user, add:          3k + (0.5k * CB)
+     	     each Supervisor, add:	            2k + (0.5k * CB)
+     	     LOGICAL_VOLUMES enabled, add:         64k
+     	     VALIDATE_X25_NAMES enabled, add:       2k
+    	     PACK_CLASS_AND_GROUP_TABLE enabled, add:
+       	       (MAXIMUM_LIST_INSTANCES_IN_GLOBAL_ACCESS * 6) +
+		(MAXIMUM_GLOBAL_ACCESS * 10)
+     	     INCLUDE_DUMP enabled, add:              4k
+     	     FORCE_PASSWORD_CHANGE enabled, add:    14k
+       	     each 100 Passtable entries, add:        1k
+     	  OBAL_PASSWORD_ONLY_LOGIN enabled, add: 8.5k
+       	     each 100 Passtable entries, add:       .6k
+       	     each password only user, add:	    1AP
+     	     NO_SELF_PASSWORD_CHANGE enabled, add:  .6k
+     	     INCLUDE_DNIC enabled, add:		    22k
+     	     BEFORE_UP_V43 disabled, add:     1AP + 41k
+	     OVERFLOW_CUD_ENTRIES enabled add: (.75k * CB) + 1AP
+	
+   	HARDWARE: Engine with disk and tape
+	
+	OTHER SOFTWARE: (TYPE, VERSION)
+  	  Concurrent PASCAL Preprocessor (CPPRO), version 1.0
+  	  Concurrent PASCAL Compiler (CPAS1), version 1.00
+  	  PASCAL Object to NIB Converter (OBJNIB), version 1.5
+  	  Statement to Address Generator (STADDR), version 1.1
+  	  PASCAL Nucleus (PNUC), version 13.02
+  	  Network Assembler and Debugger (NAD), version 1.5
+  	  Netval Disk Maintenance Program (NVDM), version 5.10
+        ================================================================
+        RELEASE FILES :  (username)filename    checksum  chk date  new
+
+          SOURCE      : (source)NVAL05.R10     4PONJIZ3  07/17/90  yes
+
+          COMMAND     : (source)NVAL05.C10     4GIGRER8  08/20/90  yes
+
+          PARAMETER   : (source)NVAL05.T10     8RUTJAT0  05/21/90  yes
+
+          PATCH FILE  : (source)NVAL05.P10     4JAPNAM2  05/21/90  no
+
+          OTHER       :
+  	    Initialize: (source)NVAL05.I10     4WUWHOL1  06/27/90  yes
+  	    Config    : (source)NVAL05.A10     0WIBSOC9  06/05/90  yes
+	    Macro     : (source)NVAL05.M10     3WAXPIM1  05/21/90  no
+  	    Sup Disk  : (source)NVAL05.D10     8BELJEN3  05/21/90  no
+
+        =================================================================
+                     TYMNET NETWORK TECHNOLOGY DEVELOPMENT
+
+                       SOFTWARE RELEASE DESCRIPTION       PAGE  2  OF  2
+        ================================================================
+        SUPPORTING DOCUMENTATION      (username)filename        doc date
+
+        PRODUCT SPECIFICATION:
+	  external specification (dndspec:38)ntv506.ers		11/16/88
+	  conversion document    (dndspec:38)ntc502.ers		07/12/88
+	  operator guide         (dndspec:38)nto502.ers		07/12/88
+
+
+        CHANGE DESCRIPTION: 	 (source)nval05.y10		08/20/90
+
+        ==================================================================
+        BRIEF SUMMARY OF CHANGES:
+        
+        08/20/90 CHANGES:
+        
+        Code released to limited release.
+
+
+        07/27/90 CHANGES:
+
+	Add parameter MAXIMUM_CONVERT_BLOCK_SIZE_IN_SECTORS to config
+	file to allow change to of CUD block size in reformat command.
+
+	NSR #3971:  Correct check for X.25 username to be FALSE if
+	NO PASSWORD REQUIRED in user's options.
+
+	Correct display user and display directory for hang problem.
+  r+`
