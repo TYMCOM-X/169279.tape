@@ -1,0 +1,489 @@
+:
+:                   MESSAGE FORMATS FOR SUPERVISOR LOG
+:
+:
+:
+:
+:THE LOG RECORD IS  3 32 BIT WORDS.  THE  FIRST WORD HAS THE  TYPE NUMBER
+:"ORED" WITH THE SUPERVISOR'S  NUMBER.  THE INTERPRETATION OF  THE SECOND
+:AND THIRD WORDS ARE DETERMINED BY THE TYPE NUMBER.
+:
+:THE LIST BELOW  IS ORDERED BY  TYPE NUMBER.  THE  TYPE NUMBER IS  IN HEX
+:FOLLOWED BY THE NAME OF THE TYPE AND THE CONTENTS OF THE NEXT  TWO WORDS
+:SEPARATED BY A  "/".  IF THE  WORD'S CONTENTS ARE  TO BE TREATED  AS TWO
+:HALF WORDS THEN ARE SEPERATED BY  A ",".  IF THE CONTENTS OF A  1/2 WORD
+:ARE TREATED AS TWO BYTES, THEY ARE SEPARATED BY A "-".
+:
+:AN ASTERIK IN THE LEFT HAND COLUMN DESIGNATES RECENTLY ADDED MESSAGES OR
+:SUB-MESSAGES.
+:
+:
+:
+:
+:NAME           TYPE    MESSAGE
+
+EM0008  EQ      8       :SUP WAS ALL SHUT        [0/ 0]
+EM0010  EQ      10      :SUPERVISOR CRASH        [ADDRESS/ 0]
+EM0018  EQ      18      :UNEXPECTED TAKEOVER RESPONSE  [0/ NODE #]
+EM0020  EQ      20      :OPERATOR REQUEST        [DATA DETERMINED BY SUBTYPE/ SUBTYPE]
+        :SUBTYPE         MEANING & DATA FORMAT
+        :0       SHUT LINE REQUEST - NODE PAIR NOT
+                 CONNECTED  [NODE #, NODE #/ operator ID, 0]
+        :1       RETAKE  [NODE #/ operator ID, 1]
+        :2       RETAKE FAILURE  [NODE #/ operator ID, 2]
+        :3       REBORI  [LINE #, NODE #/ operator ID, 3]
+        :4       REBORI FAILURE  [LINE #, NODE #/ operator ID, 4]
+        :5       DOWN LINE LOAD  [LINE #, NODE #/ operator ID, 5]
+        :6       DLL FAILURE  [LINE #, NODE #/ operator ID, 6]
+        :7       SLEEP  [0/ operator ID, 7]
+        :8       AWAKE  [0/ operator ID, 8]
+        :9       READ IRC ROTATE TABLE [0/ operator ID, 9]
+        :A       not used
+        :B       not used
+        :C       TRACE REQUEST  [NODE #/ operator ID, 0C]
+        :D       TRACE FAILURE  [NODE #/ operator ID, 0D]
+        :E       UNBORI (T-2)  [NODE #/ operator ID, 0E]
+        :F       UNBORI FAILURE (T-2)  [NODE #/ operator ID, 0F]
+        :10      READ CLASS & GROUP DEFS [0/ operator ID, 10]
+        :11      NEIGHBOR CHANGE [NODE,ADDR/NEIGH,11]
+        :12      T2 PORT STATUS [NODE #/ operator ID, 12]
+        :13      T2 PORT REQUEST FAILURE [NODE #/ operator ID, 13]
+        :14      SYNC PORT REQ [NODE#/ operator ID, 14]
+        :15      SYNC PORT REQ FAIL [SAME/ operator ID, 15]
+        :16      LINK COST REQ [NEIGH#,NODE#/ operator ID, 16]
+        :17      LINK COST REQ FAIL [SAME/ operator ID, 17]
+        :18     NEEDLE DUMP SAMPLING [SAMPLING VALUE / OPERATOR ID, 18]
+
+EM0028  EQ      28      :ACCOUNTING FILE FILLING UP [# OF BLOCKS LEFT/ SHIFT COUNT]
+EM0030  EQ      30      :LOST NODE               [UP STREAM NODE #/ NODE #]
+EM0038  EQ      38      :HOST CONFUSION
+        :[OLD HOST TABLE ENTRY, REPORTING BASE #/ HOST #, SUBTYPE]
+        :WHERE THE "OLD" ENTRY CONSISTS OF THE OLD BASE # WITH
+        :THE TWO HIGH ORDER BITS BEING FLAGS, SAY 'XY'.
+        :THE MEANING OF THESE FLAGS IS AS FOLLOWS -
+        :XY      MEANING
+        :00      UP & ANSWERED
+        :10      UP & SHUT
+        :01      DOWN (WAS ANSWERED WHEN WENT DOWN)
+        :11      DOWN (WAS SHUT WHEN WENT DOWN)
+
+        :SUBTYPE         MEANING
+        :1       DUPLICATE HOSTS
+        :2       UP HOST REPORTING UP ON ANOTHER BASE
+        :          OR ON WRONG POSITION ON BASE
+        :3       UP HOST REPORTING UP
+        :4       ANOTHER HOST REPORTS UP ON BASE AND
+        :          POSITION OF ALREADY UP HOST
+        :5       ZERO HOST # [REPORTING  BASE #/ 5]
+        :6       HOST REPORTED GONE BUT NOT THERE
+        :7       HOST NUMBER TOO BIG (NO OLD ENTRY)
+
+EM0040  EQ      40      :NODE REPORT    [NODE #, DATA/ DATA, DATA]
+EM0048  EQ      48      :ILLEGAL RECORD          [SR1/ SR2,SR3]
+EM0050  EQ      50      :NON-FATAL ERROR         [DATA/ ADDRESS IN SUP]
+        :        (DATA/ADDRESS IS IMPLEMENTATION DEPENDENT & IS
+        :        USED FOR DEBUGGING)
+EM0058  EQ      58      :UNABLE TO TAKEOVER      [NODE #/ SUBTYPE]
+        :SUBTYPE   MEANING
+        :0       NO PATH
+        :1       COST TOO LARGE
+
+EM0060  EQ      60      :NODE ERROR REPORT     [NODE #/ SR2,SR3]
+EM0068  EQ      68      :ROTATE PROBLEM          [SUBTYPE/ NODE #, NODE #]
+        :SUBTYPE         MEANING
+        :0       LIST3 ENTRY NOT FOUND (MAPPED NODE #'S)
+        :1       NEIGHBOR MISMATCH IN LIST3
+        :2       LIST1 TOO LONG
+        :3       LIST2 ENTRY TOO LARGE
+        :4       LIST2 OR LIST3 TOO LONG
+        :5       LIST1 HAS ZERO NODE #
+        :6       LIST1A HAS ZERO OR INVALID ENTRY FOR IRC NUMBER
+        :7       LIST2 WRONG SIZE 
+        :8       LIST1 HAS ILLEGAL NODE # (UNMAPPED SINGLE NODE #)
+        :9       LIST1 HAS A DUPLICATE LINK (MAPPED NODE PAIR)
+        :A       ILLEGAL NODE # IN ROTATION GROUP (UNMAPPED NODE PAIR)
+        :B       DUPLICATED LINK IN ROTATION GROUPS (UNMAPPED PAIR)
+        :C       LIST2 ENTRY FOR LINK DOESN'T POINT TO THE
+        :        BEGINNING OF A ROTATION GROUP (MAPPED NODE PAIR)
+        :D       IRC LINK NOT IN OWN ROTATION GROUP (UNMAPPED NODE PAIR)
+        :E       ROTATION GROUP ENTRY NOT ON LIST1 (UNMAPPED NODE PAIR)
+
+EM0070  EQ      70      :MESSAGE TOO LONG FOR TYMNET II COMMAND  [MESSAGE ADDR/ SUP PC]
+EM0078  EQ      78      :BAD SUBTYP IN TYMNET II MSG  [NODE #/ TYPE-SUBTYPE]
+EM0080  EQ      80      :REBUILD ERROR   [NODE #, BASE #/ NEIGHBOR 1, NEIGHBOR 2]
+                        :NEIGHBORS DEFINE THE LINK OUTAGE CAUSING THE
+                        :REBUILD REQUEST.  NEIGHBOR 1 IS CLOSEST TO THE
+                        :SOURCE NODE, AND THE FAT ZAPPER IT EMITTED
+                        :CLAIMS THE LINK TO NEIGHBOR 2 WENT OUT.  A
+                        :REBUILD ERROR OCCURS IF ANY OF THE NODE NUMBERS
+                        :ARE INVALID.
+EM0088  EQ      88      :REBUILD FAILURE         [NODE #, BASE #/ 0]
+EM0090  EQ      90      :LINE OUT                [LINE #, NODE #/ ZAP COUNT]
+EM0098  EQ      98      :LINK STATUS     [NODE #, SUBTYPE/  DATA, NEIGH #]
+        :SUBTYPE         MEANING                 DATA
+        :0       LINK OVERLOADED                 [0]
+        :1       LINK ERROR RATE                 [ERROR RATE]
+        :2       LINE ATTACHED                   [SPEED-LINE POSITION]
+        :3       NEW LINK                        [SPEED-LINE POSTION]
+        :4       LINE DETACHED                   [REASON-LINE POSITION]
+        :5       LINK OUT                        [REASON-LINE POSITION]
+        :6       LINK OUT OF BANDWIDTH           [0]
+
+EM00A0  EQ      0A0     :BAD MUD                 [VIRTUAL BLOCK #/ LOGID]
+EM00A8  EQ      0A8     :INVALID PORT ZERO MSG   [LENGTH, VALUE/ VALUE, VALUE]
+EM00B0  EQ      0B0     :INPUT DISPATCHER INCONSISTENCY  [PORT #, NODE #/ TYPE]
+EM00B8  EQ      0B8     :SUP MESSAGE INPUT INVALID [PORT #  NODE #/ PORT #]
+EM00C0  EQ      0C0     :ACTIVE SUP RECEIVED PILL  [COUNT/ SUP # OF OTHER SUP]
+EM00C8  EQ      0C8     :SUP MESSAGE INPUT INVALID TYPE  [NODE #/ TYPE]
+EM00D0  EQ      0D0     :LINE OVERLOADED         [LINE #, NODE #/ 0]
+EM00D8  EQ      0D8     :LINE ERROR RATE         [LINE #, NODE #/ SR3^-6]
+EM00E0  EQ      0E0     :OUT OF CHANNELS         [LINE #, NODE #/ 0]
+EM00E8  EQ      0E8     :OUT OF PASSTHROUGHS     [NODE #/ 0]
+EM00F0  EQ      0F0     :TOO MANY CHARS FROM NODE [NODE #/ BUFFER #]
+EM00F8  EQ      0F8     :GOING TO SLEEP          [0/ 0]
+EM0100  EQ      100     :HOST STATUS   [SUBTYPE, HOST #/ 
+                                        MXP machine # - host slot #, BASE #]
+        :SUBTYPE         MEANING
+        :1       COMING UP
+        :2       DOWN
+        :3       ANSWERED
+        :4       SHUT
+        :5       HOST REPORTS ANSWERED OR SHUT BUT NOT IN HOST TABLE
+        :6       HOST REPORTS ANSWERED OR SHUT ON WRONG BASE
+        :7       HOST GONE
+        :8       HOST REPORTED DOWN BUT NOT ON BASE 
+        :9       DOWN HOST REPORTING DOWN 
+        :10      HOST REPORTS ILLEGAL COLLECT-CALL CAPABILITY
+
+EM0108  EQ      108     :LINE OK        [LINE #, REPORTING NODE #/ 0]  IF T1
+                                        [NODE #, REPORTING NODE #/ 0]  IF T2
+EM0110  EQ      110     :CLASS OR GROUP TOO LARGE   [SUBTYPE/DATA]
+        :SUBTYPE         MEANING
+        :0       GROUP   (DATA IS GROUP #)
+        :1       CLASS   (DATA IS CLASS #)
+
+EM0118  EQ      118     :STARTING TAKEOVER       [0/ 0]
+EM0120  EQ      120     :LINE RESET              [LINE #, NODE #/ ZAP COUNT]
+EM0128  EQ      128     :TAKEOVER PROGRESS REPORT  8 BITS STATE 0 - 8 BITS STATE 1
+
+        :8 BITS STATE 2 - 8 BITS STATE 3/ 11 BITS STATE 4
+        :10 BITS STATE 5 - 11 BITS STATE 6
+
+EM0130  EQ      130     :ACCESS FAILURE          [SIGN=0  UUN/ GROUP, HOST]
+                                :[SIGN=1  UUN/ CLASS, NODE]
+EM0138  EQ      138     :ROTATE READ FAILURE     [DISK ERROR RETURN (HEX)/ 0]
+EM0140  EQ      140     :NODE TAKEOVER TIMEOUT   [NODE #/ STATE #]
+EM0148  EQ      148     :NETWORK ERROR AT TAKEOVER [LINE #, NODE #/ 0,SUBTYPE]
+        :TYPE            MEANING
+        :0       DUPLICATE NEIGHBOR
+        :1       NEIGHBOR DOES NOT KNOW US
+        :2       NODE IS OWN NEIGHBOR
+        :3       PERMUTER TABLES NOT SAME SIZE
+        :4       ILLEGAL NEIGHBOR #
+        :5       TOO MANY GROUPS (NO LINE #)
+        :6       TOO MANY OR ZERO LINES (NO LINE #)
+        :7       TOO MANY HOSTS (NO LINE #)
+        :8       ILLEGAL NODE # (NO LINE #)
+        :9       WRONG SUP # RETURNED (NO LINE #)
+        :A       INVALID BUFFER NUMBER [LINE^6+CHANNEL #,NODE #/
+                                        :BUFFER #,0A]
+
+EM0150  EQ      150     :NEIGHBOR MISMATCH IN CIRCUIT ZAP  [T-II NODE #/ T-I NODE #]
+EM0158  EQ      158     :LINE SHUT               [0/ NODE #, NODE #]
+EM0160  EQ      160     :CHANGE IN CRASH COUNT
+                        :   [VERSION #, NODE #/ CRASH MARK LOC, CRASH COUNT]
+EM0168  EQ      168     :CAN NOT READ CLASS & GROUP DEFINITIONS  [DISK ERROR RETURN/ 0]
+EM0170  EQ      170     :SUPERVISOR FIGHT        [NODE #/ SR2 (ECHO)]
+EM0178  EQ      178     :LINE UNSHUT             [0/ NODE #, NODE #]
+EM0180  EQ      180     :LINE UNOVERLOADED       [LINE #, NODE #/ 0]
+EM0188  EQ      188     :MUD ERROR               [UUN/ VIRTUAL BLOCK, TYPE]
+        :SUBTYPE         MEANING
+        :0       NEGATIVE GROUP AS HOME
+        :1       CLASS NUMBER TOO BIG
+        :2       GROUP NUMBER TOO BIG
+        :(3 - HAVE BYTE POSITION IN BLOCK - NOT UUN)
+        :3       DISPLACMENT ERROR - PAST END
+        :(4 - NO UUN IS GIVEN)
+        :4       CALCULATED VIRTUAL BLOCK # DOES NOT MATCH 
+        :        THE ONE IN THE BLOCK HEADER
+        :5       ACCESS ENTRY ERROR (E.G., SIZE IS 0, GROUP # IS TOO BIG)
+        :6       POSITIVE AND NEGATIVE ORIGINS ARE MIXED UP
+        :7       INVALID CIPHER SIZE
+        :8       INVALID COLLECT-CALL CAPABILITIES
+
+EM0190  EQ      190     :CONGESTION REPORT       [LINE #, NODE #/ NEIGH NODE #]
+EM0198  EQ      198     :LOGIN RATE (LAST MINUTE ONLY)
+        :[# TIMEOUTS, # LOGINS/ PEAK TIME, AVERAGE TIME]
+        :WHERE TIMES ARE IN 1/100 SECOND.
+EM01A0  EQ      1A0     :T2 CIRCUIT TOO LONG     [SOURCE NODE #/ HOST #]
+EM01A8  EQ      1A8     :START OF TAKEOVER       [UPSTREAM/ NODE #]
+EM01B0  EQ      1B0     :END OF TAKEOVER         [COST, NODE #/
+                                :T2 CONTROLLING NODE, UPSTREAM NODE]
+EM01B8  EQ      1B8     :TYMNET II MESSAGE TOO LONG  [PORT #/ LENGTH]
+EM01C0  EQ      1C0     :CANNOT TAKEOVER NODE
+                        :[NODE # THAT CANNOT BE TAKEN/ REASON CODE, UPSTREAM]
+                        :REASON CODE 1 = LINK OUT, T2OUT BIT SET
+                        :            2 = LINK OUT
+                        :            3 = LINK SHUT
+                        :            4 = LINK HAS NO CHANNELS
+                        :            5 = LINK HAS NO PASSTHRUS
+                        :            6 = NO PATH AVAILABLE
+                        :            7 = COST TOO HIGH
+                        :            8 = NEEDLE TOO LONG
+
+EM01C8  EQ      1C8     :ZAPPER RECEIVED ON COMMAND CIRCUIT   [0/ T2 NODE #]
+EM01D0  EQ      1D0     :SYNC PORT #                 [NODE #/ VALUE, PORT #]
+                        :FOR SYNC PORTS VALUE IS:
+                        :NEIGH # + 8000 IF LINE UP
+                        :NEIGH # IF LINE DOWN
+                        :ZERO IS LINE WAS NEVER UP
+                        :FOR SIO VALUE IS SAME AS SYNC + 4000
+
+EM01D8  EQ      1D8     :LINK COST #                 [NODE #/ NEIGH #, COST]
+EM01E0  EQ      1E0     :ZAPPER RECEIVED ON UNUSED T1 COMMAND PORT   [0/ PORT #]
+EM01E8  EQ      1E8     :INVALID SUP MESSAGE ON A TYMNET-I PORT
+                        :[PORT #, CONTROLLING TYMNET II NODE #/ SR1]
+EM01F0  EQ      1F0     :LARGE TIME DISCREPANCE  [MAGNITUDE IN SEC/ VALUE WITH SIGN]
+EM01F8  EQ      1F8     :UNABLE TO READ SUPER CLOCK  [SUBTYPE/ DATA]
+        :SUBTYPE         MEANING
+        :0       SUPERCLOCK NOT PRESENT (DATA=0)
+        :1       SUPERCLOCK TIME OUT OF RANGE (DATA IS TIME
+                :IN SECONDS SINCE 1974 PROVIDED BY SUPERCLOCK)
+
+EM0200  EQ      200     :SUP BUFFER ZAP  [NODE #, T2 NODE UPSTREAM/ BUF SIZE, BUF #]
+EM0208  EQ      208     :NEW LINK BETWEEN T2 AND T1 NODE IS OUT OF CHANNELS
+        :IN T1 SIDE ONLY.                       [0/ T1 NODE #, T2 NODE #]
+EM0210  EQ      210     :BLACK BALL RECEIVED ON COMMAND CHANNEL
+                        :[PORT, ZAPSIZE/ NODE # CONTROLLED BY THIS PORT]
+EM0218  EQ      218     :BLACK BALL RECEIVED ON UNASSIGNED T1 CHANNEL
+                        :[PORT, ZAPSIZE/ 0]
+EM0220  EQ      220     :GOBBLER RECEIVED ON COMMAND CHANNEL
+                        :[PORT, 0/ NODE # CONTROLLED BY THIS PORT]
+EM0228  EQ      228     :GOBBLER RECEIVED ON ASSIGNED T1 CHANNEL
+                        :[PORT, 0/ 0]
+EM0230  EQ      230     :INVALID CHAR PAIR RECEIVED ON COMMAND CHANNEL
+                        :[PORT, CHAR PAIR/ NODE # CONTROLLED BY PORT]
+EM0238  EQ      238     :INVALID CHAR PAIR RECEIVED ON UNASSIGNED T1 CHANNEL
+                        :[PORT, CHAR PAIR/ 0]
+EM0240  EQ      240     :PORT HANG BY NODE
+                        :[NODE #, PORT #/ 1 (2 IF PERMANENT HANG)]
+EM0248  EQ      248     :PORT HANG QUERY RESPONSE  [NODE #, PORT #/ 0]
+                                :[NODE #, 0/ 1 (ALL RESPONSES IN)]
+EM0250  EQ      250     :ALU AND COST    [MAX LENGTH, MAX COST/ ALU 10, AVE COST*10]
+EM0258  EQ      258     :THIS MESSAGE IS THE SAME AS 130 EXCEPT THAT IN THE
+        :CLASS CASE IT LISTS A HOST NUMBER NOT A NODE NUMBER.
+
+EM0260  EQ      260     :SUP TIME CHANGE BY OPERATOR     [OLD TIME/0]
+        :(TIME STAMP FOR THIS MESSAGE GIVES NEW TIME)
+EM0268  EQ      268     :INVALID PORT 1 MESSAGE  [LENGTH, 2 BYTES DATA/ 4 BYTES DATA]
+EM0270  EQ      270     :DISK NOT READY          [0/0]
+EM0278  EQ      278     :DISK WENT READY         [0/0]
+EM0280  EQ      280     :LOGIN ERROR             [TYPE-TID,REQ. HOST/NODE,BUFFER]
+        :TYPE            MEANING
+        :1*      INVALID TID
+        :2*      INVALID REQUESTING HOST NUMBER
+        :3*      REQUESTING HOST NOT ON NODE
+        :4*      REQUESTING HOST DOWN ON NODE
+        :5       NULL CHARACTER STRING
+        :6       UNEXPECTED CHARACTERS DURING STATE 5
+        :7       UNEXPECTED CHARACTERS DURING STATE 7
+        :8       UNTERMINATED LOGIN STRING (T-II VERSIONS 300+)
+        :9*      NORMAL LOGIN DROPPED BECAUSE OF BAD PASSWORD
+        :A*      NORMAL LOGIN DROPPED BECAUSE OF BAD USER NAME
+        :B*      AUX CIRCUIT REQUEST DROPPED DUE TO BAD USER NAME
+        :C*      USER NAME TOO LONG (> 20 DECIMAL CHARACTERS)
+        :D       UUN FOR BAD PASSWORD IN TYPE 9 (REPLACES NODE/BUFFER)
+                :(A SUBTYPE D ALWAYS IMMEDIATELY FOLLOWS THE SUBTYPE 9)
+        :E       DUPLICATE T-II NORMAL LOGIN REQUEST
+        :(NOTE - ASTERIKED ITEMS WILL HANG USER.  REMAINING ITEMS
+        :INDICATE PROCEDURAL ERRORS IN NODE CODE.)
+EM0288  EQ      288     :DATA ON UNASSIGNED PORT         [PORT,COUNT/WORD OF DATA]
+EM0290  EQ      290     :LOST SUPERVISOR'S BASE  [0/ 0]
+EM0298  EQ      298     :EXCESSIVE LOGIN ACKNOWLEDGEMENT DELAY (> 8 SECONDS)
+                        :[0,TIME IN 1/100 SEC./NODE, BUFFER/ACK #]
+EM02A0  EQ      2A0     :KERNEL AND SIO STATUS     [KERNEL STATUS,SIO STATUS/
+                                :SUPERVISOR VERSION #, KERNEL VERSION#]
+        :THIS MESSAGE ONLY APPLIES TO THE SPLIT SUPERVISOR.
+        :KERNEL STATUS IS 12 BITS OF CRASH COUNT FOLLOWED BY 4 BITS
+        :OF REASON FOR THE LAST CRASH:   0 - MANUAL RESTART
+                                        :1 - POWER UP
+                                        :2 - SIO LINK OUT
+                                        :3 - RING PAIR MISMATCH
+        :SIO STATUS CONSISTS OF 1 BYTE OF INTERRUPT COUNT AND 1 BYTE
+        :FOR THE LAST STATUS RETURNED.
+
+EM02A8  EQ      2A8     :USER ENTERED MESSAGE    [2 WORDS OF DATA]
+
+EM02B0  EQ      2B0     :TOO MANY INVALID USER NAMES     [NODE #, INVALID COUNT/
+                                        :TOTAL TRY COUNT]
+
+EM02B8  EQ      2B8     :TOO MANY INVALID PASSWORDS      [NODE #, INVALID COUNT/
+                                        :TOTAL TRY COUNT]
+
+EM02C0  EQ      2C0     :TOO MANY LOGIN SESSION FAILURES
+                                        :[NODE #, FAILURE COUNT/
+                                        :TOTAL LOGIN SESSIONS]
+
+EM02C8  EQ      2C8     :NODE LOST DUE TO INVALID TRACE RESPONSE SIZE
+                                :[NODE #, SIZE/ FIRST WORD OF DATA]
+
+EM02D0  EQ      2D0     :EXCESSIVE COMMUNICATION DELAY TO NODE
+                :[NODE #, TOTAL OCCURANCES ALL EXTERNAL NODES/
+                : ROUND TRIP DELAY, ADJUSTED DELAY]
+
+        :(NOTE - TIME IS IN 1/100 SECONDS, AND ADJUSTMENT
+        :REMOVES ESTIMATED SUP/BASE ROUND TRIP DELAY TIME.
+        :THESE REPORTS ARE THROTTLED TO A MAXIMUM
+        :OF ONE PER SECOND).
+
+EM02D8  EQ      2D8     :UNEXPLAINED EXECUTION DELAY     [0/TIME IN SECONDS]
+
+EM02E0  EQ      2E0     :SUP ACTIVITY RATES
+                :[AVG. EXEC LOOPS/10 SECONDS (FOR .1 COUNT ACCURACY),
+           : AVG. TIMES BACKPRESSURE ENCOUNTERED/10 SECONDS,
+                : LAST NODE TO WHICH BACKPRESSURE PREVENTED OUTPUT]
+
+
+EM02E8  EQ      2E8     :SUP INTERNAL PERFORMANCE TIMES
+                :[AVG. MSEC. PER EXECUTIVE LOOP,
+                : AVG. MSEC. DISPATCHING INPUT/
+                : AVG. SUP/BASE COMMUNICATION TIME IN MSEC.,
+                : PEAK SUP/BASE TIME IN MSEC.]
+
+EM02F0  EQ      2F0     :EXTERNAL COMMUNICATION TIMES
+                :[AVG. EXTERNAL COMMUNICATION TIME IN 1/100 SEC.,
+                : AVG. ADJUSTED EXTERNAL TIME IN 1/100 SEC./
+                : PEAK ADJUSTED TIME, NODE # FOR PEAK TIME]
+
+        :(NOTE - ADJUSTMENT REMOVES SUP/BASE INTERACTION TIME.)
+
+
+EM02F8  EQ      2F8     :EXCESSIVE COMMUNICATION DELAY TO OWN BASE NODE
+                :[TIMES EXCESSIVE DELAY ENCOUNTERED/
+                : TIME IN 1/100 SECOND]
+
+        :(NOTE - THESE REPORTS ARE THROTTLED TO A MAXIMUM
+        :OF ONE PER SECOND).
+
+EM0300  EQ      300     :CONTROL PORT BACKPRESSURE EXCEEDING 1 MINUTE
+                :[CONTROL PORT/ NODE CONTROLLED BY PORT]
+EM0308  EQ      308     :DEVICE ERROR    [STATUS-LOGICAL UNIT,EXTRA STATUS/
+                        :SECTOR OFFSET(one word)]
+EM0310  EQ      310     :REASON FOR SUPERVISOR INITIIALIZATION
+                :[ISIS CODE, SUP REASON/ TIME OF INITIALIZATION]
+EM0318  EQ      318     :REASON SUP HALTED
+                        :[ISIS CODE, SUP CODE/LOCATION OF HALT]
+EM0320  EQ      320     :CRITICAL DISK FILES UNAVILABLE
+                        :[LU BIT MAP/0 OR TIME OF LAST ERROR]
+EM0328  EQ      328     :CRITICAL DISK FILES CAME AVAILABLE
+                        :[LOST ACCOUNTING BLOCKS/LOST ERROR LOG BLOCKS]
+EM0330  EQ      330     :SUBNET TABLE READ ERROR [DATA1,DATA2/DATA3,SUBTYPE]
+                        : SUBTYPE = 0 --> DATA2 IS DISK ERROR
+                        : SUBTYPE = 1 --> SUBNET NUMBER TOO LARGE, DATA1 IS
+                        :                 SUBNET #, DATA2 IS NODE #
+EM0338  EQ      338     :TARGET PROFILE READ ERROR [DATA1,DATA2/DATA3,SUBTYPE]
+                        : SUBTYPE = 0 --> DATA2 IS DISK ERROR
+EM0340  EQ      340     :MUD BLOCK IS OVERFLOWED 
+                        : [VIRTUAL BLOCK # / PEAK OVERFLOW COUNT, CURRENT 
+                        :                         OVERFLOW COUNT]
+        :The time of next two messages are expressed in miliseconds.
+EM0348  EQ      348     :TAKEOVER COUNT OF T-II NODES FOR PAST MINUTE
+                        :[COUNT, AVG TIME/PEAKTIME]
+                        :Note. PEAKTIME here is one word long
+EM0350  EQ      350     :STATISTICS OF DIRECT ROUTINE CALLS FOR THE PAST MINUTE
+                        :[UNUSED, COUNT/AVG TIME, PEAKTIME]
+EM0358  EQ      358     :AVERAGE INPUT AND OUTPUT QUEUE SIZES
+                        :[AVERAGE INPUT SIZE / AVERAGE OUTPUT SIZE]
+EM0360  EQ      360     :INPUT MSG COUNT FOR LAST MINUTE (BY MSG TYPE).
+                        :[MSG TYPE, MSG COUNT / MSG TYPE, MSG COUNT]
+EM0368  EQ      368     :BAD NODE NUMBER READ FROM SHUT LINE TABLE
+                        :[0/0]
+EM0370  EQ      370     :BAD MUD ENTRY FOUND DURING UN2 UPDATE
+                        :[VB#/0]
+        :The following three messages have different format, where the
+        :left and right field of dash '-' are not one byte each;
+        :'AVG TIME', the left field of dash is 7 bits long and the 'PEAK
+        :TIME', the right field of dash is 9 bits long.
+        :All time of next three messages are expressed in mili-seconds.
+EM0378  EQ      378     :NORMAL CIRCUIT BUILDING STATISTICS
+                        :[COUNT,AVG TIME/PEAK TIME,AVG TIME - PEAK TIME]
+EM0380  EQ      380     :AUX CIRCUIT BUILDING STATISTICS
+                        :[COUNT,AVG TIME/PEAK TIME,AVG TIME - PEAK TIME]
+EM0388  EQ      388     :CIRCUIT REBUILD STATISTICS
+                        :[COUNT,AVG TIME/PEAK TIME,AVG TIME - PEAK TIME]
+EM0390  EQ      390     :NODE DESCRIPTOR STATISTICS
+                        :[SUBTYPE - DATA, DATA / DATA]
+                        :THE SUBTYPE BYTE DETERMINES THE CONTENTS OF THE
+                        :SUBSEQUENT DATA AS FOLLOWS:
+
+                        :SUBTYPE = 00
+                        :[00 - 00(UNUSED), # ACTIVE DESCRIPTORS /
+                        :# RESERVED DESCRIPTORS, # EXPIRED DESCRIPTORS]
+
+                        :SUBTYPE = 01
+                        :[01 - % DESCRIPTOR SPACE AVAILABLE, 
+                        :# OF DESCRIPTOR SPACE COMPACTIONS SINCE WAKEUP /
+                        :ACCUMULATED TIME SPENT ON COMPACTIONS]
+
+                        :SUPTYPE = 81 THROUGH 86 (HEX)
+                        :[SUBTYPE - NODE DESCRIPTOR ADDRESS /
+                        :NODE DESCRIPTOR SIZE, UNMAPPED NODE #]
+                        :
+                        :81 = DESCRIPTOR ALLOCATED FROM FREE SPACE
+                        :82 = DESCRIPTOR ALOOCATED FROM RESERVED SPACE
+                        :83 = DESCRIPTOR RESERVED
+                        :84 = DESCRIPTOR EXTENDED DUE TO NEW LINK
+                        :85 = ACTIVE DESCRIPTOR EXPIRED
+                        :86 = RESERVED DESCRIPTOR EXPIRED
+
+EM0398  EQ      398     :LOGIN ACCESS ERROR REPORT
+                        :[SUBTYPE(BYTE), UUN(3 BYTES)/ ORIG. NODE, DEST. HOST]
+        :SUBTYPE
+        :0 - ORIGINATION VIOLATION
+        :1 - DESTINATION VIOLATION
+        :2 - NORMAL CIRCUIT NOT PERMITTED
+        :3 - AUX CIRCUIT NOT PERMITTED
+        :4 - PROXY LOGIN PERMITTED
+        :5 - COLLECT-CALL ACCESS VIOLATION
+
+EM03A0  EQ      3A0     :SUP FREEZE ERROR CODE
+        :SUBTYPE
+        :1 - ACCOUNTING FILE NOT INITIALIZED
+        :2 - ACCOUNTING FILE WRAP
+        :3 - CAN'T WRITE ACCOUNTING FILE CHECKPOINT
+
+EM03A8  EQ      3A8     :SUPSPROUT SLAVE PERFORMANCE STATISTICS (LIKE EM02E0)
+                :AVG. EXEC LOOPS/10 SECONDS (FOR .1 COUNT ACCURACY),0,0,0
+EM03B0  EQ      3B0     :SUPSPROUT SLAVE DIRECT ROUTINE STATS (LIKE EM0350)
+                : 0, DIRECT COUNT, AVERAGE TIME, DIRECT PEAK TIME.
+EM03B8  EQ      3B8     :SUPSPROUT SLAVE INPUT QUEUE SIZE (LIKE EM0358)
+                : 0, AVERAGE INPUT QUEUE SIZE, 0, 0
+
+EM03C0  EQ      3C0     :INVALID MESSAGE 0C RECEIVED, CHRCNT = 0
+                        :NOTHING IN THE TBUF FROM THE SNI ENTRIES
+
+EM03C8  EQ      3C8     :PEAK SUP BUFFERLET USAGE FOR LAST MINUTE.
+EM03D0  EQ      3D0     :SUP WOKE DUE TO LACK OF SLEEPING PILLS.
+
+EM03E0  EQ      3E0     :TAKEOVER START/FINISH MESSAGE, DATA FORMAT (HWS)
+                        :1ST HW, 0 = START OF NETWORK TAKEOVER AND REMAINING 
+                        :HWS UNUSED.
+                        :1ST HW, <>0 = END OF NETWORK TAKEOVER
+                        :2ND HW, COUNT OF T2TSUB CALLS (FOR CCF CALCULATION)
+                        :3RD HW, COUNT OF T2TSUB W/ SPROUT CALL (FOR CCF)
+                        :4TH HW, T2TSUB ACCUMULATED TIME (FOR NTT CALCULATION)
+
+EM03E8  EQ      3E8     :CRASH NUMBER: <NUMBER>
+                        :
+                        :[0,<NUMBER>]
+
+EM03F0  EQ      3F0     :*** WARNING *** INSUFFICIENT NODE DESCRIPTOR SPACE!
+                        : LOST NODE #____
+                        :
+                        :[0,<NODE NUMBER>]
+
+EM03F8  EQ      3F8     :*** WARNING *** INSUFFICIENT HOST EXTENSION TABLE
+                        : SPACE!  LOST NODE #____
+                        :
+                        :[0,<NODE NUMBER>]
+ afŽ
