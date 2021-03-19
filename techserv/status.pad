@@ -1,0 +1,198 @@
+
+
+                         M E M O R A N D U M
+
+                                          [] Network Technology Division
+                                             Async Development Section
+DATE>      8 DECEMBER 87 10:00
+
+  TO>      ALL CONCERNED
+
+COPIES>    LARS MOLINDER
+           JOACIM LINDBACK
+           PAUL JOHNSON
+           DAN LASATER
+           DEBORAH GRAHAM
+           JOHN REILLY
+
+FROM>      PAUL CHU
+
+SUBJECT>   FINAL STATUS OF PAD TESTING AS OF 12/07/87
+
+-----------------------------------------------------------------------
+
+11/26/87
+
+Paul Johnson tested the patch yesterday without any problem other than
+the "operand out of range".  The buffer zap patch was incorporated
+into the Televerket patch file.
+
+The slot file for machine 6 was re-genned with the new Televerket patch
+file yesterday afternoon, and was loaded earlier this morning.
+
+I have monitored machine 6 all day without any buffer zap instance.
+
+However, NCC Televerket reported to me that there are quite a few buffer zaps
+on the machine N-PR1, where there was only the operator console pulling
+the TMCS report.  It was identified finally that the PC was not connected
+properly, and after correction, the buffer zaps were gone for the rest
+of the day.
+
+There were also some instances of buffer zaps in other machines.
+
+After some discussions with the NCC people, and looking around in the NETVAL,
+the UUN display by the patch is not correct since some calculation has been
+performed by the CONSAT/PAD to make it a CALLING ADDRESS.
+
+The patch was then revised, and named as (TECHSERV:31)INSC06.QX2.
+The slot file for machine 6 was re-genned and placed in
+(TECHSERV:31)CRJA06.C07 and CRJA06.N07.  The object code was also moved
+to the ELF in DATAPAK at the device ID d1, file address 113144, and
+the physical sector 5A8FC.
+
+The slot re-loaded was requested at midnight and was acknowledged by NCC.
+
+11/27/87
+
+The new code in (TECHSERV:31)CRJA06.N07 was loaded into machine 6.
+
+There is also a plan to re-load machine 7 with the new patch to increase
+the possibility of capturing the buffer zap instances.
+
+The new code is place in (TECHSERV:31)CRJA07.C07 and CRJA07.N07,
+
+Moving the object code into the ELF will be done this after noon,
+so that the code can be loaded over the weekend.
+
+
+11/30/87
+
+There was a crash in the gateway slot, and it wasn't brought up until this
+morning, so the code for machine 7 was not re-loaded.
+The code was moved to the ELF after the gateway was brought.
+
+From the Operations Monitor, BUFZAP command did not show any buffer
+zaps over the weekend.  Up to 18:00 there is still no buffer zaps.
+
+Gateway 7564 goes up and down throughout the day.
+
+Bert Lundin of Televerket reported a RAM mispatch of the "input" and "output"
+segment and packet counts.  After doing a little testing in DATAPAK,
+it seemed possible for the PAD to not report the last I/O packet and
+segment counts.  Will continue testing tomorrow, and do some code study.
+
+Machine 7 is scheduled to be re-loaded tonight.
+
+
+
+11/30/87
+
+There was a crash in the gateway slot, and it wasn't brought up until this
+morning, so the code for machine 7 was not re-loaded.
+The code was moved to the ELF after the gateway was brought.
+
+From the Operations Monitor, BUFZAP command did not show any buffer
+zaps over the weekend.  Up to 18:00 there is still no buffer zaps.
+
+Gateway 7564 goes up and down throughout the day.
+
+Bert Lundin of Televerket reported a RAM mispatch of the "input" and "output"
+segment and packet counts.  After doing a little testing in DATAPAK,
+it seemed possible for the PAD to not report the last I/O packet and
+segment counts.  Will continue testing tomorrow, and do some code study.
+
+Machine 7 is scheduled to be re-loaded tonight.
+
+
+12/01/87
+
+Slot 7 in Machine 7 was not re-loaded due to the increased size
+by the patch to store the information.
+
+The node is re-configured to accomdate the new slot file, and the
+node will be re-loaded tonight.
+
+Slot 7 in machine 6 crashed this afternoon due to protection
+violation.  A look in the dump file revealed that there was
+a bad location in the new patch file.
+
+The pointer for the segment 9 patch area was not updated, and
+caused two different areas to jump to the same patch location.
+This caused the slot to crash on memory protection violation.
+
+INSC06.QX2 has been corrected on both 26 and 31 systems.
+CRJA06.N07 in (DATAPAK:26) has also been re-assembled, and verified
+that the conflictS ARE gone. 
+
+Slot 7 in machine 6 will be reloaded from ELF device unit ID D0,
+file address 237212.
+
+File for slot 7 in machine 7, (DATAPAK:26)CRJA07.N07, is re-genned
+and put on ELF, it will be re-loaded tonight as well to prevent the crash.
+The device unit ID is D0, file address is 214872.
+
+Looked at the accounting problem, and found that if the terminal
+builds a session and terminates the session by dropping the
+DTR signal, it is possible that PAD never reports the accounting
+information to the RAM.
+
+This happens if the session is less than 16 minutes, and if the session
+is more than 16 minutes, the final segment/packet counts may not
+be correct either if the last accounting report is within the
+current 16-minute interval.
+
+Will work out a patch tomorrow to send the packet/segment report
+when CONSAT detects a drop in the signal.
+
+I have been requested to participate in a meeting with Televerket
+tomorrow.
+
+
+12/02/87
+
+Tested the patch for accounting report.
+
+The meeting at Televerket took the whole afternoon.
+I was there to provide the staus update of the PAD testing,
+which is readily available in the daily status report.
+
+It was decided that the buffer zap patch should be used as an
+independent patch in PR1 machine 6.
+
+As a result of the decision, the INSC06.QX2 needs to be re-worked
+to separate the DDTBFZ.PAT patch, and name it as such.
+
+INSC06.QY2 has been created to include the accounting fix.
+If testing shows good results, it will be released to Bert Lundin
+for his lab testing in Televerket.
+
+It was promissed to deliver the accounting problem fix
+due to the seriousness of the accounting charging being involved.
+This is for lab testing only.
+
+12/04/87
+
+John Reilly arrived in the MDISI Sweden office.
+
+Revised INSC06.QY2 for assembly errors reported by Paul Johnson.
+
+File is backed up to (TECHSERV:26/31) and (DATAPAK:26/31),
+check sum is POZVAV.
+
+Paul Krumviede reported a PAD crash late tonight in machine 7.
+
+12/05-06/87
+
+In transit back to USA.
+
+12/07/87
+
+Looked into the dump file, found out the cause of the crash is the
+same as the previous machine 6 crash.  Both are caused by the
+buffer zap patch, which has been corrected and re-loaded in machine 6.
+The request to re-loaded machine 7 after the corrected the patch was
+not carried out by the NCC thus the crash again.
+
+
+
+
