@@ -1,0 +1,118 @@
+
+::                                      Last updated by JWANG, 05-SEPT-84
+
+:       *****************************************************
+:       *****    SPECIAL PATCH FILE FOR VERSION 2.01    *****
+:       *****      CREATED BY TYMNET INTERNATIONAL      *****
+:       *****           FILENAME : LOGN02.P01      
+:       *****     TO BE ASSEMBLED AFTER PACX02.P01      *****
+:       ***** USED ONLY FOR TRINIDAD AND GUATEMALA      *****
+:       *****************************************************
+
+PATCH(840905,1500,JWANG,PCR460+54,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,14)
+        CLHI    R12,9
+        JN      PCR462,,
+        LHI     R12,DIA067      :IF DNIC+9.... , CLEAR THE CALL
+        J       RTECAL,,
+CONPATCH(ICP050+6,,0A)
+        SIS     R8,1
+        JG      ICP050          :DON'T COPY TO IDBUF
+        J       ICP060
+CONPATCH(PA0PTR,,NIPORT*8+NIGRPS*2)
+HSTNUM  WS      NIPORT*2
+COLN.F  HS      NIGRPS
+CONPATCH(PCR455,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,3e)
+        LHL     R12,IPORT,,
+        SLLS    R12,3
+PCR458  LB      R0,,R8,
+        JAL     R4,WCI,,
+        STB     R0,HSTNUM,R12,  :STORE INTO HSTNUM
+        AIS     R12,1
+        AIS     R8,1
+        SIS     R7,1
+        JN      PCR458
+        Lr      r0,r12
+        STB     R0,HSTNUM,R12,  :save pointer in last byte of hstnum
+        ST      R5,TEMP,,
+        ST      R6,TEMP1,,
+        J       PCR500,,
+CONPATCH(CHKADR+4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,8E)
+        LHI     R12,DIA067
+        RBT     R4,COLN.F,,
+        SLLS    R4,3
+        LB      R0,DTESAX+3,R4,
+        LR      R2,R0
+        SRLS    R2,4
+        CLHI    R2,9            :IF DNIC+9... ,CLEAR CALL--- NNTN.F=1
+        JN      LP0
+        LHI     R12,DIA067
+        J       RTECAL,,
+LP0     NHI     R0,0F
+        OHI     R0,30
+        STB     R0,HSTNUM,R4,   :COPY TO HSTNUM
+        LB      R0,DTESAX+4,R4, :7th,8th DIGIT OF CALLED ADDRESS
+        LR      R2,R0
+        SRLS    R0,4
+        OHI     R0,30           :7th DIGIT
+        STB     R0,HSTNUM+1,R4,
+        NHI     R2,0F
+        OHI     R2,30           :8th DIGIT
+        STB     R2,HSTNUM+2,R4,
+        LB      R0,DTESAX+5,R4,
+        LR      R2,R0
+        SRLS    R0,4
+        OHI     R0,30           :9th DIGIT
+        STB     R0,HSTNUM+3,R4,
+        NHI     R2,0F
+        OHI     R2,30           :10th DIGIT
+        STB     R2,HSTNUM+4,R4,
+        LR      R0,R4
+        STB     R0,HSTNUM+7,R4,
+        LB      R2,DTESAX,R4,,
+        J       CHKADR+10,,
+CONPATCH(TDA100,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,84)
+TDA105  LHL     R7,IPORT,,
+        JAL     R4,PICKCH,,
+        NHI     R0,7F
+        CLHI    R0,3A
+        JN      LP1
+        SBT     R7,COLN.F,,     :IF COLON, BEGIN TO SUBSTITUTE HOST#
+        JAL     R4,WCI,,
+        J       LP4
+LP1     CLHI    R0,3B           :IF SEMICOLON, RESET COLN.F
+        JN      LP2
+        RBT     R7,COLN.F,,
+LP2     CLHI    R0,0D
+        JN      LP25
+        RBT     R7,COLN.F,,     :IF END OF LOGON STRING
+LP25    TBT     R7,COLN.F,,     :IF SET,GET HOST# FROM HSTNUM
+        JE      LP3
+        SLLS    R7,3
+        LB      R0,HSTNUM+7,R7, :GTE PPOINTER OF HSTNUM
+        AIS     R0,1
+        STB     R0,HSTNUM+7,R7, :RESTORE POINTER
+        SIS     R0,1
+        LR      R7,R0
+        LB      R0,HSTNUM,R7,   :GET HOST#
+        JAL     R4,WCI,,
+        J       LP4
+LP3     JAL     R4,WCI,,
+LP4     LR      R6,R6
+        JN      TDA105
+        J       TDA300,,
+ENDPATCH(SPECIAL LOGON PROCEDURE, ONLY FOR TRT X.75)
+
+:********************************************************
+
+PATCHREPORT                     :REPORT BYTES OF PATCH AREAS USED
+FINPATCH                        :MAKE FINAL REPORT ON SEGMENT USAGE
+
+
