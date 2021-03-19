@@ -1,0 +1,22 @@
+:***************************************************************
+: Patchname: NOROOM.TRP                 Product version: XCOM 3.01
+:   AUthor  : JAmes Wang                    Organization: STS
+:   CUstomer: Security Pacific              DAte Written: MAy 8, 1989
+: 
+: Trap the code when the counter NOROOM  is greater than 100. This
+: will catch the symptom -- stop sending outgoing frame while incoming
+: is still active.
+:***********************************************************************
+
+        
+PATCH(890508,1500,JWANG,SIOLK3+0A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1C)
+        LHL     R0,NOROOM,RL2,
+        CLHI    R0,100
+        JL      .+8
+        HC      0,0
+        LIS     R0,1
+        AHM     R0,NOROOM,RL2,
+        JR      R5
+ENDPATCH(TRAP CODE WHEN NOROOM COUNTER > 100 )
