@@ -1,0 +1,76 @@
+.AP
+.LM 10
+.RM 70
+.LT
+
+
+                      STATUS REPORT
+                      =============
+
+DATE   :  NOV. 2, 1985
+
+TO     :  STEPHEN WONG
+
+FROM   :  JAMES WANG
+
+SUBJECT:  STATUS REPORT - NOVEMBER 1985
+
+
+=================================================================
+
+.el
+.ls
+.le;SIGNIFICANT ACCOMPLISHMENTS
+.ls
+.le;HK Hitachi 3780 - In the middle of sending a file from host to Hitachi
+VS3780, Tymnet 3780 interface sends EOT to VS3780 due to the time
+delay of the heavy X.75 traffic. This causes VS3780 to save a incomplete
+file. Solution to that is to either put a larger inactive timer or
+let host send a special END OF FILE character which will be converted to EOT
+by 3780 interface.
+.le;HK Hitachi 3780 - Tymnet 3780 interface will send extra <C/R>s to host
+when VS3780 is sending a file to host. Patch ERS05.p01 was written to fix it.
+.le;NSC Hitachi X.25 -Tymnet X.25 is waiting for flag sequence coming from the 
+link in order to send out SABM. At the same time, HitachI X.25 host will not
+send flag sequence and is waiting for SABM coming from the link.
+Consequently, the link
+level can't be brought up. Patch IDLE03.p00 was written to skip checking
+idle line when it tries to send SABM out.
+.le;NSC Hitachi X.25 - Hitachi X.25 host will 
+re-transmit data packet if it receives RR n after RNR n. This will cause
+Tymnet X.25 reset the packet level and cause Hitach X.25 host crashed.
+This is Hitachi host's problem. Before Hitachi host fix it's problem,
+IPRNR can be turned on to avoid sending RNR.
+When Tymnet X.25 receives release backpressure from network, it will 
+not send RR out if the receiving packet window is still open.
+But, Hitachi host is waiting for acknowledgement and host will zap the
+circuit when timeout occurs. Patch RRA103.p01 was written to force the 
+interface to send RR without checking  receiving packet window.
+.le;ITA-ITT link -Due to the unstability of ITT X.75 software on handling
+the packet window size negotiation and packet size negotiation,
+ITA users had a hard time to access ITT X.75 link many times. On Nov.15,
+I and Jeff Oliveto and Bill Cerny (ITT) and ED Gumprecht (ITT) set up a final
+agreement ---ITT patches their X.75 code, ITA uses 4 for packet window
+size with negotiation and 128 for packet size with no negotiation and
+no Throughput Class to Window size mapping.
+.els
+.le;MAJOR PROJECT STATUS
+.ls
+.le;NSC Hitachi X25 is supporting DDX 1976 now. It is not quite the same
+as CCITT 1976. NSC HITACH has set a deadline on NOV 1986 to modify
+thier code to support CCITT 1980.
+Before it can support CCITT 1980, some special patches will be kept in NSC
+X.25 slot.
+.le;CAll to ITA X.25 from other countries via X.75 will be tested in a
+few days.
+.le;HK Hitachi 3780 testing is still in progress.
+.els
+.le;NEXT MOTH"S PERSONAL STATUS AND GOAL
+ The two days SDLC class presented by Chung Shaw was greatly appreciated.
+Wonderfull class gave us a detailed skill on the code level. I will spend
+more time to dig into SDLC code level this month.
+.le;PROPORTATION OF TIME SPENT ON EACH ACCOUNT
+ Due to poor 3780 document and reference manual, the only way to find a
+sloution for 3780 problem is to look into the code. This diging the code
+spent me a lot of time to fix 3780 problem.
+.els
