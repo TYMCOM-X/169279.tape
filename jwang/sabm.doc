@@ -1,0 +1,61 @@
+
+
+To  :  Yuki Furuta    (Nscnet)
+
+Fr  :  James Wang
+
+Copy:  Steve Wong
+
+Sub :  Japanese X.25 dte
+
+===============================================================
+
+
+
+    1. SABM
+       At the very beginning (after reloading the slot or after issuing ddt
+       command 'h' followed by 'e') Tymnet X.25/X75 DCE/DTE will enter not
+       armed state ('pnarm' shown on the frame trace) and sends 'sabm poll'
+       out. Then, it enters into armed state ('parmg' shown on the frame trace)
+       and continues to send 'SABM POLL' until it receives 'UA FINAL'.
+
+       When it receives 'UA FINAL', the link level is up and it enters
+       infomation transfer state. 
+       When it receives 'UA', it will ignores it and continues to send 'SABM
+       POLL' and stays in the armed state. Same if it receives other frames.
+
+       There is not necessary that the other side ( for example, HITACHI X.25/
+       X.75 interface) should send 'SABM' to bring up the link level. That is
+       fine if the other sends 'SABM' to Tymnet X.25/X.75 interface.
+
+    2. DISC
+       There is a bug on the code level. let's fix it when the real testing
+       catches a problem which is caused by this 'DISC' frame. I know where
+       the bug is. But, there may have several situations which may cause
+       'DISC' problem. We need to know the exact situation before we can fix it.
+    3. IDLE line
+       Tymnet X.25/X.75 will response 'RR FINAL' for receiving 'RR POLL'.
+
+    4. FRAME REJECT FRAME
+       Tymnet provides W,X,Y,Z reasons. (Same as CCITT).
+
+
+
+============================================================================
+
+
+P.S., Before I prepare a patch for the PROTOCOL ID problem, I need to know
+      the following  points:
+
+      1. What is the exact P.ID  (protocol id) in he CR packet sent by FETEX?
+      2. Whta is the purpose of this P.ID? (Does it only mean that the call
+         is from PAD?)
+      3. If the call is from Nscnet and destinated to FETEX network, the P.ID
+         in the CR packet should have '51XXXXXX'? Can FETEX handle the call
+         form Nscnet to FETEX network with P.ID '01000000'?
+      4. Will FETEX change the P.ID to '01000000' if the call is from pad?
+
+
+
+regards,
+james
