@@ -1,0 +1,43 @@
+:****************************************************************
+: Patch name:  NSZCPH.522	Product and Version:  TII 5.22
+:     Author:  Sandra Nilluka	       Organization:  NTS
+:   Customer:  SWBT, DEC, VA           Date Written:  01/10/89
+: Reason for patch:
+:    Replaces NSZHCP.522 - expanded for new physical cps fields.
+:    Clear CPS-high water mark fields in Xray NSZ command
+:      if parameter NSZCPH is set to 1 in tymfile.
+:****************************************************************
+
+			:Requires special parameter in tymfile
+	DEFAULT(NSZCPH,0)	:Set to 1 for NSZ command to also
+				:  clear CPS HWM fields
+
+	IF	2-XRYTMC
+	IF	NSZCPH		:IF CPS HWM FIELDS TO BE CLEARED
+	PATCH(890110,1410,SLN.nszcph,XSTATS+8,,6)
+	J	PSN05A,,		:
+	IF	1-SOLOCS
+	CONPATCH(PA1PTR,,18)
+	ELSE	:SOLOCS
+	IF	1-NUMPRN
+	CONPATCH(PA1PTR,,24)
+	ELSE	:NUMPRN
+	CONPATCH(PA1PTR,,2A)
+	EI	:1-NUMPRN
+	EI	:1-SOLOCS
+PSN05A	EQ	.
+	LIS	R0,0		:SET R0 TO ZERO FOR CLEARING
+	ST	R0,NSCPHO,,	:CLEAR log CPS HWMO/HWMI (WORD-BNDRY)
+	ST	R0,NS.PHO,,	:CLEAR phy CPS HWMO/HWMI (WORD-BNDRY)
+	IF	SOLOCS
+	STH	R0,CS.(NSASHI),, :CLEAR ASYNC HWMI
+	STH	R0,CS.(NSASHO),, :CLEAR ASYNC HWMO
+	IF	NUMPRN
+	STH	R0,CS.(NSPRHO),, :CLEAR ASYNC PRTR HWMO
+	EI	:NUMPRN
+	EI	:SOLOCS
+	LHI	R10,$A60	:CLEAR FOR 15 PROCESSES
+	J	XST66,,		:RETURN
+	ENDPATCH(CLEAR CPS HWM IN XRAY NSZ CMD)
+	EI	:NSZCPH
+	EI	:2-XRYTMC
