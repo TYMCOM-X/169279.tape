@@ -1,0 +1,34 @@
+:
+:********************************************************************
+: PATCHNAME: RESETL.TRP
+:    AUTHOR: JAMES WANG                     ORGANIZATION   : STS
+:  CUSTOMER: MERCURY MARINE                   DATE WRITTEN:  MAY 1, 1989
+: DESCRIPTION OF THE PROBLEM: 
+:  XCOM LINE WAS DROPPED DUE TO SEVERAL COMBINATIONS-- REJ,FRMR RECEIVED
+:  AND SOME OTHER EVENTS CAUSED XCOM TO RESET THE LINK.
+:  THIS IS A TRAP PATCH TO CRASH THE SLOT WHEN ONE OF THESE EVENTS OCCURS.
+:**************************************************************************
+  IF   HDLC&LAPB
+PATCH(890501,1500,JWANG,PRJINF+8,,6)
+        HC      0,0,0           :TRAP FRMR PINFO STATE
+CONPATCH(TRES20+1A,,4)
+        HC      0,0             :TRAP XCOM IN PRESET STATE
+CONPATCH(SNDSAM+6,,4)
+        HC      0,0             :TRAP XCOM--IS ABOUT TO SEND SABM
+  IF X.25
+CONPATCH(RIF050+34,,4)
+        HC      0,0             :INFO WITH INVALID N(S) RECEIVED
+   EI
+  
+   IF  XOM
+CONPATCH(TFG1XX+0C,,4)
+        HC      0,0   
+   EI
+CONPATCH(TTMR10+8,,4)
+        HC      0,0  
+CONPATCH(BEXPSD+2,,2)
+        HC      0   
+CONPATCH(FEXPSD+2,,2)
+        HC      1000            :TURN ON FORGROUND H/W TRACE
+ENDPATCH(TRAP XCOM FOR RESET, FRMR,REJ EVENTS)
+  EI
