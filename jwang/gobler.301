@@ -1,0 +1,24 @@
+
+:
+: esc# 190324
+: customer: HSBCNET
+: written by:  James Wang
+: Date:  June 6, 1988
+: Problem: Gobbler received from another xcom while this xcom is waiting
+:          for IIX call connected C092 message.
+:          Gobbler received force the xcom the rotate the window and generate
+:          RR packet and then crashes the slot with F6 crash.
+:
+: 
+
+PATCH(880606,1000,JWANG,ICGOB+8,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,26)
+        AHM     R0,GOBRCV,,
+        LHL     R1,IPORT
+        JLE     MMFRA,,
+        LB      R4,PCKSTE,R1,
+        CLHI    R4,PSCALC       :MUST SEND CALL CONNECTED STATE
+        JLE     ICZAP+6,,       :IF LESS OR EQUAL, ZAP THE CIRCUIT
+        J       ICGOB+0E,,
+ENDPATCH(ZAP THE CIRCUIT IF GOBBLER RECEIVED WHILE IS WAITING iix C092)
