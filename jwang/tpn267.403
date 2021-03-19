@@ -1,0 +1,49 @@
+
+:
+: PIR:     I 90355
+: REquested by: (NSCNET) Jeff Oliveto/ENS
+: Written by: James Wang
+:version: XCOM 4.03
+: Filename: (JWANG:22:33:37:54:25) TPN267.403
+:
+:----------------------------------------------------------------
+:
+: TASK:
+:    TPN2 ---
+:     Generate TPN2 username 6ppp:.ssssss  (6 sub-address) for 31066pppssssss
+:                            6pp:.sssssss  (7 sub-address) for 31067ppsssssss
+:
+:-----------------------------------------------------------------------------
+:
+: NOTE: turn the corresponding bit of the link on in the command file.
+:       This flag is TPN267. Default value is 'OFF'
+:
+:--------------------------------------------------------------------------
+
+
+PATCH(880622,1000,JWANG,PA0PTR,,2)
+TPN267  BC      0,0
+CONPATCH(PCR464,,8)
+        J       PA1PTR,,
+        NOPR    0,0
+CONPATCH(PA1PTR,,5A)
+        TBT     RL,TPN267,,
+        JE      NOTPN2
+        CLHI    R12,6
+        JE      TPN26
+        CLHI    R12,7
+        JE      TPN27
+NOTPN2  CLHI    R8,6
+        JL      PCR490,,
+        J       PCR464+8,,
+TPN26   SBT     RL,TEMP2,,
+        LHI     R9,-4,R8
+        JLE     PCR490,,
+        LIS     R8,4
+        J       PCR490,,
+TPN27   SBT     RL,TEMP2,,
+        LHI     R9,-3,R8
+        JLE     PCR490,,
+        LIS     R8,3
+        J       PCR490,,
+ENDPATCH(TPN2 FOR 31066PPPSSSSSS AND 31067PPSSSSSSS)
