@@ -1,0 +1,64 @@
+
+To  :  Steve Wong
+
+Fr  :  James Wang
+
+Date:  JUl-22-1985
+
+Sub1:  3780 Intermediate end of block 'IRS','IUS'
+Sub2:  Double Echo
+
+======================================================================
+
+
+
+  1. 3780 environment:
+
+     HITACHI ---- 3780 terminal -----------X.75-----X.75 --------PDP system
+                  interface        (C&W)                  (TYMNET)
+
+  2. The problems for this environment:
+
+     (a). 3780 terminal interface uses 'IUS' (1F) as intermediate end of
+          block. The IBM 3780 decument (3780 Data Communication Terminal,
+          GA27-3063-3,file no 3780-09) says that IUS character is used to
+          indicate an end-of-record when a block of next contains more
+          than one record. But, HITACHI 3780 device can't accept 'IUS'. It
+          can only accept 'IRS'.
+     (b). After X.75 receives needle from network, it will echo all characters
+          which are coming from IRING (i.e., sent by 3780 terminal interface).
+          This causes the double echo problem.
+
+  3. Action taken:
+     Three patches have been develpoed to slove these two problems. (2.a, 2.b)
+     
+     For problem 2.a., the patch (jwang:37) EOB05.p01 is used to handle this
+         problem. The user can have three choices---choose 'IUS' or 'IRS'
+         or 'IGS' as the imtermediate end of block by adding '1[UIUS:' or
+         '1[UIRS:' or 'UIGS:' in the command file. The default value for
+         2780/3780 is 'IUS'. (Note that '1F' for IUS, '1E' for 'IRS', '1D'
+         for IGS).
+     For problem 2.b., two patches are used to turn off echo in the X.75
+         interface. These two patches are added in the (pactech:37)pacx02.p02.
+         The user need to set '1[IBM2780:' and '1[DEM:' in the X.75 interface
+         command file to enable these two patches.
+
+  4. All these three patches are tested in the lab. We are using HARRIS
+     Work Station to emulate 3780 device. All these three characters IUS,
+     IRS,IGS are acceptable by the HARRIS work station. For HITACHI device,
+     we can choose one of these three characters to fit HITACHI environment.
+     If HITACI can only accept 'IRS' (1E), then we can add '1[UIRS:' in the 
+     command file to use it.
+     Also, we shouldn't gen the tymfile with both terminal and host interfaces
+     in the same slot if there is no real host line connection. So, in HITACHI
+     testing environment, the ##2011.t04/##2010.t04 need to be modified to
+     take away all the statements for host interface part.
+
+  5. In the past several weeks, we have the difficulty to set up the 3780
+     environment. We try to ask all the people who know how to set up the 
+     environment. But, this work station seems to be forgot by them. Finally,
+     we call the HARRIS corporation and get the procedure to set it up.
+     We couldn't use this environment until last wednesday. Since this work
+     station has been set up now, we can support C&W 2780/3780 any further
+     testing more efficient.
+     We are ready to send C&W these three patches for testing.
