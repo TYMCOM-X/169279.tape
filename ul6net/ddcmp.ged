@@ -1,0 +1,211 @@
+
+
+
+
+
+
+
+
+
+
+
+                                DDCMP INTERFACE
+
+
+                            General External Design
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                  Linda Maurer
+
+
+                                 Tymshare, Inc.
+
+
+                          Network Technology Division
+
+
+                                 July 16, 1985
+
+
+           ----------------------------------------------------------
+           :                                                        :
+           : This document is the sole property and confidential    :
+           : information of Tymshare, Inc., and may not be copied   :
+           : in whole or part, or disclosed to any third party      :
+           : without the prior written consent of TYMSHARE.         :
+           :                                                        :
+           ----------------------------------------------------------
+DDCMP Interface General External Design     July 17, 1985                 Page 1
+
+
+                               Table of Contents                               _____ __ ________
+
+
+         Product Objective ......................................2
+
+         System Requirements ....................................3
+
+         Application of Tymnet DDCMP Support ....................4
+
+         Reliability, Availability, and Serviceability ..........5
+
+         Documentation ..........................................6
+DDCMP Interface General External Design     July 17, 1985                 Page 2
+
+
+                               Product Objective                               _______ _________
+
+
+         This product is designed  to  provide  a  Tymnet-based  networking
+         service  for  DECnet systems communications.  This is accomplished
+         through the use of a synchronous Tymnet  circuit  with  end-to-end
+         connectivity and no local processing of DDCMP messages.  All error
+         recovery and flow control procedures occur end-to-end through  the
+         network.
+
+         This document defines the external  system  requirements  for  the
+         DDCMP  Interface  and how the product will meet those requirements
+         and the design objectives.
+DDCMP Interface General External Design     July 17, 1985                 Page 3
+
+
+                              System Requirements                              ______ ____________
+
+
+         The following items have been identified as requirements  for  the
+         Tymnet DDCMP Interface.  After each item is a paragraph describing
+         how the interface will meet the stated requirements.
+
+         o The interface must support at lease sixteen 4800 bps or eight 
+            9600 bps synchronous links.
+
+            The interface will use standard SYNC ports to meet this 
+            requirement.  A maximum of sixteen SYNC ports will be
+            supported.  Actual throughput will depend on node and
+            network configuration.
+
+         o Data must be transported reliability and transparently by the 
+            interface.
+
+            To insure reliable data transmission, all data, control and
+            maintenance messages will be transmitted end-to-end.  
+            Timeout values in the host or terminal using this 
+            service may require extension to compensate for network delay.
+            For this implementation, the interface will recognize
+            DDCMP data messages as defined in:
+
+            DECNET, Digital Network Architecture, DDCMP Functional
+            Specification, Phase IV, Version 4.1, August 1984
+            (Digital Equipment Corp.)
+
+         o The interface must support switched, leased, half- or
+            full-duplex modem facilities.
+
+            An interface port with modem signalling will be capable of
+            DTR/DSR and RTS/CTS signalling.
+
+         o The interface must provide a network connection without any
+            input from the attached host or terminal systems.
+
+            The interface will provide a Permanent Virtual Circuit for
+            each terminal system link.  The username, host number, and
+            password must be generated into the interface.
+DDCMP Interface General External Design     July 17, 1985                 Page 4
+
+
+                      Application of Tymnet DDCMP Support                      ___________ __ ______ _____ _______
+
+
+                       ---------------------------
+                     |         Tymnet             |
+                     |                            |
+  -----------     ---------------         ---------------     ----------
+  |         |     |             | PVC     |             |     |        |
+  | HOST    |=====|    DDCMP    |---------|    DDCMP    |=====|  HOST  |
+            |     |  INTERFACE  |         |  INTERFACE  |     |        |
+  -----------     ---------------         ---------------     ----------
+                     |                            |
+                     |                            |
+                        -------------------------
+
+                                    Figure 1                                    ______ _
+
+
+         The  figure  represents  the  application  of  the  Tymnet   DDCMP
+         Interface  to  interconnect DECnet systems.  Each link attached to
+         an interface is connected via a single network  Permanent  Virtual
+         Circuit  (PVC)  to  a  target  link.   The  target link is usually
+         attached to a  remote  interface,  but  may  be  attached  to  the
+         interface originating the PVC.
+
+         Other features of the interface are:
+
+         o Unrecognized messages or messages with a bad CRC are not 
+            discarded at the receiving interface, but are
+            transmitted end-to-end.
+
+         o The interface will support a maximum block size of 8 K.
+
+         o A long synchronization sequence (i.e., 8 SYN bytes) will always
+            be used, whether or not the Quick Sync Flag (QSYNC) is set.
+
+         o Trailing pads follow each message, requiring
+            re-synchronization.
+
+         o The interface operates over half- or full-duplex,
+            point-to-point byte synchronous channels.
+
+DDCMP Interface General External Design     July 17, 1985                 Page 5
+
+
+                 Reliability, Availability, and Serviceability                 ____________ _____________ ___ ______________
+
+
+         High reliability is gained through the use of  the  2780/3780/HASP
+         Interface as the base of this product.
+
+         Availability is enhanced by automatic PVC re-direction provided by
+         the Tymnet Network Supervisor based upon PVC username validation.
+
+         Serviceability will be high due to the re-use  of  existing  2780/
+         3780/HASP  Interface code, which is internally and externally well
+         documented.   An  extended  debugger  is  incorporated  into   the
+         interface to assist in analysis of problems.
+DDCMP Interface General External Design     July 17, 1985                 Page 6
+
+
+                                 Documentation                                 _____________
+
+
+         The following documents will be  produced  during  development  of
+         this interface:
+
+         o General External Design (GED) document describes the external
+            specifications for this interface.
+
+         o General Internal Design (GID) document describes the major
+            internal data structures and functional modules in
+            block diagram.
+
+         o Alphatest Plan describes the criteria which must be met before
+            the interface can be released to Betatest.  Defines the
+            test scenarios and lists equipment needed to perform 
+            those tests.
+
+         o IMS updates to the 2780/3780/HASP Interface Internal Maintenance
+            Specification describe in detail the internal design of the
+            product.  Completion of these updates obsoletes the GID.
+  
