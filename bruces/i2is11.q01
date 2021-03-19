@@ -1,0 +1,192 @@
+ 
+::::::	I2IS11.Q01 - ISIS 11.01 Assembled Patch file  ::::::
+
+:	This is the initialization area for the pointers
+:	used in the patch file. The label "xNEXT" should be
+:	updated at the end of each patch to reflect the next
+:	available area in that patch area. PATMAX should be
+:	equated to the ISIS patch # in each patch.
+
+PATLEV	EQ	86		:LOCATION OF CURRENT PATCH LEVEL
+PATMAX	EQ	0		:INITIAL LAST PATCH #
+	LO	DDT
+DNEXT	EQ	DPATCH		:SET UP POINTER TO NEXT AVAIL
+				:  AREA IN EACH PATCH AREA
+	FO	DDT
+	IF	SHARE
+	LO	SHARE
+HNEXT	EQ	HPATCH
+	FO	SHARE
+	EI
+KNEXT	EQ	KPATCH
+SNEXT	EQ	SPATCH
+:
+	REMARK %ISIS 11.01 PATCH 1
+	REMARK %This fixes a boundary value problem for a DDT
+	REMARK %write command, when a memory out of bounds condition
+	REMARK %fails for just falling on a 64K boundary.
+	REMARK %
+PATMAX	EQ	1
+	LO	DDT
+	ORG	VMEM+16
+	HC	0
+	ORG	VMEM+16
+	JLEFS	VMEM0		:JUMP IF <= 64K
+	FO	DDT
+				:
+:	.....................................................................
+:
+:	This patch is to fix the problem that the proper accounting message
+:	is not forwarded to the network for originating interface.
+:
+:	.....................................................................
+				:
+PATMAX	EQ	2		:
+				:
+	REMARK % ISIS-2 version 11 revision 1 Patch 2
+	REMARK % This patch permits originating interface to send the proper
+	REMARK % accounting message toward the network.
+	REMARK %
+	lo	dispat		:
+ca.org	eq	8		:
+	org	msgb6a		:
+	hc	0,0,0		:
+	org	msgb6a		:
+	j	snext,,		:
+	org	snext		:
+	stb	r4,p.stat,r7	:
+	lis	r4,ca.org	:
+	oh	r4,c.stat,r7	:
+	sth	r4,c.stat,r7	:
+	lr	r6,r0		:
+	j	msgb6a+6,,	:
+snext	hs	0		:
+   if	log.ii			:
+	org	msgc6a		:
+	hc	0,0,0,0		:
+	org	msgc6a		:
+	j	snext,,		:
+	org	snext		:
+	stb	r4,p.stat,r7.c	:
+	lis	r4,ca.org	:
+	oh	r4,c.stat,r7.c	:
+	sth	r4,c.stat,r7.c	:
+	jal	r5,x4.rcv,,	:
+	j	msgc6a+8,,	:
+snext	hs	0		:
+   ei  (log.ii)			:
+	org	need6		:
+	hc	0,0,0,0		:
+	org	need6		:
+	j	snext,,		:
+	org	snext		:
+	stb	r4,p.stat,r1.p	:
+	oh	r0,c.stat,r1.p	:
+	sth	r0,c.stat,r1.p	:
+	j	need6+8,,	:
+snext	hs	0		:
+   if	log.ii			:
+	org	isn16		:
+	hc	0,0,0,0		:
+	org	isn16		:
+	j	snext		:
+	org	snext		:
+	oh	r0,c.stat,r1.p	:
+	sth	r0,c.stat,r1.p	:
+	stb	r4,p.stat,r1.p	:
+	j	isn16+8,,	:
+snext	hs	0		:
+   ei  (log.ii)			:
+	org	aater1		:
+	hc	0,0,0		:
+	org	aater1		:
+	j	snext,,		:
+	org	snext		:
+	jal	r5,aasar,,	:
+	lhi	r0,@ca.org	:
+	nh	r0,c.stat,r7.c	:
+	j	aater1+6,,	:
+snext	hs	0		:
+	fo	dispat		:
+				:
+
+
+	REMARK %ISIS 11.01 PATCH 3
+	REMARK %This patch re-enables interrupts during the execution
+	REMARK %of the Restart SVC so we don't lose an ATN00 interrupt.
+patmax	eq	3
+	lo	kernel
+	if	\hi.frg
+.qq.	eq	$a 10
+	else
+.qq.	eq	0
+	ei
+	org	resta9+.qq.
+	hc	0,0
+	org	resta9+.qq.
+	j	knext
+	org	knext
+	hc	0,0,0,0,0,0,0
+	org	knext
+	lhi	r11,62f0
+	epsr	r6,r11		:re-enable interrupts
+	jal	r11,setdiag	:instruction clobbered by patch
+	j	resta9+4+.qq.
+knext	eq	.
+	fo	kernel
+	REMARK %ISIS 11.01 PATCH 4
+	REMARK %This patch fixes yet another place where interrupts could be
+	REMARK %turned off long enough to lose an ATN00 interrupt
+patmax	eq	4
+	if	nslot*(1-mxp)
+	lo	kernel
+	org	d.enab+1a
+	hc	0,0
+	org	d.enab+1a
+	j	knext
+	org	knext
+	hc	0,0,0,0,0
+	org	knext
+	lhi	r11,62f0
+	epsr	r6,r11		:re-enable interrupts
+	j	repop		:instruction clobbered by patch
+knext	eq	.
+	fo	kernel
+        ei
+:	.....................................................................
+
+:	................end of patch files...................................
+:
+:	This places the # of the last patch in PATLEV and must
+:	remain at the end of the patch file.
+:
+:	.....................................................................
+
+	ORG	PATLEV
+	HC	0
+	ORG	PATLEV
+	HC	PATMAX
+
+
+:	Check that there is no overflow in any of the patch areas.
+
+	LO	DDT
+	IF	DNEXT-HGHDDT
+	REMARK	%%***  ERROR - DPATCH OVERFLOW  ***%%
+	EI
+	FO	DDT
+	IF	SHARE
+	 LO	SHARE
+	 IF	HNEXT-(HPATCH+(2*80))
+	 REMARK	%%***  ERROR - HPATCH OVERFLOW  ***%%
+	 EI
+	 FO SHARE
+	EI	(SHARE)
+	LO	KERNEL
+	IF	KNEXT-F1
+	REMARK	%%***  ERROR - KPATCH OVERFLOW  ***%%
+	EI
+	FO	KERNEL
+	IF	SNEXT-(SPATCH+(2*100))
+	REMARK	%%***  ERROR - SPATCH OVERFLOW  ***%%
+	EI
