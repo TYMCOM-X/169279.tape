@@ -1,0 +1,229 @@
+:----------------------------------------------------------------------
+:
+: INTERFACE : CMTI
+: VERSION   : 11.3
+:
+:       SUPPORT OF OUT PUT TO UNDERLINE ON INPUT FIELD
+:
+:----------------------------------------------------------------------
+:
+:
+        LO      TP
+        LO      OPTIM
+        LO      TPF
+PATCH(901102,1000,NIS.KOBAYASHI,OPT292,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,300)
+        LIS     R0,0
+        LHL     R2,TPORT,R11,
+        LR      R3,R2
+        SLLS    R3,1
+        STH     R0,KICONT,R3,          :Set flag to zero
+        STH     R0,KIFG1,R3,
+        STH     R0,KIFG2,R3,
+        STH     R0,KIFG3,R3,
+        STH     R0,KIFG5,,
+        LIS     R0,1
+        STH     R0,KICONT,R3,           :Set counter to 1
+INI001  LHL     R4,KICONT,R3,          :Get counter
+        CHI     R4,$A   1919            :Is it great 1919?
+        JG      INI003                  :YES, it is great 1919
+        LB      R0,SCN,R8,R4            :Get scn buffer
+        CHI     R0,40                   :Is it space
+        JLE     INI002                  :YES, it is space
+        LIS     R0,1                    :NO, set flag to 1
+        STH     R0,KIFG5,,
+INI002  AIS     R4,1                    :Add counter to 1
+        STH     R4,KICONT,R3,
+        J       INI001                  :Go next position
+INI003  LH      R0,KIFG5,,               :Is this screen all space?
+        JE      KEIEND                  :YES, underscore not output
+:
+        SVC     SYS,$A 47               :Update watch frog timer
+:
+        LHI     R0,$A240
+        MHR     R2,R0
+        LIS     R0,0
+        STH     R0,KICONT,R3,
+KEI001  LHL     R2,TPORT,R11,
+        LHI     R3,$A240
+        MHR     R2,R3
+        LHL     R3,TPORT,R11,
+        SLLS    R3,1
+        LHL     R4,KICONT,R3,          :Get counter, into R4
+        CHI     R4,$A 1919              :Is it great 1919?
+        JG      KEIEND                  :YES, 
+        TBT     R4,SCNMAP,R8            :ON an attr?
+        JN      KEIATR                  :YES, go attr check
+        J       KEIFIE                  :NO, go field check
+KEI002  LHL     R2,TPORT,R11,
+        LHI     R3,$A240
+        MHR     R2,R3
+        LHL     R3,TPORT,R11,
+        SLLS    R3,1
+        LHL     R4,KICONT,R3,          :Get counter into R4
+        AIS     R4,1                    :Add 1 to counter
+        STH     R4,KICONT,R3,          :Save it
+        J       KEI001                  :Go next positon
+KEIEND  LHI     R0,1B                   :Send to ESC[0m, all attribute off
+        JAL     R4,PUTONE,,
+        LHI     R0,5B
+        JAL     R4,PUTONE,,
+        LHI     R0,30
+        JAL     R4,PUTONE,,
+        LHI     R0,6D
+        JAL     R4,PUTONE,,
+        LHL     R7,CNCURS,R11,           :PLACE CURSOR AS REQUIRED
+        LHL     R5,TRMLAN,R9,            :FROM SOURCE
+        J       OPT292+08,,             :Back to SOURCE
+:
+:       Check of attribute protected or unprotected
+:
+KEIATR  LB      R0,SCN,R8,R4            :Get attr into R0
+        NHI     R0,20
+        CHI     R0,20                   :Is it protected field?
+        JN      ATR001                  :NO, it is unprotected field
+        LIS     R0,0                    :Set 0 to R0
+        STH     R0,KIFG1,R3,           :set to protected field flag
+        STH     R0,KIFG2,R3,
+        STH     R0,KIFG3,R3,
+        J       ATR002
+ATR001  LIS     R0,0                    :set to unprotected flag
+        STH     R0,KIFG2,R3,
+        STH     R0,KIFG3,R3,
+        LIS     R0,1
+        STH     R0,KIFG1,R3,
+ATR002  RBT     R4,KEIMAP,R2,           :Reset UNDERSCORE bit
+        JE      KEI002                  :Go next position
+        LR      R7,R4                   :Save R4 to R7
+        L       R5,TRMMC,R9,
+        JALR    R5,R5                   :Move cursor to address in R7
+        LHI     R0,1B                   :Send ESC[0m, all attribute off
+        JAL     R4,PUTONE,,
+        LHI     R0,5B
+        JAL     R4,PUTONE,,
+        LHI     R0,30
+        JAL     R4,PUTONE,,
+        LHI     R0,6D
+        JAL     R4,PUTONE,,
+        LHI     R0,20                   :Send space charcter
+        JAL     R4,PUTONE,,
+        J       KEI002                  :Go next position
+:
+:       Check field protected or unprotected 
+:
+KEIFIE  LH      R0,KIFG1,R3,           :Is this field protected or unprotected
+        CHI     R0,0
+        JE      PROFIL                  :This is protected field
+        J       UNPRFI                  :This is unprotected field
+:
+:       Process of protected field
+:
+PROFIL  RBT     R4,KEIMAP,R2,           :Reset underscore bit
+        JN      PRO001                  :Old screen underscore output
+        LIS     R0,0
+        STH     R0,KIFG3,R3,           :Set flag to zero
+        J       KEI002                  :Go next position
+PRO001  LB      R0,SCN,R8,R4            :get screen buffer, into R0
+        CHI     R0,40                   :Is it space display
+        JLE     PRO002                  :It is space display
+        LIS     R0,0
+        STH     R0,KIFG3,R3,           :Set flag to zero
+        J       KEI002                  :Go next position
+PRO002  LH      R0,KIFG3,R3,           :Get flag, is it zero?
+        JN      PRO003                  :NO, 
+        LR      R7,R4
+        L       R5,TRMMC,R9,             :Move cursor to address in R7
+        JALR    R5,R5                   
+        LHI     R0,1B                   :Send ESC[0m, all attribute off
+        JAL     R4,PUTONE,,
+        LHI     R0,5B
+        JAL     R4,PUTONE,,
+        LHI     R0,30
+        JAL     R4,PUTONE,,
+        LHI     R0,6D
+        JAL     R4,PUTONE,,
+PRO003  LHI     R0,20                   :Send space character
+        JAL     R4,PUTONE,,
+        LHL     R3,TPORT,R11,
+        SLLS    R3,1
+        LIS     R0,1
+        STH     R0,KIFG3,R3,           :Set flag to 
+        J       KEI002                  :Go next position
+:
+:       Process of unprotected field
+:
+UNPRFI  LB      R0,SCN,R8,R4            :Get screen buffer into R0
+        CHI     R0,40                   :Is it space display
+        JLE     UNP001                  :YES, it is space display
+        LIS     R0,0
+        STH     R0,KIFG2,R3,           :Set flag to zero
+        J       KEI002                  :Go next position
+UNP001  LH      R0,KIFG2,R3,           :Is this flag zero?
+        JN      UNP002                  :NO
+        LIS     R0,1
+        STH     R0,KIFG2,R3,           :Set flag to 1
+        LR      R7,R4
+        L       R5,TRMMC,R9,             :Move cursor to address in R7
+        JALR    R5,R5                   :CURSOR MOVE
+        LHI     R0,1B                   :Send ESC[0m, all attribute off
+        JAL     R4,PUTONE,,
+        LHI     R0,5B
+        JAL     R4,PUTONE,,
+        LHI     R0,30
+        JAL     R4,PUTONE,,
+        LHI     R0,6D
+        JAL     R4,PUTONE,,
+        LHI     R0,1B                   :Send ESC[4m, underscore on
+        JAL     R4,PUTONE,,
+        LHI     R0,5B
+        JAL     R4,PUTONE,,     
+        LHI     R0,34
+        JAL     R4,PUTONE,,
+        LHI     R0,6D
+        JAL     R4,PUTONE,,
+UNP002  LHI     R0,20
+        JAL     R4,PUTONE,,
+        LHL     R2,TPORT,R11,
+        LHI     R3,$A240
+        MHR     R2,R3
+        LHL     R3,TPORT,R11,
+        SLLS    R3,1
+        LHL     R4,KICONT,R3,
+        SBT     R4,KEIMAP,R2,            :Set bit underscore map
+        J       KEI002                  :Go next position
+:
+CONPATCH(CCBINIT,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,3E)
+        ST      R3,SAVR3X,,
+        LHL     R3,TPORT,R11,
+        LHI     R0,$A240
+        MHR     R3,R0
+        LIS     R0,0
+        LIS     R4,0
+CCB001  CHI     R4,$A 59                :Is it great $a 59
+        JGFS    CCBEND                  :YES, loop end
+        LR      R1,R4
+        SLLS    R1,2
+        ST      R0,KEIMAP,R3,R1        :Clear underscore map
+        AIS     R4,1                    :Add 1 to R4
+        JBS     CCB001
+CCBEND  LHL     R1,TPORT,R11             :From SOURCE
+        SBT     R1,FRISIS               :From SOURCE
+        L       R3,SAVR3X,,     
+        J       CCBINIT+08,,            :Back to SOURCE
+CONPATCH(PA0PTR,,$A256*NPORT+14)
+        BND     4
+SAVR3X  WS      1
+KEIMAP  WS      $A60*NPORT
+KICONT  HS      NPORT
+KIFG1   HS      NPORT
+KIFG2   HS      NPORT
+KIFG3   HS      NPORT
+KIFG5   HS      1
+ENDPATCH(OUTPUT TO UNDERSCORE)
+        FO      TP
+        FO      OPTIM
+        FO      TPF
+   
