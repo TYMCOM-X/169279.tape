@@ -1,0 +1,141 @@
+==============================================================================
+==============================================================================
+
+The CUD consists of 2040, 1020, or 510 blocks with optional sizes of 2044,
+1020 or 508 bytes per block plus 4 bytes of checksum.  Each block consists 
+of a variable number of user entries of variable length in the following
+format:
+
+
+         0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 
+         0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
+       +----------------+------------------------------------------------+
+     0 +  SIZE OF ENTRY +                                                +
+       +-+--------------+---------------+---------------+----------------+
+     1 + +     FIRST WORD OF USERNAME  (4 BYTES, RIGHT JUSTIFIED)        +
+       +-+--------------+---------------+---------------+----------------+
+     2 + +      +               +               +               +        +
+       +-+--------------+---------------+---------------+----------------+
+     3 + +      +               +               +               +        +
+       +-+--------------+---------------+---------------+----------------+
+     4 + +      +               +               +               +        +
+       +-+--------------+---------------+---------------+----------------+
+     5 + +      +               +               +               +        +
+       +-+--------------+---------------+---------------+----------------+
+     6 +           FIRST  HALF  OF  PASSWORD  (RIGHT JUSTIFIED)          +
+       +-+--------------+---------------+---------------+----------------+       +-+--------------+---------------+---------------+----------------+
+     7 +  SECOND HALF OF PASSWORD (RIGHT JUSTIFIED) /  NAME CHANGED DATE +
+       +-+--------------+---------------+---------------+----------------+
+     8 +                               GAN                               +
+       +-+--------------+---------------+---------------+----------------+
+     9 +                               UUN                               +
+       +-+--------------+---------------+---------------+----------------+
+    10 +                      CPARW                     +    DISTRICT    +
+       +-+--------------+---------------+---------------+----------------+
+    11 +       IRC#     +             DATE PASSWORD CHANGED              +
+       +-+--------------+---------------+---------------+----------------+
+    12 +# BYTES+       FIRST CLASS      + + +     GROUP # OR HOST #      +
+       +-+--------------+---------------+---------------+----------------+
+    13 + + +ADDITIONAL GROUPS AND HOSTS +# BYTES+    ADDITIONAL CLASS    +
+     * +-+--------------+---------------+---------------+----------------+
+     * : : :                            :       :                        :
+     * +-+--------------+---------------+---------------+----------------+
+     * + + +  ... GROUPS OR HOSTS ...   +   ... ADDITIONAL CLASSES ...   +
+       +-+--------------+---------------+---------------+----------------+
+     N + + +ADDITIONAL GROUPS AND HOSTS + HEX F + HEX F + HEX F + HEX F  +      
+       +-+--------------+---------------+---------------+----------------+
+         0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 
+         0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
+
+   Word 0: Size of MUD entry - bits 0-7 octal size in bytes
+
+Words 1-5: Username - bit 0 on if last word in username
+
+  Word 10: CPARW License bits - if bit is on, paramter is set
+
+   Bit  0: Tymshare use              Bit 10: Transparent Gateway
+   Bit  1: Tymshare use              Bit 11: Tymshare use
+   Bit  2: Tymshare use              Bit 12: Tymshare use
+   Bit  3: Login over shut           Bit 13: Ignore colon option
+   Bit  4: Tymshare use              Bit 14: New password
+   Bit  5: Tymshare use              Bit 15: Password required
+   Bit  6: Tymshare use              Bit 16: Reserved for future use
+   Bit  7: Tymshare use              Bit 17: Reserved for future use
+   Bit  8: Tymshare use              Bit 18: Reserved for future use
+   Bit  9: Tymshare use              Bit 19: Reserved for future use
+
+  Word 12: First MUD class
+
+   Bit 0-3: Octal size of class list in bytes (up to 15 bytes)
+  Bit 4-15: First class number
+    Bit 16: On if Home
+    Bit 17: On if Group
+
+  Word 13: Additional Class(es) (up to 11) or homes and groups*
+
+      Bit 0: On if Home
+      Bit 1: On if Group
+  Bit 16-19: Octal size of next class list in bytes
+  Bit 20-31: Next class number for user (up to 11 classes)
+
+Last word of entry is full word of Hex F's if class lists end on word
+boundary, or right half word of Hex F's if class lists end on half word 
+boundary.
+
+   * Left and right half of word may be swapped, depending on length of
+     the previous class list.
+
+The CUD is written to tape by the STORE command.  The first record is the 
+header which consists of the label 'CUDT', the date the tape is written,
+the version of NETVAL and the NOT CUBTIME flag.  The remaining records
+(one for each block of the CUD) consists of the size of the record, the
+BLOCKNO, the data in the CUD block and the checksum from the block number
+to the last word of data.
+
+         0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 
+         0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
+       +----------------+---------------+---------------+----------------+
+     0 +     "C"        +      "U"      +      "D"      +       "T"      +
+       +----------------+---------------+---------------+----------------+
+     1 +                               DATE                              +
+       +----------------+---------------+---------------+----------------+
+     2 +                             VERSION                             +
+       +----------------+---------------+---------------+----------------+
+     3 +                          CUBTIME FLAG                           +
+       +----------------+---------------+---------------+----------------+
+     4 +                                0                                +
+     . +----------------+---------------+---------------+----------------+
+     . :                :               :               :                :
+     . +----------------+---------------+---------------+----------------+
+    10 +                                0                                +
+       +----------------+---------------+---------------+----------------+
+         0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 
+         0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
+
+
+The remaining records consist of the size, the block number, the CUD entries
+copied from the disk CUD block and the checksum.  If the disk CUD clock is 
+empty, there will be one word or zero for the CUD data.
+
+
+         0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 
+         0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
+       +----------------+---------------+---------------+----------------+
+     0 +                  SIZE IN BYTES OF TAPE RECORD                   +
+       +----------------+---------------+---------------+----------------+
+     1 +                        CUD BLOCK NUMBER                         +
+       +----------------+---------------+---------------+----------------+
+     2 +                     FIRST WORD OF CUD DATA                      +
+     . +----------------+---------------+---------------+----------------+
+     . :                :               :               :                :
+     . +----------------+---------------+---------------+----------------+
+     N +                 LAST WORD OF DATA IN CUD BLOCK                  +
+       +----------------+---------------+---------------+----------------+
+   S/4 +                            CHECKSUM                             +
+       +----------------+---------------+---------------+----------------+
+         0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 
+         0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
+
+The word count of the record is the size divided by four.
+
+==============================================================================
