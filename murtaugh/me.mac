@@ -1,0 +1,42 @@
+;       THIS PROGRAM IS THE SOLE PROPERTY AND CONFIDENTIAL
+;       INFORMATION OF TYMSHARE, INC., AND MAY NOT BE
+;       COPIED IN WHOLE OR IN PART OR DISCLOSED TO ANY
+;       THIRD PARTY WITHOUT THE PRIOR WRITTEN CONSENT OF
+;       TYMSHARE.
+;
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;               ALOAD.MAC          WRITTEN BY BILL SCHEIBLE
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       MACRO SUBROUTINES FOR USE WITH NETGEN.FTF
+;       THE NETWORK DOWNSTREAM LOADING PROGRAMS
+;
+;       SUPPLIIES VARIOUS PACKING AND UNPACKING OPERATIONS,
+;       8-LEVEL CHARACTER READING, AND A FEW OTHER THINGS.
+;       ALSO HAS ALL THE AUX CIRCUIT CONTROL AND I/O DRIVERS
+;
+TITLE ALOAD
+; WD32 SPLITS A 36BIT WD INTO TWO 16BIT WDS. IT USES
+;  THE RIGHT 2 BITS AS CONTROL BITS. IF ON,WRD IS VAILD TO ASSEMBLE
+        ENTRY GETCHR
+GETCHR: 0
+        SETZ    5,0            ;MAKE SURE ACC 5 IS CLEAN
+        HRLZ    6,@0(16)        ;GET THE PORT NUMBER
+        HRR     6,[0,,10]       ;CHECK TO SEE IF SOMETHING THERE
+        AUXCAL  6,5             ;RESULT IN ACC 5
+        JRST    INO1            ;NO DATA
+        HRR     6,[0,,1]
+        AUXCAL  6,5
+        JFCL    0
+        HRRZM   5,2             ;SLAP IT AROUND
+        AND     2,[377]         ;8 BITS ONLY!!
+        HRRZM   2,@1(16)        ;AND SEND IT BACK
+        JRA     16,2(16)        ;AND SPLIT
+INO1:   MOVE    5,[-1]          ;SET UP FRO ALL 1'S
+        HRROM   5,@1(16)        ;SET IT BACK FOR AN ERROR
+        JRA     16,2(16)        ;BYE!!!!
+;
+;
+;
+;       OK...TAKES WHAT WE ARE ABOUT TO RECEIVE...
+        END
