@@ -1,0 +1,507 @@
+
+
+
+                           TABLE OF CONTENTS
+                           -----------------
+
+
+          I. Introduction                                        1
+
+         II. Rebuilding Profiles and Limits from PC File         2
+
+        III. Archive Store of Disk Information                   5
+
+         IV. TMCS Troubleshooting Helps                          7
+
+          V. Rebuilding TMCS Disk Structure                     11
+                                                                  Page 1
+
+
+       I. INTRODUCTION
+          ------------
+
+               Tymnet Monitoring Control System is a utility used by
+          users to track events which occur on a Tymnet network.  These
+          events, and which devices to track (ie:  nodes, hosts, etc.),
+          are selected by the use of profiles and limits which contain
+          the selected items.  This utility also allows the user access
+          to probe and the ability to do other jobs on the network.
+
+               The purpose of the document is to show the user who is
+          familiar with the functioning of this utility how to to
+          certain functions that will both make life easier in using the
+          utility and give the ability to do necessary functions in
+          support of it.  It is not meant to be a comprehensive look at
+          the utility for all users.  For a more complete look, the
+          reader should obtain a current TMCS manual put out by Tymnet.
+                                                                  Page 2
+
+
+      II. REBUILDING PROFILES AND LIMITS FROM PC
+          --------------------------------------
+
+               One of the most time consuming tasks can be to rebuild
+          a TMCS limit or profile when one is accidently destroyed.  A
+          method has been conceived to allow a user to rebuild their
+          TMCS profiles and limits from a pc file using Tymcomm.
+
+               Below are shown two examples of pc files that can be
+          used to rebuild the user's profile or limits from a pc.
+          Notice that all the commands in the files are indentical to
+          what the user would type in TMCS except that they have the
+          command SEND in front of them.  This tells Tymcomm to
+          execute the command following it.  The wait command is the
+          exception which is used to pause for x number of seconds.
+
+                       EXAMPLE PC FILE NUMBER ONE
+                       --------------------------
+
+          wait 5
+          send disc lim copilot
+          send term hp2621
+          send sel lim pilot
+          wait 5
+          send res links
+          send res lines
+          send res hosts
+          wait 5
+          send ign link 2021:3277
+          send ign links 2334:10457
+          send ign links 2345:2646
+          send ign links 2433:10415
+          send ign links 2467:6514
+          send ign links 2532:3211 3211:4565
+          send ign links 2624:3131
+          send ign links 3744:11032
+          send ign links 4724:11466
+          send ign links 5265:5753 5753:7137
+          send ign links 6770:10351
+          send ign links 7155:10116
+          wait 2
+          send ign nodes 2122 5613
+          send ign nodes 2122 5614
+          send ign nodes 2122 6512
+          send ign nodes 2527 3501
+          send ign nodes 2575 4204
+          send ign nodes 3146 6204
+          send ign nodes 3417 6111 6112
+          send ign nodes 3476 4204
+          send ign nodes 3500 6513
+          send ign nodes 4413 4422
+          send ign nodes 4413 4441
+          send ign nodes 5613 6517
+          send ign nodes 6175 6204
+          wait 3
+          send save lim copilot
+          send disp u l
+                                                                  Page 3
+
+
+                       PC EXAMPLE FILE NUMBER TWO
+                       --------------------------
+
+          wait 5
+          send disc lim hostwatch
+          wait 5
+          send ign lines
+          send ign links
+          send ign isis
+          send ign events
+          wait 5
+          send ign host 1806
+          wait 5
+          send res events 2
+          send res events 4.7 4.8 4.16 5 7.1 7.2 7.3 7.5 7.6 7.7
+          send res events 8.11 8.12 8.13
+          send res events 8.31
+          send res events 31 32.1-32.9
+          send res events 34 35 38 45 46
+          send res events 63
+          send res events 75 76 78 79
+          send res events 82 84 97 98
+          wait 2
+          send save lim hostwatch
+
+               Once you have created the pc file, the following steps
+          will rebuild the users limits or profile:
+
+            1) Copy your file to a file called proc=.tym.  The = sign
+               can be any number from 1 to 9.
+
+            2) Log into the TMCS host and profile you wish to rebuild
+               thru tymcomm.  YOU MUST HAVE VERSION TWO FOR THIS TO
+               WORK.
+
+            3) Once you are logged in, type (alt)=.  So for example,
+               if your proc file is called proc1.tym, you would type
+               (alt)1 and this will begin the rebuild process.  If it
+               hangs, hit the (alt)= again and it will restart the
+               rebuild from the beginning.
+
+               This procedure can be used for both profiles and
+          limits.  Once you have this set up properly, you can rebuild
+          any damaged profiles or limits in moments from the pc
+          instead of laboriously typing everything again.
+
+               It is important that the user keep proper records and
+          the pc files up to date.  The following is reccomended:
+
+            1) Keep a hardcopy of your profiles and limits handy at
+               all times.
+
+            2) Keep a log of what should be ignored and why on your
+               limits.
+
+            3) Rebuild your limits often from the pc.  This will
+               remind you to keep the pc files up-to-date and
+                                                                  Page 4
+
+
+               structure the limits on any TMCS you use to be
+               identical on all other hosts.
+                                                                  Page 5
+
+
+     III. ARCHIVE STORE OF DISK INFORMATION
+          ---------------------------------
+
+               Changes on the TMCS structure occur often to both
+          profiles and limits.  Due to this, it is important to store
+          the contents of disk to tape on a periodic basis.  This
+          process is called an ARCHIVE STORE.
+
+               The store consist of the following steps:
+
+            1) Have a tape mounted with a write ring.
+
+            2) Login to the correct TMCS hosts.
+
+            3) Issue the ARCHIVE STORE 0 command.  This will do (1) a
+               store and (2) a comparison of the files on disk and on
+               tape.  There should be NO errors.
+
+            4) Do the command ARCHIVE DIR 0.  This will do a directory
+               of the tape files.  There should be 9 files store.  If
+               not, the store is unacceptable.
+
+                    Besides this check, the right hand column number
+               of each file shows the number of pages stored.  Only
+               the GREETING file is allowed zero pages.  If any other
+               file has zero pages, the store is unacceptable.
+
+            5) An update log should be kept of when the archive stores
+               are done on all TMCS hosts.  Normally, once a week for
+               stores is sufficent on alternate tapes.  It is
+               important to keep this log along with the hardcopies of
+               the current archive stores to verify all was normal if
+               the need arised to rebuild the TMCS disk from tape.
+
+               The next page contains a sample of a good store with no
+          errors.
+                                                                  Page 6
+
+
+                        EXAMPLE OF ARCHIVE STORE
+                        ------------------------
+
+
+          *ver
+           
+          tmcs host: 1400  version  10.22  12 june 1987
+           
+          *arch sto 0
+           
+          storing all disk files onto tape archive:
+          stored profile file
+          stored host name file
+          stored host location file
+          stored node name file
+          stored probe file
+          stored product file
+          stored host status file
+          stored greeting file
+          stored miscellaneous file
+          comparing all archived tape files with disk files:
+          compared profile file
+          compared host name file
+          compared host location file
+          compared node name file
+          compared probe file
+          compared product file
+          compared host status file
+          compared greeting file
+          compared miscellaneous file
+           
+           
+           
+          *arch dir 0
+           
+           1  1/10/91 19:02:59  profile             9800
+           2  1/10/91 19:14:28  host name            601
+           3  1/10/91 19:15:14  host location        341
+           4  1/10/91 19:15:38  node name            190
+           5  1/10/91 19:15:56  probe                  1
+           6  1/10/91 19:15:56  product               11
+           7  1/10/91 19:15:57  host status         3069
+           8  1/10/91 19:20:14  greeting               0
+           9  1/10/91 19:20:15  miscellaneous          1
+           
+           
+           
+          *q
+                                                                  Page 7
+
+
+      IV. TMCS TROUBLESHOOTING HELPS
+          --------------------------
+
+               Problems will sometimes occur on the TMCS hosts which
+          requires the attention of the technician.  The following
+          should guide the technician in solving the most common TMCS
+          hosts problems.
+
+            1) If you are having problems on multiple TMCS hosts,
+               check any NEM host on your network before proceeding in
+               this doc.
+
+            2) STAT command in TMCS - Use this command to gather
+               statistical information and check the following for
+               problems:
+
+               - Check the error count to see if it is greater than
+                 zero.  If it is, you have a disk problem that needs
+                 to be persued.
+
+               - Check for probe errors.  If you see that they are
+                 repeating constantly, then the TMCS has a problem
+                 building a circuit to probe.  If this is the case,
+                 check to see if the supervisor was reloaded.  If it
+                 was, the probe password is set to the default and
+                 needs to be changed back (see the TMCS manual for
+                 details on how to do this).
+
+               Next is a sample of the STAT command in TMCS.
+
+       *stat
+       since 8/29/90 18:30:25 gmt
+    
+       read   total: 21225   pages: 42885   errors: 18
+       0     0     0     0     0     8288  5065  4221 1163 1144  1226  118
+    
+       write   total: 6911   pages : 20231  errors: 0
+       0     0     0     0     0      1    3037  1855  733  536  682   67
+
+       when           operation   status  address  count  transfer isis status2
+       8/29/90 18:44:04  read   transmission 3       256   256     8    800
+       8/29/90 18:44:05  read   transmission 3       256   256     8    800
+       8/29/90 18:44:06  read   transmission 3       256   256     8    800
+       8/29/90 18:44:07  read   transmission 3       256   256     8    800
+    
+       probe error, build failed, supervisor 122
+       occurred 125 times last at 8/13/90 20:29:21 gmt
+       ...
+       ...
+    
+
+            3) Do checks in the slot using DDT.  Login as follows:
+
+               PLEASE LOG IN:  (USER): KERNAL HOST ID;PASSWORD
+               NODE:  XXXX
+               HOST:  YYYY
+                                                                          Page 8
+
+
+               SLOT =:  1
+               SLOT 01 RUNNING:  DDT
+               *
+
+               Once logged in, check for the following possibilities.
+
+               - If you see SLOT 01 DOWN:  HALTED - PARITY ERROR,
+                 there is a memory board problem and it needs to be
+                 checked.
+
+               - Issue the command ?MEM and see if there are any
+                 single or double bit error messages as shown in the
+                 next example.  If there is, this is also a memory
+                 board problem and needs to be checked.
+
+   *?MEM
+   CURRENT SYSTEM TIME IS : OO:10:20
+   OO:06:18 AGO ON BOARD =:  9 OCCURRING: 2 TIMES SINGLE BIT ERROR ON CHIP: 176
+   00:08:20 AGO ON BOARD =:  9 OCCURRING: 1 TIMES DOUBLE BIT ERROR ON ROW:  7
+
+               Next, issue the ?STAT command in DDT followed by the
+               ALL command, then check for the following problems.
+
+               - If all you see is one or two processes and you have
+                 halted the slot and restarted it, it will take
+                 approximately 15 minutes to restart and all the
+                 processes to begin running.
+
+               - If there is no process in PROCEDURE LOGIN, then the
+                 TMCS is out of ports and no more users can log in.
+                 If this is the case, go to a terminal that is logged
+                 into this host in TMCS and issue the WHO command.
+                 This will tell you who is on the host.  Select a user
+                 to get rid of and then issue the HANG command
+                 followed by the job number (hang 4) and this will get
+                 rid of desired user.
+
+               - If there is more than one process that is showing
+                 STATE=END, then the TMCS has a range error.  You will
+                 need to do the PR PROCESS = command shown below and
+                 give the information to the tech groups for analysis.
+                 If you need the TMCS immediately, halt and restart
+                 the slot.
+
+               - Check the process NODE=GATHER.  If this is showing as
+                 STATE=END, you have an out of range slot id number.
+                 To find the problem node, issue the NSD NODE command
+                 and it will identify the culprit.  Once you have your
+                 result, get into probe and issue the NODE command
+                 with the node number given by the NSD NODE command to
+                 confirm the information.  Once confirmed, the
+                 technician will need to have the node taken down and
+                 reloaded to clear the problem.  Also, halt and
+                 execute the TMCS slot.
+
+               Below is a sample of the STAT command and how to gather
+               the information needed.
+                                                                          Page 9
+
+
+       *?stat
+       :>
+
+       :>all
+       process  1:  state=end priority=3 addr= 6e57c in process   main process
+       process  2:  state=wai priority=3 addr= 2c672 in procedure sleep
+       process  3:  state=wai priority=3 addr= 2c672 in procedure sleep
+       process  4:  state=dly priority=1 addr= 4713c in procedure commandWait
+       process  5:  state=dly priority=1 addr= 4713c in procedure commandWait
+       process  6:  state=dly priority=1 addr= 4713c in procedure commandWait
+       process  7:  state=dly priority=1 addr= 4713c in procedure commandWait
+       process  8:  state=dly priority=1 addr= 4713c in procedure readLine
+       process  9:  state=dly priority=1 addr= 38e98 in procedure checkAwake
+       process 10:  state=dly priority=1 addr= 46962 in procedure getResponse
+       process 11:  state=end priority=3 addr= 5cc70 in procedure getHostStatus
+       process 12:  state=end priority=1 addr= 4f8a6 in procedure search
+       process 13:  state=io  priority=3 addr= 20a66 in procedure login
+       process 14:  state=io  priority=0 addr= 2a320 in procedure btreeNodeB
+       process 15:  state=io  priority=3 addr= 20a66 in procedure login
+       process 16:  state=io  priority=3 addr= 2115c in procedure readLine
+       process 17:  state=io  priority=3 addr= 2115c in procedure readLine
+       process 18:  state=io  priority=3 addr= 20a66 in procedure login
+       process 19:  state=io  priority=3 addr= 20a66 in procedure login
+       process 20:  state=wai priority=3 addr= 45b94 in procedure getErlogMe
+       process 21:  state=io  priority=3 addr= 20a66 in procedure login
+       process 22:  state=io  priority=3 addr= 20a66 in procedure login
+       process 23:  state=io  priority=3 addr= 20a66 in procedure login
+       process 24:  state=io  priority=3 addr= 20a66 in procedure login
+       process 25:  state=io  priority=3 addr= 20a66 in procedure login
+       process 26:  state=wai priority=3 addr= 5d4cc in procedure runDisplay
+       process 27:  state=io  priority=3 addr= 20a66 in procedure login
+       process 28:  state=wai priority=3 addr= 6d61c in process   generalClock
+
+       :>
+
+       :>pr 11
+       process  11:  state=end priority=3 addr=5cc70 in procedure getHostStatus
+       called from:         at addr:
+       nodeSnap            5cfee
+       nodeGather          5d1f0
+    
+       (log into tmcs and issue the 'nsd node ' command)
+       *nsd node
+       currentSnapNode = 7343
+       nodeSnapList
+        ...
+        ...
+    
+       (then log into probe and snap the node)
+       * node 7343
+         ...
+       host status
+        6481 answered  slot 63
+         ...
+         ...
+
+        then halt and execute the slot to clear out the bad number.
+                                                                         Page 10
+
+
+        :>pr 12
+        process 12:  state=end priority=1 addr= 4f8a6 in procedure search
+        called from:      at addr:
+        nextBlock         50176
+        ...
+        ...
+        logGather         5c372
+
+        :>q
+        *h  (halt and re-execute the slot to clear the range error)
+        *e                                                                       Page 11
+
+
+       V. REBUILDING TMCS DISK STRUCTURE
+          ------------------------------
+
+
+               It sometimes becomes necessary for various reasons to
+          rebuild the TMCS disk structure.  This procedure is to be
+          followed following the format of the disk pack.It is only to
+          be done folowing explicit instructions from the appropriate
+          tech group.
+
+          Load TMCS Disk Maintenance program.
+          R Loadii;s,kh 1,(username)ND====.n01<cr>
+
+          Log into TMCS DISK MAINTENANCE PROGRAM.
+          PLEASE LOG IN:  USERNAME:KH =;PASSWORD<CR>
+
+          ISSUE INIT command to initialize the disk.
+          * init<cr>
+          disk initialization succeded.
+
+          Issue QUIT command to exit the problem.
+          * quit<cr>
+
+          Load TMCS slot code.
+          R Loadii;s,kh =,1,(username)nd====.n01<cr>
+
+          Log in kernal host of the node and select slot 1.
+          Please log in: username:kh =;password<cr>
+          slot : =
+
+          Issue ?STAT command 10 minutes later check to see all the
+          processes are up.  It may take 20-25 minutes to have all the
+          processes come up.
+
+          *?STAT
+          :>ALL
+          Process   1: state=end priority=3 addr=.....
+          Process   2: .....
+          ..
+          Process  30: state =WAI priority=3 addr= 905c2 in process 
+          GENERALCLOCK
+
+          :><cr>   exit from ?STAT command
+          *zz<cr>  exit from kernal host
+
+          Log in the TMCS host.
+          Please log in:  Username: kernal host =;password<cr>
+          Name: profile Profile Name
+          Password:  Password
+
+          *archive restore 0
+
+          After restore is completed, TMCS will zap you out and restart
+          the slot.  It will take approximately 15 minutes for the slot
+          to show ANSWERED in probe.
+                                                                         Page 12
+
+
+               If you have any problems or questions, contact your tech
+          people for further instructions.
+   \Q1¨
