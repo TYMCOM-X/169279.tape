@@ -1,0 +1,132 @@
+:-------------------------------------------------------------------------
+:CMH version 1.07
+:Escalation #206641 for UKNET 
+:-------------------------------------------------------------------------
+:This is a diagnostic patch designed to collect information on the command
+:link usage to determine the cause of the problem of "Out of Command Link"
+:while there is no outstanding command link.
+:This patch should not be used without STS's approval.
+:Any questions or comments concerning this patch, please contact Richard Ho
+:of STS. Ontyme NSC.R/HO. Phone: (408) 922-7486
+:--------------------------------------------------------------------------
+PATCH(881214,1400,R/HO,PA0PTR,,300)
+CURRNT	BS	1	:Current seq.  #
+LKLEFT	HS 	1	:Number of command links left in free pool 
+INDEX	HS	1	:Index for sequences 
+TRAP	WS	0A0	:5 Words (14 Hex bytes) X 20Hex (Sequence #)
+:			: = 0A0 Words = 280H bytes
+:--------------------------------------------------------------------------
+:Sequence number					:1 byte
+:RPORT                                                  :1 BYTE
+:Pointer to command list 1 - CFLP1			:2 bytes
+:Pointer to command list 2 - CFLP2			:2 bytes
+:Number of command links left				:2 bytes
+:Link register (call from)				:4 bytes
+:DCB							:2 bytes
+:Outstanding command links for this user GPQ-RPQ	:4 bytes
+:2 bytes in between to separate sequences		:2 bytes
+:						  TOTAL	:20D bytes = 5 Words
+:---------------------------------------------------------------------------
+ENDPATCH(SET UP STORAGE AREA IN PA0PTR)
+:---------------------------------------------------------------------------
+:
+	LO	CMDLST
+	LO	BBUFER
+	LO	GBLDEF
+	LO	FRNTND
+	LO 	MAIN
+	LO	BSUB
+PATCH(881214,1600,R/HO,IZCFL,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,30)
+	LIS	RWORK,0			:Initialize CURRNT to 0
+	STB	RWORK,CURRNT,,
+	LHI	RWORK,NCMDLK		:Initialize LKLEFT to NCMDLK
+	STH	RWORK,LKLEFT,,
+	LIS	RWORK,0			:Initialize index to 0
+	STH	RWORK,INDEX,,
+	LIS	RARG,0			:From source
+	STH	RARG,CLLK1,,		:From source
+	J	IZCFL+6,,		:Back to source
+ENDPATCH(INITIALIZE CURRNT/LKLEFT/INDEX)
+:
+PATCH(881214,1700,R/HO,GETCL,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,0C0)
+:
+:COLLECT CURRENT SEQUENCE NUMBER = 1 BYTE
+	LB	RWORK,CURRNT,,		:Get current sequence #
+	AIS	RWORK,1			:Increase it by 1
+	STB	RWORK,CURRNT,,		:Update it
+	LHL	RARG,INDEX,,		:Get current index into TRAP
+	STB	RWORK,TRAP,RARG,	:Store sequence # to TRAP
+	AIS	RARG,1			:Increase index to the next entry
+:
+:COLLECT RPORT = 1 BYTE
+        STB     RPORT,TRAP,RARG,
+        AIS     RARG,1
+:
+:COLLECT FREE LIST POINTER 1 = 2 BYTES
+	LHL	RWORK,CFLP1,,		:Get free list pointer 1
+	STH	RWORK,TRAP,RARG,	:Store CFLP1 to TRAP
+	AIS	RARG,2			:Increase index to next entry
+:
+:COLLECT FREE LIST POINTER 2 = 2 BYTES
+	LHL	RWORK,CFLP2,,		:Get free list pointer 2
+	STH	RWORK,TRAP,RARG,	:Store CFLP2 to TRAP
+	AIS	RARG,2			:Increase index to the next entry
+:
+:COLLECT NUMBER OF COMMAND LINK LEFT IN THE FREE POOL = 2 BYTES
+	LHL	RWORK,LKLEFT,,		:Get # of command links available
+	SIS	RWORK,1			:Decrease it by 1
+	STH	RWORK,LKLEFT,,		:Update it
+	STH	RWORK,TRAP,RARG,	:Store it to TRAP
+	AIS	RARG,2			:Increase index to the next entry
+:
+:COLLECT LINK REGISTER = 4 BYTES
+	ST	RLNK,TRAP,RARG,		:Store RLINK to TRAP
+	AIS	RARG,4			:Increase index to the next entry
+:
+:COLLECT DCB = 2 BYTES
+	STH	RDCB,TRAP,RARG,		:Store RDCB(Reg.12) to TRAP
+	AIS	RARG,2			:Increase index to the next entry
+:
+:COLLECT GPQUE = 2 BYTES
+	LHL	RWORK,DCBLKS+GPQUE,RDCB,	:Get GPQUE from DCB table
+	STH	RWORK,TRAP,RARG,		:Store it to TRAP
+	AIS	RARG,2				:Increase index
+:
+:COLLECT RPQUE = 2 BYTES
+	LHL	RWORK,DCBLKS+RPQUE,RDCB,	:Get RPQUE from DCB table
+	STH	RWORK,TRAP,RARG,		:Store it to TRAP
+	AIS	RARG,2				:Increase index
+:
+:ADD 2 BYTES FOR SPACING AND SET UP FOR THE NEXT BLOCK = 2 BYTES
+	LB	RWORK,CURRNT,,		:Get current sequence #
+	CHI	RWORK,20		:Are we at the end of TRAP?
+	JLFS	EXIT01			:No - Increase index.
+	LIS	RWORK,0			:Yes - reset sequence # to 0
+	STB	RWORK,CURRNT,,		:and update it.
+	LIS	RARG,0			:Reset index to zero
+	JFS	EXIT02			:and update it.
+EXIT01	AIS	RARG,2			:Increase index to point to next Seq.
+EXIT02	STH	RARG,INDEX,,		:Save index for the next guy.
+	LIS	RWORK,0			:From source
+	SBT	RWORK,CLLK1,,		:From source
+	JE	GCL1,,			:Back to source
+	J	GETCL+8,,		:Back to source
+:
+ENDPATCH(TRAP PATCH TO CATCH PROBLEM OF OUT OF COMMAND LINK)
+:
+PATCH(881215,1200,R/HO,RELCL1,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,22)
+	LHL	RWORK,LKLEFT,,		:Get # of command links available
+	AIS	RWORK,1			:Decrease by 1
+	STH	RWORK,LKLEFT,,		:and update it.
+	LIS	RWORK,0			:From source
+	SBT	RWORK,CLLK1,,		:From source
+	JE	RCL1,,			:Back to source
+	J	RELCL1+0A,,		:Back to source
+ENDPATCH(TRAP PATCH TO CATCH PROBLEM OF OUT OF COMMAND LINK)
+:
