@@ -1,0 +1,508 @@
+
+*******************************************************************************
+*                                                                             *
+*              T      E      C      H             T      I      P     S       *
+*                                                                             *
+*******************************************************************************
+
+
+
+
+
+1.  VT100 Key Sequences
+    Kal Kalenda 
+
+
+
+2.  X.PC troubleshooting procedure
+    Dawn Danaher
+    Jeff Liu
+
+
+
+3.  Periodic Maintenance Tickets
+    Barry Traxler
+
+
+
+4.  CMT to VT100 escape sequences for Control E, Control B and Control H keys
+    Richard Ho  
+
+
+
+5.  Ordering Technical Documents
+    Dennis A. Hawes
+
+
+ 
+6.  New International Information
+    Keith Curtis
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Kal Kalenda 
+
+SUBJECT
+
+VT100 Key Sequences
+     
+QUESTION
+ 
+Customer is trying to certify their PC software with us.  However, they
+claim that we are not sending correct sequences from CMT for the
+following VT100 keys:
+
+I hope the following information will clear up any questions your
+customer had about CMT VT100 key sequences.  
+     
+OPTION      VT100 to CMT      CMT to VT100   
+     
+CLEAR       Control C         "1B" "5B" 2J  "1B" "5B" H
+     
+HOME        Escape H          "1B" "5B" H    
+     
+RESET       Control R         "1B" "5B" 0Q   
+     
+(Any value between quotes is a HEX value)    
+     
+For the ERASE INPUT option, the 3270 type terminal has a key which will    
+erase all unprotected fields and home the cursor, this option is not  
+supported in version 3.00 of CMT. Your customer can accomplish the erase   
+input through multiple manipulations of the keys to erase to end of field  
+and then home the cursor.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Dawn Danaher
+Jeff Liu
+
+X.PC - Troubleshooting
+
+Introduction
+ 
+The problem with X.PC is that end users like to blame all of their
+problems on it.  They don't realize that there are more things in life
+which cause them agony other than X.PC.  Consequently, the first thing
+which needs to be done is to eliminate the possible points of failure
+one by one.  Remember the first rule of troubleshooting:
+
+               "Don't overlook the obvious!".
+ 
+I have given some sample questions which should help you in the process
+of elimination.  I have sectioned them into the usual problem areas.  I
+have also included a list of suggestions based on which category the
+problem fits into.
+ 
+X.PC -- POSSIBLE POINTS OF FAILURE :
+ 
+         I                        II              III            IV
+|----------------------|  |---------------| |-------------|  |---------|
+terminal - modem - telco - modem - consat - nip - X.PC slot - nip - hif
+
+            nip is node in path 
+            hif is host interface
+            host interface includes the modems, telco, engine and customer
+            equipment
+
+QUESTIONS TO ASK THE CUSTOMER :
+
+Your mission:     What are the symptoms?
+
+Ask yourself:     Is this really an X.PC problem?
+
+     END USER ERROR, TERINAL OR MODEM OF CUSTOMER:
+
+          Can you walk me through what you are doing?  Get steps.
+          Did they set up X.PC on the P.C. or modem?
+          Did the phone dial out to the consat?  
+
+     MODEM, CONSAT OR TYMNET NODE PROBLEMS:
+
+          Receiving answer from consat modem?
+          What node and port? 
+
+     USERNAME PROBLEM, X.PC SLOT PROBLEM:
+
+          What is the X.PC username? (don't ask for password, isistech works)
+          Did the X.PC slot answer?
+
+     HOST INTERFACE OR HOST PROBLEM :
+
+          Did they make a call to the host?
+          Were they connected?
+          What are they experiencing once connected?
+          Receiving any error messages?
+
+     NODE IN PATH: 
+
+          Is the problem slow response time?
+
+POSSIBLE ACTIONS :
+
+     Check customer's configurations.  Parity, speed, etc.
+    
+     Usual modem and consat troubleshooting.
+
+     Check the username, where is it homed?  Sometimes a user is getting
+     routed to x.pc by accident, while other times they want to go there but
+     the username is homed wrong.
+
+YOU DECIDE IT IS AN X.PC SLOT PROBLEM :
+
+HANG AFTER BANNER :
+
+     Hang after banner usually the problem is in the PC side
+
+     Example: 
+
+     After x.pc server sent 6 escapes, PC never send a Restart Request or
+     server send Restart Confirm to PC but PC never response with Receive
+     Ready packet, or PC application send an incomplete string for log in to
+     the host etc...  The setting at PC side has to be reviewed.
+           
+     How to get information: 
+
+     Call X.PC support to have direct test with the customer who has the
+     problem or
+    
+     Log in "isistech:1650;password", slot 3 (This is a test slot, please call
+     Jeff Liu and check if the slot is in use or the right code is loaded).
+
+     Type "? stat"
+      
+     Type "> DPTF" to monitor the packets in and out.
+      
+     If the user gets hung, then type "\" and "> DR" command to see the ring
+     dump.
+
+     Capture the above information then send to X.PC support.
+      
+     If test slot works fine then let customer try to access the public slot
+     again.  In case of failure, issue ?ct and ?bt ?brr 0 10 several times, 
+     then dump the slot.
+    
+HANG AFTER PASSWORD : 
+ 
+X.PC user encountered several hangs after user typed the password.  This
+hang problem may be related to the X.PC Driver or X.PC Server.  If it is
+caused by the server, it will have the following symptoms :
+ 
+     CS will get more complaints from users. Not one or two calls, but many
+     calls.
+ 
+     In the case of many users hanging after password, log in to DDT for each
+     x.pc slot and issue ?cpu.
+ 
+     ?host
+ 
+     ?cpu
+ 
+     SLOT           RATE            RATE           RING          STATS 
+                    USER           SYSTEM         ICPS           OCPS
+ 
+     FF              10               0
+      0              47               7            460            404
+      1               0               0              0              0
+      2               0               0              0              0
+      3              23               8            156            396(xpc slot)
+ 
+When both ICPS and OCPS show 0 instead of a non-zero value, such as 156
+and 396, then this is the slot where all users get hang.
+ 
+Procedure for CS to detect and Troubleshoot the Hang problem: 
+ 
+     Log in to each X.PC slot and issue ?CPU to see if ICPS and OCPS are both
+     equal to zero and ?host shows many ports in use, then immediately call
+     X.PC support (see your support list).
+ 
+     If you can not reach any support within 20  minutes then issue the
+     following ddt commands a couple of times for the the slot which hangs
+     the users :
+
+                      ? CT
+                      ? BT
+                      ? BRR 0 10
+                         ...
+                         ...
+                      ? BT
+                      ? BRR 0 10
+ 
+     Record the output of these commands AND send it to QSATS.
+ 
+     After issuing the above commands dump the slot and bring the slot up
+     immediately so that X.PC can function normally again.
+ 
+     HOST PROBLEMS: 
+
+     Log in directly, bypass the X.PC to do regular
+     troubleshooting.
+ 
+     The customer can connect after a long wait, or the customer will get
+     slow response time.  Do a circuit trace.  One bad node can really slow
+     things down.  Look for circuit overloads, etc.  Treat as a slow response
+     problem, not X.PC, unless a circuit trace to both X.PC and from X.PC to
+     host is clean.  
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Barry Traxler
+NSSC                             
+
+SUBJECT
+
+Periodic Maintenance Tickets
+       
+The Network Systems Support Center (NSSC) will, as of 1 June 88, begin
+to open tickets for Preventive Maintenance which has been scheduled for
+private network and subnetwork equipment.  The sole purpose of the
+Preventive Maintenance tickets will be to provide a vehicle by which
+activities related to Preventive Maintenance service may be recorded for
+later evaluation.
+ 
+HOW IT'LL WORK:
+       
+       * Network Systems Company  "project"  personnel  who  currently 
+           support a private network or subnetwork will be expected to 
+           obtain a Preventive Maintenance schedule from the customer.  
+ 
+       * Not less than 1  week  and  not  more  than  4  weeks  before 
+           Preventive Maintenance is due,  the Network Systems Company 
+           project  personnel  should  submit an ONTYME to TYMOPS.NSSC 
+           indicating the date and time for the Preventive Maintenance 
+           and the equipment to be serviced.  (NSSC  will  acknowledge 
+           receipt of the ONTYME) 
+           
+       * Five working days before the scheduled date,  NSSC will:
+           
+	    (a) Open a trouble ticket for the Preventive Maintenance service. 
+
+            (b) Open an Incident with the Field Service Companyand defer the
+                dispatch until the scheduled date and time.  
+ 
+       * If FSC problems are encountered at the  time  of  the  scheduled  
+         Preventive  Maintenance  service,   NSSC  Operations personnel will 
+         escalate  the  matter  to  the  appropriate manager  or  to  an  
+         "on-call" manager who can react to the problem. 
+          
+       * NSSC  Operations  personnel  will provide code and diagnostic 
+         loads  for  P.M.s  only  when customer personnel are not on 
+         duty or when NSSC is providing network management  services 
+         on that network or subnetwork.  
+ 
+       * The  first  working  day  after  Preventive  Maintenance  was 
+         scheduled,   NSSC   will  follow-up  with  the  customer  to 
+         determine if the service was  satisfactory  and  will  then 
+         close the ticket if service was provided as expected.  
+ 
+       * If Preventive   Maintenance   service  was  not  provided  as 
+         scheduled, NSSC will re-schedule the P.M.  with the customer 
+         between  08:00  and  15:00 Eastern Time on the next working 
+         day after the originally scheduled P.M.  If the service can 
+         be re-scheduled within 48 hours, the original ticket will be 
+         kept open.  Otherwise the original ticket  will  be  closed 
+         and  a  new  ticket  will  be  opened  for  the re-scheduled 
+         service.  
+ 
+It should be noted that NSSC Operations personnel will not be
+administering Preventive Maintenance tickets.  NSSC Operations personnel
+will only make managerial escalations if a P.M.  is missed or if
+problems are encountered with the P.M.  All administrative aspects of
+Prevent Maintenance tickets will be handled by non-Operations personnel
+between 08:00 and 15:00 Eastern Time Monday through Friday (holidays
+excluded).
+ 
+Personnel administering P.M.  tickets can be contacted via TYMOPS.NSSC
+or by calling 800/345-6090 and asking for the P.M.  Administrator.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+     
+Richard Ho   
+     
+CMT to VT100 escape sequences for Control E, Control B  and Control H keys.    
+     
+The following explains how CMT responses to the Control E, Control B and   
+Control H keys for the VT100 terminal.  
+     
+CONTROL E : Erase to End of Line.  
+     
+VT100 to CMT       CMT to VT100    
+------------       ------------    
+Control E          1B B7   20 20 20...   1B B8   1B 5B B1 6D or 1B 5B B0 6D
+                   \---/   \---------/   \---/   \------------------------/
+                    (1)        (2)        (3)               (4)  
+     
+1.   Save cursor sequence. CMT sends this sequence to the terminal to save  
+     the current cursor position.   
+
+2.   Spaces. CMT sends one space for each character being erased. 
+
+3.   Restore cursor sequence. CMT sends this sequence to the terminal to
+     restore the cursor to its original position.  
+
+4.   High intensity or low intensity depending on the field's attribute.   CMT
+     sends this sequence to the terminal to set the proper display intensity
+     for the field.  
+    
+     1B 5B B1 6D = high intensity, 1B 5B B0 6D = low intensity.   
+
+CONTROL B and CONTROL H : Backtab. 
+     
+VT100 to CMT       CMT to VT100    
+------------       ------------    
+Control B          1B 5B  RR RR  3B  CC CC  48    1B 5B B1 6D or 1B 5B B0 6D  
+
+Control H          \-------------------------/    \------------------------/  
+
+                               (1)                            (2)
+     
+1.  Move cursor sequence, where RR RR = Row and CC CC = Column.  
+
+2.  High intensity or low intensity depending on the field's attribute.   CMT
+    sends this sequence to the terminal to set the proper display intensity
+    for the field.  
+
+    1B 5B B1 6D = high intensity, 1B 5B B0 6D = low intensity.   
+     
+I understand that your customer is trying to implement some "home grown"
+P.C.  software package emulating the VT100 terminal.  I am kind of
+worried because if they don't implement the emulation correctly, we are
+not going to be able to modify CMT's escape sequences to compensate for
+their errors.  Please make sure that your customer completely understand
+the way the escape sequences work as described above.
+
+If you or your customer have any questions, do not hesitate to contact me.  
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Dennis A. Hawes
+
+SUBJECT:  
+
+Ordering Technical Documents
+
+As of Monday, June 13, 1988, Technical Publications Services has taken
+over the ordering and distribution of all technical publications.  The
+INFORMATION system has been updated and it now lists all documents that
+are presently available for order.
+
+To access the on-line INFORMATION system, do the following:
+
+	* Log out of OnTyme
+	* At the please log in: prompt, type INFORMATION
+	* Choose menu item 7 (Technical and User Documentation) for:
+
+		- a complete updated list of our documents
+		- an abstract of each document
+		- a list of recent document releases
+
+Orders for any document on the INFORMATION system list should be
+submitted on order form NPD-001, and sent to:
+
+		TYMNET Technical Publications Services
+		Mailstop F35
+		P. O. Box 49019
+		San Jose, CA 95161-9019
+
+New Technical Publications Order forms NPD-001 can also be ordered from
+this address.
+
+********************
+*                  *
+* T E C H   T I P  *
+*                  *
+********************
+
+Keith Curtis
+
+SUBJECT:
+
+New International Information
+
+External Network Services has just completed an update and expansion of
+the on-line International Information.  The primary purpose of this update
+is to expand the technical information available on each country.  This
+information includes Pad Parameters, Trouble shooting numbers, hours of
+operations, lead times, logon procedures, access numbers, and test and
+information system addresses.  This information is being provided when 
+available in order to make international access for your customers easier.
+International Technical Support has currently updated 21 countries and will
+continue to add this information to the on-line database on a regular basis.
+
+In addition, ENS has created a document system for International
+Information on system 38 for in-depth information on our Services.  The
+user id for the system is INTLINFO.  All files listed with a .DOC suffix
+are marketing or technical files describing international services.  A
+directory is available on the system under the filename DIR.DOC, which
+briefly describes the document files.  This directory is currently being
+updated.  To obtain a printout of any of the files, gain access to
+system 38 (consult your technical support if you do not have access) and
+type, TYPE (INTLINFO)FILE.DOC, where, FILE, is the specific name of the
+document file (start with DIR.DOC).
+
+A brief list of files that should be of interest to you is as follows:
+
+DOCUMENTATION DESCRIPTION FOR INTERNATIONAL SERVICES FILES.
+
+VPNSFR.DOC     COVERS SERVICE DESCRIPTION AND PRICING FOR VIRTUAL
+               PRIVATE NETWORK SERVICES IN FRANCE, THESE ARE TYMNET
+               SERVICES FOR DEDICATED CONNECTIONS TO THE PARIS
+               MCDONNELL DOUGLAS NODES.
+
+TYMUSA.DOC     COVERS DESCRIPTION, PRICING AND DIAL-UP PHONE NUMBERS
+               FOR THE TYMUSA INTERNATIONAL SERVICE.  TYMUSA IS A
+               SIMPLE, REVERSE CHARGED METHOD OF INTERNATIONAL
+               ACCESS FOR DIAL-UP INTERNATIONAL USERS WHICH IS NOW
+               AVAILABLE IN 30 COUNTRIES.
+
+NIS.DOC        IS A DETAILED SERVICE AND PRICING DESCRIPTION,
+               INCLUDING DIAL-UP ACCESS NUMBERS FOR TYMNET'S JOINT
+               VENTURE NETWORK OPERATION, NETWORK INFORMATION
+               SERVICES (NIS), IN JAPAN.  THE NETWORK THERE OFFERS
+               EVERY TYMNET PUBLIC NETWORK SERVICE EXCEPT PUBLIC
+               OUTDIAL, X.25 PUBLIC DIAL AND 9.6 PUBLIC DIAL.
+
+MEXICO.DOC     PROVIDES DETAILED INFORMATION ON OUR NUI (USERNAME)
+               FACILITY THAT IS AVAILABLE FOR OUR CUSTOMERS IN
+               MEXICO, AND OUR AGENT, ALEJANDRO ACOSTA.
+
+NISPRO.DOC     PROVIDES DETAILED PROCEDURES FOR IMPLEMENTING
+               SERVICE ON OUR NIS NETWORK IN JAPAN.
+
+COMPET.DOC     IS A COMPETITIVE OUTLINE OF OUR INTERNATIONAL
+               SERVICES, DISCUSSING OUR ADVANTAGES AND
+               DISADVANTAGES IN RELATION TO TELENET AND CSC'S
+               SERVICES.
+
+SECURE.DOC     A TECHNICAL DESCRIPTION OF THE WORKINGS OF TYMNET'S
+               INTERNATIONAL SECURITY FEATURES.
+
+
+Other Technical description files on-line are: 
+
+IPAD.DOC, LOGON.DOC, X75REG.DOC, INSOFT.DOC, DTE.DOC.
+h of these efforts are part of ENS' continuing effort to provide you with
+the tools you need to sell and  support international services.  The
+technical updates to the information system were accomplished only by 
+the considerable and thorough research effort of our International 
+Technical Staff.  Your comments and suggestions are welcome.
+  zn5X
