@@ -1,0 +1,2114 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                 TYMNET CMT-UTS
+
+
+
+                        External Reference Specification
+
+
+
+                                  TYMNET, Inc.
+
+
+
+
+                          Network Technology Division
+
+
+
+
+                              Revised by Eric Chen
+
+
+
+
+
+
+
+
+
+
+                                 June 15, 1987
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                            Proprietary Information
+
+          TYMNET's proprietary rights are included in the information
+          disclosed herein.  The recipient, by receiving this doc-
+          ument, agrees that neither this document nor the information
+          disclosed herein nor any part thereof shall be reproduced or
+          transferred to other documents or used or disclosed to
+          others for manufacturing or for any other purpose except as
+          specifically authorized in writing by TYMNET.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                               SECTION 1. PREFACE
+
+
+
+          The Sperry Univac UTS environment relies on synchronous data
+          exchange between the UTS terminal and host.  The ASCII
+          character set is used for that purpose.  The CMT/UTS allows
+          the usage of various asynchronous terminals to communicate
+          with the Univac host effectively replacing UTS terminals.
+
+          This document contains essential information about CMT/UTS
+          needed to understand all parameters that can be controlled
+          by the user.  It does not however go into the innter
+          workings of the interface.  Also it is assumed the reader is
+          familiar with the UTS operations (if not see Sperry Univac
+          Universal Terminal System 400 Programmer Reference) as well
+          as with a concept of the UTS native mode (see UTS.GED).
+          Since CMT/UTS interacts with the Consat interface, the
+          reader is referred to CONSAT.DOC and CONSAT.ERS documents
+          for more information on this subject.
+
+          1. General Comments
+
+          The CMT/UTS functions as a translator between selected kinds
+          of terminals and a computer that addresses UTS terminals.
+          The CMT/UTS converts text streams from the computer that are
+          meaningful to a UTS type CRT into a text string that is
+          meaningful to the selected user terminal.
+
+          The diagram below shows how CMT/UTS connects within the net-
+          work.
+
+
+          [terminal]--async line--/consat/---virtual
+          circuit---/CMTUTS/ ---virtual circuit---/UTS host
+          int./--sync line--[univac host]
+
+          Translation capability also provides for routing of data to
+          an attached printer.
+
+          In delivering a message from the computer the CMT/UTS will
+          attempt to minimize the number of characters that must be
+          delivered to the terminal.  It does this through knowledge
+          of what is already on the screen and what special functions
+          are available on the terminal.
+
+          In receiving data from the terminal the CMT/UTS attempts to
+          provide the same functions as a UTS terminal.  Since the
+          user terminal is not likely to have the same functions as a
+          UTS, much of this is done by interaction between the CMT/UTS
+          and the treminal.
+
+
+
+
+
+          June 15, 1987              - 2 -                    CMTU.ERS
+
+
+
+
+
+
+
+
+
+                     SECTION 2. THE CMTU OPERATIONS MONITOR
+
+
+
+                                  INTRODUCTION
+
+          The UCM (UTS CMT Operations Monitor) is a tool used to aid
+          in monitoring and controlling portions of the CMTU
+          interface.  Code generation may be suppressed by setting
+          DEFTRC(OFF) in the Tymfile.  Access to UCM is provided by
+          logging into DDT in the kernel host of the node in which
+          CMTU resides.  When logging into DDT, at the prompt 'please
+          log in' the user should enter:
+
+                      USERNAME:KERNEL HOST NUMBER;PASSWORD
+
+          followed by a carriage return.  When prompted for the slot
+          number, enter the number of the slot in which CMTU resides.
+          At the '*' prompt, the ?STAT command will put the user into
+          UCM.  The prompt (:>) indicates that the UCM is ready to
+          accept commands.
+
+          Command lines are terminated by a carriage return and the
+          arguments are separated from the command and from each other
+          by a space.  A few editing control functions are available.
+
+          An ESCAPE aborts the current command line and returns to the
+          prompt (:>).
+          A control W (^W) discards the partial token already input.
+          A control A (^A) or control H (^H) discards the last
+          character.
+          A control C (^C)terminates current processing in UCM and
+          returns the user to DDT.
+
+          The date is displayed in the format ddmmyy, where dd is the
+          day, mm is the month, and yy is the year.
+
+          The command argument NAME, refers to the 8 characters of the
+          username that was used to login to the CMTU slot.  PORT
+          refers to the TERMINAL port number assigned to that user.
+          This references a unique user logged on to the CMTU slot.
+
+
+          2_._1_._ _ _C_O_M_M_A_N_D_S_ _A_N_D_ _I_N_F_O_R_M_A_T_I_O_N_
+
+
+          2_._1_._1_._ _ _H_E_L_P_
+
+          Syntax: HELP or ?  prints a list of commands available for
+          use in the CMTU operations monitor.
+
+
+
+
+
+
+          June 15, 1987              - 3 -                    CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC  2. THE CMTU OPERATIONS MONITOR
+
+
+
+
+          2_._1_._2_._ _ _I_N_S_T_R_U_C_T_I_O_N_
+
+          Syntax:INST or INS
+
+          Displays a list of available editing characters and the
+          valid delimiter characters.
+
+
+          2_._1_._3_._ _ _Q_U_I_T_
+
+          Syntax:QUIT or Q
+
+          Exits the UTS CMT Operations Monitor to the slot DDT.
+
+
+          2_._1_._4_._ _ _E_X_I_T_
+
+          Syntax:EXIT or EXI
+
+          Logs the user off UCM and DDT; zaps the circuit.
+
+
+          2_._1_._5_._ _ _V_E_R_S_I_O_N_
+
+          Displays a description of the slot in the following format;
+
+          UCM -- UTS CMT Operations monitor  ddmmyy hh:mm:ss
+          NODE:nnnn   SLOTHOST:nnnn   SLOT:ss   VERSION:xx.xx
+
+          ASSM:ddmmmyy hh:mm:ss
+
+
+          The display is interpreted as follows:
+
+
+          NODE:  kernel node number
+          SLOTHOST:  CMTU slot host number
+          VERSION:  version.revision code level
+          ASSM: Date assembled in GMT daymonthyear hour:minute:second
+
+
+
+          2_._1_._6_._ _ _S_T_A_T_E_
+
+          Displays the status of the slot.
+
+              UCM -- UTS CMT Operations Monitor   ddmmyy hh:mm:ss
+              NODE:nnnn   SLOTHOST:NNNN   SLOT:ss   VERSION:xx.xx
+
+              CMTU SLOT STATUS
+
+              MAXUSR:xxxx    #TERM PORTS:xxxx    #CRT PORTS:xxxx
+
+
+
+
+          June 15, 1987              - 4 -                    CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC  2. THE CMTU OPERATIONS MONITOR
+
+
+
+
+          The display is interpreted as follows:
+
+          MAXUSR: Maximum number of simultaneous users permitted
+          #TERM PORTS: Number of terminal ports (represents current users)
+          #CRT PORTS: Number of CRT ports
+
+
+
+          2_._1_._7_._ _ _N_A_M_E_S_
+
+          Displays a table of usernames to the CMTU slot exactly as
+          defined in the Tymfile, including wildcard characters which
+          are displayed as '#'s.
+
+              UCM -- UTS CMT Operations Monitor        ddmmyy hh:mm:ss
+              NODE:nnnn   SLOTHOST:NNNN   SLOT:ss   VERSION:xx.xx
+
+                        TYMFILE DEFINED USERNAMES
+
+                        username
+                        xxxxxxxx
+                        xxxxxxxx
+                        xxxxxxxx
+                        xxxxxxxx
+                        xxxxxxxx
+
+
+
+          2_._1_._8_._ _ _M_E_N_U_
+
+          Syntax:MENU USERNAME
+
+          Displays the screen menu and logon strings (as represented
+          in the Tymfile) associated with all cases of the specified
+          username.  The displayed logon strings represent the
+          destination information used in stored logons.  The network
+          logon string is displayed first, followed by the
+          corresponding RID/SID information.
+
+              UCM -- UTS CMT Operations Monitor     ddmmyy hh:mm:ss
+              NODE:nnnn   SLOTHOST:NNNN   SLOT:ss   VERSION:xx.xx
+
+              SCREEN MENU
+
+              TO HOSTA - nnnn
+              MANUAL LOGON
+
+              LOGON STRINGS
+
+              USERID nnnn
+
+
+          nnnn is the assigned RID,SID - may be 0000
+
+
+
+          June 15, 1987              - 5 -                    CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC  2. THE CMTU OPERATIONS MONITOR
+
+
+
+
+          2_._1_._9_._ _ _U_S_E_R_
+
+          Syntax:USER (USERNAME or PORT XX)
+
+          If an active username is provided, all circuits associated
+          with this username are displayed.  If a TERMINAL port number
+          is provided then only circuits associated with this unique
+          user are provided.
+
+              UCM -- UTS CMT Operations Monitor       ddmmyy hh:mm:ss
+                        NODE:nnnn   SLOTHOST:NNNN   SLOT:ss   VERSION:xx.xx
+
+
+               TPRT:xxxx  LSTR:xxxxxxxx:xxxx
+               HPRT:xxxx  LSTR:xxxxxxxx:xxxx  RID:xx  SID:xx
+
+               The display is interpreted as follows:
+
+
+           TERMINAL/USER INTERACTION
+
+               LSTR: USERNAME AND HOST
+               RID:  REMOTE IDENTIFIER (hex)
+               SID:  STATION IDENTIFIER (hex)
+               TPRT: TERMINAL PORT NUMBER
+               HPRT: HOST PORT
+
+
+          2_._1_._1_0_._ _ _P_O_R_T_S_
+
+          Displays information about the ports associated with each
+          username in the slot.
+              UCM -- UTS CMT Operations Monitor       ddmmyy hh:mm:ss
+              NODE:nnnn   SLOTHOST:NNNN   SLOT:ss   VERSION:xx.xx
+
+              USRNAM:XXXXXXXX TPRT:XXXX HPRT:XXXX
+
+          The display is interpreted as follows:
+
+              USRNAM: USERNAME FOR CMTU LOGIN
+              TPRT: TERMINAL PORT
+              HPRT: CRT PORT
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          June 15, 1987              - 6 -                    CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC  2. THE CMTU OPERATIONS MONITOR
+
+
+
+
+          2_._1_._1_1_._ _ _C_R_A_S_H_
+
+          If CRSTOP is equated to 0 and NCRSAV is equated to n in the
+          Tymfile, the CRASH command displays information about the
+          last n crashes.  Because the crash count is initialized to 1
+          when the slot is started no information other than the crash
+          count is displayed for a slot with a a crash count of 1.
+
+              UCM -- UTS CMT Operations Monitor    ddmmyy hh:mm:ss
+              NODE:nnnn   SLOTHOST:NNNN   SLOT:ss   VERSION:xx.xx
+
+              CRASH COUNT:  XXXX
+              CRASH CODE:   XX
+              CRASH POINT:  XXXXXXXX
+              CRASH CALLED FROM:  XXXXXXXX
+              CRASH TIME:  ddmmyy  hh:mm:ss
+
+              REGISTERS
+
+              xxxxxxxx  xxxxxxxx  xxxxxxxx  xxxxxxxx
+              xxxxxxxx  xxxxxxxx  xxxxxxxx  xxxxxxxx
+              xxxxxxxx  xxxxxxxx  xxxxxxxx  xxxxxxxx
+              xxxxxxxx  xxxxxxxx  xxxxxxxx  xxxxxxxx
+
+
+          2_._1_._1_2_._ _ _I_R_I_N_G_
+
+          Syntax:IRING or IR (PORT1 PORT2 PORT3 or START ADDRESS)
+
+          Outputs at real time display of the IRING with instructions
+          terminating the display.  Optional arguments are up to 3
+          port numbers that the user may wish to limit the trace to,
+          or start address.  If the start address is between messages,
+          UCM may, in scanning for the next port number, locate a byte
+          which it may consider a valid port number.  This may lead to
+          unpredictable results.
+
+              UCM -- UTS CMT Operations Monitor     ddmmyy hh:mm:ss
+              NODE:nnnn   SLOTHOST:NNNN   SLOT:ss   VERSION:xx.xx
+
+              A REAL TIME DISPLAY OF THE IRING FOLLOWS
+              PLEASE TYPE A "/" TO TERMINATE DISPLAY
+
+
+          2_._1_._1_3_._ _ _O_R_I_N_G_
+
+          Syntax:ORING or (PORT1 PORT2 PORT3 or START ADDRESS)
+
+          Outputs a real time display of the oring with instructions
+          for terminating the display.  Optional arguments are up to 3
+          port numbers the user may wish to limit the trace to, or a
+          start address.  If the start address is between messages,
+          UCM may in scanning for the next port number, locate a byte
+
+
+
+          June 15, 1987              - 7 -                    CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC  2. THE CMTU OPERATIONS MONITOR
+
+
+
+
+          which it may consider a valid port number.  This may lead to
+          unpredictable results.
+
+               UCM -- UTS CMT Operations Monitor       ddmmyy hh:mm:ss
+               NODE:nnnn   SLOTHOST:NNNN   SLOT:ss   VERSION:xx.xx
+
+               A REAL TIME DISPLAY OF THE ORING FOLLOWS,
+               PLEASE TYPE A "/" TO TERMINATE DISPLAY
+
+
+          2_._1_._1_4_._ _ _R_I_N_G_S_
+
+          SYNTAX:RINGS PORT1 PORT2 PORT3
+
+          Outputs a real time display of both rings (alternating iring
+          and oring).  The events in the rings will not necessarily be
+          displayed in the correct sequential order of occurrence.
+          Optional arguments are port numbers the user may wish to
+          limit the trace to.
+
+               UCM -- UTS CMT Operations Monitor       ddmmyy hh:mm:ss
+               NODE:nnnn   SLOTHOST:NNNN   SLOT:ss   VERSION:xx.xx
+
+               A REAL TIME DISPLAY OF ALTERNATING IRING AND
+               ORING FOLLOWS,
+               PLEASE TYPE A "/" TO TERMINATE DISPLAY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          June 15, 1987              - 8 -                    CMTU.ERS
+
+
+
+
+
+
+
+
+
+                      SECTION 3. TERMINAL-USER INTERACTION
+
+
+
+          CMT/UTS interacts with the user and the user's terminal in
+          several ways in order to provide the functions of a UTS
+          terminal.  Which keys on the terminal perform wich UTS
+          functions is dependent upon parameters that are unique to
+          each installation.  Each installation may elect to assign a
+          different terminal key or series of keys to a function.
+
+
+          3_._1_._ _ _E_C_H_O_ _C_O_N_T_R_O_L_
+
+          Certain functions are performed  remotely  by  the  CMT/UTS.
+          This may result in some delay before a character typed at
+          the terminal affects the screen.  Characters may temporarily
+          appear in the wrong place.  When this occurs a short pause
+          by the operator will result in the screen being restored and
+          the misplaced characters being moved to their correct
+          positions.  This pause is necessary only if the operator
+          must visually verify the contents of the screen.  Otherwise
+          the operator can simply continue typing and the CMT/UTS will
+          catch-up very quickly.
+
+          The delay occurs because echoing is sometimes performed
+          remotely by the CMT/UTS.  This results in a delay which is a
+          function of distance and traffic in the network.  The
+          CMT/UTS allows local echoing by the Tymsat when possible.
+          Because of network delay there may be a short period before
+          this can be shut off when Tymsat echoing is not appropriate.
+          This results in echoing into the wrong place.  This is
+          detected and the damage is repaired.  Ordinarily this
+          happens very quickly and can be comfortably ignored once it
+          becomes familiar.
+
+          There is a fundamental trade off between remote echo delay
+          and the ability to reduce to a minimum the number of
+          characters sent over the network.  This reduction is done by
+          the CMTU to avoid sending redundant data to the terminal.
+          Since the CMTU is a stand-alone slot, in order to get the
+          full advantage of the savings it should be positioned closer
+          to the host interface but further from the Consat.  However,
+          the extra distance from the Consat makes remote echoing
+          slower.
+
+
+
+          3_._2_._ _ _L_O_C_A_L_ _T_E_R_M_I_N_A_L_ _F_U_N_C_T_I_O_N_S_
+
+          The UTS terminal has a number of special functions that have
+          immediate effects on the screen or cause transmission to the
+          computer.  They are all described in the Sperry Univac
+
+
+
+          June 15, 1987              - 9 -                    CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC    3. TERMINAL-USER INTERACTION
+
+
+
+
+          Universal Terminal manual.  The actual keys used to
+          implement these functions depend on the installation and the
+          terminal type.  There are however three important additional
+          functions that do not exist on Univac terminals.  They are:
+          ZAP, ZAP HOST and REDISPLAY.
+
+
+          3_._2_._1_._ _ _Z_A_P_
+
+          Upon striking CONTROL Z (irrespective of the terminal type
+          both circuits are zapped and the user is returned to 'please
+          log in:'.  It is recommended that the uerform a host
+          logoff to terminate the current session before invoking this
+          function.
+
+
+          3_._2_._2_._ _ _Z_A_P_ _H_O_S_T_
+
+          Upon striking CONTROL Y (irrespective of the terminal type)
+          only the host circuit is zapped and the user remains
+          connected to the CMT.  The menu screen appears to let the
+          user select another destination host, or because of the menu
+          bypass feature (see section 3.2.5) if there is only a single
+          destination host logon will follow immediately.  It is
+          recommended that the user perform a host logoff to terminate
+          the current session before invoking this function.
+
+
+          3_._2_._3_._ _ _R_E_D_I_S_P_L_A_Y_
+
+          The redisplay function clears the screen and redisplays its
+          current screen buffer.  This is useful, for example, when a
+          message sent from outside the application appears on the
+          screen and overwrites data.  REDISPLAY would return the
+          screen to its original form.  Also one may want to use it
+          whenever it is feared the terminal screen does not match the
+          screen buffer contents.  This may occur - for example - when
+          because of very fast typing and echo delay some damage has
+          been done on the screen and logic that normally should fix
+          it fails for some reason.  This function was first put in to
+          serve as a debugging tool in the process of software
+          developemnt.  Also, on some terminal types (e.g. VT100) the
+          line feed function may cause the undesirable scrolling of
+          the whole screen when the cursor is at the bottom line.  In
+          such cases the line feed key is mapped into the REDSIPLAY
+          function.  This alleviates the problem of scrolling since
+          the screen is erased anyway.
+
+
+
+
+
+
+
+
+
+          June 15, 1987              - 10 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC    3. TERMINAL-USER INTERACTION
+
+
+
+
+          3_._2_._4_._ _ _L_o_g_o_n_ _t_o_ _C_M_T_-_U_T_S_
+
+          A stored logon mechanism is provided in the CMT/UTS.  Upon
+          logon to the CMT/UTS, the user is presented with a menu
+          screen (see section 4.2)
+
+
+                          ---------------------------
+                          |  BRITISH PETROLEUM CMT  |
+                          |    GO TO HOST 701       |
+                          |    STOCK EXCHANGE       |
+                          |    BACKUP COMPUTER      |
+                          ---------------------------
+
+                            Example of a Menu Screen
+
+          The menu screen displays a list of short (one line) des-
+          criptions of possible destinations.  The user then positions
+          the cursor next to the desired line and strikes the XMIT
+          key.  All necessary logon operations are performed
+          automatically.  In the event of a failure, a brief error
+          text would be displayed and the user presented with the
+          option to either zap the circuit or bring back the menu
+          screen for another selection.
+
+
+          3_._2_._5_._ _ _M_e_n_u_ _B_y_p_a_s_s_
+
+          The CMT/UTS streamlines the signon process by minimizing the
+          number of screens the user must view.  The menu bypass
+          function does this in two ways.  If there is only one
+          terminal type in the terminal selection screen, then this
+          screen is bypassed.  The user does not have to make a
+          selection when there is only one item in the list.
+          Similarly if there is only one host in the host selection
+          menu, then this screen is also bypassed.  The host selection
+          is done automatically by the CMT/UTS.
+
+
+          3_._2_._6_._ _ _K_e_y_b_o_a_r_d_ _L_o_c_k_e_d_
+
+          When the keyboard-locked condition is present, no data may
+          be input.  The keyboard may or may not be physically locked,
+          depending on the terminal type; but the CMTU will reject all
+          characters received during the locked condition.
+
+          Typing may resume as soon as the keyboard gets unlocked
+          which occurs when the user unlocks it or, more often, when
+          the host sends a data message without the 'keyboard lock'
+          command.  The primary reason for the host to lock the
+          keyboard is to prevent the user from typing when there is
+          more data pending to be sent by the host.
+
+
+
+
+          June 15, 1987              - 11 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC    3. TERMINAL-USER INTERACTION
+
+
+
+
+          3_._2_._7_._ _ _P_r_i_n_t_e_r_ _S_u_p_p_o_r_t_
+
+          If printer support is available, then the only criteria for
+          required printer is a printer that supports form fields,
+          line feed, carriage return, and sufficient columns for the
+          specific application.  The printer should be connected
+          directly (straight cable) to the auxiliary port of the
+          terminal, which should be correctly set up as specified in
+          the terminal manual (DNDSPEC) CMTERM.ERS.  This document was
+          originally written for CMT/3270, nevertheless the bulk of
+          the information enclosed applies to the CMT/UTS environment
+          as well.
+
+          Certain terminal types do not support a printer.  Check each
+          terminal description to see which ones do.
+
+          Note that even though CMTU supports only 80-column screens,
+          it can support 132-column print applications.  The
+          requirement is that the printer can support 132 columns and
+          has been set up correctly.  There need be no changes to CMTU
+          for 132 versus 80 column wide printing.
+
+          The data characters acturally sent to the printer by CMTU
+          are determined by the field definition and the initiation
+          command been used. If printer handling improvement is
+          enabled (OPTION(TRANSP,YES), see section 4.3.7.1), CMTU will
+          direct data to the printer in different ways depending on
+          the initiation command sent by the host application:
+
+          1.  Initiation command = Print (DC2). CMTU sends the data to
+              the screen and 'print screen sequence' at the end which
+              will print the screen image on the printer.
+
+          2.  Initiation command = Transparent Print (ESC DC2). CMTU
+              sends data directly to the printer without displaying it
+              on the screen. This is different from what the native
+              mode calls for; which is sending the data first to the
+              screen and then to the printer. In other words, after
+              printer operation is completed, the terminal_buffer in
+              CMTU is updated with the last message sent by the host
+              while the physical screen remains the same as the screen
+              before printing. Therefore, in order for user to see it
+              he should type 'REDISPLAY'.
+
+          When printer improvement is disabled, CMTU will send data to
+          the screen followed by printer formatted data to the printer
+          according to the initiation command received. Currently,
+          CMTU supports printer improvement function for VT100
+          terminal only.
+
+          No keyboard input is allowed during printer operation. At
+          the end of the print operation, the keyboard is unlocked.
+
+
+
+
+          June 15, 1987              - 12 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC    3. TERMINAL-USER INTERACTION
+
+
+
+
+          3_._2_._8_._ _ _T_e_r_m_i_n_a_l_ _S_e_t_t_i_n_g_s_
+
+          CMT requires certain terminal settings for the compatibility
+          of the terminal-Consat connection.  The tables below lists
+          all of them together with others that are optional.  How the
+          actual selection of these settings is performed depends on
+          the terminal type and the appropriate terminal manual should
+          be referred to.
+
+
+          SET-UP feature          SETTING           CMT REQUIRED
+          ==============          =======           ============
+
+          cursor click               n
+                                     y              optional
+
+          on line                    n
+                                     y              y
+
+          cursor blink               n
+                                     y              optional
+
+          status                     norm
+                                     rev
+                                     blank
+                                     blink          optional
+
+          auto wrap                  n              n
+                                     y
+
+          auto line feed             n              n
+                                     y
+
+          baud rate                  300
+                                     600
+                                     1200
+                                     2400           300,1200,
+                                     4800           2400,4800
+                                     9600           are optional
+
+          bits                       7
+                                     8             8
+
+          bits                       0
+                                     1             optional
+
+          parity check               n             n
+                                                   y
+
+          parity                      even
+                                      odd           optional
+
+          set duplex mode             hdx
+                                      fdx           fdx
+
+
+          June 15, 1987              - 13 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC    3. TERMINAL-USER INTERACTION
+
+
+
+
+          power                       60 hz         60 hz
+                                      50 hz
+
+          handshake                   no
+                                      dtr
+                                      xon           xon
+
+          xon/xoff                    dc1/dc3       dc1/dc3
+                                      ack/nak
+                                      stx/etx
+
+          answerback                  n             n
+                                      y
+
+          scroll                      jump
+                                      smooth        optional
+
+          auto repeat                 n
+                                      y             optional
+
+          screen                      dark
+                                      light         optional
+
+          cursor                      underline
+                                      block         optional
+
+          margin bell                 on
+                                      off           optional
+
+          1 stop bit                  n
+                                      y             y
+
+          auto scroll                 n             n
+                                      y
+
+          lower case select           n
+                                      y             optional
+
+          auto echo                   n             n
+                                      y
+
+          Disabled parity check, 8 bit character length and proper
+          set-up for XON/XOFF are the most important items in the
+          table.  Also, whenever possible, auto-wrap/scroll/feed
+          functions should be turned off.  This should be done to
+          match terminal-characteristic information contained in the
+          terminal type macro (see section 4.2.7).  Having those
+          functions off enables CMT to have scrolling under its
+          control.  In cases where they cannot be turned off at set-up
+          there is usually a way to prevent a terminal from
+          inadvertently scrolling by issuing a proper command from the
+          CMT (see section 3.2.8).
+
+
+
+
+          June 15, 1987              - 14 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC    3. TERMINAL-USER INTERACTION
+
+
+
+
+          3_._2_._9_._ _ _R_i_g_h_t__J_u_s_t_i_f_i_e_d_ _F_i_e_l_d_
+
+          A right_justified field is defined to allow the user to
+          enter data from right side of the field. The right_justified
+          function works only when the cursor is located in the first
+          (left_most) position of the field. While tying, the cursor
+          remains in the first position, each new character appears in
+          the right_most position while shifting the characters in the
+          field to the left one position. If the field is full, the
+          cursor moves to the next unprotected position.
+
+          To make corrections in a right justified field, the cursor
+          should be moved to the position of the character to be
+          corrected. After making correction, the cursor moves to the
+          next position or stays in the same position if the character
+          corrected is in the last position of the field. The user is
+          prohibited from entering a character which precedes the
+          right justified characters in a partially filled field
+          except the first position of the field.
+
+          There is one case, where the user cannot correct a character
+          in the right justified field. This happens when the user
+          tries to correct the first character in a field which is
+          already full. In this case, the only way to make the
+          correction is to erase the entire field and reenter the
+          data.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          June 15, 1987              - 15 -                   CMTU.ERS
+
+
+
+
+
+
+
+
+
+                             SECTION 4. THE TYMFILE
+
+
+
+          The Tymfile is used as a configuration file for the CMT/UTS
+          interface.  There is only one global level macro necessary
+          to define the configuration, the DEFHST macro.  There is an
+          optional DEFHDR macro, which defines a heading line for the
+          menus.  In addition to these two macros, there are several
+          macros needed to define the menus.
+
+          A few general comments:
+
+          1.  All alphanumeric and control characters have equates for
+              their ASCII to ASCII representations, so that
+              hexadecimal values or the equated symbols for the
+              characters can be used interchangeably throughout the
+              Tymfile.
+
+          2.  All elements, logon strings, and menus are defined with
+              a label as the first parameter.  This label is formed
+              following standard assembler conventions.  The label is
+              then used in all references to the element, string, or
+              menu in the Tymfile.
+
+          3.  The maximum number of simultaneous users for the CMT/UTS
+              is limited by memory requirements and CPU load.  Memory
+              requirements are in one of the following sections.  The
+              CPU load estimate is one transaction per seconds.
+              Because of the nature of the optimization process, the
+              CPU load will become more of a factor that the memory
+              size as a configuration grows.
+
+          4.  The command may be included in the text of strings like
+              the DEFHDR macro string but it must be preceded by a
+              BACKQUOTE.  This is necessary to distinguish between the
+              comma as text and the comma as separating two operands
+              in a macro.
+
+
+          4_._1_._ _ _G_E_N_E_R_A_L_ _M_A_C_R_O_S_
+
+          These macros are defined before the macros that define a
+          menu.
+
+
+          4_._1_._1_._ _ _D_E_F_H_S_T_
+
+          The DEFHST macro defines the host number and the number of
+          users for an interface.  The number of users is the number
+          of simultaneous users allowed on the interface.  The format
+          of the macro is;
+
+                       DEFHST(host num,num of users)
+
+
+          June 15, 1987              - 16 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC                  4. THE TYMFILE
+
+
+
+
+               example:
+                       DEFHST(603,8)
+
+
+
+          4_._1_._2_._ _ _D_E_F_H_D_R_
+
+          The DEFHDR macro defines a heading line to be printed at the
+          top of the CRT screen as a heading to the menu.  Up to 76
+          characters of text are allowed.  Note that commas may be
+          included in the text but that they must be preceded by a
+          left quote.
+
+          The format of the macro is;
+
+                       DEFHDR(text)
+
+               example
+                       DEFHDR(WELCOME TO CMT"2FUTS VER.  1.02)
+
+
+          4_._2_._ _ _S_T_O_R_E_D_ _L_O_G_O_N_ _D_E_F_I_N_I_T_I_O_N_S_
+
+
+          4_._2_._1_._ _ _D_i_s_c_u_s_s_i_o_n_
+
+          Logging into a UTS host via the CMT/UTS is accomplished with
+          either a stored logon definition or choosing the Manual
+          logon option from the MENU.  The sequence of required
+          information for logon is stored in memory and the login,
+          once initiated, is accomplished without user intervention.
+
+          In order to utilize the stored logon mode, various macros
+          have been defined to create the stored logon strings during
+          assembly time.  Thus, at the beginning of a session, the
+          user is confronted with a menu of logon strings and selects
+          the particular one to reach the desired host.  This
+          selection is accomplished by positioning the cursor to the
+          left of the text describing the desired logon string, and
+          striking XMIT.
+
+          ELEMENT - is the basic part of a logon string.  It consists
+          of all the characters required for either a network logon to
+          a UTS host, or the DSP information for that logon, as
+          follows:
+
+          1.  Network logon - composed of a label followed by the
+               logon user username, optional host number, and optional
+               password.
+
+          2.  DSP information - composed of a label followed by
+               requested destination RID and SID addresses.
+
+
+
+
+          June 15, 1987              - 17 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC                  4. THE TYMFILE
+
+
+
+
+          LOGON STRING - is one of the items in a menu for selection.
+          It consists of two elements (net logon and DSP information)
+          that lead to the desired destination host.  It is composed
+          of a label, followed by text describing the destination
+          host, followed by references to the elements that make up
+          this string.
+
+          MENU - is the screen of choices for the user to select.  It
+          consists of the label for this menu, followed by an ordered
+          sequence of logon strings, each referenced by their label.
+
+
+          4_._2_._2_._ _ _P_r_o_m_p_t_ _f_o_r_ _P_a_s_s_w_o_r_d_
+
+          The stored logon processing does not require that the
+          password for the network logon be stored also.  If this
+          operand is missing from the Tymfile, then the CMT/UTS will
+          prompt the user for the password.  This gives additional
+          flexibility for the customer desiring a greater degree of
+          password protection - i.e. those customers who desire to
+          change their passwords often can do so without reloading
+          their CMT/UTS slot.
+
+
+          4_._2_._3_._ _ _D_E_F_E_L_E_
+
+          The DEFELE(label,element) macro defines an element in some
+          logon string and a label to reference it by.  This macro
+          should precede all other macro calls for stored logon.  The
+          maximum number of elements is determined by available space
+          in practice, but is 2**16 in theory.  Each element may not
+          exceed 255 characters.
+
+          1. DEFELE(label,username"BAhost "BBpassword"8D)
+
+          a. label - used to reference this element in DEFSTR
+             macros, required
+          b. username - a valid username, required
+          c. "BA - inserted to indicate colon, optional
+          d. host - a valid host number, optional
+          e. "BB - inserted to indicate a semicolon, ends username
+                  field, required if password follows
+          f. password - a valid password for the username,
+                  required if password is needed,
+                  if password is not needed then parts e and f must be
+                  omitted
+          g. "8D - used to indicate a carriage return, required
+          h. an element defining the login name and password past a
+             gateway must contain both the username and associated
+             password.
+
+          2. DEFELE(label,"RID"SID)
+          a. label - used to reference this element in DEFSTR
+                     macros; required
+
+
+          June 15, 1987              - 18 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC                  4. THE TYMFILE
+
+
+
+
+          b. "RID - requested destination RID in hex (e.g. "2A),
+                   or "00 if no specific RID mapping requested;
+                   required.
+          c. "SID - requested destination SID in hex (e.g. "55),
+                   or "00 if no specific SID mapping requested,
+          required
+
+              examples:
+                      DEFELE(EL0,JOHNDOE"BA700"BBTOPSECRET"8D)
+                      DEFELE(EL1,BUBB"8D)
+                      DEFELE(EL3,"2A"52)
+                      DEFELE(EL4,"2A"00)
+                      DEFELE(EL5,"00"00)
+
+
+          4_._2_._4_._ _ _D_E_F_S_T_R_
+
+          The DEFSTR(label,text,ele0,ele1,ele2,ele3,ele4) macro de-
+          fines a logon string and a label to reference it by.  These
+          macros must follow the DEFELE macros and precede other
+          macros for stored logon.
+
+          1.  DEFSTR(label,text,ele0,...,ele4)
+          a. label - used to reference this string in DEFMEN macro,
+             required
+          b. text - desired text describing this logon string and/or
+             destination host, up to 76 chars, required
+          c. ele - element label as defined by the DEFELE, order of
+             referencing elements is important, up to five elements.
+             At least two are required (network logon and DSP
+             information) for normal logons.  A manual logon is
+             identified by lack of elements.
+
+          Element labels are expected to be in the following order:
+
+                  Position        Element Type
+                  First           CRT Network Logon
+                  Second          CRT DSP Information
+
+          example:
+                  DEFSTR(STRNG0,TO HOST 700,EL0,EL1)
+                  DEFSTR(STRNG1,TO HOST 701,EL2,EL3)
+
+
+
+          4_._2_._5_._ _ _D_E_F_M_E_N_
+
+          The DEFMEN(label,logon string labels) macro defines the set
+          of logon strings for a particular menu and the label with
+          which to refer to this menu in MENUSR macros.  The order of
+          logon string references in this macro call defines the order
+          in which the text of the logon strings will appear on the
+          menu screen.  There can be at most fifteen logon string
+          references per menu.
+
+
+          June 15, 1987              - 19 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC                  4. THE TYMFILE
+
+
+
+
+          1. DEFMEN(label,s0,s1,...,s14)
+
+          a. label - used to reference this menu in MENUSR macro,
+              required
+
+          b. s - logon string label, order of s's defines appearance
+              of logon strings in the menu screen, at least one
+             is required
+
+          example:
+
+                 DEFMEN(MENU1,STRNG1)
+
+
+          4_._2_._6_._ _ _D_E_F_U_S_R_
+
+          The DEFUSR(username) macro defines a username that is valid
+          on this interface.  This macro should follow the definition
+          of all referenced elements, strings, and menus; it should
+          precede the definition of the default terminal type (DEFTTY)
+          and the menu (MENUSR) for this user.  The first 8 characters
+          are checked and must match exactly unless a wildcard
+          character ("00) is specified.  For example, if the username
+          TEST is defined as TEST is defined as:
+
+               DEFUSR(TEST)
+
+          only the 4 character username 'TEST' will be valid.
+          However, if it is defined as:
+
+               DEFUSR(TEST"00"00"00"00)
+
+          any username beginning with the 4 characters 'TEST' will be
+          accepted as valid.
+
+
+          4_._2_._7_._ _ _D_E_F_T_T_Y_
+
+          The DEFTTY(relative) macro defines the default terminal type
+          associated with the preceding DEFUSR macro.  The relative of
+          a terminal type is determined by the order that the terminal
+          types are defined in the DEFTRM macro (see below).  A value
+          of -1 in the DEFTTY macro will cause the select terminal
+          type screen to be displayed.  The list of valid terminal
+          types for each version of code is listed in a separate
+          section of this document.
+
+          DEFTTY(0)               : First terminal type in DEFTRM
+          DEFTTY(2)               : Third terminal type in DEFTRM
+          DEFTTY(-1)              : Allow selection at login
+
+
+
+
+
+
+          June 15, 1987              - 20 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC                  4. THE TYMFILE
+
+
+
+
+          4_._2_._8_._ _ _M_E_N_U_S_R_
+
+          The MENUSR(menu label) assigns a menu to the username just
+          defined.  The three macros, DEFUSR, DEFTTY< and MENUSR<
+          should be specified for each username to be valid on the
+          interface.  For example:
+
+                 DEFUSR(TEST)
+
+                 DEFTTY(-1)
+
+                 MENUSR(MENU1)
+
+
+          4_._2_._9_._ _ _D_E_F_T_R_M_
+
+          The DEFTRM macro causes all information necessary to support
+          a particular terminal type to be included.  Only terminal
+          types defined in the DEFTRM macro will function on the
+          CMT/UTS; only those terminal types desired on the interface
+          need to be included.
+
+          Currently available terminal types and their related macro
+          names are listed in section 4.
+
+          example:
+           DEFTRM  MACRO  [
+                 VT100M          : DEC VT100
+                 TELE95          : TELEVIDEO-950
+
+
+
+          4_._3_._ _ _M_I_S_C_E_L_L_A_N_E_O_U_S_
+
+
+          4_._3_._1_._ _ _A_d_d_r_e_s_s_e_s_ _-_ _R_I_D_,_S_I_D_,_D_I_D_
+
+          RID, SID and DID can be defined in the Tymfile for the
+          purpose of initial call set up to the host interface (they
+          are equivalent to RID, SID and DID identifying every station
+          in the UTS Native Mode, and entered into a Univac terminal
+          through the control page).  However, due to non-native mode
+          environment where there is no polling these parameters are
+          of no importance besides the original call set-up (they are
+          used at calling address packet).  They are predefined in I-
+          file with arbitrary values and there seems to be to be no
+          need to ever redefine them.
+
+          example:
+                 RID  EQ   2A
+                 SID  EQ   54
+                 SID  EQ   70
+
+
+
+
+          June 15, 1987              - 21 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC                  4. THE TYMFILE
+
+
+
+
+          4_._3_._2_._ _ _T_r_a_n_s_m_i_t_ _M_o_d_e_ _(_X_M_T_M_D_)_
+
+          Setting up the transmit mode is equivalent to the same
+          operation on the UTS terminal within the control page.  The
+          permitted entries here are ALL/VAR/CHAN for
+          ALL/VARIABLE/CHANGED.  The default selection is VAR.  It
+          should normally not be changed.
+
+          example:
+               XMTMD EQ ALL
+
+
+
+          4_._3_._3_._ _ _C_R_S_T_O_P_
+
+          CRSTOP determines whether the CMT/UTS slot continues proces-
+          sing or not after a crash.  The default is to continue
+          processing, to cause the slot to stop, CRSTOP must be 1.  If
+          more than one crash table is to be displayed with the CRASH
+          command of COM then CRSTOP must be set to 0 and NCRSAV set
+          to N (number of tables to be saved).
+
+          example:
+                CRSTOP EQ 1
+
+
+
+          4_._3_._4_._ _ _N_C_R_S_A_V_
+
+          NCRSAV defines the number of crash tables to save.  The
+          CRASH command of COM will display N crash tables if CRSTOP
+          is set to 0 and NCRSAV is set to N.  The default is one
+          table.
+
+
+          4_._3_._5_._ _ _N_B_F_L_E_T_
+
+          NBFLET will define the total number of bufferlets for the
+          slot.  This bufferlet pool will be divided between the users
+          and is used for storing characters when CMT/UTS cannot
+          process them for any reason.  For example if CMT/UTS is
+          processing a long message from the host and a second message
+          came in before the optimizer finished with the first one, it
+          is possible that some of the data would be buffered.
+
+          Another likely situation for buffering is for customers with
+          a broadcast-type application.  This is where the host
+          computer sends messages to a number of terminals without
+          being specifically requested to do so by each terminal.  One
+          example of this might be unsolicited messages being sent to
+          all printers in a system.  Another example might be a stock
+          quote application, that would periodically update a set of
+          terminals.  Broadcast applications could easily overflow the
+
+
+
+          June 15, 1987              - 22 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC                  4. THE TYMFILE
+
+
+
+
+          standard allocation of bufferlets.  In this case a larger
+          number of bufferlets would be required.  The current formula
+          in the I-file for the total number of bufferlets should be
+          sufficient for normal operation even with a printer.
+
+          example:
+                NBFLET EQ $A700
+
+
+
+          4_._3_._6_._ _ _N_S_C_R_N_
+
+          NSCRN represents the number of screen buffers assigned to
+          the interface.  Because of the optimization process which
+          compares the old screen with the new one to avoid sending
+          duplicate characters to the terminal it will require more
+          than one screen buffer per user.  If too few buffers are
+          originally selected there may be a danger of running out of
+          them during the program execution.  If this ever happens a
+          user will be disconnected with a relevant message appearing
+          on his terminal screen.  This may happen without any prior
+          warning as buffers are being 'captured' and 'released'
+          dynamically depending on the current need for screen memory,
+          which again depends on the number of users logged on and the
+          level of their activities at any particular moment.
+          Assigning too many screen buffers may be expensive in memory
+          (see section 4.5).  If there is no definition of NSCRN
+          within the Tymfile, a default value will be chosen.
+          Currently, the following formula is being used for this
+          purpose:
+                   NSCRN = 2+(num of users)+(num of users)/6
+
+          It should be stressed that running a host interface with the
+          Early Data Forwarding or Data Segmentation mode normally
+          requires slightly more screen buffers.  The above formula
+          assumes this operation mode and takes it into account.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          June 15, 1987              - 23 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC                  4. THE TYMFILE
+
+
+
+
+          4_._3_._7_._ _ _O_P_T_I_O_N_ _M_A_C_R_O_
+
+          This macro defines optional system parameters. The format of
+          the macro is;
+
+                OPTION(LABEL,VALUE)
+
+          Where LABEL is defined as VALUE.
+
+
+          4_._3_._7_._1_._ _ _P_R_I_N_T_E_R_ _I_M_P_R_O_V_E_M_E_N_T_
+
+               OPTION(TRANSP,VALUE)
+
+          a.  TRANSP is the label used to define printer improvement
+              function.
+
+          b.  VALUE can be 'YES' or 'NO'. If VALUE is defined as
+              'YES', printer improvement function is enabled,
+              otherwise it is disabled. The default VALUE is 'NO'.
+
+
+
+          4_._4_._ _ _F_U_N_C_T_I_O_N_ _K_E_Y_ _A_S_S_I_G_N_M_E_N_T_S_
+
+          The function key default assignment table is a macro that
+          consists of numerous LEVELn statements.  Each LEVELn
+          statement defines a single key stroke that is typed to
+          invoke a UTS function.  LEVEL1 is the first key stroke of
+          the sequence.  Likewise LEVEL2, LEVEL3, LEVEL4 and LEVEL5
+          define the seconds, the third, the fourth and the fifth key
+          strokes if they exist.  The LEVELn statement has either 2 or
+          3 parameters.  The first parameter is a pneumonic for the
+          character to be typed.  For example, A.I is an ASCII 'I'.
+          The second parameter is either 0 or 1.  A '0' indicates that
+          an additional key stroke (LEVELn) is needed for the function
+          being defined.  No third parameter is present.  A '1'
+          indicates this is the last key stroke (LEVELn) of the
+          function.  A third parameter must follow.  The third
+          parameter is the name of the function that is being defined.
+          For example:
+
+                  LEVEL1(A.BS,1,BACKSP :CONTROL H IS BACKSPACE
+
+          The above defines a single key stroke sequence used to
+          invoke BACKSP function or
+
+          LEVEL1(A.ACK,0) LEVEL2(A.H,1,CHOME) :CONTROL F, H IS CURSOR
+          HOME
+
+          which defines a two key stroke sequence to invoke the CURSOR
+          HOME function.
+
+
+
+
+          June 15, 1987              - 24 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC                  4. THE TYMFILE
+
+
+
+
+          Complete keyboard default assignment tables for all
+          supported terminals are in section 5.  If there are any
+          desired changes the following procedure should be followed.
+          A copy of the function key default assignment table should
+          be included at the end of the T0x file.  Edit the desired
+          changes into this copy.  NAD must be instructed to ignore
+          the copy that is in the initialization file.  This is
+          accomplished via a KILL 'macroname' assembler directive that
+          must precede the table.  When the interface is assembled,
+          the changes you have made in the table will take effect.  At
+          present the following terminal types and their associtated
+          keyboard function tables are defined in the initialization
+          file:
+
+          Terminal Type         Macro Name
+          =============         ==========
+
+            VT100               CTRVT1
+            TELEVIDEO-950       CTRT95
+
+             For example:
+
+                  KILL    CTRVT1
+          CTRVT1  MACRO  [
+                  LEVEL1(A.SUB,1,KILL)       :CONTROL Z IS KILL
+                  LEVEL1(A.EM,1,KILHST)      :CONTROL Y ZAPS ONLY HOST
+                  LEVEL1(A.CR,1,CURRET)      :CARRIAGE RET. IS RETURN
+                          "
+                          "
+                          "
+                          "
+                  LEVEL1(A.ENQ,0)            :CONTROL E IS FIRST KEY
+                  LEVEL2(A.D,1,ERDSP)        :D IS ERASE DISPLAY
+                  LEVEL2(A.F,1,ERFLD)        :F IS ERASE TO END OF
+                                             :FIELD.
+
+          The above set of macros included after the DEFTRM macro in
+          the Tymfile would change the default assignments for the
+          VT100 after re-assembling the interface.  Nevertheless,
+          there should be no attempt to change the assignments of
+          three key sequences, namely: CONTROL Z, CONTROL Y and CONTRL
+          U.  They are used to implement ZAP, ZAP HOST and UNLOCK
+          KEYBRD respectively.  Currently these three can NOT be
+          changed.
+
+
+
+          4_._5_._ _ _M_E_M_O_R_Y_ _R_E_Q_U_I_R_E_M_E_N_T_S_
+
+          The amount of memory required for the CMT/UTS can be readily
+          estimated using the following formula in decimal Kbytes:
+
+          = 43 + 5.5*(num of users) + NSCRN*(2 + FCCSIZ)
+          where:
+
+
+          June 15, 1987              - 25 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC                  4. THE TYMFILE
+
+
+
+
+          NCSRN - number of screen buffers (see section 4.3.6)
+          FCCSIZ - size of the FCC storage area per screen
+                   (must be defined in INIT file)
+
+          FCCSIZ represents the UTS graphic attributes storage area.
+          It will grow larger when more FCC's per screen must be
+          sysgened.  If a user can estimate in advance the maximum
+          number of FCC's a substantial amount of memory may be saved.
+          FCCSIZ is derived by the following equation:
+
+          
+FCCSIZ = 4 * (num of FCC's per screen)/1000
+
+          Currently the number of FCCs is fixed at 384 (16 per screen
+          line).  Combining this value with the current algorithm for
+          NSCRN one can obtain a more direct formula for the total
+          required CMT/UTS memory in the present configuration:
+
+                -----------------------------------------------
+                |MEMORY(dec. K-bytes) = 50 + 9*(num of users) |
+                -----------------------------------------------
+
+          This formula assmes one terminal type and is accurate within
+          5%.  For every additional terminal type 1-K of extra memory
+          should be allowed.
+
+
+
+          4_._6_._ _ _S_A_M_P_L_E_ _C_O_M_M_A_N_D_ _F_I_L_E_
+
+          TITLE CMTU...ASCII TERMINAL TO UTS TRANSLATOR
+          ;;
+          ;A(BETATEST)CMTU01.I06
+          ;A(BETATEST)CMTU01.T06
+          ;A(BETATEST)CMTU01.R06
+          1;FCMTU01.N06
+          SEG0,S0SIZE;P
+          SEG1,S1SIZE;P
+          SEG2,S2SIZE;P
+          SEGD,SDSIZE;P
+          CTA,CTASIZ;P
+          %P%Q
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          June 15, 1987              - 26 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL REFERENCE SPEC                  4. THE TYMFILE
+
+
+
+
+          4_._7_._ _ _S_A_M_P_L_E_ _T_Y_M_F_I_L_E_
+
+          :******************************************************
+          :          FILE:  CMT/UTS
+          :  COMPANY NAME:  BRITISH PETROLEUM
+          :   NODE NUMBER:  2217
+          :   KERNEL HOST:  217
+          :   SLOT NUMBER:  01
+          :       VERSION:  1.02
+          :          DATE:  14 FEB 85
+          :      INITIALS:  KRR
+          :******************************************************
+          :
+              DEFHST(603,8)                   :HOST 601, 8 USERS
+              DEFHDR(BRITISH PETROLEUM CMT"2FUTS VERSION 1.02)
+          :
+          CRSTOP  EQ      1                       :HALT ON CRASH
+          :
+          :OPTIONAL SYSTEM PARAMETERS
+          :
+              OPTION(TRANSP,YES) :YES=enable printer improvement
+                                 :NO =disable printer improvement
+          :
+          :DEFINE  A STORED LOGON
+          :
+                  DEFELE(TO971,UTSTEST"BA971"BBENGINEER"8D)
+                  DEFELE(ADR1,"2A"55)      : rid 52, sid 125
+                  DEFELE(ADR2,"2A"56)      : rid 52, sid 126
+          :
+          :  DEFINE STRINGS
+          :
+                  DEFSTR(W971A,TO HOST 971,TO971,ADR1)
+                  DEFSTR(W971B,TO HOST 971,TO971,ADR2)
+                  DEFSTR(MANLG,MANUAL LOGON)
+          :
+          :   MENU DEFINITIONS
+          :
+                  DEFMEN(MENU0,W971A,MANLG)
+                  DEFMEN(MENU1,W971B)
+          :
+          : DEFINE USERS
+          :
+             DEFUSR(RUDMAN)        :USER 0
+              DEFTTY(0)
+              MENUSR(MENU0)
+             DEFUSR(UKOPS)         :USER 1
+              DEFTTY(0)
+              MENUSR(MENU1)
+
+             DEFTRM  MACRO [
+                  VT100M          :DEFINE VT100
+                  PT100M   ]
+
+
+
+
+          June 15, 1987              - 27 -                   CMTU.ERS
+
+
+
+
+
+
+
+
+
+             SECTION 5. KEYBOARD MAP TABLES FOR SUPPORTED TERMINALS
+
+
+
+          The following tables show default keyboard mapping of
+          various UTS functions for all supported terminal types.  The
+          left column lists major UTS keyboard functions and columns
+          to the right depict what keys must be pressed on a given
+          terminal to invoke those functions.  In some cases a
+          terminal has a key which closely resembles a UTS key; such a
+          similarity will be preserved whenever possible.  If not
+          possible, or a similar key does not exist a unique control
+          sequence is selected.  If another mapping is desired, the
+          procedure to follow is described in section 3.4.
+
+               F    means CONTROL F (upper/lower case irrelevant)
+              (s)   means press shift key
+
+          UTS FUNCTION        VT100      TELEV-       ?          ?
+          ==============     ========   ========   ========   ========
+
+          ZAP CIRCUITS       Z         Z
+          ZAP HOST CIRC.     Y         Y
+          UNLOCK KEYB.       U         U
+          RETURN             RETURN     RETURN
+          MESSAGE WAIT       BREAK      BREAK
+          REDISPLAY          LFEED      LFEED
+          TRANSMIT           ENTER      X
+          FORW. TAB          TAB        TAB
+          BACK. TAB          F B       BK.TAB
+          BACKSPACE          BACK SP.   F B
+          CURSOR HOME        F H       HOME
+          CURSOR DOWN        CUR.DW.    C
+          CURSOR UP          CUR.UP     CUR.UP
+          CURSOR LEFT        CUR.LF.    CUR.LF.
+          CURSOR RIGHT       CUR.RT.    CUR.RT.
+          DELETE IN LINE     D I       D I
+                             or DEL     or DEL
+          DELETE LINE        D L       D L
+          DELETE DISPLAY     D D       D D
+          ERASE DISPLAY      E D       E D
+          ERASE TO END
+              OF FIELD       E F       E F
+          ERASE TO END
+              OF LINE        E L       E L
+          ERASE TO END
+              OF DISPLAY     E E       E E
+          SET SOE            F        F
+          INSERT TAB         F T       F T
+          INSERT IN LINE     F I       F I
+          INSERT IN DISP.    F D       F D
+          INSERT LINE        F L       F L
+          DUPLICATE LINE     F P       F P
+          FUNCTION KEYS:
+
+
+          June 15, 1987              - 28 -                   CMTU.ERS
+
+
+
+
+          CMTU EXTERNAL 5. KEYBOARD MAP TABLES FOR SUPPORTED TERMINALS
+
+
+
+
+                   F1        ESC 1       F1
+                   F2        ESC 2       F2
+                   F3        ESC 3       F3
+                   F4        ESC 4       F4
+                   F5        ESC 5       F5
+                   F6        ESC 6       F6
+                   F7        ESC 7       F7
+                   F8        ESC 8       F8
+                   F9        ESC 9       F9
+                   F10       ESC 0       F10
+                   F11       ESC (s)1    F11
+                   F12       ESC (s)2    (s)F1
+                   F13       ESC (s)3    (s)F2
+                   F14       ESC (s)4    (s)F3
+                   F15       ESC (s)5    (s)F4
+                   F16       ESC (s)6    (s)F5
+                   F17       ESC (s)7    (s)F6
+                   F18       ESC (s)8    (s)F7
+                   F19       ESC (s)9    (s)F8
+                   F20       ESC (s)0    (s)F9
+                   F21       F 1        (s)F10
+                   F22       F 2        (s)F11
+
+          KEYBOARD LOCK
+
+          INDICATOR          LED 1       NONE
+
+          MESSAGE WAIT
+
+          INDICATOR          LED 2       NONE
+          ****
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          June 15, 1987              - 29 -                   CMTU.ERS
+
+
+
+
+
+
+
+
+
+                               TABLE OF CONTENTS
+
+
+
+
+          1 PREFACE ..............................................   2
+
+
+          2 THE CMTU OPERATIONS MONITOR ..........................   3
+
+             2.1 COMMANDS AND INFORMATION ........................   3
+                2.1.1 HELP .......................................   3
+                2.1.2 INSTRUCTION ................................   4
+                2.1.3 QUIT .......................................   4
+                2.1.4 EXIT .......................................   4
+                2.1.5 VERSION ....................................   4
+                2.1.6 STATE ......................................   4
+                2.1.7 NAMES ......................................   5
+                2.1.8 MENU .......................................   5
+                2.1.9 USER .......................................   6
+                2.1.10 PORTS .....................................   6
+                2.1.11 CRASH .....................................   7
+                2.1.12 IRING .....................................   7
+                2.1.13 ORING .....................................   7
+                2.1.14 RINGS .....................................   8
+
+
+          3 TERMINAL - USER INTERACTION ..........................   9
+
+             3.1 ECHO CONTROL ....................................   9
+
+             3.2 LOCAL TERMINAL FUNCTIONS ........................   9
+                3.2.1 ZAP ........................................  10
+                3.2.2 ZAP HOST ...................................  10
+                3.2.3 REDISPLAY ..................................  10
+                3.2.4 Logon to CMT-UTS ...........................  11
+                3.2.5 Menu Bypass ................................  11
+                3.2.6 Keyboard Locked ............................  11
+                3.2.7 Printer Support ............................  12
+                3.2.8 Terminal Settings ..........................  13
+                3.2.9 Right Justified ............................  15
+
+
+          4 THE TYMFILE ..........................................  16
+
+             4.1 GENERAL MACROS ..................................  16
+                4.1.1 DEFHST .....................................  16
+                4.1.2 DEFHDR .....................................  17
+
+             4.2 STORED LOGON DEFINITIONS ........................  17
+                4.2.1 Discussion .................................  17
+                4.2.2 Prompt for Password ........................  18
+                4.2.3 DEFELE .....................................  18
+                4.2.4 DEFSTR .....................................  19
+
+
+          June 15, 1987              - i -                    CMTU.ERS
+
+
+
+
+          CMTU External Reference Spec               TABLE OF CONTENTS
+
+
+
+
+                4.2.5 DEFMEN .....................................  19
+                4.2.6 DEFUSR .....................................  20
+                4.2.7 DEFTTY .....................................  20
+                4.2.8 MENUSR .....................................  21
+                4.2.9 DEFTRM .....................................  21
+
+             4.3 MISCELLANEOUS ...................................  21
+                4.3.1 Addresses - RID,SID,DID ....................  21
+                4.3.2 Transmit Mode (XMTMD) ......................  22
+                4.3.3 CRSTOP .....................................  22
+                4.3.4 NCRSAV .....................................  22
+                4.3.5 NBFLET .....................................  22
+                4.3.6 NSCRN ......................................  23
+                4.3.7 OPTION MACRO ...............................  24
+                4.3.7.1 PRINTER IMPROVEMENT ......................  24
+
+             4.4 FUNCTION KEY ASSIGNMENTS ........................  24
+
+             4.5 MEMORY REQUIREMENTS .............................  25
+
+             4.6 SAMPLE COMMAND FILE .............................  26
+
+             4.7 SAMPLE TYMFILE ..................................  27
+
+
+          5 KEYBOARD MAP TABLES FOR SUPPORTED TERMINALS ..........  28
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          June 15, 1987              - ii -                   CMTU.ERS
+
+
+
+ .  q‘
