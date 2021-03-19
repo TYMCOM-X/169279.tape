@@ -1,0 +1,1779 @@
+
+::                                      Last updated by SWONG, 07-May-84
+
+:       *****************************************************
+:       *****    SPECIAL PATCH FILE FOR VERSION 2.02    *****
+:       *****      CREATED BY TYMNET INTERNATIONAL      *****
+:       *****           FILENAME : PACX02.P02           *****
+:       *****     TO BE ASSEMBLED AFTER  XCOM02.P02     *****
+:       *****************************************************
+
+:       >>>>>   START PATCHES HERE      <<<<<
+
+
+
+:PATCH 001   CREATED BY S/WONG AT 13 JUNE 83
+:HERE CALL ORIGINATED EXTERNALLY AT A PAD.
+:WHEN X INTERFACE RECEIVES SET TERMINAL PARAMERTER MSG, IT REPLIES ECHO 
+:OFF TO TYMCOM. AT THIS TIME, IT SHOULD SKIP TO SEND ENTER DEFERRED ECHO
+:MSG TO TYMCOM.
+:THIS PATCH SHOULD BE INCORPORATED INTO ALL FUTURE RELEASE.
+  
+PATCH(830613,1700,SKW,STP30A+6E,,4)
+        J       STP30C			:Was  LB  R0,DPRM,,
+ENDPATCH(Do not send Enter Deferred Echo message to a Tymcom)
+
+  
+:PATCH 002  CREATED BY S/WONG  AT 29 JUN 83
+:IF TPAD RECEIVES THE READ-ONLY PARAMETER, IT WILL GENERATE
+:ERROR PARAMETER INDICATION. THIS PATCH IS TO STOP TPAD
+:FROM REPORTING ERROR INDICATION FOR PARAMETER 6-SUPPRESS
+:PAD SERVICE SIGNALS
+:THIS PATCH SHOULD BE INCORPORATED INTO ALL FUTURE RELEASES.
+  
+PATCH(830629,1230,SKW,L1TBL4+18,,2)
+        HC      L1PXE+6-L1TBL
+CONPATCH(L1TBL4+1A,,2)
+        HC      L1PXE+6-L1TBL
+ENDPATCH(Stop TPAD from reporting error indication for Parameter 6)
+
+
+:PATCH 003   CREATED BY J/MCKIERNAN AT 11 AUG 83
+:IF THE CALLING/CALLED ADDRESS LENGTH IS ZERO IN THE CALL CONNECTED INFO
+:FIELD OF IIX-8F MSG, DON'T ZERO OUT THE DTESAX AND DTESAV.
+:THIS PATCH SHOULD BE INCORPORATED INTO ALL FUTURE RELEASE.
+
+   IF  X.75
+PATCH(830811,1200,JPM,ESPF,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,042)
+	LHL	R1,DIBUF
+	CBCT(R4)
+	LR	R4,R4
+	JE	CONTRK,,
+ESPF05	JAL	R4,GCI,,	:GET CALLING/CALLED ADDRESS LENGTHS
+	LR	R5,R0
+	NHI	R5,0F		:FIND CALLED  ADDRESS LENGTH
+	SRHLS	R0,4		:FIND CALLING ADDRESS LENGTH
+	LR	R7,R0		:
+	LR	R5,R5		:GET CALLED  ADDRESS LENGTH
+	JE	ESPF20,,	:JUMP IF NO ADDRESS FOLLOWS
+	LHL	R6,IPORT
+	SLLS	R6,3		:FORM INDEX
+	STB	R5,DTESAX,R6,	:STORE CALLED ADDRESS LENGTH
+	AIS	R6,1
+	LHL	R1,DIBUF
+	J	ESPF10,,
+ENDPATCH( Do not zero out DTESAX and DTESAV buffer if no addresses )
+   EI  X.75
+  
+  
+  
+:PATCH 004  CREATED BY J/MCKIERNAN AT 30 AUG 83
+:IF THE ASYNC INTERFACE SENT OUT A B1 17 00(STP) WHICH WOULD BE
+:CONVERTED TO A SET 07:02(RESET ON BRAK), IT CAUSED THE CALL RESET
+: TO TAKE PLACE ON RECEIPT OF A BREAK. THIS PATCH USES 07:01(INTERRUPT
+: ON BREAK) FOR B1 17 00. IT CAUSES OUTPUT TO BE DISCARDED, WHICH IS
+:CLOSER TO WHAT THE USERS WERE EXPECTING.
+:THIS PATCH SHOULD BE INCORPORATED INTO ALL FUTURE RELEASES.
+  
+PATCH(830830,1500,JPM,STP3HA+10,,4)
+	LHI	R0,01
+ENDPATCH( Use X.3 parameter 7 value of 01 for ISIS STP 17 00 )
+
+
+
+:PATCH 005   CREATED BY J/MCKIERNAN AT 30 SEP. 83
+:WHEN ESC CALL CONNECTED IS RECEIVED, X INTERFACE WILL RESET CALL REQUEST
+:TIMER AND QUEUE UP CALL ACCEPT PACKET. AT THIS POINT, IF NO RESPONSE IS
+:RECEIVED FROM PAD, THE X INTERFACE SHOULD NOT RESTORE X.3 PARAMERTERS.
+:THIS PATCH SHOULD BE INCORPORATED INTO ALL FUTURE RELEASE.
+
+PATCH(830930,1300,JPM,CON040+1E,,4)
+	JE	CON041+50
+ENDPATCH( Do not restore X.3 parameters if no response yet )
+  
+  
+
+:PATCH 006  CREATED BY C/STUTZMAN AT 20 OCT 83
+:IN TURKEY MODE RECEIVING DATA MESSAGE, X I/F WILL CONVERT IT TO
+:DATA PACKET. IF THE END OF THE MESSAGE IS REACHED AND DATA PACKET
+:IS NOT FULL YET, THIS PATCH WILL PREVENT THE SPLTTING OF X.25
+:DATA PACKET.
+:THIS PATCH SHOULD BE INCORPORATED INTO ALL FUTURE RELEASES.
+  
+PATCH(831020,1330,STUTZMAN,ESD100+6,,0C)
+	GL	ESD125		:Define new label
+	JE	ESD125,,	:Jump if completed current ISIS message
+	J	PA1PTR,,	:Jump to patch area to continue original logic
+				:that the insertion of this patch destroyed.
+CONPATCH(PA1PTR,,26)
+	JAL	R4,GETCH,,	:Continue with the original logic that was
+	JAL	R4,WCI,,	:destroyed when the above patch was inserted.
+	SIS	R6,1		:Resume original logic
+	J	ESD100,,
+ESD125	STH	R6,DNCNT,R7,R7	:Save unfinished packet length for next time
+	JAL	R4,ELIR,,	:Clean up IRING
+	J	MMFRA,,		:Return to main dispatcher logic
+ENDPATCH(Fix splitting of X.25 data packets in turkey mode problem)
+  
+  
+
+:PATCH 007  CREATED BY C/STUTZMAN AT 20 OCT 84
+:THE DOCUMENTATION OF THIS PATCH GIVEN BY THE AUTHOR IS DETAILED
+:AS BELOW:
+:THIS PATCH SHOULD BE INCORPORATED INTO ALL FUTURE RELEASES.
+
+	IF	LAP!LAPB
+PATCH(840229,1425,STUTZMAN,PRIDEC+PRESET*STAT.L+8,,6)
+	HC	PRRINF-PRIDEC	:Process RR frame as if in info xsfer
+	HC	PRNINF-PRIDEC	:Process RNR frame as if in info xsfer
+	HC	PRJINF-PRIDEC	:Process REJ frame as if in info xsfer
+:
+: This patch allows us to process RR, RNR or REJ frames after we have just
+: sent a SARM or SABM.  This allows for the case where the other guy rotates
+: the window on a iframe that we had sent prior to the link reset.  In fact,
+: this happens on a very busy link like the DATAPAC X.75 gateway and is why
+: this patch was developed.
+:
+: Prior to this patch, the RR, RNR or REJ was totally ignored and we ended
+: up retransmitting any unacknowledged iframes starting with N(s)=0.  The
+: other guy thinks that these are new frames and passes them up to his packet
+: level.  Remember, these frames contain the exact same packet level data
+: as the frames we had sent prior to the reset.  What his packet level finds
+: is a packet with the same P(s) as he had already seen.  Usually, the other
+: guy will then send a packet level reset.  It is interesting that in this
+: case, the frame level is screwing up the packet level.
+:
+: This scenario is covered in both CCITT X.25 and X.75 and the way that our
+: works prior to this patch is the proper official way to handle this
+: situation.  However, the experience with DATAPAC has indicated that this
+: slightly different way of handling this situation will prevent the packet
+: level from being disrupted.  It is the opinion of the author of this patch
+: that this is an enhancement of the CCITT and should be permanantly implemen-
+: ted in our XCOM software.
+:
+: The CCITT does in fact say that the originator of a reset should reset
+: its frame sequence numbers ONLY AFTER receiving a UA response.  Thus, if
+: the other guy does send us an RR, RNR, or REJ with our old N(s) [his
+: N(r)] prior to his sending the UA, we can properly process the N(r) before
+: resetting our frame level counters to zero.  In this way we avoid retransmit-
+: ting a frame that we had already sent with a different N(s) and, thus, avoid
+: duplicating packet level information which causes packet resets.
+:
+ENDPATCH(Process RR`, RNR or REJ frames in link reset state)
+	EI
+
+
+:PATCH 008  CREATED BY C/STUTZMAN AT 11 APR 84
+:THE DOCUMENTATION OF THIS PATCH GIVEN BY THE AUTHOR IS DETAILED 
+:AS BELOW:
+:THIS PATCH SHOULD BE INCORPORATED INTO ALL FUTURE RELEASES.
+  
+PATCH(840411,1212,STUTZMAN,TIDTCL+0A,,0E)
+:		Tymnet NID (TID) to CCITT throughput class table
+:	This table is updated to include new Tymnet NIDs 18-23 (decimal)
+:	and to adjust the entries for NIDs decimal 10-12 and 15-17.
+:
+:	The logic is also modified to use the gouging level only when the
+:	table entry is zero.  This will allow the correct throughput class
+:	indication to be sent to the other side when the NID accurately
+:	reflects the speed of the terminal.  Prior to this patch, the
+:	throughput class was determined solely by the TYMNET-II gouging
+:	level.  Only for Tymnet-I was the correct throughput class sent.
+:
+	BC	$0 33		:NID 10 = 75 bps (for 110).  TPUT class 3
+				:is used for 110 baud to allow identification
+				:to other TYMNET technology networks and to
+				:distinguish it from 150 baud.
+	BC	0		:NID 11 = Use gouging level (2780).
+	BC	0		:NID 12 = Use gouging level (1200,2400,4800).
+	BC	$0 77		:NID 13 = 1200 bps (No Change).
+	BC	$0 99		:NID 14 = 4800 bps (No Change).
+	BC	$0 33		:NID 15 = 75 bps (Baudot).
+	BC	$0 88		:NID 16 = 2400 bps.
+	BC	0		:NID 17 = Use gouging level (3270 CRT).
+	BC	0		:NID 18 = Use gouging level (3270 printer).
+	BC	$0 99		:NID 19 = 4800 bps.
+	BC	$0 0AA		:NID 20 = 9600 bps.
+	BC	0		:NID 21 = Use gouging level (MPVC).
+	BC	0		:NID 22 = Use gouging level (audio response).
+	BC	$0 73		:NID 23 = 1200/75 bps (video-tex).
+CONPATCH(TCLTID+3,,2)
+:		CCITT Throughput Class to Tymnet NID (TID) table
+:	This table is being modified to change the entries for throughput
+:	classes 3 and 4 in order to allow close approximation to the proper
+:	Tymnet NID.  NID '$0 0CA' (TID "D" for 110 baud) is used for through-
+:	put class 3 to distinguish it from 150 baud which has its own NID.
+	BC	$0 0CA		:Throughput class 3 (75 bps) = 110 baud NID.
+	BC	$0 0C5		:Throughput class 4 (150 bps) = 150 baud NID.
+CONPATCH(NST220-24,,22)
+:	Changes in the dispatcher logic to select a throughput class value
+:	in the call request packet that is sent out on the link when we have
+:	received an ISIS needle.  The changes are two-fold:  1) Always use
+:	the NID/TID to select the appropriate throughput class regardless of
+:	whether TYMNET-I/TYMNET-II bit is set, and  2) Use the gouging level
+:	to determine the CCITT throughput class only when the entries in the
+:	TIDTCL table are zero.  Zero entries in the TIDTCL table should only
+:	be present for NID/TIDs which determine the TYPE of terminal device
+:	originating the call and not the SPEED of the devce.
+	JN	NST220		:Jump if we got a good tput class for this NID
+	LHI	R2,77		:Here if zero entry in TIDTCL.  Load 1200 baud
+				:t.class for these special TYMNET-I NID types.
+	LB	R3,LO6,,	:Get the TYMNET gouging level of this call.
+	CLHI	R3,80		:Test the TYMNET-II bit.
+	JLFS	NST220		:Treat TYMNET-I special NIDs as 1200 baud.
+	NHI	R3,7F		:Mask off the TYMNET-II bit.
+	CLHI	R3,MAXCS	:Check if .GT. highest known gouging level.
+	J	PA1PTR,,	:Continue patch in the patch area.
+CONPATCH(PA1PTR,,1C)
+	JGFS	NST230		:Jump if got a new gouging level.
+	LR	R4,RL		:Get the line number
+	SLLS	R4,CST.SC	:Compute the line offset into the CST.LT table.
+	LB	R2,CST.LT,R3,R4 :Get the tput class from the gouging level.
+	J	NST220,,	:Return to the old logic.
+:	Here if we got a new TYMNET gouging level.  Although this is a less
+:	efficient way of programming this situation, this case shouldn't ever
+:	happen.  Thus, this is more efficient for handling the normal case
+:	where we have a known gouging level.
+NST230	LHI	R2,MAXTC	:Use max CCITT tput class for new gouging level
+	J	NST220,,	:Return to the old logic.
+ENDPATCH(Update TID to/from Throughput Class mapping tables and logic.)
+
+
+  
+:PATCH 009 CREATED BY S/WONG AT 26 APR 84
+: The following patch is to ensure that the XCOM always return
+: Throughput Class in the X.75 Utility Field in the Call Connected
+: Packet. The follow rules apply,
+: 1. If destination host returns a TC, the X.75 will use this one.
+: 2. If destination does not return TC, the X.75 will use the
+:    saved from the original Call Request Packet.
+: 3. A TC is sent by the X.75 even if the requested is the same
+:    as the default value.
+:THIS PATCH SHOULD BE INCORPORATED INTO ALL FUTURE RELEASE.
+
+    IF    X.75
+PATCH(840426,2020,SWONG,ADDTC,,16)
+        LHL     R2,IPORT
+        TBT     R2,TCRCV,,      :TEST IF DESTINATION HOST RETURNS TC
+        JNR     R9              :NORMAL JUMP IF RECEIVED FROM HOST
+        LB      R3,TCLTR,R2,    :GET FINAL TC VALUE
+        AIS     R9,4            :SKIP RETURN AND SEND FINAL TC VALUE
+        JR      R9
+ENDPATCH( Return TC if destination host does not send one in Call Accept)
+    EI    X.75
+  
+  
+  
+:PATCH 010 CREATED BY S/CHOU  AT 09 MAR 84
+:WHEN USER LOGS IN THE XOM OF X I/F,SOME INPUT LENGTHS
+:OF LOGIN STRINGS IN "MODIFY GATEWAY" COMMAND WILL
+:CRASH THE WHOLE SLOT.(E.G.NUMBERS BETWEEN 40 AND 79,
+:8000 OR MORE.
+:THIS PATCH SETS THE MAXIMUN LENGTH OF LOGIN STRING TO 36.
+:IT ALSO CHANGES LH AND AH TO LHL AND A TO PREVENT THE SIDE
+:EFFECT OF LH AND AH(PROPAGATING MSB THROUGH HIGH ORDER
+:BYTE-BITS 0:15).
+:THIS PATCH SHOULD BE INCORPORATED INTO ALL FUTURE RELEASE.
+
+     IF   XOM
+PATCH(840309,1025,SCHOU,XMCGA6+12,,06)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        LHL     R1,XOMPAR+6,R9,         :LOAD LENGTH OF STRING TO REG.1
+        CLHI    R1,20                   :TEST IF OVER THE MAXIMUM LENGTH
+        JG      TOEXOM,,                :TABLE OVERFLOW ERROR
+        J       XMCGA6+18,,
+CONPATCH(XMCGA6+1A,,6)
+        A       R1,GAFREE,,             :ADD LENGTH OF STRING TO FREE POINTER
+CONPATCH(XMCG15,,06)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,22)
+        LHL     R0,XOMPAR+6,R9,         :LOAD LENGTH OF STRING TO R0
+        CLHI    R0,20                   :TEST IF OVER THE MAXIMUM LENGTH
+        JG      TOEXOM,,                :TABLE OVERFLOW ERROR
+        LHL     R0,XOMPAR+6,R9,         :LOAD LENGTH OF STRING TO R0
+        A       R0,GAFREE,,             :ADD LENGTH OF STRING TO FREE POINTER
+        J       XMCG15+0C               
+ENDPATCH(Change LH to LHL  and set maximum length of string to 36)
+   EI   XOM
+  
+  
+:PATCH 011  CREATED BY S/WONG  AT 06 MAR 84
+:THE FOLLOWING PATCH FORCED THE GATEWAY MACRO FROM PER LINK
+:OPTION INTO GLOBAL OPTION. THIS PATCH IS REQUIRED TO SATISFY THE 
+:NEED OF CUSTOMER USING A LARGE NUMBER OF LINKS AND WITH MANY
+:GATEWAY OPTIONS PER LINK, THUS EXCEEDING THE TOTAL MAXIMUM
+:LIMIT OF 256.
+:IF THIS PATCH IS ASSEMBLED, ALL LINKS IN THE SLOT WILL USE THE 
+:GATEWAY TABLE BELONGING TO THE FIRST LINK! IT ALSO REDUCES THE
+:SYSGEN TIME SIGNIFICANTLY.
+:METHOD: BY SETTING INDEX REGISTER TO GWDNIC TABLE 0, ALL
+:THE LINKS, HAVING THE SAME DNICS, WILL SHARE THE SAME TABLE
+:FOR LDNICS AND LOGIN STRINGS.
+:THIS PATCH SHOULD NOT BE INCORPORATED INTO THE SOURCE CODE, BUT
+:SHOULD BE IN ALL FUTURE SOURCE PATCH RELEASES SO THAT OTHER
+:USER CAN TAKE ADVANTAGE OF THIS UNIQUE FEATURE.
+
+        IF      \MXGATE
+PATCH(840306,1835,SWONG,PCR426+28,,6)
+        L       R4,GWDNIC,,              :PRT TO DNICS FOR THIS LINK
+        IF      XOM
+CONPATCH(XOMGA2+4,,6)
+        L       R8,GWDNIC,,              :PRT TO DNICS FOR THIS LINK
+CONPATCH(XMRPG0+4,,6)
+        L       R8,GWDNIC,,              :PRT TO LINK'S RPOA ENTRIES
+CONPATCH(XMCGA0+6,,6)
+        L       R5,GWDNIC,,              :PRT TO LDNICS TABLE
+CONPATCH(XMCG10,,4)
+        CLHI    R1,0                     :SET NLINK TO 0
+CONPATCH(XMCG10+0C,,6)
+        AM      R0,GWDNIC,,              :DECREMENT ITS FIRST LDNICS ADDRESS
+CONPATCH(XMCG20,,4)
+        CLHI    RL,0                     :SET NLINK TO 0
+CONPATCH(XMCG20+0E,,6)
+        AM      R0,GWDNIC,,              :SET INDEX TO LINK PRT TO 0
+        EI      XOM
+ENDPATCH(Allow one common lookup Gateway DNIC table for all links)
+        EI      MXGATE        
+
+
+:PATCH 012   CREATED BY J/WANG AT 15 JUNE 84
+:WHEN CALL CONNECTED PACKET IS RECEIVED FROM X LINK, THE X INTERFACE SHOULD
+:SET TCRCV BIT ON IF THERE IS A TC IN CALL CONNECTED PACKET. THIS FIXED DOUBLE
+:TC PROBLEM.
+:THIS BUG HAS BEEN FIXED ON VERSION 2.02, BUT NOT ON VERSION 2.01.
+
+:
+:   THIS BUG HAS BEEN FIXED ON VERSION 2.02
+:                          JAMES    
+:
+:PATCH(840615,2350,JWANG,PCAA24+4,,6)
+:        J       PA1PTR,,
+:CONPATCH(PA1PTR,,1C)
+:        STB     R0,TCLTR,R4,
+:        LR      R2,R5
+:        SIS     R2,1                    :POINT TO TC
+:        STB     R0,,R2,                 :STORE FINAL TC
+:        SBT     R4,TCRCV,,
+:        J       PCAA24+0A,,
+:ENDPATCH(FIX DOBULE TC SNET TO NETWORK BY I/F)
+
+
+
+:PATCH 013   CREATED BY J/WANG AT 30 MAY 84
+:THIS PATCH INSERTS CALLED/CALLING ADDRESS INTO CALL CONNECTED PACKET
+:WHEN THE X INTERFACE RECEICES IIX-92 MSG WITH NO CALLED/CALLING ADDRESS.
+:THIS PATCH SHOULD INCORPORATED INTO ALL FUTURE RELEASE.
+
+  
+
+PATCH(840530,1015,JWANG,ESP120-30,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,102)
+        JAL     R4,GCI,,
+        LR      R1,R9
+        LR      R0,R0                   :CHECK IF LEN OF ADDRESS IS ZERO?
+        JN      ESP120-2A,,               :IF NOT ZERO, GO BACK
+        LH      R5,IPORT                :GET CURRENT IPORT
+        SLLS    R5,3
+        LB      R0,DTESAV,R5,           :GET LEN OF CALLING ADDRESS
+        SLLS    R0,4
+        LB      R13,DTESAX,R5,          :GET LEN OF CALLED ADDRESS
+        AR      R0,R13
+        JAL     R4,WCI,,                :STORE LEN OF CALLING & CALLED ADDRESS
+        LIS     R12,0
+        LR      R9,R13
+        AIS     R13,1
+        SRLS    R13,1                   :R13 CONTAINS BYTE COUNTS OF CLDADR
+        SIS     R13,1
+:
+:    modified here. add here two instructions-----
+:      JL CONTI     & JE CLDAD+1A
+:    TO CONSIDER THE CASES OF ONLY 0/1/2 DIGITS OF CALLED ADDRESS
+:    ON CALL REQUEST PACKET COMING FROM THE X LINE.
+        JL      CONTI                   :IF NO CALLED ADDR GO CHECKING CLG ADR
+        JE      CLDAD+1A                :IF 1/2 DIGITS CLD ADR, JUMPS 
+:*****************************************************************************
+CLDAD   LB      R0,DTESAX+1,R12,R5        :GET CALLED ADDRESS
+        JAL     R4,WCI,,                :STORE INTO FACBUFFER
+        AIS     R12,1
+        CR      R12,R13                 :NEXT TO LAST BYTE CALLED ADDRESS?
+        JL      CLDAD                   :IF NOT, JUMP TO CLDAD
+        CR      R12,R13                 :END OF CALLED ADDRESS?
+        JG      CONTI
+        NI      R9,00000001             :LEN OF CLDADR IS ODD?
+        JE      CLDAD                   :IF EVEN,GO BACK TO CLDAD
+        J       ODDCLD                  :JUMP TO HANDLE ODD CALLED ADDRESS
+CONTI   LIS     R12,0
+        LB      R13,DTESAV,R5,
+:     MODIFIED HERE
+:     ADD ----    JE RETRN ----- IF NO CALLING ADDRESS ON CALL
+:                                REQUEST PACKET COMING FROM THE X LINE,JUMP...
+        JE      RETRN                   :IF NO CLG ADR,JUMP BACK TO ESP120
+:***************************************************************************
+        AIS     R13,1
+        SRLS    R13,1                   :R13 CONTAINS BYTE COUNT OF CLGADR
+CLGAD   LB      R0,DTESAV+1,R12,R5        :GET CALLING ADDRESS
+        JAL     R4,WCI,,                :STORE INTO FACBUFFER
+        AIS     R12,1
+   CR      R12,R13                 :END OF CALLING ADDRESS?
+        JL      CLGAD                   :IF NOT, GO BACK TO CLGAD
+        LHL     R1,DIBUF,,
+        J       ESP120,,
+ODDCLD  LB      R0,DTESAX+1,R12,R5      :GET LAST BYTE OF CALLED ADDRESS
+:
+:   MOVE ODDCLD   LIS   R12,0 DOWN TO THE LOCATION BEFORE CLGAD1
+:********************************************************************
+        LB      R13,DTESAV,R5,
+        AIS     R13,1
+        SRLS    R13,1                   :R13 CONTAINS BYTE COUNT OF CLGADR
+        SRLS    R0,4                    :DISCARD THE LAST DIGIT
+        LIS     R12,0
+CLGAD1  LB      R9,DTESAV+1,R12,R5
+        SLLS    R0,8
+        AR      R0,R9
+        SRLS    R0,4
+        JAL     R4,WCI,,
+        NI      R9,0000000F
+        LR      R0,R9
+        AIS     R12,1
+        CR      R12,R13                 :END OF CALLING ADDRESS?
+:
+:   MODIFIED HERE IN THE CASE THAT THERE IS NO CALLING ADDRESS ON
+:   CALL REQUEST PACKET COMING FROM THE X LINE.
+:   ADD------JG   RETRN
+        JG      RETRN                   :IF NO CALLING ADDR,RETURN
+:********************************************************************
+        JL      CLGAD1
+        LB      R12,DTESAV,R5,          :GET LEN OF CALLING ADDRESS
+        NI      R12,00000001
+        JG      RETRN                   :IF LEN OF CLGAR IS ODD, THEN JUMP
+        SLLS    R0,4
+        JAL     R4,WCI,,
+RETRN   LHL     R1,DIBUF,,
+        J       ESP120,,
+ENDPATCH(INSERT CALLED & CALLING ADDRESS IN CALL CONN PKT WHEN RECEIVE IIX-92)
+  
+
+:
+:
+:     FORGET THIS PATCH TEMPORARILY.
+:     THERE ARE ANOTHER TWO PATCHES AT ESPF-----
+:            (830301,1155,SCY,ESPF,,6)
+:            (830811,1200,JPM,ESPF,,6)                 JAMES
+:
+:PATCH(840530,1015,JWANG,ESPF,,8)
+:        LHL     R1,DIBUF        :IT IGNORES PATCH(830301,1155,SCY,ESPF,,6)
+:        JAL     R4,EMPTY        :IN PACX02.P01 PATCH FILE ---.
+:ENDPATCH(INSERT CALG/CALD ADDRESS IN CALL CONNECT PKT WHEN RECEIVE IIX-8F MSG)
+
+
+
+:PATCH 014   CREATED BY J/WANG AT 31 JULY 84
+:IF THE X INTERFACE SEND DIALECT RESPONSE TO ACCEPT ASCI, IT WILL DISCARD
+:THE INFORMATIONS EXCEPT TRANSIT NET ID LIST LEFT IN FACILITY BUFFER.
+:THIS TID AREA IN FAC BUFFER SHOULD BE KEPT FOR LATER USE. IF IT EMPTIES ALL
+:FAC BUFFER, IT WILL CAUSE GCI CRASH.
+:THIS PATCH SHOULD BE INCORPORATED INTO ALL FUTURE RELEASE.
+
+   IF   X.75
+PATCH(840731,1529,JWANG,GME040,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,4C)
+        LI      R12,808100
+        JAL     R9,SNDDR,,
+        LHL     R1,FACBUF,,
+        CBCT(R9)
+CNT     LR      R9,R9
+        JE      CONUP,,
+        LHL     R1,IPORT,,
+        LB      R0,TNICNT,R1,
+        SR      R9,R0
+       JLE      CONUP,,
+        LHL     R1,FACBUF,,
+DISCD   JAL     R4,GCI,,
+        SIS     R9,1
+        JG      DISCD                   :DISCARD FACBUF ,BUT KEEP TNID LIST
+        J       CONUP,,
+ENDPATCH(IF ASCII, DISCARD FACILITY BUFFER, BUT KEEP TRANSIT NET ID)
+   EI   X.75
+
+
+
+:PATCH 015   CREATED BY CBS AT 28 OCT 82
+:THE PACKET TRACE ROUTINE USES DIFERENT FORMATS FOR MOD 8 AND MOD 128 TO
+:SAVE PACKET INFOs THAT HAVE PASSED OVER THE X LINK IN THE RECENT PAST.
+:EACH ENTRY IS 6 BYTES FOR MOD 8 AND 8 BYTES FOR MOD 128. WHEN MOD 8 AND 
+:MOD 128 ARE IN THE SAME SLOT AND PTRINP > PTRLEN-8, THE X INTERFACE SHOULD
+:RESET TRACE POINTER TO ZERO.
+:THIS PATCH SHOULD INCORPORATED INTO ALL FUTURE RELEASE.
+
+      IF   (.NE.(P128.F,0))&(.NE.(P128.F,($00FFFFFFFF^(20-NLINES)&0FFFFFFFF)))
+      :If Mod 8 and Mod 128 in same slot, execute patch
+PATCH(821028,0808,CBS,PTRC08,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,24)
+	GL	PTRC09
+	STH	R2,PTRINP,,	:Save current value of trace pointer
+	CLHI	R2,PTRLEN-8	:Check if we are near end of trace table
+	JLER	R4		:If not, plenty of room - return to caller
+	LIS	R3,0		:Here if less than 8 bytes left in trace table
+	STH	R3,PTRINP,,	:Reset trace pointer to zero
+PTRC09	CLHI	R2,PTRLEN	:See if at end of trace table
+	JGER	R4		:If so, return to caller
+	STH	R3,PTRTBL,R2,	:Zero out end of trace table
+	AIS	R2,2		:Bump trace table pointer
+	JBS	PTRC09		:Loop until at end of trace table
+ENDPATCH(Fix packet trace problem handling mod 8 and 128 causing crash type 14)
+      EI
+
+:
+:     THIS PATCH IS ALREADY IN XCOM02.P02
+:
+:PATCH(840224,1200,LLIN,TRSE10+26,,6)
+:	J	PA1PTR,,
+:CONPATCH(PA1PTR,,68)
+:	TBT	R7,CHLOGN,,	:SEE IF IN LOGIN MODE
+:	JN	RESESC		:IF IN LOGIN MODE
+:	SBT	R7,DFLUSH,,	:CONTINUNE FLUSHING FROM NET
+:	J	TRSE10+2C,,
+:RESESC	LHL	R1,DPORT	:WE WANT TO OUTPUT AN ESC TO
+:	LIS	R0,4		:GET THE PLEASE LOG IN PROMPT.
+:	LHL	R7,IPORT
+:	TBT	R7,NEWLOG,,	:SEE IF TALKING TO OUR SUP.
+:	JN	NLCESC		:IF SO OUTPUT AN ESC IN NLC.
+:DATESC	LIS	R2,1		:ELSE OUTPUT AN ESC AS DATA MSG
+:	JAL	R4,SLOR,,	:SO IT CAN PASS THE GATEWAY.
+:	LHI	R0,1B		:PUT ESC FOR OUTPUT
+:	JAL	R4,PUTCH,,
+:	JAL	R4,ELODR,,
+:	J	RTD020,,
+:NLCESC	LHI	R2,0B3		:OUTPUT AN ESC AS NLC TO GET 
+:	JAL	R4,SLOR,,	:PLEASE LOGIN PROMPT
+:	LHI	R0,1B
+:	JAL	R4,PUTCH,,
+:	JAL	R4,ELOR,,
+:	J	RTD020,,
+:ENDPATCH(SEND AN ESC WHEN ENCOUNTER RESET BEFORE LOGON COMPLETE)
+
+  
+:PATCH 016  CREATED BY J/OLIVETO AT 28 AUG 84
+: IF X.75 CODE IS IN THE SLOT, THE WAY TO HANDLE BLACK BALL 
+:IS TO INITIATE RESET AND SEND BACK A GREAY BALL.
+:THIS PATCH SEND RESET CAUSE 07(NETWORK CONGESTION) INSTEAD
+:OF 05(LOCAL PROCEDURE ERROR).
+:THIS PATCH SHOULD BE INCORPORATED INTO ALL FUTURE RELEASES.
+  
+	IF X.75
+PATCH(840828,1600,JOLIVETO,ICBLK+0E,,4)
+        LHI     R13,RSECAU^8!DIA152
+CONPATCH(ICGRY+6,,4)
+	LHI	R13,RSECAU^8!DIA152
+ENDPATCH(Send RESET cause of 07 instead of 05 if X.75)
+	EI
+
+  
+:PATCH 017  CREATED BY S/CHOU  AT 05 JUL 84
+:XCOM DOES NOT SEND HPA(HOST PORTS AVAILABILITY) MSG
+:TO NEW SUPERVISOR WHEN NODE IS TAKEN OVER.
+:DURING THE BUILDING OF PVC THAT HAS A PRIORITY TARGET
+:PROFILE, THE NEW SUPERVISOR, WHEN IT TAKES OVER THE NODE,
+:NEEDS TO BE NOTIFIED OF THE STATUS OF HOSTS PORTS 
+:AVAILABILITY REGARDLESS THE HPA MSG HAS BEEN SENT TO
+:THE PREVIOUS SUP.. THIS PATCH SENDS HPA MSG. TO NEW SUP.
+:WHEN IT JUST TAKES OVER THE NODE.
+:THIS PATCH SHOULD BE INCORPORATED INTO ALL FUTURE RELEASES.
+  
+PATCH(840705,1500,SCHOU,NMNTK1+12,,06)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,2A)
+        SIS     R6,1
+        JGE     NMNTK1,,
+        LHI     R6,MAXHST-1
+L3OOP3  LIS     R4,1                    :HPA PORT AVAILABILITY FLAG
+        TBT     R6,HPA.FC,,             
+        JNFS    .+4                     :PORT IS AVAILABLE
+        LIS     R4,0                    :PORT IS NOT AVAILABLE
+        LCS     RL,1
+        JAL     R9,HPARPT,,             :SEND OUT HPA MSG
+        SIS     R6,1
+        JGEBS   L3OOP3
+        J       NMNTK1+18,,
+ENDPATCH(SEND HPA TO SUP WHEN NODE IS TAKEN OVER)
+
+  
+:PATCH 018  CREATED BY S/CHOU  AT 29 JUN 84
+:XCOM DOES NOT SEND HPA(HOST PORTS AVAILABILITY) MSG TO
+:SUP.CORRECTLY. WHEN ALL THE PORTS(DPORT)ARE FULL, XCOM
+:IS SUPPOSED TO SEND HPA FOR EACH HOST TO SUPERVISOR. YET, IT
+:ONLY SENDS ONE HPA FOR THE HOST THAT USES UP THE LAST PORT.
+:ALSO,WHEN ONE PORT IS RELEASED UNDER THE CONDITION THAT ALL
+:THE PORTS ARE TAKEN, XCOM IS SUPPOSED TO SEND HPA FOR EACH HOST
+:. YET, IT ONLY REPORTS ONE HPA FOR THE HOST THAT IS RELEASED
+:OF THE PORT. BESIDES, XCOM ONLY NEEDS TO UPDATE THE ANC.HT(
+:ACTIVE CHANNEL)FOR THE HOST THAT CURRENTLY REQUESTS A PORT
+:ASSIGNED. HOWEVER, XCOM UPDATES THE ANC.HT FOR ALL THE HOSTS.
+:THE BUG IS DUE TO THAT REG.10(CONTAIN THE LINK NUMBER) IS
+:NOT UPDATED TO MATCH HOST NUMBER WITHIN THE LOOP. SO IT
+:CAUSES THE EXIT OF THE LOOP.
+:THE PATCH ONLY UPDATES THE ANC.HT OF THE HOST THAT REQUESTS
+:A PORT TO BE ASSIGNED; AND CHECKS THE PORTS AVAILABILITY
+:FOR EVERY HOST.
+:THIS PATCH SHOULD BE INCORPORATED INTO ALL FUTURE RELEASES.
+  
+PATCH(840629,1500,SCHOU,HPACH0+0C,,06)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1E)
+        L       R4,LHST.F,R3,R3         :GET LINK NO. OF HOST
+        JE      HPACH0,,                :NO LINK ASSIGNED FOR THIS HOST
+        TBT     RL,LHST.F,R3,R3  
+        JE      HPACHH,,                :NO LINK MATCH,HOST DOES NOT NEED
+                                        :UPDATE ANC.HT
+        J       HPACH0+14,,
+ENDPATCH(REPORT HPA FOR ALL HOSTS AND UPDATE ANC.HT FOR ONE HOST ONLY)
+
+
+:
+: THE FOLLOWING TWO PATCHES WILL BE USED BY SETTING NOTNTN=1 IN COMMAND
+: FILE FOR A FEW WEEKS. WHENEVER YOU PUT PACKET NONTN OPTION ON IN
+: YOUR SLOT TYMFILE, YOU NEED USE THE FOLLOWING TWO PATCHES. (I.E., PUT
+: 1[NOTNTN: IN SLOT COMMAND FILE. AFTER A FEW WEEKS, IF NO SIDE EFFECT,
+: THE IF STATEMENT WILL BE DELETED.
+:
+
+
+:PATCH 019   CREATED BY J/WANG AT 5 SEP. 84
+:AFTER RECEIVED A CALL REQUESTED PACKET FROM THE X LINK, THE CHKADR ROUTINE
+:SHOULD NOT ZERO OUT ANYTHING PAST DNIC IN DTESAX IN THE CASE THAT PACKET
+:OPTION NONTN SET TO BE ON. WITHOUT THIS PATCH, THE X INTERFACE WILL SEND
+:BACK CALL CONNECTED PACKET WITH ONLY 4 DIGITS OF CALLED ADDRESS. THE
+:OTHER SIDE I/F WILL CLEAR THE CALL IF LENGTH OF CALLED ADDRRESS IN CALL
+:REQUEST IS GREATER THAN 4.
+:THIS PATCH ALSO FORCES X INTERFACE NOT TO CLEAR THE CALL ON UNKNOWN DNIC IF
+:PACKET OPTION NONTN IN ON.
+:THIS PATCH SHOULD BE INCORPORATED INTO ALL FUTURE RELEASE.
+
+  IF   \NOTNTN
+PATCH(840905,1430,JWANG,CKAD22-1C,,4)
+        J       CKAD25          :DON'T TOUCH DTESAX
+CONPATCH(PCR460+26,,1e)
+        TBT     RL,NNTN.F,,     :TEST NNTN.F FIRST
+        JN      PCR500
+        LB      R0,DTESAX+1,R7, :GET 1ST BUTY OF DNIC
+        NHI     R0,0F0
+        JE      PCR466
+        SIS     R8,4
+        JLE     PCR500          :# OF CLD < 5 , GO TO SEARCH CUD
+CONPATCH(PCR430,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,2A)
+        LHL     R3,,R4,
+        JN      PCR430+0A,,     :IF UNKNOWN DNIC, SEARCH CUD OR ASK"PLEASE
+                                : LOGIN". NEVER CLEAR THE CALL
+        LHL     R3,IPORT,,
+        RBT     R3,GATWAY,,     :RESET GATWAY FLAG
+        ST      R5,TEMP,,
+        ST      R6,TEMP1,,
+        J       PCR500,,
+ENDPATCH(NOT CLEAR THE CALL IF UNKNOWN DNIC. NOT TOUCH DTESAX IF NNTN.F=1)
+  EI   NOTNTN
+
+
+
+
+
+:PATCH 020   CREATED BY J/WANG AT 5 SEP.84
+:IF THE PACKET OPTION IS ON, X INTERFACE WILL IGNORE THE NTN CALLED ADDRESS.
+:WE SUGGEST THAT X INTERFACE WILL NOT CLEAR THE CALL IF # OF THIS NTN < 4.
+:THIS PATCH IS SUGGESTED TO BE INCORPORATED INTO ALL FUTURE RELEASE WITH PATCH
+:019.
+
+  IF   \NOTNTN
+      IF X.75
+PATCH(840905,1430,JWANG,CKAD20,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+        TBT     RL,NNTN.F,,
+        JN      CKAD20+8,,      :IF NNTN.F=1, ACCEPT #CLD < 4
+        CLI     R2,4
+        JLR     R14
+        J       CKAD20+8,,
+ENDPATCH(IF NNTN.F=1, NOT CLEAR THE CALL, SEARCH FOR MORE LOGON INFO)
+      EI  X.75
+   EI  NOTNTN
+
+
+
+
+:PATCH 021   CREATED BY J/WANG AT 5 SEP. 84
+:THIS PATCH IS ONLY USED BY SOME SPECIAL X75 SLOT.
+
+:
+:  THE FOLLOWING PATCH IS USED ONLY FOR TRT X.75 (TYMNET SIDE) SLOT.
+:  1[TRT: NEEDED TO ADD IN COMMAND FILE.
+:  CALL IDENTIFICATION FEATURES FOR LOGONS FROM TRINIDAD AND GUATEMALA.
+:
+
+    IF   \TRT
+
+PATCH(840905,1500,JWANG,PCR460+54,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,14)
+        CLHI    R12,9
+        JN      PCR462,,
+        LHI     R12,DIA067      :IF DNIC+9.... , CLEAR THE CALL
+        J       RTECAL,,
+CONPATCH(PCR460+1C,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,28)
+        LB      R0,DTESAX,R7,
+        JE      PCR500,,
+        LB      R0,DTESAX+3,R7,
+        SRLS    R0,4
+        CLHI    R0,9
+        JN      PCR460+26,,
+        LHI     R12,DIA067              :IF OURDNIC+9...., CLEAR THE CALL
+        J       RTECAL,,
+CONPATCH(ICP050+6,,0A)
+        SIS     R8,1
+        JG      ICP050          :DON'T COPY TO IDBUF
+        J       ICP060
+CONPATCH(PA0PTR,,NIPORT*8+NIGRPS*2)
+HSTNUM  WS      NIPORT*2
+COLN.F  HS      NIGRPS
+CONPATCH(PCR455,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,3e)
+        LHL     R12,IPORT,,
+        SLLS    R12,3
+PCR458  LB      R0,,R8,
+        JAL     R4,WCI,,
+        STB     R0,HSTNUM,R12,  :STORE INTO HSTNUM
+        AIS     R12,1
+        AIS     R8,1
+        SIS     R7,1
+        JN      PCR458
+        Lr      r0,r12
+        STB     R0,HSTNUM,R12,  :save pointer in last byte of hstnum
+        ST      R5,TEMP,,
+        ST      R6,TEMP1,,
+        J       PCR500,,
+CONPATCH(CHKADR+4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,78)
+        LHI     R12,DIA067
+        RBT     R4,COLN.F,,
+        SLLS    R4,3
+        LB      R0,DTESAX+3,R4,
+LP0     NHI     R0,0F
+        OHI     R0,30
+        STB     R0,HSTNUM,R4,   :COPY TO HSTNUM
+        LB      R0,DTESAX+4,R4, :7th,8th DIGIT OF CALLED ADDRESS
+        LR      R2,R0
+        SRLS    R0,4
+        OHI     R0,30           :7th DIGIT
+        STB     R0,HSTNUM+1,R4,
+        NHI     R2,0F
+        OHI     R2,30           :8th DIGIT
+        STB     R2,HSTNUM+2,R4,
+        LB      R0,DTESAX+5,R4,
+        LR      R2,R0
+        SRLS    R0,4
+        OHI     R0,30           :9th DIGIT
+        STB     R0,HSTNUM+3,R4,
+        NHI     R2,0F
+        OHI     R2,30           :10th DIGIT
+        STB     R2,HSTNUM+4,R4,
+        LR      R0,R4
+        STB     R0,HSTNUM+7,R4,
+        LB      R2,DTESAX,R4,,
+        J       CHKADR+10,,
+CONPATCH(TDA100,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,84)
+TDA105  LHL     R7,IPORT,,
+        JAL     R4,PICKCH,,
+        NHI     R0,7F
+        CLHI    R0,3A
+        JN      LP1
+        SBT     R7,COLN.F,,     :IF COLON, BEGIN TO SUBSTITUTE HOST#
+        JAL     R4,WCI,,
+        J       LP4
+LP1     CLHI    R0,3B           :IF SEMICOLON, RESET COLN.F
+        JN      LP2
+        RBT     R7,COLN.F,,
+LP2     CLHI    R0,0D
+        JN      LP25
+        RBT     R7,COLN.F,,     :IF END OF LOGON STRING
+LP25    TBT     R7,COLN.F,,     :IF SET,GET HOST# FROM HSTNUM
+        JE      LP3
+        SLLS    R7,3
+        LB      R0,HSTNUM+7,R7, :GTE PPOINTER OF HSTNUM
+        AIS     R0,1
+        STB     R0,HSTNUM+7,R7, :RESTORE POINTER
+        SIS     R0,1
+        LR      R7,R0
+        LB      R0,HSTNUM,R7,   :GET HOST#
+        JAL     R4,WCI,,
+        J       LP4
+LP3     JAL     R4,WCI,,
+LP4     LR      R6,R6
+        JN      TDA105
+        J       TDA300,,
+ENDPATCH(SPECIAL LOGON PROCEDURE, ONLY FOR TRT X.75)
+   EI   TRT
+
+
+:
+:   THE FOLLOWING THREE PATCHES ARE USED FOR GATEWAY DOWNLINE LOADING,
+:   SLOT LOADING,DUMP. USED ONLY IN ALL IRC's X75 SLOTS. (ON TYMNET SIDE).
+:   NOW THESE THREE PATCHES ARE ALREADY IN HOST 2850 (RCA) AND HOST 371
+:   (WUI).
+:   1[PBLCNT: NEEDED IN COMMAND FILE
+:
+
+
+:PATCH 022   CREATED BY J/WANG AT 19 JULY 84
+:FOR A LONG DISTANT GATEWAY LOADING, IT  ALWAYS FAILED.(CAUSED BY TIMEOUT.)
+:WE FOUND THAT THE PACKETS PASSING THRU THE X LINK ARE TOO SMALL.
+:CONSEQUENTLY, IT MAY TAKE HOURS TO DO GATEWAY LOADING. MOST TIME, IT
+:IS EVEN WORSE---TIMEOUT. THIS PATCH WILL FORCE THE PAD FORWARDING CHAR
+:TO 0 AND PAD IDLE TIMER TO 2 FOR THIS PARTICULAR CHANNEL WHEN X INTERFACE
+:RECEIVES A NEEDLE INDICATED GATEWAY LOADING/DUMP.
+:THIS PATCH SHOULD BE INCORPORATED INTO SOURCE PATCH FILE FOR ALL VERSION,
+:AND BE KEPT WITH THE IF CONDITION FOR ALL IRCs WHICH NEEDS IT.
+
+   IF    \PBLCNT
+PATCH(840719,1000,JWANG,PA0PTR,,NDGRPS*4+14)
+LOAD    HS      NDGRPS          :BIT ARRAY  A,SET IF THIS DPORT IS FOR LOADING
+SEND    HS      NDGRPS          :SET IF LOAD,RESET IF QBIT PKT HAS BEEN SENT
+GAT.F   WC      0               :VALUE SET TO FE00000000 IF SLOT LOADING
+GATE    BC      47,41,54,45,57,41,59,0      :GATEWAY
+        WC      0,0
+CONPATCH(DDONE+0C,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,18)
+        RBT     R1,DBKPR,,
+        RBT     R1,LOAD,,               :CLEAN UP  FLAG
+        RBT     R1,SEND,,
+        J       DDONE+12,,
+CONPATCH(NDLST1+0A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,18)
+        RBT     R1,LOAD,,       :INITIALIZE LOAD FOR THE NEW DPORT
+        RBT     R1,SEND,,       :INITIALIZATION
+        SLLS    R1,2
+        AHI     R1,DIBIA
+        J       NDLST1+10,,
+CONPATCH(NST118-6,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,0E)
+        LHL     R9,LO7,,
+        LIS     R5,0            :COUNT USED BY COMPARE USERNAME  GATE/DLOD
+        J       NST118,,
+CONPATCH(NST122,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,20)
+        CLB     R0,GATE,R5,
+        JN      NEX1            :IF MATCH,SET BIT
+        SBT     R5,GAT.F,,
+NEX1    AIS     R5,1
+        SIS     R9,1
+        JLE     NST150,,
+        J       NST122+6,,
+CONPATCH(NDL060+8,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,2E)
+        LHL     R1,DPORT,,
+        LHI     R0,0FE
+        CLB     R0,GAT.F,,              :USERNAME IS GATEWAY?
+        JN      NEX2                    :IF MATCHED,SET LOADING FLAG ON
+        SBT     R1,LOAD,,               :SET BIT IF THIS PORT IS FOR LOADING
+        SBT     R1,SEND,,
+NEX2    LIS     R0,0
+        ST      R0,GAT.F,,              :REINITIALIZE TO ZERO
+        J       NDL060+0E,,
+CONPATCH(DAT080+4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+        LB      R7,XMTMSK,R4,
+        TBT     R4,LOAD,,       :LOADING?
+        JE      NEX3
+PADCHR  LHI     R7,0            :FORCE PADFORWARDING CHAR VALUE TO 0
+NEX3    J       DAT080+0A,,
+CONPATCH(DAT170+0A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+        TBT     R4,LOAD,,       :LOADING?
+        JE      NEX4
+PADIDL  LHI     R0,2            :FORCE PADIDLETIMER VALUE TO 2
+NEX4    STB     R0,DATIME,R4,
+        J       DAT170+10,,
+ENDPATCH(MODIFY PAD FORWARD CHAR/TIDLETIMER TO 0/2 IF NEEDLE INDICATES LOADING)
+   EI    PBLCNT
+
+
+
+
+:PATCH 023   CREATED BY J/WANG AT 20 AUG 84
+:IN GATEWAY SLOT LOADING, DATA IS SENT BY THE PUBLIC NETWORK SIDE. THE PATCH
+:022 HAS TAKEN CARE THIS CASE. BUT FOR GATEWAY SLOT DUMP AND ENGINE DOWNLINE
+:LOADING,DATA XFER IS ALSO COMING FROM PRIVATE NETWORK.THE INTERFACE IN PRIVATE
+:NETWORK SIDE SHOULD BE ABLE TO BUILD FULL PACKET ON THIS PARTICULAR CHANNEL.
+:THIS PTCH HAS TAKEN CARE OF IT.
+:THIS PATCH SHOULD BE INCORPORATED INTO SOURCE PATCH FOR ALL VERSION WITH
+:THE IF CONDITION.
+
+
+
+   IF    \PBLCNT
+
+PATCH(840820,1540,JWANG,PA0PTR,,9)
+QBPK    BC      7,0,6,80,6,3,0,4,2
+CONPATCH(DATM30+0C,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,4A)
+        TBT     R8,LOAD,,               :THIS PORT IS FOR GATEWAY LOADING?
+        JE      COPYQ+1C
+        TBT     R8,SEND,,
+        JE      COPYQ+1C
+        LHL     R1,IPORT,,
+        SLLS    R1,2
+        AHI     R1,IEDBIA               :R1 CONTAIN THE IEDBUF VALUE OF THIS
+                                        :IPORT
+        LIS     R5,0                    :COUNT FOR STORE Q-BIT PACKET QBPK
+COPYQ   LB      R0,QBPK,R5,
+        JAL     R4,WCI,,                :STORE INTO IEDBUF
+        AIS     R5,1                    :INCREMENT COUNT
+        CLHI    R5,9                    :END OF PACKET?
+        JL      COPYQ
+        RBT     R8,SEND,,
+        JAL     R9,APPBKP,,
+        J       DATM10,,
+ENDPATCH(SEND QBIT SET PKT WITH 03000402 TO THE LINK IF GATEWAY LOADING)
+    EI   PBLCNT
+
+
+
+
+:PATCH 024   CREATED BY J/WANG AT 20 AUG 84
+:THE PATCH 022,023 HAVE SAVED ALMOST 1/2 TO 2/3 OF THE TIME SPENT ON GATEWAY
+:LOADING/DUMP. WITH THESE TWO PATCHES , GATEWAY LOADING/DUMP/DOWNLINE LOADING
+:CAN BE DONE SUCCESSFULLY.
+:FOR FURTHER INVESTIGATION, WE FOUND LOT OF RNRs ARE PASSING THRU THE X LINK.
+:THIS PATCH IS TO ELIMINATE THESE RNRs. WITH PATCHES 022,023,024, IT CAN 
+:SAVE 6/7 TO 9/10 OF THE TIME SPENT ON GATEWAY LOADING/DUMP.
+:THIS PATCH SHOULD BE INCORPORATED INTO SOURCE PATCH FILE FOR ALL VERSION
+:WITH THE IF CONDITION.
+
+    IF   \PBLCNT
+PATCH(840820,1300,JWANG,CRQ420+2,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,3A)
+        LB      R9,CUDSAV,,
+        JE      CRQ460,,
+        LHL     R1,DPORT,,
+        TBT     R1,LOAD,,       :IS GATEWAY LOADING/DUMP?
+        JE      CRQ430,,        :IF YES, ADD ^D IN CUD AREA
+        LHI     R0,84           :CIRCUIT SPEED ^D
+        LHL     R1,IECBUF,,
+        JAL     R4,WCI,,        :STORE INTO IECBUF
+        LB      R0,CUDSAV,R8,
+        J       CRQ430,,
+ENDPATCH(ADD ^D IN CUD AREA OF CALL REQ PACKET IF GATEWAY LOADING/DUMP)
+    EI   PBLCNT
+
+  
+
+:PATCH 025   CREATED BY J/WANG AT 12 OCT 84
+:IF DDTDIA WAS NOT SET TO 1 IN COMMAND FILE FOR VERSION 2.02,THE HELP
+:COMMAND AFTER ?STAT WILL GET THE "ILLEGAL INSTRUCTION" MESSAGE.
+:THIS PATCH FIXES THIS PROBLEM.
+:THIS PATCH SHOULD BE INCORPORATED INTO SOURCE PATCH FILE FOR VERSION 2.02.
+
+
+:      IF YOU TURNED OFF EXTENDED DDT DIAGNOSTICS VIA THE CMD FILE,
+:      YOU WILL GET A MESSAGE"ILLEGAL INSTRUCTION" BY ENTER "HELP"
+:      AFTER ENTERING ?STAT. THIS PATCH IS TO FIX THIS PROBLEM.
+:
+
+PATCH(841012,1500,JWANG,PA0PTR,,1B)
+MESSG   SC      /"8A"8D"07 DDT WAS TURNED OFF BY CMD FILE,PLEASE TYPE Q/ 
+CONPATCH(X.HELP+4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,18)
+        SVC     0B,M.0,,        :OUTPUT LIST MESSAGE TO TERMINAL
+   IF      DDTDIA
+        J       DDEXI,,
+   ELSE
+        SVC     0B,MESSG,,      :OUTPUT MESSAGE TO TERMINAL
+   EI
+        J       DSTRT1+6,,      :GO BACK TO GET COMMAND FROM TERMINAL
+DDEXI   J       X.HELP+0A,,
+ENDPATCH(FIX THE PROBLEM CAUSED BY TURNING DDTDIA OFF IN CMD FILE)
+
+
+:PATCH 026   CREATED BY J/WANG AT 10 OTC
+:CHANGE RX2 INSTRUCTIONS TO RX3 TO AVOID SYSGEN ERRORS.
+
+:   WE GOT ASSEMBLE ERRORS WHEN WE GENED THE XCOM CODE OF VERSION 2.02 FOR
+:OTC AND C&W. ON LINE 7731 (SOURCE:XCOM02.R02), THE OPERAND DIAFLG IS OUT OF 
+:RANGE IF DDTDIA IS TURNED ON IN COMMAND FILE. YOU MAY NOT GET THIS KIND OF
+:ASSEMBLE ERROR IF THE CODE IS NOT TOO BIG. WE SHOULD USE RX3 FORMAT FOR THE
+:INSTRUCTION "LHL R0,DIAFLG" ON LINE 7731.
+:   THERE ARE THREE MORE INSTRUCTIONS NEEDED TO BE REWRITTEN BY USING RX3
+:FORMAT:
+:      LINE 16690        LB R0,SAVINV+1,R8
+:      LINE 16692        LB R0,SAVINV+2,R8
+:      LINE 16694        LB,R0,SAVINV+3,R8
+
+:PATCH 027  CREATED BY S/CHOU AT 10 AUG 84
+
+:     THE INTERNATIONAL ACCOUNTING OF TYMNET NEEDS TO BE UPDATED
+:  TO BE CONFORMED TO THE RECOMMENDATIONS OF 1984 CCITT.
+ 
+:     THE CURRENT ACCOUNTING IN XCOM(VERSION 2.01) IS MAINLY
+:  BASED ON THE RECOMMENDATIONS OF 1980 CCITT WHICH CHARGES
+:  LESS ITEMS THAN THOSE RECOMMENDED BY 1984 CCITT.
+ 
+:     THIS LEADS TO THE BILLING PROBLEMS ESPECIALLY WHEN
+:  TYMNET NETWORK COMMUNICATES WITH OTHER TYPE OF NETWORKS.
+:  CUSTOMERS EMPLOYING TYMNET NETWORK COMPLAINED THAT THEY HAVE 
+:  SUFFERED THE LOSS IN THEIR BUSINESS.
+:
+:
+
+:     THE ACCOUNTING PATCH CHARGES THE ADDITIONAL PACKETS RECOMMENDED
+:  BY 1984 CCITT. THE NEW ITEMS INCLUDED IN THE SEGMENT COUNTS ARE
+:  CAL REQUEST, INTERRUPT REQUEST,AND RESET REQUEST PACKETS.
+:     
+:     BESIDES, THE NEW PACKETS INCLUDED IN THE PACKET COUNTS
+:  ARE CALL REQUEST, CALL ACCEPT, CLEAR REQUEST AND CLEAR 
+:  CONFIRMATION PACKETS.
+  
+  
+  
+        IF      \ACC9OUNT
+PATCH(840810,1200,SCHOU,PA0PTR,,58)
+ret6ad  ws      1
+ret7ad  ws      1
+RET8AD  WS      1
+RET9ADD WS      1
+BYT0CNT ws      1
+ESP0CNT WS      1
+tempt   ws      4
+tem0p   ws      4
+tem1p   ws      4
+tem2p   ws      4
+CONPATCH(IBRK30+20,,6)
+        JAL     R4,PCOSP,,
+CONPATCH(ESPA+18,,6)
+        jal     r4,pcosp,,      :COUNT INTERRUPT PACKET
+  
+CONPATCH(con040+56,,6)
+        jal     r4,pcosp,,      :COUNT ECHO RESTORE AT PAD
+  
+CONPATCH(CPR-8,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        CHI     R0,ZRESET
+        JEFS    OUTGO2
+        JAL     R4,COP,,
+        JR      R9
+OUTGO2  JAL     R4,PCOSP,,
+        JR      R9              :RESET REQ. PACKET
+  
+CONPATCH(rtint+12,,6)
+        jal r4,pcisp,,          :COUNT INTERRUP PACKET
+  
+CONPATCH(rtrse+12,,6)
+        jal r4,pcisp,,          :COUNT RESET INDICATION
+  
+CONPATCH(pa1ptr,,40)
+pcisp   st      r4,ret8ad,,     :NEW ROUTINE TO COUNT INPUT PACKET
+        ST      R1,TEMPT,,      :AND SEGMENT
+        ST      R2,TEMPT+4,,
+        ST      R3,TEMPT+8,,
+        lis     r4,1
+        sth     r4,rufcnr,,
+        jal     r4,cisp,,
+        L       R1,TEMPT,,
+        L       R2,TEMPT+4,,
+        L       R3,TEMPT+8,,
+        L       R4,RET8AD,,
+        JR      R4
+CONPATCH(pa1ptr,,44)
+pcosp   lis     r0,1            :NEW ROUTINE TO COUNT OUTPUT SEGMENTS 
+                                :AND PACKETS
+        ST      R1,TEM0P,,
+        ST      R2,TEM0P+4,,
+        ST      R3,TEM0P+8,,
+        st      r4,ret9ad,,
+        lhl r4,dport
+        sth     r0,rufcnt,4,4
+        jal     r4,cosp,,
+        L       R1,TEM0P,,
+        L       R2,TEM0P+4,,
+        L       R3,TEM0P+8,,
+        L       R4,RET9AD,,
+        JR      R4
+  
+CONPATCH(PA1PTR,,2c)
+pcip    ST      R2,TEM1P,,      :NEW ROUTINE TO COUNT INPUT PACKETS
+        ST      R3,TEM1P+4,,
+        ST      R4,RET6AD,,
+        JAL     R4,CIP,,
+        l       r2,tem1p,,
+        l       r3,tem1p+4,,
+        L       R4,RET6AD,,
+        JR      R4
+CONPATCH(PA1PTR,,2c)
+pcop    ST      R2,TEM2P,,      :NEW ROUTINE TO COUNT OUTPUT PACKETS
+        ST      R3,TEM2P+4,,
+        ST      R4,RET7AD,,
+        JAL     R4,COP,,
+        l       r2,tem2p,,
+        l       r3,tem2p+4,,
+        L       R4,RET7AD,,
+        JR      R4
+CONPATCH(CRQ460+20,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1E)
+        ST      R0,BYT0CNT,,    :COUNT CALL REQ.
+        JAL     R4,PCOSP+2,,
+        L       R0,BYT0CNT,,
+        STB     R0,,R3,
+        J       CRQ460+26,,
+CONPATCH(ESP990+1E,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1E)
+        ST      R0,ESP0CNT,,
+        JAL     R4,PCOSP+2,,
+        L       R0,ESP0CNT,,
+        STB     R0,,R3,
+        J       ESP990+24,,
+CONPATCH(RTCALR+6,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1C)
+        CLHI    1,0B            :COUNT CALL REQ. AS INPUT SEGMENT
+        JN      RTEILL,,
+        STH     R6,RUFCNR,,
+        JAL     4,CISP,,
+        J       RTCALR+0E,,
+CONPATCH(RTCALC+6,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        CLHI    R1,YCALA        :COUNT CALL ACCEPT AS INPUT PACKERT
+        JN      RTEILL,,
+        JAL     r4,pcip,,
+        J       RTCALC+0E,,
+   
+CONPATCH(CON030+0E,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        LHI     0,2
+        JAL     R4,WCI,,        :COUNT CALL ACCEPT AS OUTPUT PACKET
+        JAL     R4,PCOP,,
+        J       CON040,,
+CONPATCH(LOGT45+66,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        JAL      R4,WCI,,
+        JAL     R4,PCOP,,
+        LHI     7,AA.ERR
+        J       LOGT45+6E,,
+CONPATCH(PROMPT+24,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        LHI     0,2
+        JAL     R4,WCI,,
+        JAL     R4,PCOP,,
+        J       PROM35,,
+  
+CONPATCH(QCR+1A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        LHI     0,3
+        JAL     R4,WCI,,
+        JAL     R4,PCOP,,       :COUNT CLEAR REQ. AS OUTPUT PACKET
+        J       QCR+22,,
+CONPATCH(PERR3+1A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        LHI     0,3
+        JAL     R4,WCI,,
+        JAL     R4,PCOP,,
+        J       RMK300,,
+  
+CONPATCH(RTCLR+0E,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        JAL     R4,PCIP,,       :COUNT CLEAR REQ. AS INPUT PACKET
+        LIS     R0,0
+        LR      R6,R6
+        JE       RTESHT,,
+        J       RTCLR+16,,
+  
+CONPATCH(RTCLRC+0A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,18)
+        JN      RTEILL,,
+        JAL     R4,RTACCP,,
+        JAL     R4,PCIP,,       :COUNT CLEAR CONF.AS INPUT PACKET
+        J       RTCLRC+12,,
+CONPATCH(QCC+1A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        LHI     0,4
+        JAL     R4,WCI,,
+        JAL     R4,PCOP,,       :COUNT CLEAR CONF. AS OUTPUT PACKET
+        J       QCC+22,,
+CONPATCH(PERR4A+1A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,14)
+        LR      0,9
+        JAL     R4,WCI,,
+        JAL     R4,PCOP,,
+        J       RMK300,,
+CONPATCH(CLE030+6,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        LHI     0,4
+        JAL     R4,WCI,,
+        JAL     R4,PCOP,,
+        J       CLE030+0E,,
+  
+CONPATCH(PA1PTR,,2C)
+MCLEAN  LHL     R1,IPORT        :SUBROUTINE TO COUNT CLERA REQ. AND CONF.
+                                :BEFORE CHANNEL IS CLEARED UP.
+        LB      R0,PCKSTE,R1,
+        JNFS    NOTRDY
+        JR      R9
+NOTRDY  CLHI    R0,PSCLRC
+        JE      ICLCONF
+        JAL     R4,PCIP,,
+        JAL     R4,PCOP,,
+        JR      R9
+ICLCONF JAL     R4,PCOP,,
+        JR      R9
+  
+CONPATCH(ICP010+14,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        JAL     9,MCLEAN,,
+        JAL     9,DDONE,,
+        J       CLEAN,,
+  
+CONPATCH(NCC085,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        JAL     9,MCLEAN,,
+        LHL     R1,IPORT
+        STH     R13,PSDIAG,R1,R1
+        J       NCC085+0A,,
+  
+CONPATCH(CON010-1A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        JAL     9,MCLEAN,,
+        JAL     9,DDONE,,
+        J       CON010-14,,
+CONPATCH(CON090+0A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        JAL     9,MCLEAN,,
+        JAL     9,DDONE,,
+        J       CON090+10,,
+  
+CONPATCH(LOGSE4+0A,,6)
+
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        JAL     9,MCLEAN,,
+        JAL     9,DDONE,,
+        J       CLEAN,,
+CONPATCH(IZAP35,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,2A)
+        LHL     R1,IPORT,,
+        LB      R5,PCKSTE,R1,
+        CLHI    R5,PSCALR
+        JLEFS   NOQCR
+        JAL     4,PCOP,,
+        JAL     R4,PCIP,,
+
+NOQCR   JAL     R9,DDONE,,
+        J       IZAP35+6,,
+  
+  
+CONPATCH(ICNOS-0A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,18)
+        JAL     4,PCOP,,
+        JAL     4,PCIP,,
+        JAL     9,DDONE,,
+        J       ICNOS-4,,
+  
+  
+CONPATCH(CLRF3A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        JAL     4,PCOP,,
+        JAL     9,DDONE,,
+        J       CLRF3A+6,,
+  
+  
+CONPATCH(CLRF7F,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        JAL     4,PCOP,,
+        JAL     9,DDONE,,
+        J       CLRF7B,,
+  
+  
+  
+  
+  
+CONPATCH(TCLR50-0A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        JAL     4,PCOP,,
+        JAL     9,DDONE,,
+        J       RTD020,,
+  
+  
+CONPATCH(PSUB4+1A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        JAL     4,PCOP,,
+        JAL     9,DDONE,,
+        J       PSUB4+20,,
+  
+  
+CONPATCH(LOGT70+14,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1E)
+        JAL     4,PCOP,,
+        JAL     4,PCIP,,
+        JAL     9,DDONE,,
+        JAL     9,QCR,,
+        J       LOGT70+1E,,
+  
+  
+CONPATCH(T1S340,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+        JAL     4,PCOP,,
+        JAL     4,PCIP,,
+        LIS     7,AA.DBH
+        STH     7,TERMCD,,
+        J       T1S340+8,,
+  
+  
+  
+  
+  
+CONPATCH(T1S410,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+        JAL     4,PCOP,,
+        JAL     4,PCIP,,
+        LIS     7,AA.DBH
+        STH     7,TERMCD,,
+        J       T1S410+8,,
+  
+  
+  
+CONPATCH(SNDC40-6,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,18)
+        JAL     4,PCOP,,
+        JAL     4,PCIP,,
+        JAL     9,DDONE,,
+        J       SNDC40,,
+  
+
+CONPATCH(LEV14,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,18)
+        JAL     4,PCOP,,
+        JAL     4,PCIP,,
+        JAL     9,DDONE,,
+        J       LEV14+6,,
+ENDPATCH(UPDATE SEGMENT AND PACKET COUNTS TO 1984 CCITT STANDARD)
+        EI      ACC9OUNT
+  
+  
+  
+:PATCH 028  CREATED BY S/WONG AT 29 NOV 
+
+
+:  This patch is created specially for MayneNet of
+:  Australia for the following reasons. It should NOT be
+:  implemented anywhere else without prior permission and
+:  incorporation into the Source Code is not recommended.
+:   PROBLEM 1. MayneNet's Honeywell Datanet-8 Front End does not
+:              support echo and all their existing terminals
+:              must be configured for local echo (half duplex)
+:   PROBLEM 2. If echo is turned on in the Front End, The host
+:              signon Masking will appear in a wrong place.
+:   PROBLEM 3. If echo is turned off in the Datanet-8, and if
+:              the terminal is configured for remote echo, user
+:              will not see what is being typed.
+:   PROBLEM 4. All existing terminals must be re-configured for
+:              remote echo with the introduction of MayneNet, so
+:              that one single terminal can access more than one
+:              host compared to their hard-wired environment at
+:              this time.
+:  SOLUTION 1. Configure DataNet-8 to local echo, i.e. always sends
+:              X.29 message with echo off command. The patch is designed
+:              to ignore this message and send Echo ON to either the
+:              Tymsat or PAD (in Austpac). 
+:  SOLUTION 2. The patch should always reply that echo is OFF when 
+:              questioned by the DataNet-8 Front End via the X.29 message.
+:      TASK 1. Always convert the X.29 Echo off message from DN8 into
+:              Echo on and pass that to the other IIX capable host
+:              (such as the X.25 gateway to Austpac). This can be
+:              done by examining the Q-Bit packet and check the
+:              parameter code/value pair in the RTD logic.
+:      TASK 2. Always convert the X.28 response from Echo on to
+:              Echo off when building a Q-bit packet to DataNet-8 and
+:              under the IIX environment. This can be done in the
+:              Dispatcher logic.
+:      TASK 3. Always send Echo On to Tymsat even if the X.29 from
+:              DataNet-8 indicates Off. We should also prepare
+:              for local echo under deferred echo mode environment.
+:              This can be done in GCI Level 1 packet logic.
+:      TASK 4. Always send Echo Off parameter indication to DataNet-8
+:              upon receiving either Read or Set & Read Q-bit packet.
+:              This can be done in the GCI Level 1 packet logic.
+:
+:  TO IMPLEMENT THIS PATCH, INSERT  1]DATANET:  IN THE SLOT COMMAND FILE
+:  ALSO, INSERT THE FOLLOWING LINE AFTER ASSEMBLING THIS PATCH IN CMD FILE.
+:          ECHOLN[8000      IF LINK 0 NEEDS TO BE AFFECTED BY THIS PATCH
+:       OR
+:          ECHOLN[0C000     IF LINK 0 & LINK 1 NEEDS TO AFFECTED.
+: I.E., SET THE CORRESPONGING BIT ON IF A SPECIFIC LINK NEEDS TO BE AFFECTED.
+:
+        IF      \DATANET
+PATCH(840102,1400,SWONG,PA0PTR,,4)
+ECHOLN  HC      0               :IF WE WANT A LINK TO BE AFFECTED BY THIS
+                                :PATCH,SET THE CORRESPONDING BIT IN THE COMMAND
+                                :FILE.(AFTER ASSEMBLING THIS PATCH).
+CONPATCH(ESCD00,,6)             :PATCH(841129,1400,SWONG,ESCD00,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,62)
+        TBT     RL,ECHOLN,,     :CHECK IF THIS LINK NEEDS THIS PATCH.
+        JE      HDN83           :IF NOT,PROCESS NORMALLY.(JUMP TO HDN83).
+        TBT     RL,LEVEL1,,     : TASK 1, Check if Q-bit packet
+        JE      HDN83           : Process as normal
+        LIS     R9,0            :R9 IS USED AS COUNTER FOR PAR POSITION
+HDN81   LB      R0,,R5          : Get char from RTD buffer
+        AIS     R9,1            :FORWARD ONE BYTE POSITION
+        LR      R4,R9
+        NHI     R4,1            :IS IT IN THE PAR CODE POSITION (EVEN #)?
+        JN      HDN82           :IF ODD POSITION,NOT PAR CODE AND JUMP.
+        CLHI    R0,2            : Check if parameter 02 (Echo)
+        JN      HDN82           : Jump if not
+        AIS     R5,1            : Update pointer
+        SIS     R6,1            : Decrement counter
+        JE      ESCD04,,        : Jump if this was last one
+        JAL     R4,BPUTCH,,     : Put it into output ring
+        AIS     R9,1            :FORWARD ONE BYTE FOR PAR POSITION
+        LB      R0,,R5          : Get another character 
+        JNFS    HDN82           : if 00 or 01, must be Echo pair !
+        LIS     R0,1            : Convert Echo off to On
+HDN82   AIS     R5,1            
+        SIS     R6,1
+        JE      ESCD04,,        
+        JAL     R4,BPUTCH,,     : Pass the echo off to IIX
+        J       HDN81           : Look for some more
+HDN83   LB      R0,,R5          : This routine is very time critical
+        AIS     R5,1            : Do not jump back until done
+        SIS     R6,1
+        JE      ESCD04,,
+        JAL     R4,BPUTCH,,
+        JBS     HDN83           : Do some more
+CONPATCH(ESD050+12,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,3C)
+        TBT     RL,ECHOLN,,     :CHECK IF THIS LINK NEEDS THIS PATCH.
+        JEFS    .+8             :IF NOT,PROCESS NORMALLY.
+        CLHI    R0,2            : TASK 2. Check if Echo Parameter 2.
+        JEFS    HDN85           : Prepare for the Echo value 
+        JAL     R4,WCI,,        : Copy parameter code as normal
+        SIS     R5,1            : THIS LOGIC IS RELATED TO PATCH
+        JE      ESD115          : 840130 BY LLIN FOR FIXING IIX 94 BUG
+        J       ESD060,,        :
+HDN85   JAL     R4,WCI,,        : Copy Echo parameter code
+        SIS     R5,1
+        JE      ESD115          : THIS LOGIC IS RELATED TO PATCH 840130
+        JAL     R4,GETCH,,      : Get the Echo parameter value
+        LIS     R0,0            : Convert value to zero for DataNet-8
+        J       ESD060+4,,      :
+CONPATCH(L1P2F,,6)
+        J       PA1PTR,,        : TASK 3. Send Echo On to Tymsat
+CONPATCH(PA1PTR,,1C)
+        TBT     R,ECHOLN,,      :CHECK IF THIS LINK NEEDS THIS PATCH.
+        JEFS    .+8             :IF NOT PROCESS NORMALLY.
+        J       L1P2I,,         :IF NEEDS,SEND ECHO ON TO TYMSAT.
+        LIS     R1,X3ECHO       :ECHO FLAG#
+        TBT     R1,X3FLGS,R2,   :TEST STORED VALUE
+        J       L1P2F+8,,       :RETURN TO PROCESS NORMALLY.
+CONPATCH(L1P2I+26,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,20)
+        LB      R0,ORGTID,R8,   : Do not set PAR0 for 2780/3270 logon !
+        CLHI    R0,0CC          : Assume all TID to be 0CC except 2780/3270 !
+        JLFS    NDLIBM
+        RBT     R8,PAR0,,
+        J       4,R9
+NDLIBM  SBT     R8,PAR0,,
+        J       4,R9
+CONPATCH(L1P2M+8,,6)
+        J       PA1PTR,,        : TASK 4. Always reply X.29 Echo Off
+CONPATCH(PA1PTR,,1C)
+        JE      L1P2H,,         :IF RESET,USE VALUE OF 0
+        TBT     R1,ECHOLN,,     :CHECK IF THE BIT IS SET
+        JN      L1P2H,,         :IF SET,REPLY X.29 ECHO OFF
+        OHI     R0,1            :IF NOT SET, REPLY ECHO ON
+        J       L1P2H,,
+ENDPATCH( Special Patch for MayneNet Honeywell DataNet8 problem)
+        EI
+
+
+:PATCH 029  CREATED BY S/WONG AT 8 DEC 84
+:  This patch is created initially for MayneNet of Australia
+: but is applicable for all International and Domestic X.25 offerings.
+:
+:  BACKGROUND  : Currently, XCOM clears a call received from the link
+:                if the CALLED ADDRESS begins with a leading zero, or
+:                treats the call as ODNIC calling if the remaining digits
+:                are bigger than 10 (decimal). XCOM also clears the
+:                call if the CALLED ADDRESS contains only one leading
+:                digit of zero.
+:  ENVIRONMENT : Some European style network (EXD-P, SESA etc) requires
+:                a leading zero in the CALL REQUEST packet for all
+:                International outgoing calls. This requirement causes
+:                a severe problem in Tymnet's implementation of the 
+:                X.121 addressing scheme. 
+:                Most vendor products (such as VAX, Honeywell) can place
+:                International X.25 outgoing calls with a leading 0, but
+:                it is necessary for the XCOM (connecting to the host) to
+:                understands that the call is destined for a specific
+:                gateway and knows how to search the applicable GATEWAY
+:                table for network routing purposes.
+:    TASK 1.     At this time, a simple one instruction patch can address
+:                the problem by assuming that the leading zero is part
+:                of the DNIC, i.e. if 03110, treat the DNIC as 0311 and
+:                configure the GATEWAY macro accordingly. This patch is
+:                to be installed at the XCOM connecting to the vendor host
+:                that originates the call. It is not necessary to patch
+:                the code at the gateway side.
+:    TASK 2.     For further study, substantial code modification is
+:                necessary to handle the DNIC and GATEWAY macro correctly,
+:                and creation of a new macro to specify that the XCOM 
+:                slot needs to handle international calls on an "exception
+:                basis".
+:
+:  FOR IMPLEMENTATION, INSERT 1[INTERCALL: IN THE COMMAND FILE
+:
+        IF      \INTERCALL
+PATCH(841208,1240,SWONG,CKAD25+12,,2)
+        JFS     CKAD30                  : Don't check and don't assume ODNIC
+ENDPATCH(Allow leading Zero in CALLED ADDRESS for International Call)
+        EI
+
+:PATCH 030 CREATED BY S/WONG AT 10 DEC 84
+:  This patch is created for MayneNet of Australia
+: but is applicable to all X.25/X.75 offerings if the interface
+: is liable to receive calls from 2780/3270 type devices.
+: The X interface may receive X.29 messages from the link when
+: a 2780 device logs on under virtual mode environment. Under
+: certain circumstances, the X interface may go into local echo
+: mode and turn around characters being sent by the 2780 device.
+: This is generally not acceptable to the 2780 device and adverse
+: result may occur.
+: This patch is designed to examine the stored TID from needle
+: and make an assumption that TID greater than CC must be 2780 like
+: devices ! No echo control will be send to the origination circuit
+: and the X interface will reset the local echo bit if the test
+: is true upon receiving an X.29 message from the link.
+: A modified version of this patch should be implemented in the
+: further Source Code if the full mechanism on handshaking between
+: the 2780 (virtual) to XCOM is known. At this time, this patch
+: has been tested with no obserable side effects.
+:
+:
+: TO IMPLEMENT THIS PATCH, INSERT 1:[IBM2780 INTO THE SLOT COMMAND FILE
+:
+:
+        IF      \IBM2780
+PATCH(841211,1210,SWONG,L1P2F,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,2A)
+        LB      R1,ORGTID,R8,
+        CLHI    R1,0CC
+        JLEFS   NDLIBM
+        RBT     R8,PAR0,
+        J       4,R9
+NDLIBM  LIS     R1,X3ECHO
+        TBT     R1,X3FLGS,R2,
+        JN      L1P2I,,
+        J       L1P2F+0C,,
+ENDPATCH(Do not send echo control to 2780 like devices and disable local echo)
+        EI
+
+
+
+:  PATCH 31  CREATED BY JWANG AT 10-JAN-85
+:  THIS PATCH IS USE FOR VERSION 2.01 AND VERSION 2.02
+:
+:  PROBLEM: WHEN PDP BUILD AN AUX CIRCUIT TO AUSTPAC VIA RCA/WUI,IT IS ALWAYS
+:           CLEARED BY AUSTPAC. THE REASON IS THE TC VALUE IS NOT ACCEPTED
+:           BY AUSTPAC.
+:           THIS WILL CAUSE THE LOADII FAILED TO DO GATEWAY LOADING/DUMP
+:           TO MayNet VIA RCA/WUI AND AUSTPAC.
+:  TASK   : ALWAYS USE THE MAX TC VALUE DEFINED ON SYSGEN TIME TO BUILD
+:           CALL REQUEST PACKET WHEN NEEDLE SHOWS TID IS C0.
+
+PATCH(850110,1250,jwang,NST220-2A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+        JNFS    .+0E            :IF TID IS NOT C0,GO GET VALUE FROM TIDTCL
+        LHL     R2,TTR.LT,RL,   :GET THE MAX TC DEFINED BY TCLASS
+        J       NST220,,
+        LB      R2,TIDTCL,R2,   :GET VALUE FROM TIDTCL TABLE
+        J       NST220-24,,     :GO CHECKING THE VALUE IN TIDTCL TABLE
+ENDPATCH(USE MAX TC FOR CALL REQUEST WHEN NEEDLE SHOWS TID IS C0)
+
+
+
+
+
+
+
+
+:  PATCH 032  CREATED BY JWANG AT 10-JAN-85
+:  THIS PATCH CAN BE USED IN BOTH VER 2.01 & VER 2.02
+:  SPECIAL CASE FOR MayNet GATEWAY LOADING/DUMP.
+:  PROBLEM: WHEN PDP BUILD A AUX CIRCUIT TO RCA/WUI TO DO GATEWAY LODING
+:           /DUMP, RCA/WUI XCOM WILL BUILD A CALL REQUEST WITH 14 DIGITS
+:           OF CALLING ADDRESS. DNIC+77+O.NODE+PORT#. (RCA/WUI SLOT TYMFILE
+:           IS CONFIGURED BY CLGADR(-NUIADR,HOSTADR))
+:           AUSTPAC ALWAYS ADD "0" TO THE ADDRESS AND PASS IT TO DESTIONATION.
+:           WHEN AUSTPAC RECEIVE CALL ACCEPTED, AUSTPAC WILL THEN CLEAR THE 
+:           CALL IF THE ORIGINAL CALLING ADDRESS IN CALL REQUEST IS 14.
+:  TASK   : IF THIS CHANNEL IS USED FOR GATEWAY LOADING/DUMP, WE WILL CUT DWON
+:           THE LEN OF CALLING ADDRESS TO TEN DIGITS BY SKIPPING THE PORT#.
+
+
+      IF    \PBLCNT
+PATCH(850110,1250,JWANG,BCLG40+1C,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,22)
+        LHL     R9,DPORT,,      :GET THE DPORT #
+        TBT     R9,LOAD,,       :IS THIS A GATEWAY LOADING/DUMP?
+        JNFS    .+0E            :IF NOT ,JUMP
+        LHL     R0,LO5,,        :GET ORIGINATION PORT #
+        J       BCLG40+22,,
+        LIS     R0,0A           :USE THE LENGTH OF TEN AS CALLING ADDR
+        J       BCLG98,,
+ENDPATCH(CUT DOWN THE CLG ADDR TO HAVE LEN LESS THAN 14 WHEN GATEWY LOADING)
+      EI     PBLCNT
+
+:
+:
+:  PATCH 033   CREATED BY JWANG  ON DEC 10,1984
+:  IN RESET STATE, IF IT RECEIVES A "DM" OR "UA F", IT WILL ENTER NOT ARMED
+:  STATE. AT THIS POINT WE MUST MANUALLY RESTART THE LINK. THIS PATCH IS TO
+:  FORCE IT TO DISCARD THE DM RESPONSE AND HAVE A CHANCE TO ENTER DISC STATE
+:  INSTEAD OF ENTERING NOT ARMED STATE.
+:  THIS PATCH IS USED FOR C&W FOR TESTING.
+:
+            IF LAPB!LAP
+PATCH(841210,1000,JWANG,PRIDEC+PRESET*STAT.L+10,,2)
+        HC      FMDSCD-PRIDEC           :IGNORE DM RESPONSE
+CONPATCH(PRIDEC+PRESET*STAT.L+4,,2)
+        HC      FMDSCD-PRIDEC           :IGNORE "UA" AND "UA F"
+ENDPATCH(DISCARD DM/UA F RESPONSE, NOT ENTER PNARM STATE)
+            EI LAPB!LAP
+
+
+:   PATCH 034 CREATED BY JWANG AT JAN-14-85
+:   THIS PATCH CAN BE USED FOR VERSION 2.01, 2.02, 3.00
+:   PROBLEM: FACILITY BUFFER ZAP. CRASH CODE D8.
+:            IF LOTS OF DATAS COMING INTO IRING, XCOM MOVES DATAS FROM RING
+:            TO DIBUFER, AND THEN IEDBUFER. WHEN THERE IS NO FREE BUFER, IT
+:            TRY TO FIND A BIGGEST BUFERS NOT BEEN USED BY THIS CIRCUIT.
+:            THE BIGGEST IS IN FACBUF, AND SO IT CRASHED.
+:   TASK:    THE COUNTER/FLAG IS 4 BYTES. SO , EACH TIME ENTER THE LOOP
+:            TO COMPARE THE BUFERS COUNTER, IT SHOULD SUBSTRACT 4 BYTES. 
+:            OTHERWISE THE FLAG WILL BE USED AS COUNTER. 
+
+
+PATCH(850114,1735,JWANG,FNDZ30,,2)
+        SIS     R1,4
+ENDPATCH(FIX ONE OF THE D8 CRASH)
+
+
+:   PATCH 035  CREATED BY JWANG AT JULY-23-85
+:   SKIP FINDING THE BIGGEST BUFFER IN FAC/IEC BUFFER AREA.
+
+
+PATCH(840723,1340,JWANG,FNDZ20,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,24)
+        CLHI    R1,FACBIA               :IN FAC AREA?
+        JGE     FNDZ30,,                :SKIP IT
+        CLHI    R1,IEDBIA               :IN IED AREA?
+        JGE     FNDZ20+0C,,             :IF YES, CONTINUE TO COMPARE
+        CLHI    R1,IECBIA               :IN IEC AREA?
+        JGE     FNDZ30,,                :IF YES, SKIP IT
+        J       FNDZ20+12,,
+ENDPATCH(AVOID FACBUF/IECBUF ZAP WHEN FREE BUFER POOL IS EMPTY)
+
+:
+:   patch  036  created by jwang at 21-jan-85
+:   WE modified the source code xcom02.r02 and rename it as
+:   xcom32.r32 in pactech:37.
+:   problem: Fram mod 8/mod 128 are in the same slot and those links with
+:            mod 8 are using k(7), those links with mod128 are using k(16).
+:            two things happened by using different slot tymfile:
+:                if use ty2011.t01(jwang:37)----- cause e0 crash.
+:                if use cw2011.t01(cwhknet:37)---no crash,but the links
+:                with k(16) failed to bring up the fram level. the input
+:                buffer were empty. when trace frame, nothing showed in the 
+:                terminal.
+:   task:    reason for input buffer empty-----
+:                input buffer index is defined by frame window size.
+:                k(7) happened to be on link1 & link7. cw2011.t01
+:                has 8 links. (note!!! last link has k(7)0.
+:                for the links with k(16), all the datas come  from the
+:                link are put into wrong location.
+:                this is why input buffer is empty.
+:                NOTE!!!! Since datas is put into unknown location,
+:                It has a chance to overwrite some code----for ty2011,
+:                whenever I reload it, it causes e0 crash.
+:                This patch is to fix the index for all size of frame
+:                window.
+:                NOTE!!! the frame window size for mod 128 can be in the 
+:                range 1-127.
+:
+:   
+:  before inccw, we need insert 3 lines
+:    
+:          .dob.(qt,o,7e-kmsk|q|)
+:          wc      0,0,0,0
+:          .doe.1
+:
+
+:********************************************************
+
+PATCHREPORT                     :REPORT BYTES OF PATCH AREAS USED
+FINPATCH                        :MAKE FINAL REPORT ON SEGMENT USAGE
+
+
+  Nk ì
