@@ -1,0 +1,121 @@
+:***********************************************************************
+:* ROCKVILLE, MARYLAND  LAB HDLC TEST CODE                             *
+:*                                                                     *
+:* KERNAL VERSION : 7.03          NODE CODE VERSION : 5.10             *
+:* NODE : 10410          KERNAL : 8420                                 *
+:* FILE : HDLC10.BND  HDLC10.TYM                      RGF 9/30/88      *
+:***********************************************************************
+:********************  HARDWARE CONFIGURATION  *************************
+:***********************************************************************
+:
+IKNRNG  EQ      1               :  kio ring parameter
+NSYNC	EQ	1		:  add sync emulation
+ENGINE  EQ      1               :  1 if hardware is Tymnet ENGINE	
+MACHIN  EQ      2               :  2=hdlc micro 1=engine(default)
+M.NCARD EQ      1               :  Number of mother boards
+M.DA0   EQ      80              :  Address of mother board
+M.NP0   EQ      $A 13           :  Number of lines used mother board 0
+MICRO   EQ      2               :* 1 if enhanced async micro-code
+LBOOT   EQ      1               :* 1 if sync boot version > 1
+ZITEL   EQ      0               :  1 if using semi-conductor memory
+BAUDR   EQ      0               :* 2 if high speed interupts
+:
+N.ADA   EQ      1               :  1 IF NEW STYLE ASYNC CARD
+ASYNEW  EQ      1               :  1 IF NEW AND OLD ASYNC ROUTING
+NASYNG  EQ      0               :  NUMBER OF ASYNC GROUPS 2 PER CARD
+CONSAT  EQ      0               :  1 FOR ASYNC CONSAT IN NODE
+:
+:***********************************************************************
+:*****************  ISIS CONFIGURATION CONSTRAINTS  ********************
+:***********************************************************************
+:
+NSLOT   EQ      6               :  no. of slots to connect
+NLU     EQ      $A 9            :  max. no. of logical units/slot
+BGMIN   EQ      $A 60           :  60ms background minimum
+:
+:***********************************************************************
+:**********************  NODE CONFIGURATION  ***************************
+:***********************************************************************
+:
+SILINS  EQ      0               :* number of sio links
+TII     EQ      1               :  1 if Tymnet-II on node
+PTHRU   EQ      0               :  1 if passthroughs inhibitted
+TRIKLV  EQ      1               :  Disable t.t.t.rickle l.l.l.l.ogic
+MACHNM  EQ      $8 10410        :  node number
+HST0    EQ      $A 8420         :  ISIS Kernel host number
+:
+OPTION(TLEV)                    :  Trace SIO/Sync line events.
+OPTION(REBLD)                   :  CIRCUIT REBUILD
+:
+:***********************************************************************
+:**********************  NETWORK CONFIGURATION  ************************
+:***********************************************************************
+:
+        TIILNK(2660)            : HARDWIRED                 
+:
+XLINKS  EQ      1               :  Number of Tymnet-II wild card links
+:
+:***********************************************************************
+:*********************  SLOT 0 - T-II NODE CODE  ***********************
+:***********************************************************************
+:
+S0CORE  EQ      $A 235          :  no. of Kb assigned to node code
+NLUS0   EQ      $A 1            :  no. of l.u.'s for node code
+S0L0    S.REF(0)                :  HARDWIRED                 
+:
+:***********************************************************************
+:********************  SLOT 1 - MUX HOST 4736  *************************
+:***********************************************************************
+:
+S1CORE  EQ      $A 65           :  SLOT 1 CORE SIZE IN KB
+NLUS1   EQ      $A 0            :  NO. OF LU FOR SLOT 1
+:
+:***********************************************************************
+:********************  SLOT 2 - TEST SLOT, SLSIO  **********************
+:***********************************************************************
+:
+S2CORE  EQ      $A 45            :  Slot 2 core size in Kb's
+NLUS2   EQ      $A 9             :  No. of l.u.'s for slot 2
+S2L0    M.REF(0,1)
+S2L1    M.REF(0,2)
+S2L2	M.REF(0,3)
+S2L3	M.REF(0,4)
+S2L4	M.REF(0,5)
+S2L5	M.REF(0,6)
+S2L6	M.REF(0,7)
+S2L7	M.REF(0,8)
+S2L8	M.REF(0,9)
+:
+:***********************************************************************
+:********************  SLOT 3 - TEST SLOT, SLASYNC  ********************
+:***********************************************************************
+:
+S3CORE  EQ      $A 45            :  Slot 2 core size in Kb's
+NLUS3   EQ      $A 4             :  No. of l.u.'s for slot 2
+S3L0    M.REF(0,0A)
+S3L1    M.REF(0,0B)
+S3L2	M.REF(0,0C)
+S3L3	M.REF(0,0D)
+:
+:***********************************************************************
+
+:	GOOD-GUY LIST
+XGG	MACRO[
+	GG(L.S0A!L.S0R!L.H!L.P,-1,GATEWAY)
+	GG(L.S0A!L.SYA!L.SUA!L.S0P!L.SYP!L.P!L.DISC,-1,MAINTDIAG)
+	GG(L.S0A!L.SYA!L.SUA!L.S0P!L.SYP!L.P!L.DISC,-1,DNSONLY)
+	GG(L.S0A!L.SYA!L.SUA!L.S0P!L.SYP!L.P!L.DISC,-1,RVIVIER)
+:
+:	CHECK FOR SPECIAL GOD-GUY USERS
+:
+	IF	\SGGUSE
+	SGG
+	EI
+
+	GG(2,0,ODDJOB,30)
+	GG(1,0,XRTECH,20)
+	GG(2,0,XRAY,30)
+]
+
+
+:--- END OF FILE ---
