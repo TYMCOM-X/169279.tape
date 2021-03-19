@@ -1,0 +1,4079 @@
+:=====================================================================
+:=
+:=                        T H E   S N A T
+:=                        -----------------
+:= DATE: AUGUST 11, 1987
+:= WRITTEN BY: PHIL SNEDDON
+:=
+:======================================================================
+
+         SEG A.DATA
+
+         GL IMORG,GOTZAP,LENGTH,INPTSW,REST,HPORT,GOTORG
+         GL NOTNDL,CTL15,CONT15,CONTC,CTLC
+         GL CONT6,CONTD,CONT1A,CONT8,RPORT,MAXCIR
+         GL CTL9,CONT9,CTL4,CONT4,CTL2,CONT2,CTL1,CONT1
+         GL CTLF,CONTF,CONT16,CTL16,CONT14,CTL14,DOECHO
+         GL CTL19,CONT19,CTLE,CONTE,CTL12,CONT12,CTL1,CONT1
+OBSIZE   EQ PKTSIZ*2
+IBUFSZ   EQ PKTSIZ*8+10
+STSSIZ   EQ 0E
+IDXWRP   EQ (PKTSIZ*8+10)-(PKTSIZ+4)  :POINT IN SIO INBUF TO WRAP INDEX
+LUN      EQ 0
+CONMOM   EQ 90
+FRCMBO   EQ 0B0
+FRCMBI   EQ 0A0
+
+K        EQ 0
+NUMLU    EQ 0
+         RE NUMPU
+NUMLU    EQ NUMLU+NMLUP|K|
+K        EQ K+1
+         ER
+
+
+
+
+ZAPMSG   SC /"9E/                     :DETACH
+SETECH   SC /"B1"00"01/
+BELL     SC /"87/
+PROMPT   SC /"8D"8A"DB"BE/
+BKSPC    SC /"88"A0"88/               :BACKSPACE AND ERASE
+PUSFE    SC / IDLE/
+PUSFF    SC / POLLED/
+PUS0     SC / INACTIVE/
+PUS1     SC / IN FLUX/
+PUS2     SC / ACTIVE/
+PUS7     SC / DISC/
+RSPHOO   SC /"8A"8D"8A                   ------------------------/
+RSPH00   SC /"8D"8A                   RESPONSE TIME STATISTICS/
+RSPH01   SC /"8A"8D                   ------------------------"8A"8A"8D/
+RSPH02   SC / PU ADDRESS"BA XXX /
+RSPH03   SC /   FRAME SIZE"BA XXX    /
+RSPH04   SC /"8A"8D                    BEST TIME"BA XXXXXX       /
+RSPH05   SC /"8A"8D                    WORST TIME"BA XXXXXXXX      /
+RSPH06   SC /"8A"8D                    AVERAGE TIME"BA XXXXXXXX     /
+RSPH08   SC /"8A"8D                    FRAMES RECEIVED"BA XXXX      "8A"8A"8D/
+RSPH07   SC /    **** NO DATA ****"8A"8D/
+RSPH09   SC /"8A"8D                    POLL LIST WRAP TIME"BA          SECONDS/
+BADPU    SC /"8D"8A"87ADDRESS IS TOO LONG. EXTRA CHARACTER DISCARDED"8A"8D/
+BADLUM   SC /"8D"8A"87INVALID LU ADDRESS - START OVER"8A"8D/
+LEFT01   SC /"8A"8D"87NO PU TO ASSIGN THIS LU TO"8A"8D/
+LEFT02   SC /"8A"8DENTER PU NUMBER (X FOR ALL)"BA/
+LEFT03   SC /"8A"8D"87 Out of RANGE! Command ABORTED!/
+LEFT04   SC /"8A"8DSNRM WILL BE IGNORED/
+LEFT05   SC /"8A"8DWILL RE-ACT TO SNRM NOW/
+LEFT07   SC /"8A"8DNOW ENTER THE RELATIVE LU ON THIS PU"BA /
+LEFT08   SC /"8A"8A"8D"BCescape!"87"BE/
+LEFT0C   SC /ENTER RELATIVE LU NUMBER IN HEX (MAX IS F)"BA /
+LEFT0D   SC /ENTER FIRST BYTE OF RU (XX FOR DATA)"BA /
+LEFT0E   SC /"8D"8AMANUAL OVERRIDE IS NOW OFF"8A"8D/
+LEFT0F   SC /"8A"8DENTER TEXT AND TERMINATE WITH CR (TOGGLE "DEX)"8A"8D-"3E/
+LEFT10   SC /        3 TO SET THE EXPEDITE BIT IN THE TH"8A"8D/
+LEFT11   SC /"8A"8DINPUT THE NEW RH --"BE /
+LEFT12   SC /"8A"8DENTER THE NEW SNF --"BE /
+LEFT13   SC /"8A"8DENTER A 1 TO CHANGE THE LENGTH OF THE RU"8A"8D      /
+LEFT14   SC /  2 TO CHANGE THE RH"8D"8A/
+LEFT15   SC /"8A"8DENTER THE LENGTH OF THE RU--"BE/
+LEFT16   SC /        4 TO RESET THE EXPEDITE BIT IN THE TH"8A"8D/
+LEFT17   SC /SPECIAL FRAME SEQUENCE HAS BEEN SENT"87"8A"8D/
+LEFT18   SC /"8A"8DENTER THE NEW RU --"BE /
+LEFT19   SC /        5 TO RESPOND TO FMD DATA AUTOMATICALLY"8A"8D/
+LEFT1A   SC /--"BE /
+LEFT1B   SC /"8A"8DWILL NOW RESPOND TO FMD DATA AUTOMATICALLY/
+LEFT1C   SC /"8A"8DWILL NO LONGER RESPOND TO FMD DATA/
+LEFT1D   SC /"8A"8D --- FMD COUNTERS HAVE BEEN RESET ---/
+LEFT1E   SC /"8D"8A"87 -- NOT SUPPORTED YET --"8A"8D/
+LEFT1F   SC /"8A"8D --- RESPONSE TIME STATISTICS HAVE BEEN RESET ---/
+LEFT20   SC /"8A"8D *** WILL NOW ACCEPT TIME-STAMPED DATA FRAMES ***"8A"8D/
+LEFT21   SC /"8A"8D *** NO LONGER ACCEPTING TIME-STAMPED FRAMES ***"8A"8D/
+LEFT22   SC /"8A"8DENTER 1 TO START LOGON WITH NOTIFY/
+LEFT23   SC /"8A"8D      2 TO SEND VTAM LOGON"8D"8A/
+NOTSUP   SC /"8D"8A"87 SORRY BUT THAT RU IS NOT SUPPORTED"8A"8D/
+BADHEX   SC /"8D"8A"87 YOU DIDN"A7T FOLLOW DIRECTIONS"8A"8D/
+BADPU2   SC /"8D"8A"87ADDRESS IS TOO SHORT. ENTER MISSING CHARACTER"8A"8D/
+BADPU3   SC /"8D"8ALAST ADDRESS ENTERED DID NOT MATCH AN ADDRESS GENNED /
+BADPU4   SC /IN THIS SLOT."8D"8ARE-ENTER LAST ADDRESS"BA /
+BOOTMG   SC /"8D"8A"8AONLY 1 USER ALLOWED AND YOU AIN"A7T IT"A1"8D"8A/
+AUFWDR   SC /"8D"8A"8ASNOST SENDS YOU A 53..."8A"8D"87/
+BNR1     SC /"8D"8A"8A"8A"8A"87/
+BNR2     SC /                                 /
+BNR3     SC /* WELCOME TO  *"8D"8A"8A/
+BNR4     SC /                               /
+BNR5     SC /T H E   S N A T"8D"8A/
+BNR6     SC /-----------------"8D"8A/
+
+
+
+
+HLP1     SC /"8A"8D         SNAT COMMANDS"BA"8D"8A/
+HLP2     SC /         ---------------"8A"8D/
+HLPA     SC /  "DEA - SEND NOTIFY TO START LOGON PROCESS"8A"8D/
+HLPB     SC /  "DEB - ACCEPT TIME-STAMPED DATA FRAMES"8A"8D/
+HLPD     SC /  "DED - SEND DM FOR SPECIFIED PU"8A"8D/
+HLPH     SC /  "DEH - PRINT LIST OF SNAT COMMANDS"8A"8D/
+HLPI     SC /  "DEI - IGNORE SNRM FOR SPECIFIED PU"8A"8D/
+HLPL     SC /  "DEL - TO DISPLAY RESPONSE TIME STATISTICS"8A"8D/
+HLPN     SC /  "DEN - TO CHANGE THE SNF FOR A SPECIFIED LU"8A"8D/
+HLPO     SC /  "DEO - MANUAL ENTRY OF RU TO SEND"8A"8D/
+HLPR     SC /  "DER - TO RESET COUNTER AND TIMERS"8A"8D/
+HLPT     SC /  "DET - ENTER TEXT FOR SINGLE SEGMENT RU"8D"8A/
+HLPU     SC /  "DEU - DISPLAY STATUS OF ALL PHYSICAL AND LOGICAL UNITS"8D"8A/
+HLPV     SC /  "DEV - TURN OFF MAUNAL ENTRY"8A"8D/
+HLPY     SC /  "DEY - TO CHANGE THE RH OF THE MANUAL DATA FRAME"8A"8D/
+HLPZ     SC /  "DEZ - LOGOFF"8A"8D/
+STAT1    SC /"8D"8AP.U. ADDR"BA    /
+STAT2    SC /"8D"8AL.U. ADDR"BA/
+STAT3    SC /                                                               /
+STAT4    SC /"8D"8AL.U. STAT"BA/
+STAT5    SC /                                                               /
+STAT6    SC /"8A"8DFMD  RCVD"BA/
+STAT7    SC /                                                               "8A/
+
+
+ZERSTR  HC 0                          :BEGINNING OF RESET AREA
+FMDCTR  HS NUMLU                      :STORAGE TO COUNT FMD DATA RECEIVED
+HPORT   HC 0                          :TEMP STORAGE FOR GUY TO GET BOOTED
+PTDELY  HC 0                          :PRINT DELAY
+REQCRT  HC 0                          :REQUESTING CRT OF PRINTER
+PRNTCT  HC 0                          :NUMBER OF PRINT RECORDS SENT
+APPLIC  HC 0                          :APPLICATION (OAF)
+INPTSW  HC 0                          :ISICOP CONTROL FLAG
+ENDSW   HC 0                          :END OF IMORG ADDRESS INPUT SWITCH
+SNIGNR  HC 0                          :IGNORE SNRM FLAG
+INTRPT  HC 0                          :SEND EXPIDITED FRAME NOW FLAG ARRAY
+MANUAL  HC 0                          :ARRAY TO INDICATE MANUAL REQUESTS
+        IF VTAMRF
+VTAUTO  HC 0                          :1=AUTO RESPONSE TO FMD FROM CMH
+        EI
+HOLDPU  HC 0
+HOLDLU  HC 0
+PURSPT  WC 0
+CHARIX  HC 0
+TESTSW  HC 0
+BIDRJC  BS NUMLU                      :BID REJECT COUNTER
+ZEREND  HC 0                          :END OF RESET AREA
+
+HLDPTR  HC 0
+REJCTR  HC 0                          :FRAME REJECT COUNTER
+TMOCTR  HC 0                          :COUNTER FOR INFO-RCV-TIME-OUT
+HLDSNS  HC 0                          :TEMP STORAGE FOR POSSIBLE SENSE DATA
+FGNHL1  WC 0                          :HOLD REGISTER 1 IN FOREGROUND
+HOLD4   WC 0
+HOLD5   WC 0
+HOLD6   WC 0
+HOLD7   WC 0
+HOLD8   WC 0
+LUSRET  WC 0                          :LUSTLP RETURN ADDRESS
+SAVALL  WS 10                         :HOLDER FOR BAKWAT
+HOLD8F  WC 0                          :HOLDER FOR FOREGROUND
+XFRAME  HC 0
+XMTCNT  HC 0                          :TRANSMIT FRAME COUNT
+SIOIDX  HC 0                          :CURRENT SIO IOUT# BUFFER IN USE
+LASTFM  HC 0
+RPTMTS  HC 0                          :RESPONSE-TIME-TESTING FLAG
+HLDSNF  HC 0                          :TEMP STORAGE FOR SEQ NUM FIELD
+HLDBYT  BC 0
+RUH1    BC 0                          :TEMP STORAGE FOR RU HEADER BYTE 1
+SID000  HC 0
+SID001  HC 0
+SID002  HC 0
+SID003  HC 0                          :THESE SID COUNTERS ARE FOR DEBUGGING
+CURPU   HC 0
+HLDLIX  HC 0                          :TEMP STORAGE FOR BUFLIX
+PIXLIX  HC 0                          :PU OR LU INDEX SWITCH
+RUCNT   HC 0                          :RU NIBBLE COUNT
+MODESW  HC 0                          :HEX/ASCII MODE
+MANIX   HC 0                          :MANDAT INDEX
+MANMAX  HC 0                          :MAXIMUM INPUT ALLOWED FOR MANIX
+NIBHLD  HC 0
+MANLU   HC 0                          :MANUAL LU
+JAIL0   WS 1                          :STORAGE FOR R0
+JAIL2   WS 1
+HLDR5   WS 1
+HLDR7   WS 1
+ECHST   WS 10                         :ECHO STORE AREA
+OUTRSP  WC 0                          :FLAG FOR OUTSTANDING RSP
+RAPFAG  WC 0,0,0,0                    :BUFLIX WRAP INDICATOR
+RAPFAP  WC 0                          :BUFPIX WRAP INDICATOR
+BITSIZ  HC 0                          :TEMP STORAGE FOR ISIS DATA LENGTH
+LUPUNM  HC 0                          :STORAGE FOR NUMBER OF LU'S PER PU
+CURLU   HC 0                          :HOLDER FOR CURRENT LU #
+HLDCNT  HC 0
+TMPSNF  HC 0                          :TEMP STORAGE FOR REQ'S SNF
+RUB2A3  HC 0                          :TEMP STORAGE FOR RU BYTES 2 AND 3
+RPORT   HS MAXCIR                     :STORAGE FOR GOOD GUY
+HLDHEX  WC 0                          :BINHEX HOLD AREA
+ZERHLT  WC 0
+ZERLEN  EQ ZERHLT-ZERSTR              :END OF HALT & RESTART AREA
+        WC 0
+ONESEC  EQ $A600                      :1 SECOND IN FASTC
+LU1ARY  WC 0                          :LU TYPE 1 ARRAY
+LU3ARY  WC 0                          :LU TYPE 3 ARRAY
+UA      BC 73
+XID     BC 0BF
+DISC    BC 1F
+HLFMCM  BC 0                          :HOLD FMD COMMAND
+MANLRU  BC 0                          :HOLD MANUAL RU
+MARKER  HC 0FFFF                      :INPUT BUFFER MARKER
+
+        BND 2
+
+        SEG A.CODE
+HLPLIN  MACRO(TXT)[
+        LH  R2,RPORT
+        LA  R3,TXT
+        JAL R5,OCS]
+
+        SEG A.DATA
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  FRAME BUFFER AREA
+
+        SEG  3
+BUFINT  EQ  .                         :BEGINNING OF BUFFER INITIALIZATION
+BUFPU   BS NUMPU*WINDSZ*LUBSIZ        :DIAGNOSTIC PU STORAGE AREA
+        BND 2
+BUFPIX  BS NUMPU
+        BND 2
+BUFPPW  BS NUMPU                      :CURRENT NUM UNPROCESSED BKGND PACKETS
+        BND 2
+BUFLU   BS NUMLU*WINDSZ*LUBSIZ*BUFACT  :DIAG LU STORAGE AREA
+        BND 2
+BUFLIX  BS NUMLU                      :RELATIVE BUFLU INDEX
+        BND 2
+BUFLPW  BS NUMLU                      :CURRENT NUMBER OF UNPROCESSED BKGND PKTS
+        BND 4
+BUFEND  EQ  .                         :END OF BUFFER AREA
+BFSIZE  EQ  BUFEND-BUFINT             :LENGTH OF BUFFER AREA
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  LUSTAT STATE TABLE
+
+         SEG A.DATA
+         BND 4
+LUSTBL   XC 00010000040000000000000000000000     :00-0F 
+         XC 00000000000000000000000000000000     :10-1F
+         XC 00000000000000000000000000000000     :20-2F
+         XC 00030000000000000000000000000000     :30-3F
+         XC 00000000000000000000000000000000     :40-4F
+         XC 00000000000000000000000000000000     :50-5F
+         XC 00000000000000000000000000000000     :60-6F
+         XC 00000000000000000000000000000000     :70-7F
+         XC 00000000000000000000000000000000     :80-8F
+         XC 00000000000000000000000000000000     :90-9F
+         XC 00000000000000000000000000000000     :A0-AF
+         XC 00000000000000000000000000000000     :B0-BF
+         XC 00000000000000000000000000000000     :C0-CF
+         XC 00000000000000000000000000000000     :D0-DF
+         XC 00000000000000000000000000000200     :E0-EF
+         XC 00000000000000000000000000000000     :F0-FF
+
+
+
+: - - -  FMD COMMAND TABLE  - - - :
+
+FMDTBL   XC 00000000000000000000000000000000     :00-0F
+         XC 00000000000000000000000000000000     :10-1F
+         XC 00000000000000000000000000000000     :20-2F
+         XC 00000000000000000000000000000000     :30-3F
+         XC 00000000000000000000000000000000     :40-4F
+         XC 00000000000000000000000000000000     :50-5F
+         XC 00000000000000000000000000000000     :60-6F
+         XC 00000000000000000000000000000000     :70-7F
+         XC 00000000000000000100000000000000     :80-8F
+         XC 00000000000000000000000000000000     :90-9F
+         XC 00000000000000000000000000000000     :A0-AF
+         XC 00000000000000000000000000000000     :B0-BF
+         XC 00000000000000000000000000000000     :C0-CF
+         XC 00000000000000000000000000000000     :D0-DF
+         XC 00000000000000000000000000000000     :E0-EF
+         XC 00000000000000000000000000000000     :F0-FF
+
+: - - -  CHECK-LU-TIME-TABLE  - - - :
+
+CHKTBL   XC 00000000000000000000000000000000     :00-0F
+         XC 00000000000000000000000000000000     :10-1F
+         XC 00000000000000000000000000000000     :20-2F
+         XC 00000000000000000000000000000000     :30-3F
+         XC 00000000000000000000000000000000     :40-4F
+         XC 00000000000000000000000000000000     :50-5F
+         XC 00000000000000000000000000000000     :60-6F
+         XC 00000000000000000000000000000000     :70-7F
+         XC 00000000000000000000000000000000     :80-8F
+         XC 00000000000000000000000000000000     :90-9F
+         XC 00000000000000000000000000000000     :A0-AF
+         XC 00000000000000000000000000000000     :B0-BF
+         XC 00000000000000000000000000000000     :C0-CF
+         XC 00000000000000000000000000000000     :D0-DF
+         XC 00000000000000000000000000000000     :E0-EF
+         XC 00000000000000000000000000000000     :F0-FF
+
+         BND 4
+AXAXAX   XC 30313233343536373839414243444546
+
+
+
+        SEG A.DATA
+        BND 4
+APUBUF  XC 000040002D0000000000EB8000111240       :+RSP TO ACTPU
+        XC 4040404040404000000701000000000000
+APUBFL  EQ $A33
+
+        BND 4
+        IF NOTIFY
+ALUBUF  XC 000040002D0000000000EB80000D0201       :+RSP TO ACTLU
+        XC 00850000000C06010001000000
+ALUBFL  EQ $A29
+        ELSE
+ALUBUF  XC 000040002D0000000000EB80000D02         :+RSP TO ACTLU
+ALUBFL  EQ $A15
+        EI
+       
+        BND 4
+        BND 2
+ACVPU   XC 2D0000000000EB80001112404040404040404000000701000000000000
+ACVPUL  EQ $A29
+        BND 2
+        IF NOTIFY
+ACVLUB  XC 000040002D0000000000EB80000D020100850000000C06010001000000
+ACVLUL  EQ $A29
+        ELSE
+ACVLUB  XC 000040002D0000000000EB80000D02
+ACVLUL  EQ $A15
+        EI
+        BND 2
+NTFBUF  XC 000040002C00000000000B8000810620       :NOTIFY - SLU ENABLED
+        XC 0C06030001000000
+NTFBFL  EQ $A24
+        BND 4
+
+BINDBF  XC 000040002D0000000000EB800031           :BIND RSP
+BINDBL  EQ $A14
+        BND 4
+
+SDTBUF  XC 000040002D0000000000EB8000A0     :+RSP TO SDT
+SDTBFL  EQ $A14
+
+        BND 4
+FMDPRS  XC 000040002C0000000000838000
+FMDPRL  EQ $A13
+        BND 4
+FMDNRS  XC 000040002C0000000000879000
+SNSCOD  XC 082D                       :082D=LUBUSY
+FMDNRL  EQ $A15
+        BND 4
+VTMLGN  XC 000040002C0000000000038000E2E3C9C77D  :VTAM LOGON
+VTMLGL  EQ $A18
+
+BIDBUF  XC 000040002C0000000000CB8000C8       :+RSP TO BRACKET BID
+BIDBFL  EQ $A14
+        BND 4
+
+CLERBF  XC 000040002D00000000006B8000A1
+CLERLN  EQ $A14
+        BND 4
+UNBNBF  XC 000040002D0000000000EB800032      :+RSP UNBIND
+UNBNLN  EQ $A14
+        BND 4
+DALBUF  XC 000040002D0000000000EB80000E
+DALLEN  EQ $A14
+        BND 4
+        IF RSHUTD
+SHDRSP  XC 000040002D0000000000CB8000C2
+SHDLEN  EQ $A14
+        ELSE
+TRMSRP  XC 000040002C00000000008B8000010683
+TRMLEN  EQ $A16
+        EI (RHSUTD)
+        BND 2
+SHUTCR  XC 000040002D0000000000CB8000C1
+SHCLEN  EQ $A14
+        BND 2
+SHUTDR  XC 000040002D00000000004B8000C0
+SHDLEN  EQ $A14
+        BND 4
+CHDIRE  XC 000040002C0000000000039040
+        BND 4
+TESTFM  XC 000040F3
+        XC 00000000                   :FASTC TIME STAMP
+        RE $A90
+        BC 0E8,0E4,0C2                :YUB
+        ER
+        IF TESTFL
+TESTFL  EQ 20                         :ANYTHING GREATER THAN 4
+        ELSE
+TESTFL  EQ 4
+        EI
+
+
+
+        IF VTAMRF                     :IF GENNED FOR CMH
+FMDUMY  XC 000040002C0000000000039020  :DUMMY RESPONSE WITH CDI SET FOR CMH
+DUMLEN  EQ $A13                        :LENGTH
+
+VTMLG1  XC 000040002C00000000000390A0  :TH & RH FOR VHR LOGON STRING1
+        XC F1C1E3C5C3C8E2C5D9E57A      :<CMD><WCC>TECHSERV:
+        XC F7F7F1F3                    :CMH HOST NUMBER 7713
+        XC 5ED4D6E3C8C5D940D3D6C4C5    :<SEMI>MOTHER LODE
+VTMLN1  EQ $A40
+
+VTMLG2  XC 000040002C0000000000039020  :TH & RH VHR LOGON STRING2
+        XC F1C1E3C5C3C8E2C5D9E57A      :<CMD><WCC>TECHSERV:
+        XC F7F7F1F2                    :CMHE HOST NUMBER 7712
+        XC 5ED4D6E3C8C5D940D3D6C4C5    :<SEMI>MOTHER LODE
+VTMLN2  EQ $A40
+
+VTMLG3  XC 000040002C0000000000039020  :TH & RH VHR LOGON STRING3 (DSP)
+        XC F1C1F38D8D8D8D              :<CMD><WCC>3<CR><CR><CR><CR>
+VTMLN3  EQ $A20
+
+VTMLG4  XC 000040002C0000000000039020  :TH & RH VHR LOGON STRING4
+        XC F1C1                        :<CMD><WCC>
+VTMLN4  EQ $A15
+        EI
+
+
+
+
+:------------------------------------------------------------------------
+
+OFFSCN  XC 000040002C0000000000038020                     :13 CHARS
+        XC F5C7114FD21D60D7C1F340D4C5C1D5E240D3D6C7D6C6C6 :23 CHARS
+        XC 406040D7D9C5D7C1D9C540E3D640C2C51DE8E4D5C2D6E4 :23 CHARS
+        XC D5C41D6013
+OFFSCZ  EQ $A64
+
+         BND 4
+MANDAT   XC 000040002C0000000000039020
+         XC F5C3114040F1F2F3F4F5F6F7F8
+         BS $A200
+MANDLN   EQ $A26
+
+         BND 4
+MANBRK   XC 000040002C0000000000038080
+MANBLN   EQ 0D
+         BND 4
+MNACLU   XC 000040002D00000000006B80000D0201     :MANUAL ACTLU
+MNACLN   EQ $A16                                 :LENGTH
+:----------------------------
+: RU TYPE,LENGTH & ADDRESS TABLE
+
+         BND 4
+RUTABL   XC A00E0000                  :SDT
+         XC 310E0000                  :BIND
+         XC 320E0000                  :UNBIND
+         XC F51A0000                  :DATA (EXCEPTION RSP)
+         XC FE0D0000                  :DATA (BEGIN BRACKET ONLY)
+         XC 81180000                  :NOTIFY (SLU ENABLED)
+         XC C80E0000                  :+RSP TO BID
+         XC A10E00               :CLEAR
+         IF RSHUTD
+         XC C20E0000                  :+RSP TO RSHUTD
+         ELSE
+         XC 01100000                  :+RSP TO TERMSELF
+         EI
+         XC 0D1D0000                  :ACTLU
+         XC 0E0E0000                  :DACTLU
+         XC 150D0000                  :+RSP TO VTAM BANNER
+         XC C00E0000                  :SHUTD
+         XC 990D0000                  :+RSP TO FMD DATA
+         XC 9A0F0000                  :-RSP TO FMD DATA
+         IF VTAMRF
+         XC F4280000                  :VHR LOGON 1
+         XC F3280000                  :VHR LOGON 2
+         XC F2140000                  :VHR LOGON 3
+         XC F10F0000                  :VHR LOGON 4
+RUTLEN   EQ $A76
+         ELSE
+RUTLEN   EQ $A60
+         EI (VTAMRF)
+
+
+BUFWSR   XC 000040002C0000000000039020
+         XC F5C3114BE71D607B40D9C5C3C5C9E5C5C440C6F340  :21 CHARS
+         XC C3C1D5D5C5C440D9C5E2D7D6D5E2C5407B13
+BUFWSZ   EQ $A52
+
+
+
+:--  ASCII TO EBCDIC CONVERSION TABLE
+
+EBCONT  XC 00010203372D2E2F1605150B0C0D0E0F
+        XC 10111200003D322618193F271C1D1E1F    :10-1F
+        XC 405A7F7B5B6C507D4D5D5C4E6B604B61    :20-2F
+        XC F0F1F2F3F4F5F6F7F8F97A5E4C7E6E6F    :30-3F
+        XC 7CC1C2C3C4C5C6C7C8C9D1D2D3D4D5D6    :40-47
+        XC D7D8D9E2E3E4E5E6E7E8E9C05FD04B6D    :50-5F
+        XC 78818283848586878889919293949596    :60-6F
+        XC 979899A2A3A4A5A6A7A8A9C0FAD0A14B    :70-7F
+
+
+
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::::                                                                    ::::
+::::                 B  A  C  K  G  R  O  U  N  D                       ::::
+::::                                                                    ::::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+         SEG A.CODE
+START
+         LIS R1,0
+         LIS R0,0
+         IF \LUTP01
+         LHI R7,LUTP01                :GET THE RELATIVE # OF LU TYPE 1
+         SBT R7,LU1ARY
+         EI
+         IF \LUTP03
+         LHI R7,LUTP03
+         SBT R7,LU3ARY
+         EI
+START2   STB R0,ZERSTR,R1
+         AIS R1,1
+         CHI R1,ZERLEN
+         JL  START2
+         LIS R1,0
+START3   STB R0,BUFINT,R1,
+         AIS R1,1
+         CI  R1,BFSIZE
+         JL  START3
+         STH R0,WAITBT
+         STH R0,RRARAY
+         STH R0,DMARRY
+         STH R0,TFMRAY
+         STH R0,PUACTR
+         LHI R2,0F                    :INIT PUSTAT TO 0F
+         LHI R3,0FE                   :INIT PUACT TO FE
+         LI  R11,600000               :MAKE PUMINT REAL BIG
+         LHI R1,NUMPU-1
+START4   STB R0,PURRNR,R1
+         STB R0,PURRNS,R1
+         STB R2,PUSTAT,R1
+         STB R3,PUACT,R1
+         STH R0,SNF,R1,R1
+         LR  R6,R1
+         SLLS R6,1
+         STH R0,PUTMSZ,R6
+         ST  R0,PUMAXT,R6,R6
+         ST  R0,PUAVET,R6,R6
+         ST  R0,PUTMCT,R6,R6
+         ST  R11,PUMINT,R6,R6
+         SIS R1,1
+         JGE START4
+         LHI R1,NUMLU-1
+START5   STB R0,LUSTAT,R1
+         STH R0,LUSNF,R1,R1
+         STH R0,SNFLU,R1,R1
+         SIS R1,1
+         JGE START5
+         LHI R3,NUMPU
+START6   SBT R3,SNIGNR
+         SIS R3,1
+         JGEBS START6
+         LA  R0,STRFGN
+         SVC SYS,1
+         JAL R7,HSTNUM
+
+
+
+:----------------------------------------------------------------------
+
+CONPU    LIS R2,0            :PU INDEX
+         LIS R3,0            :PU ASCII INDEX
+CONPU2   LA  R8,HLDHEX,,     :TEMP STORAGE FOR CONVERTED ADDRESS
+         LIS R9,1            :CONVERT TWO CHARACTERS
+         LA  R10,PUTAB,R2    :BINHEX INPUT AREA
+         JAL R4,BINHEX       :CONVERT HEX PU ADDRESS TO ASCII
+         LH  R10,HLDHEX
+         STH R10,PUTABA,R3
+         AIS R2,1
+         AIS R3,2
+         CHI R2,NUMPU
+         JL  CONPU2
+
+
+
+CONLU    LIS R2,0
+         LIS R3,0
+CONLU2   LA  R8,HLDHEX
+         LIS R9,1                     :CONVERT TWO CHARACTERS
+         LA  R10,DAF,R2
+         JAL R4,BINHEX
+         LH  R10,HLDHEX
+         STH R10,LUTABA,R3
+         AIS R2,1
+         AIS R3,2
+         CHI R2,NUMLU
+         JL  CONLU2
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  THIS ROUTINE BUILDS THE SUPPORTED RU TABLE 
+
+CRETRU   LA   R3,SDTBUF
+         STH  R3,RUTABL+2
+         LA   R3,BINDBF
+         STH  R3,RUTABL+6
+         LA   R3,UNBNBF
+         STH  R3,RUTABL+0A
+         LA   R3,MANDAT
+         STH  R3,RUTABL+0E
+         LA   R3,MANBRK
+         STH  R3,RUTABL+12
+         LA   R3,NTFBUF
+         STH  R3,RUTABL+16
+         LA   R3,BIDBUF               :+RSP TO BID
+         STH  R3,RUTABL+1A
+         LA   R3,CLERBF               :CLEAR
+         STH  R3,RUTABL+1E
+         IF   RSHUTD
+         LA   R3,SHDRSP
+         ELSE
+         LA   R3,TRMSRP               :+RSP TO TERMSELF
+         EI
+         STH  R3,RUTABL+22
+         LA   R3,ACVLUB               :ACTLU
+         STH  R3,RUTABL+26
+         LA   R3,DALBUF               :DACTLU
+         STH  R3,RUTABL+2A
+         LA   R3,FMDPRS               :+RSP TO VTAM BANNER
+         STH  R3,RUTABL+2E
+         LA   R3,SHUTDR               :SHUTD
+         STH  R3,RUTABL+32
+         LA   R3,FMDPRS               :+RSP TO FMD DATA
+         STH  R3,RUTABL+36
+         LA   R3,FMDNRS               :-RSP TO FMD DATA
+         STH  R3,RUTABL+3A
+         IF VTAMRF
+         LA   R3,VTMLG1
+         STH  R3,RUTABL+RUTLEN-0E     :VHR LOGON STRING 1
+         LA   R3,VTMLG2
+         STH  R3,RUTABL+RUTLEN-0A
+         LA   R3,VTMLG3               :VHR LOGON STRING 3
+         STH  R3,RUTABL+RUTLEN-06
+         LA   R3,VTMLG4
+         STH  R3,RUTABL+RUTLEN-02
+         EI (VTAMRF)
+
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  THRASH CHECKS THE IRING FOR DATA
+
+THRASH   JAL R4,LOOK         :CHECK FOR MSG IN IRING
+         J   REST            :NO MSG IN RING
+         JE  CNTMSG          :GO PROCESS CONTROL MSG
+         CHI R2,0            :IS THIS MESSAGE A NEEDLE
+         JE  GOTNDL          :GOT A NEEDLE
+         J   NOTNDL
+
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  MAIN BACKGROUND DISMISS AREA                                     :::
+
+REST     SVC DISMIS
+         LIS R2,0
+         LH  R5,TESTSW
+         CHI R5,1
+         JE CONT15
+         TBT R2,RPTMTS                :RESPONSE TIME TESTING?
+         JN  BGFGST                   :YES, RUN FASTER
+         JAL R5,PROPBP                :PROCESS DATA FOR THE PU'S
+         JAL R5,PROLBP                :PROCESS DATA FOR THE LUs
+         LIS R2,0
+         JAL R5,CKLUTM                :CHECK LU TIMERS
+         LHI R4,(NUMPU-1)*4
+         JAL R5,CKPUTM                :SEE IF THE PUs ARE STILL ALIVE
+         LIS R2,0
+         J   BGFGST
+REST4    J   THRASH
+
+:==========================================================================
+: COME HERE IF WAITING FOR FOREGROUND TO SEND A FRAME
+
+BAKWAT   SVC DISMIS
+         STM R0,SAVALL                :SAVE EVERYTHING
+         LHI R5,NUMPU-1
+BAKWA4   LB  R6,PUSTAT,R5             :LOOKING FOR RR'R RECEIVED
+         CHI R6,4                     :GOT ONE?
+         JN  BAKWA6                   :NO
+         LR  R7,R5
+         SLLS R7,2
+         L   R8,FASTC,,
+         L   R4,PUTIM,R7              :GET THIS CLOCK
+         SR  R8,R4
+         CHI R8,RRTMO                 :TIME FOR ANOTHER RR?
+         JL  BAKWA6                   :NO
+         LIS R7,7                     :IF YES, CHANGE STATE TO 7
+         STB R7,PUSTAT,R5
+BAKWA6   SIS R5,1
+         JGE BAKWA4                   :JUMP IF ANY LEFT
+         LM  R0,SAVALL
+         JR  R9
+
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+GOTDAT   J   REST
+
+GOTNDL   LH  R8,RPORT
+         CHI R8,0
+         JN  BOOTEM                   :GET RID OF THIS GUY CUZ PORT IN USE
+         STH R1,RPORT
+         JAL R4,GETH
+         JAL R4,FLUSH                 :CHUCK REST OF NEEDLE
+         LH  R2,RPORT
+         LA  R3,SETECH                :TURN ON CONSAT ECHO
+         JAL R5,OCM
+         JAL R8,SNDBNR                :SEND "SNOST BANNER"
+         JAL R8,HLPLST                :SEND LIST OF SNOST COMMANDS
+         J   REST
+
+:--------------------------------------------------------------------------
+: THIS ROUTINE CLEARS RPORT WHEN OPERATOR CIRCUIT IS ZAPPED OR DETACHED
+
+GOTZAP   LIS R2,0
+         STH R2,RPORT                 :PUT HIM TO REST
+         STH R2,HPORT
+         J   REST
+
+:--------------------------------------------------------------------------
+: COME HERE IF THERE IS ALREADY AN OPERATOR LOGGED ON
+
+BOOTEM   STH R1,HPORT
+         LR  R2,R1
+         LA  R3,BOOTMG                :SEND GET LOST MESSAGE
+         JAL R5,OCS
+         LH  R2,HPORT
+         LA  R3,ZAPMSG
+         JAL R5,OCM
+         JAL R4,GETH
+         JAL R4,FLUSH
+         J   REST
+
+
+
+
+:--------------------------------------------------------------------------
+: THIS ROUTINE SENDS OUT THE GREETING MESSAGE TO THE OPERATOR
+
+SNDBNR   LH  R2,RPORT
+         LA  R3,BNR1
+         JAL R5,OCS
+         LH  R2,RPORT
+         LA  R3,BNR2
+         JAL R5,OCS
+         LH  R2,RPORT
+         LA  R3,BNR3
+         JAL R5,OCS
+         LH  R2,RPORT
+         LA  R3,BNR4
+         JAL R5,OCS
+         LH  R2,RPORT
+         LA  R3,BNR5
+         JAL R5,OCS
+         LH  R2,RPORT
+         LA  R3,BNR4
+         JAL R5,OCS
+         LH  R2,RPORT
+         LA  R3,BNR6
+         JAL R5,OCS
+         JR  R8
+
+:-------------------------------------------------------------------------
+: THIS ROUTINE SENDS THE LIST OF COMMANDS TO THE OPERATOR
+
+HLPLST   HLPLIN(HLP1)
+         HLPLIN(HLP2)
+         HLPLIN(HLPA)
+         HLPLIN(HLPB)
+         HLPLIN(HLPD)
+         HLPLIN(HLPH)
+         HLPLIN(HLPI)
+         HLPLIN(HLPL)
+         HLPLIN(HLPN)
+         HLPLIN(HLPO)
+         HLPLIN(HLPR)
+         HLPLIN(HLPT)
+         HLPLIN(HLPU)
+         HLPLIN(HLPV)
+         HLPLIN(HLPY)
+         HLPLIN(HLPZ)
+         HLPLIN(PROMPT)
+         JR  R8
+
+
+
+
+:========================================================================
+: THIS ROUTINE IS CALLED IF A CHARACTER NEEDS TO BE ECHOED.
+ 
+CHKECH   ST  R0,JAIL0                 :SAVE R0
+         ST  R2,JAIL2
+         LH  R5,DOECHO
+         JER R10
+         LIS R2,1
+         STB R2,ECHST                 :PUT IN LENGTH TO BE ECHOED
+         STB R0,ECHST,R2              :PUT IN CHARACTER TO ECHO
+         LH  R2,RPORT
+         LA  R3,ECHST
+         JAL R5,OCS
+         L   R0,JAIL0
+         L   R2,JAIL2
+         JR  R10
+
+:=========================================================================
+
+CNTMSG   J   REST
+
+:-----------------------------------------------------------------------
+
+GOTORG   J   REST
+
+
+:-----------------------------------------------------------------------
+: INSERT STONKY'S "ISICOP" ROUTINE HERE
+        MO  .,ISICOP
+
+        SEG A.DATA
+
+        GL  DOECHO,NOTNDL,CURIN,DETCH
+ECHBUF  BS 50
+DATLEN  HC 0
+DOECHO  HS MAXCIR
+CURIN   HC 0
+ALEFT   HC 0
+FINDED  HC 0
+GRBALL  SC/"AA/
+RDBALL  SC/"AB/
+ORBALL  SC/"AD/
+DETCH   SC/"9E/
+
+        SEG A.CODE
+
+NOTNDL  LIS R8,0
+FINPOR  LH  R7,RPORT,R8
+        CR  R7,R1
+        JE  OPNING      : MATCHED RPORT
+        AIS R8,2
+        CHI R8,MAXCIR*2 : MORE RPORTS TO EXAMINE?
+        JE  ADDPR       : NO RPORT MATCHED
+        J   FINPOR      : FIND THAT PORT
+
+ADDPR   LIS R8,0
+TRYGIN  LH  R7,RPORT,R8 : FIND FIRST OPENING IN TABLE
+        CHI R7,0        : BY LOOKING FOR ZERO
+        JE  OPNING      : OPENING FOUND
+        AIS R8,2
+        CHI R8,MAXCIR*2
+        JL  TRYGIN      : LOOK AGAIN
+        CHI R2,9D       :DATA?
+        JG  BADSTF      :NO
+        JAL R4,GETCH    :GET LENGTH OF THIS ORPHANED JUNK
+        JAL R4,FLUSH    :DESTROY IT
+        J   REST        :FORGET ABOUT HIM
+BADSTF  LB  R0,LENGTH,R2,  :GET LENGTH OF THIS BOY
+        JAL R4,FLUSH       :HEAVE-HO
+        J   REST
+
+OPNING  STH R8,CURIN    : STORE INDEX
+        STH R1,RPORT,R8 : STORE RPORT, POSSIBLY REPETITIVE
+
+        CHI R2,$009D
+        JG  NONDAT      : BIGGER THAN 9D ISIS
+        LH  R7,INPTSW,R8
+        CHI R7,0        : RETURN TO PHIL IF NOT ZERO
+        JN  IMORG       : RETURN TO PHIL IF NOT 0
+        JAL R4,GETCH    : BOOT THE ISIS DATA MSG LENGTH
+        STH R0,DATLEN   : STORE LEN OF MESSAGE IN THERE
+
+BOBUNG  LIS R8,1
+        STH R8,ALEFT
+BAGOFR  JAL R4,GETCH    : GET FIRST CHARACTER
+
+KCS     EQ  1
+        RE  $A26
+        IF  \CTL|KCS|
+         NHI  R0,7F          : AND OFF PARITY
+         CHI  R0,CTL|KCS|
+         JN   .+$A12
+         LA   R13,CONT|KCS|  : LOAD REG WITH ADDRESS OF JUMP
+         J    CONTRL
+        EI
+KCS     EQ  KCS+1
+        ER
+
+        J   HOP1         : NO CONTROL CHARACTERS FOUND NEEDED BY IMORG
+
+: A CONTROL CHARACTER WAS FOUND IN THE REPEAT NEEDED BY IMORG
+
+CONTRL  LIS R5,1
+        STH R5,FINDED     : SET FINDED TO 1 CUZ WE FOUND CONTROL WE NEED
+        LH  R8,ALEFT
+        LH  R7,DATLEN
+        SR  R7,R8
+        CHI R7,0
+        JE  MORG         :LAST DATA OF MESSAGE WAS CONTROL NOW ELIR
+        LR  R0,R8
+        JAL R4,FLUSH      :DATA FOLLOWED CONTROL, SO THROW IT AWAY
+        J   DPLUS
+
+HOP1    STB R0,ECHBUF,R8
+        LH  R8,ALEFT
+        AIS R8,1
+        STH R8,ALEFT
+        LH  R7,DATLEN
+        CR  R7,R8
+        JGE BAGOFR
+        JAL R4,ELIR
+
+: ALL THE DATA HAS BEEN YANKED OUTTA THIS ISIS MESSAGE.  IF IT NEEDS TO
+: BE ECHOED SHIP IT BACK
+
+HOP2    LH  R8,CURIN
+        LH  R7,DOECHO,R8
+        CHI R7,0
+        JE  DPLUS       :WE HAVE TAKEN IN FULL ISIS DATA MSG.  NONE OF IT
+                       :IS NEEDED BY PHIL OR NEEDS TO ECHOED OR IS CNTRL
+        LH  R8,ALEFT   :GET LEN OF NECESSARY DATA
+        SIS R8,1
+        LIS R7,0
+        STB R8,ECHBUF,R7   :STORE NEW VALUE IN ECHBUF FOR LEN
+        LH  R8,CURIN       :GET INDEX
+        LH  R2,RPORT,R8
+        LA  R3,ECHBUF
+        JAL R5,OCS
+DPLUS   LH  R5,FINDED
+        CHI R5,0
+        JE  REST           :CONTROL CHARS NOT FOUND
+        LIS R5,0
+        STH R5,FINDED
+        JR  R13
+
+MORG    JAL R4,ELIR
+        J   DPLUS
+
+: ALL NON DATA NON NEEDLES PASS THRU HERE.  AFTER PROCESSING THE MESSAGE
+: IS FLUSHED AWAY.  UNKNOWN BALLS AND MESSAGE ARE FLUSHED BUT CAN BE ADDED.
+
+NONDAT  CHI R2,$0 0AA              :GREEN?
+        JE  GREENR
+        CHI R2,$0 0AB              :RED?
+        JE  REDRET
+        CHI R2,$0 0AC              :YELLOW?
+        JE  YELLA
+        CHI R2,$0 0AD              :ORANGE?
+        JE  ORANGA
+        CHI R2,$0 0A6              :EDEM?
+        JE  XEDEM
+        CHI R2,$0 0A7              :LDEM?
+        JE  XLDEM
+        CHI R2,$0 9E               :DETACH?
+        JE  ADETCH
+        CHI R2,$0 9F               :A ZAP?
+        JE  ADETCH
+        CHI R2,$0 0AF              :HANG?
+        JE  ADETCH
+        LB  R0,LENGTH,R2,
+        JAL R4,FLUSH
+        J   REST
+
+GREENR  LB  R0,LENGTH,R2,
+        JAL R4,FLUSH
+        LA  R3,GRBALL
+        LH  R8,CURIN
+        LH  R2,RPORT,R8
+        JAL R5,OCM
+        LHI R8,0          :BEFORE REST REMEMBER DON'T ECHO
+        LH  R7,CURIN
+        STH R8,DOECHO,R7
+        J   REST
+
+REDRET  LB  R0,LENGTH,R2, :RED FOUND AND SHIPPED
+        JAL R4,FLUSH
+        LA  R3,RDBALL
+        LH  R8,CURIN
+        LH  R2,RPORT,R8
+        JAL R5,OCM
+        LHI R8,1          :BEFORE WE REST REMEMBER TO ECHO
+        LH  R7,CURIN
+        STH R8,DOECHO,R7
+        J   REST
+
+YELLA   LB  R0,LENGTH,R2, :YELLOW FOUND ORANGE SHIPPED
+        JAL R4,FLUSH
+        LA  R3,ORBALL
+        LH  R8,CURIN
+        LH  R2,RPORT,R8
+        JAL R5,OCM
+        J   REST
+
+ORANGA  LB  R0,LENGTH,R2,
+        JAL R4,FLUSH
+        J   GOTORG        :ALERT ORANGE BALL FOUND
+
+XEDEM   LB  R0,LENGTH,R2,
+        JAL R4,FLUSH
+        LHI R8,1
+        LH  R7,CURIN
+        STH R8,DOECHO,R7     :MUST ECHO WHEN CONSAT DEFERS
+        J   REST
+
+XLDEM   LB  R0,LENGTH,R2,
+        JAL R4,FLUSH
+        LHI R8,0
+        LH  R7,CURIN
+        STH R8,DOECHO,R7     :CONSAT LEFT DO NOT ECHO
+        J   REST
+
+ADETCH  LB  R0,LENGTH,R2,
+        JAL R4,FLUSH
+        J   GOTZAP        :ZAP OR DETACH FOUND
+
+
+        EM
+
+
+
+
+
+
+:========================================================================
+: THIS ROUTINE EXAMINES THE INPUT SWITCH (INPTSW) TO SEE WHICH ROUTINE
+: TO JUMP TO.
+
+IMORG   LH  R13,INPTSW                :GET INPUT SWITCH
+        CHI R13,5                     :ASKING FOR LU TO START LOGON
+        JE  CONTA0
+        CHI R13,6
+        JE  CONTA4
+        CHI R13,13                    :13=IGNORE SNRM
+        JE  CONT92
+        CHI R13,15                    :15=SEND DISC
+        JE  CONT42
+        CHI R13,1B                    :INPUTTING TEXT TO MANDAT
+        JE  CONTT2
+        CHI R13,1C                    :INPUT NEW MANDAT RH
+        JE  CONTY0
+        CHI R13,1D                    :GET RELATIVE LU # FOR SNF
+        JE  CONTN0
+        CHI R13,1E                    :GET NEW SNF
+        JE  CONTN3
+        CHI R13,1F                    :ASK FOR LENGTH OF RH OF MANDAT
+        JE  CONTY5
+        CHI R13,22                    :LENGTH OF THE MANDAT RU
+        JE  CONTY8
+        CHI R13,24                    :24=RESPONSE TO RELATIVE LU FOR MANUAL
+        JE  CONTF2
+        CHI R13,25                    :25=ASK FOR MANUAL RU
+        JE  CONTFA
+        CHI R13,26                    :GOT SECOND CONTROL-O, ASK FOR RU
+        JE  CONTFC
+        CHI R13,27                    :ASK FOR REL LU TO BE TURNED OFF
+        JE  CNT162
+        IF VTAMRF
+        CHI R13,28                    :GO ASK FOR LU TO SET VTAUTO
+        JE  CONTN0
+        EI (VTAMRF)
+        J   REST
+
+:=========================================================================
+
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::                                                                     :::
+:::                  T A B L E   S E T U P   A R E A                    :::
+:::                                                                     :::
+::: THE TABLE SETUP AREA HAD TO BE MOVED FROM THE BEGINNING OF THE      :::
+::: PROGRAM DUE TO ITS SIZE.  OTHERWISE RX3 INSTRUCTIONS WOULD BE       :::
+::: REQUIRED IN SEVERAL PLACES.                                         :::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+        SEG A.DATA
+        BND 2
+PUTAB                                 :TABLE OF PU ADDRESSES
+K       EQ 0
+        RE NUMPU
+PUT|K|  BC PU|K|
+K       EQ K+1
+        ER
+        BND 2
+PUTABA                                :PU TABLE OF ASCII ADDRESSES
+        RE NUMPU
+        HC 0
+        ER
+
+LUTABA                                :LU TABLE OF ASCII ADDRESSES
+        RE NUMLU
+        HC 0
+        ER
+        BND 2
+PUSTAT
+        RE NUMPU
+        BC 0F 
+        ER
+MAXSTE  EQ 0F                         :MAX PU STATE
+
+        BND 2
+PUTIM   WS NUMPU
+        BND 2
+        BND 4
+PREVFC  BC NUMPU                      :PREVIOUS FRAME NUMBER
+PLTIME  WC 0                          :POLL LIST WRAP TIMER FOR 1st PU ONLY
+DSPPLT  WC 0                          :DISPLAY HOLDER
+PURTLS  WS NUMPU                      :NUMBER OF LOST RESPONSE TIME FRAMES
+PUMAXT  WS NUMPU                      :MAX VALUE FOR RESPONSE TIME
+PUMINT  WS NUMPU                      :MIN VALUE FOR RESPONSE TIME
+PUAVET  WS NUMPU                      :AVE VALUE FOR RESPONSE TIME
+PUTMCT  WS NUMPU                      :NUMBER OF RESPONSE TIME FRAMES
+PUTMSZ  HS NUMPU                      :SIZE OF LAST TEST FRAME RECEIVED
+        BND 2
+PURRNR
+        RE NUMPU
+        BC 0
+        ER
+        BND 2
+PURRNS  
+        RE NUMPU
+        BC 0
+        ER
+PURTN  
+        RE NUMPU
+        BC 0
+        ER
+PUACT
+        RE NUMPU
+        BC 0FE
+        ER
+
+        BND 2
+
+
+HLDACL  
+        RE $A14*NUMPU
+        BC 0FF
+        ER
+
+
+K       EQ 0
+Q       EQ 0
+DAF     
+        RE NUMPU
+JJ      EQ LUADD|K|
+        RE NMLUP|K|
+        BC JJ
+JJ      EQ JJ+1
+        ER
+K       EQ K+1
+        ER
+OAF     BS NUMLU                      :SSCP/APPLIC ADDRESS
+        BND 2
+K       EQ 0
+LUPRPU                                :"NUMBER OF LU'S PER PU" ARRAY
+        RE NUMPU
+        BC NMLUP|K|
+K       EQ K+1
+        ER
+        BND 2
+K       EQ 0
+LUSTAT                                :LU STATE ARRAY
+        RE NUMPU
+        RE NMLUP|K|
+        BC 0
+        ER
+K       EQ K+1
+        ER
+        BND 2
+SNF
+        RE NUMPU
+        IF SYS38
+        HC 0
+        ELSE
+        HC 0ABFB                      :START NUMBERING AT 0BFB
+        EI (SYS38)
+        ER
+LUSNF 
+        RE NUMLU
+        HC 1
+        ER
+SNFLU
+        RE NUMLU
+        HC 0
+        ER
+LUACT   XC 000E00002D00000000006B80000D0201   :ACTIVATE LU COMMAND
+        BND 2
+
+
+
+         SEG A.DATA
+         BND 2
+K        EQ 0
+PUADLU                                :PU ADDRESSES PER LU
+        RE NUMPU
+        RE NMLUP|K|
+        BC PU|K|
+        ER
+K       EQ K+1
+        ER
+
+        SEG 3
+        BND 2
+        BND 2
+XMTPIX  BS NUMPU                      :NUMBER OF NEXT BUFFER TO USE
+        BND 2
+XMTNPW  BS NUMPU                      :NUMBER OF UNACKNOWLEDGED PACKETS
+        BND 2
+LUDFRS  BS NUMLU                      :THE "DEFINITE RESPONSE REQUIRED" ARRAY
+        SEG A.DATA
+        BND 2
+LUTIME  WS NUMLU                      :TIMER ARRAY FOR LU'S
+
+RRARAY  HC 0                          :RECEIVER READY FLAG ARRAY
+DMARRY  HC 0                          :"SEND DM" ARRAY
+TFMRAY  HC 0                          :TEST FRAME RECEIVED ARRAY
+PUACTR  HC 0                          :1=ACTIVATE THIS PU
+WAITBT  HC 0                          :WHEN SET MEANS DON'T WRITE TO IOUT0
+
+
+:-----------------   S I O    A R E A   ------------------
+
+         BND 10
+SIOSTR
+OUTBUF   HC  OBSIZE
+         RE  OBSIZE
+         BC  0FF
+         ER
+
+:-- OUTPUT BUFFER FOR I-FRAMES  --
+         BND 10
+IFSIZE   EQ  0A0                      :BUFFER SIZE FOR I-FRAMES
+IOUT0    HS  IFSIZE
+IOUT1    HS  IFSIZE
+IOUT2    HS  IFSIZE
+IOUT3    HS  IFSIZE
+IOUT4    HS  IFSIZE
+IOUT5    HS  IFSIZE
+IOUT6    HS  IFSIZE
+IOUT7    HS  IFSIZE
+IOUT8    HS  IFSIZE
+
+:--  SETUP CHANNEL COMMAND PROGRAM  --
+
+         BND 100
+SETUP    WC  30018
+         WC  31420
+         WC  31100
+         WC  303D8
+         WC  305EB
+         WC  3877E
+         WC  313D9
+         WC  0
+
+:--  OUTPUT CHANNEL COMMAND PROGRAM  --
+
+         BND 10
+SIOOUT   HC  8,OUTBUF/10,0,0,0,0,0,0
+         HC  0,0,0,0,0,0,0,0
+         HC  0,0,0,0,0,0,0,0
+         HC  0,0,0,0,0,0,0,0
+         HC  0,0,0,0,0,0,0,0
+         HC  0,0,0,0,0,0,0,0
+         HC  0,0,0,0,0,0,0,0
+:--  I-FRAME ROTOR LIST  --
+         BND 100
+SIOCHN   HC  0,IOUT0/10,0,(SIOCHN+10)/10,0,0,0,0
+         HC  0,IOUT1/10,0,(SIOCHN+20)/10,0,0,0,0
+         HC  0,IOUT2/10,0,(SIOCHN+30)/10,0,0,0,0
+         HC  0,IOUT3/10,0,(SIOCHN+40)/10,0,0,0,0
+         HC  0,IOUT4/10,0,(SIOCHN+50)/10,0,0,0,0
+         HC  0,IOUT5/10,0,(SIOCHN+60)/10,0,0,0,0
+         HC  0,IOUT6/10,0,(SIOCHN+70)/10,0,0,0,0
+         HC  0,IOUT7/10,0,SIOCHN/10,0,0,0,0
+    
+:--  INPUT CHANNEL COMMAND PROGRAM  --
+
+         BND 10
+SIOIN    HC  3,IBUFSZ/2
+         HC  1,INBUF/10
+
+:--  SIO STATUS AREA  --
+
+         BND 10
+SIOSTS   BS  STSSIZ
+
+:--  SIO INPUT BUFFER  --
+
+         BND 10
+INBUF    BS  IBUFSZ
+
+:--  SIO END  --
+
+         BND 10
+SIOEND   EQ  .
+
+:--------------------  E N D   O F   S I O   A R E A  ---------------
+
+
+
+
+
+:=========================================================================
+:=  THIS IS WHERE THE BACKGROUND HANDLES SOME OF THE PU STATES          =:
+
+         SEG A.CODE
+
+BGFGST   LB  R5,PUSTAT,R2
+         CHI R5,MAXSTE                :RANGE CHECK
+         JLEFS .+4
+         HC  0                        :ILLEGAL STATE
+         LHL R7,BGTABL,R5,R5          :GET ROUTINE
+         J   FSEG,R7
+BGFGS2   AIS R2,1                     :GET NEXT PU
+         CHI R2,NUMPU                 :SEE IF ALL HAVE BEEN PROCESSED
+         JL  BGFGST
+         J   REST4
+
+BGTABL   HC  BGFGS2-FSEG              :STATE 0 = BG DOES NOTHING
+         HC  BGFGS2-FSEG              :STATE 1 = BG DOES NOTHING
+         HC  BGFGS2-FSEG              :STATE 2 = BG DOES NOTHING
+         HC  BGFGS2-FSEG              :STATE 3 = BG DOES NOTHING
+         HC  BGFGS2-FSEG              :STATE 4 = BG DOES NOTHING
+         HC  BGFGS2-FSEG              :STATE 5 = BG DOES NOTHING
+         HC  BGFGS2-FSEG              :STATE 6 = BG DOES NOTHING
+         HC  BGFGS2-FSEG              :STATE 7 = BG DOES NOTHING
+         HC  BGFGS2-FSEG              :STATE 8 = BG DOES NOTHING
+         HC  BGFGS2-FSEG              :STATE 9 = BG DOES NOTHING
+         HC  BGFGS2-FSEG              :STATE A = BG DOES NOTHING
+         HC  CKINFT-FSEG              :STATE B = B.G. CHKS INF-RCV TMR NOT USED
+         HC  BGFGS2-FSEG              :STATE C = BG DOES NOTHING
+         HC  BGFGS2-FSEG              :STATE D = BG DOES NOTHING
+         HC  CKPLTM-FSEG              :STATE E = BG CHECKS POLL TIMER
+         HC  BGFGS2-FSEG              :STATE F = BG DOES NOTHING
+   
+:==========================================================================:
+
+
+CKPLTM   LR  R3,R2
+         SLLS R3,2
+         L   R1,PUTIM,R3
+         L   R4,FASTC,,
+         SR  R4,R1
+         CHI R4,4*ONESEC              :IF SNRM NOT RECEIVED AFTER 4 SECONDS
+         JL  BGFGS2                   :MARK THIS PU AS NOT POLLED
+         LIS R5,0F                    :CHANGE STATE TO IDLE
+         STB R5,PUSTAT,R2
+         LHI R5,0FE                   :STATUS DISPLAY WILL SHOW IDLE NOW
+         STB R5,PUACT,R2
+         J   BGFGS2
+
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::: COME HERE IF PUSTAT=0B TO SEE IF THE INFORMATION-EXPECTED TIMER
+::: EXPIRED YET, IF YES THEN SEND RR
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+CKINFT   LR   R3,R2
+         SLLS R3,2
+         L    R1,FASTC,,              :GET CURRENT TIME
+         S    R1,PUTIM,R3,            :CALCULATE ELAPSED TIME
+         CHI  R1,IFRCVT               :SEE IF EXPIRED
+         JL   BGFGS2                  :NOT EXPIRED
+         SBT  R2,RRARAY,,             :TELL F.G. TO SEND RR
+         LIS  R3,1
+         STB  R3,PUSTAT,R2            :CHANGE TO "SEND RR" STATE
+         AHM  R3,TMOCTR,,             :COUNT THE EVENT
+         J    BGFGS2
+
+
+
+
+:-------------------------------------------------------------------------
+:    THIS ROUTINE CHECKS TO SEE IF THERE ARE ANY PACKETS FOR THE PU'S.
+:IF THERE ARE, IT CALLS CHKPCM WHICH RETURNS WITH THE PU COMMAND IN
+:REGISTER R6.  CHKPCM ALSO DECREMENTS BUFPPW.  
+
+PROPBP   LIS R2,0
+PROPB1   LA  R15,BUFPPW,,
+         LB  R6,BUFPPW,R2,            :GET NUMBER OF PU PKTS TO BE PROCESSED
+         JLEFS PROPB3
+         JAL R4,CHKPCM                :GO GET PU COMMAND CODE IN R6
+         JAL R4,CHPCMB                :GO PROCESS THE PU COMMAND
+         J   PROPB1
+PROPB3   AIS R2,1
+         CHI R2,NUMPU
+         JL  PROPB1
+         JR  R5
+
+:------------------------------------------------------------------------
+:    THIS ROUTINE GETS THE PU COMMAND FROM THE PU PACKET JUST RECEIVED
+:FROM THE SNIF.  IT RETURNS WITH IT IN R6.  THE FORMAT FOR CALCULATING
+:THE BEGINNING OF BUFPU IS  R2*PKTSIZ*WINDSZ + PKTSIZ*(BUFPIX-1)
+
+CHKPCM   LB  R6,BUFPIX,R2,            :NUMBER OF BUFFER WHERE PKT STORED
+         JN  CHKPC2
+         LIS R6,1
+         RBT R2,RAPFAP                :SEE IF INDEX WRAPPED IN FOREGROUND
+         JE  CHKPC2
+         LIS R6,7
+CHKPC2   SIS R6,1
+         LR  R8,R2
+         LHI R7,WINDSZ                :GET NUMBER OF BUFFERS RESERVED/PU
+         MHR R8,R7
+         LHI R7,LUBSIZ
+         MHR R8,R7
+         MHR R6,R7
+         AR  R8,R6                    :NOW HAVE BUFPU STARTING POINT
+         LH  R7,BUFPU+6,R8,           :GET SNF FOR THIS PU
+         STH R7,SNF,R2,R2             :EXPECTING ONLY RQs ON PU LEVEL
+         LH  R7,BUFPU,R8,             :GET LENGTH OF PACKET
+         LA  R14,BUFPU,,
+         LB  R13,BUFPU+8,R8,          :FIRST BYTE OF RH
+         STB R13,RUH1                 :SAVE FIRST BYTE OF RU HEADER
+         NHI R13,60
+         JE  FMD                      :DATA IS FMD
+         CHI R13,60
+         JE  SESCON
+         CHI R13,40
+         JE  DFC
+         HC  0
+
+
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  COME HERE TO PROCESS THE COMMAND BYTE FROM CHKPCM
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+CHPCMB   CHI  R6,6011                 :REQUEST TO ACTPU?
+         JE   ACTPUR
+         JR   R4
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  THIS HANDLES THE REQUEST TO ACT PU                                  :::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+ACTPUR   LIS  R6,1                    :1= "IN FLUX" IN STATUS DISPLAY
+         STB  R6,PUACT,R2
+         SBT  R2,PUACTR               :THIS ARRAY IS CHECKED IN SNDRR
+         JR   R4
+
+
+
+
+
+:-----------------------------------------------------------------------------
+:    THIS ROUTINE CHECKS TO SEE WHICH LU'S HAVE UNPROCESSED PACKETS RECEIVED
+:FROM THE SNA HIF.  IT CALLS CHKLCM WHICH RETURNS WITH THE LU COMMAND IN R6.
+
+PROLBP   LIS R2,0
+PROLB1   LA  R15,BUFLPW,,
+         LB  R6,BUFLPW,R2,            :GET NUMBER OF UNPROCESSED PKTS FOR LU
+         JEFS PROLB4
+         JAL R4,CHKLCM                :GO GET LU COMMAND BYTE IN R6
+         JAL R4,CHLCMB                :SEE WHAT LU COMMAND BYTE MEANS
+         J   PROLB1
+PROLB4   AIS R2,1
+         CHI R2,NUMLU
+         JL  PROLB1
+         JR  R5
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  THIS ROUTINE CHECKS TO SEE IF THE PUs ARE STILL RECEIVING       :::
+:::  SOMETHING FROM THE TIF                                          :::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+CKPUTM   L    R6,PUTIM,R4
+         JE   CKPUT4                  :THIS GUY'S DEAD ALREADY
+         L    R7,FASTC,,
+         SR   R7,R6
+         CHI  R7,DMTIME*ONESEC        :ALLOW DMTIME SECONDS OF TIF IDLENESS
+         JLFS CKPUT4
+         JAL  R7,RSETPU               :THIS GUY'S NOW DEAD
+CKPUT4   SIS  R4,4
+         JGE  CKPUTM
+         JR   R5
+
+:=========================================================================
+:===  THIS ROUTINE SETS THE PU TO IDLE
+
+RSETPU   LR   R1,R4
+         SRLS R1,2
+         LIS  R3,0F                   :IDLE STATE
+         STB  R3,PUSTAT,R1
+         LHI  R3,0FE                  :STATUS DISPLAY "IDLE"
+         STB  R3,PUACT,R1
+         LIS  R3,0
+         ST   R3,PUTIM,R4             :TURN OFF PU TIMER
+         JR   R7
+
+:-----------------------------------------------------------------------
+: THERE ARE VARIOUS LUSTAT STATES INWHICH A TIMER MUST EXPIRE BEFORE THE
+: NEXT EVENT TAKES PLACE.  THIS ROUTINE CHECKS FOR THOSE STATES AND CHECKS
+: TO SEE IF THE TIMER HAS EXPIRED YET.
+
+CKLUTM   LB  R7,LUSTAT,R2
+         LB  R7,CHKTBL,R7             :CONVERT LUSTAT INTO INDEX TO CHKXXX
+         LH  R7,CHKXXX,R7,R7          :GET ADDRESS OF ROUTINE TO PROCESS
+         J   FSEG,R7                  :GO PROCESS IT
+
+CKLUT4   AIS R2,1
+         CHI R2,NUMLU
+         JL  CKLUTM
+         JR  R5
+
+CHKXXX   HC   CKLUT4-FSEG             :UNDEFINED
+
+
+:---------------------------------------------------------------------------
+:    THIS ROUTINE GETS THE COMMAND BYTE FROM THIS LU'S PACKET THEN
+:DECREMENTS THE "UNPROCESSED PACKETS" COUNTER IN BUFLPW.  THE FORMULA
+:FOR CALCULATING THE BEGINNING OF CURRENT PACKET IN BUFLU IS:
+:  R2*WINDSZ*PKTSIZ + PKTSIZ*(BUFLIX-1)
+
+CHKLCM   LB  R6,BUFLIX,R2,            :GET LAST ENTRY NUMBER FOR BUFLU
+         JN  CHKLC1
+         LIS R6,1
+         RBT R2,RAPFAG                :SEE IF FOREGROUND WRAPPED INDEX
+         JE  CHKLC1
+         LIS R6,WINDSZ*BUFACT
+CHKLC1   SIS R6,1
+         LR  R8,R2
+         LHI R7,WINDSZ*BUFACT
+         MHR R8,R7
+         LHI R7,LUBSIZ
+         MHR R8,R7
+         MHR R6,R7
+         AR  R8,R6                    :BEGINNING OF THIS LU'S PACKET IN BUFLU
+         LH  R7,BUFLU,R8,             :GET LENGTH OF PACKET
+         LA  R14,BUFLU,,              :SO CAN BE USED BY PU ROUTINE TOO
+         LB  R13,BUFLU+2,R8,          :GET FIRST BYTE OF TH
+         NHI R13,08                   :SEE IF FIRST SEGMENT
+         JE  NOTBCI                   :THROW AWAY IF NOT
+         LB  R13,BUFLU+5,R8,          :GET SSCP/APPLIC ADDRESS
+         STB R13,OAF,R2,
+         LB  R13,BUFLU+8,R8,          :GET FIRST BYTE RH
+         STB R13,RUH1                 :SAVE FIRST BYTE OF RU HEADER
+         IF  VTAMRF                   :IF INTERFACE IS FOR CMH
+         JAL R12,CKPROC               :SEE IF AUTO PROCESSING FMD DATA
+         EI                           :MAY RETURN TO FMD999 AND NOT VIA R12
+         NHI R13,03                   :SEE IF MIDDLE OF CHAIN
+         JE  NOTBCI                   :THROW AWAY IF SO
+         LB  R13,RUH1
+         NHI R13,80                   :SEE IF RSP
+         JN  CHKLC4                   :IF RSP DON'T CARE ABOUT SEQ #
+         LHL R13,BUFLU+6,R8,          :GET SNF
+         STH R13,LUSNF,R2,R2          :SAVE FOR RSP
+CHKLC4   LB  R13,RUH1
+         NHI R13,60                   :ISOLATE RU CATAGORY
+         JE  FMD
+         CHI R13,60
+         JE  SESCON
+         CHI R13,40
+         JE  DFC
+         HC  0
+         JR  R4
+
+
+:========================================================================
+: FMD LAYER
+
+FMD      LHI R6,99                    :USE THIS SO NOTHING MATCHES IN CHLCMB
+         LB  R13,8,R14,R8             :GET FIRST BYTE OF RH
+         NHI R13,80                   :RSP?
+         JE  FMD6                     :NO
+         LB  R13,09,R14,R8            :GET 2ND BYTE OF RH
+         NHI R13,10                   :+/- RSP
+         JN  FMD999
+         J   FMD999
+FMD6     LB  R13,8,R14,R8             :GET RH1 BYTE
+         NHI R13,08                   :FORMATTED RU?
+         JN  FMD999                   :YES, HANDLE DIFFERENTLY
+         LB  R13,9,R14,R8             :GET RH2
+         NHI R13,10                   :EXCEPTION RESPONSE?
+         JN  FMD999                   :YES, IGNORE
+         LHI R6,88                    :88=SEND +RSP FOR UNFORMATTED FMD RU
+         J   FMD999
+FMD999   LB  R8,0,R15,R2              :DECREMENT FRAME COUNTER
+         SIS R8,1
+         STB R8,0,R15,R2
+         JR  R4
+
+
+
+:===========================================================================
+: SESSION CONTROL
+
+SESCON   LB  R6,0B,R14,R8             :GET SESSION CONTROL INDENTIFYING BYTE
+         LB  R8,0,R15,R2              :DECREMENT FRAME COUNTER
+         SIS R8,1
+         STB R8,0,R15,R2
+         LB  R13,RUH1                 :GET FIRST BYTE OF RH HEADER
+         NHI R13,80                   :SEE IF REQ/RSP
+         JEFS .+4
+         HC  0                        :NOT EXPECTING ANY RSPs YET
+         LHI R7,60                    :SESSION CONTROL
+         SLLS R7,8
+         AR  R6,R7                    :TWO BYTE COMMAND FOR CHLCMB
+         JR  R4
+
+:============================================================================
+: DFC LAYER
+
+DFC      LB  R6,0B,R14,R8             :GET DFC CONTROL BYTE
+         J   DFC2
+DFC999   LB  R8,0,R15,R2              :DECREMENT FRAME COUNTER
+         SIS R8,1
+         STB R8,0,R15,R2
+         LB  R13,RUH1
+         NHI R13,0E0                  :ISOLATE CAT. & RQ/RP
+         SLLS R13,8
+         AR  R6,R13                   :TWO BYTE COMMAND
+         JR  R4
+DFC2     LB  R13,RUH1
+         NHI R13,80                   :REQ/RSP
+         JE  DFC999                   :0=REQ
+         LB  R13,09,R14,R8            :GET SECOND BYTE OF RH
+         NHI R13,10                   :+/- RSP
+         JE  DFC999                   :0=POSITIVE RSP
+         LB  R13,RUH1
+         NHI R13,04                   :SEE IF SENSE DATA INCLUDED
+         JE  DFC999                   :0=NO SENSE DATA
+         LB  R13,0B,R14,R8            :GET FIRST BYTE OF SENSE
+         STB R13,HLDSNS
+         LB  R13,0C,R14,R8            :GET SECOND BYTE OF SENSE
+         STB R13,HLDSNS+1
+         J   DFC999
+
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::: THIS ROUTINE DISCARDS FRAMES WHICH ARE NOT EITHER BEGINNING OF
+::: SEGMENT OR BEGINNING OF CHAIN
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+NOTBCI   LB   R8,0,R15,R2
+         SIS  R8,1                    :DECREMENT THE FRAME COUNTER
+         STB  R8,0,R15,R2
+         J    4,R4                    :SKIP CHLCMB SINCE FRAME WAS TRASHED
+
+:--------------------------------------------------------------------------
+: THIS ROUTINE CHECKS TO SEE IF A DEFINITE RESPONSE IS REQUIRED
+
+CHKDRS   LB  R0,LUDFRS,R2,
+         LR  R1,R6
+         NHI R1,0080
+         NHI R0,0080
+         CR  R1,R0
+         JER R12
+         JR  R12                      :NOT IN USE AT THIS TIME
+         HC  0,0
+
+
+
+:-------------------------------------------------------------------------
+:    CHeck Lu CoMmand Byte TO SEE WHERE TO BRANCH TO
+
+CHLCMB   JAL R13,FNDLPU               :FIND RELATIVE PU NUMBER
+         CHI R6,00FF                  :FMD REQ?
+         JLE FIGFMD                   :GO DETERMINE FMD REQUEST
+         CHI R6,600D                  :REQ TO ACVLU?
+         JE  RCVACL
+         CHI R6,6031                  :BIND?
+         JE  BINDRS
+         CHI R6,6032                  :UNBIND?
+         JE  UNBNRS
+         CHI R6,60A0                  :SDT?
+         JE  SDTRSP
+         CHI R6,40C8                  :BID?
+         JE  BIDRSP
+         JR  R4
+
+:--------------------------------------------------------------------------
+: THIS ROUTINE FINDS THE RELATIVE PU NUMBER CORRESPONDING TO THIS LU.
+: IT RETURNS WITH THE VALUE IN REGISTER R1.
+
+FNDLPU   LB  R7,PUADLU,R2
+         LIS R1,0
+FNDLP2   LB  R11,PUTAB,R1
+         CR  R11,R7
+         JER R13
+         AIS R1,1
+         CHI R1,NUMPU
+         JL  FNDLP2
+         HC  0,0
+:--------------------------------------------------------------------------
+:    THIS ROUTINE SENDS THE +RSP TO THE ACTIVATE LU REQUEST AND CHANGES
+:THE STATE TO 1.
+
+RCVACL   TBT R2,MANUAL                :MANUAL OVERRIDE?
+         JNR R4                       :1=YES
+         JAL R13,FNDLPU
+         LA  R15,ACVLUB               :+RSP TO ACTLU
+         LHI R14,ACVLUL               :LENGTH OF RSP
+         LIS R13,0
+         STB R13,OAF,R1,              :SSCP-LU
+         JAL R7,BLDFRM
+         LIS R7,1
+         STB R7,LUSTAT,R2             :TELL F.G. TO SEND THE RESPONSE
+         JR  R4
+
+
+:-----------------------------------------------------------------------
+: THIS ROUTINE SENDS A +RSP TO A BIND
+BINDRS   TBT  R2,MANUAL
+         JNR  R4
+         LA   R15,BINDBF
+         LHI  R14,BINDBL
+BINDR2   JAL  R7,BLDFRM
+         LHI  R7,31                   :TELL F.G. TO SEND BIND OR UNBIND RSPs
+         STB  R7,LUSTAT,R2
+         JR   R4
+
+:======================================
+:  THIS ROUTINE SENDS THE +RSP TO UNBIND
+UNBNRS   TBT  R2,MANUAL
+         JNR  R4
+         LA   R15,UNBNBF
+         LHI  R14,UNBNLN
+         J    BINDR2
+:======================================
+: THIS ROUTINE SENDS A +RSP TO SDT    :
+SDTRSP   TBT  R2,MANUAL
+         JNR  R4
+         LA   R15,SDTBUF
+         LHI  R14,SDTBFL
+         J    BINDR2
+
+:^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^
+: THIS ROUTINE SENDS +RSP TO BRACKET BID
+BIDRSP   TBT  R2,MANUAL
+         JNR  R4
+         LA   R15,BIDBUF
+         LHI  R14,BIDBFL
+         J    BINDR2
+
+:=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::: THIS ROUTINE IS CALLED CHKLC1 IF GENNED AS VTAM REFLECT (CMH) TO SEE
+::: IF THE FMD DATA SHOULD BE PROCESSED AUTOMATICALLY
+
+         IF VTAMRF
+CKPROC   TBT  R2,VTAUTO               :RESPOND TO FMD DATA AUTOMATICALLY?
+         JER  R12                     :NO
+         LB   R11,RUH1                :GET FIRST BYTE OF RH
+         NHI  R11,0E8                 :NON-FORMATTED FMD?
+         JNR  R12                     :NO
+         LB   R11,RUH1
+         NHI  R11,01                  :LAST ELEMENT OF CHAIN?
+         JER  R12                     :NO, DISCARD
+         LHI  R6,9A                   :SET UP TYPE AS "9A" FOR FIGFMD
+         J    FMD999                  :DON'T RETURN VIA R12
+         EI (VTAMRF)
+
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  THIS ROUTINE LOOKS UP THE FMD COMMAND IN THE TABLE "FMDTBL" AND   :::
+:::  CONVERTS IT TO AN INDEX INTO FMDXXX.
+
+FIGFMD   STB  R6,HLFMCM               :SAVE COMMAND JUST INCASE
+         IF VTAMRF                    :IF GENNED FOR CMH
+         TBT  R2,VTAUTO               :RESPOND AUTOMATICALLY TO FMD DATA?
+         JN   FIGFM2
+         EI (VTAMRF)
+         TBT  R2,MANUAL               :DO NOTHING IF MANUAL OVERRIDE IS ON
+         JNR  R4
+FIGFM2   LB   R6,FMDTBL,R6            :GET INDEX TO FMDXXX
+         LH   R7,FMDXXX,R6,R6         :GET ADDRESS OF ROUTINE TO EXECUTE
+         J    FSEG,R7                 :GO EXECUTE IT
+
+FMDUND   JR   R4                      :UNDEFINED, JUST RETURN
+
+FMDXXX   HC   FMDUND-FSEG             :UNDEFINED, JUST RETURN VIA R4
+         HC   FMDPOS-FSEG             :SEND +RSP TO UNFORMATTED FMD RU
+
+:-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-
+:SEND +RSP TO FMD DATA
+
+FMDPOS   LA   R15,FMDPRS              :+RSP
+         LHI  R14,FMDPRL
+         JAL  R7,BLDFRM
+         LHI  R7,31                   :TELL F.G. TO SEND RSP
+         STB  R7,LUSTAT,R2,
+         JR   R4
+
+
+
+
+:=========================================================================
+:* THIS ROUTINE LOOKS AT THE FIRST THREE BYTES OF THE FMD RU TO DETERMINE
+:* WHAT SORT OF A REQUEST IT IS.
+
+RVFMCM   SLL  R6,10                   :SHIFT THIS BOY TO NEXT HALFWORD
+         LH   R13,RUB2A3              :GET RU Bytes 2 And 3
+         AR   R6,R13                  :COMBINE TO A 3 BYTE COMMAND
+         IF 1%RSHUTD
+         CI   R6,010683               :TERMSELF?
+         JE   BLDTRP                  :YES, GO SEND +RSP
+         EI (1%RSHUTD)
+         JR   R4
+
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  THIS IS A FRAME BUILDING ROUTINE.  NEED ADDRESS OF TEMPLATE IN R15  :::
+:::  LENGTH OF FRAME+2 IN R14 AND OAF IN APPLIC                          :::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+BLDFRM  LA   R9,BLDFRM
+        LH   R13,SIOIDX
+        SLLS R13,4
+        LH   R13,SIOCHN,R13,
+        CHI  R13,1
+        JE   BAKWAT
+        LIS  R13,0
+        TBT  R13,WAITBT,,             :SEE IF WAITING FOR LAST DATA TO BE SENT
+        JN   BAKWAT
+        LH   R13,XMTCNT               :SEE HOW MANY FRAMES QUEUED
+        CHI  R13,7
+        JGE  BAKWAT                   :CAN ONLY QUEUE 7
+        LHI  R13,IFSIZE*2
+        LH   R9,SIOIDX
+        MHR  R9,R13
+        ST   R4,HOLD4
+        ST   R5,HOLD5
+        LIS  R4,4                     :START AFTER ADDRESS FIELD
+        LB   R5,PUADLU,R2             :GET PU ADDRESS (R2=LU#)
+        STB  R5,IOUT0+2,R9,
+        LB   R5,PURRNR,R1
+        LB   R6,PURRNS,R1
+        AR   R5,R6
+        IF POLL
+        AHI  R5,10                    :BULD CONTROL FIELD WITH POLL BIT
+        EI (POLL)
+        STB  R5,IOUT0+3,R9,
+BLDFR2  LB   R5,0,R15,R4              :MOVE EACH BYTE TO OUTPUT SECTOR
+        STB  R5,IOUT0,R4,R9
+        AIS  R4,1
+        CR   R4,R14                   :SEE IF ALL DONE
+        JL   BLDFR2
+        IF   SYS38
+        LIS  R5,0                     :SNF MUST BE 0 FOR SYS 38
+        CI   R15,BINDBF               :SNF=0 FOR BIND
+        JE   BLDFR4
+        CI   R15,NTFBUF
+        JE   BLDFR4
+        CI   R15,CLERBF
+        JE   BLDFR4
+        LH   R5,LUSNF,R2,R2
+        ELSE
+        LH   R5,LUSNF,R2,R2
+        EI
+        STH  R5,IOUT0+8,R9,           :SAVE SNF IN IOUT0
+        AIS  R5,1
+BLDFR4  STH  R5,LUSNF,R2,R2           :UPDATE SNF FOR NON- SYS 38
+        LB   R5,DAF,R2,               :GET DAF
+        STB  R5,IOUT0+7,R9,
+        LB   R5,OAF,R2,               :GET SSCP/APPLIC ADDRESS
+        STB  R5,IOUT0+6,R9,
+        SIS  R14,2                    :MAKE LENGTH MORE ACCURATE
+        STH  R14,IOUT0,R9,
+:       LA   R5,IOUT0,R9,
+:       SRLS R5,4
+        LH   R13,SIOIDX
+        SLLS R13,4
+:       STH  R5,SIOCHN+2,R13,
+        LIS  R5,0
+        STH  R5,SIOCHN+4,R13,         :CLEAR CHAIN AREA
+        LIS  R13,1
+        AHM  R13,XMTCNT               :INCREASE XMT COUNT
+        LH   R13,SIOIDX
+        AIS  R13,1
+        CHI  R13,8
+        JLFS .+4
+        LIS  R13,0
+        STH  R13,SIOIDX
+        L    R4,HOLD4
+        L    R5,HOLD5
+        JR   R7
+
+:::::::::::::::::::::::::::::::::::::::::::
+:::  THIS ROUTINE SWAPS SNFs IF THE FRAME :
+:::  BEING SENT IS A REQUEST              :
+:::::::::::::::::::::::::::::::::::::::::::
+SWPSNF   LHL  R13,LUSNF,R2,R2         :GET HOST SNF
+         STH  R13,HLDSNF,,            :SAVE IT
+         LHL  R13,SNFLU,R2,R2         :GET SNAT REQ SNF
+         STH  R13,LUSNF,R2,R2         :SET UP FOR BLDFRM
+         JR   R12
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  THIS ROUTINE CHECKS TO SEE IF ALL OF THE LAST BATCH OF STUFF HAS
+:::  BEEN SENT YET
+
+CKLAST   LIS  R8,0
+         LH   R9,SIOCHN,R8,            :GET COMMAND
+         CHI  R9,1                     :1=NOT SENT YET
+         JER  R11
+         AHI  R8,10
+         CHI  R8,70
+         JLE  CKLAST+2
+         J    4,R11                    :SKIP RETURN=ALL SENT
+
+
+
+
+:-----------------------------------------------------------------------
+: THIS ROUTINE UPDATES THE SEQUENCE NUMBER FIELD (SNF) FOR THE PU
+: INDEXED BY R2.
+
+UPDSNF   LR  R6,R2                    :GET CURRENT PU #
+         LIS R7,2
+         MHR R6,R7
+         LH  R7,SNF,R6
+         AIS R7,1                     :INCREMENT SNF
+         STH R7,SNF,R6
+         JR  R5
+
+:-----------------------------------------------------------------------
+: THIS ROUTINE UPDATES THE N(S) COUNTER
+UPBNS    LB  R8,PURRNS,R2
+         AIS R8,2
+         NHI R8,0F
+         STB R8,PURRNS,R2
+         JR  R5
+
+:--------------------------------------------------------------------------
+: THIS ROUTINE UPDATES THE SNF BY DECREMENTING IT
+
+DECSNF   LR  R6,R2
+         LIS R7,2
+         MHR R6,R7
+         LH  R7,SNF,R6
+         SIS R7,1
+         STH R7,SNF,R6
+         JR  R5
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:: ESCAPE ENCOUNTERED WHEN INPUTING THE PU ADDRESS
+
+ABRTCM   AIS  R9,1
+         LH   R0,BITSIZ
+         SR   R0,R9                   :REMAINING BYTES
+         JAL  R4,FLUSH
+         LH   R2,RPORT
+         LA   R3,LEFT08
+         JAL  R5,OCS
+         LH   R2,RPORT
+         LA   R3,PROMPT
+         JAL  R5,OCS
+         LIS  R5,0
+         STH  R5,INPTSW
+         STH  R5,CHARIX
+         J    REST
+
+
+
+:--------------------------------------------------------------------------
+BADIPT    LR  R0,R9
+          JAL R4,FLUSH
+          LH  R2,RPORT
+          LA  R3,LEFT03
+          JAL R5,OCS
+          LH  R2,RPORT
+          LA  R3,PROMPT
+          JAL R5,OCS
+          LIS R5,0
+          STH R5,INPTSW
+          J   REST
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  COME HERE VIA CONTROL-A TO ASK IF CONTINUOUS XIDs ARE REQUESTED
+
+CONT1    HLPLIN(LEFT0C)               :ASK FOR LU NUMBER
+         LHI  R5,05                   :TELL IMORG TO GO TO CONTA0
+         STH  R5,INPTSW
+         J    REST
+
+:---- COME HERE WITH ANSWER TO LU QUESTION TO START LOGON ----
+CONTA0   JAL  R4,GETCH                :GET LENGTH
+         LR   R9,R0
+         JAL  R4,GETCH                :GET ANSWER
+         LR   R8,R0
+         LR   R0,R9
+         SIS  R0,1
+         JAL  R4,FLUSH
+         JAL  R10,CHKECH
+         JAL  R10,EDITLU              :GOOD HEX DIGIT RETURNED IN R8
+         STH  R8,MANLU                :SAVE LU SELECTED
+         HLPLIN(LEFT22)
+         HLPLIN(LEFT23)               :ASK NOTIFY OR VTAM LOGON QEUSTION
+         HLPLIN(LEFT1A)
+         LIS  R5,6                    :TELL IMORG TO GO TO CONTA4
+         STH  R5,INPTSW
+         J    REST
+
+:()()()()()()()()()()()()()()
+:COME HERE WITH ANSWER TO
+:NOTIFY OR VTAM LOGON
+CONTA4   JAL  R4,GETCH                :GET LENGTH
+         LR   R9,R0
+         JAL  R4,GETCH                :GET ANSWER
+         LR   R11,R0
+         LR   R0,R9
+         SIS  R0,1
+         JAL  R4,FLUSH
+         LR   R0,R11                  :FOR CHECK ECHO
+         JAL  R10,CHKECH
+         LHL  R8,MANLU                :GET SELECTED LU
+         NHI  R11,7F
+         CHI  R11,1B                  :ESCAPE?
+         JE   RETCOM
+         CHI  R11,31                  :NOTIFY?
+         JE   CONTA6
+         CHI  R11,32
+         JN   EDITBD                  :SENDS BKSPC AND GOES TO REST
+CONTA5   LIS  R5,0                    :START WITH SNF 0
+         STH  R5,SNFLU,R8,R8
+         LA   R15,VTMLGN              :VTAM LOGON
+         LHI  R14,VTMLGL
+         J    CONTA8
+CONTA6   LIS  R10,1                   :START LOGON WITH SNF 1
+         STH  R10,SNFLU,R8,R8
+         LA   R15,NTFBUF
+         LHI  R14,NTFBFL
+CONTA8   LR   R2,R8                   :TRANSFER LU TO R2
+         JAL  R12,SWPSNF              :SWAP SNF FOR NOW
+         LIS  R10,0
+         STB  R10,OAF,R2,             :TALKING TO SSCP
+         JAL  R13,FNDLPU              :GET THIS LUs PU
+         JAL  R7,BLDFRM               :CONSTRUCT FRAME
+         LHL  R10,HLDSNF              :RESTORE SNF
+         STH  R10,LUSNF,R2,R2
+         LIS  R10,2
+         STH  R10,SNFLU,R2,R2         :UPDATE REQUEST SNF
+         LIS  R10,4                   :TELL F.G. TO SEND THIS REQUEST
+         STB  R10,LUSTAT,R2,
+         LIS  R10,0
+         STH  R10,INPTSW
+         HLPLIN(PROMPT)
+         J    REST
+
+
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  COME HERE VIA CONTROL-B TO BEGIN THE RESPONSE-TIME TESTING USING DATA
+:::  FRAMES
+
+CONT2    LIS  R11,0
+         CBT  R11,RPTMTS
+         JN   CONT26                  :TURNING OFF TESTING
+         HLPLIN(LEFT20)
+         HLPLIN(PROMPT)
+         L    R5,SLOWC,,
+         ST   R5,PLTIME,,             :INIT POLL LIST WRAP TIMER
+         LI   R5,777777               :SET MINIMUM VERY LARGE
+         LIS  R6,0
+         LHI  R7,(NUMPU-1)*2
+CONT20   ST   R5,PUMINT,R7,R7
+         ST   R6,PUMAXT,R7,R7
+         ST   R6,PUAVET,R7,R7
+         ST   R6,PURTLS,R7,R7
+         SIS  R7,2
+         JGEBS CONT20
+         J    REST4
+CONT26   HLPLIN(LEFT21)
+         HLPLIN(PROMPT)
+         J    REST4
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+CONT4     LH  R2,RPORT
+          LA  R3,LEFT02
+          JAL R5,OCS
+          LHI R5,15
+          STH R5,INPTSW
+          LIS R5,0
+          STH R5,PRNTCT               :RESET PRINT COUNTER
+          J   REST
+
+CONT42    JAL R4,GETCH
+          STH R0,BITSIZ
+          LR  R9,R0
+          JAL R4,GETCH
+          SIS R9,1
+          NHI R0,7F
+          LH  R7,DOECHO
+          JEFS .+6
+          JAL R10,CHKECH
+          CHI R0,1B                   :ESCAPE?
+          JE  RETCM0
+          CHI R0,58                   :X?
+          JE  CONT47
+          NHI R0,0F
+          CHI R0,NUMPU-1
+          JG  BADIPT
+          LR  R7,R0
+          SBT R7,DMARRY               :SET "SEND DM" ARRAY
+CONT44    LR  R0,R9
+          JAL R4,FLUSH
+          LIS R5,0
+          STH R5,INPTSW
+          LH  R2,RPORT
+          LA  R3,PROMPT
+          JAL R5,OCS
+          J   REST
+
+CONT47    LHI R4,NUMPU-1
+CONT48    SBT R4,DMARRY
+          SIS R4,1
+          JGE CONT48
+          J   CONT44
+
+
+
+:=========================================================================
+
+CONT6     LH  R2,RPORT
+          LA  R3,LEFT02
+          JAL R5,OCS
+          LHI R5,14
+          STH R5,INPTSW
+          J   REST
+
+CONT62    JAL R4,GETCH
+          STH R0,BITSIZ
+          LR  R9,R0
+          JAL R4,GETCH
+          NHI R0,7F
+          SIS R9,1
+          LH  R7,DOECHO
+          JEFS .+6
+          JAL R10,CHKECH
+          CHI R0,58
+          JE  CONT67
+          NHI R0,0F
+          CHI R0,NUMPU-1
+          JG  BADIPT
+          LIS R4,0
+          LR  R7,R0
+          STB R4,PUSTAT,R7
+CONT64    STH R4,INPTSW
+          LR  R0,R9
+          JAL R4,FLUSH
+          LH  R2,RPORT
+          LA  R3,PROMPT
+          JAL R5,OCS
+          J   REST
+CONT67    LIS R4,0
+          LIS R5,0
+CONT68    STB R4,PUSTAT,R5
+          AIS R5,1
+          CHI R5,NUMPU
+          JL  CONT68
+          J   CONT64
+
+
+
+:--------------------------------------------------------------------------
+:  THIS ROUTINE SENDS OUT THE SNOSTS HELP LIST WHEN CONTROL-H IS 
+:  ENTERED AT THE COMMAND MODE PROMPT ([>)
+
+CONT8    JAL R8,HLPLST
+         J   REST
+
+:===========================================================================
+: THIS ROUTINE SETS FLAGS TO IGNORE SNRM FOR SPECIFIED PU
+
+CONT9    LH  R2,RPORT
+         LA  R3,LEFT02
+         JAL R5,OCS
+         LHI R5,13
+         STH R5,INPTSW
+         J   REST
+
+CONT92   JAL R4,GETCH
+         STH R0,BITSIZ
+         LR  R9,R0
+         JAL R4,GETCH
+         SIS R9,1
+         NHI R0,7F
+         CHI R0,58
+         JE  CONT97
+         NHI R0,0F
+         CBT R0,SNIGNR                :SET FLAG TO IGNORE SNRM
+         JEFS .+8
+         LA  R3,LEFT05
+         JFS .+6
+         LA  R3,LEFT04
+         LH  R2,RPORT
+         JAL R5,OCS
+CONT94   LR  R0,R9
+         JAL R4,FLUSH
+         LIS R4,0
+         STH R4,INPTSW
+         LH  R2,RPORT
+         LA  R3,PROMPT
+         JAL R5,OCS
+         J   REST
+CONT97   LIS R5,0
+         SBT R5,SNIGNR
+         AIS R5,1
+         CHI R5,NUMPU
+         JL  CONT97+2
+         J   CONT94
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  COME HERE VIA CONTROL-L TO DISPLAY THE RESPONSE TIME STATS
+
+CONTC    HLPLIN(RSPHOO)
+         HLPLIN(RSPH00)
+         HLPLIN(RSPH01)
+         LIS   R6,0                   :PU COUNTER
+CONTC2   LA    R8,RSPH02+0E           :ADDRESS OF OUTPUT
+         LIS   R9,1                   :BYTE COUNT
+         LA    R10,PUTAB,R6           :BYTE TO BE PROCESSED
+         JAL   R4,BINHEX              :CONVERT TO ASCII
+         LA    R11,RSPH03+10          :ADDRESS OF OUTPUT
+         LIS   R10,4                  :NUMBER OF DIGITS
+         LHL   R9,PUTMSZ,R6,R6        :DATA TO CONVERT
+         JAL   R4,BINDEC
+         LR    R7,R6
+         SLLS  R7,1
+         LA    R11,RSPH08+28
+         LIS   R10,6                  :TEST FRAMES RECEIVED
+         L     R9,PUTMCT,R7,R7
+         JE    CONTC6                 :NO FRAMES RECEIVED
+         JAL   R4,BINDEC
+         LHI   R4,$A1000              :CONVERT TO MILLISECONDS
+         LIS   R3,0
+         M     R3,PUAVET,R7,R7        :TOTAL TIMES X 1000
+         LHI   R2,$A600
+         DR    R3,R2                  :(TOTAL TIMES X 1000)/600
+         LIS   R3,0
+         D     R3,PUTMCT,R7,R7        :FINAL ANSWER IN R4
+         LR    R9,R4
+         LA    R11,RSPH06+25
+         LIS   R10,8
+         JAL   R4,BINDEC              :AVERAGE TIME DISPLAY
+         LHI   R4,$A1000
+         LIS   R3,0
+         M     R3,PUMINT,R7,R7
+         LHI   R2,$A600
+         DR    R3,R2
+         LR    R9,R4
+         LA    R11,RSPH04+22
+         LIS   R10,8
+         JAL   R4,BINDEC
+         LHI   R4,$A1000
+         LIS   R3,0
+         M     R3,PUMAXT,R7,R7
+         LHI   R2,$A600
+         DR    R3,R2                  :MILLISECOND ANSWER IN R4
+         LR    R9,R4
+         LA    R11,RSPH05+23
+         LIS   R10,8
+         JAL   R4,BINDEC
+         LR    R6,R6                  :ONLY DO FIRST PU
+         JN    CONTC3
+         LA    R11,RSPH09+$A44
+         LIS   R10,8
+         L     R9,DSPPLT,,
+         JAL   R4,BINDEC
+CONTC3   HLPLIN(RSPH02)
+         HLPLIN(RSPH03)
+         HLPLIN(RSPH04)
+         HLPLIN(RSPH05)
+         HLPLIN(RSPH06)
+         LR    R6,R6
+         JNFS  CONTC4
+         HLPLIN(RSPH09)
+CONTC4   HLPLIN(RSPH08)
+         AIS   R6,1
+         CHI   R6,NUMPU
+         JL    CONTC2
+         HLPLIN(PROMPT)
+         J     REST
+CONTC6   HLPLIN(RSPH02)
+         HLPLIN(RSPH07)               :NO DATA
+         AIS   R6,1
+         CHI   R6,NUMPU
+         JL    CONTC2
+         HLPLIN(PROMPT)
+         J     REST
+
+:--------------------------------------------------------------------------
+
+CONTD     LH  R2,RPORT
+          LA  R3,PROMPT
+          JAL R5,OCS
+          J   REST
+
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  THIS ROUTINE HANDLES THE REQUEST FOR MANUAL ENTRY OF RU'S TO SEND :::
+
+CONTF    LH   R2,RPORT
+         LA   R3,LEFT0C
+         JAL  R5,OCS
+         LHI  R5,24                   :TELL IMORG TO GO TO CONTF2
+         STH  R5,INPTSW
+         J    REST
+
+:- - - - - - - - - - - - - - - - -
+: COME HERE WHEN USER INPUTS RELATIVE LU #
+
+CONTF2   JAL  R4,GETCH
+         LR   R9,R0
+         JAL  R4,GETCH
+         JAL  R10,CHKECH
+         LR   R8,R0
+         SIS  R9,1
+         LR   R0,R9
+         JAL  R4,FLUSH
+         JAL  R10,EDITLU              :CHECK FOR VALID LU INPUT
+CONTF5   SBT  R8,MANUAL               :MARK THIS LU AS MANUAL OVERRIDE
+         STH  R8,MANLU                :SAVE RELATIVE LU #
+         LHI  R4,25                   :TELL IMORG TO GO TO CONTFA
+         STH  R4,INPTSW
+         LH   R2,RPORT
+         LA   R3,PROMPT
+         JAL  R5,OCS
+         J    REST
+:---------------------------------
+: COME HERE TO ASK FOR RU
+
+CONTFA   JAL  R4,GETCH
+         LR   R9,R0
+         JAL  R4,GETCH
+         SIS  R9,1
+         LH   R7,DOECHO
+         JEFS .+6
+         JAL  R10,CHKECH
+         LR   R8,R0
+         LR   R0,R9
+         JAL  R4,FLUSH
+         NHI  R8,7F
+         CHI  R8,1B                   :ESCAPE?
+         JE   RETCOM
+         CHI  R8,0F                   :CONTROL-O?
+         JE   CONTFB
+         CHI  R8,0D                   :CR?
+         JN   REST
+         LH   R2,RPORT
+         LA   R3,PROMPT
+         JAL  R5,OCS
+         J    REST
+CONTFB   LH   R2,RPORT
+         LA   R3,LEFT0D
+         JAL  R5,OCS
+         LHI  R5,26
+         STH  R5,INPTSW
+         J    REST
+
+:--------------------------------
+: COME HERE TO INPUT FIRST NIBBLE OF RU
+
+CONTFC   JAL  R4,GETCH
+         LR   R9,R0
+         JAL  R4,GETCH
+         SIS  R9,1
+         LH   R7,DOECHO
+         JEFS .+6
+         JAL  R10,CHKECH
+         LR   R10,R0
+         NHI  R10,7F
+         CHI  R10,1B                  :ESCAPE?
+         JE   RETCM0
+         JAL  R10,CONATH              :GO CONVERT R0 FROM ASCII BYTE TO HEX NBL
+         J    CONTFX                  :NORMAL RETURN=ERROR
+         LH   R7,RUCNT                :SEE IF FIRST NIBBLE OF RU
+         JN   CONTFD
+         SLLS R0,4                    :SHIFT TO LEFT 4 BITS
+         STB  R0,MANLRU
+         LIS  R7,1
+         STH  R7,RUCNT                :UPDATE NIBBLE COUNT
+         CHI  R9,0
+         JG   CONTFC+6                :GO GET NEXT CHAR
+         JAL  R4,ELIR
+         J    REST
+CONTFD   LB   R7,MANLRU               :GET FIRST 4 BITS
+         AR   R0,R7                   :COMBINE TO ONE BYTE
+         STB  R0,MANLRU
+         LIS  R7,0
+         STH  R7,RUCNT                :ZERO OUT RU NIBBLE COUNTER
+         LR   R0,R9
+         JAL  R4,FLUSH
+         LB   R0,MANLRU               :GET THE RU TO SEND
+         JAL  R10,SCANRU              :SEE IF SUPPORTED
+         J    CONTFZ                  :NORMAL RETURN=NOT SUPPORTED
+         LHL  R2,MANLU                :GET REL LU#
+         LB   R13,OAF,R2,             :GET OAF OF TIF
+         CI   R15,NTFBUF              :SEE IF NOTIFY RESPONSE
+         JNFS .+4                     :IF YES, DAF MUST BE 0
+         LIS  R13,0
+         CI   R15,DALBUF              :DACTLU DAF MUST BE ZERO
+         JNFS .+4
+         LIS  R13,0
+         CI   R15,MNACLU              :ACTLU DAF MUST BE 0
+         JNFS .+4
+         LIS  R13,0
+         STB  R13,OAF,R2,
+         LB   R13,0A,R15              :GET FIRST BYTE OF RH
+         NHI  R13,80                  :SEE IF RSP
+         JN   CONTFE
+         LH   R13,LUSNF,R2,R2         :GET SNF
+         STH  R13,HLDSNF              :SAVE
+         LH   R13,SNFLU,R2,R2         :GET SNF FROM HIF
+         STH  R13,LUSNF,R2,R2         :USE IN RSP
+CONTFE   JAL  R13,FNDLPU              :FIND MATCHING PU
+         JAL  R7,BLDFRM
+         LB   R13,0A,R15
+         NHI  R13,80                  :SEE IF RSP
+         JN   CONTFF
+         LH   R13,HLDSNF
+         STH  R13,LUSNF,R2,R2         :RESTORE
+CONTFF   LHI  R7,0EE                  :THIS STATE=MANUAL
+         STB  R7,LUSTAT,R2
+         LIS  R7,0
+         STH  R7,INPTSW
+         HLPLIN(PROMPT)
+         J    REST
+CONTFX   LH   R2,RPORT
+         LA   R3,BKSPC
+         JAL  R5,OCS
+         CHI  R9,0
+         JG   CONTFC+6
+         JAL  R4,ELIR
+         J    REST
+
+CONTFZ   LH   R2,RPORT
+         LA   R3,NOTSUP
+         JAL  R5,OCS
+         LIS  R5,0
+         STH  R5,INPTSW
+         STH  R5,RUCNT
+         STB  R5,MANLRU
+         LH   R2,RPORT
+         LA   R3,PROMPT
+         JAL  R5,OCS
+         J    REST
+
+::::::::::::::::::::::::::::::::::::::::::
+::: THIS ROUTINE CHECKS THE INPUT TO   :::
+::: SEE IF A VALID LU NUMBER WAS INPUT :::
+::: HEX NUMBER RETURNED IN R8          :::
+::::::::::::::::::::::::::::::::::::::::::
+EDITLU   NHI   R8,7F
+         CHI   R8,1B                  :ESCAPE?
+         JE    RETCOM                 :YES (EXPECTS RING FLUSHED ALREADY)
+         CHI   R8,30
+         JL    EDITBD                 :NO GOOD
+         CHI   R8,46
+         JG    EDITBD                 :TOO BIG
+         CHI   R8,39
+         JL    EDIT04                 :BETWEEN 0-9
+         CHI   R8,41
+         JL    EDITBD                 :NO GOOD
+         NHI   R8,0F
+         AIS   R8,9                   :CONVERT TO DIGIT A-F
+EDIT04   NHI   R8,0F                  :FINAL DIGIT
+         JR    R10
+EDITBD   HLPLIN(BKSPC)                :ERASE BAD INPUT
+         J     REST
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::: RESET THE USER BACK TO THE COMMAND LINE
+
+RETCM0   LR   R0,R9
+         JAL  R4,FLUSH
+RETCOM   HLPLIN(LEFT08)
+         LIS  R5,0
+         STH  R5,INPTSW
+         STH  R5,MODESW
+         STH  R5,RUCNT
+         STH  R5,MANIX
+         HLPLIN(PROMPT)
+         J    REST
+
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  THIS ROUTINE CONVERTS ASCII BYTES TO HEX NIBBLES
+
+CONATH   NHI  R0,7F
+         LIS  R7,0
+         LB   R5,AXAXAX,R7
+         CR   R5,R0
+         JE   CONAT4
+         AIS  R7,1
+         CHI  R7,0F
+         JLE  CONATH+6
+         JR   R10
+CONAT4   LR   R0,R7
+         J    4,R10
+
+:----------------------------------
+: THIS UTILITY ROUTINE FINDS THE LENGTH OF THE FRAME & ADDRESS OF BUFFER
+
+SCANRU   LIS  R7,0
+         LB   R9,RUTABL,R7 
+         CR   R0,R9                   :IS THIS RU SUPPORTED?
+         JE   SCANR4                  :YES
+         AIS  R7,4
+         CHI  R7,RUTLEN               :SEE IF END OF TABLE
+         JL   SCANRU+2
+         JR   R10                     :NORMAL RETURN=NOT SUPPORTED
+SCANR4   LB   R14,RUTABL+1,R7         :GET LENGTH
+         LH   R15,RUTABL+2,R7         :ADDRESS OF BUFFER
+         J    4,R10
+
+
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::: COME HERE VIA CONTROL-R TO RESET THE FMD COUNTERS
+
+CONT12   HLPLIN(LEFT1D)
+         HLPLIN(LEFT1F)
+         HLPLIN(PROMPT)
+         LHI  R5,NUMLU-1
+         LIS  R4,0
+CONTR2   STH  R4,FMDCTR,R5,R5
+         SIS  R5,1
+         JGE  CONTR2
+         LHI  R5,(NUMPU-1)*2
+         LI   R11,600000              :MAKE PUMINT HUGE
+CONTR4   STH  R4,PUTMSZ,R5            :RESET TEST FRAME SIZE RECEIVED
+         ST   R4,PUMAXT,R5,R5
+         ST   R11,PUMINT,R5,R5
+         ST   R4,PUTMCT,R5,R5
+         ST   R4,PUAVET,R5,R5
+         SIS  R5,2
+         JGE  CONTR4
+         J    REST
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  COME HERE WHEN A CONTROL-T IS ENTERED, TO PUT DATA IN THE FMD RU
+:::  FOR USE WITH THE MANUAL OPTION
+
+CONT14   HLPLIN(LEFT18)
+         LHI  R5,1B                   :NOW GO TO INPUT OF TEXT MODE
+         STH  R5,INPTSW
+         LHI  R5,0D                   :DATA STARTS AT MANDAT+0D
+         STH  R5,MANIX
+         LIS  R5,0
+         STH  R5,RUCNT                :INIT NIBBLE HOLDER
+         STH  R5,MODESW
+         STH  R5,NIBHLD
+         J    REST
+
+CONTT2   LA   R12,MANDAT              :ADDRESS OF BUFFER TO STORE DATA TO
+         LHI  R5,$A220                :MAX RU SIZE
+         STH  R5,MANMAX
+
+:---- COME HERE TO STORE TEXT TO MANDAT
+
+CONTT3   JAL  R4,GETCH                :GET LENGTH
+         LR   R9,R0                   :SAVE IT
+         LH   R6,MANIX                :GET INDEX TO MANDAT
+CONTT4   JAL  R4,GETCH
+         LR   R4,R0
+         NHI  R4,7F
+         CHI  R4,18                   :CONTROL-X?
+         JE   CHNGMD                  :SWITCH MODES
+         CHI  R4,08                   :BACKSPACE?
+         JE   MOVEBK
+         CHI  R4,0D
+         JE   MANEND
+         JAL  R10,CHKECH
+         LH   R4,MODESW               :HEX OR ASCII
+         JN   CONTTA                  :HEX
+         LR   R4,R0
+         NHI  R4,7F
+         LB   R0,EBCONT,R4            :CONVERT TO EBCDIC
+         STB  R0,0,R12,R6             :R12 HAS ADDRESS OF BUFFER
+         AIS  R6,1
+CONTT6   SIS  R9,1                    :RING EMPTY?
+         JG   CONTT4
+         JAL  R4,ELIR
+         STH  R6,MANIX
+         CH   R6,MANMAX               :MAX SIZE REACHED?
+         JL   REST
+         LIS  R5,0
+         STH  R5,INPTSW
+         STH  R5,RUCNT
+         HLPLIN(PROMPT)
+         J    REST
+
+CONTTA   JAL  R10,CONATH              :CONVERT ASCII TO HEX NIBBLE
+         J    CONTTX                  :ERROR
+         LH   R5,RUCNT
+         JE   CONTTB
+         AHM  R7,NIBHLD               :SECOND HALF OF BYTE
+         LIS  R5,0
+         STH  R5,RUCNT
+         LH   R7,NIBHLD
+         STB  R7,0,R12,R6             :R12 HAS ADDRESS OF BUFFER
+         AIS  R6,1
+         J    CONTT6
+CONTTB   SLLS R7,4
+         STH  R7,NIBHLD
+         LIS  R5,1
+         STH  R5,RUCNT                :NOW LOOKING FOR SECOND HALF OF BYTE
+         J    CONTT6
+CONTTX   HLPLIN(BKSPC)
+         J    CONTT6
+
+:---- TOGGLE ASCII/HEX MODE
+CHNGMD   LIS   R4,0
+         LH    R5,MODESW              :0=ASCII 1=HEX
+         JE    CHNGM4
+         STH   R4,MODESW
+         J     CONTT6
+CHNGM4   AIS   R5,1
+         STH   R5,MODESW
+         J     CONTT6
+
+:----  RECEIVED BACKSPACE
+MOVEBK   LH   R4,MODESW               :GET MODE
+         JE   MOVEB4
+         HLPLIN(BELL)                 :IN HEX MODE JUST BEEP
+         J    CONTT6
+MOVEB4   HLPLIN(BKSPC)
+         SIS  R6,1                    :DECREMENT MANIX
+         J    CONTT6
+
+:--- GOT CR, END OF TEST INPUT
+MANEND   HLPLIN(PROMPT)
+         STB  R6,RUTABL+0D            :SAVE LENGTH OF MANUAL RU
+         LIS  R5,0
+         STH  R5,INPTSW
+         STH  R5,RUCNT
+         LIS  R6,0
+         J    CONTT6
+
+
+
+:=========================================================================
+:= COME HERE (VIA CONTROL-Y) TO CHANGE THE RH FOR THE MANUAL DATA BIU
+
+CONT19   HLPLIN(LEFT13)
+         HLPLIN(LEFT14)
+         HLPLIN(LEFT10)
+         HLPLIN(LEFT16)
+         IF VTAMRF                    :IF GENNED FOR CMH
+         HLPLIN(LEFT19)
+         EI
+         HLPLIN(LEFT1A)               :--> PROMPT
+         LHI  R5,1F                   :TELL IMORG TO GO TO CONTY5 NEXT
+         STH  R5,INPTSW
+         J    REST
+
+CONTYO   HLPLIN(LEFT11)               :ASK FOR THE RH
+         LHI  R5,1C
+         STH  R5,INPTSW               :TELL IMORG TO GO TO CONTY0 NEXT
+         LIS  R5,1
+         STH  R5,MODESW               :USE HEX MODE TO INPUT RH
+         LIS  R5,0
+         STH  R5,RUCNT
+         LIS  R5,0A                   :STARTING POINT IN BUFFER MANDAT
+         STH  R5,MANIX
+         J    REST
+
+:--- COME HERE IN RESPONSE TO LENGTH OR RH QUESTION
+CONTY5   JAL  R4,GETCH
+         LR   R7,R0
+         JAL  R4,GETCH
+         LR   R6,R0
+         SIS  R7,1
+         LR   R0,R7
+         JAL  R4,FLUSH
+         NHI  R6,7F
+         CHI  R6,32                   :32=CHANGE RH
+         JE   CONTYO
+         CHI  R6,31
+         JE   CONTY6                  :31=CHANGE RU LENGTH
+         CHI  R6,33                   :33=SET THE EXPEDITE BIT IN THE TH
+         JE   CONTYJ
+         CHI  R6,34                   :34=RESET THE EXPEDITE BIT IN THE TH
+         JE   CONTYK
+         IF VTAMRF
+         CHI  R6,35
+         JE   CONTYM                  :GO SET VTAUTO BIT ARRAY
+         EI (VTAMRF)
+         CHI  R6,1B
+         JE   RETEXC                  :GOT ESCAPE, RETURN TO EXEC
+         HLPLIN(BKSPC)
+         J    REST
+CONTY6   HLPLIN(LEFT15)               :ASK FOR LENGTH
+         LIS  R5,1
+         STH  R5,MODESW
+         LIS  R5,0
+         STH  R5,RUCNT
+         STH  R5,NIBHLD
+         LHI  R5,22
+         STH  R5,INPTSW               :TELL IMORG TO GO TO CONTY8 NEXT
+         J    REST
+
+CONTY8   JAL  R4,GETCH
+         LR   R9,R0
+CONTY9   JAL  R4,GETCH
+         NHI  R0,7F
+         CHI  R0,0D                   :END OF INPUT?
+         JE   CONTYB
+         JAL  R10,CONATH              :CONVERT TO HEX
+         J    CONTYC                  :ERROR
+         LH   R10,RUCNT
+         JN   CONTYA                  :SECOND NIBBLE
+         SLLS R0,4
+         STH  R0,NIBHLD
+         LIS  R5,1
+         STH  R5,RUCNT
+CONTYZ   SIS  R9,1
+         JG   CONTY9
+         JAL  R4,ELIR
+         J    REST
+CONTYA   AHM  R0,NIBHLD
+         LH   R0,NIBHLD               :GET COMPLETE BYTE
+CONTYX   AIS  R0,0D                   :ADD LENGTH OF TH & RH
+         STB  R0,RUTABL+0D
+         LR   R0,R9
+         SIS  R0,1
+         JAL  R4,FLUSH
+         LIS  R5,0
+         STH  R5,INPTSW
+         STH  R5,RUCNT
+         STH  R5,MODESW
+         STH  R5,NIBHLD
+         HLPLIN(PROMPT)
+         J    REST
+
+CONTYB   LH   R0,RUCNT                :GOT CR, END THE INPUT
+         JE   CONTYX                  :TREAT NO INPUT AS ZERO
+         LH   R0,NIBHLD               :GET PARTIAL LENGTH
+         SRLS R0,4
+         J    CONTYX
+
+:--- ERROR IN INPUT, NOT HEX CHARACTER
+CONTYC   HLPLIN(BKSPC)
+         J    CONTYZ
+
+
+:---- COME HERE TO INPUT HEX CHARACTERS TO MANDAT RH
+
+CONTY0   LIS  R5,0D                   :STOP INPUT AFTER LAST RH BYTE
+         STH  R5,MANMAX
+         LA   R12,MANDAT              :BUFFER TO INPUT THE DATA TO
+         J    CONTT3                  :USE THE CONTROL-T ROUTINE
+
+:---- COME HERE TO SET THE EXPEDITE BIT IN THE TH ----:
+CONTYJ   LHI  R5,$A39                 :BIT 39 IS THE EXPEDITE BIT
+         SBT  R5,MANDAT
+         LIS  R5,0
+         STH  R5,INPTSW
+         HLPLIN(PROMPT)
+         J    REST
+
+:---- COME HERE TO RESET THE EXPEDITE BIT IN THE TH OF MANDAT ----:
+CONTYK   LHI  R5,$A39                 :BIT 39 IS EXPEDITE
+         RBT  R5,MANDAT
+         LIS  R5,0
+         STH  R5,INPTSW
+         HLPLIN(PROMPT)
+         J    REST
+
+:---- COME HERE TO SET OR RESET THE VTAUTO BIT ARRAY ----:
+         IF VTAMRF                    :IF GENNED FOR CMH
+CONTYM   HLPLIN(LEFT0C)
+         LHI  R5,28                   :TELL IMORG TO BORROW CONTN0 FOR LU INPT
+         STH  R5,INPTSW
+         J    REST
+
+:----- COME HERE FROM CONTN0 TO SET/RESET THE VTAUTO ARRAY -----:
+CONTYN   LIS  R5,0
+         STH  R5,INPTSW
+         LH   R6,HOLDLU               :GET RELATIVE LU NUMBER
+         LA   R3,LEFT1B               :VTAUTO NOW SET
+         CBT  R6,VTAUTO               :CHANGE VALUE
+         JEFS CYYN02
+         LA   R3,LEFT1C               :VTAUTO ARRAY NOW RESET
+CYYN02   LH   R2,RPORT
+         JAL  R5,OCS
+         HLPLIN(PROMPT) 
+         J    REST
+         EI (VTAMRF)
+
+
+:========================================================================
+: COME HERE VIA CONTROL-N TO INPUT A NEW SNF
+
+CONTE    HLPLIN(LEFT0C)
+         LHI  R5,1D                   :TELL IMORG TO GO TO CONTN0
+         STH  R5,INPTSW
+         J    REST
+
+:---- COME HERE TO GET THE LU NUMBER
+
+CONTN0   JAL  R4,GETCH                :GET LENGTH
+         LR   R7,R0
+         JAL  R4,GETCH
+         LR   R8,R0
+         LR   R0,R7
+         SIS  R0,1
+         JAL  R4,FLUSH
+         JAL  R10,CHKECH
+         JAL  R10,EDITLU
+         STH  R8,HOLDLU
+         IF VTAMRF                    :IF GENNED FOR CMH
+         LH   R5,INPTSW
+         CHI  R5,28                   :IF 28 THEN GO TO CONTYN TO CHANGE 
+         JE   CONTYN                  :VTAUTO
+         EI (VTAMRF)
+         LHI  R5,1E                   :TELL IMORG TO GO TO CONTT2 NEXT
+         STH  R5,INPTSW
+         HLPLIN(LEFT12)
+         LIS  R5,0
+         STH  R5,MANIX
+         STH  R5,RUCNT
+         LIS  R5,2
+         STH  R5,MANMAX               :SNF IS TWO BYTES
+         STH  R5,MODESW               :USE HEX MODE IN CONTT3
+         J    REST
+CONTN1   HLPLIN(BKSPC)
+         J    REST
+
+:---- COME HERE TO INPUT THE SNF
+
+CONTN3   LH  R5,HOLDLU                :GET THE SPECIFIED LU (IN CONTN0)
+         LA  R12,SNFLU,R5,R5          :ADDRESS OF BUFFER FOR CONTT3
+         J   CONTT3
+
+
+
+
+
+
+:===========================================================================
+: THIS ROUTINE PRINTS THE STATE FOR EACH L.U.
+:  STATE  MEANING
+:  -----  -------
+:   00    NOT ACTIVATED
+:   01    PENDING ACTIVATION
+:   02    ACTIVE
+CONT15   LIS R7,0                     :CONTROL-U
+         LIS R14,2                    :PRINT INDEX
+         LIS R6,0                     :P.U. INDEX
+CNT151   LA  R8,STAT1+$A14            :BINHEX OUTPUT AREA
+         LIS R9,1                     :CONVERT 2 DIGITS
+         LA  R10,PUTAB,R6             :BINHEX INPUT AREA
+         JAL R4,BINHEX                :CONVERT PU ADDRESS FROM HEX TO ASCII
+         JAL R13,PRTHDG               :PRINT PU & LU HEADINGS
+         LB  R12,LUPRPU,R6            :GET NUMBER OF LU'S FOR THIS PU
+         STH R12,LUPUNM
+         LIS R12,0                    :16 STATES PER LINE COUNTER
+CNT152   LA  R8,STAT3,R14             :BINHEX OUTPUT AREA
+         LIS R9,1                     :TWO BYTES LONG (ASCII BYTES)
+         LA  R10,DAF,R7               :GET HEX LU ADDRESS
+         JAL R4,BINHEX                :CONVERT HEX LU ADDRESS TO ASCII
+         LA  R8,STAT5,R14             :ADDRESS OF BINHEX OUTPUT AREA
+         LIS R9,1                     :TWO ASCII BYTES LONG
+         LA  R10,LUSTAT,R7            :GET HEX LU STATE
+         JAL R4,BINHEX                :CONVERT STATE FROM BINARY TO ASCII
+         LA  R8,STAT7,R14             :OUTPUT AREA
+         LIS R9,1                     :ONE BYTE
+         LA  R10,FMDCTR+1,R7,R7       :GET FMD COUNTER AS INPUT
+         JAL R4,BINHEX
+         AIS R14,4                    :INCREMENT PRINT LINE INDEX
+         AIS R7,1                     :INCREMENT LU COUNTER
+         AIS R12,1                    :INCREMENT 16/LINE COUNTER
+         LCS R4,1
+         AHM R4,LUPUNM                :DECREMENT LU-PER-PU COUNTER
+         JLE CNT154
+         CHI R12,$A15
+         JL  CNT152
+         JAL R13,PRTSTE               :PRINT STATE & ADDRESS
+         LIS R12,0
+         LIS R14,2
+         J   CNT152
+CNT154   JAL R13,PRTSTE               :PRINT LU ADDRESS & STATE
+         AIS R6,1
+         LIS R14,2
+         SVC DISMIS                   :LET ISIS SWALLOW
+         CHI R6,NUMPU                 :SEE IF ALL PU'S PROCESSED
+         JL  CNT151
+         LIS R5,0
+         STH R5,TESTSW
+         HLPLIN(PROMPT)
+         J   REST
+
+:-------------------------------------------------------------------------
+
+PRTSTE   HLPLIN(STAT2)
+         HLPLIN(STAT3)                :PRINT LU ADDRESSES
+         HLPLIN(STAT4)
+         HLPLIN(STAT5)
+         LB  R2,STAT3
+         LIS R3,1
+         LHI R4,0A0                   :FILL IN STAT3 WITH SPACES
+PRTST4   STB R4,STAT3,R3
+         AIS R3,1
+         CR  R3,R2
+         JLE PRTST4
+         LB  R2,STAT5
+         LIS R3,1
+PRTST6   STB R4,STAT5,R3
+         AIS R3,1
+         CR  R3,R2
+         JL  PRTST6
+         HLPLIN(STAT6)
+         HLPLIN(STAT7)
+         LB  R5,STAT7
+         SIS R5,1
+         LHI R4,0A0
+PRTST7   STB R4,STAT7,R5
+         SIS R5,1
+         JGBS PRTST7
+         JR  R13
+
+
+
+:-------------------------------------------------------------------------
+
+PRTHDG   HLPLIN(STAT1)
+         LB  R2,PUACT,R6              :GET PU ACTIVATION STATE
+         CHI R2,0FE                   :SEE IF IT IS IDLE
+         JN  PRTHD0
+         HLPLIN(PUSFE)
+         JR  R13
+PRTHD0   CHI R2,0FF                   :SEE IF IT IS POLLING
+         JN  PRTH00
+         HLPLIN(PUSFF)
+         JR  R13
+PRTH00   CHI R2,0
+         JN  PRTHD1
+         HLPLIN(PUS0)
+         JR  R13
+PRTHD1   CHI R2,1
+         JN  PRTHD2
+         HLPLIN(PUS1)
+         JR  R13
+PRTHD2   CHI R2,7
+         JN  PRTHD5
+         HLPLIN(PUS2)
+         JR  R13
+PRTHD5   CHI R2,2
+         JE  PRTHD6
+         HLPLIN(PUS7)
+         JR  R13
+PRTHD6   HLPLIN(PUS2)
+         JR  R13
+
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  THIS ROUTINE TURNS OFF MANUAL OVERRIDE FOR THE SPECIFIED LU       :::
+
+CONT16   LH   R2,RPORT
+         LA   R3,LEFT0C
+         JAL  R5,OCS
+         LHI  R5,27
+         STH  R5,INPTSW
+         J    REST
+
+CNT162   JAL  R4,GETCH
+         LR   R9,R0
+         JAL  R4,GETCH
+         SIS  R9,1
+         LR   R8,R0
+         LR   R0,R9
+         JAL  R4,FLUSH
+         LR   R0,R8
+         LH   R7,DOECHO
+         JEFS .+6
+         JAL  R10,CHKECH
+         JAL  R10,CONATH
+         J    CNT169
+         RBT  R0,MANUAL
+         LH   R2,RPORT
+         LA   R3,LEFT0E
+         JAL  R5,OCS
+         LIS  R5,0
+         STH  R5,INPTSW
+         LH   R2,RPORT
+         LA   R3,PROMPT
+         JAL  R5,OCS
+         J    REST
+CNT169   LH   R2,RPORT
+         LA   R3,BKSPC
+         JAL  R5,OCS
+         J    REST
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+:-------------------------------------------------------------------------
+:  THIS IS THE OPERATOR LOGOFF ROUTINE (CONTROL-Z)
+
+CONT1A   LH  R2,RPORT
+         LA  R3,AUFWDR
+         JAL R5,OCS
+         LH  R2,RPORT
+         LA  R3,DETCH
+         JAL R5,OCM
+         LIS R5,0
+         STH R5,RPORT
+         J   REST
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  THIS ROUTINE EXPECTS THE DATA TO BE FLUSHED, IT SENDS THE WORD
+:::  "ESCAPE" AND THE EXEC PROMPT AND SET INPTSW BACK TO ZERO
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+RETEXC   LIS  R5,0
+         STH  R5,INPTSW
+         HLPLIN(LEFT08)               :<escape!>
+         HLPLIN(PROMPT)
+         J    REST
+
+:---------------------------------------------------------------------------
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::                                                                     :::
+:::                 F  O  R  E  G  R  O  U  N  D                        :::
+:::                                                                     :::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+STRFGN   LIS R1,LUN          :START FOREGROUND, LOAD LOGIC UNIT NUM
+         LA  R2,SIOSTR,,     :GET BEGINNING OF SIO AREA
+         LA  R3,SIOEND,,     :GET END OF SIO AREA
+         LA  R4,SIOSTS,,
+         SVC IO,CONMOM+R1
+         HC  0,0
+         SVC DISMIS,1
+CHOUT    LIS R1,LUN          :OUTPUT SETUP CHANNEL COMMAND PROG
+         LA  R2,SETUP,,
+         SVC IO,FRCMBO+R1
+         HC  0,0
+         SVC DISMIS,1
+STINP    LIS R1,LUN            :START INPUT
+         LA  R2,SIOIN,,
+         SVC IO,FRCMBI+R1
+         HC  0,0
+         LIS R2,0
+         SVC DISMIS,1
+
+
+
+
+:<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+:<><>                                                                  <><>
+:<><> THIS IS WHERE THE VARIOUS PUSTATES ARE HANDLED                   <><>
+:<><>                                                                  <><>
+:----- 00 = SEND UA IN RESPONSE TO SNRM
+:----- 01 = WAITING FOR RR
+:----- 0C = F.G. WANTS A DM SENT
+:----- 0D = F.G. RECEIVED TEST FRAME, MUST NOW SEND RESPONSE
+:----- 0E = RECEIVED SNRM BUT DID NOT SEND UA
+:----- 0F = IDLE
+
+
+FGLOOP   LB  R5,PUSTAT,R2     :GET FOREGROUND STATE
+         CHI R5,MAXSTE        :RANGE CHECK
+         JLEFS FGLOP0         :GOOD
+         HC  0
+FGLOP0   LHL R4,FGTABL,R5,R5  :GET ADDRESS TO EXECUTE
+         J   FSEG,R4
+
+FGTABL   HC  SNDUA-FSEG       :0=SEND UA
+         HC  FGNRST-FSEG      :1=F.G. DOES NOTHING
+         HC  FGNRST-FSEG      :2=F.G. DOES NOTHING
+         HC  FGNRST-FSEG      :3=F.G. DOES NOTHING
+         HC  FGNRST-FSEG      :4=F.G. DOES NOTHING
+         HC  FGNRST-FSEG      :5=F.G. DOES NOTHING
+         HC  FGNRST-FSEG      :6=F.G. DOES NOTHING
+         HC  FGNRST-FSEG      :7=F.G. DOES NOTHING
+         HC  FGNRST-FSEG      :8= F.G. DOES NOTHING
+         HC  FGNRST-FSEG      :9=F.G. DOES NOTHING
+         HC  FGNRST-FSEG      :A= F.G. DOES NOTHING
+         HC  FGNRST-FSEG      :B= F.G. DOES NOTHING (B.G. CHECKS TIMER)
+         HC  SNDDM-FSEG       :C= F.G. WANTS A DM SENT
+         HC  SNDTST-FSEG      :D= F.G. SENDS RESPONSE TO TEST FRAME
+         HC  FGNRST-FSEG      :E= F.G. DOES NOTHING
+         HC  FGNRST-FSEG      :F= F.G. DOES NOTHING
+
+FGNRST   AIS R2,1
+         CHI R2,NUMPU
+         JL  FGLOOP
+         JAL R14,LUSTLP               :GO PROCESS LU'S
+FGNRS4   JAL R12,CKSIN
+         J   FGNRS6
+         J   PULSIO
+FGNRS6   SVC DISMIS
+         LIS R2,0
+         J   FGLOOP
+
+
+
+
+:--------------------------------------------------------------------------
+: THIS ROUTINE SENDS A UA AND WAITS FOR A RR
+
+SNDUA    LIS R5,1
+         STB R5,PUSTAT,R2             :SET STATE TO WAITING FOR RR
+         LB  R7,PUTAB,R2
+SNDSN2   LH  R5,SIOOUT,,              :SEE IF SIO SENT PREVIOUS PACKET
+         LA  R10,SNDSN2
+         CHI R5,1
+         JE  SIOWAT
+         LIS R5,2
+         STH R5,OUTBUF                :NUMBER OF BYTES TO SEND
+         LB  R8,UA
+         STB R7,OUTBUF,R5
+         AIS R5,1
+         STB R8,OUTBUF,R5
+         LIS R8,0                     :SET TO "INACTIVE"
+         STB R8,PUACT,R2
+         J   GOOUT
+                    
+:--------------------------------------------------------------------------
+: THIS ROUTINE CALLS SIOSND WHICH SENDS THE SDLC FRAME.
+
+GOOUT    LIS R5,1
+         STH R5,SIOOUT,,
+         JAL R13,SIOSND
+         J   FGNRST
+
+:--------------------------------------------------------------------------
+: THIS ROUTINE IS CALLED IF THE A NEW SDLC FRAME NEEDS TO BE SENT BUT THE
+: SIO SUBSYSTEM HASN'T SENT THE PREVIOUS FRAME YET.
+
+SIOWAT   SVC DISMIS,1
+         JR  R10
+
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  COME HERE TO SEND XID
+
+SND1XD   LIS   R5,0F                  :GO IDLE AFTER SENDING XID
+         JFS   SNDXI0
+SNDXID   LIS   R5,0E                  :TELL BACKGROUND TO CHECK XID TIMER
+SNDXI0   STB   R5,PUSTAT
+SNDXI1   LA    R10,SNDXI1
+         LH    R5,SIOOUT,,
+         CHI   R5,1
+         JE    SIOWAT
+         L     R5,FASTC,,
+         ST    R5,PUTIM,,
+         LIS   R5,2
+         STH   R5,OUTBUF,,
+         LB    R5,XID
+         STB   R5,OUTBUF+3,,
+         LHI   R5,0FF
+         STB   R5,OUTBUF+2,,
+         J     GOOUT
+
+
+
+
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::: THIS ROUTINE SENDS A DM AND WAITS FOR A DISC
+
+SNDDM    SLLS R2,2
+         L    R5,FASTC,,
+         ST   R5,PUTIM,R2
+         SRLS R2,2
+SNDDM2   LH   R5,SIOOUT,,             :SEE IF LAST FRAME WAS SENT
+         LA   R10,SNDDM2
+         CHI  R5,1
+         JE   SIOWAT                  :DISMIS FOR NOW
+         LIS  R5,2                    :LENGTH OF DISC
+         STH  R5,OUTBUF
+         LB   R8,DISC                 :CONTROL FIELD FOR DISC (WITH POLL BIT)
+         LB   R7,PUTAB,R2             :PU ADDRESS
+         STB  R7,OUTBUF,R5
+         STB  R8,OUTBUF+1,R5
+         LIS  R8,7                    :SET PUACT STATE TO DISC
+         STB  R8,PUACT,R2
+         LHI  R8,0F                   :CHANGE STATE TO IDLE
+         STB  R8,PUSTAT,R2
+         LIS  R8,0
+         J    GOOUT
+
+
+:==========================================================================
+: THIS ROUTINE RUNS THROUGH EACH LU'S STATE IN LUSTAT AND TAKES THE APPROPRIATE
+: ACTION WHERE NECESSARY.
+:  00 - DO NOTHING, IDLE STATE
+:  01 - B.G. WANTS THE +RSP TO ACTLU SENT (SET IN RCVACL)
+:  02 - F.G. SENT THE +RSP TO ACTLU
+
+
+
+LUSTLP   LIS R1,0
+         TBT R1,RPTMTS                :SEE IF RUNNING RESPONSE-TIME-TESTING
+         JN  LUSTL5                   :YES, SKIP LU PROCESSING
+         LHI R1,NUMLU-1
+         ST  R14,LUSRET
+LUSTL2   LB  R5,LUSTAT,R1
+         LB  R5,LUSTBL,R5,            :TRANSLATE STATE TO SECOND INDEX
+         LHL R5,LUSXXX,R5,R5          :GET ADDRESS OF ROUTINE TO EXECUTE
+         J   FSEG,R5                  :GO TO CORRECT ROUTINE
+LUSTL4   SIS R1,1
+         JGE LUSTL2
+LUSTL5   LHI R2,NUMPU-1               :INITIALIZE PU INDEX
+LUSTL6   RBT R2,RRARAY                :IF BIT SET, NEED TO SEND RR FOR PU
+         JN  SNDRR                    :SNDRR WILL RETURN TO LUSTL8
+LUSTL8   SIS R2,1
+         JGE LUSTL6
+         L   R14,LUSRET
+         JR  R14
+
+LUSXXX   HC  LUSTL4-FSEG              :NO STATE OR UNDEFINED STATE
+         HC  SNDBID-FSEG              :01 - +RSP TO ACTLU (USE SNDBID)
+         HC  SNDBID-FSEG              :02 - SEND MANUAL DATA
+         HC  SNDBID-FSEG              :03 - SEND RSPs
+         HC  SNDBID-FSEG              :04 - SEND RQs
+
+
+
+:--------------------------------------------------------------------------
+: THIS ROUTINE SETS A BIT FLAG FOR LUSTLP IF THIS PU NEEDS TO SEND A RR
+
+SETUPR   SBT  R2,RRARAY
+         J    FGNRST                  :GO CHECK NEXT PU
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  THIS ROUTINE CHECKS TO SEE IF ALL FRAMES HAVE BEEN SENT BY THE SIO ::
+
+SIORDY   LHI  R5,70
+         LH   R7,SIOCHN,R5,
+         CHI  R7,1
+         JE   SIOSLP
+         SHI  R5,10
+         JGE  SIORDY+4
+         LH   R7,SIOOUT,,
+         CHI  R7,1
+         JNR  R10
+SIOSLP   SVC  DISMIS
+         J    SIORDY
+
+:==========================================================================
+: THIS SENDS OUT A FRAME FOLLOWED BY A RECEIVE READY
+
+SNDFRM   JAL R10,SIORDY               :SEE IF SIO IS FREE
+         LIS R5,0
+         SBT R5,WAITBT
+         ST  R8,HOLD8F
+         LH  R8,SIOIDX
+         LH  R7,XMTCNT
+         JE  SNDFR9
+         STH R7,XFRAME                :NUMBER OF I-FRAMES TO XMT
+         CR  R7,R8
+         JLEFS .+4
+         AIS R8,8
+         SR  R8,R7                    :STARTING POINT IN SIO OUT
+         SLLS R8,4
+SNDFR5   LIS R5,1
+         STH R5,SIOCHN,R8,
+         SRLS R8,4
+         LHI  R9,IFSIZE*2             :SIZE OF OUTPUT SECTORS
+         MHR  R9,R8                   :INDEX TO CURRENT SECTOR
+         SLLS R8,4
+         LB   R13,PURRNR,R2           :GET CURRENT N(R)
+         LB   R11,PURRNS,R2           :GET N(S) BITS
+         AR   R11,R13
+         STB  R11,IOUT0+3,R9,         :RETURN UPDATED CONTROL FIELD
+         STB R1,FGNHL1
+         JAL R13,SIOGRP
+         LB  R1,FGNHL1
+         LR  R13,R8                   :SAVE R8
+         JAL R5,UPDNS                 :UPDATE N(S)
+         LR  R8,R13
+         SIS R7,1                     :DECREMENT FRAME COUNTER
+         JLE SNDFR8
+SNDFR6   LA  R10,SNDFR6
+         LH  R5,SIOCHN,R8,            :WAIT FOR THIS FRAME TO BE SENT
+         CHI R5,1
+         JE  SIOWAT
+         AHI R8,10                    :INCREMENT INDEX
+         CHI R8,80
+         JLFS .+4
+         LIS R8,0
+         J   SNDFR5                   :SEND NEXT I-FRAME
+SNDFR8   LH  R7,XFRAME
+         LH  R5,XMTCNT
+         SR  R5,R7
+         STH R5,XMTCNT                :UPDATE NUMBER SENT
+         LIS R7,0
+         RBT R7,WAITBT
+         SLLS R1,2
+         L   R5,FASTC,,
+         ST  R5,LUTIME,R1
+         SRLS R1,2
+         L    R8,HOLD8F
+         JAL R7,FFDLPU                :GO FIND OUT THE REL PU#
+         SLLS R2,2
+         ST   R5,PUTIM,R2
+         SRLS R2,2
+         LIS R5,3
+         STB R5,PUSTAT,R2
+         RBT R2,RRARAY                :DON'T NEED TO SEND ANOTHER RR
+         JR  R12
+
+SNDFR9   L   R8,HOLD8F
+         LIS R7,0
+         RBT R7,WAITBT
+         JR  R12
+
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::  THIS ROUTINE SENDS OUT A BRACKET BID
+
+SNDBID   JAL  R7,FFDLPU
+         TBT  R2,RRARAY
+         JE   LUSTL4
+         JAL  R12,SNDFRM
+         LB   R5,LUSTAT,R1
+         AIS  R5,1
+         STB  R5,LUSTAT,R1
+         SLLS R1,1
+         L    R5,FASTC,,
+         ST   R5,LUTIME,R1,R1
+         SRLS R1,1
+         J    LUSTL4
+
+
+
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  THIS ROUTINE GETS THE CURRENT N(R) FOR THE PU IN QUESTION AND SENDS  :::
+:::  A RECEIVE READY                                                      :::
+
+SNDRR    JAL R10,SIORDY
+         RBT R2,PUACTR                :SEE IF THIS PU NEEDS +RSP TO ACTPU
+         JN  SNDAPU                   :YES, GO SEND RESPONSE INSTEAD OF RR
+         LIS R5,2
+         STH R5,OUTBUF                :NUMBER OF BYTE IN RR
+         LB  R1,PUTAB,R2              :GET PU ADDRESS
+         STB R1,OUTBUF,R5
+         AIS R5,1
+         LB  R1,PURRNR,R2             :GET CORRECT N(R) FOR RECEIVE READY
+         AHI R1,11                    :CREATE "RR" FORMAT
+         STB R1,OUTBUF,R5
+         LIS R5,1
+         STH R5,SIOOUT,,
+         JAL R13,SIOSND
+         J   LUSTL8
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  COME HERE TO SEND THE RESPONSE TEST FRAME
+
+SNDTST   JAL  R10,SIORDY
+         LHI  R5,TESTFL-2
+         STH  R5,OUTBUF               :LENGTH OF TEST FRAME
+         LB   R1,PUTAB,R2             :PU ADDRESS
+         STB  R1,OUTBUF+2
+         LHI  R1,0F3                  :TEST FRAME CONTROL BYTE
+         STB  R1,OUTBUF+3
+         CHI  R5,2
+         JE   SNDTS6
+         L    R1,FASTC,,
+         ST   R1,OUTBUF+4             :TIME
+         LR   R10,R2
+         SLLS R10,1
+         LHL  R4,PUTMSZ,R10           :LENGTH OF RECEIVED TEST FRAME
+         STH  R4,OUTBUF               :LENGTH OF TEST FRAME TO SEND
+         SIS  R4,6                    :MINUS ADDR|CNTL|FASTC|
+         LIS  R8,8
+SNDTS2   LB   R1,TESTFM,R8
+         STB  R1,OUTBUF,R8
+         AIS  R8,1
+         SIS  R4,1
+         JG   SNDTS2
+SNDTS6   LIS  R5,1
+         STH  R5,SIOOUT,,
+         JAL  R13,SIOSND
+         LIS  R13,1
+         STB  R13,PUSTAT,R2           :NOW WAITING FOR RR
+         J    FGNRST
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::: THIS ROUTINE SENDS THE +RSP TO ACTPU AND RETURNS TO LUSTL8         :::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+SNDAPU   LB   R1,PUTAB,R2
+         STB  R1,APUBUF+2             :PUT PU ADDRESS IN BUFFER
+         LB   R5,PURRNR,R2
+         LB   R6,PURRNS,R2
+         AR   R5,R6                   :CREATE CONTROL FIELD
+         STB  R5,APUBUF+3
+         LH   R5,SNF,R2,R2            :GET SNF FOR RESPONSE
+         STH  R5,APUBUF+8
+         LIS  R5,0
+SNDAP2   LB   R6,APUBUF,R5
+         STB  R6,OUTBUF,R5,
+         AIS  R5,1
+         CHI  R5,APUBFL
+         JL   SNDAP2
+         SIS  R5,2                    :CORRECT FOR 2 BYTE LENGTH FIELD
+         STH  R5,OUTBUF               :PUT THE LENGTH IN
+         LIS  R5,1
+         STH  R5,SIOOUT,,
+         JAL  R13,SIOSND
+         JAL  R5,UPDNS                :UPDATE THE N(S)
+         LIS  R5,2                    :STATUS DISPLAY = "ACTIVE"
+         STB  R5,PUACT,R2
+         J    LUSTL8
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  COME HERE FROM FNDINW TO SEND AN EXPEDITED FRAME
+
+SNDEXP   LH   R5,SIOOUT,,
+         LA   R10,SNDEXP
+         CHI  R5,1
+         JE   SIOWAT
+SNDEX2   LA   R10,SNDEX2
+         LH   R5,SIOCHN,,
+         CHI  R5,1
+         JE   SIOWAT
+         LB   R6,PUADLU,R9            :GET PU ADDRESS FOR THIS LU
+         STB  R6,IOUT0+2,,
+         LB   R6,PURRNR,R1
+         LB   R5,PURRNS,R1
+         AR   R6,R5
+         STB  R6,IOUT0+3,,
+         LHI  R6,2D00                 :EXPEDITED, FID2
+         STH  R6,IOUT0+4,,
+         LB   R6,DAF,R9
+         STB  R6,IOUT0+6,,
+         LHI  R6,14
+         STB  R6,IOUT0+7,,
+         LH   R6,LUSNF,R9,R9
+         STH  R6,IOUT0+8,,
+         LA   R5,MANDAT+0A            :BEGINNING OF MANDAT RH
+         LB   R4,RUTABL+0D            :LENGTH OF MANDAT
+         SIS  R4,0A
+         LIS  R3,0
+         LIS  R13,0A
+SNDEX5   LB   R6,0,R5,R3
+         STB  R6,IOUT0,R13,
+         AIS  R13,1
+         AIS  R3,1
+         SIS  R4,1
+         JG   SNDEX5
+         LB   R4,RUTABL+0D
+         SIS  R4,2
+         STH  R4,IOUT0,,
+         LA   R4,IOUT0,,
+         SRLS R4,4
+         STH  R4,SIOCHN+2,,
+         LIS  R8,0
+         STH  R8,SIOCHN+4,,
+         LIS  R5,1
+         STH  R5,SIOCHN,,
+         JAL  R13,SIOGRP
+         J    FGNRS4
+
+
+:=======================================================================
+: THIS ROUTINE SENDS OUT A GROUP OF FRAMES FOR 1 PU
+
+SIOGRP   LIS R1,LUN
+         LR  R15,R2
+         LA  R2,SIOCHN,R8,
+         SVC IO,FRCMBO+R1
+         HC  0,0
+         LR  R2,R15
+         JR  R13
+
+:-----------------------------------------------------------------------
+
+SIOSND   LIS R1,LUN          :SIO OUTPUT ROUTINE
+         LR  R15,R2
+         LA  R2,SIOOUT,,
+         SVC IO,FRCMBO+R1
+         HC  0,0
+         LR  R2,R15
+         JR  R13
+
+
+
+
+
+
+:========================================================================
+:= THIS ROUTINE CHECKS THE SIO INPUT BUFFER.  IF NO DATA HAS COME IN,
+:= IT HAS A NORMAL RETURN (J=R12).  IF THERE IS DATA IN THE BUFFER IT
+:= RETURNS R12+4.  WHEN THE POINTER (HLDPTR) => IDXWRP THE POINTER IS 
+:= RESET TO THE TOP OF THE BUFFER AND WHEN THE POINTER IS BETWEEN 100x
+:= AND 200x IT WRITES A HALFWORD OF FFFF INTO THE FIRST HALFWORD OF THE
+:= BUFFER.
+
+CKSIN    LH  R4,HLDPTR                :GET INBUF INDEX
+         CHI R4,IDXWRP                :SEE IF AT BOTTOM
+         JLFS CKSIN2
+         LIS R4,0
+CKSIN2   LH  R7,INBUF,R4,
+         JLER R12
+         CHI R4,120
+         JG   4,R12
+         LH  R9,MARKER
+         STH R9,INBUF,,
+         J   4,R12
+
+
+:=========================================================================
+:= THIS ROUTINE GETS THE CONTROL FIELD OUT OF THE SIO INPUT BUFFER AND
+:= SENDS THE PROGRAM TO THE APPROPRIATE ROUTINE.  IF THE CONTROL BYTE
+:= DOESN'T MATCH ANYTHING CURRENTLY IN THE PROGRAM, THIS ROUTINE THEN
+:= FLUSHES THE INPUT BUFFER.
+
+PULSIO   AIS R4,2                     :ADVANCE POINTER PAST BYTE COUNT
+         STH R7,HLDCNT                :SAVE BYTE COUNT
+         LB  R8,INBUF,R4,              :GET ADDRESS
+         LIS R1,0
+         JAL R5,MCHPU                 :GO FIND MATCHING PU INDEX
+         SIS R7,1                     :DECREMENT BYTE COUNT
+PULSI1   AIS R4,1                     :INCREMENT INDEX
+         LB  R8,INBUF,R4,              :GET CONTROL FIELD
+         SIS R7,1
+         STB R8,HLDBYT
+         CHI R8,97                    :IS IT FRAME REJECT?
+         JE  FRMREJ                   :YES, MUST SEND DISC
+         CHI R8,93                    :IS IT A SNRM W/POLL BIT
+         JE  FNDSNM
+         CHI R8,0F3                   :IS IT A TEST FRAME?
+         JE  FNDTST
+         CHI R8,53                    :IS IT A DISCONNECT?
+         JE  FNDDSC
+         NHI R8,0F
+         CHI R8,1                     :IS IT A RECEIVE READY?
+         JE  FNDRR
+         LB  R8,HLDBYT                :RESTORE ANDED OFF BITS
+         NHI R8,1
+         CHI R8,0
+         JE  FNDINF                   :FOUND INFORMATION FRAME
+PULSI2   AIS R4,1
+         AR  R4,R7                    :ADD IN REMAINING LENGTH
+         NHI R7,1                     :SEE IF EXTRA JUNK
+         AR  R4,R7
+         STH R4,HLDPTR                :UPDATE TO END OF UNIDENT FRAME
+         J   FGNRS4
+
+
+
+:<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+:<>  THIS ROUTINE EXTRACTS THE TIME STAMP FROM THE INFO FRAME FROM       <>
+:<>  POSITION 25 AND ALSO EXTRACTS THE FRAME NUMBER (1-6) FROM POS 16    <>
+:<>  AND UPDATES THE N(R) & N(S) COUNTERS                                <>
+:<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+
+GUNNIT   AIS   R4,1                   :MOVE PAST CONTROL FIELD
+         LHL   R11,INBUF+$A20,R4,     :GET FIRST HALF OF TIME
+         STH   R11,PURSPT
+         LHL   R11,INBUF+$A22,R4,     :GET SECOND HALF OF TIME
+         STH   R11,PURSPT+2
+         L     R12,FASTC,,
+         S     R12,PURSPT
+         LR    R11,R1
+         SLLS  R11,1
+         C     R12,PUMAXT,R11,R11     :IS THIS THE LONGEST TIME?
+         JLEFS GUNN10                 :NO
+         ST    R12,PUMAXT,R11,R11     :IF SO, SAVE IT
+GUNN10   C     R12,PUMINT,R11,R11     :IS IT THE FASTEST
+         JGEFS GUNN12                 :NO
+         ST    R12,PUMINT,R11,R11     :SAVE IF YES
+GUNN12   AM    R12,PUAVET,R11,R11     :SAVE FOR AVERAGE TIME
+         L     R12,FASTC,,
+         ST    R12,PUTIM,R11,R11      :SAVE CURRENT TIME
+         LIS   R12,0B                 :TELL B.G. TO CHECK INF-RCV TIMER
+:        STB   R12,PUSTAT,R1,
+         LIS   R12,1
+         AM    R12,PUTMCT,R11,R11     :INCREMENT COUNTER OF FRAMES RCVd
+         LHL   R12,HLDCNT
+         STH   R12,PUTMSZ,R11,        :SAVE LAST FRAME SIZE
+         LR    R1,R1                  :PROCESS 1ST PU ONLY
+         JNFS  GUNN16
+         JAL   R10,PLISTM             :GO CHECK POLL LIST  WRAP TIME
+GUNN16   LB    R12,PREVFC,R1,         :SEE IF THIS FRAME IS IN SEQUENCE
+         AIS   R12,1
+         CHI   R12,6
+         JLEFS GUNN20
+         LIS   R12,1
+GUNN20   CLB   R12,INBUF+$A16,R4,
+         JEFS  GUNN23
+         LIS   R8,1
+         AM    R8,PURTLS,R11,R11      :COUNT OUT OF SEQUENCE FRAMES
+GUNN23   LB    R12,INBUF+$A16,R4,
+         STB   R12,PREVFC,R1,
+         AR    R4,R7                  :CHUCK REST OF FRAME
+         NHI   R7,1
+         AR    R4,R7
+         STH   R4,HLDPTR
+         LB    R8,HLDBYT
+         AIS   R8,2
+         NHI   R8,0E                  :FOLD
+         SLLS  R8,4
+         STB   R8,PURRNR,R1
+         J     FGNRS4
+
+:[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]
+:  THIS ROUTINE CHECKS FOR 1st SEGMENT OF DAF 02 IN FIRST PU AND CALCULATES
+:  THE TIME UNTIL THIS OCCURS AGAIN
+
+PLISTM   LB    R12,INBUF,R4,          :GET 1st BYTE OF TH
+         CHI   R12,28                 :FIRST SEGMENT?
+         JNR   R10
+         LB    R12,INBUF+2,R4,        :GET DAF
+         CHI   R12,02                 :1st LU?
+         JNR   R10
+         L     R12,SLOWC,,
+         S     R12,PLTIME,,           :CALCULATE WRAP TIME
+         ST    R12,DSPPLT,,           :SAVE FOR DISPLAY
+         L     R12,SLOWC,,
+         ST    R12,PLTIME,,           :UPDATE TIMER
+         JR    R10
+
+
+
+:------------------------------------------------------------------------
+:- THIS ROUTINE CHECKS THE N(R) & N(S) COUNTERS OF THE INFORMATION
+:- FRAMES RECEIVED FROM THE SNA HOST INTERFACE.  IT ALSO UPDATES THE 
+:- N(R) COUNTER FOR THE SPECIFIC PU.
+
+FNDINF   LB  R8,HLDBYT                :RESTORE CONTROL FIELD
+         JAL R14,CKFINL               :GO CHECK FINAL BIT
+         LIS R14,0
+         TBT R14,RPTMTS               :SEE IF RESPONSE-TIMIN'
+         JN  GUNNIT                   :YES
+         AIS R4,1
+         NHI R8,0E0                   :GET N(R) BITS
+         LB  R6,PURRNS,R1             :GET OUR N(S)
+         SRLS R8,4                    :TURNS THEIRS INTO N(S)
+         CR  R8,R6
+         JE  FNDIN2
+:        HC 0
+FNDIN2   LB  R8,HLDBYT                :RESTORE CONTROL FIELD AGAIN
+         NHI R8,0E                    :GET THEIR N(S) BITS
+         LB  R6,PURRNR,R1             :GET OUR N(R)
+         SRLS R6,4                    :TURN OURS INTO N(S)
+         CR  R6,R8
+:        JN  WNDMSM                   :NOT THE FRAME I EXPECTED
+         CHI R8,0E
+         JL  FNDIN5
+         LCS R8,2
+FNDIN5   AIS R8,2                     :UPDATE OUR N(R)
+         SLLS R8,4                    :TURN IT BACK INTO N(R)
+         STB R8,PURRNR,R1
+         LB  R8,INBUF+2,R4,           :GET THE DAF
+         JNFS FNDIN6                  :PROCESSING LU
+         JAL R5,CALBFP                :DETERMINE INDEX INTO BUFPU
+FNDIN6   JAL R5,CALLIX                :GO FIND INDEX TO BUFLU, PUT IN R3
+         LH  R11,HLDCNT               :GET BYTE COUNT
+         SIS R11,2                    :SUBTRACT ADDRESS & CONTROL
+         STH R11,0,R13,R3             :SAVE LENGTH (R13 HAS BUFLU OR BUFPU)
+         AIS R3,2
+         LHI R5,LUBSIZ-2              :NUMBER OF BYTES LEFT TO SAVE
+FNDIN7   LB  R11,INBUF,R4,            :GET EACH BYTE FROM SIO BUFFER
+         STB R11,0,R13,R3             :SAVE IN BUFFER FOR BACKGROUND
+         AIS R3,1
+         AIS R4,1                     :INCREMENT SIO POINTER
+         SIS R5,1
+         JLEFS FNDIN8
+         SIS R7,1                     :DECREMENT BYTE COUNT
+         JG  FNDIN7
+         J   FNDIN9
+FNDIN8   SIS R7,1
+         AR  R4,R7                    :CHUCK REMAINING STUFF
+FNDIN9   LH  R7,HLDCNT
+         NHI R7,0001                  :SEE IF ODD NUMBER
+         AR  R4,R7                    :ACCOUNT FOR POSSIBLE TRASH BYTE
+         STH R4,HLDPTR
+FNDINX   LH  R5,PIXLIX,,              :SEE IF THIS IS FROM LU OR PU (PU=0)
+         JE  FNDINY
+         LH  R9,HLDLIX                :GET BUFLIX INDEX
+         LB  R11,BUFLPW,R9,           :GET NUMBER OF BKGND UNPROCESSED PKTS
+         AIS R11,1
+         CHI R11,WINDSZ*BUFACT        :SEE IF MORE THAN YOU CAN HOLD
+         JLE FNDLOK
+         HC  0,0                      :BACKGROUND TOO SLOW, GONNA LOSE DATA
+FNDLOK   STB R11,BUFLPW,R9,
+         LB  R11,BUFLIX,R9,
+         AIS R11,1
+         CHI R11,WINDSZ*BUFACT        :SEE IF ALL ENTRIES ARE FULL
+         JL  FNDINW
+         LIS R11,0
+         SBT R9,RAPFAG                :INDICATE INDEX WRAP
+FNDINW   STB R11,BUFLIX,R9,           :UPDATE ENTRY COUNT
+         RBT R9,INTRPT                :EXPEDITED FRAME WAITING TO GO?
+         JN  SNDEXP                   :YES
+         J   FGNRS4
+FNDINY   LB  R11,BUFPIX,R1,
+         AIS R11,1
+         CHI R11,WINDSZ               :SEE IF ALL ENTRIES FULL
+         JL  FNDINZ
+         LIS R11,0
+         SBT R1,RAPFAP                :INDICATE INDEX WRAP
+FNDINZ   STB R11,BUFPIX,R1,
+         LB  R11,BUFPPW,R1,
+         AIS R11,1
+         CHI R11,WINDSZ               :SEE IF MORE PACKETS THAN YOU CAN HOLD
+         JLE FNDPOK
+         HC  0,0                      :GONNA LOSE DATA
+FNDPOK   STB R11,BUFPPW,R1,
+         J   FGNRS4
+         J   FGNRS4
+
+:-------------------------------------------------------------------------
+: THIS ROUTINE IS CALLED TO FIND THE CORRESPONDING INDEX TO PUSTAT.
+: IT USES THE PU ADDRESS JUST RECEIVED FROM THE SNA HIF.
+
+MCHPU    LB  R3,PUTAB,R1              :FIND ADDRESS MATCH
+         CR  R3,R8
+         JE  MCHPU2
+         AIS R1,1
+         CHI R1,NUMPU
+         JLE MCHPU
+         HC  0,0
+MCHPU2   JR  R5
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::  THIS ROUTINE USES R1 - RELATIVE PU NUMBER
+:::  R1 IS USED TO FIND THE STARTING POINT IN THE ARRAY "LUSTAT".
+:::  THE POINTER IS RETURNED IN R6
+
+GTLUBG   LIS  R10,0
+         LIS  R6,0
+GTLUB4   LB   R7,LUPRPU,R10
+         CR   R1,R10                  :SEE IF FOUND LU IN QUESTION
+         JER  R5
+         AR   R6,R7
+         AIS  R10,1
+         CHI  R10,NUMPU
+         JL   GTLUB4
+         HC   0
+
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::: THIS ROUTINE CHECKS THE FINAL BIT OF INFO FRAMES TO SEE IF MORE ARE
+::: COMING
+
+CKFINL   LR   R6,R8                   :COPY CONTROL BYTE
+         NHI  R6,10                   :FINAL BIT ON?
+         JN   CKFIN3
+         L    R6,FASTC,,
+         AI   R6,FINALT               :ADD WAIT TIME
+         LR   R5,R1
+         SLLS R5,2
+         ST   R6,PUTIM,R5
+         LIS  R6,0A
+         STB  R6,PUSTAT,R1            :WAIT FOR FRAME WITH FINAL BIT SET
+         JR   R14
+CKFIN3   LR   R5,R1
+         SLLS R5,2
+         LIS  R6,0
+         ST   R6,PUTIM,R5             :TURN OFF TIMER SO RR WILL BE SENT
+         LIS  R6,4
+         STB  R6,PUSTAT,R1            :CHANGE STATE TO SEND RR
+         JR   R14
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::::  THIS ROUTINE USES THE REL LU# IN R1 TO DETERMINE THE REL PU# FOR :::
+::::  THAT LU.  THE PU NUMBER IS RETURNED IN R2                        :::
+
+FFDLPU   LB   R6,PUADLU,R1            :GET PU ADDRESS
+         LIS  R2,0
+FFDLP2   LB   R8,PUTAB,R2
+         CR   R8,R6
+         JER  R7
+         AIS  R2,1
+         CHI  R2,NUMPU
+         JL   FFDLP2
+         HC   0
+
+
+:----------------------------------------------------------------------------
+
+CALBFP  STH R8,PIXLIX                 :FRAME IS FOR PU
+        LR  R3,R1                     :GET CURRENT RELATIVE LU NUMBER
+        LHI R9,LUBSIZ
+        MHR R3,R9
+        LHI R9,WINDSZ                 :NUMBER OF PACKETS TO SAVE IN BUFPU
+        MHR R3,R9
+        LB  R11,BUFPIX,R1,            :NEXT ENTRY INDEX
+        LHI R9,LUBSIZ
+        MHR R11,R9
+        AR  R3,R11
+        LA  R13,BUFPU,,               :STORE IN PU BUFFER
+        J   4,R5                      :SKIP CALLIX
+
+
+
+:---------------------------------------------------------------------------
+: THIS ROUTINE DETERMINES THE STARTING POINT IN BUFLU TO SAVE THIS PACKET
+
+CALLIX  LIS R9,0
+        CHI R1,0                      :SEE IF PROCESSING FIRST PU
+        JE  CALLX3                    :YES, ALREADY HAVE THE ANSWER
+        LIS R11,0
+CALLX2  LB  R6,LUPRPU,R11             :ADD UP LU'S PER PU UP TO CURRENT PU
+        AR  R9,R6
+        AIS R11,1
+        CR  R11,R1                    :SEE IF AT CURRENT PU YET
+        JL  CALLX2
+CALLX3  LB  R6,LUPRPU,R1              :GET NUMBER FOR CURRENT PU
+CALLX4  LB  R11,DAF,R9                :FIND OUT WHICH LU THIS IS
+        CR  R11,R8
+        JE  CALLX5
+        AIS R9,1
+        SIS R6,1
+        JG  CALLX4
+        HC  0,0                       :FOUND AN LU THAT DOESN'T FIT
+CALLX5  LHI R3,WINDSZ*BUFACT
+        MHR R3,R9
+        LHI R11,LUBSIZ
+        MHR R3,R11
+        LB  R6,BUFLIX,R9,             :GET BUFLU ENTRY INDEX
+        MHR R11,R6
+        AR  R3,R11
+        STH R9,HLDLIX                 :SAVE INDEX TO BUFLIX
+        LIS R6,1
+        STH R6,PIXLIX                 :SET SWITCH TO "PROCESSING LU"
+        LH  R11,HLDCNT                :GET PACKET SIZE
+        LA  R13,BUFLU,,
+        JR  R5
+
+
+:=========================================================================
+:=  THIS ROUTINE UPDATES THE SIO POINTER AND THEN USES THS FNDDSC ROUTINE
+:=  TO INITIALIZE THE COUNTERS
+
+FRMREJ   AIS  R4,1
+         AR   R4,R7                   :ADD REMAINING LENGTH
+         LH   R7,HLDCNT               :SEE IF ODD BYTE COUNT
+         NHI  R7,1
+         JEFS .+4
+         AIS  R4,1
+         STH  R4,HLDPTR
+         LIS  R4,1
+         AHM  R4,REJCTR               :INCREMENT COUNTER
+         J    FNDDS2
+
+:-------------------------------------------------------------------------
+: THIS ROUTINE ZEROS OUT THE LUSTAT TABLE FOR ALL THIS PU'S LU'S.  TI ALSO
+: SETS PUACT TO "0F" WHICH MEANS "DISC", AND IT SETS PUSTAT TO 0.
+
+FNDDSC   AIS R4,1                     :UPDATE SIO
+         STH R4,HLDPTR
+FNDDS2   LIS R6,07
+         STB R6,PUACT,R1              :SET PU STATE TO DISC
+         LIS R6,0
+         STB R6,PURRNR,R1             :SET N(R) TO 0
+         STB R6,PURRNS,R1             :SET N(S) TO 0
+         LIS R4,0
+         LIS R6,0
+FNDDS3   LB  R3,LUPRPU,R1
+         CR  R4,R1
+         JE  FNDDS5
+         AR  R6,R3
+         AIS R4,1
+         J   FNDDS3
+FNDDS5   LIS R4,0
+         LIS R5,0
+FNDDS7   STB R4,LUSTAT,R6             :SET LU STATES TO "INACTIVE"
+         AIS R6,1
+         AIS R5,1
+         CR  R5,R3
+         JL  FNDDS7
+         LIS R5,0
+         STB R5,PUSTAT,R1
+         J   FGNRS4
+
+
+
+:----------------------------------------------------------------------------
+
+FNDSNM   CHI R7,0                     :SHOULD BE NO MORE DATA IN PACKET
+         JEFS FNDSN2
+         HC  0,0
+FNDSN2   AIS R4,1
+         STH R4,HLDPTR
+         LHI R8,0FF                   :SET STATUS DISPLAY STATE TO "POLLED"
+         STB R8,PUACT,R1
+         TBT R1,SNIGNR
+         JN  FNDSN6                   :DON'T RESPOND TO SNRM
+         LIS R8,0                     :SET STATE TO "INACTIVE"
+         STB R8,PUSTAT,R1
+         LIS R8,0
+         STB R8,PURRNR,R1             :INIT RR COUNTER
+         STB R8,PURRNS,R1             :INIT N(S) COUNTER
+         JAL R5,GTLUBG                :GET BEGINNING OF THIS PU'S LU'S
+         LB  R5,LUPRPU,R1             :GET NUMBER OF LU'S FOR THIS PU
+FNDSN4   STB R8,LUSTAT,R6             :SET LU STATES TO 0
+         AIS R6,1
+         SIS R5,1
+         JG  FNDSN4
+         J   FGNRS4
+FNDSN6   L   R8,FASTC,,
+         LR  R9,R1
+         SLLS R9,1
+         ST  R8,PUTIM,R9,R9
+         LIS R8,0E                    :STATE=POLLED BUT DON'T RESPOND
+         STB R8,PUSTAT,R1
+         J   FGNRS4
+
+
+
+:--------------------------------------------------------------------------
+: THIS SECTION HANDLES "RECEIVE READY'S" RECEIVED FROM THE SNA HIF
+
+FNDRR    CHI R7,0
+         JE  FNDRR2
+         HC  0,0
+FNDRR2   AIS R4,1
+         STH R4,HLDPTR
+         LB  R8,HLDBYT                :GET COMPLETE RR
+         RBT R1,DMARRY                :SEE IF DM REQUESTED (CONTROL-D)
+         JN  FNDRR8                   :1=SEND DM
+         LB  R7,PUSTAT,R1             :MAKE SURE NOT IN IDLE STATE
+         CHI R7,0F
+         JE  FNDRR8                   :IN IDLE SO SEND DM
+         NHI R8,0E0                   :GET JUST N(R) BITS
+         SRLS R8,4                    :CHANGE THEM TO N(S) BITS
+         LB  R7,PURRNS,R1             :GET OUR N(S) FOR THIS PU
+         CR  R8,R7
+         JE  FNDRR6                   :WINDOW MATCHES
+         STB R8,PURRNS,R1             :CORRECT OUR COUNTER
+         LB  R6,PURTN,R1              :GET WINDOW ERROR COUNTER
+         AIS R6,1
+         STB R6,PURTN,R1              :UPDATE COUNTER
+FNDRR6   SBT R1,RRARAY                :INDICATE RR NEEDS TO BE SENT
+         LR  R9,R1
+         SLLS R9,1
+         L   R8,FASTC,,
+         ST  R8,PUTIM,R9,R9
+         J   FGNRS4
+FNDRR8   LIS R7,0C                    :0C=SEND DM
+         STB R7,PUSTAT,R1
+         J   FGNRS4
+
+RTRNFM   J  FGNRS4
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::: COME HERE WHEN A TEST FRAME WAS DISCOVERED
+
+FNDTST   AIS  R4,1                    :MOVE INDEX PAST CONTROL FIELD
+         CHI  R7,4                    :DID THIS TEST FRAME CONTAIN TIME STAMP?
+         JL   FNDTS6                  :NO
+         LHL  R8,INBUF,R4,            :GET FIRST HALF OF FASTC TIME
+         STH  R8,PURSPT
+         AIS  R4,2                    :INCREMENT INDEX
+         SIS  R7,2                    :REDUCE REMAINING LENGTH
+         LHL  R8,INBUF,R4,            :GET SECOND HALF OF TIME
+         STH  R8,PURSPT+2
+         AIS  R4,2
+         SIS  R7,2
+         L    R6,PURSPT               :GET BEGINNING TIME
+         L    R8,FASTC,,
+         SR   R8,R6                   :TRANSIT TIME
+         LR   R12,R1
+         SLLS R12,1
+         C    R8,PUMAXT,R12,R12       :IS THIS THE SLOWEST FRAME SO FAR?
+         JLEFS FNDTS2                 :NO
+         ST   R8,PUMAXT,R12,R12       :NEW SLOWEST TIME
+FNDTS2   C    R8,PUMINT,R12,R12       :IS THIS THE FASTEST GUY SO FAR?
+         JGEFS FNDTS4                 :NO
+         ST   R8,PUMINT,R12,R12       :SAVE NEW FASTEST GUY
+FNDTS4   AM   R8,PUAVET,R12,R12       :AVERAGE TIME ACCUMLULATOR
+         LIS  R8,1
+         AM   R8,PUTMCT,R12,R12       :TOTAL TIMER FRAMES RECEIVED
+FNDTS6   AR   R4,R7                   :UPDATE SIO INDEX WITH REMAINING LENGTH
+         NHI  R7,1
+         AR   R4,R7                   :ADD IN ODD BYTE IF THERE
+         STH  R4,HLDPTR
+         LHL  R4,HLDCNT               :GET LENGTH OF TEST FRAME
+         STH  R4,PUTMSZ,R12           :SIZE OF LAST TEST FRAME RECEIVED
+         LIS  R4,0D                   :TELL F.G. TO SEND TEST FRAME RESPONSE
+         STB  R4,PUSTAT,R1
+         J    FGNRS4
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::: THIS ROUTINE UPDATES THE SEND COUNTER
+
+UPDNS    LB  R8,PURRNS,R2             :GET CURRENT N(S)
+         CHI R8,0E
+         JL  UPDNS2
+         LIS R8,0
+         STB R8,PURRNS,R2
+         JR  R5
+UPDNS2   AIS R8,2
+         STB R8,PURRNS,R2
+         JR  R5
+
+:-----------------------------------------------------------------------
+: THIS ROUTINE HANDLES PACKETS WHICH WERE OUT OF ORDER IN SOME WAY
+
+WNDMSM   HC 0,0
+
+
+
+:-----------------------------------------------------------------------
+: THIS ROUTINE SENDS OUT THE "ACTIVATE LU" COMMANDS
+
+ACTVLU   LH  R5,SIOOUT,,
+         LA  R10,ACTVLU
+         CHI R5,1
+         JE  SIOWAT
+         JAL R7,FFDLPU                :GET PU NUMBER
+         TBT R2,RRARAY                :SEE IF TIME TO SEND RR
+         JE  LUSTL4                   :NO
+         LIS R8,0                     :INDEX USED IN SIOGRP
+         JAL R13,SIOGRP               :SEND THE GROUP OF FRAMES
+         SLLS R2,2
+         L  R5,FASTC,,
+         ST R5,PUTIM,R2               :SAVE RR TIME
+         SRLS R2,2
+         LIS R5,3
+         STB R5,PUSTAT,R2             :SET STATE TO RR SENT
+         LIS R13,0
+         LHI R5,81                    :PENDING STATE
+ACTVL4   LB  R10,LUSTAT,R13,          :LOOK FOR LU'S IN STATE = 1
+         CHI R10,1
+         JNFS .+8
+         STB R5,LUSTAT,R13,           :CHANGE TO PENDING
+         AIS R13,1
+         CHI R13,NUMLU
+         JL  ACTVL4
+         RBT R2,RRARAY                :DON'T NEED TO SEND RR
+         J   FGNRST                   :GO PROCESS NEXT PU
+
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::: THIS SPACE IS FOR PATCHING                                           :::
+PIGLET   WS 100
+
+:---------------------------------------------------------------------------:
+         END
+ 3 {
