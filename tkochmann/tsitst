@@ -1,0 +1,2553 @@
+                                                                October 2, 1986
+
+
+
+
+
+
+
+
+
+
+
+
+                                   ISIS/TSI
+
+                                   Test Plan
+
+
+
+                                    Bob Fox
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     ====================================================================
+     |                    PROPRIETARY INFORMATION                       |
+     |                                                                  |
+     |    TYMNET,  Inc.'s  proprietary  rights are included  in the     |
+     |    information disclosed herein.  The recipient, by receiving    |
+     |    this document,  agrees that neither this document nor  the    |
+     |    information disclosed herein nor any part thereof shall be    |
+     |    reproduced  or  transferred to other documents or used  or    |
+     |    disclosed  to  others for manufacturing or for  any  other    |
+     |    purpose  except as specifically authorized in  writing  by    |
+     |    TYMNET, Inc.                                                  |
+     ====================================================================
+
+
+   Copyright 1986 by Tymnet -- The McDonnell Douglas Network Systems Company
+
+
+
+                                  ISIS/TSI TEST PLAN
+                                                                October 2, 1986
+
+
+
+
+
+
+
+                                   TABLE OF CONTENTS
+
+        Section                                                            Page
+
+
+
+        1.   INTRODUCTION                                                     1
+
+
+        2.   ISIS WITHOUT RELOCATION                                          2
+          2.1   Environment                                                   2
+          2.2   Functionality to be Tested                                    3
+             2.2.1    Scheduling                                              3
+             2.2.2    ISIS DDT                                                3
+             2.2.3    Exception traps and timers                              4
+
+
+        3.   ISIS WITH RELOCATION                                             5
+          3.1   Environment                                                   5
+          3.2   Functionality to be Tested                                    5
+             3.2.1    Relocation                                              5
+             3.2.2    ISIS DDT                                                6
+             3.2.3    ISIS SVCs                                               6
+             3.2.4    Protection trap                                         6
+             3.2.5    Multiple Slot Configuration                             6
+
+
+        4.   ISIS WITH RELOCATION AND I/O                                     7
+          4.1   Environment                                                   7
+
+
+        5.   ISIS WITH NODE CODE                                              8
+
+
+        6.   ISIS TYPICAL CONFIGURATION                                       9
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                  ISIS/TSI TEST PLAN
+        INTRODUCTION                                            October 2, 1986
+
+
+
+
+
+
+                                   1 -  INTRODUCTION
+
+
+             This  document describes  the  steps in  the testing  of  ISIS and
+        associated  interfaces  in  the  TSI  environment.  Each  section  will
+        describe the environment required,  the functionality to be  tested and
+        the criteria for the successful completion of that specific section.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        1                         ISIS/TSI TEST PLAN
+        ISIS WITHOUT RELOCATION                                 October 2, 1986
+
+
+
+
+
+
+                             2 -  ISIS WITHOUT RELOCATION
+
+
+             This will be the first attempt to run ISIS in the TSI environment.
+        ISIS will be  run with no interfaces  present. In this state  ISIS will
+        only be actively scheduling  one internal ISIS process. This  test will
+        verify the reliablity  of the instruction  set and the  real-time clock
+        and also  verify that ISIS  machine dependent considerations  have been
+        accounted  for.   At this  stage  the functionality  of  most  ISIS DDT
+        commands can be  verified.  This stage will  be verified by  looking at
+        the  ISIS internal  timers and  the processing  scheduling.  The "front
+        panel" should also display the ISIS speedometer.
+
+
+
+
+
+
+                                   2.1  Environment
+
+
+             The following hardware/firmware environment is required:
+
+                o  Functional Engine instruction set
+
+                o  TTY port
+
+                o  Console (CIO instruction)
+
+                o  Real-time clock interrupt
+
+                o  Method to load NIB format files into EP memory
+
+                o  Method to create a parity error 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        2                         ISIS/TSI TEST PLAN
+        ISIS WITHOUT RELOCATION                                 October 2, 1986
+
+
+                            2.2  Functionality to be Tested
+
+
+             The following sections describe the areas of ISIS to be tested and
+        the criteria for successful completion.
+
+
+
+
+
+                    2.2.1  Scheduling
+
+             One of  the primary jobs  of ISIS is  to provide  scheduling among
+        competing multiple processes. Without any interfaces running under ISIS
+        only a few internal ISIS processes are being scheduled. One of the ISIS
+        processes should update the front panel periodically with the status of
+        the  current  slot  being  examined and  the  load  on  the  machine as
+        represented by a speedometer consisting of a rotating pair of bits.
+
+             This initial scheduling test will be considered complete  when the
+        front  panel is  consistantly updated  with the  slot and  machine load
+        information and the DDT processes  in use are scheduled normally  for a
+        period of 24 hours.
+
+
+
+
+
+                    2.2.2  ISIS DDT
+
+             ISIS  has the  capability of  allowing a  user to  access  the DDT
+        debugger  through the  TTY port  on the  IOC. When  accessing  DDT, the
+        following ISIS mechanisms can be tested: kernel I/O, DDT commands, SVCs
+        used by DDT commands.
+
+             This  test   will  be  considered   completed  when  a   user  can
+        successfully access DDT through the TTY port and perform  the following
+        functions:
+
+                o  DDT commands: M,R,W,X,Y,Z,?SLOT,?VERN,?WHO,?PORT,?HANG
+                                 ?TIME,?DIAG,?HIST,?MEM,?CPU,?SYS,^C,^O
+
+                o  The DDT 'R' (read memory) command should be able to display
+                   10000x bytes of data at the maximum TTY baud rate without
+                   error
+
+
+
+
+
+
+
+
+
+        3                         ISIS/TSI TEST PLAN
+        ISIS WITHOUT RELOCATION                                 October 2, 1986
+
+
+                    2.2.3  Exception traps and timers
+
+             ISIS handling of  the Illegal Instruction and  Machine Malfunction
+        interrupts will be tested as well as the accuracy of the  internal ISIS
+        timers based on the real-time clock.
+
+             This  section will  be  considered completed  when  ISIS correctly
+        handles an illegal  instruction and parity  error interrupt as  well as
+        the ISIS one second timer (SLOWC) being correct for a 24 hour period.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        4                         ISIS/TSI TEST PLAN
+        ISIS WITH RELOCATION                                    October 2, 1986
+
+
+
+
+
+
+                               3 -  ISIS WITH RELOCATION
+
+
+             The first test of relocation will be a simple test slot  that will
+        further test the basic ISIS  functionality as well as do a  simple test
+        of relocation and protection.
+
+
+
+
+
+
+                                   3.1  Environment
+
+
+             The following additions  to the hardware/firmware  environment are
+        required:
+
+                o  MAC relocation and protection
+
+                o  MAC interrupt
+
+
+
+
+
+
+
+                            3.2  Functionality to be Tested
+
+
+
+
+
+
+                    3.2.1  Relocation
+
+             The test slot  will perform a simple  memory test to  confirm that
+        relocation is working correctly in the ISIS environment. The  test will
+        consist of the slot writing  and reading back locations in  its address
+        space and  then a  manual verification through  DDT that  the locations
+        writen and read are in in fact in the correct area of memory.
+
+             This test will be considered completed when the slot has performed
+        the above test  successfully for 24  hours and the  manual verification
+        has taken place.
+
+
+
+
+        5                         ISIS/TSI TEST PLAN
+        ISIS WITH RELOCATION                                    October 2, 1986
+
+
+                    3.2.2  ISIS DDT
+
+             Further tests can be performed on ISIS DDT with a slot present.
+
+             This  test will  be considered  completed when  the  following DDT
+        functions have been successfully completed:
+
+                o  DDT commands: A,B,D,E,G,H,I,J,N,O,P,Q,RR,T,U,WR
+                                 ?B,?ABS,?MAC,?SMAC,?SLOT,?BT,?FT,?BRR
+                                 ?FRR,?CT,?USE,?HOST,?EDBG,?LDBG,?FREZ
+                                 ?THAW,?STAT,?LMAC,?LU,?TRAN
+
+
+
+
+
+
+                    3.2.3  ISIS SVCs
+
+             The test slot will test all of the ISIS SVCs (excluding  I/O SVCs)
+        that are not used by any of the previously tested functions.
+
+             This test will be considered completed when the slot  has executed
+        these tests successfully for a 24 hour period.
+
+
+
+
+
+                    3.2.4  Protection trap
+
+             The test slot  will be altered to  create each type  of protection
+        violation to test the ISIS handling of the MAC interrupt.
+
+             This test will be considered completed when ISIS  has successfully
+        handled a MAC interrupt with all of the possible protection violations.
+
+
+
+
+
+                    3.2.5  Multiple Slot Configuration
+
+             ISIS will be  test with multiple copies  of the test  slot running
+        concurrently.
+
+             This test will be considered completed when ISIS with four  of the
+        above  test slots has run successfully for 24 hours.
+
+
+
+
+
+
+        6                         ISIS/TSI TEST PLAN
+        ISIS WITH RELOCATION AND I/O                            October 2, 1986
+
+
+
+
+
+
+                           4 -  ISIS WITH RELOCATION AND I/O
+
+
+             This stage will  consist of ISIS  running an SIO  diagnostic slot.
+        This  will  more  fully test  relocation and  also verify  that  SIO is
+        working properly.
+
+
+
+
+
+
+                                   4.1  Environment
+
+
+             The following additions  to the hardware/firmware  environment are
+        required:
+
+                o  SIO I/O system
+
+                o  SIO Tymnet sync emulation
+
+
+             Completion criteria: ???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        7                         ISIS/TSI TEST PLAN
+        ISIS WITH NODE CODE                                     October 2, 1986
+
+
+
+
+
+
+                               5 -  ISIS WITH NODE CODE
+
+
+             This stage will  consist of running ISIS  with the Node Code  as a
+        node in the network. This will test the ability of ISIS to  function in
+        a somewhat standard  fashion. Initially, the  Node Code will  only have
+        SIO  lines  but  emmulated  sync  could be  tested  as  well  if  it is
+        available.
+
+             Completion criteria: ???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        8                         ISIS/TSI TEST PLAN
+        ISIS TYPICAL CONFIGURATION                              October 2, 1986
+
+
+
+
+
+
+                            6 -  ISIS TYPICAL CONFIGURATION
+
+
+             In  this  stage, typical  ISIS  configurations will  be  tested to
+        verify that ISIS will function normally.
+
+             Completion criteria: ???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        9                         ISIS/TSI TEST PLAN
+                                                                 October 2, 1986
+
+
+
+
+
+
+
+
+
+
+
+
+                                   ISIS/TSI
+
+                                   Test Plan
+
+
+
+                                    Bob Fox
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     ====================================================================
+     |                    PROPRIETARY INFORMATION                       |
+     |                                                                  |
+     |    TYMNET,  Inc.'s  proprietary  rights are included  in the     |
+     |    information disclosed herein.  The recipient, by receiving    |
+     |    this document,  agrees that neither this document nor  the    |
+     |    information disclosed herein nor any part thereof shall be    |
+     |    reproduced  or  transferred to other documents or used  or    |
+     |    disclosed  to  others for manufacturing or for  any  other    |
+     |    purpose  except as specifically authorized in  writing  by    |
+     |    TYMNET, Inc.                                                  |
+     ====================================================================
+
+
+   Copyright 1986 by Tymnet -- The McDonnell Douglas Network Systems Company
+
+
+
+                                  ISIS/TSI TEST PLAN
+                                                                October 2, 1986
+
+
+
+
+
+
+
+                                   TABLE OF CONTENTS
+
+        Section                                                            Page
+
+
+
+        1.   INTRODUCTION                                                     1
+
+
+        2.   ISIS WITHOUT RELOCATION                                          2
+          2.1   Environment                                                   2
+          2.2   Functionality to be Tested                                    3
+             2.2.1    Scheduling                                              3
+             2.2.2    ISIS DDT                                                3
+             2.2.3    Exception traps and timers                              4
+
+
+        3.   ISIS WITH RELOCATION                                             5
+          3.1   Environment                                                   5
+          3.2   Functionality to be Tested                                    5
+             3.2.1    Relocation                                              5
+             3.2.2    ISIS DDT                                                6
+             3.2.3    ISIS SVCs                                               6
+             3.2.4    Protection trap                                         6
+             3.2.5    Multiple Slot Configuration                             6
+
+
+        4.   ISIS WITH RELOCATION AND I/O                                     7
+          4.1   Environment                                                   7
+
+
+        5.   ISIS WITH NODE CODE                                              8
+
+
+        6.   ISIS TYPICAL CONFIGURATION                                       9
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                  ISIS/TSI TEST PLAN
+        INTRODUCTION                                            October 2, 1986
+
+
+
+
+
+
+                                   1 -  INTRODUCTION
+
+
+             This  document describes  the  steps in  the testing  of  ISIS and
+        associated  interfaces  in  the  TSI  environment.  Each  section  will
+        describe the environment required,  the functionality to be  tested and
+        the criteria for the successful completion of that specific section.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        1                         ISIS/TSI TEST PLAN
+        ISIS WITHOUT RELOCATION                                 October 2, 1986
+
+
+
+
+
+
+                             2 -  ISIS WITHOUT RELOCATION
+
+
+             This will be the first attempt to run ISIS in the TSI environment.
+        ISIS will be  run with no interfaces  present. In this state  ISIS will
+        only be actively scheduling  one internal ISIS process. This  test will
+        verify the reliablity  of the instruction  set and the  real-time clock
+        and also  verify that ISIS  machine dependent considerations  have been
+        accounted  for.   At this  stage  the functionality  of  most  ISIS DDT
+        commands can be  verified.  This stage will  be verified by  looking at
+        the  ISIS internal  timers and  the processing  scheduling.  The "front
+        panel" should also display the ISIS speedometer.
+
+
+
+
+
+
+                                   2.1  Environment
+
+
+             The following hardware/firmware environment is required:
+
+                o  Functional Engine instruction set
+
+                o  TTY port
+
+                o  Console (CIO instruction)
+
+                o  Real-time clock interrupt
+
+                o  Method to load NIB format files into EP memory
+
+                o  Method to create a parity error 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        2                         ISIS/TSI TEST PLAN
+        ISIS WITHOUT RELOCATION                                 October 2, 1986
+
+
+                            2.2  Functionality to be Tested
+
+
+             The following sections describe teas of ISIS to be tested and
+        the criteria for successful completion.
+
+
+
+
+
+                    2.2.1  Scheduling
+
+             One of  the primary jobs  of ISIS is  to provide  scheduling among
+        competing multiple processes. Without any interfaces running under ISIS
+        only a few internal ISIS processes are being scheduled. One of the ISIS
+        processes should update the front panel periodically with the status of
+        the  current  slot  being  examined and  the  load  on  the  machine as
+        represented by a speedometer consisting of a rotating pair of bits.
+
+             This initial scheduling test will be considered complete  when the
+        front  panel is  consistantly updated  with the  slot and  machine load
+        information and the DDT processes  in use are scheduled normally  for a
+        period of 24 hours.
+
+
+
+
+
+                    2.2.2  ISIS DDT
+
+             ISIS  has the  capability of  allowing a  user to  access  the DDT
+        debugger  through the  TTY port  on the  IOC. When  accessing  DDT, the
+        following ISIS mechanisms can be tested: kernel I/O, DDT commands, SVCs
+        used by DDT commands.
+
+             This  test   will  be  considered   completed  when  a   user  can
+        successfully access DDT through the TTY port and perform  the following
+        functions:
+
+                o  DDT commands: M,R,W,X,Y,Z,?SLOT,?VERN,?WHO,?PORT,?HANG
+                                 ?TIME,?DIAG,?HIST,?MEM,?CPU,?SYS,^C,^O
+
+                o  The DDT 'R' (read memory) command should be able to display
+                   10000x bytes of data at the maximum TTY baud rate without
+                   error
+
+
+
+
+
+
+
+
+
+        3                         ISIS/TSI TEST PLAN
+        ISIS WITHOUT RELOCATION                                 October 2, 1986
+
+
+                    2.2.3  Exception traps and timers
+
+             ISIS handling of  the Illegal Instruction and  Machine Malfunction
+        interrupts will be tested as well as the accuracy of the  internal ISIS
+        timers based on the real-time clock.
+
+             This  section will  be  considered completed  when  ISIS correctly
+        handles an illegal  instruction and parity  error interrupt as  well as
+        the ISIS one second timer (SLOWC) being correct for a 24 hour period.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        4                         ISIS/TSI TEST PLAN
+        ISIS WITH RELOCATION                                    October 2, 1986
+
+
+
+
+
+
+                               3 -  ISIS WITH RELOCATION
+
+
+             The first test of relocation will be a simple test slot  that will
+        further test the basic ISIS  functionality as well as do a  simple test
+        of relocation and protection.
+
+
+
+
+
+
+                                   3.1  Environment
+
+
+             The following additions  to the hardware/firmware  environment are
+        required:
+
+                o  MAC relocation and protection
+
+                o  MAC interrupt
+
+
+
+
+
+
+
+                            3.2  Functionality to be Tested
+
+
+
+
+
+
+                    3.2.1  Relocation
+
+             The test slot  will perform a simple  memory test to  confirm that
+        relocation is working correctly in the ISIS environment. The  test will
+        consist of the slot writing  and reading back locations in  its address
+        space and  then a  manual verification through  DDT that  the locations
+        writen and read are in in fact in the correct area of memory.
+
+             This test will be considered completed when the slot has performed
+        the above test  successfully for 24  hours and the  manual verification
+        has taken place.
+
+
+
+
+        5                         ISIS/TSI TEST PLAN
+        ISIS WITH RELOCATION                                    October 2, 1986
+
+
+                    3.2.2  ISIS DDT
+
+             Further tests can be performed on ISIS DDT with a slot present.
+
+             This  test will  be considered  completed when  the  following DDT
+        functions have been successfully completed:
+
+                o  DDT commands: A,B,D,E,G,H,I,J,N,O,P,Q,RR,T,U,WR
+                                 ?B,?ABS,?MAC,?SMAC,?SLOT,?BT,?FT,?BRR
+                                 ?FRR,?CT,?USE,?HOST,?EDBG,?LDBG,?FREZ
+                                 ?THAW,?STAT,?LMAC,?LU,?TRAN
+
+
+
+
+
+
+                    3.2.3  ISIS SVCs
+
+             The test slot will test all of the ISIS SVCs (excluding  I/O SVCs)
+        that are not used by any of the previously tested functions.
+
+             This test will be considered completed when the slot  has executed
+        these tests successfully for a 24 hour period.
+
+
+
+
+
+                    3.2.4  Protection trap
+
+             The test slot  will be altered to  create each type  of protection
+        violation to test the ISIS handling of the MAC interrupt.
+
+             This test will be considered completed when ISIS  has successfully
+        handled a MAC interrupt with all of the possible protection violations.
+
+
+
+
+
+                    3.2.5  Multiple Slot Configuration
+
+             ISIS will be  test with multiple copies  of the test  slot running
+        concurrently.
+
+             This test will be considered completed when ISIS with four  of the
+        above  test slots has run successfully for 24 hours.
+
+
+
+
+
+
+        6                         ISIS/TSI TEST PLAN
+        ISIS WITH RELOCATION AND I/O                            October 2, 1986
+
+
+
+
+
+
+                           4 -  ISIS WITH RELOCATION AND I/O
+
+
+             This stage will  consist of ISIS  running an SIO  diagnostic slot.
+        This  will  more  fully test  relocation and  also verify  that  SIO is
+        working properly.
+
+
+
+
+
+
+                                   4.1  Environment
+
+
+             The following additions  to the hardware/firmware  environment are
+        required:
+
+                o  SIO I/O system
+
+                o  SIO Tymnet sync emulation
+
+
+             Completion criteria: ???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        7                         ISIS/TSI TEST PLAN
+        ISIS WITH NODE CODE                                     October 2, 1986
+
+
+
+
+
+
+                               5 -  ISIS WITH NODE CODE
+
+
+             This stage will  consist of running ISIS  with the Node Code  as a
+        node in the network. This will test the ability of ISIS to  function in
+        a somewhat standard  fashion. Initially, the  Node Code will  only have
+        SIO  lines  but  emmulated  sync  could be  tested  as  well  if  it is
+        available.
+
+             Completion criteria: ???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        8                         ISIS/TSI TEST PLAN
+        ISIS TYPICAL CONFIGURATION                              October 2, 1986
+
+
+
+
+
+
+                            6 -  ISIS TYPICAL CONFIGURATION
+
+
+             In  this  stage, typical  ISIS  configurations will  be  tested to
+        verify that ISIS will function normally.
+
+             Completion criteria: ???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        9                         ISIS/TSI TEST PLAN
+                                                                 October 2, 1986
+
+
+
+
+
+
+
+
+
+
+
+
+                                   ISIS/TSI
+
+                                   Test Plan
+
+
+
+                                    Bob Fox
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     ====================================================================
+     |                    PROPRIETARY INFORMATION                       |
+     |                                                                  |
+     |    TYMNET,  Inc.'s  proprietary  rights are included  in the     |
+     |    information disclosed herein.  The recipient, by receiving    |
+     |    this document,  agrees that neither this document nor  the    |
+     |    information disclosed herein nor any part thereof shall be    |
+     |    reproduced  or  transferred to other documents or used  or    |
+     |    disclosed  to  others for manufacturing or for  any  other    |
+     |    purpose  except as specifically authorized in  writing  by    |
+     |    TYMNET, Inc.                                                  |
+     ====================================================================
+
+
+   Copyright 1986 by Tymnet -- The McDonnell Douglas Network Systems Company
+
+
+
+                                  ISIS/TSI TEST PLAN
+                                                                October 2, 1986
+
+
+
+
+
+
+
+                                   TABLE OF CONTENTS
+
+        Section                                                            Page
+
+
+
+        1.   INTRODUCTION                                                     1
+
+
+        2.   ISIS WITHOUT RELOCATION                                          2
+          2.1   Environment                                                   2
+          2.2   Functionality to be Tested                                    3
+             2.2.1    Scheduling                                              3
+             2.2.2    ISIS DDT                                                3
+             2.2.3    Exception traps and timers                              4
+
+
+        3.   ISIS WITH RELOCATION                                             5
+          3.1   Environment                                                   5
+          3.2   Functionality to be Tested                                    5
+             3.2.1    Relocation                                              5
+             3.2.2    ISIS DDT                                                6
+             3.2.3    ISIS SVCs                                               6
+             3.2.4    Protection trap                                         6
+             3.2.5    Multiple Slot Configuration                             6
+
+
+        4.   ISIS WITH RELOCATION AND I/O                                     7
+          4.1   Environment                                                   7
+
+
+        5.   ISIS WITH NODE CODE                                              8
+
+
+        6.   ISIS TYPICAL CONFIGURATION                                       9
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                  ISIS/TSI TEST PLAN
+        INTRODUCTION                                            October 2, 1986
+
+
+
+
+
+
+                                   1 -  INTRODUCTION
+
+
+             This  document describes  the  steps in  the testing  of  ISIS and
+        associated  interfaces  in  the  TSI  environment.  Each  section  will
+        describe the environment required,  the functionality to be  tested and
+        the criteria for the successful completion of that specific section.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        1                         ISIS/TSI TEST PLAN
+        ISIS WITHOUT RELOCATION                                 October 2, 1986
+
+
+
+
+
+
+                             2 -  ISIS WITHOUT RELOCATION
+
+
+             This will be the first attempt to run ISIS in the TSI environment.
+        ISIS will be  run with no interfaces  present. In this state  ISIS will
+        only be actively scheduling  one internal ISIS process. This  test will
+        verify the reliablity  of the instruction  set and the  real-time clock
+        and also  verify that ISIS  machine dependent considerations  have been
+        accounted  for.   At this  stage  the functionality  of  most  ISIS DDT
+        commands can be  verified.  This stage will  be verified by  looking at
+        the  ISIS internal  timers and  the processing  scheduling.  The "front
+        panel" should also display the ISIS speedometer.
+
+
+
+
+
+
+                                   2.1  Environment
+
+
+             The following hardware/firmware environment is required:
+
+                o  Functional Engine instruction set
+
+                o  TTY port
+
+                o  Console (CIO instruction)
+
+                o  Real-time clock interrupt
+
+                o  Method to load NIB format files into EP memory
+
+                o  Method to create a parity error 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        2                         ISIS/TSI TEST PLAN
+        ISIS WITHOUT RELOCATION                                 October 2, 1986
+
+
+                            2.2  Functionality to be Tested
+
+
+             The following sections describe the areas of ISIS to be tested and
+        the criteria for successful completion.
+
+
+
+
+
+                    2.2.1  Scheduling
+
+             One of  the primary jobs  of ISIS is  to provide  scheduling among
+        competing multiple processes. Without any interfaces running under ISIS
+        only a few internal ISIS processes are being scheduled. One of the ISIS
+        processes should update the front panel periodically with the status of
+        the  current  slot  being  examined and  the  load  on  the  machine as
+        represented by a speedometer consisting of a rotating pair of bits.
+
+             This initial scheduling test will be considered complete  when the
+        front  panel is  consistantly updated  with the  slot and  machine load
+        information and the DDT processes  in use are scheduled normally  for a
+        period of 24 hours.
+
+
+
+
+
+                    2.2.2  ISIS DDT
+
+             ISIS  has the  capability of  allowing a  user to  access  the DDT
+        debugger  through the  TTY port  on the  IOC. When  accessing  DDT, the
+        following ISIS mechanisms can be tested: kernel I/O, DDT commands, SVCs
+        used by DDT commands.
+
+             This  test   will  be  considered   completed  when  a   user  can
+        successfully access DDT through the TTY port and perform  the following
+        functions:
+
+                o  DDT commands: M,R,W,X,Y,Z,?SLOT,?VERN,?WHO,?PORT,?HANG
+                                 ?TIME,?DIAG,?HIST,?MEM,?CPU,?SYS,^C,^O
+
+                o  The DDT 'R' (read memory) command should be able to display
+                   10000x bytes of data at the maximum TTY baud rate without
+                   error
+
+
+
+
+
+
+
+
+
+        3                         ISIS/TSI TEST PLAN
+        ISIS WITHOUT RELOCATION                                 October 2, 1986
+
+
+                    2.2.3  Exception traps and timers
+
+             ISIS handling of  the Illegal Instruction and  Machine Malfunction
+        interrupts will be tested as well as the accuracy of the  internal ISIS
+        timers based on the real-time clock.
+
+             This  section will  be  considered completed  when  ISIS correctly
+        handles an illegal  instruction and parity  error interrupt as  well as
+        the ISIS one second timer (SLOWC) being correct for a 24 hour period.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        4                         ISIS/TSI TEST PLAN
+        ISIS WITH RELOCATION                                    October 2, 1986
+
+
+
+
+
+
+                               3 -  ISIS WITH RELOCATION
+
+
+             The first test of relocation will be a simple test slot  that will
+        further test the basic ISIS  functionality as well as do a  simple test
+        of relocation and protection.
+
+
+
+
+
+
+                                   3.1  Environment
+
+
+             The following additions  to the hardware/firmware  environment are
+        required:
+
+                o  MAC relocation and protection
+
+                o  MAC interrupt
+
+
+
+
+
+
+
+                            3.2  Functionality to be Tested
+
+
+
+
+
+
+                    3.2.1  Relocation
+
+             The test slot  will perform a simple  memory test to  confirm that
+        relocation is working correctly in the ISIS environment. The  test will
+        consist of the slot writing  and reading back locations in  its address
+        space and  then a  manual verification through  DDT that  the locations
+        writen and read are in in fact in the correct area of memory.
+
+             This test will be considered completed when the slot has performed
+        the above test  successfully for 24  hours and the  manual verification
+        has taken place.
+
+
+
+
+        5                         ISIS/TSI TEST PLAN
+        ISIS WITH RELOCATION                                    October 2, 1986
+
+
+                    3.2.2  ISIS DDT
+
+             Further tests can be performed on ISIS DDT with a slot present.
+
+             This  test will  be considered  completed when  the  following DDT
+        functions have been successfully completed:
+
+                o  DDT commands: A,B,D,E,G,H,I,J,N,O,P,Q,RR,T,U,WR
+                                 ?B,?ABS,?MAC,?SMAC,?SLOT,?BT,?FT,?BRR
+                                 ?FRR,?CT,?USE,?HOST,?EDBG,?LDBG,?FREZ
+                                 ?THAW,?STAT,?LMAC,?LU,?TRAN
+
+
+
+
+
+
+                    3.2.3  ISIS SVCs
+
+             The test slot will test all of the ISIS SVCs (excluding  I/O SVCs)
+        that are not used by any of the previously tested functions.
+
+             This test will be considered completed when the slot  has executed
+        these tests successfully for a 24 hour period.
+
+
+
+
+
+                    3.2.4  Protection trap
+
+             The test slot  will be altered to  create each type  of protection
+        violation to test the ISIS handling of the MAC interrupt.
+
+             This test will be considered completed when ISIS  has successfully
+        handled a MAC interrupt with all of the possible protection violations.
+
+
+
+
+
+                    3.2.5  Multiple Slot Configuration
+
+             ISIS will be  test with multiple copies  of the test  slot running
+        concurrently.
+
+             This test will be considered completed when ISIS with four  of the
+        above  test slots has run successfully for 24 hours.
+
+
+
+
+
+
+        6                         ISIS/TSI TEST PLAN
+        ISIS WITH RELOCATION AND I/O                            October 2, 1986
+
+
+
+
+
+
+                           4 -  ISIS WITH RELOCATION AND I/O
+
+
+             This stage will  consist of ISIS  running an SIO  diagnostic slot.
+        This  will  more  fully test  relocation and  also verify  that  SIO is
+        working properly.
+
+
+
+
+
+
+                                   4.1  Environment
+
+
+             The following additions  to the hardware/firmware  environment are
+        required:
+
+                o  SIO I/O system
+
+                o  SIO Tymnet sync emulation
+
+
+             Completion criteria: ???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        7                         ISIS/TSI TEST PLAN
+        ISIS WITH NODE CODE                                     October 2, 1986
+
+
+
+
+
+
+                               5 -  ISIS WITH NODE CODE
+
+
+             This stage will  consist of running ISIS  with the Node Code  as a
+        node in the network. This will test the ability of ISIS to  function in
+        a somewhat standard  fashion. Initially, the  Node Code will  only have
+        SIO  lines  but  emmulated  sync  could be  tested  as  well  if  it is
+        available.
+
+             Completion criteria: ???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        8                         ISIS/TSI TEST PLAN
+        ISIS TYPICAL CONFIGURATION                              October 2, 1986
+
+
+
+
+
+
+                            6 -  ISIS TYPICAL CONFIGURATION
+
+
+             In  this  stage, typical  ISIS  configurations will  be  tested to
+        verify that ISIS will function normally.
+
+             Completion criteria: ???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        9                         ISIS/TSI TEST PLAN
+                                                                 October 2, 1986
+
+
+
+
+
+
+
+
+
+
+
+
+                                   ISIS/TSI
+
+                                   Test Plan
+
+
+
+                                    Bob Fox
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     ====================================================================
+     |                    PROPRIETARY INFORMATION                       |
+     |                                                                  |
+     |    TYMNET,  Inc.'s  proprietary  rights are included  in the     |
+     |    information disclosed herein.  The recipient, by receiving    |
+     |    this document,  agrees that neither this document nor  the    |
+     |    information disclosed herein nor any part thereof shall be    |
+     |    reproduced  or  transferred to other documents or used  or    |
+     |    disclosed  to  others for manufacturing or for  any  other    |
+     |    purpose  except as specifically authorized in  writing  by    |
+     |    TYMNET, Inc.                                                  |
+     ====================================================================
+
+
+   Copyright 1986 by Tymnet -- The McDonnell Douglas Network Systems Company
+
+
+
+                                  ISIS/TSI TEST PLAN
+                                                                October 2, 1986
+
+
+
+
+
+
+
+                                   TABLE OF CONTENTS
+
+        Section                                                            Page
+
+
+
+        1.   INTRODUCTION                                                     1
+
+
+        2.   ISIS WITHOUT RELOCATION                                          2
+          2.1   Environment                                                   2
+          2.2   Functionality to be Tested                                    3
+             2.2.1    Scheduling                                              3
+             2.2.2    ISIS DDT                                                3
+             2.2.3    Exception traps and timers                              4
+
+
+        3.   ISIS WITH RELOCATION                                             5
+          3.1   Environment                                                   5
+          3.2   Functionality to be Tested                                    5
+             3.2.1    Relocation                                              5
+             3.2.2    ISIS DDT                                                6
+             3.2.3    ISIS SVCs                                               6
+             3.2.4    Protection trap                                         6
+             3.2.5    Multiple Slot Configuration                             6
+
+
+        4.   ISIS WITH RELOCATION AND I/O                                     7
+          4.1   Environment                                                   7
+
+
+        5.   ISIS WITH NODE CODE                                              8
+
+
+        6.   ISIS TYPICAL CONFIGURATION                                       9
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                  ISIS/TSI TEST PLAN
+        INTRODUCTION                                            October 2, 1986
+
+
+
+
+
+
+                                   1 -  INTRODUCTION
+
+
+             This  document describes  the  steps in  the testing  of  ISIS and
+        associated  interfaces  in  the  TSI  environment.  Each  section  will
+        describe the environment required,  the functionality to be  tested and
+        the criteria for the successful completion of that specific section.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        1                         ISIS/TSI TEST PLAN
+        ISIS WITHOUT RELOCATION                                 October 2, 1986
+
+
+
+
+
+
+                             2 -  ISIS WITHOUT RELOCATION
+
+
+             This will be the first attempt to run ISIS in the TSI environment.
+        ISIS will be  run with no interfaces  present. In this state  ISIS will
+        only be actively scheduling  one internal ISIS process. This  test will
+        verify the reliablity  of the instruction  set and the  real-time clock
+        and also  verify that ISIS  machine dependent considerations  have been
+        accounted  for.   At this  stage  the functionality  of  most  ISIS DDT
+        commands can be  verified.  This stage will  be verified by  looking at
+        the  ISIS internal  timers and  the processing  scheduling.  The "front
+        panel" should also display the ISIS speedometer.
+
+
+
+
+
+
+                                   2.1  Environment
+
+
+             The following hardware/firmware environment is required:
+
+                o  Functional Engine instruction set
+
+                o  TTY port
+
+                o  Console (CIO instruction)
+
+                o  Real-time clock interrupt
+
+                o  Method to load NIB format files into EP memory
+
+                o  Method to create a parity error 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        2                         ISIS/TSI TEST PLAN
+        ISIS WITHOUT RELOCATION                                 October 2, 1986
+
+
+                            2.2  Functionality to be Tested
+
+
+             The following sections describe the areas of ISIS to be tested and
+        the criteria for successful completion.
+
+
+
+
+
+                    2.2.1  Scheduling
+
+             One of  the primary jobs  of ISIS is  to provide  scheduling among
+        competing multiple processes. Without any interfaces running under ISIS
+        only a few internal ISIS processes are being scheduled. One of the ISIS
+        processes should update the front panel periodically with the status of
+        the  current  slot  being  examined and  the  load  on  the  machine as
+        represented by a speedometer consisting of a rotating pair of bits.
+
+             This initial scheduling test will be considered complete  when the
+        front  panel is  consistantly updated  with the  slot and  machine load
+        information and the DDT processes  in use are scheduled normally  for a
+        period of 24 hours.
+
+
+
+
+
+                    2.2.2  ISIS DDT
+
+             ISIS  has the  capability of  allowing a  user to  access  the DDT
+        debugger  through the  TTY port  on the  IOC. When  accessing  DDT, the
+        following ISIS mechanisms can be tested: kernel I/O, DDT commands, SVCs
+        used by DDT commands.
+
+             This  test   will  be  considered   completed  when  a   user  can
+        successfully access DDT through the TTY port and perform  the following
+        functions:
+
+                o  DDT commands: M,R,W,X,Y,Z,?SLOT,?VERN,?WHO,?PORT,?HANG
+                                 ?TIME,?DIAG,?HIST,?MEM,?CPU,?SYS,^C,^O
+
+                o  The DDT 'R' (read memory) command should be able to display
+                   10000x bytes of data at the maximum TTY baud rate without
+                   error
+
+
+
+
+
+
+
+
+
+        3                         ISIS/TSI TEST PLAN
+        ISIS WITHOUT RELOCATION                                 October 2, 1986
+
+
+                    2.2.3  Exception traps and timers
+
+             ISIS handling of  the Illegal Instruction and  Machine Malfunction
+        interrupts will be tested as well as the accuracy of the  internal ISIS
+        timers based on the real-time clock.
+
+             This  section will  be  considered completed  when  ISIS correctly
+        handles an illegal  instruction and parity  error interrupt as  well as
+        the ISIS one second timer (SLOWC) being correct for a 24 hour period.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        4                         ISIS/TSI TEST PLAN
+        ISIS WITH RELOCATION                                    October 2, 1986
+
+
+
+
+
+
+                               3 -  ISIS WITH RELOCATION
+
+
+             The first test of relocation will be a simple test slot  that will
+        further test the basic ISIS  functionality as well as do a  simple test
+        of relocation and protection.
+
+
+
+
+
+
+                                   3.1  Environment
+
+
+             The following additions  to the hardware/firmware  environment are
+        required:
+
+                o  MAC relocation and protection
+
+                o  MAC interrupt
+
+
+
+
+
+
+
+                            3.2  Functionality to be Tested
+
+
+
+
+
+
+                    3.2.1  Relocation
+
+             The test slot  will perform a simple  memory test to  confirm that
+        relocation is working correctly in the ISIS environment. The  test will
+        consist of the slot writing  and reading back locations in  its address
+        space and  then a  manual verification through  DDT that  the locations
+        writen and read are in in fact in the correct area of memory.
+
+             This test will be considered completed when the slot has performed
+        the above test  successfully for 24  hours and the  manual verification
+        has taken place.
+
+
+
+
+        5                         ISIS/TSI TEST PLAN
+        ISIS WITH RELOCATION                                    October 2, 1986
+
+
+                    3.2.2  ISIS DDT
+
+             Further tests can be performed on ISIS DDT with a slot present.
+
+             This  test will  be considered  completed when  the  following DDT
+        functions have been successfully completed:
+
+                o  DDT commands: A,B,D,E,G,H,I,J,N,O,P,Q,RR,T,U,WR
+                                 ?B,?ABS,?MAC,?SMAC,?SLOT,?BT,?FT,?BRR
+                                 ?FRR,?CT,?USE,?HOST,?EDBG,?LDBG,?FREZ
+                                 ?THAW,?STAT,?LMAC,?LU,?TRAN
+
+
+
+
+
+
+                    3.2.3  ISIS SVCs
+
+             The test slot will test all of the ISIS SVCs (excluding  I/O SVCs)
+        that are not used by any of the previously tested functions.
+
+             This test will be considered completed when the slot  has executed
+        these tests successfully for a 24 hour period.
+
+
+
+
+
+                    3.2.4  Protection trap
+
+             The test slot  will be altered to  create each type  of protection
+        violation to test the ISIS handling of the MAC interrupt.
+
+             This test will be considered completed when ISIS  has successfully
+        handled a MAC interrupt with all of the possible protection violations.
+
+
+
+
+
+                    3.2.5  Multiple Slot Configuration
+
+             ISIS will be  test with multiple copies  of the test  slot running
+        concurrently.
+
+             This test will be considered completed when ISIS with four  of the
+        above  test slots has run successfully for 24 hours.
+
+
+
+
+
+
+        6                         ISIS/TSI TEST PLAN
+        ISIS WITH RELOCATION AND I/O                            October 2, 1986
+
+
+
+
+
+
+                           4 -  ISIS WITH RELOCATION AND I/O
+
+
+             This stage will  consist of ISIS  running an SIO  diagnostic slot.
+        This  will  more  fully test  relocation and  also verify  that  SIO is
+        working properly.
+
+
+
+
+
+
+                                   4.1  Environment
+
+
+             The following additions  to the hardware/firmware  environment are
+        required:
+
+                o  SIO I/O system
+
+                o  SIO Tymnet sync emulation
+
+
+             Completion criteria: ???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        7                         ISIS/TSI TEST PLAN
+        ISIS WITH NODE CODE                                     October 2, 1986
+
+
+
+
+
+
+                               5 -  ISIS WITH NODE CODE
+
+
+             This stage will  consist of running ISIS  with the Node Code  as a
+        node in the network. This will test the ability of ISIS to  function in
+        a somewhat standard  fashion. Initially, the  Node Code will  only have
+        SIO  lines  but  emmulated  sync  could be  tested  as  well  if  it is
+        available.
+
+             Completion criteria: ???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        8                         ISIS/TSI TEST PLAN
+        ISIS TYPICAL CONFIGURATION                              October 2, 1986
+
+
+
+
+
+
+                            6 -  ISIS TYPICAL CONFIGURATION
+
+
+             In  this  stage, typical  ISIS  configurations will  be  tested to
+        verify that ISIS will function normally.
+
+             Completion criteria: ???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        9                         ISIS/TSI TEST PLAN
+ T|xl
