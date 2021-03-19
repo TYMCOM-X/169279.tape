@@ -1,0 +1,199 @@
+:---------------+--------------------------------------------------------------
+: Interface	: xcom (x.25/x.75)
+: Version	: 04.03
+: Author	: Tsuneo Kobayashi
+: Date 		: 29 OCT 1990
+: Purpose	: To route circuit(s) from xcom to the aprpropriate one of
+:		: seven x.75 gateway hosts for NTT's INS-P x.75 entrance.
+:		:
+: Functions	: (1) Checking if the first 3 digits of called address received
+:		:     from xlink matches '081', to decide if the call is for
+:		:     INS-P's dte.
+:		:
+:		: (2) If call is for INS-P, then perform checking for the 4th.
+:		:     digit to 6th digit in the called address as area code
+:		:     for INS-P, and select appropriate host number for the
+:		:     call.
+:		:
+:		: (3) Constracting tymnet LOG-I login-strings from USERNAME
+:		:     and PASSWORD defined in INSRTG macro and the selected
+:		:     gateway host number, then issue it into oring as normal
+:		:     logon charactors.
+:		:
+: How to use	: (1) In slot tymfile
+:		:     Define the following macro in the link option group
+:		:     under a GATEWAY macro:
+:		:
+:		:             INSRTG(link#,username,password)
+:		:
+:		:     link#    : xlink number for the slot.
+:		:     username : username, validated in nisnet.
+:		:     password : password for the username.
+:		:
+:		:     note) Colon, semi-colon and <cr> aren't required.
+:		:           Only one INSRTG macro per link allowed,
+:		:           if more than one INSRTG macro for a link#
+:		:           are defined, the first defined one will
+:		:           be effective.  Be sure that a GATEWAY macro
+:		:           exit above this macro.
+:		:
+:		: (2) In slot cmdfile
+:		:     The followings are needed to specified.
+:		:
+:		:     800[p0size: ---> above initial file assembling.
+:		:     (nscnet)insrtg.its ---> under initial file assembling.
+:		:     (nscnet)insrtg.pts ---> under patch file assembling.
+:		:
+: Data		: (1) INS-P gateway host numbers and area code ranges
+:		:
+:		:      host# area name  area code range (4th-6th digits)
+:		:      ----- ---------  --------------------------------
+:		:      1650  Sapporo	110-169
+:		:      1651  Sendai	170-199,220-249
+:		:      1652  Tokyo	250-299,320-399,420-499,551-556
+:		:      1653  Nagoya	520-549,550-550,557-599,760-769
+:		:                       770-770,776-776,778-779
+:		:      1654  Osaka	620-699,720-759,771-775,780-799
+:		:                       870-899
+:		:      1655  Hiroshima	820-869
+:		:      1656  Fukuoka	920-999
+:		:
+:		: (2) Co-existability
+:		:     This patch has to be assembled with a GATEWAY macro,
+:		:     and this patch can be used with GATEWAY and GNSNET
+:		:     macros.  GATEWAY, GNSNET and this macro are performed
+:		:     as following order:
+:		:
+:		:               GNSNET --> INSRTG --> GATEWAY
+:		:
+:		: End of explanation
+:		:
+PATCH(901024,1800,NIS.KOBAYASHI,PA0PTR,,200)
+QY      EQ      0
+INSLU   EQ      .               :LU SAVE AREA
+        RE      INSNO
+QY      EQ      QY+1
+        BC      INS.L|QY|
+        ER
+:               USER NAME MACRO O TEUNKAISURU
+QY      EQ      0
+        RE      INSNO
+QY      EQ      QY+1
+        INS.U|QY|
+        ER
+        BND     4
+
+:               USER NAME NO ADRES O SAVE SURU
+QY      EQ      0
+        RE      INSNO
+QY      EQ      QY+1
+INSUA|QY|  WC   INS.|QY|0
+           WC   INS.|QY|1
+           WC   INS.|QY|2
+           WC   INS.|QY|3
+           WC   INS.|QY|4
+           WC   INS.|QY|5
+           WC   INS.|QY|6
+        ER
+
+:
+QY      EQ      0
+INSAT   EQ      .
+        RE      INSNO
+QY      EQ      QY+1
+        WC      INSUA|QY|
+        ER
+:
+:       MACRO KARA SAKUSEI SURU TABLE WA OWARI
+:
+
+:
+:       AREA CODE TABLE
+:
+ARATBL  XC      011001690000            : SAPORO
+        XC      017001990004            : SEUNDAI
+        XC      022002490004            : SEUNDAI
+        XC      025002990008            : TOKYO
+        XC      032003990008            : TOKYO
+        XC      042004990008            : TOKYO
+        XC      055105560008            : TOKYO
+        XC      05200549000C            : NAGOYA
+        XC      05500550000C            : NAGOYA
+        XC      05570599000C            : NAGOYA
+        XC      07600769000C            : NAGOYA
+        XC      07700770000C            : NAGOYA
+        XC      07760776000C            : NAGOYA
+        XC      07780779000C            : NAGOYA
+        XC      062006990010            : OSAKA
+        XC      072007590010            : OSAKA
+        XC      077107750010            : OSAKA
+        XC      078007990010            : OSAKA
+        XC      087008990010            : OSAKA
+        XC      082008690014            : HIROSHIMA
+        XC      092009990018            : FUKUOKA
+        XC      FFFFFFFFFFFF            : END FLAG
+
+CONPATCH(PCR420+1E,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,0A8)
+        LHI     R0,INSNO                :INSRTG MACRO ARI KA?
+        JE      INS006                  : MACRO NOT USE
+:
+:       LU NUMBER O CHECH SURU
+:
+        LIS     R1,0                    :INDEX ZERO SET
+INS001  CHI     R1,INSNO-1              :CHECK LOOP END?
+        JG      INS006                  : END OF LOOP
+        LB      R0,INSLU,R1,
+        CR      R0,R10                  :LU NUMBER MATCH?
+        JE      INS002                  :MATCH LU NUMBER
+        AIS     R1,1
+        J       INS001
+:
+:       CALL ADRES WA '081' KA CHECK SURU
+:
+INS002  LB      R2,DTESAX+1,R4,
+        SLLS    R2,8
+        LB      R0,DTESAX+2,R4,
+        OR      R2,R0
+        SRLS    R2,4
+        CHI     R2,081                  :INS-P CALL KA?
+        JN      INS006
+:
+:       INS-P CALL NO AREA CODE O CHECK SURU
+:
+        LB      R0,DTESAX+2,R4,
+        NHI     R0,0F
+        SLLS    R0,8
+        LB      R2,DTESAX+3,R4,
+        OR      R0,R2                   :INPUT AREA CODE
+        LIS     R2,0
+INS003  LHL     R3,ARATBL,R2,           :START CODE GET
+        CLI     R3,0FFFF                :TABLE END?
+        JE      INS006                  :TABLE END
+        CR      R0,R3
+        JL      INS004                  :NEXT CODE CHECK
+        LHL     R3,ARATBL+2,R2,         :END CODE GET
+        CR      R0,R3
+        JLE     INS005                  :AREA CODE MATCH
+INS004  AIS     R2,6
+        J       INS003
+:
+:       USER NAME NO ADRES GET
+:
+INS005  SLLS    R1,2
+        L       R3,INSAT,R1,
+        LHL     R1,ARATBL+4,R2,
+        L       R8,,R3,R1
+        LHL     R1,IPORT,,
+        J       PCR450,,                :SEND USER NAME
+:
+:
+:       INS-P CALL DEWA NAI
+:
+INS006  LB      R2,DTESAX+1,R4,
+        J       PCR420+24,,
+:
+CONPATCH(CKAD25+0A,,4)
+        J       CKAD30
+ENDPATCH(SUPPORT INS-P GW CALL)
