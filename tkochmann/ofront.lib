@@ -1,0 +1,728 @@
+	SUBTTL	ISIS Front-end Package
+	REMARK %FrontLib V0.10 06-01-81 SMF
+:******************************************************************
+:
+:	This program is the sole property and confidential
+:	information of Tymshare, Inc., and may not be copied
+:	in whole or in part or disclosed to any third party
+:	without the prior written consent of Tymshare.
+:
+:*******************************************************************
+	RA	0		:	FRONT.LIB
+
+: V 0.10 06-01-81 SMF
+:	Force the WAITZA option on so that zapper ack's will be handled
+:	correctly.
+: V 0.9 05-22-81 SMF
+:	Force the CNTRL bit on to get zapper acknowledgements.  This
+:	ensures that the buffers for the port will get cleared after the
+:	circuit is torn down.
+: V 0.8 04-03-81 MDS
+:	Needle activations now set the ACP bit before activating the user
+:	code. This gives the host the opportunity to reset ACP, thereby
+:	notifying FrontLib that this circuit is rejected.
+: V 0.7 03-31-81 MDS
+:	Added routines to handle messages BA, BB, BC, BD, BE.
+:	Permit user to select clearing port after zapper acknowledgement
+:	   arrives (set WAITZA EQ 1) as an option.
+:	Made use of UMTOSS table optional.
+: V 0.6 02-20-81 MDS
+:	Made outgoing zappers reset same bits as incoming zappers.
+: V 0.5 02-06-81 MDS
+:	Fixed handling of Red Balls, to flush a pending Green Ball, rather
+:	than to force the return of it.
+: V 0.4 01-17-81 MDS
+:	Fixed Setting port flags, moved from B2 routine to B6 routine,
+:	note that B2 does not necessarily imply a circuit is built.
+:	B2 messages are now tossed.
+: V 0.3 11-24-80 MDS
+:	Added use of NOESC0 flag to suppress putting escape char ahead of
+:	data nulls, and the table UMTOSS to indicate that a break message
+:	handled by the user should not be put in the input buffer.
+: V 0.2 11-19-80  MDS
+:	Added bit array OUTCRT, bit set to indicate this port has
+:	aux. circuit built "out" and we need to act like a remote
+:	with regard to B1 messages.
+: V 0.1 11-17-80  MDS
+:	Added ECHOFF variable, and handling of B1 (echo control) messages
+:	per PASCAL nucleus usage.
+
+
+:		This package is the ISIS front end...used to service the
+:	ISIS input and output rings, and to activate user code
+:	whenever a break (user defined) is encountered.
+:	It also activates user code when a user-processable
+:	(also user defined) non-data message is encountered,
+:	if excessive data is input without a break, or if a timeout
+:	occurs for a port.
+
+:			CONVENTIONS
+
+:		Each of NPORT ports has a buffer-pair associated with it.
+:	Even numbered buffers are input buffers...the corresponding
+:	odd numbered buffer is that port's output buffer.  The user-
+:	provided code should intialize these buffers.
+
+:	A 0-byte in the buffer is an escape...it is followed by a
+:	data-0, or by an ISIS message code and the appropriate
+:	character stream following. (But note NOESC0 flag and UMTOSS
+:	bit table added V 0.3 can change this escape convention.)
+:	This does NOT apply to needles,
+:	and thus unassigned ports should be connected to an appropriate
+:	process.  Needles are parsed, and the following usage applies on
+:	activation <Needles ALWAYS activate>:
+:		R5	Invoice number,
+:		R6	Destination Host number,
+:		R7	Originating Node number,
+:		R8	Originating Host Number
+:		R9	Originating Port number,
+:		R10	Dialect Code
+:		R11	TID
+:		R12	number of characters in user name,
+:			The username is placed into the port's buffer.)
+
+:	Data breaks on C/R if no break array is specified.
+
+:	Activation always occurs after the breaking data character
+:	is placed into the buffer, or after a complete MESSAGE is
+:	placed in the buffer.
+
+:	Break is activated with the buffer index in R1, and links on R15.
+:	R0 contains an activation key, and condition codes are set appropriately:
+:	>0	R0 is message type
+:	=0	data break...R2 contains the activation char
+:	=-1	needle
+:	=-2	too many chars
+:	=-3	flushing...next will not necessarily be data
+:	=-4	timout
+:	=-5	port 0 message
+
+:	All registers are available for use while in the user code, and
+:	on return, R0 is to contain a number N.  If N>0, it is default timeout
+:	(in seconds) until the next activation...else timeout is disabled.
+:	All data characters are automatically placed in the input buffer,
+:	as are any control messages specified for user-handling.
+
+:	ALL ISIS special messages are placed in the buffer for port 0,
+:	and each breaks automatically.
+
+:	For non-text messages, the escape convention applies ONLY to the
+:	message type...the body of the message is unescaped.  ALL such
+:	messages handled by the user cause a break.
+
+:	The following WORD arrays (length NPORT words), and are to be initalized
+:	by the user program:
+
+:	BREAK	a pointer to the bit array of characters to break upon.
+:	MBREAK	a pointer to the bit array of message types to break on.
+:	PROCESS	a pointer to the process to be activated upon a break condition.
+
+:	The following items are to be provided by the user:
+
+:	A bit array TISIS of length NPORT, to signal output data.
+:	A symbol MAXCHAR...causes break if the buffer count exceeds this value.
+:	A symbol ECHO...causes tymsat echoing for terminals if >0.
+:	A 256 bit table UMTOSS...indicates break messages not put in buffer.
+
+:	the following routines should be called by the user (link R0):
+
+:	IZFRONT	at initialization time, after calling IZT.
+:	INPUT	from exec loop, to process input from ISIS.
+:	OUTPUT	from exec loop, to process output to ISIS.
+
+	GL	NPORT,MAXCHAR,ECHO,TISIS,BREAK,MBREAK,PROCESS,ACP
+	GL	IZFRONT,INPUT,OUTPUT,ECHOFF,UMTOSS
+	GL	TOPUT,TORET
+	GL	GCI,WCI,BCT
+
+	MO	.,FRONT
+
+	SEG	A.DATA
+
+	GL	CNTRL
+	IF	\CNTRL
+CNTRL	EQ	CNTRL!80	:Make sure zappers get acknowledged
+	ELSE
+CNTRL	EQ	80		:Zapper ack's on
+	EI
+
+WAITZA	EQ	1		:Clean up on Zapper ack's
+
+BREAK	HS	2*NPORT		:pointer to data break array
+MBREAK	HS	2*NPORT		:pointer to message break array
+PROCESS	HS	2*NPORT		:pointer to user supplied routine to process data.
+ATIME	HS	2*NPORT		:next time to activate user.
+XLIMIT	BS	NPORT		:max number of data characters we can send at one time.
+PORT	HS	1		:CURRENT PORT WE ARE PROCESSING
+BUFFER	HS	1		:CURRENT BUFFER INDEX WE ARE PROCESSING.
+SAVE	HS	20		:save registers here
+RETP	HS	2		:save return here.
+
+NGRP	EQ	(NPORT+0F)/10	:number of port groups to process.
+ACP	HS	NGRP		:active ports.
+PTIME	HS	NGRP		:ports on activate timeout.
+TOISIS	HS	NGRP		:ports we can send data on.
+FRISIS	HS	NGRP		:ports we have NOT backpressured.
+DEM	HS	NGRP		:ports in defered echo mode.
+ECHOFF	HS	NGRP		:Ports in no-echo mode
+OUTCRT	HS	NGRP		:Port has 'outbuilt' aux. circuit
+GBALL	HS	NGRP		:HAVE A GREEN-BALL FOR THESE PORTS
+WTZA	HS	NGRP		:Expecting Zapper Ack to arrive
+PRTSVC	HS	1		:PORT ELIGIBLE FOR SERVICE INDICATOR
+
+	SEG	A.CODE		:THE CODE AND DATA AREA.
+ 
+:	HANDY INDEXABLE HALFWORD BIT MASKS
+HMASK	HC	8000,4000,2000,1000,800,400,200,100,80,40,20,10,8,4,2,1
+
+
+:	DEFAULT BREAK ARRAY (CARRIAGE RETURN ONLY)
+DEFAULT	HC	4,0,0		:C/R ONLY
+	HC	0,0,0
+	HC	0,0,4		:C/R ONLY
+	HC	0,0,0
+	HC	0,0,0
+	HC	0
+
+:	-----	ISIS INTERFACE	-----
+
+:	BIT ARRAY TO IDENTIFY DATA MESSAGES
+BDATA	HC	07FFF,-1,-1	:00
+	HC	-1,-1,-1	:30
+	HC	-1,-1,-1	:60
+	HC	0FFFC,0,0	:90
+	HC	0,0,0		:C0
+	HC	0		:F0
+
+BCTL	HC	0,0,0		:00	BIT ARRAY TO IDENTIFY CONTROL MESSAGES REQUIRING SPECIAL HANDLING
+	HC	0,0,0		:30
+	HC	0,0,0		:60
+	HC	3,0F000,3340	:90  9E 9F A0 A1 A2 A3 B2 B3 B6 B7 B9
+	HC	0,0,0		:C0
+	HC	0		:F0
+
+
+	IF	\WAITZA
+	ELSE
+WAITZA	EQ	0
+	EI
+
+	IF	\NOESC0
+	ELSE
+NOESC0	EQ	0
+	EI
+
+
+LENGTH	BC	0		:MESSAGE LENGTH TABLE
+	RE	9D;	BC	.-LENGTH+1;	NOLIST;	ER;	LIST	:DATA TEXT STRINGS
+	BC	1		: 9E	DETACH
+	BC	1		: 9F	DISCONNECT
+	BC	1		: A0	APPLY BACKPRESSURE
+	BC	1		: A1	RELEASE BACKPRESSURE
+	BC	1		: A2	FLUSH FORWARD
+	BC	1		: A3	FLUSH BACKWARD
+	BC	1		: A4	BLACK BALL
+	BC	1		: A5	GREY BALL
+	BC	1		: A6	ENTER "DEM"
+	BC	1		: A7	LEAVE "DEM"
+	BC	1		: A8	ENTER "TRANSPARENCY"
+	BC	1		: A9	LEAVE "TRANSPARENCY"
+	BC	1		: AA	GREEN BALL
+	BC	1		: AB	RED BALL
+	BC	1		: AC	YELLOW BALL
+	BC	1		: AD	ORANGE BALL
+	BC	1		: AE	"BREAK" DETECTED
+	BC	1		: AF	"HANG UP"
+	BC	2		: B0	QUERY TERMINAL PARAMETER
+	BC	3		: B1	SET TERMINAL PARAMETER
+	BC	4		: B2	PSEUDO-NEEDLE
+	BC	2		: B3	LOGON CHARACTER
+	BC	2		: B4	NORMAL LOGON STATUS
+	BC	2		: B5	LOGON FAILURE
+	BC	8		: B6	SUCCESSFUL LOGON FROM THIS PORT
+	BC	6		: B7	ADDENDUM TO ACCOUNTING
+	BC	1		: B8	SUPER-"HANG UP"
+	BC	2		: B9	TRANSMIT LIMIT
+	BC	1		: BA	Break end
+	BC	1		: BB	Zapper acknowledgement
+	BC	1		: BC	ENTER Alternate Output Device Mode
+	BC	1		: BD	LEAVE     "        "      "     "
+	BC	2		: BE	Zapper with Reason Code
+
+
+:		**INTERFACE DATA TYPES**
+
+
+NEDMSG	EQ	0		:NEEDLE
+FIRST	EQ	9E		:FIRST MESSAGE IN LIST
+DETMSG	EQ	9E		:DETACH MESSAGE
+ZAPMSG	EQ	9F		:DISCONNECT MESSAGE
+NOSMSG	EQ	0A0		:APPLY BACK-PRESSURE
+SNDMSG	EQ	0A1		:RELEASE BACK-PRESSURE
+GOBMSG	EQ	0A2		:FLUSH OUTPUT
+BKGMSG	EQ	0A3		:FLUSH INPUT
+BLKMSG	EQ	0A4		:DATA LOST IN THIS DIRECTION
+GRYMSG	EQ	0A5		:DATA LOST IN OPPOSITE DIRECTION
+EDMMSG	EQ	0A6		:ENTER DEFERED ECHO MESSAGE
+LDMMSG	EQ	0A7		:LEAVE DEFERED ECHO MESSAGE
+ETMMSG	EQ	0A8		:ENTER TRANSPARENCY MODE
+LTMMSG	EQ	0A9		:LEAVE TRANSPARENCY MODE
+GBMSG	EQ	0AA		:GREEN BALL
+RBMSG	EQ	0AB		:RED BALL
+YBMSG	EQ	0AC		:YELLOW BALL
+OBMSG	EQ	0AD		:ORANGE BALL
+BRKMSG	EQ	0AE		:BREAK DETECTED
+HNGMSG	EQ	0AF		:HANG UP
+QTPMSG	EQ	0B0		:QUERY TERMINAL PARAMETER
+STPMSG	EQ	0B1		:SET TERMINAL PARAMETER
+PNDMSG	EQ	0B2		:PSEUDO NEEDLE
+NLOGCH	EQ	0B3		:NORMAL LOGON CHAR
+NLOGST	EQ	0B4		:NORMAL LOGON STATUS
+LOGFAL	EQ	0B5		:NORMAL LOGON STATUS
+LOGOK	EQ	0B6		:SUCCESSFUL NORMAL LOGON
+ADACTG	EQ	0B7		:ADDENDUM TO ACCOUNTING
+SHGMSG	EQ	0B8		:SUPER-HANG UP
+XMTLIM	EQ	0B9		:Transmit Limit
+BRKEND	EQ	0BA		:Break End
+ZAPACK	EQ	0BB		:Zapper Acknowledgement
+EAODM	EQ	0BC		:ENTER Alternate Output Device Mode
+LAODM	EQ	0BD		:LEAVE     "        "      "     "
+ZAPREA	EQ	0BE		:Zapper with Reason Code
+MAXTYP	EQ	0BE		:MAXIMUM TYPE DEFINED
+
+:	INPUT FROM ISIS
+INPUT	ST	R0,RETP		:SAVE RETURN
+INPUT1	JAL	R4,LOOK		:IS THERE ANYTHING THERE?
+	J	RET		:NORMAL RETURN...JUST EXIT
+	LR	R12,R1		:SET BREAK # 0, EXCEPT FOR PORT 0
+	JN	INPUT2		:SKIP IF NOT PORT 0
+	JAL	R4,GETH		:PORT 0---SPECIAL
+	EXBR	R5,R0		:GET CODE
+	LBR	R5,R5
+	LR	R5,R5		:CHECK FOR MESSAGE 0
+	JE	SPEC4		:IGNOR IF SO
+	LB	R7,SPECL,R5	:GET MESSAGE REMAINDER LENGTH
+	THI	R7,80		:80 FLAG MEANS WE HAVE NO BUSINESS GETTING THESE...
+	JEFS	SPEC0
+	JAL	R10,CRASH	:CRASH IF WE DO
+
+SPEC0	LR	R5,R0		:COPY MESSAGE
+	JAL	R6,PAIR		:ELSE PLACE MESSAGE TYPE IN BUFFER 0
+SPEC1	SIS	R7,1		:ANY MORE
+	JLEFS	SPEC3
+	JAL	R4,GETCH	:YES
+	JNFS	SPEC2		:TEST IF CHARACTER SHOULD BE ESCAPED
+	JAL	R4,WCI		:ESCAPE IT
+SPEC2	JAL	R4,WCI
+	JBS	SPEC1
+SPEC3	LCS	R0,5		:DONE...SET PORT 0 MESSAGE CODE
+	JAL	R4,ACTIV
+SPEC4	JAL	R4,ELIR		:DONE...END LOGICAL INPUT RECORD
+	J	INPUT1		:AND CONTINUE
+
+SPECL	BC	0,0,0,86,88,85,5,88	:LENGTH OF SPECIAL (PORT 0) MESSAGES
+	BC	88,4,87,4,87,80,80	:"80" MEANS TO CRASH
+
+INPUT2	STH	R1,PORT		:SAVE ISIS PORT NUMBER
+	SLHLS	R1,2
+	STH	R1,BUFFER
+	JAL	R4,GETCH	:SKIP OVER MESSAGE TYPE
+	TBT	R0,BDATA	:IS THIS DATA MESSAGE?
+	JE	INCONT		:NO...SKIP TO PROCESS CONTROL
+
+:	TEXT MESSAGE...PASS TO BUFFER, ACTIVATE IF TOO MANY CHARS, BREAK CHAR
+	LR	R5,R0		:YES...SAVE COUNT OF CHARS
+	L	R10,BREAK,R1	:GET POINTER TO PORT'S BREAK TABLE
+	JNFS	INDAT1		:SKIP IF NOT NULL
+	LA	R10,DEFAULT	:ELSE SET DEFAULT
+	ST	R10,BREAK,R1
+INDAT1	JAL	R4,GETCH
+	LR	R0,R0		:GET AND TEST A CHAR
+	JNFS	INDAT2		:SKIP IF NOT NULL
+	IF NOESC0
+	ELSE
+	JAL	R4,WCI		:ESCAPE ALL ZEROS
+	EI
+INDAT2	JAL	R4,WCI		:COPY THE CHAR TO BUFFER
+	LHL	R4,PORT
+	TBT	R4,DEM		:ARE WE TO DO ECHOING?
+	JEFS	INDAT4		:SKIP IF NOT
+	AIS	R1,2		:SET OUTPUT BUFFER
+	JAL	R4,WCI
+	LR	R0,R0		:IS THE ECHOED CHAR TO BE ESCAPED?
+	JNFS	INDAT3		:SKIP IF NOT
+	JAL	R4,WCI		:ELSE DO SO
+INDAT3	SIS	R1,2		:REVERT TO INPUT BUFFER INDEX
+INDAT4	TBT	R0,0,R10	:CHECK IF BREAK CHAR
+	JEFS	INDAT5
+	LR	R2,R0		:OK...WE'VE GOT A BREAK CHAR...PASS IT ON IN R2
+	LIS	R0,0		:SET BREAK ACTIVATION CODE
+	JAL	R4,ACTIV	:GO ACTIVATE JOB
+INDAT5	SIS	R5,1
+	JG	INDAT1		:REPEAT FOR ALL CHARS
+	JAL	R4,ELIR		:END LOGICAL INPUT RECORD
+	LHL	R0,BCT,R1	:CHECK BUFFER SIZE
+	CLHI	R0,MAXCHAR
+	JL	INPUT1		:CONTINUE IF FULL
+:	SEND BACKPRESSURE FOR THIS PORT
+	LHL	R1,PORT		:GET PORT NUMBER
+	RBT	R1,FRISIS	:SET BACKPRESSURE INDICATOR
+	LIS	R0,3		:GENERATE BP MESSAGE
+	LHI	R2,NOSMSG	:
+	JAL	R4,SLOR		:START THE MESSAGE
+	JAL	R4,ELOR		:END IT
+	SLHLS	R1,2		:CONVERT BACK TO BUFFER NUMBER
+	LCS	R0,2		:IF EXCEEDED, BREAK NOW
+	JAL	R4,ACTIV	:ACTIVATE PORT PROCESS..CODE -2
+	J	INPUT1		:THEN PROCESS ANOTHER RECORD
+
+:	NOT DATA...PROCESS IT
+INCONT	LR	R3,R0		:COPY MESSAGE TYPE
+	JN	INCON		:SKIP IF NOT NEEDLE
+
+:	Handle needle that has arrived                                                                                                                                                       f–                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           g                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           e                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @  eä        ¨   gW             Ä   Å   +´      x ˇ@  g”        '                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                >                                                                                                           ^ ^ ç^     <    <    <    ˇx                                                                       $    	Ä    Ä  @    A§$I§$I§)$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I$I     ˇx                                                                                           `                                                                                                                                                                                                                                                                                                                                          >ŸLHL	R1,BUFFER
+	JAL	R4,EMPTY	:EMPTY INPUT BUFFER
+	LHL	R1,PORT
+	SBT	R1,FRISIS	:CHECK IF WE'VE APPLIED BACKPRESSURE
+	JN	INPUT1		:CONTINUE IF NOT
+	LIS	R0,3		:ELSE RELEASE IT
+	LHI	R2,SNDMSG
+	JAL	R4,SLOR		:START LOGICAL OUTPUT RECORD
+	JAL	R4,ELOR		:END LOGICAL OUTPUT RECORD
+	J	INPUT1		:AND CONTINUE
+
+:	FLUSH BACKWARD
+FLBACK	JAL	R4,ELIR		:END LOGICAL INPUT RECORD
+	LHL	R1,BUFFER
+	AIS	R1,2		:COMPUTE OUTPUT BUFFER
+	JAL	R4,EMPTY	:EMPTY IT
+	LI3
+	LHL	R1,PORT
+	LHI	R2,GOBMSG	:SEND GOBBLER IN OTHER DIRECTION
+	JAL	R4,SLOR		:START LOGICAL OUTPUT RECORD
+	JAL	R4,ELOR		:END LOGICAL OUTPUT RECORD
+	J	INPUT1		:DO ANOTHER MESSAGE
+
+:	ENTER DEM
+EDEM	JAL	R4,ELIR		:END LOGICAL INPUT RECORD
+	LHL	R1,PORT
+	TBT	R1,OUTCRT	:ACTING AS REMOTE?
+	JN	INPUT1		:YES, SHOULDN'T GET EDEM
+	SBT	R1,DEM		:SET DEM
+	J	INPUT1		:AND DO ANOTHER
+
+:	LEAVE DEM
+LDEM	JAL	R4,ELIR		:END LOGICAL INPUT RECORD
+	LHL	R1,PORT
+	RBT	R1,DEM		:CLEAR DEM
+	J	INPUT1		:AND DO ANOTHER
+
+:	GREEN BALL
+GB	JAL	R4,ELIR		:END LOGICAL INPUT RECORD
+	LHL	R1,PORT		:GET PORT NUMBER
+	LHL	R2,BUFFER	:GET BUFFER NUMBER
+	LHL	R0,BCT+2,R2	:CHECK IF OUTPUT BUFFER IS EMPTY
+	JEFS	GB1		:SKIP IF SO
+	SBT	R1,GBALL	:NOT EMPTY...SET FLAG
+	J	INPUT1
+GB1	LIS	R0,3		:EMPTY...RETURN GREEN BALL
+	LHI	R2,GBMSG
+	JAL	R4,SLOR
+	JAL	R4,ELOR		:SEND GREEN BALL BACK
+	J	INPUT1
+
+:	RED BALL
+RB	JAL	R4,ELIR		:END LOGICAL INPUT RECORD
+	LHL	R1,PORT		:GET PORT NUMBER
+	RBT	R1,GBALL	:Flush any pending Green Ball
+	LIS	R0,3
+	JAL	R4,SLOR		:Reflect Red Ball
+	JAL	R4,ELOR
+	J	INPUT1		:AND PROCESS NEXT MESSAGE
+
+:	ORANGE (OR BLACK) BALL
+OB	JAL	R4,ELIR		:END LOGICAL INPUT RECORD
+	LIS	R0,3
+	LHL	R1,PORT		:GET PORT NUMBER
+	AIS	R2,1		:SET OTHER BALL OF PAIR
+	JAL	R4,SLOR
+	JAL	R4,ELOR		:SEND IT BACK
+	J	INPUT1		:AND CONTINUE
+
+:	TRANSMIT LIMIT
+XLIM	JAL	R4,GETCH		:GET RESTRICTION
+	JAL	R4,ELIR		:END LOGICAL INPUT RECORD
+	LHL	R1,PORT
+	LBR	R0,R0		:EXTRACT VALUE
+	CLHI	R0,FIRST-1	:RANGE CHECK
+	JLFS	XLIM1
+	LHI	R0,FIRST-1
+XLIM1	STB	R0,XLIMIT,R1	:SET UP RESTRICTION
+	J	INPUT1
+
+:	Set Terminal Parameters
+SETTP	LHL	R1,PORT
+	TBT	R1,OUTCRT	:Should we act like a remote ?
+	JN	SETTP3		:Yes, go bounce the B1 back
+	JAL	R4,GETCH	:Get B1 use code
+	LR	R2,R0		:save it
+	JAL	R4,GETCH	:get "value"
+	JAL	R4,ELIR		:End input record
+	LR	R2,R2		:This is echo control msg ?
+	JN	INPUT1		:No, do nothing
+	LR	R0,R0		:echo OFF ?
+	JEFS	SETTP1		:OFF, jump
+	SBT	R1,DEM	:echo ON starts in DEM by convention
+	RBT	R1,ECHOFF
+	J	INPUT1
+SETTP1	RBT	R1,DEM
+	SBT	R1,ECHOFF	:echo OFF
+	J	INPUT1
+
+SETTP3	LIS	R0,5		:length of B1
+	LHI	R2,STPMSG	:B1 code
+	JAL	R4,SLOR
+	JAL	R4,GETCH
+	JAL	R4,PUTCH	:type code
+	JAL	R4,GETCH
+	JAL	R4,ELIR
+	JAL	R4,PUTCH	: "value"
+	JAL	R4,ELOR		: reflect the B1
+	J	INPUT1
+
+:	B6 message - mark this as aux. circuit built out
+B6MSG	LHL	R1,PORT
+	SBT	R1,OUTCRT
+	SBT	R1,ECHOFF	:ENFORCE NO ECHOING
+	RBT	R1,DEM
+	SBT	R1,TOISIS	:Clear back-pressures
+	SBT	R1,FRISIS
+	LHI	R0,FIRST-1	:port Xmit limit
+	STB	R0,XLIMIT,R1
+	SBT	R1,ACP		:Set, test port active
+	JE	TOSS
+	JAL	R10,CRASH	:Port already active - gross error
+
+
+:		Zapper with Reason Code - treat same as zapper except eat extra byte
+ZR
+	JAL	R4,GETCH	:Pick up reason code
+	J	ZAP		:treat as zapper
+
+:	OUTPUT TO ISIS
+
+OUTPUT	ST	R0,RETP
+	LHI	R12,(NGRP-1)*2
+OUT0	LCS	R1,1		:SET UP MASK OF SERVICED PORTS
+	STH	R1,PRTSVC	:SAVE PORT SERVICED MASK
+OUT1	LHL	R1,ACP,R12	:ACTIVE PORT
+	NH	R1,TISIS,R12	:WITH DATA PRESENT
+	NH	R1,TOISIS,R12	:AND NOT BACKPRESSURED
+	NH	R1,PRTSVC	:AND NOT ALREADY SERVICED
+	JNFS	OUT2		:SERVICE IF ANYTHING TO DO
+	SIS	R12,2		:REPEAT FOR ALL GROUPS
+	JGEBS	OUT0
+	J	RET		:THEN EXIT
+OUT2	JAL	R3,BIDH
+	LR	R1,R12		:CONSTRUCT INTERNAL PORT NUMBER
+	SLHLS	R1,3
+	AR	R1,R2
+	RBT	R2,PRTSVC	:CLEAR PORT TO BE SERVICED BIT
+	STH	R1,PORT
+	SLHLS	R1,2		:MAKE BUFFER NUMBER
+	AIS	R1,2
+	STH	R1,BUFFER
+	JAL	R4,GCI		:PEEK AT NEXT CHAR
+	LR	R5,R0
+	JNFS	OUT3		:SKIP IF NOT AN ESCAPE
+	JAL	R4,GCI		:ELSE GET ESCAPED CHAR
+	LR	R5,R0		:SAVE COPY
+	JN	OUT7		:SKIP IF NOT A "0"
+
+:	WE HAVE DATA...CONSTRUCT A DATA MESSAGE
+OUT3	LHL	R1,PORT
+	LB	R6,XLIMIT,R1	:LIMIT OF CHARS WE CAN SEND AT ONCE
+	LHI	R0,3,R6		:HOW BIG THE RECORD WILL BE
+	JAL	R4,SLOR		:START LOGICAL OUTPUT RECORD
+	LR	R0,R5		:SEND FIRST CHAR
+OUT4	JAL	R4,PUTCH	:SEND CHAR
+	LHL	R1,BUFFER	:GET ANY FURTHER CHARS FROM BUFFER
+	SIS	R6,1
+	JGFS	OUT6		:DON'T MAKE MESSAGE TOO BIG
+OUT5	JAL	R4,ELODR	:BIG ENOUGH...STOP NOW
+	LHL	R1,BUFFER	:GET BUFFER NUMBER
+	J	OUT10
+OUT6	LH	R0,BCT,R1	:CHECK STATE OF BUFFER
+	JLEBS	OUT5		:QUIT NOW IF BUFFER IS EMPTY
+	JAL	R4,GCI		:OK...LOOK AT NEXT CHAR
+	LR	R5,R0
+	JN	OUT4		:NOT ESCAPED, SO SEND IT ON
+	JAL	R4,GCI		:ESCAPED...LOOK AT NEXT
+	LR	R5,R0		:COPY IT
+	JE	OUT4		:PASS IF DATA
+	JAL	R4,ELODR	:END LOGICAL OUTPUT DATA RECORD
+
+:	WE GOT A CONTROL MESSAGE
+OUT7	LB	R6,LENGTH,R5	:COPY IT
+	LHI	R0,2,R6		:...TO THE ISIS BUFFER TOO
+	LHL	R1,PORT
+	LR	R2,R5
+	JAL	R4,SLOR		:START LOGICAL OUTPUT RECORD
+	LHL	R1,BUFFER	:GET ANY SUBSEQUENT CHARS FROM BUFFER
+OUT8	SIS	R6,1		:COPY THE WHOLE MESSAGE
+	JLEFS	OUT9		:NO MORE...SKIP
+	JAL	R4,GCI		:COPY ANOTHER CHAR OF MESSAGE
+	JAL	R4,PUTCH
+	JBS	OUT8		:AND GO BACK FOR ANY MORE
+OUT9	JAL	R4,ELOR		:END LOGICAL OUTPUT RECORD
+	SHI	R5,DETMSG	:CHECK IF CIRCUIT ZAPPER
+	JLFS	OUT10		:SKIP IF NOT
+	SIS	R5,ZAPMSG-DETMSG
+	JGFS	OUT10
+	LHL	R5,PORT		:Yes, get port #
+: See if we should clean up now, or wait for zapper Ack
+   IF   WAITZA
+	SBT	R5,WTZA		:Tell ourselves to clean up when zap ack comes
+   ELSE
+	RBT	R5,ACP		:Clean up now
+	RBT	R5,DEM
+	RBT	R5,OUTCRT
+	RBT	R5,GBALL
+   EI
+	J	OUT1
+
+OUT10	LHL	R0,BCT,R1	:CHECK FOR EMPTY BUFFER
+	JN	OUT1		:GO ON TO NEXT PORT IF NOT
+	LHL	R1,PORT
+	RBT	R1,GBALL	:ARE WE HOLDING A GREEN BALL?
+	JE	OUT1		:NO...GO ON
+	LIS	R0,3
+	LHI	R2,GBMSG
+	JAL	R4,SLOR
+	JAL	R4,ELOR		:BUFFER IS NOW EMPTY...RETURN GREEN BALL
+	J	OUT1		:REPEAT FOR NEXT PORT
+
+:	SEND A CHAR PAIR
+:	R5 = CHAR PAIR
+:	R6 = LINK
+PAIR	EXBR	R0,R5		:FIRST CHAR
+	JAL	R4,WCI
+	LBR	R0,R5		:SECOND CHAR
+	JAL	R4,WCI
+	JR	R6		:AND RETURN
+
+
+:	GENERAL RETURN ROUTINE
+RET	L	R0,RETP		:EXIT FOR SEVERAL ROUTINES
+	JR	R0
+
+
+:	GENERAL ROUTINE TO ACTIVATE A PROCESS
+:	LINK ON R4
+ACTIV	STM	R1,SAVE
+	L	R15,PROCESS,R1	:LOCATE PROCESS
+	JNFS	ACTIV1
+	JAL	R10,CRASH	:NONE...CRASH
+	BC	0,0,4*R4,10	:CRASH TYPE 10
+ACTIV1	LR	R0,R0		:OK...SET CONDITION CODES
+	JALR	R15,R15		:NOW GO THERE
+	LM	R1,SAVE		:RESTORE REGS
+	LR	R0,R0
+	JGFS	ACTIV2		:SKIP IF TO ACTIVATE ON TIMEOUT
+	LHL	R0,PORT		:ELSE TURN OFF ACTIVATION ON TIMEOUT
+	RBT	R0,PTIME
+	JR	R4		:AND RETURN
+ACTIV2	A	R0,SLOWC,,	:SET UP TIMEOUT
+	ST	R0,ATIME,R1
+	LHL	R0,PORT
+	SBT	R0,PTIME
+	JR	R4		:AND RETURN
+
+
+:	INITIALIZE
+IZFRONT	ST	R0,RETP		:SAVE RETURN
+	LHI	R1,NPORT-1
+IZF1	RBT	R1,PTIME	:CANCEL OUTSTANDING TIMEOUTS
+	SBT	R1,TOISIS	:CANCEL ALL BACK-PRESSURE
+	SBT	R1,FRISIS
+	RBT	R1,ACP		:PORT NOT ACTIVE
+	RBT	R1,WTZA		:Reset Zap Ack expected bit
+	RBT	R1,OUTCRT	:Port not 'outbuilt'
+	SIS	R1,1
+	JGEBS	IZF1		:DO FOR ALL
+	L	R7,FASTC,,	:GET CURRENT TIME
+	LA	R0,HS		:PUT HALFSECOND LOGIC ON TIMEOUT
+	LHI	R1,RATE/2,R7
+	JAL	R5,TOPUT
+	LA	R0,ONESEC	:PUT ONE SECOND LOGIC ON TIMEOUT
+	LHI	R1,RATE,R7
+	AHI	R1,RATE		:START ONE SECOND FROM NOW
+	JAL	R5,TOPUT
+	J	RET		:AND EXIT
+
+
+:	HALF SECOND PROCESSERS
+HS	AHI	R1,RATE/2
+	JAL	R5,TOPUT	:RUN AGAIN IN ABOUT A HALF SECOND
+
+:	CHECK ALL BUFFERS FOR BACKPRESSURE APPLIED, RELEASE WHERE POSSIBLE
+	LHI	R5,(NGRP-1)*2
+	LHI	R6,(NGRP-1)*10
+HS1	LCS	R7,1
+	XH	R7,FRISIS,R5	:BACKPRESSURE APPLIED
+	NH	R7,ACP,R5	:AND PORT ACTIVE
+HS2	LR	R1,R7
+	JNFS	HS3		:SOMETHING TO DO
+	SIS	R5,2		:END OF A RING GROUP
+	SHI	R6,10
+	JGEBS	HS1		:NEXT RING GROUP
+	J	TORET
+
+HS3	JAL	R3,BIDH		:DETERMINE WHICH PORT ON GROUP MAY NEED SERVICE
+	XH	R7,HMASK,R2,R2	:MARK PORT AS SERVICED
+	AR	R2,R6
+	LR	R1,R2		:SAVE COPY OF PORT #
+	SLHLS	R2,2		:BUFFER NUMBER
+	LH	R0,BCT,R2	:CONTENTS OF INCOMING BUFFER
+	SHI	R0,MAXCHAR
+	JG	HS2		:NOT YET
+	SBT	R1,FRISIS
+	LIS	R0,3		:3 BYTE MESSAGE
+	LHI	R2,SNDMSG	:RELEASE BACKPRESSURE
+	JAL	R4,SLOR		:START LOGICAL OUTPUT RECORD
+	JAL	R4,ELOR		:END LOGICAL OUTPUT RECORD
+	J	HS2		:AND PROCEED
+
+
+:	ONE SECOND LOGIC
+ONESEC	AHI	R1,RATE
+	JAL	R5,TOPUT	:DO AGAIN IN ANOTHER SECOND
+	LHI	R15,(NGRP-1)*2	:SEARCH BY GROUPS
+OS1	LH	R14,ACP,R15	:ACTIVE PORT
+	NH	R14,PTIME,R15
+	JNFS	OS3		:SKIP IF ANY TO DO
+OS2	SIS	R15,2
+	JGEBS	OS1		:REPEAT FOR ALL GROUPS
+	J	TORET		:THEN EXIT
+
+OS3	LR	R1,R14		:COPY MASK OF PORTS TO PROCESS
+	JEBS	OS2		:NONE...GO ON TO NEXT GROUP
+	JAL	R3,BIDH
+	XH	R14,HMASK,R2,R2	:SET IT EXAMINED
+	LR	R1,R15
+	SLHLS	R1,3		:MAKE PORT # (ALLOW FOR COUNT BY 2'S)
+	AR	R1,R2
+	STH	R1,PORT
+	SLHLS	R1,2		:MAKE BUFFER NUMBER
+	STH	R1,BUFFER
+	L	R0,ATIME,R1	:CHECK IF TIMEOUT HAS EXPIRED
+	S	R0,SLOWC,,
+	JG	OS3		:NO...IGNOR FOR NOW
+	LCS	R0,4		:YES...SET ACTIVATION DUE TO TIMEOUT
+	JAL	R4,ACTIV	:AND ACTIVATE PORT
+	J	OS3		:AND GO DO ANOTHER
+
+
+	EM
+
+    @
