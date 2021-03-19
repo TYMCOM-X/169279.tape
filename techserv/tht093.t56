@@ -1,0 +1,80 @@
+	SUBTTL THOST (PBT V09.03 FOR NODE BB2256 SLOT 3 -- HOST #1562)
+
+:------------------------------------------------------------------------
+:   COPIED FROM:  THOST9.T03 (PBT V9.00 FOR NODE BB2062 SLOT 4)
+:------------------------------------------------------------------------
+
+        HSTPRT(1562)
+
+ETHOST
+:
+:---------------- DEFINE DEFAULT VALUE FOR SLOT PARAMETER ---------------
+:
+PRTCON(NO)
+DEFLIN(IBM)
+:
+:--------------- DEFINE DEFAULT VALUE FOR DEVICE PARAMETERS --------------
+:
+DEFTYP(C1920)
+DEFMEN(MEN0)
+DEFNET(PF4)
+DEFCOL(NO)
+DEFXPR(NO)
+DEFPVC(NO)
+PVCOPN(OPT4)
+PVCTME($A30)
+:
+:----------------- DEFINE DEFAULT VALUE FOR LINE PARAMETERS --------------
+:
+DEFHAN(NO)
+DEFRTS(NO)			: DEFAULT RTS NOT REQUIRED
+TMIACT(120)			: INACTIVITY TIMER SET FOR 2 MINUTES
+HNGDTR(1)			: DTR WILL REMAIN LOW FOR 1 SECOND
+NLOGIN(180)			: AFTER 3 HOURS DTR WILL DROP IF NO LOGIN
+:
+:------------------------ DEFINE BOM PARAMETERS HERE ----------------------
+:
+DFTMOD	EQ	ADR		: ADR MODE BY DEFAULT
+DEFRTY(10)			: DEFAULT RETRY LIMIT
+DSPTIM(5*60)			: 5 MINUTES
+:
+:-------------------------- DEFINE CONFIGURATION --------------------------
+:
+: LINE 0   (LINE--40    CU--40    DEV--40=CRT,C1=PRT)
+:
+LINTYP(IBM)                     : LINE TYPE = IBM  
+  BRETRY(20)			: ALLOW FOR MORE RETRY'S
+
+   LINE(040)                    : DEFINE LINE, CU, & DEVICES
+        CUNIT(040)
+            DEVICE(040);
+            DEVICE(0C1);
+                  TYPE(P1920)
+:
+: LINE 1   (LINE--C1    CU--40    DEV--40=CRT)
+:
+   LINE(0C1)
+        CUNIT(040)
+            DEVICE(040);
+:
+:-------------------- DEFINE LOGON MENU -------------------------------
+:
+NETSCR(ELE0)                                               : DEFINE ELEMENTS
+	ELEUNA(ISISTECH);ELEHST(1561);
+NATDSP(DSP0)
+	ELECRM(2);ELEARS(1561);ELEAPP(040);ELECUA(040);ELEDVA(040);
+:
+LOGSTR(STRM,MANUAL)                                        : MANUAL LOGON 
+LOGSTR(STR0,AUTO LOGON -- LN=40--CU=40--DV=40,ELE0,DSP0)   : AUTO LOGON
+:
+LOGMEN(MEN0,STR0,STRM)                                     : DEFINE MENU 0
+:
+:---------------------- OTHER FEATURES/OPTIONS ------------------------
+:
+STPCRSH(YES)                    : HALT INTERFACE IF IT CRASHES
+GENNIB(YES)			: GENERATE NIB FILE IF ERROR DURING SYSGEN
+:
+:----------------------------------------------------------------------
+:
+PHSIZE	EQ	200
+P1SIZE	EQ	400
