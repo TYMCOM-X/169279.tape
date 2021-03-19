@@ -1,0 +1,100 @@
+100 string prompt(100),form1(100)
+110 integer x,c,p,maxln,nf,np
+120 open "chead" for symbolic random output as file 1
+130 Print "[ Header Generator for GDN command files ]"
+135 Print "[ Output will be stored in file CHEAD ]"
+140 Print
+145 Print "Continue (Y/N) ?> ":
+146 Input in form "r":C$
+147 If C$="Y" then goto 158
+148 If C$="y" then goto 158
+149 If C$="n" then goto 1020
+150 If C$="N" then goto 1020
+151 Goto 145
+158 I=0
+160 I=I+1
+170 read prompt(I)
+180 If prompt(I)<>"EOP" then goto 160
+190 NP=I-1
+200 I=0
+210 I=I+1
+220 read form1(I)
+230 If form1(I)<>"EOD" then goto 210
+240 NF=I-1
+250 C=C+1
+260 if c>nf then
+270 print
+280 print "Append file : ":
+290 input in form "r":F$
+300 if f$="" then 360
+310 open f$ for symbolic sequential input as file 2
+320 on endfile 2 goto 360
+330 input from 2 in form "r":F$
+340 write on 1 in form "r":f$
+350 goto 330
+360 print
+370 end "Thank You!"
+380 endif
+390 If index(form1(C),"X")=0 then
+400  for x=1 to length(form1(C))
+410   Ch$=Substr(form1(C),x,1)
+420   P=P+1
+430   Write on 1  at P in form "x":Ch$
+440  next x
+450  p=p+1
+460  Write on 1 at P in form "x":char(13)
+470  p=p+1
+480  Write on 1 at P in form "x":char(10)
+490  goto 250
+500 else
+510  for x=1 to index(form1(C),"X")-1
+520   Ch$=Substr(form1(C),x,1)
+530   P=P+1
+540   Write on 1  at P in form "x":Ch$
+550  next x
+560  Maxln=length(form1(C))-index(form1(C),"X")+1
+570  Pcount=Pcount+1
+580  if Pcount>NP then 250
+590  Print prompt(Pcount)+" : ":
+600  input in form "r":R$
+610  if length(r$)>maxln then
+620  print "Too long!"
+630  goto 590
+640  endif
+650  x=0
+660  x=x+1
+670  p=p+1
+680  write on 1 at p in form "x":substr(r$,x,1)
+690  if x<length(r$) then 660
+700  for y=x+1 to maxln
+710  p=p+1
+720  write on 1 at p in form "x":" "
+730  next y
+740 goto 250
+750 endif
+760 Data "Interface Type      (XXXXXXXXXX)"
+770 Data "Node Number               (NNNN)"
+780 Data "Date Updated         (DD-MON-YY)"
+790 Data "Kernel Host               (NNNN)"
+800 Data "Updated By                 (XXX)"
+820 Data "Version                   (X.XX)"
+830 Data "EOP"
+840 Data ";;......................................................................"
+850 Data ";;.                                                                    ."
+860 Data ";;.             ==*  Morgan Guaranty Data Network  *==                 ."
+870 Data ";;.                                                                    ."
+880 Data ";;.                          [  XXXXXXXXXX "
+890 Data " ]                          ."
+900 Data ";;.     Node: XXXX"
+910 Data "                                 Updated: XXXXXXXXX"
+920 Data "  ."
+930 Data ";;.   Kernel: XXXX"
+940 Data "                                      By: XXX"
+950 Data "        ."
+960 Data ";;.    Hosts:                                      Version: XXXX"
+980 Data "       ."
+990 Data ";;.                                                                    ."
+1000 Data ";;......................................................................"
+1010 Data "EOD"
+1020 End "The program for generating Tymfile headers is THEAD ... Exit .... "
+
