@@ -1,0 +1,26 @@
+:---------------+--------------------------------------------------------------
+: Interface     : xcom (x.75)
+: Version       : 04.03/SOURCE
+: Author        : Hitoshi Obata
+: Date          : 13 DEC. 1991
+: Purpose       : Don't add 4406 (defined by dnicnodes macro) as tnic
+:		: into utility field of call request to over sea, if
+:		: the calling address is 44068XXX....
+: Generation	: This patch should be installed into the x.75 gateway
+:		: interfaces for over sea in nisnet and must be assembled
+:		: after (xcompat)alpha.403.
+:---------------+--------------------------------------------------------------
+PATCH(911213,2400,Hitoshi Obata,ESP957,,6)
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,32)
+	L	R0,PFXCLL,		: CHECK IF CALL IS FROM INS-P
+	NI	R0,0FFFFF0
+	CI	R0,440680		: IF YES, THEN WE DON'T NEED
+	JE	ESP958,,		: TO ADD 4406 TNIC, SO BACK TO SOURCE
+	TBT	RL,NOTNIC.CRQ,,
+	JN	ESP958,,
+	LHI	R0,UT.TNI		: GET UTILITY CODE FOR TNIC (41)
+	JAL	R4,WCI,,		: WRITE IT
+	J	ESP957+8,,
+ 
+ENDPATCH(MANIPULATE TNIC 4406 FOR CALL FROM INS-P GATEWAY TO OVER SEA)
