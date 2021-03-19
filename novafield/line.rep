@@ -1,0 +1,647 @@
+
+        
+
+                        *FOR INTERNAL REFERENCE ONLY*
+                        *NOT FOR PUBLIC DISTRIBUTION*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                         LINE TROUBLE-SHOOTING GUIDE
+
+                                 Sept. 19, 1984
+
+                                ROBERT RAUSCHER
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    ====================================================================
+    :       THIS DOCUMENT IS THE SOLE PROPERTY AND CONFIDENTIAL        :
+    :       INFORMATION  OF  TYMSHARE,  INC.,  AND  MAY  NOT BE        :
+    :       COPIED  IN  WHOLE OR IN PART  OR  DISCLOSED  TO ANY        :
+    :       THIRD PARTY  WITHOUT THE PRIOR  WRITTEN  CONSENT OF        :
+    :       TYMSHARE.                                                  :
+    ====================================================================
+
+
+        
+
+         LINE TROUBLE-SHOOTING GUIDE   08-NOV-83    RR
+
+              This guide is for the use of Tymnet FE's, it
+         gives general guide-lines for the installation
+         and repair of Tymnet circuits.
+
+         1). Check that the node is up to ECO levels.
+              A). Terminators.
+              B). Sync board, and positioned directly under
+              the Multi-function.
+              C). Back-plane.
+
+         2). Check Sync board for Texas Instrument RAM, see
+              appendix for memo.
+
+         3). Check Rom+I/O u-code version. S17 is minimal,
+              S18 required for 14.4 lines.
+
+         4). Run the Sycenh.nib diagnostic, looped-back at
+              the connector panel. Run at least tests 1,2,3,
+              and 7, a minimum of two passes. (If the machine
+              isn't sync enhanced, run test 4 instead of 
+              test 7).
+
+         5). Run the CPU.nib diagnostic, this will insure
+              that the scratch pad registors on the CPU board 
+              are good. (At least 10 passes, error free).
+
+         6). If line goes to a modem, make sure that the only
+              clock provided is from the modem. (No hardwire
+              clock). Use monitor panel, or break-out box to
+              insure integrety of the clocks.
+
+         7). Check cable going from the Engine to the Modem,
+              Look for intermittent connections and total
+              length. Max length at 9.6 is 50 feet.
+
+         8). Check cable going from the Modem to the 829,
+              look for loose or intermittent connections,
+              and total length. Max length is 25 feet.
+
+         9). Check placement of Modem, make sure that it
+              is not sitting on top of the Engine, or, on
+              top of another Modem. (Make sure that they 
+              are sitting on a shelf).
+             Make sure that the Modem has plenty of air
+              circulation.
+
+         10). Check the line quality indicators on the 
+              modem. This must be done with Telco intact.
+              This will give you an idea if you have
+              a telco problem or a node problem. (This is
+              something to help pinpoint the problem).
+
+         11). Check Modem strapping and Master/Slave relationship.
+              Be sure to check with someone at the other end to
+              find out if they are Master or Slave already.
+
+             Make sure both primary and secondary channels of the
+              same modem, are strapped the same, (M/S relationship).
+
+         
+
+
+
+         12). Unplug the Modem power cord, remove the 8 screws
+              at the rear panel of the modem and remove the 
+              power supply.
+
+          A). Check Modem power supply for loose screws on
+              the large filter capacitor, if loose, correct
+              with proper hardware. Screw head must overlap
+              teeth on the lock-washer. (These screws being 
+              loose will cause the +5 volts to drop, therefore
+              the line will drop out.
+
+         B). Check the 120V/240V switch position, make sure
+              that it is in the 120V position. At this same 
+              time, make sure that the HI/MED/LO switch
+              is in the MED position.
+
+         C). Check for the position of the grounding screw
+              directly next to the VOLTAGE switch. There
+              should be a screw in the NC position and 
+              there should NOT be a screw in the SIG GND
+              position.
+
+         13). With Modem turned on, check the DC voltages at
+              the front of the Modem. There are three voltages
+              present, +5 v.; +12v ; -12v.
+
+              A). The tolerances are as follows:
+
+                  +5 volts, must be from +4.90v to +5.10 volts,
+                  adjustable from within power supply, (R13).
+
+                  +12 volts, must be from +11.40v to +12.60v.
+
+                  -12 volts, must be from -11.40v to -12.60v.
+
+              NOTE: If either of the 12 volt supplies are out
+              of tolerance, replace the power supply.
+
+         14). With Modem turned on and the DTE cable disconnected,
+              measure the TX pair output (line vf) with your Multi-meter.
+              Use the AC VOLTS scale set at 2 Volts.
+
+         NOTE: The TX output from the Modem MUST be terminated
+              by a 600-ohm resister. This will be provided
+              by the 829 if it is connected to the Modem.
+
+              A). For the Modem to be transmitting at 0.0dB,
+              The above measured output should be 0.775 volts.
+
+              B). The tolerance for this is +-1dB, (0.86 to 0.69 v).
+              If not within this tolerance, the FSC (if four board),
+              or the INTF board is most likly bad. Or, incorrectly
+              strapped.
+
+         
+
+
+         15). If installing or checking a circuit at the
+              customer Host end, Make sure that pin 23
+              is not in the data (DTE), cable coming from
+              the Host.
+             If it is there, remove it. This can cause
+              this Modem to fall-back to a 4800 baud rate.
+             If this happens, the Host will drop out of 
+              the net.
+
+         NOTE: If the customer dosen't want you to cut-up his
+         cable, use an ASC140-02JP 6" cable between the modem
+         and his cable. This will leave pin 23 open.
+
+         16). The other thing to check, is the code.
+
+                A). Log into the machine through XRAY, using the ND
+                command, check the line/lines of interest for the
+                proper line speed. More important, is the window-
+                size. The window size MUST be the same at each node
+                for that line.
+
+                B). If the line won't come up at all, check the
+                TYM files for the proper amount of lines, and,
+                make sure that either the neighbor is specified,
+                or that there are enough XLNK'S.
+
+         
+
+         CIRCUIT LAYOUT.
+
+
+
+
+
+              LOCAL                                         REMOTE
+         node    modem    829                         829    modem    node
+                                                                     (host)
+         _____                                                       _____
+         :   :    _____                                      _____   :   :
+         :   :    :   :   ____                        ____   :   :   :   :
+         :   :____:   :___:  :=======/telco/==========:  :___:   :___:   :
+         :   :    -----   ----                        ----   -----   :   :
+         -----                                                       -----
+
+               ^        ^                                  ^       ^
+            RS-232    4 wire                            4 wire   RS-232
+
+         Normal Data Flow: Full Duplex, independent transmit and receive.
+
+      RD <== <== <== <== <== <== <== <== <== <== <== <== <== <== <== <== TD
+      TD ==> ==> ==> ==> ==> ==> ==> ==> ==> ==> ==> ==> ==> ==> ==> ==> RD
+
+         1). Modem in local ALB, (analog-loop-back).
+
+      RD <== <== <==
+      TD ==> ==> ==>^
+
+         2). Modem in remote DLB, (digital-loop-back)
+
+      RD <== <== <== <== <== <== <== <== <== <== <== <== <== <==
+      TD ==> ==> ==> ==> ==> ==> ==> ==> ==> ==> ==> ==> ==> ==>^
+
+         3). Local 829 in loop.
+
+      RD <== <== <== <== <== 
+      TD ==> ==> ==> ==> ==>^
+
+         4). Remote 829 in loop.
+
+      RD <== <== <== <== <== <== <== <== <== <== <== <== 
+      TD ==> ==> ==> ==> ==> ==> ==> ==> ==> ==> ==> ==>^
+
+         5). Remote 829 in loop, and TIM's connected.
+
+         Received test tone<== <== <== <== <== <== <== <==
+         Transmit test tone==> ==> ==> ==> ==> ==> ==> ==>^
+
+
+              When connecting the TIMs to the 829, use the test
+         jack, NOT the moniter jack, on the 829.
+
+              To loopback the remote 829, transmit a 2713 Hz tone
+         for 4 seconds. When you can hear the 2713 Hz tone being
+         received, the 829 is in loop.
+              To remove the loop, send the 2713 Hz tone down the
+         line again. When the received tone is gone, the 829 has 
+         been kicked out of loop-back.
+
+         
+
+
+         NOTE: When the 829 is in loopback, it is a bilateral
+         loop. In other words, the Modem gets looped back to itself,
+         and the Telco circuit gets looped back to itself. There
+         will be NO connection between the modem and the telco circuit.
+
+              To loopback the local 829, you will need two 1/4" patch
+         cords. Place one between the TRANS.TST and the RCV.TST jacks.
+         Place the other between the TRANS.MON and the RCV.MON jacks.
+         This will loop the local 829 to the modem and to the Telco
+         circuit.
+
+                If you are having trouble looping the remote 829,
+        you can boost the power output of your TIMs. Bumping the
+        output to 2 or 3 dBm will sometimes loop a trouble-some
+        829. (This is mostly true when there is a greater loss
+        on the line than spec).
+
+                Remember thou, that every 3dB increase, doubles
+        the actual power level!
+
+                When plugging the TIMs into the local 829, always
+        set the 600 OHMs termination. If in the TST jacks, do NOT
+        use the bridge, when going into the MON jacks, set the 
+        bridge on. (An error here is about 6dB's).
+
+
+
+        
+
+        TELCO LINE SPEC's:  3002 channel w/D1 conditioning.
+-------------------------------------------------------------------------------
+
+         NOTE: use C-Message Filter for all measurments.
+
+   1).  Attenuation Distortion
+        (frequency response)
+        relative to 1004 Hz.
+        ----------------------
+
+        Freq. range (Hz.)         Variation (dB) **
+
+        500 to 2500                -2 to +8     ** (+) means loss with respect
+        300 to 3000                -3 to +12      to 1004 Hz.
+                                                  (-) means gain with respect
+                                                  to 1004 Hz.
+
+   2).  1000-Hz. loss
+        ------------
+
+        16dB +/- 1dB (-15 to -17 dBm) At Installation
+        16dB +/- 4dB (-12 to -20 dBm) Later Service
+
+   3).  Signal-to-Noise ratio
+        ---------------------
+
+        28 dB, or higher.
+
+ 
+   4).  Noise, idle line
+        ----------------
+
+        Facility Miles          Maximum noise at modem receiver
+
+        0 to 50                 28 dBrnc
+        51 to 100               31
+        101 to 400              34
+        401 to 1000             38
+        1001 to 1500            40
+        1501 to 2500            42
+        2501 to 4000            44
+        4001 to 8000            47
+        8001 to 16000           50
+
+   5).  Noise, C-notched, At least 24 dB below the received 1004 Hz test
+        tone power level.
+        ----------------------------------------------------------------
+
+   6).  Impulse Hits, With 1004 Hz tone.
+        ------------
+
+        6 dB lower      15 hits, in 15 minutes.
+        2 dB lower      9 hits, in 15 minutes.
+        2 dB higher     5 hits, in 15 minutes.
+
+   7).  Frequency Shift.
+        ----------------
+
+        5 Hz Maximum. (all frequencies)
+
+        
+
+
+    ----------------------------------------------------------------------
+    : What is dBrnc??                                                     :
+    :                                                                     :
+    :         dBrnc, is a unit of measure. The 'dB', is for decibels,     :
+    :    the 'rn', is for reference noise, and the 'c', is for C-         :
+    :    message weighting (filter).                                      :
+    :                                                                     :
+    :         For dBm, the 'm', is for measured.                          :
+    :                                                                     :
+    :         This unit of measure is normally used for noise             :
+    :    measurments. By definition, -90dBm=0dBrn. The -90dBm, is the     :
+    :    level of noise used as a reference. What this means, is that     :
+    :    all noise is measured above this reference (-90dBm).             :
+    :                                                                     :
+    :    The difference between the reference level and the actual mea-   :
+    :    sured noise level (dBm of idle line noise), is the noise level   :
+    :    expressed in dBrn.                                               :
+    :                                                                     :
+    :         Example:                                                    :
+    :         If the noise level is -34dBm, and you wish to               :
+    :         convert this to dBrn:                                       :
+    :                                                                     :
+    :         (90dBm-34dBm= 56dBrn), which is the difference              :
+    :         between the two levels.                                     :
+    -----------------------------------------------------------------------
+
+                Another Tidbit:
+
+        4-Wire Telco Termination.
+
+                Transmit pair=> Red + Green
+                Receive Pair=> Yellow + Black
+
+        NOTE: 202T circuits, the trans and reciv pairs are backwards!!
+
+        Some common carrier freq's:
+
+                LSI24= 1300Hz.
+                uP96= 1700Hz.
+                MPX96= 1700Hz.
+
+         
+
+         Deciphering the Telco Spec's:
+         -----------------------------
+
+         1). Levels and Frequency.
+
+              A frequency of 1004 Hz is transmitted at 0 dB.
+         At the other end of the circuit, (or at your end, if the
+         remote 829 is looped), the received level should be at
+         -16 dB, +/-4 dB. Once this level is establised, other
+         frequencies can be checked. The other levels are always
+         relative to the level at 1004 Hz. The other frequencies
+         to check are: 304 Hz, 504 Hz, 2504 Hz, and 3004 Hz.
+
+         Example:
+
+         If the 1004 Hz level is: -18 dBm, the other frequencies should
+         be within:
+
+         (-18dBm-(-3dB)= -15dBm)
+              and
+         (-18dBm-12dB= -30dBm)
+
+         304 Hz and 3004 Hz = -15 to -30 dBm
+
+         (-18dBm-(-2dB)= -16dBm)
+              and
+         (-18dBm-8dB= -26dBm)
+
+         504 Hz and 2504 Hz = -16 to -26 dB
+
+         An easier method is to let the TIMs tester do the math for
+         you. While reading the received level @1004 Hz, depress the
+         LEVEL ZERO button on the tester. This will zero the received
+         level on the display, now, as you switch to the other 
+         frequencies, they will be displayed relative to whatever
+         the received level was at for 1004 Hz.
+
+              Example:
+
+         If the received measured frequencies and levels are:
+
+         1004 Hz = -18 dBm
+         304 Hz = -20 dBm
+         504 Hz = -16 dBm
+         2504 Hz = -17 dBm
+         3004 Hz = -25 dBm
+
+         With the TIM's zero'd at the 1004 Hz level, the other frequen-
+         cies will be shown as such:
+
+         304 Hz = 2 dB
+         504 Hz = -2 dB
+         2504 Hz = -1 dB
+         3004 Hz = 7 dB
+
+         NOTE: remember that a negative dB (in attenuation distortion), is
+         a gain.
+
+         In this way, these figures can be compared directly
+         to the 'attenuation distortion chart', and you will
+         find that these levels are within spec.
+
+         
+
+
+-------------------------------------------------------------------------------
+
+              Running a levels check with the remote 829 in loopback
+         is not indicative of the true line conditions. An end-to-end
+         (two people and two TIMs), is the only method of getting 
+         true results.
+
+              Example:
+
+              End-To-End; out of spec.
+
+         Your Trans, 1004 Hz= -10dBm, received at remote end.
+         Your Recieve, 1004 Hz= -22dBm, transmitted from remote end.
+
+              Remote 829 in loop; shows in spec.
+
+         Your trans and receive, 1004 Hz= -16dBm.
+
+              If this condition does exist, it will probably show
+         up as a poor S/N ratio.
+
+-------------------------------------------------------------------------------
+
+
+         2). Signal-to-Noise ratio
+
+              This is the level of noise, compared to the level
+         of the signal. It is measured with a 1004 Hz tone on the
+         line. The signal-to-noise ratio should be 28 dB or higher.
+
+              Examples:
+
+              29 dB
+              44 dB
+
+         3). Noise, Idle Line.
+
+              This parameter is measured with no signal on the
+         line. Also the approximate length of the line needs to be 
+         known. If this measurment is done with the remote 829
+         in loop-back, the circuit length is doubled.
+
+              The TIM's tester measures this dir in dBrn,
+         and requires no calculation. Refer to the chart in the Telco
+         spec's for the maximum noise level.
+
+                By comparing the noise levels between the C-message,
+        and the 3 Khz Flat filters. An approximation of low frequency
+        noise can be made. Low frequency noise, usally from power 
+        supply hum, can cause 'phase jitter'.
+
+         4). Noise, C-notched. (Noise with Tone).
+
+              Set up the TIM's to transmit 1004Hz @ 0dB. A C-notched
+         filter will be selected. The displayed 'noise w/tone' should
+         be at least 24 dB below the received 1004 Hz tone.
+
+        
+
+
+              Example:
+
+              If the 1004 Hz tone is received at -18 dBm, the noise 
+         with tone should be at least -42 dBm, (or lower).
+
+             (-18dBm-24dB= -42dBm)=> (-90dBm-(-42dBm)= 48dBrn)
+
+         5). Impulse Hits.
+
+              Set the TIM's transmitter @ 1004Hz and 0dB level.
+         Select the 'Impulse noise' on the TIMs. You must take three
+         different sets of measurments. Each at a different level,
+         each for 15 minutes.
+
+              The levels that the TIM's tester are to be set at,
+         are relative to the 1004 Hz level. This measurment is
+         taken in dBrnc. (see dBrnc conversion section). The first 
+         of the three measurments is to be taken at 6 dB lower level
+         than the 1004 Hz receive level. To convert this to a usable
+         level, check out the example.
+
+              Example:
+
+              1004 Hz = -18dBm
+
+         First Impulse Level (lowest), 6 dB lower.
+
+              (-18-6=-24dB)=> (-90dBm-(-24dB)=66dBrn)
+
+              First Impulse Level should be set at 66dBrn. No more than
+              15 hits in 15 minutes.
+
+         The second Impulse Level is set at 2 dB lower than
+         the 1004 Hz level.
+
+              Example:
+
+              1004 Hz = -18 dBm
+
+              (-18-2=-20dB)=> (-90dBm-(-20dB)=70dBrn)
+
+              Second Impulse Level should be set at 70dBrn. No more than
+              9 hits in 15 minutes.
+
+              The same is then done for the third set of readings,
+              (at 2 dB higher than the 1004 Hz reference).
+
+
+         6). Frequency Shift.
+
+              This is the most that the frequency can shift, it
+         is a plus/minus value.
+
+              Example:
+
+              Transmit at 1004 Hz. Receive must be between: 999 Hz to 1009 Hz.
+              (1004Hz-5Hz=999Hz)
+              (1004Hz+5Hz=1009Hz)
+
+         This is true for all frequencies between 300Hz and 3000Hz.
+
+
+         
+
+        APPENDIX
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> MEMO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+        TO: All field Personnel.
+
+        FROM: Robert Rauscher, Enfetech
+
+        SUBJECT: Sync board causing line errors.
+
+        DATE: 10-20-83
+
+_______________________________________________________________________________
+
+              There have been several instances of clearing
+         line errors by replacing the Sync board. This is an
+         alert to look for some particular chips on the Sync
+         board. These chips are guaranteed to cause line 
+         errors. If you are trouble-shooting line errors,
+         definitely check for these chips.
+
+
+              There are two different packages to look for
+         them in. They are both Texas Instrument:
+
+         1). The first is in a gray ceramic package with
+              a date code of 77XX (the XX will mostly be
+              40, but can vary).
+
+
+         2). The other form is in a black plastic package,
+              with a P1 or P3 stamped on top in white ink.
+              This will also have the TI logo on it.
+
+              The chip type itself is a 74s189, it is a RAM
+         that buffers the input and output data on the sync board.
+         The actual marking specifying these chips will be:
+
+              SN74S189J   For ceramic package.
+              SN74S189N   For plastic package.
+
+              The location on the sync board of these chips
+         is as follows:   (8 places).
+
+              R6  S6  R5  S5
+              P7  N7  M7  L7
+
+              If these chips are found in any sync board, return
+         the board to the repair facility.
+    a|ç
