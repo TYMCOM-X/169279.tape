@@ -1,0 +1,495 @@
+:================================================================
+:PATCH NAME - BXIDEQ.701
+:       THIS PATCH SUPORT END TO END INITIAL ID EXCHANGE
+:       BETWEEN TERMINAL AND HOST. TERMINAL SENDS XXXXXX<ENQ> AT
+:       INITIAL SELECTION, XXXX IS ALPHA NUMERIC AND MAX LENGTH IS 15.
+:       HOST CHECKS XXXX STRING AND ANSWER YYYYYY<ACK0> TO TERMINAL.
+:       NOW TERMINAL CAN SEND DATA TEXT.
+:       THIS OPTION IS DESIGNED FOR PVC PORT. THE FOLLOWING TWO OPTION
+:       IS NEEDED FOR ASSEMBLY.
+:               OPTION(IDEX,YES)        : ENABLE THIS OPTION
+:               LOPTION(n,IDEX,YES)     : ENABLE IT ON THE LINE
+:
+:       THIS PATCH IS DESIGNED FOR FUJITSU BSC, JAPAN, BUT IT IS
+:       USEFUL FOR OTHER BSC DEVICES SUCH AS 3740 WHICH NEEDS ID EXCHANGE.
+:
+:                                       1989.9  YUKI FURUTA , NIS JAPAN
+:======================================================================
+
+:=================================================================
+:
+:       for BBXS 07.01 ID.ENQ/ID.ACK exchange patch
+:       This part is for FOREGROUND routine.
+:       07 SEP 1989  by Y.Furuta, NIS Japan
+:
+:=================================================================
+        IF      IDEX
+
+:       SPECIAL AREA FOR COMMAND LIST COPIED FROM TEXT 2
+:       IT SHOULD BE LOCATED IN SEG 4
+
+        SEG     A.BUFF
+TEXT2E  HS      20*NBILIN               :32 BYTE WORK TABLE FOR SYNC OUTPUT
+S4SIZE  EQ      .-SEG4                  :CALC SIZE AGAIN
+        SEG     0E                      :MOD CTA'S SEG SIZE WORD
+Q       EQ      .
+        ORG     0E0008+4*4              :SEG 4 POSITION
+        WC      S4SIZE
+        ORG     Q
+        SEG     0
+
+
+        LO      LINE
+        LO      IDS
+        LO      XSUBS
+        LO      BSCHDX
+        LO      BSCPTP
+        LO      BSCRCV
+        LO      FCB
+        LO      BSCDEF
+ 
+ 
+:TEMP WORK AREA
+ 
+PATCH(891208,1000,NIS.FURUTA,PA0PTR,,20*NBILIN+8)
+        HS      0
+SAVREG  WS      1
+TEXT1   BS      10*NBILIN       :ID SAVE AREA from FG to BG
+TEXT2   BS      10*NBILIN       :ID SAVE AREA from BG to FG
+ID.GET  HS      1               :ID GOT FLAG from FG
+:
+
+CONPATCH(PA1PTR,,7E)
+        HS      0
+:ID.EXP
+:       BIT ARAY FOR ID EXCHANGE OPTION IS ENABLED ON THIS PORT
+:
+        LO      LINE
+        DEFBTA(ID.EXP,\IDEX|Q|,IDEX|Q|)
+
+:
+IEQMSG  EQ      $0 32
+IAKMSG  EQ      $0 34
+FFIDEQ  EQ      @IEQMSG         :CMD FROM BG (ID.ENQ)
+FFIDAK  EQ      @IAKMSG         :CMD TO BG (ID.ACK0)
+XCIDEQ  EQ      MAXOPC+3        :CMD FOR XMT (PUT ID.ENQ FROM TEXT2(LINE))
+XCIDAK  EQ      MAXOPC+4        :CMD FOR XMT (PUT ID.ACK0 FROM TEXT2(LINE))
+REXP    EQ      $0 5A           :REVERSE CODE (R 5A IS 5A)
+ 
+:       *** BSCPTP STATE TABLE for ID EXCHANGE ***
+:       INITIAL ID.ENQ CHECK STATE      :SWIDLE
+:       ---------------------------------------
+:       TIF WAIT ID.ENQ AND IGNORE IT UNTIL CIRCUIT IS ESTABLISHED
+:
+ 
+        DFBSTN(SWIDLE)
+        HC      IDLE-PSEG               :GOOD DATA ETX
+        HC      IDLE-PSEG               :GOOD DATA ETB
+        HC      IRIDEQ-PSEG             :GOT ID.ENQ
+        HC      IDLE-PSEG               :EOT
+        HC      IDLE-PSEG               :NAK
+        HC      IDISCS-PSEG              :DLE,EOT (DISC)
+        HC      IDLE-PSEG               :ACK1
+        HC      IDLE-PSEG               :WACK
+        HC      IDLE-PSEG               :ACK0
+        HC      IDLE-PSEG               :RVI
+        HC      IDLE-PSEG               :TTD
+        HC      IDLE-PSEG               :MLV BID
+        HC      IDLE-PSEG               :DATA ABORT
+        HC      RCVRTY-PSEG             :LOST SYNC
+        HC      IDLE-PSEG               :OVERRUN
+        HC      IDLE-PSEG               :NO INITIAL BUFFA
+        HC      IDLE-PSEG               :TIMEOUT
+        HC      IDLE-PSEG               :CRC ERR
+        HC      IERSET-PSEG             :LOST DATA
+        HC      IDLE-PSEG               :UNIDENTIFIABLE MSG
+        HC      IDLE-PSEG               :FORCE COMPRETION BY BG
+ 
+:       PENDING A RESPONSE TO ID.ENQ    :SWIDAK
+:       ----------------------------------------
+:       WAITING FOR THE RESPONSE FROM REMOTE HIF AND HOST
+:       PUT WACK TO THE TERMINAL (FOR TIF)
+:
+        DFBSTN(SWIDAK)
+        HC      IERSET-PSEG             :GOOD DATA ETX
+        HC      IERSET-PSEG             :GOOD DATA ETB
+        HC      IERSET-PSEG             :ENQ
+        HC      IERSET-PSEG             :EOT
+        HC      IERSET-PSEG             :NAK
+        HC      IDISCS-PSEG              :DLE,EOT (DISC)
+        HC      IERSET-PSEG             :ACK1
+        HC      IERSET-PSEG             :WACK
+        HC      IERSET-PSEG             :ACK0
+        HC      IERSET-PSEG             :RVI
+        HC      IERSET-PSEG             :TTD
+        HC      IERSET-PSEG             :MLV BID
+        HC      IERSET-PSEG             :DATA ABORT
+        HC      IERSET-PSEG             :LOST SYNC
+        HC      IERSET-PSEG             :OVERRUN
+        HC      IERSET-PSEG             :NO INITIAL BUFFA
+        HC      IERSET-PSEG             :TIMEOUT
+        HC      IERSET-PSEG             :CRC ERR
+        HC      IERSET-PSEG             :LOST DATA
+        HC      IRIDWK-PSEG             :GOT ID.ENQ AGAIN SEND WACK
+        HC      IERSET-PSEG             :FORCE COMPRETION BY BG
+ 
+:       WAITING RESPONSE FOR ID.ENQ FROM HOST:SIDBID
+:       --------------------------------------------
+:       HIF PUT ID.ENQ TO HOST AND WAIT ID.ACK0 RESPONSE
+:
+        DFBSTN(SIDBID)
+        HC      IDEQNG-PSEG             :GOOD DATA ETX
+        HC      IDEQNG-PSEG             :GOOD DATA ETB
+        HC      IDEQNG-PSEG             :ENQ
+        HC      IDEQNG-PSEG             :EOT
+        HC      IDEQNG-PSEG             :NAK
+        HC      IDISCS-PSEG              :DLE,EOT (DISC)
+        HC      IDEQNG-PSEG             :ACK1
+        HC      IDEQWK-PSEG             :WACK
+        HC      RIDACK-PSEG             :ID.ACK0 RECEIVED
+        HC      IDEQNG-PSEG             :RVI
+        HC      IDEQNG-PSEG             :TTD
+        HC      IDEQNG-PSEG             :MLV BID
+        HC      IDEQNG-PSEG             :DATA ABORT
+        HC      IDEQNG-PSEG             :LOST SYNC
+        HC      IDEQNG-PSEG             :OVERRUN
+        HC      IDEQNG-PSEG             :NO INITIAL BUFFA
+        HC      IDEQNG-PSEG             :TIMEOUT
+        HC      IDEQNG-PSEG             :CRC ERR
+        HC      IDEQNG-PSEG             :LOST DATA
+        HC      IDEQNG-PSEG             :UNIDENTIFIABLE MSG
+        HC      IDEQNG-PSEG             :FORCE COMPRETION BY BG
+ 
+:       GOT A COMMAND FROM BG AT IDLE LOOP
+:       CHECK FFIDEQ/FFIDAK
+:
+CONPATCH(IDLE40,,6)
+        J       PA1PTR,,
+ 
+CONPATCH(PA1PTR,,8A)
+IDLE41  JAL     R5,CDEQUE,,             :DEQUE COMMAND PACKET
+        JE      IRESET,,                :EOT
+        TBT     RL,ID.EXP,,             :IS THIS ID EXCHANGE PORT ?
+        JEFS    IDLE42                  :NO SKIP
+        CHI     R4,FFIDEQ               :ID.ENQ CMD ? (HIF)
+        JEFS    SIDENQ                  :YES
+        CHI     R4,FFIDAK               :ID.ACK CMD ? (TIF) ** ASSUME NOT USE
+                                        :HERE BUT USE IRIDW? ROUTINE
+        JE      SIDACK                  :YES
+IDLE42  J       IDLE30,,                :BACK TO CHECKING NEXT Q
+ 
+:       (HIF)
+SIDENQ  LHI     R5,SIDBID-PSEG          :SET SPECIAL STATE (WAIT ID.ACK)
+        STH     R5,STATE,RL2,           :TO TAB
+        LHI     R0,2*TPS+TPS/2          :SET BID TIMEOUT(2.5 SEC) PERIOD
+        LIS     R1,XCIDEQ               :SET IDEQ CMD FOR XMT
+        LHI     R4,0                    :RCV BUFFER LIMIT (NO DATA)
+        J       XMTRCV,,                :GO SEND AND RCV
+ 
+:       (TIF)                           ** SEE RINIT4 IN RINIT
+SIDACK  JAL     R5,RREADY,,             :RESOUCE TO ACCEPT DATA
+        J       SIDAC1                  :JUMP IF NOT
+        
+        RBT     RL,LSTACK               :LAST ACK IS ACK0
+        RBT     RL,LSTRVI               :LAST ACK IS NOT RVI
+        RBT     RL,RCVLCM               :RESET L.C. MODE
+        RBT     RL,BSCEFR               :DISABLE FORCE OP COMPLEATE
+        LHL     R0,TRB.LN,RL2,          :INIT RESPONSE TIME FOR DATA
+        STH     R0,RSTIME,RL2,
+        LHI     R0,SRINIT-PSEG          :SET STATE TO RCV INITIAL
+        STH     R0,STATE,RL2,
+        LHL     R0,TRX.LN,RL2,          :WAIT FOR RCV RESP
+        LHI     R1,XCIDAK               :SET ID.ACK OP CODE
+        LHI     R4,BSCRBC               :SET RCV RESOURCE LIMIT
+        J       XMTRCV,,                :GO PUT AND READ
+SIDAC1  J       INTRDY,,
+
+::      WHEN TIF IS IN INITIAL IDLE STATE, THIS PORT SHOULD WAIT IN
+:       SWIDLE STATE NOT SIDLE STATE.
+:       SWIDLE IS WAITING FOR ID.ENQ FROM TERMINAL
+:
+CONPATCH(IDLE50,,6)
+        J       IDLE51,,                :JUMP
+CONPATCH(PA1PTR,,24)
+IDLE51  TBT     RL,ID.EXP,,             :IS THIS ID EXCHANGE PORT
+        JEFS    IDLE52                  :NO SKIP
+        TBT     RL,ID.GET               :ALREADY GET ID.ENQ/ID.ACK ?
+        JNFS    IDLE52                  :YES USE SIDLE STATE
+        LHI     R1,SWIDLE-PSEG          :SET INITIAL WAIT STATE
+        JFS     IDLE53
+IDLE52  LHI     R1,SIDLE-PSEG           :SET TO DECODE RCV IN IDLE STATE
+IDLE53  STH     R1,STATE,RL2,,          :STORE IT
+        J       IDLE50+8,,              :BACK TO IDLE50
+ 
+:       ACTIVATE ROUTINE FROM SWIDLE TABLE
+ 
+CONPATCH(PA1PTR,,190)
+:                                       :RETURN CODE IS ENQ
+IRIDEQ  LA      R0,LACTIVE,,            :GET LACTIVE ADR
+        LO      LINE
+        CL      R0,L.AS,RL2,RL2         :CHECK CIRCUIT
+        FO      LINE
+        JEFS    IRID20                  :YES IT HAS PVC
+        RBT     RL,ID.GET               :RESET BIT
+IRID10  J       IDLE,,                  :BACK TO IDLE AGAIN
+IRID20  ST      R3,SAVREG,,             :CHECK FOR TEXT1'S CONTENTS
+        LR      R3,RL                   :CALC 16B LINE INDEX
+        SLLS    R3,4
+        LB      R3,TEXT1,R3,            :GOT LENGTH BYTE
+        JN      IRID21                  :NOT ZERO, WE HAVE ID
+        L       R3,SAVREG,,             :NO ID, BACK TO IDLE
+        J       IRID10
+IRID21  L       R3,SAVREG,,             :RESTORE R3
+        SBT     RL,ID.GET,,             :SET ID.GET FLAG HERE
+        LHI     R0,SWIDAK-PSEG          :CHANGE STATE
+        STH     R0,STATE,RL2,,          :
+        ROPQND(FFIDEQ)                  :TRANSFER ID.ENQ TO BG
+ 
+:       ** SEND WACK TO TERM AND WAIT RESPONCE FROM HIF **
+ 
+IRIDWK  LHL     R0,TTW.LN,RL2,          :COMPUTE TIME TO SEND WACK
+        SLLS    R0,TSCALE
+        A       R0,FASTC,,
+        ST      R0,WTIME,RL2,RL2        :SAVE IT
+        
+:       CHECK CMD FROM BG, YB AND FFIDAK
+IRIDW2  XOPCHK(IRIDW5,IRIDW5,IRIDW5,IRIDW3)
+:              .NONE  .DATA  .EOT   .OTHER
+IRIDW3  CHI     R2,FFYB                 :YELLOW BALL ?
+        JN      IRIDW4                  :NO
+        XOPDQU                          :DEQUE
+        ROPQND(FFOB)                    :Q ORANGE BALL
+        J       IRIDW5
+IRIDW4  CHI     R2,FFIDAK               :ID.ACK
+        JN      IRIDW5                  :NO CHECK NEXT
+        XOPDQU                          :YES, DEQUE IT
+        J       SIDACK                  :PUT ID ACK, TURN STATE TO RSINIT
+ 
+IRIDW5  L       R0,WTIME,RL2,RL2        :CHECK TIMEOUT
+        S       R0,FASTC,,
+        JLE     IRIDW7                  :YES PUT WACK TO LINE
+        TBT     RL,BSCHLT
+        JNFS    IRIDW6                  :GO HALT LINE
+        JAL     R5,PDMISS,,             :DISMISS PROTOCOL DRIVER
+        TBT     RL,BSCHLT
+IRIDW6  JN      PTPHLT,,                :GO HALT LINE IF SIGNALED TO
+        J       IRIDW2                  :CHECK DATA AND TIMEOUT AGAIN
+        
+IRIDW7  LHL     R0,TXW.LN,RL2,          :GET TIMEOUT FOR RESP
+        LIS     R1,XCWACK               :SET OP CODE
+        LIS     R4,0                    :NO NEED RCV BUFFA
+        J       XMTRCV,,                :SEND WACK
+IRIDWE  HS      0
+ 
+:       ACTIVATION ROUTINES FOR SIDBID STATE (HIF)
+:       SEND DLE.EOT, WHEN RETRY COUNTER IS OUT
+CONPATCH(PA1PTR,,4E)
+IDEQWK  LIS     R0,$A 12                :RETRY 12 TIMES FOR WACK (HIF)
+        JFS     IDEQRT                  :GO RETRY
+IDEQNG  LIS     R0,$A 7                 :RCV NO GOOD RESPONSE, RETRY 7
+IDEQRT  ST      R5,SAVREG
+        LB      R5,RETRY,RL,            :CHECK RETRY COUNT
+        CR      R5,R0
+        JLE     IDEQR2
+        LIS     R1,XCDISC               :GET DISC OP CODE
+        JAL     R5,XMT,,                :SEND DISC
+        L       R5,SAVREG
+        J       IDISCS,,                 :RETRY OUT
+IDEQR2  AIS     R5,1
+        STB     R5,RETRY,RL,            :INCREMENT COUNTER
+        J       SIDENQ,,
+ 
+:       GOT ID.ACK0 RESPONSE FROM HOST
+RIDACK  TBT     RL,ID.GET               :CHECK ID.ACK0 OR SINGLE ACK0
+        JE      IDEQNG                  :NO RETRY
+        ROPQND(FFIDAK)                  :INFORM ID.ACK0  TO BG
+        J       XINIT,,                 :JUMP TO XINIT DATA
+RIDEND  HS      0
+ 
+:-------------------
+:BSCRCV ROUTINE
+:       RCV CHARA AND RETURN CODE SET
+:
+CONPATCH(RSYN80+12,,6)
+        J       RSYN8X,,
+CONPATCH(PA1PTR,,72)
+RSYN8X  SR      R3,R4                   :RESTORE SOURCE
+        STB     R3,RSHIFT,RL,           :SAVE IT
+        IF      NMLV
+        LHI     RST,SHIDMS-RSEG         :INIT STATE FOR MLV
+        TBT     RL,MLVIN
+        JN      RSYN90,,                :YES SKIP
+        EI      (NMLV)
+        IF      NDDCMP
+        LHI     RST,DRSIDM-RSEG
+        TBT     RL,DDCLIN               :IS DDCMP LINE ?
+        JN      RSYN90,,                :YES SKIP
+        EI      (NDDCMP)
+                                        :END OF RECOVER THE SOURCE
+        LHI     RST,RSIDMS-RSEG         :NORMAL 3780 
+        TBT     RL,ID.EXP               :IS ID EXCHANGE LINE
+        JEFS    RSYN8E                  :NO SKIP
+        TBT     RL,ID.GET               :ALREADY GET ID FROM EXTERNAL ?
+        JNFS    RSYN8E                  :YES KEEP RSIDMS TABLE
+        LHI     RST,RSIDCH-RSEG         :SET SPECIAL 1ST TABLE 
+        LR      R3,RL
+        SLLS    R3,4                    :MAKE 16 BYTE INDEX
+        LIS     R0,0
+        STB     R0,TEXT1,R3,            :CLEAR THE LENGTH OF TEXT1
+RSYN8E  J       RSYN90,,                :BACK TO SOURCE
+ 
+:       RCV TABLE AND ACTIVATION ROUTINE FOR (RST)
+        HS      0
+RSIDCH  HC      RPIDPT-RSEG             :ELSE ASSUMED ID DATA
+        HC      RPUNID-RSEG             :SOH
+        HC      RPUNID-RSEG             :STX (ERROR IN THIS CASE )
+        HC      RPUNID-RSEG             :ETX
+        HC      RPIDDL-RSEG             :DLE , CHECK NEXT
+        HC      RPUNID-RSEG             :ITB
+        HC      RPUNID-RSEG             :ETB
+        HC      RPIDEQ-RSEG             :ENQ, GOT ID.ENQ ?
+        HC      RPCEAT-RSEG             :SYN
+        HC      RPUNID-RSEG             :EOT
+        HC      RPUNID-RSEG             :NAK
+        HC      RPUNID-RSEG             :ACK1
+        HC      RPUNID-RSEG             :WACK
+        HC      RPUNID-RSEG             :ACK0
+        HC      RPUNID-RSEG             :RVI
+ 
+:       CHECK 2ND BYTE AFTER DLE
+RSID2C  HC      RPIDEP-RSEG             :CHECK EXPLANATION MARK
+        HC      RPUNID-RSEG             :SOH
+        HC      RPUNID-RSEG             :STX
+        HC      RPUNID-RSEG             :ETX
+        HC      RPUNID-RSEG             :DLE
+        HC      RPUNID-RSEG             :ITB
+        HC      RPUNID-RSEG             :ETB
+        HC      RPUNID-RSEG             :ENQ
+        HC      RPUNID-RSEG             :SYN
+        HC      RPC2CH-RSEG             :EOT
+        HC      RPUNID-RSEG             :NAK
+        HC      RPUNID-RSEG             :ACK1
+        HC      RPC2CH-RSEG             :WACK
+        HC      RPIDAK-RSEG             :ACK0 CHECK TABLE
+        HC      RPUNID-RSEG             :RVI
+ 
+:       ACTIVATION SMALL ROUTINES
+:       -------------------------
+:       GET SOME DATA , PUT IT TO TEXT1
+RPIDPT  LR      R3,RL                   :GET LINE
+        SLLS    R3,4                    :MAKE 16B INDEX
+        LB      R4,TEXT1,R3,            :GET LENGTH
+        AIS     R4,1                    :INCREMENT IT
+        CHI     R4,$A 15                :OVER 15
+        JG      RPUNID,,                :IT IS NOT ID, UNDEFINED RCV
+        STB     R4,TEXT1,R3,            :RESTORE NEW LENGTH
+        LB      RC,REVTAB,RC,
+        STB     RC,TEXT1,R3,R4          :STORE ID TO TEXT1
+        LHI     R3,RPLSYN-RSEG          :TIMEOUT ROUTINE
+        NHI     R3,0FFFF
+        STH     R3,RLSYNC,RL2,
+        JR      RRET                    :GET NEXT BYTE
+ 
+RPIDDL  LHI     RST,RSID2C-RSEG         :GET 1ST DLE
+        NI      RST,0000FFFF            :MASK IT
+        LHI     R3,RPLSYN-RSEG
+        NHI     R3,0FFFF
+        STH     R3,RLSYNC,RL2,
+        JR      RRET
+ 
+:       GOT ENQ
+RPIDEQ  LB      RC,BIDCHR,RC,           :SET RETURN CODE
+        SRHLS   RC,1
+        LB      RC,RC1CTL,RC,
+        J       RPDONE,,
+ 
+:       GOT ACK0
+RPIDAK  LR      R3,RL                   :GET LINE
+        SLLS    R3,4                    :MAKE INDEX
+        LB      R3,TEXT1,R3             :GET TEXT1 LENGTH
+        JEFS    RPIDA2                  :NO TEXT
+        SBT     RL,ID.GET               :MARK GOT ID.ACK0 FROM HOST
+RPIDA2  J       RPC2CH,,                :SAME AS ACK0
+ 
+:       GOT DLE,???
+ 
+RPIDEP  CHI     RC,REXP                 :IS RC ?
+        JN      RPUNID,,                :NO GABAGE
+        LHI     RC,REOT                 :SET FORCE EOT
+        J       RPC2CH,,                :SAME AS DLE.EOT
+ 
+RPIDED  HS      0                       :END 
+ 
+:       ID.ENQ OR ID.ACK0 PUT ON THE LINE
+:       ----------------------------------
+:       ACTIVATE BY XCIDEQ OR XCIDAK COMMAND FOR XMT
+:       ADD ROUTINE IN BSXWRT ROUTINE
+:
+CONPATCH(BSXW7+0E,,6)
+        J       BSXW8,,
+CONPATCH(PA1PTR,,100)
+BSXW8   JLE     BSXW10,,                :NORMAL COMMAND
+        CLHI    RCMD,XCIDEQ             :ID ENQ ?
+        JEFS    BSXWID               ES
+        CLHI    RCMD,XCIDAK             :ID ACK0 ?
+        JEFS    BSXWID
+        JAL     R10,BSCCRS,,            :CRASH UNDEFINED COMMAND
+ 
+:       MAKING SYNC IO COMMAND LIST
+:       COPY ID FROM TEXT2(SEG 0) TO TEXT2E(SEG4) AND ADD RENQ OR
+:       RDLE,RACK0, AND CHECK THE LENGTH, IF LENGTH IS ODD, THEN
+:       ADD FF TO THE LAST OF STRING
+:
+BSXWID  ST      R1,SAVREG               :SAVE R1
+        LIS     R0,1                    :WRITE OP CODE (1)
+        STH     R0,0,RADE               :STORE IT IN COMMAND LIST
+        SLLS    RL,4                    :MAKE RL TO 16B INDEX
+        SLLS    RL2,4                   :MAKE RL2 TO 32B INDEX
+        LB      R1,TEXT2,RL             :FETCH ID LENGTH (1-0F)
+        LIS     RCMD,0                  :INIT COPY INDEX
+BSXWI2  LB      R0,TEXT2+1,RCMD,RL      :GET ONE BYTE
+        STB     R0,TEXT2E,RCMD,RL2      :COPY IT TO TEXT2E
+        AIS     RCMD,1                  :INCREMENT COUNTER
+        CR      RCMD,R1                 :FINISHED ?
+        JN      BSXWI2                  :NO , CONTINUE
+
+        SRLS    RL,4                    :RL IS NOW LINE NUMBER
+        LHL     R0,BSXOPC,RL,RL         :GET XMT OP CODE AGAIN
+        CHI     R0,XCIDEQ               :IS IT ID.ENQ ?
+        JNFS    BSXWI3                  :NO ID.ACK0
+        LHI     R0,RENQ^8+0FF           :RENQ,FF
+        JFS     BSXWI4
+BSXWI3  LHI     R0,RDLE^8+RACK0         :RDLE,RACK0
+BSXWI4  STB     R0,TEXT2E+1,RCMD,RL2    :PUT IT END +2 POSITION
+        SRLS    R0,8                    :NEXT BYTE
+        STB     R0,TEXT2E,RCMD,RL2      :PUT IT END +1 POSITION
+        LHI     R0,0FF                  :MARK CHAR
+        STB     R0,TEXT2E+2,RCMD,RL2    :PUT MARK TO END +3
+        NHI     R1,1                            :CHECK ORG LENGTH IS ODD/EVEN
+        JNFS    BSXWI5                  :IT WAS ODD
+        AIS     RCMD,2                  :INCREMENT COUNTER (+2)
+        JFS     BSXWI6
+BSXWI5  AIS     RCMD,3                  :(+3)
+BSXWI6  STH     RCMD,2,RADE             :PUT LENGTH ON COMMAND LIST
+        LA      R0,TEXT2E,RL2,          :GET TEXT2E ENTRY ADDR
+        ST      R0,4,RADE               :STORE IT ON THE COM LIST
+        SRLS    RL2,4                   :BACK RL2 TO LINE * 2
+        AIS     RADE,8                  :INCREMENT LIST POINTER
+        SIS     RLSZ,1                  :DEC LIST COUNT
+        L       R1,SAVREG
+        J       BSXW60,,                :BACK TO MAIN, PUT MARK
+
+ENDPATCH(ID EXCHANGE FOREGROUND SERVICE)
+
+        FO      LINE
+        FO      IDS
+        FO      XSUBS
+        FO      BSCHDX
+        FO      BSCPTP
+        FO      BSCDEF
+        FO      BSCRCV
+        FO      FCB
+
+        EI      (IDEX)
+
+U@aS
