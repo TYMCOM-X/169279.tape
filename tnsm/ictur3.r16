@@ -1,0 +1,2895 @@
+:       11/08/86  CC  : CE MODULE A POUR BUT D'ETABLIR UNE CONNEXION IIX-TURKEY
+:                       POUR UN CIRCUIT ENTRANT.
+:
+:                       L'ITI SE DOIT IMPERATIVEMENT D'ETRE "SMART" SOIT
+:                       INTELLIGENT. POUR CELA, NE PAS OMETTRE DE POSITIONNER
+:                       DANS LE TYMFILE DU PRODUIT LE SYMBOLIQUE "IIXIN"
+:                             IIXIN     EQ      1
+:
+:                       LE SOUS-RESEAU NE COMPREND DORENAVANT QUE 12 ETOILES.
+:                       (ABSENCE DE L'ETOILE TU1).
+:
+:                       POUR UTILISER CELUI-CI, IL SUFFIT, APRES RECEPTION DU
+:                       NEEDLE EN PROVENANCE DE L'XCOM DE GENERER LA MACRO
+:                       STRTUR(IN) AVANT DE PASSER DANS LA PLACE TU0 
+:                       "POSTET(PLACE,T,U0)".
+:
+:                       APRES ETABLISSEMENT DE LA CONNEXION IIX-TURKEY, LE 
+:                       PROCESSUS SERA ACTIVE DANS LA PLACE TTT.
+:                       EN CAS DE NON ETABLISSEMENT DE LA CONNEXION (COUPURE DU
+:                       CIRCUIT, TIME-OUT,...) , LE PROCESSUS  SERA ACTIVE DANS
+:                       LA PLACE D00 APRES AVOIR EXECUTE LA MACRO CTLTUR.
+:                       
+:                       *** LE BODY DU PRODUIT DOIT DONC AVOIR IMPERATIVEMENT
+:                           UNE ETOILE D00 ET UNE ETOILE TTT ***
+:
+:                       *** CE MODULE DOIT IMPERATIVEMENT ETRE COMPILE AVANT LES
+:                           ETOILES CONSTITUANT LE CORPS DU PRODUIT (D00 ET AUTRES). ***
+:
+:
+:                    BODY           SOUS-RESEAU CNX
+:
+:       PLACE        xxx
+:                     |
+:                     | ? NEEDLE
+:                     |  
+:              --------------
+:              | STRTUR(IN) |
+:              --------------
+:                     |
+:       PLACE         |----------------> tu0
+:                                         |
+:                                         |
+:                                    -----------
+:                                    |  sous-  |   ?erreur
+:                                    | reseau  |-------|----> d00
+:                                    |iix-turkey
+:                                    -----------
+:                                         |
+:                                         |
+:                     |<-------------------
+:                     |
+:                     |
+:       PLACE        ttt
+:                     |
+:                     .
+:                     .
+
+:
+
+
+:                       DANS LA PLACE TTT, NE PAS OUBLIER DE DECLARER:
+:                            DATAET(PHASE,WORK,PROTOCOL,X25,,)
+:
+:                       L'ACTIVATION EN TTT EST REALISEE DANS LE PLUS SIMPLE
+:                       DES CAS SUR RECEPTION D'UN MESSAGE EXTERNE.
+:
+:                       EN CAS DE SUCCES DE LA CONNEXION IIX-TURKEY, LA MACRO
+:                       CTLTUR EST EXECUTEE AVANT LE PASSAGE A LA PLACE TTT.
+
+:
+:                       RAPPEL:  EN CAS D'ECHEC OU DE SUCCES AU SEIN DU SOUS-
+:                                RESEAU, IL SERA EXECUTE UNE MACRO AVANT DE
+:                                PASSER DANS LA PLACE SUIVANTE (D00 OU TTT).
+:
+:                       L'ECRITURE DE CETTE MACRO EST A LA CHARGE DE L'ITI.
+:                       ELLE PERMET D'EXECUTER DES ACTIONS SPECIFIQUES A L'ITI.
+:
+:                       ELLE A POUR FORME:
+:                                          CTLTUR(PLACE,<x>,<yy>,CODE,R0)
+:
+:                       AVEC     <x>,<yy> : NOM DE LA PLACE EN COURS
+:                                R0       : CODE RETOUR INDIQUANT LE SUCCES OU
+:                                           LA CAUSE DE L'ECHEC.
+:
+:                                   LISTE DES CODES RETOUR:
+:
+:                                       0 - SUCCES DE LA CONNEXION IIX-TURKEY
+:                                      -1 - ERREUR SUR NEEDLE
+:                                      -2 - ERREUR SUR TOO-MANY
+:                                      -3 - ERREUR SUR FLUSHING
+:                                      -4 - ERREUR SUR TIMEOUT
+:                                      -5 - ERREUR SUR MESSAGE PORTE ZERO
+:                                      -6 - ERREUR SUR MESSAGE FILE SYS
+:                                      -7 - ERREUR SUR MESSAGE FILE NOR
+:                                   9E 9F - ERREUR SUR MESSAGE ISIS
+:
+:                                           ERREURS SUR MESSAGE DATA
+:                                       1 - DIALECT INCOMPATIBLE
+:                                       2 - NIVEAU DE DIALECT ERRONE
+:                                       3 - MSG "CALLED ADDRESS" ERRONE OU MANQUANT
+:                                       4 - MSG "CALLING ADDRESS" ERRONE OU MANQUANT
+:                                       5 - MSG "FACILITIES" ERRONE OU MANQUANT
+:                                       6 - MSG "CALL USER DATA" ERRONE OU MANQUANT
+:                                       7 - ERREUR DE PROTOCOLE
+:                                       8 - MSG "UTILITY FIELD" ERRONE
+:
+:
+
+:MODIFICATIONS
+:--------------
+:
+:LE 03/04/87  PAR  MR/PS   SUPPRESSION DU TEST C087 DANS LA PLACE TU2 QUI
+:                          N'ACCEPTE DESORMAIS QUE LE MESSAGE 8081
+:                          LE TEST SUR MESSAGE C087 EST REPORTE EN TUY (S/R CVP)
+:
+:LE 24/05/88 PAR LDe       AJOUT DES IDENTIFICATEURS, PROCEDURES ET MACRO 
+                           : IMPLEMENTANT LA FACILITE DE SELECTION RAPIDE.
+:
+:LE 18/08/88 PAR A.D    MODIF DE GETXUD POUR SUPRIMER LA LONGUEUR DES DATAS
+:                       AVANT LES DATAS ELLES MEME
+:LE 15/03/89  PAR DF TRAITEMENT DU MESSAGE C08C DANS L'ETOILE TUC.
+:
+:LE 16/08/89 PAR LDE ERREUR DANS LA GESTION DES DONNEES UTILISATEUR
+:
+:LE 28/04/90 PAR DFO, PARAMETRAGE DU SOUS RESEAU TURKEY ENTRANT
+:
+
+
+        SEG     0
+:                       LE SOUS-RESEAU DE CONNEXION IIX-TURKEY SAUVEGARDE DANS
+:                       LE PIB DU PROCESSUS PORTE ASSOCIE, LES INFORMATIONS
+:                       CONTENUES DANS LE PAQUET D'APPEL ENTRANT "X25".
+:
+:                       POUR CELA, QUATRE NOUVELLES ZONES ONT ETE CREEES DANS
+:                       LE PIB:
+:
+:                               :paquets d'appel X25 le 26-12-85
+:                       PIBXLG  EQ      $A 16   :LONGUEUR DES ZONES UTILISEES
+:                                       :POUR STOCKAGE DES INFORMATIONS DU 
+:                                       :PAQUET D'APPEL EN X25
+:                       PIBXA1  BS      PIBXLG+1  :ZONE CONTENANT "CALLED ADDRESS"
+:                       PIBXA2  BS      PIBXLG+1  :ZONE CONTENANT "CALLING ADDRESS"
+:                       PIBXFA  BS      PIBXLG+1  :ZONE CONTENANT "FACILITIES"
+:                       PIBXUF  BS      PIBXLG+1  :ZONE CONTENANT "UTILITY FIELD"
+:                       PIBXUD  BS      PIBXLG+1  :ZONE CONTENANT "CALL USER DATA"
+
+
+
+:                       
+:       LXCALL(INTO,<reg>,<p1>,OF,CALLING,PACKET)
+:
+:
+:auteur et date:
+:       CC le 27-12-85
+:
+:MODIFIE PAR DF LE 15/03/89
+:
+:type:
+:       macro
+:fonction:
+:
+:       Chargement dans le registre <reg> de l'@ de la zone pib`p1 contenue
+:       dans le pib. Cette zone contient un des champs du paquet d'appel entrant
+:       X25.
+:
+:cas d'exception:
+:
+:parametres:
+:       
+:symboles affectes:
+:
+:entree:
+:       p1 : suffixe de la zone dont on desire l'@.
+:            Sa valeur n'est pas controlee, mais ne peut etre que:
+:               XA1, XA2, XFA, XUF, XUD
+:
+:sortie:
+:       reg : registre contenant l'@ de la zone  pib`p1
+:
+:modifie:
+:       R1
+:
+:utilise:
+:       la macro PORTPR
+:       les descriptions de controle du PIB
+:
+:remarque:
+:
+:
+
+LXCALL  MACRO(INTO,reg,p1,OF,CALLING,PACKET)
+[
+        PORTPR
+        AR      R1,R1
+        L       R1,PIV,R1,R1
+        LA      reg,PIB`p1,R1,
+]
+
+
+
+:
+:           STRTUR(<p1>)
+:
+:auteur et date:
+:       CC le 31-07-86
+:
+:type:
+:       macro
+:
+:fonction:
+:
+:       Initialisation du sous-reseau de connexion IIX-TURKEY
+:       Initiation du dialogue TURKEY dans le cas ou le
+:       circuit traite est entrant (p1 = IN)
+:       Cette macro doit etre appelee en etoile D00 avant de passer dans le
+:       sous-reseau en TU0.
+:
+:cas d'exception:
+:
+:parametres:
+:
+:symboles affectes:
+:
+:entree:
+:       p1 : indicateur du sens du circuit virtuel que l'on traite
+:            IN : circuit entrant - host destinataire
+:            OUT: circuit sortant - host originaire
+:
+:sortie:
+:
+:modifie:
+:
+:utilise:
+:       la macro SENDQQ
+:
+:remarque:
+:
+:
+:
+:
+        IF      1-\STRFLG
+STRFLG  EQ      1
+
+STRTUR  MACRO(p1)
+[
+
+
+        DSYMUT(TURIN,EQ,0)      :indicateur IN
+        DSYMUT(TUROUT,EQ,1)     :indicateur OUT
+
+        IF      1-\TUR`p1
+        REMARK % ERREUR DE PARAMETRE "P1" DANS: %
+        REMARK % STRTUR(p1) %
+
+        ELSE
+
+        IF      .EQ.(TUR`p1,TURIN)      :SI     P1       = IN
+        LO      ICT000
+        SENDQQ(ALL,CHARS,FROM,MSIIX,TO,OUTPUT,OF,MYSELF)
+        SENDQQ(ALL,CHARS,FROM,MSDCDE,TO,OUTPUT,OF,MYSELF)
+        SENDQQ(ALL,CHARS,FROM,MTIIX,TO,OUTPUT,OF,MYSELF)
+        FO      ICT000
+        EI
+        EI
+        KILL    TURIN,TUROUT
+
+]
+        EI
+
+
+
+
+
+
+ 
+
+
+
+
+:***********************************************************
+:
+:               MACRO INIGFA
+:
+:
+:***********************************************************
+:
+:AUTEUR ET DATE :
+:               HDA ET DFO
+:
+:TYPE:
+:       MACRO
+:
+:FONCTION : INITIALISATION DE LA TABLE DES GFA
+:
+:
+INIGFA  MACRO[
+        
+        IF      PARICT
+: INITIALISATION DE LA LONGUEUR DES ZONES SR
+
+        LIS     R1,0            : COMPTEUR DU NOMBRE DE GFA
+CPGFA
+        CHI     R1,NBGFA-1
+        JG      FINGFA
+        LHI     R3,GFALG
+        MHR     R3,R1
+        LA      R3,GFATAB,R3,
+        LHI     R2,SIZGNF       : INITIALISATION DE LG SR DE TURGNI
+        STB     R2,TURGSR,R3
+        LIS     R2,0            : INITIALISATION DE LA LONGUEUR DE LA
+                                : ZONE SC ( =0 )
+        STB     R2,TURGSC,R3
+        AIS     R1,1
+        J       CPGFA
+FINGFA
+ 
+:  MISE A JOUR DE TURGFA ET TURGNI
+
+ZGFAI   EQ      1
+        IF      NOGFAC          : SI NOGFAC = 0 , LE GROUPE COMMUN EST
+                                : ACCEPTE
+QGFAI   EQ      0               : INDICE DE LA ZONE RECEPTRICE DU
+                                : TABLEAU GFATAB
+        ELSE
+QGFAI   EQ      1
+        EI              : FIN IF NOGFAC
+        
+
+        RE      CGFAI
+        LA      R2,GFATAB+(GFALG*QGFAI),,
+        LA      R1,GFASI|ZGFAI|,,
+        JAL     R5,A.ASDC,,
+        J       ERRGFA
+        LB      R1,1,R2
+        JL      ERRGFA
+        JE      DNIC0
+        SIS     R1,4
+        LH      R3,TURGNI,R2
+        CLHI    R1,0
+        JE      STOGFA
+        CHI     R1,4
+        JGE     ERRGFA
+        LCS     R6,4
+        MHR     R1,R6
+        LHR     R8,R1
+SHIGFA  J       SHIGFA,R8
+        J       SHIF1
+        J       SHIF2
+        J       SHIF3
+SHIF1
+        SRHL    R3,4
+        J       STOGFA
+SHIF2
+        SRHL    R3,8
+        J       STOGFA
+SHIF3
+        SRHL    R3,12
+STOGFA  
+        STH     R3,GFATAB+(GFALG*QGFAI)+TURGNI,,
+        J       TRAGFA
+DNIC0
+        LIS     R1,0
+        STH     R1,GFATAB+(GFALG*QGFAI)+TURGNI,,
+TRAGFA
+        LA      R9,GFATAB+(GFALG*QGFAI)+TURGFA,,
+        LA      R3,GFACI|ZGFAI|,,
+        LB      R2,,R3
+        AIS     R3,1
+        JAL     R5,A.DCBN,,
+        J       ERRGFA
+        STH     R0,,R9
+        LIS     R1,4
+        STB     R1,GFATAB+(GFALG*QGFAI)+TURGSC,,
+QGFAI   EQ      QGFAI+1
+ZGFAI   EQ      ZGFAI+1
+        ER
+
+        J       ENDGFA
+ERRGFA
+        J       BINCRA,,
+ 
+ENDGFA
+        EI
+]               : FIN MACRO INIGFA
+
+
+:       SOUS-RESEAU DE CONNEXION TURKEY - CIRCUIT ENTRANT
+
+        GL      A.Z00L,A.D00L,A.TTTL
+
+        GL      PARICT
+        IF      PARICT
+        GL      CGFAI,QGFAI,TGIDIA,TUIDIA,SROPT3,SROPT2,SROPT1
+        GL      NOGFAC,NBGFA,GFALG,TURGFA,TURGNI,TURGSR,TURGSC
+        GL      TGICAU,TUICAU,GFATAB,SIZGNF
+        EI
+        DPROIT(ICT000,VERREV,3,12,AUTHOR,D.FOURNIER,DATE,28/04/90,TITLE,CNX I TURKEY)
+
+
+
+
+
+        SEG     A.DATA
+  
+
+        : IMPORTATION DE GLOBALES
+
+        GL      NINTUR,ITCCRA,X25SR
+
+        : EXPORTATION DE GLOBALES
+ 
+        GL      FRITC,INITC
+        GL      SCFAST,SC1ST,SCLAST
+        GL      TURSR1,TURSSR,TURSRS,TURSRR,TURSRD
+        GL      SCREG,ITCSR,ITCCUD,CDPOS,MCLICD,GSC1B
+        GL      PORITC,PORSTA,PORNTU,PORTUR
+
+
+        IF      X25SR
+        GL      A.TSRL
+        EI
+
+
+
+
+SIIMBK  WC      0,0,0,0
+        HC      0,0003,0,0001,0,0,0,0           :break on siix + zap + detach
+
+TIIMBK  WC      0,0,0,0
+        HC      0,0003,0,0,8000,0,0,0           :break on tiix + zap +detach
+
+
+ZAPMBK  WC      0,0,0,0                         :break on zap + detach
+        HC      0,i.9E+i.9F,0,0,0,0,0,0
+
+NULMBK  HC      0,0,0,0,0,0,0,0                 :break sur aucun caractere
+        HC      0,0,0,0,0,0,0,0
+
+
+
+
+
+
+
+                                                :**********************************
+                                                : codes retour de la macro CTLTURKEY
+                                                : indiquant le succes ou l'echec
+                                                : de la connexion iix-turkey
+
+SUCCES  EQ      0                               : 0 - succes
+ERRDIA  EQ      1                               : 1 - dialect incompatible
+ERRLEV  EQ      2                               : 2 - niveau de dialect incompatible
+ERRXA1  EQ      3                               : 3 - msg "called address " errone
+ERRXA2  EQ      4                               : 4 - msg "calling address" errone
+ERRXFA  EQ      5                               : 5 - msg "facilities" errone
+ERRXUD  EQ      6                               : 6 - MSG "call user data" errone
+ERRPRO  EQ      7                               : 7 - erreur de protocole
+ERRXUF  EQ      8                               : 8 - MSG "UTILITY FIELD" ERROR
+                                                :
+
+                                                :********************************
+
+
+
+                                                :********************************
+                                                : deplacement dans les zones sc
+                                                :*******************************
+        
+DCODE   EQ      1                               : recherche du code iix-turkey
+DDIAL   EQ      3                               : recherche du premier dialect desire
+DLEVEL  EQ      5                               : recherche du niveau de dialect
+
+
+
+                                                :*******************************
+                                                :global iix messages
+                                                :********************************
+SIIX    EQ      0BF                             :code of siix
+TIIX    EQ      0C0                             :code of tiix
+
+CSDREP  EQ      8081
+CSDCDE  EQ      8080                            :code of sel. dial. command
+
+                                                :*******************************
+                                                :dialect iix messages
+                                                :*******************************
+
+CXA1    EQ      0C087                           :code of called address field
+CXA2    EQ      0C088                           :code of calling address field
+CXUF    EQ      0C08C                           :CODE OF UTILITY FIELD
+CXFA    EQ      0C08D                           :code of facilities field
+CXUD    EQ      0C089                           :code of call user data field
+CCACC   EQ      0C092                           :code of call accept msg
+CTURL   EQ      0C093                           :code of turkey level msg
+CDATA   EQ      0C094                           :code of data iix-turkey
+CCLI    EQ      0C095                           :code of clear request
+CRST    EQ      0C096                           :code of reset request
+
+
+        
+VALTUR  EQ      8083                           :valeur du code dialect turkey
+VALLEV  EQ      01                              :valeur du niveau de dialect desire
+FQUAL   EQ      80                              :valeur de l'octet flag. bit q
+LGXUF   EQ      08                            : LG. MAX UTILITY FIELD
+LGCAD   EQ      08                              :lg. des adresses X25
+
+
+MSIIX   SC      /"00"BF/                        :SIIX-start of iix exchange
+MTIIX   SC      /"00"C0/                        :TIIX-termination of iix exchange
+MZAP    SC      /"00"9F/                        :ZAP-deconnexion du circuit ACT
+
+
+
+
+
+
+                                                :select dialect response message
+MSDREP  SC      /"80"81"80"83/                  :8081- code of msg
+MSDCDE  SC      /"80"80"80"83/
+                                                :list of dialects
+                                                :   8083 - turkey 
+
+                                                :********************************
+                                                :iix dialect call sequence messages
+                                                :********************************
+MTURL   SC      /"C0"93"00"00"02/                  :turkey level message
+                                        :* * * ATTN : 00 SONT DOUBLES * * *
+                                                :-------------------------------
+
+                                                :C093- code of msg
+                                                :   level chosed- 02
+
+MCACC   SC      /"C0"92"00"00"00"00/
+MCLI    SC      /"C0"95"00"00"00"00/            :   message c095 0 0
+ 
+
+              :***  OBJETS DE GESTION DE LA SELECTION RAPIDE ****
+
+
+
+
+DSYMUT(TURSR1,EQ,0)              : 1ER CODE DE SELECTION RAPIDE
+DSYMUT(TURSSR,EQ,0)              : SELECTION RAPIDE NON DEMANDEE
+DSYMUT(TURSRS,EQ,1)              : SELECTIPIDE SANS RESTRICTION SUR REPONSE
+DSYMUT(TURSRR,EQ,2)              : SELECTION RAPIDE AVEC RESTRICTION SUR REPONSE
+DSYMUT(TURSRD,EQ,TURSRR)         : DERNIER CODE SELECTION RAPIDE 
+
+
+
+DSYMUT(SC1ST,EQ,1)              : 1ER SERVICE COMPLEMENTAIRE
+DSYMUT(SCFAST,EQ,SC1ST)          : SC FAST SELECT
+DSYMUT(SCLAST,EQ,SCFAST)          : DERNIER SC IMPLEMENTE
+
+DSYMUT(SCREG,EQ,10)             : MAX NO DE REGISTRE
+ 
+
+CUDSIZ  EQ      80              : TAILLE MAX DES CALL USER DATA (en cas de 
+                                : selection rapide)
+
+
+        SEG     A.DATA
+
+
+CDPOS   EQ      .+3             : POSITION RELATIVE DE CAUSE DIAG DANS C095
+MCLICD  SC      /"C0"95"00"00"00"00/    : LONGUEUR MAX DE C095 (zeros doubles)
+:*********************************************************
+:
+:
+:       MESSAGE DE LIBERATION POUR LE PARAMETRAGE TURKEY
+:
+:
+:************************************************************
+:
+:
+DSYMUT(CLIPAR,SC,/"C0"95"00"00/)
+DSYMUT(ZCAUSE,EQ,.-2)
+DSYMUT(ZDIAG,EQ,.-1)
+
+ 
+                  : STRUCTURE DES ITC
+                  : INCOMING TURKEY CONTROL
+
+DESDEB(ITC,A.DATA)
+DSYMUT(ITCLINK,WS,1)            : LIEN  SUR ITC SUIVANT (gestion en liste)
+DSYMUT(ITCSR,BS,1)              :CHAMP SELECTION RAPIDE
+DSYMUT(ITCUDL,BS,1)             : LONGUEUR COURANTE DES CUD
+DSYMUT(ITCCUD,BS,CUDSIZ+1)      : ZONE POUR CALL USER DATA
+        WS      0               : alignement a frontiere de mot
+DSYMUT(ITCLG,EQ,.)              : LONGUEUR D'UN ITC ARONDI AU MOT >
+DESFIN(ITC)
+
+          : TABLE DE CORRESPONDANCE #PORT - @ITC
+
+
+
+PORITC  WS      NPORT           : @ITC : 1 PAR PORT
+PORSTA  BS      NPORT           : ETAT DE LA PORTE
+
+
+
+                                : VALEURS DE PORSTA
+PORNTU  EQ      0               : PORT NON TURKEY ENTRANT
+PORTUR  EQ      1               : PORT TURKEY ENTRANT
+
+
+                  :  TABLE DES ITC
+
+        IF      NINTUR
+
+        REMARK % ICTUR : 1 GEN %
+        SEG     A.DATA
+
+ITCMAX  EQ      ITCLG*NINTUR    : TAILLE DU BUFFER DES ITC
+
+ITCFRE  WS      1               : pointeur sur premier itc libre
+ITCBUF  BS      ITCMAX          : zone d'implantation des ITC
+
+        ELSE
+ REMARK %** NOMBRE DE PORTE TURKEY : NINTUR NUL  **%
+        EI
+
+ITCEND  EQ      -1              : INDICATEUR DE FIN DE LISTE
+ITCOCC  EQ      0               : ITC OCCUPE
+
+SENLIB  BS      1               : INDICATEUR DE LIBERATION DEMANDEE
+TESTUC  BS      NPORT           : INDICATEUR DE MESSAGE EN COURS DANS TUC
+                                : R0 = 2 , C089 EN COURS
+                                : R0 = 1  , C08C EN COURS
+                                : R0 = 0  ON A RIEN RECU
+        
+
+
+
+
+:*********************************************************************************
+:*
+:*
+        SEG     A.DATA
+
+
+        BND     4
+ICT0SR  BC      0FF
+ICT0SC  BC      0
+        BS      $A 255
+
+
+:*******************************************************************
+:
+:
+:               MACROS UTILISEES POUR LE PARAMETRAGE TURKEY ENTRANT
+:
+:
+:*******************************************************************
+:
+:
+:*******************************************************************
+:
+:               CREGFA
+:
+:*******************************************************************
+:
+:AUTEUR ET DATE :
+:               DFO ET HDA LE 20/4/90
+:
+:TYPE :
+:       MACRO
+:
+:FONCTION: CREATION DE LA TABLE DES GFA.
+:
+:
+
+CREGFA  MACRO[
+
+        IF      PARICT          : SI PARICT > 0
+
+: GENERATION DES PARAMETRES ENTRES PAR DACSR
+:-------------------------------------------
+
+QGFAI   EQ      0
+        RE      CGFAI
+QGFAI   EQ      QGFAI+1
+        DGFAI|QGFAI|
+        ER
+ 
+: CREATION DE LA TABLE DES GFA 
+: ----------------------------
+
+        SEG     A.DATA
+        IF      NOGFAC  : SI NOGFAC = 1 , LE GROUPE COMMUN EST REFUSE
+NBGFA   EQ      CGFAI
+        ELSE
+NBGFA   EQ      CGFAI+1
+        EI
+
+DSYMUT(ITSMAX,EQ,GFALG*NBGFA)           : TAILLE DU BUFFER DES GFA
+        HS      0
+DSYMUT(GFATAB,BS,ITSMAX)                :RESERVATION DE LA MEMOIRE POUR
+                                        :LES GFA
+ 
+       EI      : FIN PARITC
+]
+:*****************************************************************************
+:
+:               TABLE DES GFA
+:
+:*****************************************************************************
+:
+:
+: STRUCTURE DES GFA
+
+        SEG     A.DATA
+SIZGNI  EQ      $A 2
+SIZGFA  EQ      $A 2
+SIZGNF  EQ      SIZGNI+SIZGFA
+
+
+DESDEB(TURG,A.DATA)
+DSYMUT(TURGSR,BS,1)
+DSYMUT(TURGSC,BS,1)
+DSYMUT(TURGNI,BS,SIZGNI)    : CODE INTERNATIONNAL OU NATIONAL DU GFA
+DSYMUT(TURGFA,BS,SIZGFA)                        : CODE DU GFA
+DSYMUT(GFALG,EQ,.)                              : LONGUEUR D'UN TURG
+DESFIN(TURG)
+
+:   *****  APPEL MACRO CREGFA *****
+:
+:
+        IF      PARICT
+        CREGFA          : CREATION DE LA TABLE DES GFA
+        EI
+
+
+
+
+
+ 
+:DEBGETXSC
+ 
+        :
+        :    GETXSC(SERVICE.COMP,<QUELSC>,INTO,<REG>)
+        :
+        :auteur et date:
+        :       LDe  LE 26/05/88
+        :modification :
+        :
+        :type:
+        :       MACRO
+        :
+        :fonction:
+        :       RETOURNE LA VALEUR DU CHAMP PARAMETRE DU SERVICE COMPLEMENTAIRE 
+        :       S'IL EST CODE SUR UNE LONGUEUR FIXE. POUR LES SERVICES 
+        :       COMPLEMENTAIRES CODES SUR UNE LONGUEUR VARIABLE, <REG> CONTIENT
+        :       L'ADRESSE DU CHAMP PARAMETRE CODE CONFORMEMENT A LA NORME X25 84.
+        :       DANS CE CAS, IL EST INTERDIT DE MODIFIER LE CONTENU DE LA ZONE 
+        :       POINTEE.
+        :
+        :
+        :cas d'exception:
+        :
+        :parametre:
+        :       <QUELSC>::= FASTSELECT
+        :       <REG>   ::= REGISTRE DIFFERENT DE R0 DESTINE A
+        :                   RECEVOIR LE RESULTAT
+        :               = TURSSR SI SELECTION RAPIDE NON DEMANDEE
+        :               = TURSRR SI SR AVEC RESTRICTION SUR LA REPONSE
+        :               = TURSRS SI SR SANS RESTRICTION SUR LA REPONSE
+        :
+        :symboles affectes:
+        :
+        :entree:
+        :
+        :sortie:
+        :       (R0)    =  0 SI SUCCES (VALEUR DANS REG)
+        :               = -1 SI ERREUR SYSTEME
+        :               = -2 SI CIRCUIT NON TURKEY ENTRANT OU NON
+        :                    ACCEPTE PAR ICTUR3.R05 OU PLUS
+        :                         
+        :modifie:
+        :       R0,R1,R2,R3
+        :
+        :utilise:
+        :       procedures :GSC1B
+        :
+        :temps moyen d'execution:
+        :
+        :remarque:
+        :
+        :
+GETXSC MACRO(SERVICE.COMP,QUELSC,INTO,REG)
+ 
+ 
+        [
+        IF     \SC`QUELSC & (SCREG-`REG)&`REG
+        IF .EQ.(SC`QUELSC,SCFAST)               : CHAMP SR
+ 
+        LR      R2,`REG
+        LHI     R3,ITCSR
+        LINLO(GSC1B,ERRGEN)             : PRENDRE L'OCTET DE SC
+        CLHI    R0,-2                   : VERIFICATION RETOUR
+        JE      GETXSF                  : SI ERREUR
+        LR      R0,R0                   :SI # 0 ET # -2
+        JN      ITCCRA,,                : ALORS CRASH
+        CLHI    R1,TURSR1               : SI INFERIEUR A 1ER CODE SR
+        JL      GETXSE                  : OU SUPERIEUR A
+        CLHI    R1,TURSRD               : DERNIER CODE
+        JGFS    GETXSE                  : ALORS ERREUR
+ 
+        LR      `REG,R1                 : SINON VALEUR SC SR
+        LIS     R0,0                    : CODE RETOUR OK
+        JFS     GETXSF
+ 
+GETXSE  LCS     R0,2                    : CODE RETOUR ERREUR
+ 
+GETXSF  EQ      .
+ 
+        KILL    GETXSE,GETXSF
+ 
+        ELSE
+        REMARK % GETXSC : SERVICE COMPLEMENTAIRE `QUELSC NON IMPLEMENTE %
+        EI
+ 
+        ELSE
+        REMARK % MAUVAIS PARAMETRAGE DANS GETXSC `QUELSC `REG %
+        EI
+        ]
+ 
+:FINGETXSC
+:DEBGETXUD
+ 
+        :
+        :    GETXUD(INTO,<P1>)
+        :
+        :auteur et date:
+        :       LDe  LE 26/05/88
+        :modification :
+        :
+        :type:
+        :       MACRO
+        :
+        :fonction:
+        :       TRANSMETTRE AU BODY LES DONNEES UTILISATEUR RECUES DANS
+        :       LE MESSAGE C089 (CALL USER DATA). LE CIRCUIT ASSOCIE A
+        :       LA PORTE COURANTE DOIT ETRE TURKEY ENTRANT ACCEPTE PAR
+        :       UN SOUS RESEAU D'UNE VERSION AU MOINS EGALE A ICTUR3.R05.
+        :
+        :cas d'exception:
+        :
+        :parametre:
+        :       <P1>    ::= <ZONESR> ! <REG>
+        :       <ZONESR>::= <identificateur de la zone sr receptrice des
+        :                    donnees>
+        :       <REG>   ::= <registre pointant la zone SR receptrice des
+        :                    donnees et different de R0>
+        :
+        :symboles affectes:
+        :
+        :entree:
+        :
+        :sortie:
+        :       (R0)    =  0 SI OPERATION REUSSIE
+        :               = -1 SI ERREUR SYSTEME
+        :               = -2 SI CIRCUIT NON TURKEY ENTRANT ...
+        :               = -3 SI ZONE SR TROP PETITE
+        :                         
+        :modifie:
+        :       R0,R1,R2,R3
+        :
+        :utilise:
+        :       procedures :
+        :       macro      :MOVEUT
+        :
+        :temps moyen d'execution:
+        :
+        :remarque:
+        :
+        :
+GETXUD MACRO(INTO,P1)
+ 
+ 
+        [
+        IF     .GE.(SCREG,P1)               : parametre registre
+        IF     P1
+        LR      R2,`P1
+        ELSE
+        REMARK % CODE NON GARANTI, REG 0 UTILISE DANS GETXUD %
+        EI
+        ELSE                    : identificateur zone SR
+        LA      R2,`P1,,
+        EI
+ 
+        PORTPR
+        LB      R0,PORSTA,R1,           : etat de la porte
+        CLHI    R0,PORTUR               : si porte non turkey ...
+        JN      GETXUE                  : sortie erreur
+        SLLS    R1,2                    : index de mot
+        L       R1,PORITC,R1,           : R1 <- @ ITC port
+        AHI     R1,ITCCUD               : R1 <- @ CUD port
+ 
+        MOVEUT(COPY,OF,SC,R1,INTO,SR,R2)
+ 
+        LR      R0,R0                   : test code retour
+        JE      GETXUF                  : si nul : OK
+ 
+        LCS     R0,3                    : zone SR trop petite
+        JFS     GETXUF
+ 
+GETXUE  LCS     R0,2                    : non turkey
+ 
+GETXUF  EQ      .
+        KILL    GETXUE,GETXUF
+ 
+ 
+        ]
+ 
+:FINGETXUD
+:DEBLIBITC
+ 
+        :
+        :    LIBITC(CAUSE_DIAG,IN,<REG>)
+        :
+        :auteur et date:
+        :       LDe  LE xx/xx/xx
+        :
+        :modification :
+        :
+        :type:
+        :       MACRO
+        :
+        :fonction:
+        :       APPELEE DANS ICTUR DANS LES CAS OU LA SELECTION RAPIDE
+        :       N'EST PAS DEMANDEE ET QUAND LE CIRCUIT NE DOIT PAS ETRZE
+        :       ACQUITE. CONSTRUIT UN MESSAGE DE LIBERATION AVEC LE
+        :       CHAMP CAUSE DIAGNOSTIC (2 OCTETS) FOURNI EN PARAMETRE <REG>.
+        :
+        :cas d'exception:
+        :
+        :parametre:
+        :       <REG>   ::= REGISTRE DIFFERENT DE R1 CONTENANT LA VALEUR
+        :                   DU CHAMP CAUSE DIAGNOSTIC DANS SON DEMI MOT
+        :                   DE POIDS FAIBLE.
+        :
+        :symboles affectes:
+        :
+        :entree:
+        :
+        :sortie:
+        :       (R0)    ::=  0 SI OPERATION REUSSIE
+        :               ::= -1 SI ERREUR SYSTEME
+        :               ::= -2 SI CIRCUIT NON TURKEY ENTRANT OU NON
+        :               ACCEPTE PAR ICTUR3.R05 OU VERSION SUPERIEURE
+        :                         
+        :modifie:
+        :       R0,R1,R2,R3
+        :
+        :utilise:
+        :
+        :temps moyen d'execution:
+        :
+        :remarque:
+        :       L'USAGE DE CETTE MACRO EST ACTUELLEMENT RESERVE AUX SEULS
+        :       CAS :
+        :
+        :
+LIBITC  MACRO(CAUSE.DIAG,IN,REG)
+ 
+ 
+        [
+        IF     (SCREG-`REG)&(`REG+1)
+ 
+        LR      R1,`REG
+        LIS     R2,0            : index nul
+        LHR     R3,R1           : r3 <- cause
+        SRLS    R3,8            : (1er octet)
+        LR      R3,R3           : si cause
+        JEFS    LIBIT1          :
+ 
+        STB     R3,CDPOS,,      : non nulle
+        AIS     R2,1
+        JFS     LIBIT2
+ 
+LIBIT1  STH     R3,CDPOS,,      : cause nulle, doublement des
+        AIS     R2,2            : zeros binaires
+ 
+LIBIT2  LBR     R3,R1           : champ diagnostic
+        JEFS    LIBIT3          : si
+ 
+        STB     R3,CDPOS,R2,    : non nul
+        AIS     R2,1
+        JFS     LIBIT4
+ 
+LIBIT3  STH     R3,CDPOS,R2,    : si nul, doublement des zeros binaires
+        AIS     R2,2
+ 
+LIBIT4  AIS     R2,2            : taille message = index + taille
+        STB     R2,MCLICD,,     : code massage (2 octets)
+ 
+        LIS     R1,1            : circuit
+        STB     R1,SENLIB,, : a liberer
+
+        LIS     R0,0            : CODE RETOUR OK
+ 
+        KILL    LIBIT1,LIBIT2,LIBIT3,LIBIT4
+ 
+        ELSE
+ 
+        REMARK % MAUVAIS PARAMETRAGE DE LIBITC `REG %
+        EI
+ 
+        ]
+ 
+:FINLIBITC
+
+:************************************************************************/
+:***************  MACRO ET PROCEDURES A USAGE INTERNE  ******************/
+:************************************************************************/
+
+:
+
+
+
+:************************************************************* 
+:
+:
+:       MACRO LIBSR
+: 
+:
+:*************************************************************
+:AUTEUR ET DATE :DFO    20/4/90
+:
+:TYPE:
+:       MACRO
+:
+:FONCTION : ENVOIE UNE LIBERATION  SI L'OPTION SELECTION RAPIDE EST NON
+:           VALIDE
+:
+:
+
+LIBSR   MACRO[
+
+        LHI     R1,TUICAU       : DANS R1 , ON CHARGE LA CAUSE*
+        STB     R1,ZCAUSE,,     : ON MET A JOUR LA CAUSE DANS LE MESSAGE
+        LHI     R1,TUIDIA       : DANS R1, ON CHARGE LE DIAG
+        STB     R1,ZDIAG,,      :ON MET A JOUR LE DIAG DANS LE
+
+                                : MESSAGE
+
+ 
+
+        SENDQQ(ALL,CHARS,FROM,MSIIX,TO,OUT,OF,MYSELF)
+        SENDQQ(ALL,CHARS,FROM,CLIPAR,TO,OUT,OF,MYSELF)
+        POSTET(PLACE,T,TT)
+
+]       : FIN MACRO LIBSR
+
+        
+:*************************************************************
+:
+:
+:       MACRO LIBGFA
+:
+:
+:*************************************************************
+:
+:AUTEUR ET DATE :DFO    LE 20/4/90
+:
+:TYPE:
+:       MACRO
+: 
+:FONCTION : ENVOIE UNE LIBERATION LORSQUE LE NUMERO DE GFA EST NON
+:           VALIDE
+:
+:
+
+ 
+LIBGFA MACRO[
+        LHI     R1,TGICAU       : DANS R1 , ON CHARGE LA CAUSE
+        STB     R1,ZCAUSE,,     : ON MET A JOUR LA CAUSE DANS LE MESSAGE
+        LHI     R1,TGIDIA       : DANS R1, ON CHARGE LE DIAG
+        STB     R1,ZDIAG,,      :ON MET A JOUR LE DIAG DANS LE
+                                : MESSAGE
+        SENDQQ(ALL,CHARS,FROM,MSIIX,TO,OUT,OF,MYSELF)
+        SENDQQ(ALL,CHARS,FROM,CLIPAR,TO,OUT,OF,MYSELF)
+        POSTET(PLACE,T,TT)
+]
+:************************************************************
+:
+:               MACRO IFSR
+:
+:************************************************************
+:
+:AUTEUR ET DATE :
+:               DFO             LE 20/4/90
+:TYPE :
+:       MACRO
+:
+:FONCTION : CONTROLE LE CHAMP SELECTION RAPIDE , POUR ACCEPTER OU NON
+:           LES APPELS ENTRANT.
+:
+:UTILISE :
+:
+:
+
+IFSR    MACRO(THEN,LABEL1,ELSE,LABEL2)[
+
+        GETXSC(SERVICE.COMP,FASTSELECT,DANS,R2)
+        LHI     R1,SROPT1       : CHARGEMENT DE L'OPTION 1 DE LA 
+                                : MACRO DACSR
+        CR      R1,R2           : CHAMP SELECTION RAPIDE
+        JE      `LABEL1         : SI = LE TRAITEMENT NORMAL CONTINUE
+        LHI     R1,SROPT2       : CHARGEMENT DE L'OPTION 2 DE LA
+                                : MACRO DACSR
+        CR      R1,R2           : CHAMP SELECTION RAPIDE
+        JE      `LABEL1         : SI = LE TRAITEMENT NORMAL CONTINUE
+        LHI     R1,SROPT3       : CHARGEMENT DE L'OPTION 3 DE LA
+                                : MACRO DACSR
+        CR      R1,R2           : CHAMP SELECTION RAPIDE
+        JE      `LABEL1
+        J       `LABEL2
+]       :FIN MACRO IFSR
+:
+:
+:*************************************************************
+:
+:
+:               MACRO IFGFA
+:
+:*************************************************************
+:
+:AUTEUR ET DATE :
+:               DFO     LE 20/4/90
+:
+:TYPE:
+:       MACRO
+:
+:FONCTION: CONTROLE LE CHAMP GFA ,POUR ACCEPTER OU NON LES APPELS ENTRANT
+:
+:UTILISE :
+:
+:MODIFIE : R1,R2,R3,R6
+:
+
+IFGFA   MACRO(THEN,LABEL1,ELSE,LABEL2)[
+        AIS     R3,4
+        LIS     R6,0            : COMP
+GFACP
+        CHI     R6,NBGFA
+        JGE     `LABEL2
+        LHI     R2,GFALG
+        MHR     R2,R6
+        LA      R2,(GFATAB+1),R2,
+        COMPUT(SC,R2,WITH,SC,R3,IF,EQUAL,THEN,`LABEL1)
+        AIS     R6,1
+        J       GFACP
+]       : FIN MACRO IFGFA
+
+
+
+
+        
+
+:DEBGADITC
+ 
+        :
+        :    GADITC(INTO,<REG>)
+        :
+        :auteur et date:
+        :       LDe  LE 25/05/88
+        :modification :
+        :
+        :type:
+        :       MACRO
+        :
+        :fonction:
+        :
+        :
+        :cas d'exception:
+        :
+        :parametre:
+        :       <REG> ::= REGISTRE DESTINE A RECEVOIR L'ADRESSE DE L'ITC
+        :           DOIT ETRE DIFFERENT DE R0
+        :
+        :symboles affectes:
+        :
+        :entree:
+        :
+        :sortie:
+        :       (R0)    > 0 SI OPERATION REUSSIE = ADRESSE ITC
+        :               = -1 SI ERREUR SYSTEME
+        :               = -2 SI NO TURKEY ENTRANT
+        :                         
+        :modifie:
+        :       R0,R1,R2
+        :
+        :utilise:
+        :
+        :temps moyen d'execution:
+        :
+        :remarque:
+        :
+        :
+GADITC  MACRO(INTO,REG)
+ 
+ 
+        [
+        IF     (SCREG-`REG)&`REG
+        LCS     R0,2                    : prepa reponse erreur
+        PORTPR
+        LB      R2,PORSTA,R1,           : R2 <- etat de la porte
+        CLHI    R2,PORTUR
+        JNFS    GADITF                  : si non turkey entrant : erreur
+        SLLS    R1,2                    : pointeur de mot
+        L       R0,PORITC,R1,           :R0 <- adresse ITC
+ 
+GADITF  LR      `REG,R0
+        KILL    GADITF
+ 
+        ELSE
+        REMARK % MAUVAIS PARAMETRAGE DE GAITC %
+        EI
+ 
+        ]
+ 
+:FINGADITC
+	SEG     A.BCODE
+ 
+:DEBGSC1B
+ 
+        :
+        :       > GSC1B <
+        :          
+        :
+        :auteur et date:
+        :       LDe  LE 26/05/88
+        :
+        :modification:
+        :
+        :
+        :type:
+        :       PROCEDURE
+        :
+        :fonction:
+        :       RETOURNE L'OCTET DU SERVICE COMPLEMENTAIRE DEFINI DANS
+        :       R3 DANS R1. AUCUN CONTROLE N'EST EFFECTUE POUR SAVOIR
+        :       SI LE DEPLACEMENT CONTENU DANS R3 CORRESPOND BIEN A UN
+        :       SERVICE COMPLEMENTAIRE CODE SUR UN OCTET.
+        :
+        :cas d'exception:
+        :
+        :parametre:
+        :
+        :symboles affectes:
+        :
+        :entree:
+        :       (R3) = DEPLACEMENT DU S.C. PAR RAPPART AU DEBUT DE L'ITC
+        :
+        :sortie:
+        :       (R0) =  0 SI OK (VALEUR DANS R1)
+        :            = -2 SI CIRCUIT DE LA PORTE N'EST PAS TURKEY
+        :               ENTRANT OU NON ACCEPTE PAR UN SOUS RESEAU DE VERSION
+        :               AU MOINS ICTUR3.R05
+        :
+        :       (R1) =  OCTET DE S.C. EN POIDS FAIBLE SI SUCCES
+        :
+        :modifie:
+        :       R0, R1
+        :
+        :utilise:
+        :
+        :
+        :remarque:
+        :
+        :
+        PROLO(GSC1B)
+ 
+        PORTPR
+        LCS     R0,2                    : prepa reponse a erreur
+        LB      R2,PORSTA,R1,           : prend etat de la porte
+        CLHI    R2,PORNTU               : si po rte non TURKEY ...
+        JE      GSC1BF                  : cas erreur
+        SLLS    R1,2                    : fullword index
+        L       R2,PORITC,R1,           : @ ITC porte
+        LB      R1,,R2,R3               : octet de SC
+        LIS     R0,0                    : reponse OK
+ 
+GSC1BF  PUTLO(R0,2)                     : Fin
+        EPILO(GSC1B)
+ 
+:FINGSC1B
+        SEG     A.BCODE
+
+:DEBGEITC
+ 
+        :       > GEITC <
+        :
+        :LDE    03/05/88
+        :
+        :type: PROCEDURE
+        :
+        :fonction: ALLOUE UN OBJET ITC A LA PORTE COURANTE ET
+        :          L'INITIALISE
+        :
+        :cas d'exception:
+        :
+        :parametre:
+        :
+        :symboles affectes:
+        :
+        :entree:
+        :
+        :sortie:
+        :
+        :modifie:
+        :
+        :utilise: 
+        :
+        :remarque: SI PLUS D'OBJET ALORS CRASH (ITCCRA)
+ 
+ 
+ 
+        PROLO(GEITC)
+        L       R1,ITCFRE,,             :R1 <- @ DU PREMIER ITC LIBRE
+        CI      R1,ITCEND
+        JE      ITCCRA,,        :PAS DE ITC LIBRE
+                                : MAUVAISE VALEUR DE NINTUR
+        L       R2,0,R1         :R2 <- LIEN DU PREMIER ITC LIBRE
+        CLHI    R2,ITCEND               :LIEN POINTE VERS UN ITC ?
+        JE      GEITCF          :NON
+                                :VERIFICATION DE LA CONSISTENCE DU LIEN
+        LI      R0,-ITCBUF,R2           :LIEN APPARTIENT AU DOMAINE DEFINI
+                                        :(R0) <- (R1) - ITC1ST
+        JL      ITCCRA,,
+        CLHI    R0,ITCMAX
+        JGE     ITCCRA,,
+GEITCF
+        ST      R2,ITCFRE,,             :ENLEVER LE PREMIER ITC LIBRE DE LA LISTE
+        LHI     R0,ITCOCC
+        ST      R0,0,R1,                :DECLARER CE ITC OCCUPE
+        LHL     R2,PORT,,               : NO DE PORTE COURANTE
+        LHI     R0,PORTUR               : PORTE TURKEY
+        STB     R0,PORSTA,R2,           : ENTRANTE
+        SLLS    R2,2                    : INDEX DE MOT
+        ST      R1,PORITC,R2,           : ALLOUER L'ITC A LA PORTE
+ 
+        LIS     R2,0                    : INITIALISATION
+        STB     R2,ITCCUD,R1,           : RAZ LONGUEUR ATTENDUE DES C.U.D.
+        STB     R2,ITCUDL,R1,           : RAZ LONGUEUR COURANTE DES C.U.D.
+        LHI     R2,TURSSR               : SANS SELECTION RAPIDE
+        STB     R2,ITCSR,R1,            :
+        EPILO(GEITC)
+ 
+ 
+:FINGEITC
+        SEG     A.BCODE
+        
+RAZITC MACRO[
+        LINLO(RZITC,ERRGEN)
+]
+:DEBRZITC
+        :       >RZITC<
+        :
+        :DF     08/02/89
+        :
+        :TYPE:PROCEDURE
+        :
+
+        :FONCTION : INITIALISATION DE L"ITC COURANT : TOUTES LES ZONES 
+        :                               D'INFORMATION DU CONTEXTE SONT MISES
+        :                       A "BLANC".
+        :
+        :CAS D'EXCEPTION:
+        :
+        :PARAMETRE:
+        :
+        :SYMBOLES AFFECTES:
+        :
+        :ENTREE:
+        :
+        :SORTIE:
+        :
+        :MODIFIE:
+        :
+        :UTILISE:
+        :
+        :REMARQUE:
+
+
+        PROLO(RZITC)
+        GADITC(INTO,R1)         : R1 REGISTRE DESTINE A RECEVOIR L'ADRESSE
+                                       : DE L'ITC
+        JLE     ITCCRA,,
+        LIS     R2,0
+        STB     R2,ITCCUD,R1,           : RAZ LONGUEUR ATTENDUE DES C.U.D.
+        STB     R2,ITCUDL,R1,           : RAZ LONGUEUR COURANTE DES C.U.D.
+        LHI     R2,TURSSR       :SANS SELECTION RAPIDE
+        STB     R2,ITCSR,R1     :
+        EPILO(RZITC)
+
+:FINRZITC
+        SEG     A.BCODE
+
+:DEBINITC
+ 
+        :       > INITC <
+        :
+        :LDE    03/05/88
+        :
+        :type: PROCEDURE
+        :
+        :fonction:INITIALISE LE POOL D'ITC, LE VECTEUR D'ETAT DES PORTES
+        :         ET LE VECTEUR CORRESPONDANCE PORTE-ITC
+        :
+        :cas d'exception:
+        :
+        :parametre:
+        :
+        :symboles affectes:
+        :
+        :entree:
+        :
+        :sortie:
+        :
+        :modifie:
+        :
+        :utilise: 
+        :
+        :remarque: CRASH EN LIXERR SI CREATION IMPOSSIBLE
+        :
+ 
+ 
+ 
+        PROLO(INITC)
+                                :CREATION DE LA LISTE DE ITC
+        LHI     R0,ITCEND               :R0 <- MARQUE DERNIER ITC
+        LA      R1,ITCBUF+ITCMAX-ITCLG,,            :R1 <- @ DU DERNIER ITC
+        LHI     R2,NINTUR-1
+        JL      LIXERR,,
+INITCL
+        ST      R0,0,R1                 :ETABLIR LE LIEN ENTRE UN ITC ET SON SUCCESSEUR
+        LR      R0,R1                   :R0 <- @ DU ITC NON LIE
+        SHI     R1,ITCLG
+        SIS     R2,1
+        JGE     INITCL          
+        ST      R0,ITCFRE,,             :ITCFRE <- @ DU PREMIER ITC LIBRE
+        LIS     R3,0            : ADRESSE NULLE
+        LHI     R0,PORNTU       : PORTE NON TURKEY ...
+        LHI     R1,NPORT-1      :
+
+        LR      R2,R1
+        SLLS    R2,2            : INDEX DE MOT
+        
+INITCB  STB     R0,PORSTA,R1,   : PORTE NON TURKEY
+        ST      R3,PORITC,R2,   : PAS D'ITC
+
+        SIS     R2,4            : PORTIC PORT SUIVANTE
+        SIS     R1,1            : ETAT PORT SUIVANT
+        JGE     INITCB
+
+        EPILO(INITC)            :RETURN
+ 
+ 
+:FININITC
+	SEG     A.BCODE
+ 
+:DEBFILSC
+ 
+        :
+        :       > FILSC <
+        :          
+        :
+        :auteur et date:
+        :       LDe  LE 25/05/88
+        :
+        :modification:
+        :
+        :
+        :type:
+        :       PROCEDURE
+        :
+        :fonction:
+        :       REMPLIT LES CHAMPS SERVICE COMPLEMENTAIRE DE L'ITC DE LA
+        :       PORTE COURANTE AVEC LE CONTENU DU MESSAGE FACILITY FIELD
+        :       (C08D) PRESENT DANS UNE ZONE SC POINTEE PAR R4.
+        :
+        :
+        :cas d'exception:
+        :
+        :parametre:
+        :
+        :symboles affectes:
+        :
+        :entree:
+        :       (R4) = ADRESSE D'UNE ZONE SC CONTENANT LES SERVICES COMP
+        :
+        :sortie:
+        :
+        :
+        :modifie:
+        :
+        :
+        :utilise:
+        :
+        :
+        :remarque:
+        :
+        :
+        PROLO(FILSC)
+ 
+        PORTPR
+        SLLS    R1,2                    : INDEX DE MOT
+        L       R7,PORITC,R1,           : ADRESSE DE ITC PORT COURANT
+        LIS     R3,1                    : index a 1
+        LB      R5,,R4,                 : lg. de la zone SC emettrice
+        SIS     R5,2                    :
+        JL      FILFB
+FIL1ER
+        LB      R1,,R4,R3               : code du service complementaire
+        LR      R6,R1                   : sauvergarde S.C.
+        NHI     R1,0C0                  : masque pour bits 7  et 8
+        JE      FIL1BY                  : si nuls : longueur 1
+        CLHI    R1,80                   : comparer avec 1000 0000b
+        JE      FIL3BY                  : si = alors lg 3 octets
+        JL      FIL2BY                  : si < alors 0100 0000 -> lg=2
+ 
+        : sinon : 1100 0000 donc longueur variable.
+                : Pour l'instant inutilise, juste incrementer la lg
+        LB      R6,1,R4,R3      : lg variable dans l'octet suivant
+        AR      R3,R6           : mise a jour de
+        AIS     R3,2            : l'index
+        J       FILFB
+ 
+FIL1BY  CLHI    R6,1                    : est-ce selection rapide ou
+        JN      FIL1B1                  : taxation au demande ?
+        LB      R1,1,R4,R3              : octet de parametre
+        NHI     R1,0C0                  : masque de selection rapide
+        LHI     R2,TURSSR               : prepa non selection rapide
+        CLHI    R1,80                   :
+        JL      FIL1B1                  : si bit 8 = 0, pas de SR
+        JE      FILSRS                  : S.R. sans restriction
+        LHI     R2,TURSRR               : S.R. avec restriction
+        JFS     FILSRP
+FILSRS  LHI     R2,TURSRS
+FILSRP  STB     R2,ITCSR,R7,
+FIL1B1  AIS     R3,2                    : increment index
+        J       FILFB
+ 
+FIL2BY  AIS     R3,3                    : section parametre sur
+        JFS     FILFB                   : 2 octets
+ 
+FIL3BY  AIS     R3,4                    : parametre sur 3 octets
+ 
+FILFB   CR      R3,R5                   : controle longueur residuelle
+        JLE     FIL1ER                  : au moins 2 octets
+ 
+        EPILO(FILSC)
+ 
+:FINFILSC
+        SEG     A.BCODE
+
+:DEBFRITC
+ 
+        :       > FRITC <
+        :
+        :LDE    03/05/88
+        :
+        :type: PROCEDURE
+        :
+        :fonction: LIBERER L'OBJET ITC ALLOUE A LA PORTE COURANTE
+        :          ET L'INITIALISER
+        :
+        :cas d'exception: 
+        :
+        :parametre:
+        :
+        :symboles affectes:
+        :
+        :entree:
+        :
+        :
+        :sortie:
+        :
+        :modifie:
+        :
+        :utilise: 
+        :
+        :remarque: SI LIBERATION NON OK ALORS CRASH LIXERR
+ 
+ 
+ 
+        PROLO(FRITC)
+ 
+        PORTPR                          : R1 <- PORTE COURANTE
+        LB      R2,PORSTA,R1,           : SI PORTE
+        CI      R2,PORTUR               : NON TURKEY ENTRANTE ALORS
+        JN      FRITCF                  : RIEN A LIBERER
+ 
+        LHI     R2,PORNTU               : REMETTRE PORTE A
+        STB     R2,PORSTA,R1,           : NON TURKEY ENTRANTE
+ 
+        SLLS    R1,2                    : INDEX DE MOT
+        L       R1,PORITC,R1,          : R1 = ADRESSE ITC A LIBERER
+ 
+                                :VERIFICATION DE LA CONSISTENCE DE L'@
+        LI      R0,-ITCBUF,R1           :L'@ APPARTIENT AU DOMAINE DEFINI
+                                        :(R0) <- (R1) - ITC1ST
+        JL      LIXERR,,        :CRASH
+        CLHI    R0,ITCMAX
+        JG      LIXERR,,        :CRASH
+        LIS     R3,TURSSR
+        STB     R3,ITCSR,R1,    : RAZ CHAMP SR
+        LIS     R3,0            : RAZ LG CUD
+        STB     R3,ITCCUD,R1,
+        L       R0,0,R1,        :VERIFICATION DE L'ETAT DU ITC
+        CI      R0,ITCOCC
+        JN      LIXERR,,          :CRASH
+        L       R0,ITCFRE,,             :INSERTION DU ITC
+        ST      R0,0,R1,        :CHAINAGE AVEC L'EX PREMIER ITC LIBRE
+        ST      R1,ITCFRE,,     :LA TETE DE LISTE (ITCFRE) POINTE VERS LE ITC A INSERER
+FRITCF
+        EPILO(FRITC)
+ 
+ 
+:FINFRITC
+
+
+
+:
+:                   > CATUR <
+:
+:auteur et date:
+:       CC. le 26/12/85
+:
+:type:
+:       procedure
+:
+:fonction:
+:       Concatenation d'une zone SC "S1" avec le contenu d'une zone SC "S2"
+:       avec suppression des doubles zeros  "00"00 --> "00
+:
+:cas d'exception:
+:
+:parametres:
+:
+:symboles affectes:
+:
+:entrees:
+:       R1 : lg. de la zone SC "S2" emettrice.
+:       R2 : lg. de la zone SC "S1" receptrice.
+:       R3 : @ de la zone SC "S1" receptrice
+:       R4 : @ de la zone SC "S2" emettrice a concatener avec "S1".
+:       R5 : lg. maximum de la zone SC receptrice
+:       R7 : link register
+:
+:sortie:
+:       R2 : lg. de la zone SC "S1" receptrice apres concatenation.
+:       R3 : @   de la zone SC "S1" receptrice.
+:
+:modifie:
+:      R0,R1,R2,R4
+:
+:utilise
+:
+:temps moyen d'execution
+:
+:remarque:
+:
+:
+        SEG     A.PROG
+
+CATUR   HS      0
+        LR      R1,R1
+        JLER    R7
+
+CATURP  AIS     R4,1
+        LB      R0,,R4
+        JNFS    CATURB
+        SIS     R1,1
+        AIS     R4,1
+
+CATURB  AIS     R2,1
+        CR      R2,R5
+        JGR     R7
+        STB     R0,,R3,R2
+        SIS     R1,1
+        JG      CATURP
+        STB     R2,,R3
+        J       4,R7
+
+
+:************************************ T U 0 **************************************
+:*
+        SUBTTL  STATE TU0       : ETAT DE CONNEXION EN MODE IIX - CIRCUIT ENTRANT
+
+                                : ATTENTE D'UN SIIX
+                                :     NEGOCIATION DU DIALECT A UTILISER
+
+:DEBTU0
+
+                                        :*****************************************
+
+        BEGET(T,U0)
+        ISISET(MSG,SIIMBK)              : MBREAK SUR DETACH + ZAP + SIIX
+        TIMET(OF,0,SECONDES)            : TIME-OUT
+        DATAET(PHASE,CIX,PROTOCOL,TPAR,ATTRIBUT,NULMBK)
+
+
+                                        :*****************************************
+
+        CASEET(OF,DATA)                 : SI DATA ALORS ERREUR DE PROTOCOLE
+        LIS     R0,ERRPRO
+
+        CASEET(OF,NEEDLE)               : SI NEEDLE
+        CASEET(OF,MORE)                 : SI TOO-MANY
+        CASEET(OF,FLUSH)                : SI FLUSHING
+        CASEET(OF,TOUT)                 : SI TIMOUT
+        CASEET(OF,ZERO)                 : SI MESSAGE PORTE 0
+        CASEET(OF,SYS)                  : SI MESSAGE SYS
+        CASEET(OF,NOR)                  : SI MESSAGE NOR
+TU0CTL                                  : ALORS
+        CTLTUR(PLACE,T,U0,CODE,R0)      :        ** TRAITEMENT COUPURES **
+
+        CLEAQF(INPUT,OF,MYSELF)         : CLEAR DE LA FILE INPUT
+        CLEAXQ(QUEUE,SYS,OF,MYSELF)     : CLEAR DE LA FILE SYS
+        CLEAXQ(QUEUE,NOR,OF,MYSELF)     : CLEAR DE LA FILE NOR
+
+        PORTPR                          : LIBERATION DE LA PORTE COURANTE
+        LIBPMC
+                                        : ENVOI D'UN ZAP SUR SA PROPRE PORTE
+        SENDQQ(ALL,CHARS,FROM,MZAP,TO,OUTPUT,OF,MYSELF)
+        POSTET(PLACE,D,00)              : PASSAGE A LA PLACE D00
+
+
+                                        : FINSI
+
+                                        :*****************************************
+
+        CASEET(OF,ISIS)                 : SI MESSAGE ISIS
+        CLHIMC(R0,SIIX,TU0IST)          :     SI SIIX
+                                        :     ALORS SAUT (TRAITEMENT RECEPTION SIIX)
+        J       TU0CTL                  :     SINON SAUT (TRAITEMENT COUPURES)
+                                        :     FINSI
+                                        : FINSI
+
+                                        :------------------------------------------
+TU0IST                                  :  ** TRAITEMENT RECEPTION SIIX **
+        FLUSQQ(ALL,CHARS,FROM,INPUT,OF,MYSELF)                          
+        LXCALL(INTO,R2,XA1,OF,CALLING,PACKET)
+        LIS     R0,0
+        STB     R0,,R2
+        POSTET(PLACE,T,U2)              : PASSAGE A LA PLACE TU2
+                                        :
+
+:                                       :=======================================
+        ENDET                           : RETOUR AU DISPATCHER.
+                                        :=======================================
+:FINTU0
+:*
+:********************************************************************************
+:*
+:*
+:************************************ T U 2 **************************************
+:*
+        SUBTTL  STATE   TU2     : ETAT DE CONNEXION EN MODE IIX - CIRCUIT ENTRANT
+
+                                : ATTENTE DU SELECT DIALECT RESPONSE
+                                : SI RECEPTION ALORS PASSAGE EN TU3
+:DEBTU2
+
+
+                                        :*****************************************
+
+        BEGET(T,U2)
+        ISISET(MSG,ZAPMBK)              :MBREAK SUR DETACH + ZAP
+        TIMET(OF,60,SECONDES)           :TIME-OUT
+        DATAET(PHASE,CIX,PROTOCOL,TPAR,ATTRIBUT,NULMBK)
+
+
+                                        :*****************************************
+
+        CASEET(OF,ISIS)                 : SI MESSAGE ISIS
+        CASEET(OF,NEEDLE)               : SI NEEDLE
+        CASEET(OF,MORE)                 : SI TOO-MANY
+        CASEET(OF,FLUSH)                : SI FLUSHING
+        CASEET(OF,TOUT)                 : SI TIMOUT
+        CASEET(OF,ZERO)                 : SI MESSAGE PORTE 0
+        CASEET(OF,SYS)                  : SI MESSAGE SYS
+        CASEET(OF,NOR)                  : SI MESSAGE NOR
+TU2CTL                                  : ALORS
+        CTLTUR(PLACE,T,U2,CODE,R0)      :        ** TRAITEMENT COUPURES **
+
+        CLEAQF(INPUT,OF,MYSELF)         : CLEAR DE LA FILE INPUT
+        CLEAXQ(QUEUE,SYS,OF,MYSELF)     : CLEAR DE LA FILE SYS
+        CLEAXQ(QUEUE,NOR,OF,MYSELF)     : CLEAR DE LA FILE NOR
+
+        PORTPR                          : LIBERATION DE LA PORTE COURANTE
+        LIBPMC
+                                        : ENVOI D'UN ZAP SUR SA PROPRE PORTE
+        SENDQQ(ALL,CHARS,FROM,MZAP,TO,OUTPUT,OF,MYSELF)
+        POSTET(PLACE,D,00)              : PASSAGE A LA PLACE D00
+
+                                        : FINSI
+
+                                        :****************************************
+                                        :
+        CASEET(OF,DATA)                 : SI MESSAGE DE DONNEES
+                                        : ALORS
+        RECVQQ(ALL,CHARS,INTO,ICT0SR,FROM,INP,OF,MYSELF)
+        LH      R2,ICT0SC+DCODE,,
+        CHI     R2,CSDREP               :    MESSAGE RECU = SELECT DIALECT REP ?
+        JE      TU2D1                   :     SI OUI ALORS SAUT TU2D1
+:       CHI     R2,CXA1                 :     SI NON MESSAGE RECU = CALLED ADDRESS ?
+:       JE      TU2D3                   :     SI OUI ALORS SAUT TU3D1
+        LIS     R0,ERRPRO               :     SI NON ALORS ERREUR DE PROTOCOLE
+        J       TU2CTL                  :            SAUT (TRAITEMENT COUPURES)
+
+                                        :* * * * * * * * * * * * * * * * * * * *
+                                        :si evolution alors il faudra verifier
+                                        :la compatibilite des autres dialects
+                                        :* * * * * * * * * * * * * * * * * * * *
+TU2D1   LH      R2,ICT0SC+DDIAL,,       :       RECHERCHE DU 1ER CODE DIALECT
+        CHI     R2,VALTUR               :       DIALECT RECU = TURKEY ?
+        JE      TU2D2                   :       SI OUI ALORS SAUT EN TU2D2
+        LIS     R0,ERRDIA               :       SI NON ALORS DIALECT INCOMPATIBLE
+        J       TU2CTL                  :               SAUT (TRAITEMENT COUPURES)
+
+TU2D2   POSTET(PLACE,T,U3)              :     SI OUI ALORS PASSAGE A LA PLACE TU3
+
+                                        :     FINSI
+                                        : FINSI
+                                        :
+:TU2D3
+:        LHI     R5,PIBXLG               :R5 - LG MAX DE LA ZONE SC RECEPTRICE
+:        LXCALL(INTO,R3,XA1,OF,CALLING,PACKET)
+:                                        :R3 - @ DE LA ZONE RECEPTRICE PIBXA1
+:        LA      R4,ICT0SC,,             :R4 - @ DE LA ZONE EMETTRICE  ICT0SC
+:        LB      R1,,R4                  :R1 - LG DE LA ZONE EMETTRICE ICT0SC
+:        LB      R2,,R3                  :R2 - LG DE LA ZONE RECEPTRICE PIBXA1
+:                                        :    RECEPTION DE LA 1ERE PARTIE DU MSG?
+:        JN      TU2D4                   :    SI OUI --> SAUT EN TU2D4
+:
+:        SIS     R1,2                    :    SI NON SUPPRESSION DU CODE IIX
+:        AIS     R4,2
+:
+:        JAL     R7,CATUR                :    CONCATENATION DU MESSAGE
+:        J       TU2D4
+:
+:        CHI     R2,LGCAD                :    MESSAGE COMPLET?
+:        JL      TU2D5                   :    SI NON --> PASSAGE EN TU6
+:        POSTET(PLACE,T,U7)              :    SI OUI --> PASSAGE EN TU7
+:
+:TU2D5   POSTET(PLACE,T,U6)
+:
+:TU2D4
+:        LIS     R0,ERRXA1               :   ERREUR DU MSG "CALLED ADDRESS" 
+:        J       TU2CTL
+                                        :=======================================
+        ENDET                           : RETOUR AU DISPATCHER.
+                                        :=======================================
+:FINTU2
+
+:*
+:*********************************************************************************
+:*
+
+
+
+:************************************ T U 3 **************************************
+:*
+
+        SUBTTL  STATE TU3       : ETAT DE CONNEXION IIX - CIRCUIT ENTRANT
+
+                                : ATTENTE D'UN SIIX
+                                :     TURKEY LEVEL NEGOCIATION
+
+:DEBTU3
+
+                                        :*****************************************
+
+        BEGET(T,U3)
+        ISISET(MSG,SIIMBK)              : MBREAK SUR DETACH + ZAP+ SIIX
+        TIMET(OF,60,SECONDES)           : TIME-OUT
+        DATAET(PHASE,CIX,PROTOCOL,TPAR,ATTRIBUT,NULMBK)
+
+
+                                        :*****************************************
+
+
+        CASEET(OF,NEEDLE)               : SI NEEDLE
+        CASEET(OF,MORE)                 : SI TOO-MANY
+        CASEET(OF,FLUSH)                : SI FLUSHING
+        CASEET(OF,TOUT)                 : SI TIMOUT
+        CASEET(OF,ZERO)                 : SI MESSAGE PORTE 0
+        CASEET(OF,SYS)                  : SI MESSAGE SYS
+        CASEET(OF,NOR)                  : SI MESSAGE NOR
+TU3CTL                                  : ALORS
+        CTLTUR(PLACE,T,U3,CODE,R0)      :        ** TRAITEMENT COUPURES **
+
+        CLEAQF(INPUT,OF,MYSELF)         : CLEAR DE LA FILE INPUT
+        CLEAXQ(QUEUE,SYS,OF,MYSELF)     : CLEAR DE LA FILE SYS
+        CLEAXQ(QUEUE,NOR,OF,MYSELF)     : CLEAR DE LA FILE NOR
+
+        PORTPR                          : LIBERATION DE LA PORTE COURANTE
+        LIBPMC
+                                        : ENVOI D'UN ZAP SUR SA PROPRE PORTE
+        SENDQQ(ALL,CHARS,FROM,MZAP,TO,OUTPUT,OF,MYSELF)
+        POSTET(PLACE,D,00)              : PASSAGE A LA PLACE D00
+
+                                        : FINSI
+
+                                        :****************************************
+        CASEET(OF,DATA)                 : SI MESSAGE DATA
+                                        : ALORS FLUSH (CAS DE C.R)
+        FLUSQQ(ALL,CHARS,FROM,INPUT,OF,MYSELF)  
+        POSTET(PLACE,T,U3) 
+                                        : FINSI
+
+                                        :*****************************************
+
+        CASEET(OF,ISIS)                 : SI MESSAGE ISIS
+        CLHIMC(R0,SIIX,TU3IST)          :    SI SIIX
+                                        :    ALORS SAUT (TRAITEMENT RECEPTION SIIX)
+        J       TU3CTL                  :    SINON SAUT (TRAITEMENT COUPURES)
+                                        :    FINSI
+                                        : FINSI
+
+
+                                        :-----------------------------------------
+TU3IST                                  :  ** TRAITEMENT RECEPTION SIIX **
+
+        FLUSQQ(ALL,CHARS,FROM,INPUT,OF,MYSELF)                          
+        POSTET(PLACE,T,U4)              : PASSAGE A LA PLACE TU4
+
+
+                                        :=======================================
+        ENDET                           : RETOUR AU DISPATCHER.
+                                        :=======================================
+:FINTU3
+
+:************************************ T U 4 **************************************
+:*
+
+        SUBTTL  STATE TU4       : ETAT DE CONNEXION IIX - CIRCUIT ENTRANT
+
+                                : ATTENTE D'UN TURKEY LEVEL MSG
+
+:DEBTU4
+
+                                        :*****************************************
+
+        BEGET(T,U4)
+        ISISET(MSG,ZAPMBK)              : MBREAK SUR DETACH + ZAP
+        TIMET(OF,60,SECONDES)           : TIME-OUT
+        DATAET(PHASE,CIX,PROTOCOL,TPAR,ATTRIBUT,NULMBK)
+
+
+                                        :*****************************************
+
+        CASEET(OF,ISIS)                 : SI MESSAGE ISIS
+        CASEET(OF,NEEDLE)               : SI NEEDLE
+        CASEET(OF,MORE)                 : SI TOO-MANY
+        CASEET(OF,FLUSH)                : SI FLUSHING
+        CASEET(OF,TOUT)                 : SI TIMOUT
+        CASEET(OF,ZERO)                 : SI MESSAGE PORTE 0
+        CASEET(OF,SYS)                  : SI MESSAGE SYS
+        CASEET(OF,NOR)                  : SI MESSAGE NOR
+TU4CTL                                  : ALORS
+        CTLTUR(PLACE,T,U4,CODE,R0)      :        ** TRAITEMENT COUPURES **
+
+        CLEAQF(INPUT,OF,MYSELF)         : CLEAR DE LA FILE INPUT
+        CLEAXQ(QUEUE,SYS,OF,MYSELF)     : CLEAR DE LA FILE SYS
+        CLEAXQ(QUEUE,NOR,OF,MYSELF)     : CLEAR DE LA FILE NOR
+
+        PORTPR                          : LIBERATION DE LA PORTE COURANTE
+        LIBPMC
+                                        : ENVOI D'UN ZAP SUR SA PROPRE PORTE
+        SENDQQ(ALL,CHARS,FROM,MZAP,TO,OUTPUT,OF,MYSELF)
+        POSTET(PLACE,D,00)              : PASSAGE A LA PLACE D00
+
+                                        : FINSI
+
+                                        :***************************************
+
+        CASEET(OF,DATA)                 : SI MESSAGE DE DONNEES
+                                        : ALORS
+        RECVQQ(ALL,CHARS,INTO,ICT0SR,FROM,INP,OF,MYSELF)
+        LH      R2,ICT0SC+DCODE,,
+        CHI     R2,CTURL                :     MESSAGE RECU = TURKEY LEVEL MSG ?
+        JE      TU4D1                   :       SI OUI SAUT TU4D1
+        LIS     R0,ERRPRO               :       SI NON ERREUR DE PROTOCOLE
+        J       TU4CTL                  :              SAUT (TRAITEMENT COUPURES)
+
+TU4D1
+        LB      R2,ICT0SC+DLEVEL,,      :        RECHERCHE DU NIVEAU DE DIALECT
+        CHI     R2,VALLEV               :        PUIS COMPARAISON
+        JGE     TU4D2                   :        SI OUI ALORS SAUT EN TU4D2
+        LIS     R0,ERRLEV               :        SI NON NIVEAU DIALECT INCOMPATIBLE
+        J       TU4CTL                  :               SAUT (TRAITEMENT COUPURES)
+
+TU4D2
+                                        :       SI OUI ENVOI DES MESSAGES:
+
+        SENDQQ(ALL,CHARS,FROM,MSIIX,TO,OUT,OF,MYSELF)   :SENT UIIX
+        SENDQQ(ALL,CHARS,FROM,MTURL,TO,OUT,OF,MYSELF)   :SEND TURKEY LEVEL MSG
+
+        POSTET(PLACE,T,U5)              :       PASSAGE A LA PLACE TU5
+                                        :       FINSI
+                                        : FINSI
+
+                                        :
+
+                                        :=======================================
+        ENDET                           : RETOUR AU DISPATCHER.
+                                        :=======================================
+:FINTU4
+
+:*
+:***********************************************************************************
+:*
+
+:************************************ T U 5 **************************************
+:*
+
+        SUBTTL  STATE TU5       : ETAT DE CONNEXION IIX - CIRCUIT ENTRANT
+
+                                : ATTENTE D'UN SIIX
+                                :     CALL REQUEST SEQUENCE EN IIX-TURKEY
+
+:DEBTU5
+
+                                        :*****************************************
+
+        BEGET(T,U5)
+        ISISET(MSG,SIIMBK)              : MBREAK SUR DETACH + ZAP + SIIX
+        TIMET(OF,0,SECONDES)           : TIME-OUT
+        DATAET(PHASE,CIX,PROTOCOL,TPAR,ATTRIBUT,NULMBK)
+
+
+                                        :*****************************************
+
+        CASEET(OF,DATA)                 : SI MESSAGE ALORS DEVICE INACCESSIBLE
+        LIS     R0,ERRPRO
+
+        CASEET(OF,NEEDLE)               : SI NEEDLE
+        CASEET(OF,MORE)                 : SI TOO-MANY
+        CASEET(OF,FLUSH)                : SI FLUSHING
+        CASEET(OF,TOUT)                 : SI TIMOUT
+        CASEET(OF,ZERO)                 : SI MESSAGE PORTE 0
+        CASEET(OF,SYS)                  : SI MESSAGE SYS
+        CASEET(OF,NOR)                  : SI MESSAGE NOR
+TU5CTL                                  : ALORS
+        CTLTUR(PLACE,T,U5,CODE,R0)      :        ** TRAITEMENT COUPURES **
+
+        CLEAQF(INPUT,OF,MYSELF)         : CLEAR DE LA FILE INPUT
+        CLEAXQ(QUEUE,SYS,OF,MYSELF)     : CLEAR DE LA FILE SYS
+        CLEAXQ(QUEUE,NOR,OF,MYSELF)     : CLEAR DE LA FILE NOR
+
+        PORTPR                          : LIBERATION DE LA PORTE COURANTE
+        LIBPMC
+                                        : ENVOI D'UN ZAP SUR SA PROPRE PORTE
+        SENDQQ(ALL,CHARS,FROM,MZAP,TO,OUTPUT,OF,MYSELF)
+        POSTET(PLACE,D,00)              : PASSAGE A LA PLACE D00
+
+                                        : FINSI
+
+                                        :*****************************************
+
+        CASEET(OF,ISIS)                 : SI MESSAGE ISIS
+        CLHIMC(R0,SIIX,TU5IST)          :    SI SIIX
+                                        :    ALORS SAUT (TRAITEMENT RECEPTION SIIX)
+        J       TU5CTL                  :    SINON SAUT (TRAITEMENT COUPURES)
+                                        :    FINSI
+                                        : FINSI
+
+
+                                        :-----------------------------------------
+
+TU5IST                                  :  ** TRAITEMENT RECEPTION SIIX **
+
+        FLUSQQ(ALL,CHARS,FROM,INPUT,OF,MYSELF)                          
+:       LXCALL(INTO,R2,XA1,OF,CALLING,PACKET)
+:       LIS     R0,0
+:       STB     R0,,R2
+        LINLO(GEITC,ERRGEN)             :ACQUISITION D'UN ITC POUR LA CONNEXION
+        PORTPR
+        LIS     R0,0                    : PREMIERE PARTIE DE MESSAGE ATTENDUE
+        STB     R0,TESTUC,R1,           : EN TU6
+        POSTET(PLACE,T,U6)              : PASSAGE A LA PLACE TU6
+
+
+
+                                        :=======================================
+        ENDET                           : RETOUR AU DISPATCHER.
+                                        :=======================================
+:FINTU5
+
+:*
+:************************************************************************************
+:*
+
+:************************************ T U 6 **************************************
+:*
+
+        SUBTTL  STATE TU6       : ETAT DE CONNEXION IIX - CIRCUIT ENTRANT
+
+                                : ATTENTE DE LA "CALLED ADDRESS"
+                                :     CALL REQUEST SEQUENCE EN IIX-TURKEY
+
+:DEBTU6
+
+                                        :*****************************************
+
+        BEGET(T,U6)
+        ISISET(MSG,ZAPMBK)              : MBREAK SUR DETACH + ZAP
+        TIMET(OF,60,SECONDES)           : TIME-OUT
+        DATAET(PHASE,CIX,PROTOCOL,TPAR,ATTRIBUT,NULMBK)
+
+
+                                        :*****************************************
+        CASEET(OF,ISIS)                 : SI MESSAGE ISIS
+        CASEET(OF,NEEDLE)               : SI NEEDLE
+        CASEET(OF,MORE)                 : SI TOO-MANY
+        CASEET(OF,FLUSH)                : SI FLUSHING
+        CASEET(OF,TOUT)                 : SI TIMOUT
+        CASEET(OF,ZERO)                 : SI MESSAGE PORTE 0
+        CASEET(OF,SYS)                  : SI MESSAGE SYS
+        CASEET(OF,NOR)                  : SI MESSAGE NOR
+TU6CTL                                  : ALORS
+        CTLTUR(PLACE,T,U6,CODE,R0)      :        ** TRAITEMENT COUPURES **
+
+        CLEAQF(INPUT,OF,MYSELF)         : CLEAR DE LA FILE INPUT
+        CLEAXQ(QUEUE,SYS,OF,MYSELF)     : CLEAR DE LA FILE SYS
+        CLEAXQ(QUEUE,NOR,OF,MYSELF)     : CLEAR DE LA FILE NOR
+
+        PORTPR                          : LIBERATION DE LA PORTE COURANTE
+        LIBPMC
+                                        : ENVOI D'UN ZAP SUR SA PROPRE PORTE
+        SENDQQ(ALL,CHARS,FROM,MZAP,TO,OUTPUT,OF,MYSELF)
+        POSTET(PLACE,D,00)              : PASSAGE A LA PLACE D00
+
+                                        : FINSI
+
+                                        :*******************************************
+        CASEET(OF,DATA)                 : SI MESSAGE DE DONNEES
+        PORTPR
+        LR      R7,R1                   : NUMERO DE LA PORTE COURANTE
+        RAZITC
+        RECVQQ(ALL,CHARS,INTO,ICT0SR,FROM,INP,OF,MYSELF)
+
+        LHI     R5,PIBXLG               :R5 - LG MAX DE LA ZONE SC RECEPTRICE
+        LXCALL(INTO,R3,XA1,OF,CALLING,PACKET)
+                                        :R3 - @ DE LA ZONE RECEPTRICE PIBXA1
+        LA      R4,ICT0SC,,             :R4 - @ DE LA ZONE EMETTRICE  ICT0SC
+        LB      R1,,R4                  :R1 - LG DE LA ZONE EMETTRICE ICT0SC
+        LB      R2,,R3                  :R2 - LG DE LA ZONE RECEPTRICE PIBXA1
+        LB      R0,TESTUC,R7,           :    RECEPTION DE LA 1ERE PARTIE DU MSG?
+        JN      TU6D1                   :    SI NON --> CONCATENATION DU MSG
+                                        :    SI OUI --> CHECK DU CODE IIX-TURKEY
+        LH      R0,ICT0SC+DCODE,,
+        CHI     R0,CXA1                 :       MESSAGE RECU = CALLED ADDRESS?
+        JN      TU6D3                   :       SI NON ALORS ERREUR
+        SIS     R1,2                    :       SI OUI SUPPRESSION DU CODE IIX
+        AIS     R4,2
+
+TU6D1   JAL     R7,CATUR                :    CONCATENATION DU MESSAGE
+        J       TU6D3
+
+        CHI     R2,LGCAD                :    MESSAGE COMPLET?
+        JL      TU6D2                   :    SI NON --> PASSAGE EN TU6
+        POSTET(PLACE,T,U7)              :    SI OUI --> PASSAGE EN TU7
+
+TU6D2   PORTPR
+        LIS     R0,1                    : SUITE ATTENDUE
+        STB     R0,TESTUC,R1,
+        POSTET(PLACE,T,U6)
+
+TU6D3   LIS     R0,ERRXA1               :   ERREUR DU MSG "CALLED ADDRESS" 
+        J       TU6CTL
+                                        :
+                                        :
+
+                                        :=======================================
+        ENDET                           : RETOUR AU DISPATCHER.
+                                        :=======================================
+
+:FINTU6
+
+:*
+:************************************************************************************
+:*
+
+:************************************ T U 7 **************************************
+:*
+
+        SUBTTL  STATE TU7       : ETAT DE CONNEXION IIX - CIRCUIT ENTRANT
+
+                                : ATTENTE D'UN SIIX
+                                :     CALL REQUEST SEQUENCE EN IIX-TURKEY
+
+:DEBTU7
+
+                                        :*****************************************
+
+        BEGET(T,U7)
+        ISISET(MSG,SIIMBK)              : MBREAK SUR DETACH + ZAP + SIIX
+        TIMET(OF,60,SECONDES)           : TIME-OUT
+        DATAET(PHASE,CIX,PROTOCOL,TPAR,ATTRIBUT,NULMBK)
+
+
+                                        :*****************************************
+
+        CASEET(OF,DATA)                 : SI MESSAGE ALORS DEVICE INACCESSIBLE
+        LIS     R0,ERRPRO
+
+        CASEET(OF,NEEDLE)               : SI NEEDLE
+        CASEET(OF,MORE)                 : SI TOO-MANY
+        CASEET(OF,FLUSH)                : SI FLUSHING
+        CASEET(OF,TOUT)                 : SI TIMOUT
+        CASEET(OF,ZERO)                 : SI MESSAGE PORTE 0
+        CASEET(OF,SYS)                  : SI MESSAGE SYS
+        CASEET(OF,NOR)                  : SI MESSAGE NOR
+TU7CTL                                  : ALORS
+        CTLTUR(PLACE,T,U7,CODE,R0)      :        ** TRAITEMENT COUPURES **
+
+        CLEAQF(INPUT,OF,MYSELF)         : CLEAR DE LA FILE INPUT
+        CLEAXQ(QUEUE,SYS,OF,MYSELF)     : CLEAR DE LA FILE SYS
+        CLEAXQ(QUEUE,NOR,OF,MYSELF)     : CLEAR DE LA FILE NOR
+
+        PORTPR                          : LIBERATION DE LA PORTE COURANTE
+        LIBPMC
+                                        : ENVOI D'UN ZAP SUR SA PROPRE PORTE
+        SENDQQ(ALL,CHARS,FROM,MZAP,TO,OUTPUT,OF,MYSELF)
+        POSTET(PLACE,D,00)              : PASSAGE A LA PLACE D00
+
+                                        : FINSI
+
+                                        :*****************************************
+
+        CASEET(OF,ISIS)                 : SI MESSAGE ISIS
+        CLHIMC(R0,SIIX,TU7IST)          :    SI SIIX
+                                        :    ALORS SAUT (TRAITEMENT RECEPTION SIIX)
+        J       TU7CTL                  :    SINON SAUT (TRAITEMENT COUPURES)
+                                        :    FINSI
+                                        : FINSI
+
+
+                                        :-----------------------------------------
+
+TU7IST                                  :  ** TRAITEMENT RECEPTION SIIX **
+        RAZITC                          : CLEAR DU CONTEXTE
+
+        FLUSQQ(ALL,CHARS,FROM,INPUT,OF,MYSELF)                          
+        LXCALL(INTO,R2,XA2,OF,CALLING,PACKET)
+        LIS     R0,0
+        STB     R0,,R2
+        PORTPR                          : PREMIERE PARTIE DE MESSAGE ATTENDUE
+        STB     R0,TESTUC,R1,           : EN TU8
+        POSTET(PLACE,T,U8)              : PASSAGE A LA PLACE TU8
+
+
+
+                                        :=======================================
+        ENDET                           : RETOUR AU DISPATCHER.
+                                        :=======================================
+:FINTU7
+
+:*
+:************************************************************************************
+:*
+
+:************************************ T U 8 **************************************
+:*
+
+        SUBTTL  STATE TU8       : ETAT DE CONNEXION IIX - CIRCUIT ENTRANT
+
+                                : ATTENTE DU MSG "CALLING ADDRESS"
+                                :     CALL REQUEST SEQUENCE EN IIX-TURKEY
+
+:DEBTU8
+
+                                        :*****************************************
+
+        BEGET(T,U8)
+        ISISET(MSG,ZAPMBK)              : MBREAK SUR DETACH + ZAP
+        TIMET(OF,60,SECONDES)           : TIME-OUT
+        DATAET(PHASE,CIX,PROTOCOL,TPAR,ATTRIBUT,NULMBK)
+
+
+                                        :*****************************************
+        CASEET(OF,ISIS)                 : SI MESSAGE ISIS
+        CASEET(OF,NEEDLE)               : SI NEEDLE
+        CASEET(OF,MORE)                 : SI TOO-MANY
+        CASEET(OF,FLUSH)                : SI FLUSHING
+        CASEET(OF,TOUT)                 : SI TIMOUT
+        CASEET(OF,ZERO)                 : SI MESSAGE PORTE 0
+        CASEET(OF,SYS)                  : SI MESSAGE SYS
+        CASEET(OF,NOR)                  : SI MESSAGE NOR
+TU8CTL                                  : ALORS
+        CTLTUR(PLACE,T,U8,CODE,R0)      :        ** TRAITEMENT COUPURES **
+
+        CLEAQF(INPUT,OF,MYSELF)         : CLEAR DE LA FILE INPUT
+        CLEAXQ(QUEUE,SYS,OF,MYSELF)     : CLEAR DE LA FILE SYS
+        CLEAXQ(QUEUE,NOR,OF,MYSELF)     : CLEAR DE LA FILE NOR
+
+        PORTPR                          : LIBERATION DE LA PORTE COURANTE
+        LIBPMC
+                                        : ENVOI D'UN ZAP SUR SA PROPRE PORTE
+        SENDQQ(ALL,CHARS,FROM,MZAP,TO,OUTPUT,OF,MYSELF)
+        POSTET(PLACE,D,00)              : PASSAGE A LA PLACE D00
+
+                                        : FINSI
+
+
+                                        :*******************************************
+
+        CASEET(OF,DATA)                 : SI MESSAGE DE DONNEES
+        PORTPR
+        LR      R7,R1                   : NUMERO DE LA PORTE COURANTE
+        RECVQQ(ALL,CHARS,INTO,ICT0SR,FROM,INP,OF,MYSELF)
+
+        LHI     R5,PIBXLG               :R5 - LG MAX DE LA ZONE SC RECEPTRICE
+        LXCALL(INTO,R3,XA2,OF,CALLING,PACKET)
+                                        :R3 - @ DE LA ZONE RECEPTRICE PIBXA2
+        LA      R4,ICT0SC,,             :R4 - @ DE LA ZONE EMETTRICE  ICT0SC
+        LB      R1,,R4                  :R1 - LG DE LA ZONE EMETTRICE ICT0SC
+        LB      R2,,R3                  :R2 - LG DE LA ZONE RECEPTRICE PIBXA2
+        LB      R0,TESTUC,R7,           :    RECEPTION DE LA 1ERE PARTIE DU MSG?
+        JN      TU8D1                   :    SI NON --> CONCATENATION DU MSG
+                                        :    SI OUI --> CHECK DU CODE IIX-TURKEY
+        LH      R0,ICT0SC+DCODE,,
+        CHI     R0,CXA2                 :       MESSAGE RECU = CALLING ADDRESS?
+        JN      TU8D3                   :       SI NON ALORS ERREUR
+        SIS     R1,2                    :       SI OUI SUPPRESSION DU CODE IIX
+        AIS     R4,2
+
+TU8D1   JAL     R7,CATUR                :    CONCATENATION DU MESSAGE
+        J       TU8D3
+
+        CHI     R2,LGCAD                :    MESSAGE COMPLET?
+        JL      TU8D2                   :    SI NON --> PASSAGE EN TU8
+        POSTET(PLACE,T,U9)              :    SI OUI --> PASSAGE EN TU9
+
+
+TU8D2   PORTPR
+        LIS     R0,1                    : SUITE ATTENDUE
+        STB     R0,TESTUC,R1,
+        POSTET(PLACE,T,U8)
+
+TU8D3   LIS     R0,ERRXA2               :   ERREUR DU MSG "CALLING ADDRESS"
+        J       TU8CTL
+
+                                        :
+                                        :
+
+                                        :=======================================
+        ENDET                           : RETOUR AU DISPATCHER.
+                                        :=======================================
+
+:FINTU8
+
+:*
+:************************************************************************************
+:*
+
+:************************************ T U 9 **************************************
+:*
+
+        SUBTTL  STATE TU9       : ETAT DE CONNEXION IIX - CIRCUIT ENTRANT
+
+                                : ATTENTE D'UN SIIX
+                                :     CALL REQUEST SEQUENCE EN IIX-TURKEY
+
+:DEBTU9
+
+                                        :*****************************************
+
+        BEGET(T,U9)
+        ISISET(MSG,SIIMBK)              : MBREAK SUR DETACH + ZAP + SIIX
+        TIMET(OF,60,SECONDES)           : TIME-OUT
+        DATAET(PHASE,CIX,PROTOCOL,TPAR,ATTRIBUT,NULMBK)
+
+
+                                        :*****************************************
+
+        CASEET(OF,DATA)                 : SI MESSAGE ALORS DEVICE INACCESSIBLE
+        LIS     R0,ERRPRO
+
+        CASEET(OF,NEEDLE)               : SI NEEDLE
+        CASEET(OF,MORE)                 : SI TOO-MANY
+        CASEET(OF,FLUSH)                : SI FLUSHING
+        CASEET(OF,TOUT)                 : SI TIMOUT
+        CASEET(OF,ZERO)                 : SI MESSAGE PORTE 0
+        CASEET(OF,SYS)                  : SI MESSAGE SYS
+        CASEET(OF,NOR)                  : SI MESSAGE NOR
+TU9CTL                                  : ALORS
+        CTLTUR(PLACE,T,U9,CODE,R0)      :        ** TRAITEMENT COUPURES **
+
+        CLEAQF(INPUT,OF,MYSELF)         : CLEAR DE LA FILE INPUT
+        CLEAXQ(QUEUE,SYS,OF,MYSELF)     : CLEAR DE LA FILE SYS
+        CLEAXQ(QUEUE,NOR,OF,MYSELF)     : CLEAR DE LA FILE NOR
+
+        PORTPR                          : LIBERATION DE LA PORTE COURANTE
+        LIBPMC
+                                        : ENVOI D'UN ZAP SUR SA PROPRE PORTE
+        SENDQQ(ALL,CHARS,FROM,MZAP,TO,OUTPUT,OF,MYSELF)
+        POSTET(PLACE,D,00)              : PASSAGE A LA PLACE D00
+
+                                        : FINSI
+
+                                        :*****************************************
+
+        CASEET(OF,ISIS)                 : SI MESSAGE ISIS
+        CLHIMC(R0,SIIX,TU9IST)          :    SI SIIX
+                                        :    ALORS SAUT (TRAITEMENT RECEPTION SIIX)
+        J       TU9CTL                  :    SINON SAUT (TRAITEMENT COUPURES)
+                                        :    FINSI
+                                        : FINSI
+
+
+                                        :-----------------------------------------
+
+TU9IST                                  :  ** TRAITEMENT RECEPTION SIIX **
+
+        FLUSQQ(ALL,CHARS,FROM,INPUT,OF,MYSELF)                          
+        LXCALL(INTO,R2,XFA,OF,CALLING,PACKET)
+        LXCALL(INTO,R4,XUF,OF,CALLING,PACKET)
+        LIS     R0,0
+        STB     R0,,R2
+        STB     R0,,R4
+        PORTPR                          : SUITE DU MESSAGE ATTENDUE 
+        STB     R0,TESTUC,R1,           : EN TUA
+        POSTET(PLACE,T,UA)              : PASSAGE A LA PLACE TUA
+
+
+
+                                        :=======================================
+        ENDET                           : RETOUR AU DISPATCHER.
+                                        :=======================================
+:FINTU9
+
+:*
+:************************************************************************************
+:*
+
+:************************************ T U A **************************************
+:*
+
+        SUBTTL  STATE TUA       : ETAT DE CONNEXION IIX - CIRCUIT ENTRANT
+
+                                : ATTENTE DU MSG "FACILITIES" OU "UTILITY (C08C)"
+                                :     CALL REQUEST SEQUENCE EN IIX-TURKEY
+
+:DEBTUA
+
+                                        :*****************************************
+
+        BEGET(T,UA)
+        ISISET(MSG,ZAPMBK)              : MBREAK SUR DETACH + ZAP
+        TIMET(OF,60,SECONDES)           : TIME-OUT
+        DATAET(PHASE,CIX,PROTOCOL,TPAR,ATTRIBUT,NULMBK)
+
+
+                                        :*****************************************
+        CASEET(OF,ISIS)                 : SI MESSAGE ISIS
+        CASEET(OF,NEEDLE)               : SI NEEDLE
+        CASEET(OF,MORE)                 : SI TOO-MANY
+        CASEET(OF,FLUSH)                : SI FLUSHING
+        CASEET(OF,TOUT)                 : SI TIMOUT
+        CASEET(OF,ZERO)                 : SI MESSAGE PORTE 0
+        CASEET(OF,SYS)                  : SI MESSAGE SYS
+        CASEET(OF,NOR)                  : SI MESSAGE NOR
+TUACTL                                  : ALORS
+        CTLTUR(PLACE,T,UA,CODE,R0)      :        ** TRAITEMENT COUPURES **
+
+        CLEAQF(INPUT,OF,MYSELF)         : CLEAR DE LA FILE INPUT
+        CLEAXQ(QUEUE,SYS,OF,MYSELF)     : CLEAR DE LA FILE SYS
+        CLEAXQ(QUEUE,NOR,OF,MYSELF)     : CLEAR DE LA FILE NOR
+
+        PORTPR                          : LIBERATION DE LA PORTE COURANTE
+        LIBPMC
+                                        : ENVOI D'UN ZAP SUR SA PROPRE PORTE
+        SENDQQ(ALL,CHARS,FROM,MZAP,TO,OUTPUT,OF,MYSELF)
+        POSTET(PLACE,D,00)              : PASSAGE A LA PLACE D00
+
+                                        : FINSI
+
+                                        :*******************************************
+
+        CASEET(OF,DATA)                 : SI MESSAGE DE DONNEES
+        PORTPR
+        LR      R7,R1                   : NUMERO DE LA PORTE COURANTE
+        RECVQQ(ALL,CHARS,INTO,ICT0SR,FROM,INP,OF,MYSELF)
+
+:************************************************************************
+        LH      R0,ICT0SC+DCODE,,
+        CHI     R0,CXUF                 : MESSAGE C08C ?
+        JE      TUAXUF
+        CHI     R0,CXFA                 : MESSAGE C08D ?
+        JE      TUAXFA
+        PORTPR                          :NUMERO DE PORTE COURANTE DANS R1
+        LB      R0,TESTUC,R1,
+                                        : R0 = 2 ,CONCATENATION DE  C08D
+                                        : R0 = 1  ,"    "       " DE C08C
+                                        : R0 = 0  ON A RIEN RECU = ERREUR
+        CHI     R0,1
+        JG      TUAXFA                  : ON RECOIT 2EME PARTIE DU MESSAGE C08D
+        JE      TUAXUF                  : ON RECOIT 2EME PARTIE DU MESSAGE C08C
+        JL      TUACTL                  : ON VA EN ERREUR
+
+:***********************************************************************
+TUAXFA
+
+        LHI     R5,PIBXLG               :R5 - LG MAX DE LA ZONE SC RECEPTRICE
+        LXCALL(INTO,R3,XFA,OF,CALLING,PACKET)
+                                        :R3 - @ DE LA ZONE RECEPTRICE PIBXFA
+        LA      R4,ICT0SC,,             :R4 - @ DE LA ZONE EMETTRICE  ICT0SC
+        LB      R1,,R4                  :R1 - LG DE LA ZONE EMETTRICE ICT0SC
+        LB      R2,,R3                  :R2 - LG DE LA ZONE RECEPTRICE PIBXFA
+        LB      R0,TESTUC,R7,           :    RECEPTION DE LA 1ERE PARTIE DU MSG?
+        JN      TUAD1                   :    SI NON --> CONCATENATION DU MSG
+                                        :    SI OUI --> CHECK DU CODE IIX-TURKEY
+        LH      R0,ICT0SC+DCODE,,
+        CHI     R0,CXFA                 :       MESSAGE RECU = FACILITY FIELD
+        JN      TUAD3                   :       SI NON ALORS ERREUR
+        SIS     R1,2                    :       SI OUI SUPPRESSION DU CODE IIX
+        AIS     R4,2
+
+TUAD1
+        LR      R1,R1                   : SI CHAINE A CONCATENER VIDE
+        JE      TUAD2                   : ATTENDRE LA SUITE
+        JAL     R7,CATUR                :    CONCATENATION DU MESSAGE
+        J       TUAD3
+
+        SIS     R2,1
+        LB      R1,DCODE,R3
+        CR      R2,R1                   :    MESSAGE COMPLET?
+        JL      TUAD2                   :    SI NON --> PASSAGE EN TUA
+
+        AIS     R3,2                    : SAUT OCTET LG. (voir format C08D)
+        LR      R4,R3                   : R4 <- @ SC FACILITY
+        LINLO(FILSC,ERRGEN)
+        IF      PARICT
+        IFSR(THEN,TUAD1B,ELSE,TUAD1A) : ON TESTE SI LE CODE SELECTION RAPIDE
+
+                                   : EST VALIDE OU PAS , SI NON VALIDE
+                                   : ON ENVOIE UNE LIBERATION
+TUAD1A  LIBSR
+TUAD1B
+        EI      : FIN PARICT
+        POSTET(PLACE,T,UB)              :    SI OUI --> PASSAGE EN TUB
+
+TUAD2   PORTPR
+        LIS     R0,2                    : SUITE ATTENDUE
+        STB     R0,TESTUC,R1,
+        POSTET(PLACE,T,UA)
+
+TUAD3   LIS     R0,ERRXFA               :   ERREUR DU MSG "FACILITIES"
+        J       TUACTL
+                                        :
+:***************************************************************************
+TUAXUF
+        LHI     R5,PIBXLG               :R5 - LG MAX DE LA ZONE SC RECEPTRICE
+        LXCALL(INTO,R3,XUF,OF,CALLING,PACKET)
+                                        :R3 - @ DE LA ZONE RECEPTRICE PIBXUF
+        LA      R4,ICT0SC,,             :R4 - @ DE LA ZONE EMETTRICE  ICT0SC
+        LB      R1,,R4                  :R1 - LG DE LA ZONE EMETTRICE ICT0SC
+        LB      R2,,R3                  :R2 - LG DE LA ZONE RECEPTRICE PIBXUF
+        LB      R0,TESTUC,R7,           :    RECEPTION DE LA 1ERE PARTIE DU MSG?
+
+        JN      TUAF1                   :    SI NON --> CONCATENATION DU MSG
+                                        :    SI OUI --> CHECK DU CODE IIX-TURKEY
+        LH      R0,ICT0SC+DCODE,,
+        CHI     R0,CXUF                 :        MESSAGE RECU = UTILITY FIELD ?
+        JN      TUAF3                   :       SI NON ALORS ERREUR
+        SIS     R1,2                    :       SI OUI SUPPRESSION DU CODE IIX
+        AIS     R4,2
+
+TUAF1   LR      R1,R1                   : SI CHAINE A CONCATENER VIDE
+        JE      TUAF2                   : ATTENDRE LA SUITE
+        JAL     R7,CATUR                :    CONCATENATION DU MESSAGE
+        J       TUAF3
+
+
+        SIS     R2,1
+        LB      R1,DCODE,R3
+        CR      R2,R1                   :    MESSAGE COMPLET?
+        JL      TUAF2                   :    SI NON --> PASSAGE EN TUA
+        IF      PARICT
+:       IFGFA(THEN,TUAF1B,ELSE,TUAF1A)  :  CONTROLE DU NUMERO DE GFA ET GNI
+TUAF1A
+:       LIBGFA
+TUAF1B
+
+        EI      : FIN PARICT
+        POSTET(PLACE,T,U9)              :    SI OUI --> PASSAGE EN TU9
+
+TUAF2   PORTPR                          :ATTEND LA SUITE
+        LIS     R0,1
+        STB     R0,TESTUC,R1,
+        POSTET(PLACE,T,UA)
+
+TUAF3   LIS     R0,ERRXUF               :   ERREUR DU MSG "UTILITY FIELD"
+        J       TUACTL
+                                        :
+
+                                        :=======================================
+        ENDET                           : RETOUR AU DISPATCHER.
+                                        :=======================================
+
+:FINTUA
+
+:*
+:************************************************************************************
+:*
+
+:************************************ T U B **************************************
+:*
+
+        SUBTTL  STATE TUB       : ETAT DE CONNEXION IIX - CIRCUIT ENTRANT
+
+                                : ATTENTE D'UN SIIX
+                                :     CALL REQUEST SEQUENCE EN IIX-TURKEY
+
+:DEBTUB
+
+                                        :*****************************************
+
+        BEGET(T,UB)
+        ISISET(MSG,SIIMBK)              : MBREAK SUR DETACH + ZAP + SIIX
+        TIMET(OF,60,SECONDES)           : TIME-OUT
+        DATAET(PHASE,CIX,PROTOCOL,TPAR,ATTRIBUT,NULMBK)
+
+
+                                        :*****************************************
+
+        CASEET(OF,DATA)                 : SI MESSAGE ALORS DEVICE INACCESSIBLE
+        LIS     R0,ERRPRO
+
+        CASEET(OF,NEEDLE)               : SI NEEDLE
+        CASEET(OF,MORE)                 : SI TOO-MANY
+        CASEET(OF,FLUSH)                : SI FLUSHING
+        CASEET(OF,TOUT)                 : SI TIMOUT
+        CASEET(OF,ZERO)                 : SI MESSAGE PORTE 0
+        CASEET(OF,SYS)                  : SI MESSAGE SYS
+        CASEET(OF,NOR)                  : SI MESSAGE NOR
+TUBCTL                                  : ALORS
+        CTLTUR(PLACE,T,UB,CODE,R0)      :        ** TRAITEMENT COUPURES **
+
+        CLEAQF(INPUT,OF,MYSELF)         : CLEAR DE LA FILE INPUT
+        CLEAXQ(QUEUE,SYS,OF,MYSELF)     : CLEAR DE LA FILE SYS
+        CLEAXQ(QUEUE,NOR,OF,MYSELF)     : CLEAR DE LA FILE NOR
+
+        PORTPR                          : LIBERATION DE LA PORTE COURANTE
+        LIBPMC
+                                        : ENVOI D'UN ZAP SUR SA PROPRE PORTE
+        SENDQQ(ALL,CHARS,FROM,MZAP,TO,OUTPUT,OF,MYSELF)
+        POSTET(PLACE,D,00)              : PASSAGE A LA PLACE D00
+
+                                        : FINSI
+
+                                        :*****************************************
+
+        CASEET(OF,ISIS)                 : SI MESSAGE ISIS
+        CLHIMC(R0,SIIX,TUBIST)          :    SI SIIX
+                                        :    ALORS SAUT (TRAITEMENT RECEPTION SIIX)
+        J       TUBCTL                  :    SINON SAUT (TRAITEMENT COUPURES)
+                                        :    FINSI
+                                        : FINSI
+
+
+                                        :-----------------------------------------
+
+TUBIST                                  :  ** TRAITEMENT RECEPTION SIIX **
+
+        FLUSQQ(ALL,CHARS,FROM,INPUT,OF,MYSELF)                          
+        LXCALL(INTO,R2,XUD,OF,CALLING,PACKET)
+        LXCALL(INTO,R4,XUF,OF,CALLING,PACKET)   :INITIALISATION A 0 DE LA LONG
+                                        :UEUR  DU MESSAGE STOCKE DANS PIBXUF
+        PORTPR                          :NUMERO DE PORTE COURANTE DANS R1
+        LIS     R0,0
+        STB     R0,,R2
+        STB     R0,,R4
+        STB     R0,TESTUC,R1,           : INITIALISATION A 0 = PAS DE DEBUT
+                                        : DE MESSAGE EN COURS DANS TUC
+        POSTET(PLACE,T,UC)              : PASSAGE A LA PLACE TUC
+
+                                        :DE MESSAGE EN COURS DANS TUC
+
+
+
+                                        :=======================================
+        ENDET                           : RETOUR AU DISPATCHER.
+                                        :=======================================
+:FINTUB
+
+:*
+:************************************************************************************
+:*
+
+:************************************ T U C **************************************
+:*
+
+        SUBTTL  STATE TUC       : ETAT DE CONNEXION IIX - CIRCUIT ENTRANT
+
+                                : ATTENTE DU "CALL USER DATA" OU "C08C"
+                                :     CALL REQUEST SEQUENCE EN IIX-TURKEY
+
+:DEBTUC
+
+                                        :*****************************************
+
+        BEGET(T,UC)
+        ISISET(MSG,ZAPMBK)              : MBREAK SUR DETACH + ZAP
+        TIMET(OF,60,SECONDES)           : TIME-OUT
+        DATAET(PHASE,CIX,PROTOCOL,TPAR,ATTRIBUT,NULMBK)
+
+
+                                        :*****************************************
+        CASEET(OF,ISIS)                 : SI MESSAGE ISIS
+        CASEET(OF,NEEDLE)               : SI NEEDLE
+        CASEET(OF,MORE)                 : SI TOO-MANY
+        CASEET(OF,FLUSH)                : SI FLUSHING
+        CASEET(OF,TOUT)                 : SI TIMOUT
+        CASEET(OF,ZERO)                 : SI MESSAGE PORTE 0
+        CASEET(OF,SYS)                  : SI MESSAGE SYS
+        CASEET(OF,NOR)                  : SI MESSAGE NOR
+TUCCTL                                  : ALORS
+        CTLTUR(PLACE,T,UC,CODE,R0)      :        ** TRAITEMENT COUPURES **
+
+        CLEAQF(INPUT,OF,MYSELF)         : CLEAR DE LA FILE INPUT
+        CLEAXQ(QUEUE,SYS,OF,MYSELF)     : CLEAR DE LA FILE SYS
+        CLEAXQ(QUEUE,NOR,OF,MYSELF)     : CLEAR DE LA FILE NOR
+
+        PORTPR                          : LIBERATION DE LA PORTE COURANTE
+        LIBPMC
+                                        : ENVOI D'UN ZAP SUR SA PROPRE PORTE
+        SENDQQ(ALL,CHARS,FROM,MZAP,TO,OUTPUT,OF,MYSELF)
+        POSTET(PLACE,D,00)              : PASSAGE A LA PLACE D00
+
+                                        : FINSI
+
+                                        :*******************************************
+
+        CASEET(OF,DATA)                 : SI MESSAGE DE DONNEES
+        PORTPR
+        LR      R7,R1                   : NUMERO DE LA PORTE COURANTE
+        RECVQQ(ALL,CHARS,INTO,ICT0SR,FROM,INP,OF,MYSELF)
+
+
+:***********************************************************************
+
+
+        LH      R0,ICT0SC+DCODE,,
+        CHI     R0,CXUF                 : MESSAGE C08C ?
+        JE      TRCXUF
+        CHI     R0,CXUD                 : MESSAGE C089 ?
+        JE      TRCXUD
+        PORTPR                          :NUMERO DE PORTE COURANTE DANS R1
+        LB      R0,TESTUC,R1,
+                                        : R0 = 2 ,CONCATENATION DE  C089
+                                        : R0 = 1  ,"    "       " DE C08C
+                                        : R0 = 0  ON A RIEN RECU = ERREUR
+        CHI     R0,1
+        JG      TRCXUD                  : ON RECOIT 2EME PARTIE DU MESSAGE C089
+        JE      TRCXUF                  : ON RECOIT 2EME PARTIE DU MESSAGE C08C
+        JL      TUCCTL                  : ON VA EN ERREUR
+
+:***********************************************************************
+TRCXUD
+        GADITC(INTO,R3)                 : ADRESSE DE L'ITC DE LA PORTE COURANTE 
+        LR      R0,R0                   : SI NULLE ALORS CRASH
+        JLE     ITCCRA,,
+        AHI     R3,ITCUDL               : POINTE AVANT CALL USER DATA
+
+                                        :R3 - @ DE LA ZONE RECEPTRICE ITCCUD
+        LA      R4,ICT0SC,,             :R4 - @ DE LA ZONE EMETTRICE  ICT0SC
+        LB      R1,,R4                  :R1 - LG DE LA ZONE EMETTRICE ICT0SC
+        LB      R2,,R3                  :R2 - LG DE LA ZONE RECEPTRICE ITCCUD
+        LB      R0,TESTUC,R7,           :    RECEPTION DE LA 1ERE PARTIE DU MSG?
+        JN      TUCD1                   :    SI NON --> CONCATENATION DU MSG
+                                        :    SI OUI --> CHECK DU CODE IIX-TURKEY
+        LH      R0,ICT0SC+DCODE,,
+        CHI     R0,CXUD                 :       MESSAGE RECU = CALL USER DATA?
+        JN      TUCD3                   :       SI NON ALORS ERREUR
+        SIS     R1,2                    :SI OUI SUPPRESSION DU CODE TURKEY(C089)
+                                        :+ LONGUEUR DES DONNEES(1 OCTET)
+        AIS     R4,2
+
+TUCD1   LHI     R5,CUDSIZ+1             :  TAILLE MAX DES CUD
+        LR      R1,R1                   : SI CHAINE A CONCATENER VIDE
+        JE      TUCD2                   : ATTENDRE LA SUITE
+        JAL     R7,CATUR                :    CONCATENATION DU MESSAGE
+        J       TUCD3
+
+        SIS     R2,1
+        LB      R1,DCODE,R3
+        CR      R2,R1                   :    MESSAGE COMPLET?
+        JL      TUCD2                   :    SI NON --> PASSAGE EN TUC
+                                        :    SI OUI --> ENVOI DE "CALL ACCEPT"
+                                        :               PASSAGE EN TTT
+
+        IF X25SR
+        REMARK % ICTUR : 2 GEN %
+        GETXSC(SERVICE.COMP,FASTSELECT,DANS,R1) : CHAMP FACILITE
+        LR      R0,R0                           : SI NON TURKEY ENTRANT
+        JN      ITCCRA,,                        :       alors crash
+        CLHI    R1,TURSSR                       : SI PAS DE SELCTION RAPIDE 
+        JE      TUCSSR
+        LIS     R0,SUCCES                       : CAS SELECTION RAPIDE
+        CTLTUR(PLACE,T,UC,CODE,R0)
+        POSTET(PLACE,T,SR)
+        EI                              :FIN  D'ASSEMBLAGE SELECTION RAPIDE
+
+TUCSSR  LIS     R0,0                    : REINITIALISATION DE SENLIB A
+        STB     R0,SENLIB,,             : LIBERATION NON DEMANDEE
+        LIS     R0,SUCCES
+        CTLTUR(PLACE,T,UC,CODE,R0)      : TRAITEMENT UTILISATEUR
+        LB      R0,SENLIB,,             : TEST SI LIBERATION DEMANDEE
+        JN      TUCLIB
+
+        SENDQQ(ALL,CHARS,FROM,MSIIX,TO,OUT,OF,MYSELF)
+        SENDQQ(ALL,CHARS,FROM,MCACC,TO,OUT,OF,MYSELF)
+        POSTET(PLACE,T,TT)
+
+TUCLIB  EQ       .                       : LIBERATION DEMANDEE DANS CTLTUR
+        SENDQQ(ALL,CHARS,FROM,MSIIX,TO,OUT,OF,MYSELF)
+        SENDQQ(ALL,CHARS,FROM,MCLICD,TO,OUT,OF,MYSELF)
+        POSTET(PLACE,T,TT)
+                                        :
+
+TUCD2   PORTPR
+        LHI     R0,2
+        STB     R0,TESTUC,R1,           :POSITIONNEMENT DE MESS EN COURS A 2
+        POSTET(PLACE,T,UC)
+
+
+TUCD3   LIS     R0,ERRXUD               :   ERREUR DU MSG "CALL USER DATA"
+        J       TUCCTL
+        
+
+
+
+:************************************************************************
+TRCXUF
+        LHI     R5,PIBXLG               :R5 - LG MAX DE LA ZONE SC RECEPTRICE
+        LXCALL(INTO,R3,XUF,OF,CALLING,PACKET)
+                                        :R3 - @ DE LA ZONE RECEPTRICE PIBXUF
+        LA      R4,ICT0SC,,             :R4 - @ DE LA ZONE EMETTRICE  ICT0SC
+        LB      R1,,R4                  :R1 - LG DE LA ZONE EMETTRICE ICT0SC
+        LB      R2,,R3                  :R2 - LG DE LA ZONE RECEPTRICE PIBXUF
+        LB      R0,TESTUC,R7,           :    RECEPTION DE LA 1ERE PARTIE DU MSG?
+
+        JN      TUCF1                   :    SI NON --> CONCATENATION DU MSG
+                                        :    SI OUI --> CHECK DU CODE IIX-TURKEY
+        LH      R0,ICT0SC+DCODE,,
+        CHI     R0,CXUF                 :        MESSAGE RECU = UTILITY FIELD ?
+        JN      TUCF3                   :       SI NON ALORS ERREUR
+        SIS     R1,2                    :       SI OUI SUPPRESSION DU CODE IIX
+        AIS     R4,2
+
+TUCF1   LR      R1,R1                   : SI CHAINE A CONCATENER VIDE
+        JE      TUCF2                   : ATTENDRE LA SUITE
+        JAL     R7,CATUR                :    CONCATENATION DU MESSAGE
+        J       TUCF3
+
+
+        SIS     R2,1
+        LB      R1,DCODE,R3
+        CR      R2,R1                   :    MESSAGE COMPLET?
+        JL      TUCF2                   :    SI NON --> PASSAGE EN TUC
+        IF      PARICT
+:       IFGFA(THEN,TUCF1B,ELSE,TUCF1A)  : CONTROLE DU NUMERO DE GFA ET GNI
+TUCF1A
+:       LIBGFA
+TUCF1B
+        EI      : FIN GFA
+
+        POSTET(PLACE,T,UB)              :    SI OUI --> PASSAGE EN TUB
+
+TUCF2   PORTPR                          :ATTEND LA SUITE
+        LIS     R0,1
+        STB     R0,TESTUC,R1,
+        POSTET(PLACE,T,UC)
+
+TUCF3   LIS     R0,ERRXUF               :   ERREUR DU MSG "UTILITY FIELD"
+        J       TUCCTL
+                                :=======================================
+                ENDET           :RETOUR AU DISPATCHER
+                                :=======================================
+:FINTUC
+
+:*
+:***********************************************************************
+:*
+ 
+        FPROIT(ICT000)
+  fA7	
