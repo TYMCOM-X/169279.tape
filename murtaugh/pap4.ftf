@@ -1,0 +1,273 @@
+C
+C***********************
+C
+C       PAP4.FTF
+C
+C***********************
+C
+C
+C       SUBROUTINE TO MOVE CALBAK LOG TO "OCALBK"
+C
+        SUBROUTINE MOCLBK(TOT1)
+C
+        INTEGER TOT1,TOT2,ANS,I,TNUM,SDAT,TIM1,DUP,TUP,RS,WHO
+        INTEGER RNAM(4),CBY,SITP(4),SCON(4),CBAK(4),CHEX
+C
+40      TYPE 45
+45      FORMAT(/1X,'MOVING CALBAK TO OCALBK... STANDBY',/)
+50      CALL DBERR($190,IERT,IERC,-1)
+        TOT2=TOT1
+100     DO 200 I=1,TOT1
+        TYPE 105,I
+105     FORMAT('+',1X,I4,$)
+        CALL DBGREC($200,I)
+        CALL DBVAL(1,TNUM,2,SDAT,3,TIM1,4,RNAM,5,INT,6,RS,7,SCON,
+     1  8,SITP,9,DUP,10,TUP,11,CBY,12,CBAK,13,CHEX)
+        CALL DBSET(2)
+        CALL DBADD(1,TNUM,2,SDAT,3,TIM1,4,RNAM,5,INT,6,RS,7,SCON,
+     1  8,SITP,9,DUP,10,TUP,11,CBY,12,CBAK,13,CHEX)
+        CALL DBSET(1)
+        CALL DBFIND('RS','GE',8)
+        GOTO 200
+190     IF (IERT.EQ.7) GOTO 197
+        IF (IERT.EQ.3) RETURN
+        CALL DBSET(1)
+        CALL DBFIND(1,1,TNUM)
+        CALL DBCHNG('RS',4)
+        TOT2=TOT1-1
+        CALL DBFIND('RS','GE',8)
+        GOTO 200
+197     TYPE 198
+198     FORMAT(1X,'STANDBY... FOR BUSY')
+        CALL WAIT(8.0)
+        GOTO 100
+200     CONTINUE
+        CALL DBSET(1)
+        CALL DBFIND('RS','GE',8)
+        DO 220 I=1,TOT1
+        CALL DBGREC($220,I)
+        CALL DBDEL
+220     CONTINUE
+        RETURN
+        END
+C
+C***********************************
+C
+C       SUBROUTINE TO LIST PRODUCT TYPES
+C
+C***********************************
+        SUBROUTINE HPROD
+C
+        INTEGER X,I,T
+C
+100     TYPE 2434
+2434    FORMAT(1X'THE PRODUCT CODES ARE ...'/1X'ACCESS',T13,'INTERFACES',
+     1  T26,'LINES',T40,'MISCELLANEOUS'/1X'----------',T13,'----------',
+     2  T26,'----------',T40,'--------------'/1X'1 DIAL-UP',T13,'10 SWI',
+     3  'TCHER',T26,'20 4.8KB',T40,'30 VALID',T52,'40 X25S',T63,'50 NET',
+     4  'ALERT'/1X'2 ATC',T13,'11 XCOM',T26,'21 9.6KB',T40,'31 PROJECT',
+     5  T52,'41 ISCS',T63,'51 PICO'/1X'3 H-W',T13,'12 ISIS',T26,'22 14.',
+     6  '4KB',T40,'32 I2IS',T52,'42 CMTI',T63,'52 RBO',
+     7  /1X'4 PAP',T13,'13 PBH',T26,'23 19.2 KB',
+     8  T40,'33 PERIF',T52,'43 UTS',T63,'53 ALC'/1X'5 PVC',T13,'14 PBT',
+     9  T26,'24 56KB',T40,'34 OEM',T52,'44 TMCS',T63,'54 ALCC'/1X'6 ',
+     A  'MPVC',T13,'15 SNA',T26,'25 T-1',T40,'35 SUPERV',T52,'45 NEM',
+     B  T63,'55 ALCH'/1X'7 MSERVER',T13,'16 BBXS',T26,'26 HW-OCL',
+     C  T40,'36 ONTYME',T52,'46 RAM',T63,'56 CMH'/1X'8 CONSAT',T13,
+     D  '17 X.75',T26,'27 SYNC DBUP',T40,'37 PROBE',T52,'47 NETVAL',
+     E  T63,'57 DCMP'/1X'9 SUN',T13,'18 X.PC',T26,'28 TYMLNK',T40,
+     F  '38 UN2',T52,'48 LDII',T63,'58 ELF')
+        TYPE 2435
+2435    FORMAT(1X,'88 TSI',T13,'19 TYMCOM',T26,'29 OUTDIAL',T40,'39 TII',
+     1  T52,'49 MERLIN',T63,'59 HSA',/1X,'72 TURBO',T13,'70 SDLC',T40,
+     2  '66 TIIS',T52,'75 GNU',T63,'60 I2G1')
+        TYPE 105
+105     FORMAT(T13,'73 PTI',T40,'67 TINH',T52,'76 CMF',T63,'61 MUX'/,
+     2  T13,'74 PHR',T40,'68 TINT',T52,'77 CPC',T63,'62 NTCN'/,T13,'90',
+     3  ' CRDU',T40,
+     4  '69 UTIL',T52,'78 CPPP',T63,'63 STYM',/T40,'71 INTLS',T52,'79 ',
+     5  'NAD',T63,'64 TDI',/T40,'87 MBAS',T52,'80 CPAS',T63,'65 TIIG',/,
+     6  T40,'81 BITS',T52,'82 CKSUM',T63,'86 NCPY',/1X,'91 PHI')
+        RETURN
+        END
+C
+C*************************************{***********
+C
+C       ROUTINE TO LIST THE REFERED HELP LIST
+C
+C*************************************************
+C
+        SUBROUTINE HREFR
+C
+        INTEGER X,Y,Z
+C
+100     TYPE 2532
+2532    FORMAT(3X,'THE REFERRED GROUPS ARE...',/2X'1= EFTEC',T14,
+     1  '11= EFOVA',T26,'21= WFOAU',T38,'31= WFOEB',T50,
+     2  '41= STS',T62,'51= ETSNJ',/2X,'2= EFONE',T14,'12= EFOWA',
+     3  T26,'22= WFOHO',T38,'32= WFOSB',T50,'42= CUSTM',T62,'52= ',
+     4  'ETSBO',/2X,'3= EFOBO',T14,'13= EFOCA',T26,'23= EFOAT',T38,
+     5  '33= WFOLA',T50,'43= WTSSF',T62,'53= ETSVI',/2X,'4= EFONY',T14,
+     6  '14= EFORO',T26,'24= EFOTA',T38,'34= WFOOC',T50,'44= WTSSJ',T62,
+     7  '54= DBTEL',/2X,'5= EFOMN',T14,'15= EFOCH',T26,'25= EFOMI',T38,
+     8  '35= WFOSE',T50,'45= WTSIR',T62,'55= DISCO',/2X,'6= EFOPA',T14,
+     9  '16= EFOPL',T26,'26= EFOCI',T38,'36= NTS',T50,
+     A  '46= CTSCH',T62,'56= MCI ',/2X'7= EFOLI',T14,'17= WFOMP',
+     B  T26,'27= WFTEC',T38,'37= NSSC',T50,'47= WTSHO',T62,'57= DBVAL',
+     C  /2X'8= EFOKP',T14,'18= WFOSL',T26,'28= WFODE',T38,'38= VANMC',
+     D  T50,'48= CTSDE',T62,'58= NETQC')
+        TYPE 2533
+2533    FORMAT(2X,'9= EFOCR',T14,'19= WFOSM',T26,'29= WFOPH',T38,
+     1  '39= NETCON',T50,'49= CTSSL',T62,'59= MDUK',/1X'10= EFOMD',T14,
+     2  '20= WFODA',T26,'30= WFONB',T38,'40= NCS',T50,'50= ETSNY',
+     3  T62,'60= MDGER'//1X'61= PI',T14,'66= ATCOM',T26,'71= MFG',
+     4  T38,'76= MDITA',T50,'81= NCC',T62,'86= SIRTI'/1X'62= MDCAN',
+     5  T14,'67= CLOSE',T26,'72= NTD',
+     6  T38,'77= MDFR',T50,'82= MDAIS',T62,'87= TRT'/1X,
+     7  '63= CHAD',T14,'68= TELCO',T26,'73= MDSWE',T38,'78= MDAUS',
+     8  T50,'83= CWSRV',T62,'88= ARFEN'/1X'64= INTLT',T14,'69= MDTSG',
+     9  T26,'74= MDSZ',T38,'79= MDHK',T50,'84= ELNUS',T62,'89= ',
+     A  'TELDA'/1X'65= BTSWE',T14,'70= PROJ',T26,'75= BTBNL',T38,
+     B  '80= DOC.',T50,'85= NIS',T62,'90= MULTI',/1X,'91= GDC',T14,
+     C  '92= EFOGE',T26,'93= EFONK',T38,'94= BUBB',T50,'95= ENOPS',
+     D  T62,'96= GUAM',/1X,'97= ETSFR',T14,'98= ETSAT',T26,'99= ETSDU',
+     E  T37,'100= MDSPS',T49,'101= MDSP',T61,'102= BTUK',/1X,'103= ',
+     F  'MDNL',T13,'104= MDBEL',T25,'105= BTSZ',T37,'106= BTGER',$)
+        TYPE 2534
+2534    FORMAT('+  107= BTITA  108= BTSP',/1X,'109= MDFIN',T13,
+     1  '110= MDNOR',T25,'111= MDDK',T37,'112= MDIRE',T49,'113= ',
+     2  'BTAUS',T61,'114= BTIAL',/1X,'115= BTHK',T13,'116= BTFR',
+     3  T25,'117= GCSCS',T37,'118= BTEVL',T49,'119= OTHER')
+        RETURN
+        END
+C
+C
+C*****************************************
+C
+C       PRINTS HELP LIST
+C
+C*****************************************
+C
+        SUBROUTINE HLP1(NNET,FLAG,SRT)
+C
+        INTEGER NNET(2),FLAG,SRT
+C
+75      CONTINUE
+        TYPE 79,NNET
+79      FORMAT(25X,2A5,' NETWORK TICKETS',/25X,'-------------------',
+     1  '-------')
+        IF ((FLAG.EQ.1).OR.(FLAG.EQ.-1)) TYPE 80
+        IF ((FLAG.EQ.0).OR.(FLAG.GT.1)) TYPE 81
+80      FORMAT(/5X,'CREATE',T30,'UPDATE',T55,'REPORTS',/5X,'------',
+     1  T30,'------',T55,'-------',/5X,'A = ADD TICKET',T30,
+     2  'S = UPDATE/CHANGE STATUS',T55,'F = CREATE A DISK FILE',/5X,
+     3  'T = TRACK A TICKET',T30,'G = MODIFY ATTRIBUTES',T55,'K = ',
+     4  'KNOW WHAT IS YOURS',/5X,'V = ADD QA MARKS',T30,'D = DEFER TIC',
+     5  'KET',T55,'E = ESCALATE',/5X,'A1 = ADD CALL BACK',T30,'C = ',
+     6  'CLOSE TICKET',T55,'6 = ESCALATION MATRIX'/5X,' TICKET',T30,
+     7  'SW = START WORK'/5X,'-----------',T30,'EW = END WORK',/5X,
+     8  'L = LOOK AT A TICKET',/5X,
+     9  'O = LIST OPEN TICKETS',/5X,'N = HISTORICAL TICKETS',T55,
+     A  'MISCELLANEOUS',/5X,'W = WHATS NEW FOR TODAY',T55,'-------',
+     B  '------',/5X,'I = LIST CHART OF NETS',T55,'Q = QUIT PROGRAM',
+     C  /5X,'7 = LIST UN-UPDATED TICKETS',T55,'5 = ALL OPEN TICKETS',
+     D  /5X,'X = EXAMINE A TICKET',T55,'2 = LIST ESCALATED TICKETS',
+     E  /5X,'1 = TICKETS BY PRODUCT',T55,'3 = REPORT ESCAL. TIC.',
+     F  /5X'4 = TIC BY F.E. REGION',T55,'8 = HISTORICAL ESCAL. TIC.')
+81      FORMAT(/5X,'CREATE',T30,'UPDATE',T55,'REPORTS',/5X,'------',
+     1  T30,'------',T55,'-------',
+     2  /5X,'L = LOOK AT A TICKET',T30,
+     3  'N = HISTORICAL DATA',T55,'O = LIST OPEN TICKETS',/5X,
+     4  T30,'K = KNOW WHAT IS YOURS',T55,
+     5  'Q = QUIT PROGRAM',/,T30,'G = CHANGE HEADER INFO',
+     6  T55,'F = CREATE A FILE',/,
+     7  T54,'AR = POST',
+     8  ' ARRIVAL ON SITE',/,T54,'DP = DISPLAY PROFILE')
+        TYPE 82
+82      FORMAT(5X,'? = EXTENDED HELP LIST',T55,'9 = LIST LAST ',
+     1  'STATUS TIME')
+        IF (SRT.GE.1) TYPE 62
+62      FORMAT(5X,'S = ADD STATUS TO TICKET',/)
+        RETURN
+        END
+C
+C***********************************************
+C
+C       EXTENDED HELP LIST
+C
+C***********************************************
+C
+        SUBROUTINE HLP2(NNET,FLAG,SRT,XX)
+C
+        INTEGER NNET(2),FLAG,SRT,XX
+C
+100     TYPE 105,NNET
+105     FORMAT(25X,2A5,' NETWORK TICKETS',/25X,'-------------------',
+     1  '-------',/)
+        TYPE 110
+110     FORMAT(/5X'THE FOLLOWING UPPER CASE COMMANDS ARE ALSO ',
+     1  'AVAILABLE...',/,/5X'TIME = PRINTS LOCAL AND GMT',T50,
+     2  'VER   = PRINTS VERSION OF PAPER',/5X,'( )   = PRINTS ',
+     3  'PRIMARY HELP LIST',T50,'MSG   = PROGRAM CHANGES')
+        IF (XX.LT.0) TYPE 115
+115     FORMAT(5X,'INT   = REENTER INITIALS',T50,'REOPE = REOPENS A ',
+     1  'TICKET',/5X,'DELET = DELETES ANY TICKET #',T50,
+     2  'COM  = TRANSFER TO "COM"',/5X'B     = ',
+     3  'LISTS UNUPDATED TICKETS',T50,'Z     = RESETS TICKET #',
+     4  /5X,'U     = MOVES TICKET TO CURRENT',T50,
+     5  'V     = ENTER Q.A. POINTS',/5X,'REP   = ',
+     6  'TRANSFER TO REPORT PROGRAM')
+        RETURN
+        END
+C
+C********************************************
+C
+C       PRINTS PROGRAM UPDATES
+C
+C*******************************************
+C
+        SUBROUTINE HLP3(FLAG,SRT,XX)
+C
+        INTEGER A,B,C,D
+100     TYPE 105
+105     FORMAT(/,/,/2X'JULY 19,1987    THE FOLLOWING CHANGES HAVE ',
+     1  'BEEN MADE TO THE PROGRAM...',/3X,'1. REFORMATED DATA BASE',
+     2  /,/)
+        TYPE 107
+107     FORMAT(/1X,'END OF CHANGES')
+        RETURN
+        END
+C
+C
+C**************************************
+C
+C       SUBROUTINE TO LIST THE NETWORK NAMES
+C
+C**************************************
+C
+        SUBROUTINE HLPNET
+C
+        INTEGER X
+C
+100     TYPE 122
+122     FORMAT(/1X,'NETWORK NUMBERS EQUAL...',/6X,'1 = TYMNET',T21,
+     1  '2 = DECNET',T41,'3 = CIDNNET',T61,'4 = NINNET',/6X,'5 = V',
+     2  'ANET',T21,'6 = INSNET',T41,'7 = BOFANET',T61,'8 = ALASCO',
+     3  'M',/6X,'9 = DUNET',T20,'10 = FIRNNET',T40,'11 = HKBGNET',
+     4  T60,'12 = DOINET',/5X,'13 = TRWNET',T20,'14 = FNBCNET',
+     5  T40,'15 = DIALNET',T60,'16 = SWBNET',/5X,'17 ',
+     6  '= WESTNET',T20,'18 = AUTONET',T40,'19 = DOLNET',T60,
+     7  '20 = EXXON',/5X,'21 = MGTBNET',T20,'22 = UCCPAC',T40,
+     8  '23 = TELEVERKET',T60,'24 = S.C. JOHNSON',/5X,'25 = EPANET',
+     9  T20,'26 = SLIGOS',T40,'27 = NISNET',T60,'28 = UKNET',/5X,
+     A  '29 = PHILIPS',T20,'30 = ANZPAC',T40,'31 = ITALNET',T60,
+     B  '32 = CWNET',/5X,'33 = ITANET',T20,'34 = TELERATE',T40,'35 ',
+     C  '= SCANDUTCH',T60,'36 = AIRFNET'/5X'37 = BABYLONNET',T20,
+     D  '38 = BUBBNET',T40,'39 = LENET',T60,'40 = FMOGLNET',/5X,
+     E  '41 = FORDNET',T20,'42 = MTSSNET',T40,'43 = XARDANET',T60,
+     F  '44 = EUSKONET')
+        TYPE 123
+123     FORMAT(5X,'45 = HELLER',T20,'46 = GLASROCK',T40,'47 = ',
+     1  'MERCURY',T60,'48 = THNET',/5X,'49 = ARMYCORP')
+        RETURN
+        END
