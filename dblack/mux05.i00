@@ -1,0 +1,159 @@
+: ******************************************************************
+: **                  PROPRIETARY INFORMATION                     **
+: **                                                              **
+: **  This  source code listing constitutes the proprietary pro-  **
+: **  perty of TYMNET, Incorporated. The recipient, by receiving  **
+: **  this program listing, agrees that neither this listing nor  **
+: **  the   information  disclosed herein nor any  part  thereof  **
+: **  shall be  reproduced or transferred to other documents  or  **
+: **  used  or  disclosed to others for manufacturing or for any  **
+: **  other   purpose except as specifically authorized in  wri-  **
+: **  ting by  TYMNET, Incorporated.                              **
+: ******************************************************************
+: **                   PROGRAM IDENTIFICATION                     **
+: **                                                              **
+: **  Version Number     : 5.00          Release Date : 09/14/87  **
+: **                                                              **
+: **  File Name          : MUX05.I00                              **
+: **                                                              **
+: **  File Description   : init file of ISIS circuit multiplexer. **
+: **                                                              **
+: **  File Abstract      :                                        **
+: **                                                              **
+: ******************************************************************
+: **                CONFIGURATION SPECIFICATION                   **
+: **                                                              **
+: **  Core Memory Requirement:                                    **
+: **                                                              **
+: **  Basic Code Size:                                            **
+: **                                                              **
+: **  Additional Code Size per Tymfile Parameter Unit:            **
+: **                                                              **
+: **  Estimated Code Growth for Next 12 Months:                   **
+: **                                                              **
+: **  Sample Configurations:                                      **
+: **                                                              **
+: **  Hardware/Firmware Requirements:                             **
+: **                                                              **
+: **  Other Software Requirements:                                **
+: **                                                              **
+: **  Slot Limitations:                                           **
+: **                                                              **
+: ******************************************************************
+: **                   DOCUMENT SPECIFICATION                     **
+: **                                                              **
+: **  Software Requirements Specification       :                 **
+: **                                                              **
+: **  Functional Specification (GED)            :                 **
+: **                                                              **
+: ******************************************************************
+: **                      MAINTENANCE HISTORY                     **
+: **                                                              **
+: **  Ver   Date    By   PIR/NSR         Reason for Change        **
+: ** ----- -------- ---  -------- ------------------------------  **
+: **                                                              **
+: ******************************************************************
+: **                 SUBROUTINE IDENTIFICATION                    **
+: **                                                              **
+: **  Routine Abstract   :                                        **
+: **                                                              **
+: **  Calling Sequence   :                                        **
+: **                                                              **
+: **  Parameters         :                                        **
+: **                                                              **
+: **  Returned Values    :                                        **
+: **                                                              **
+: **  Side Effects       :                                        **
+: **                                                              **
+: **  Optional Comments  :                                        **
+: **                                                              **
+: ******************************************************************
+
+ GL VERSIO,REVLEV
+
+
+
+
+
+
+
+
+
+
+
+::		       ISIS CIRCUIT MULTIPLEXER
+
+
+
+
+::			       VERSION
+VERSIO	EQ $8			 05
+
+::			    REVISION LEVEL
+REVLEV	EQ $8			 00
+	GL	IRSIZE,ORSIZE,CNTRL,NPORT,TIMZON,NTOUT
+        GL      CRSTOP,ENGINE,ISIS2,PRODID,HOSTNO
+
+IRSIZE	EQ	800-4		:RING SIZES
+ORSIZE	EQ	IRSIZE
+PRODID	EQ	58		:PRODUCT ID
+
+: DEFINE GOOD-GUY MACRO
+
+POWER   EQ      1               :GG MACRO PARAM FOR USRS W/ SUPER LIC POWER
+NOPOWR  EQ      0
+HEAR	EQ	400
+NOHEAR	EQ	0
+LBLING  EQ      2000            :SET THIS BIT IN UFLAG FOR LABELING
+NOLABL  EQ      0
+USR	EQ	0
+
+GG	MACRO(PWR,HR,LAB,ATTN,TMOUT,TEXT)[
+U|USR|LIC EQ    PWR
+U|USR|UFG EQ    HR+LAB         :WILL BECOME VALUE OF UFLAG
+U|USR|ATT EQ	ATTN
+U|USR|TMT EQ    TMOUT*$A60
+U|USR|NAM MACRO[ BC 1
+	SC \TEXT\
+]
+USR	EQ	USR+1
+]
+
+XTBPRM  MACRO(PWR,HR,LAB,ATTN,TMOUT)[
+XTLIC   EQ      PWR
+XTUFLG  EQ      HR+LAB
+XTATTN  EQ      ATTN
+XTTMT   EQ      TMOUT*$A60
+]
+
+: DEFINE BAD-GUY MESSAGE TEXT MACRO
+
+BADMSG	MACRO(TEXT)[
+BDMSG	MACRO[ SC \TEXT\
+]]
+
+: DEFINE NO ROOM MESSAGE TEXT MACRO
+
+NROMSG  MACRO(TEXT)[
+NRMMSG  MACRO[ SC \TEXT\
+]]
+
+: DEFINE HELP MESSAGE ADDENDUM MACRO
+
+HLPMSG	MACRO(TEXT)[
+HPMSG	MACRO[ SC \TEXT\
+]]
+
+: DEFINE MSG TELLING USER THAT SYSTEM DEFAULTS ARE SET
+
+SYSDFL  MACRO(TEXT)[
+SDFMSG  MACRO[ SC \TEXT\
+]]
+
+: DEFINE MSG TELLING USER THAT USER DEFAULTS ARE SET
+
+USRDFL  MACRO(TEXT)[
+UDFMSG  MACRO[ SC \TEXT\
+]]
+
+
