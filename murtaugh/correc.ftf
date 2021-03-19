@@ -1,0 +1,79 @@
+c
+c**********************************************
+c
+c       program to read the contents of file host.dms
+c       and use the contents of host to update the 
+c       profil.dms data base for the host records
+c       in the tymnet portion of the network.
+c
+c***********************************************
+c
+        integer i,m,x,p,node,host,ver,prod,local(4),loc(4)
+        integer net(2),f1,f2,number,record,c,a,slot,redo,ilin
+        INTEGER IERT,IERC
+c
+100     type 105
+105     format(/1x,'profil correction program version 1.0')
+        call dbstrt(-1,1,-4,0,1,0,5,0,-1,0,-4,1,1,1,5,1)
+        redo=1
+        CALL DBERR($108,IERT,IERC,-1)
+        GOTO 107
+108     IF (IERT.NE.7) GOTO 5000
+        TYPE 103
+103     FORMAT(1X,'WAIT')
+        CALL WAIT(6.0)
+107   call dbopen('(TNT)host','(tnt)profil','erec')
+        call dbset(2)
+104     call dbupd(-1)
+        call dbset(1)
+        call dbfind('f1',1,0)
+        call dbnrec(number)
+        if (number.eq.0) goto 5000
+        type 102,number
+102     format(1x,'there are ',i5,' records to check',/)
+        if (number.lt.30) REDO=0
+        if (number.gt.30) ILIN=30
+        do 200 i=1,ilin
+        call dbgrec($5000,i)
+        call dbval(1,host,2,node,3,slot,4,prod,5,ver,6,local)
+        type 106,i,host
+106     format('+'1x,i3,1x,i6,1x,$)
+        call dbset(2)
+        call dbfind(3,1,'TYMNET',1,17,1,'H',1,6,1,HOST)
+        call dbnrec(record)
+        if (record.eq.1) goto 125
+        if (record.eq.0) goto 150
+        call dbset(3)
+        call dbadd(1,host,2,node,3,slot,4,prod,5,ver,6,local,
+     1  7,record,8,i)
+        call dbset(1)
+        m=m+1
+        type 110,c,m,a
+110     format('+'i4,1x,i4,1x,i4)
+        goto 199
+125     call dbchng(4,NODE,5,SLOT,18,PROD,22,VER,21,LOC)
+        call dbset(1)
+        c=c+1
+        type 110,c,m,a
+        goto 199
+150     CALL DBSET(1)
+        A=A+1
+        TYPE 110,C,M,A
+        CALL DBCHNG('F1',2)
+        GOTO 200
+C50     call dbadd(3,'TYMNET',6,HOST,5,SLOT,18,PROD,22,VER,21,LOC,
+     1  17,'H')
+        call dbset(1)
+        a=a+1
+        type 110,c,m,a
+199     continue
+        call dbchng('f1',1)
+200     continue
+        if (redo.eq.0) goto 5000
+        call wait(7.0)
+        goto 107
+5000    call dbclose
+        call dbclose
+        call dbclose
+        stop
+        end
