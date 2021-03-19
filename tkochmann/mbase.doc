@@ -1,0 +1,1780 @@
+
+
+                          MBASE DESIGN
+
+	This is a pseudo-code implementation of Mbase as specified
+	in the GID.  This design has four general components: 
+        (1) a description of data structures and subroutines used by more
+        than one task, (2) the interface to sbus--chap. 3 of GID, (3) the
+        interface to the ISIS dispatcher rings--chapter 4 of GID, and
+        (4) miscellaneous services--chapter 6 of GID.  [1]
+
+        This design is organized around implementation of the tasks described
+        in chap. 2 of GID--section 2.2 of GID summarizes these tasks.
+
+	The header of a subroutine or task described here will contain
+	the reference number assigned to it in the GID, i.e., 3.4 in 
+	the case of the SRD Starter Task.
+
+                I. DEFINITIONS
+        
+        Data Structures                         page 1
+        Subroutines used by more than one task  page 4
+
+		II. S-BUS INTERFACE [2]
+
+	3.1  IOCB Scanner Task			page 8
+	3.2  I/O Request Starter Task		page 9
+	3.4  SRD Starter Task			page 18
+
+		III. DISPATCHER RINGS INTERFACE
+
+	4.2   IRING Teardown Task		page 19
+	4.4.2 Data Fowarding Task		page 22
+	4.4.3 Global Backpressure Task		page 26
+	6.2   ISIS Output Task			page 27
+
+		IV. MISCELLANEOUS SERVICES
+
+	6.1  Timer Driver and Task		page 29
+	6.3  Waiting Queue Driver and Task	page 30
+	6.4  Memory Allocation Module		page 31
+	6.5  Event Trace Module			page 31
+	     Operations Monitor                 page 31
+
+                V. CODED DEFINITIONS OF DATA STRUCTURES
+
+        DEFS.MBS -- Port status table and
+                    Service Request Block 
+                    Equates                     page 32
+
+
+	[1]	Re GID:  Chapter 1 introduces the design, and
+		chapter 2 describes task-oriented nature of Mbase.
+		Chapter 5 describes IOCM disk and tape services--not 
+		implemented here.  Chapter 7 describes the subroutine
+		Reset_and_Restart_Interface.  This subroutine is 
+                described on page 6.  Chapter 8 is a list of data structures.
+
+	[2]	The SubDriver Task (3.3)--the ISIS driver of S-bus--is
+		not implemented here.
+
+
+
+                                                                page 1
+
+		     DATA STRUCTRES AND SUBROUTINES USED BY ALL TASKS
+
+                A. DATA STRUCTURES
+
+	A.1  Message Block.  first 20 bytes of S-bus Window.
+	     
+	A.2  Port Status Table--Mbase control block--one PST
+	     per port.  All parameters regarding activity on port
+	     are kept in the PST.  Refer to DEFS.MBS for details.
+
+	A.3  Service Request Block.  Corresponds to one S-bus Message
+	     Block Service Request.  A service request is a request to transfer
+             data to or from the S-bus via the S-bus window.  The SRB has
+             fields containing data relevant to the service request, as well
+             as other fields pertaining to how mbase tasks handle SRBs.
+
+        A.4  The following queues are doubly-linked lists of port status
+             tables, service requests blocks, wait reqeust blocks, or timeout
+             blocks.  The pointer to each queue--i.e., SRBQUE--is the address
+             of the first data structure on the queue.  All data structures
+             used in queues have a 'next' field which contains the address
+             of the next data structure (element) in the queue, and a 
+             'previous' field which points to the previous element.  The last
+             element in each queue is kept track of, making appends to the
+             queue a simple and quick procedure.
+
+	A.4.1  Service Request Queue -- SRBQUE
+                (end of queue)     -- SRBQND
+
+	A.4.2  Service Request Done Queue -- SRDONQ
+                (end of queue)          -- SRDQND
+
+	A.4.3  Service Request Suspended Queue -- SRSUSQ
+                        (end of queue)       -- SRSQND
+
+	A.4.4  Service Request Flushed Queue -- FLUSHQ
+                (end of queue)             -- FLSQND
+
+        A.4.5 Wait Request Queue  (Queue of Wait Request Blocks) -- WRBQUE
+                                        (end of queue)         -- WRBQND
+
+	A.4.6  ISIS Output Queue  (Queue of Port Status Tables) -- ISOUTQ
+                                        (end of queue)        -- ISOQND
+
+	A.4.7 Data Forwarding Queue (Queue of Port Status Tables) -- DFWRDQ
+                                        (end of queue)           -- DFWQND
+
+        A.4.8  Queue of I/O request blocks -- IORQ  (See FGTASK.DOC)
+
+        A.4.9   Timeout queue and timeout control block (See TOTASK.DOC)
+
+                                                                page 2
+
+        A.5   Wait Request Block.  
+                wrbnxt -- pointer to next wrb on wrbque
+                wrbsub -- subroutine to run when wait task takes this wrb
+                          from the queue
+                wrbpst -- port status table
+                wriocb -- the iocb on which haltio or suspend was presented
+
+
+	A.6  Mbase Status Table
+                MBASRS  Set at start of mbase initialization--used by
+                        interface reset subroutine to determine who started
+                        the reset--mbase or spirit
+                RESINT  Reset Interface Flag--set when channel 1 sends a
+                        reset interface command 
+                SUSPND  Set when Spirit send suspend mbase cmd on channel 1
+                MSGMAP  Message Mapping Table--maps Spirit circuit signal 
+                        messages to ISIS messages.  Address here will
+                        point to default table OR mapping table loaded
+                        by Spirit via the Load Mapping Table cmd.
+                SRBTIM  Last time an SRB was taken from SRBQUE; used 
+                        to detect sbus time-out
+                SBUSTO  Sbus time-out value.  Default value will be
+                        supplanted by value sent by Spirit via
+                        Set Sbus Timeout command.
+                APORT  bit array of active ports--set if needle or
+                        pseudo-needle rec'd on IRING--reset when zap
+                        placed in ORING.  Used by IRING Teardown Task
+                        to insure that it will flush data on a port that has
+                        not established a circuit w/ a needle or 
+                        pseudo-needle.
+
+	A.7  BUFFER SIZES AND DEFINITIONS (dynamically allocated buffers)
+
+	A.7.1  BUFFER1 -- S-bus window buffers
+		use: 	1. spirit read/write data messages
+			2. spirit read/write circuit signals w/ parameter
+			  bytes > 2
+
+		length:	64 bytes
+
+	A.7.2  BUFFER2 -- Mbase data buffering
+		use:	1. service request blocks
+			2. timeout reqeust blocks
+			3. wait reqeust blocks
+
+		length:	srblen (32 bytes)
+
+
+	A.7.3	BUFFER3 -- buffering of short read/write messages
+                use:    1. circuit signals w/ 0--2 parameters
+                        2. spirit write cmds of less than 3 bytes
+		length:	8 bytes
+
+                                                                page 3
+
+        A.7.4 BUFFER FORMATS	
+
+	A.7.4.1 BUFFER1		 				buf type
++-------+-------+-------+-------+-------+-------+-------+-------+-------+
+|     next buffer on queue      | msg*  |length |cei**  |nfmi***|   1   |
++-------+-------+-------+-------+-------+-------+-------+-------+-------+
+					...(64-8 bytes left for data)
+
+	A.7.4.2 BUFFER2		 				buf type
++-------+-------+-------+-------+-------+-------+-------+-------+-------+
+|     next buffer on queue      |  previous buffer on queue     |   2   |
++-------+-------+-------+-------+-------+-------+-------+-------+-------+
+                                        ...srblen-8 bytes left for data)
+
+	A.7.4.3 BUFFER3						buf type
++-------+-------+-------+-------+-------+-------+-------+-------+-------+
+|     next buffer on queue      |  msg* |length | data or params|   3   |
++-------+-------+-------+-------+-------+-------+-------+-------+-------+
+
+
+                *msg = Spirit circuit signal OR
+                       ISIS msg OR
+                       00 (Spirit msg for data)
+                **current empty index of this buffer--
+                  if an output buffer, cei is checked and sometimes
+                  updated by the subroutine that copies port output
+                  buffers of ORING (4.1.1 of GID)
+                  if an input buffer, cei is checked and sometimes
+                  updated by Data Forwarding Task.
+                ***next fill message index--checked and updated by
+                   IRING Teardown Task subroutine that buffers data
+                   from IRING.
+
+
+                                                                page 4
+
+                B. SUBROUTINES USED BY MORE THAN ONE TASK
+
+	B.1  GETBUF -- Get a buffer  (already coded in MEMALL.MBS)
+		parameters passed:	buffer type
+		parameters returned:	address of buffer
+
+        B.2  RETBUF -- Return a buffer  (already coded in MEMALL.MBS)
+		parameters passed:	buffer type, address of buffer
+
+        B.3 QUEUE-HANDLING ROUTINES FOR DOUBLY-LINKED DATA STRUCTURES
+
+        Service request blocks, ports status tables, wait request blocks,
+        and timeout blockds are all doubly-linked when in a queue, so
+        all queue-handling routines for these data structures are different
+        from those for handling data buffers, which are singly-linked in
+        input and output queues.
+
+	B.3  PUTQUE -- Put a buffer on a queue
+		parameters passed:	address of buffer
+					address of start of queue (pointer)
+					location of next_on_queue ptr
+                parameters returned:    end of queue
+
+        B.3.2 DEQUEUE
+
+        B.3.3 CHEC_NEXT_ON_QUEUE
+
+        B.3.4 REMOVE_NEXT_ON_QUEUE
+
+        B.3.5 ENQUEUE_SRB(srb)  
+
+        B.4  QUEUE-HANDLING ROUTINES FOR DATA BUFFERS
+
+        Input and output data buffer queues are singly-linked
+
+        B.4.1 CHECK_NEXT_DATA_BUFFR_ON_QUEUE
+
+        B.4.2. DEQUEUE_DATA_BUFFER
+
+        B.4.3 DEALLOCATE DATA_BUFFERS
+
+	B.6  COMPLETE_PORT_ZAP(PST)  (see page 7)
+
+	B.8  SET_TIMEOUT(delta_time, pst, routine_to_call, tcb)
+
+	B.9  RE-SET_TIMEOUT(delta_time, pst)
+
+	B.10  CANCEL_TIMEOUT(pst)
+
+	B.11  CANCEL_ANY_TIMEOUT(PST)  (* USED FOR ZAPS *)
+
+	B.12  ESTABLISH_WAITING_TASK(routine_to_call, pst)
+
+	B.13  DELETE_WATING_TASK(routine_to_call, pst)
+
+        B.15 PRESENT_NORMAL_STATUS(channel)  (see page 13)
+
+        B.16 MAKE_READ_SRB
+
+        B.17 MAKE_WRITE_SRB  (see page   )
+
+                                                                page 5
+
+        B.18 REMOVE_PST_FROM_ALL_QUEUES(pst)  (see page 17)
+
+        B.19 MOVE DATA FROM SPIRIT TO BUFFER            (3.7.1.4)
+
+          Called by ISIS Output Task in the case of a long Write Data
+          transfer requiring more than one service request.
+          (see page 17)
+
+        B.20 PROCESS WRITE DATA
+
+          The address of this routine is stored in the 'return address'
+          field of the service request block.  It is called by the 
+          SR Done Starter Task when the task takes the SRB from the
+          SR Done Queue.  The function of this subroutine is simply
+          to place on the port output queue the buffer to which spirit
+          had written upon receiving the service request that was
+          issued by the Get Spirit Bytes subroutine.  The Get Spirit
+	  Bytes subroutine is used to handle a Write Data command from Spirit.
+	  (see page 14)
+
+
+	B.21 PROCESS SEND CIRCUIT SIGNAL LONG
+
+	  As with Process Write Data, address is stored in the 'return
+	  address' field of the SRB, and is called by the SR Done Starter
+	  Task.  This routine will jump to the Process Message subroutine
+	  which will handle special case messages and/or put buffer on
+	  port output queue.
+          (see page 14)
+
+        SUBROUTINE Check_Next_On_Queue(ptr, buffer, next)
+        begin
+        IF (buffer=0) then (** get first on queue *)
+          buffer <-- data(ptr)
+        ELSE
+          buffer <-- buffer.next
+        end
+
+        SUBROUTINE Dequeue_Data_Buffer(ptr, buffer, next)
+        begin
+        IF (buffer=0) then (* remove first on queue *)
+          begin
+            buffer <-- data(ptr)
+            put_data_at_this_addr(ptr, buffer.next)
+            retbuf(buffer)
+            buffer <-- data(ptr)      (* return addr of new first-on-queue *)
+          end
+        ELSE
+          begin
+            newbuf <-- buffer.next (* get next on queue *)
+            IF buffer = data(ptr) (* IF first on queue *)
+              put_data_at_this_addr(ptr, newbuf)
+            retbuf(buffer)
+            buffer <-- newbuf  
+          end
+        end
+
+                                                                page 6
+
+        B.22 RESTART AND INTERFACE RESET                        
+
+	SUBROUTINE Restart_and_Interface_Reset	(7.2)
+	begin
+	save_historical_archives (7.2.1)
+	init_mbase_environment   (7.2.2)  (* includes init of all queues *)
+	(*   flush previous sbus activity       (7.2.3)  *)
+        (* a 'full initialization' as refered to in 7.2.3 of GID is...
+        (* ... an mbase initiated restart--indicated by the mbasrs flag*)
+	IF (mbasrs=1) AND interface reset pending on channel 1 then
+	  begin
+            getbuf(srb_bfr, srb_length)
+	    prepare an srb w/ interface reset required status
+	    putque(srb_bfr, srb_length)
+	    (wake up sub-driver)
+            REPEAT
+              SVC dismiss
+            UNTIL srdque <> 0 (* srb returned on sr done queue *)
+            mbasrs <-- 0
+            srdque <-- 0
+            retbuf(srb_bfr, buffer2_len)
+	  end
+	REPEAT
+	  pend_req <-- 0
+	  n <-- 1
+	  REPEAT
+            IF (iocb|n|.hio <> 0) then
+              iocb|n|.hio <-- 0
+	    IF (iocb|n|.sio <> 0) then
+	      IF (n<>1) OR ((n=1) AND (iocb1.cmd <> reset interface)) then
+		begin
+		  pend_req <-- 1
+                  getbuf(srb_bfr, srb_length)
+		  prepare an srb w/ interface reset required
+                    (set attention bit in status byte 1)
+                    (set bit 6 in status byte 2)
+		  putque(srb, srb_length)
+                  (wake-up sub-driver)
+		  REPEAT
+		    SVC dismiss
+		  UNTIL (srdque <> 0) (* srb returned on sr done queue *)
+                  srdque <-- 0
+                  retbuf(srb_bfr, buffer2_len)
+		end
+	    n <-- n+1
+	  UNTIL (pend_req <> 0) OR (n=(niocb+1))
+        UNTIL pend_req = 0
+
+        REPEAT
+          SVC dismiss
+        UNTIL iocb1.cmd = reset_interface
+
+        resint <-- 1  (* set reset interface flag in mbase status table *)
+        prepare srb w/ normal status (to complete reset interface on chn 1)
+        pst.retadr <- 0
+        putque(srbque, srb_bfr)
+
+                                                                page 7
+
+        REPEAT (* not in exec loop yet, so srdone task not handling...
+          SVC dismiss           (* returned srbs--so we'll do it here *)
+        UNTIL srdque <> 0
+        srdque <-- 0
+        retbuf(srb_bfr, buffer2_len)
+
+        (* 7.2.4 GID -- start normal operations--start fg and goto exec loop--
+        (* BUT let's finish interface reset sequence here before going to
+        (* exec loop! *)
+
+         SVC SYS,1
+
+         REPEAT  (* until interface reset is done *)
+           get_and_check (RXS_COMMAND, result)
+           IF (result <> OK) THEN FINISH   (*go to end of REPEAT scope*)
+           prepare an srb w/ read data and status SR
+           srb_bfr.retadr <-- 0
+           putque(srbque, srb_bfr)
+
+           get_and_check (LMT_COMMAND, result)
+           IF (result <> OK) THEN FINISH
+           prepare an srb w/ write data SR, address of mapping table buffer
+           srb_bfr.retadr <-- Get_Mapping_Table
+           putque(srbque, srb_bfr)
+
+           resint <-- 0
+
+         UNTIL (resint == 0)
+         GOTO Exec Loop
+
+
+
+         SUBROUTINE Get_and_Check (command, result)
+         BEGIN
+           REPEAT
+             get_next_on_iorq (channel, pst, iorb, got_one)
+             IF NOT got_one THEN Dismiss
+           UNTIL (got_one)
+           IF (channel == 1)  and  (command == iorb.cmd)
+             THEN result <-- OK
+             ELSE IF (channel == 1)  and  (command == RI_COMMAND)   THEN BEGIN
+               trace the command
+               present_normal_status(channel)
+               result <-- wrong
+             ELSE BEGIN
+               invalid_iorb_data(SIO_ERR)
+               result <-- wrong
+                  END
+         END
+
+        SUBROUTINE Complete_port_zap(pst)
+        begin
+        cancel_any_timeout(pst)  (* if any *)
+        remove_pst_from_all_queue(pst)
+        remove_waiting_task(pst)  (*if any waiting task associated w/ port*)
+        end
+
+
+                                                                page 8
+
+        	3.1 S-bus Driver IOCB Scanner Task--Foreground job
+
+                A. DATA STRUCTURES
+
+        A.1  S-bus Window.  Segment 3 of the slot.
+
+        A.1.1 I/O Control Blocks (IOCB).  In S-bus window.  One per channel.
+
+        A.2  Port Status Tables
+
+        A.3  Queue of port status tables with active ports (attached channels)
+              for SIO and hio requests -- ATCHDQ
+
+        A port status table is put on the queue when circuit activity
+        begins on a port, and is taken off when the circuit is zapped.
+        The Port Status Table contains the IOCB addresses and channel
+        numbers associated with the port.
+
+        A.4  Queue (ring) of IO request blocks (IORQ)
+        
+        	ring length:	max = number_of_IOCBs * IORB_length
+        	IORB length:	4 bytes
+        	fields:		request type (byte)
+        			channel number (byte)
+        
+                B. TASK DESCRIPTION
+        
+        IF there is nothing on ATCHDQ queue, dismiss.
+        For each PST on the queue, check the input IOCB if the hi-order
+        bit of the iocb address, as found in the pst, is not set.  (The
+        bit is set by mbase when a zap is rec'd on that channel).  The IOCB
+        is checked for an SIO indication.  THe same is done for the output
+        IOCB.
+
+	An IOCB is put on the IORQ if there is an SIO request.
+        
+        If 4 seconds have elapsnce last check for HIO requests, then
+        check the HIO field of all IOCBs.
+
+        IF the hio field is set to 01, then an hio request has been
+        issued--put an iorb on iorq with the hio request type.
+        
+        Dismiss after checking queue.
+
+        If an invalid request was detected (something other than a 01 in
+        the SIO or HIO field), then indicate an error with a 'request type'
+        of -1, and put the IORB on the IORQ.  The Request Starter task will
+        then create a Service Request with Read Status with 'Start I/O Error'
+        indicated in status byte 0, (x'10'), and x'12' in status byte 1.
+
+
+                                                                page 9
+
+		     S-bus Driver I/O Request Starter Task      (3.2)
+
+	begin
+	init_tuning_parameter(done)
+	REPEAT
+	  get_iorb(channel,rt,pst,iocb,got_one)
+	  IF got_one then 
+	    get_spirit_command(rt,pst,iocb)
+	  ELSE
+	    test_tuning_parameter(done)
+	UNTIL done
+        end
+
+	SUBROUTINE Get_iorb(channel,rt,pst,iocb)
+        begin
+        get_next_on_queue(iorq, iorb, empty)
+        IF not empty then
+          IF request_type = -1 then (* it's invalid I/O request *)
+            invalid_iorb_data(x'17') (* 17 = invalid iocb data in an iocb...
+                                        ...field other than the cmd byte*)
+          ELSE
+	    IF iocb.cmd is not a valid command then
+              invalid_iorb_data(x'10') (* invalid data in iocb cmb byte *)
+          ELSE
+          IF channel <> 1 then
+            get_pst(channel, pst)
+              (* pst contains iocb addr *)
+        ELSE got_one <-- empty
+        end
+
+        SUBROUTINE invalid_iorb_data(status_byte1_parameter)
+	getbuf(srb_bfr,srb_length)
+	srb_bfr.srbyte <-- Read_Status
+	srb_bfr.sb0 <-- Start_i/o_Error_indication (* bit 4 and bit 5 set*)
+	srb_bfr.sb1 <-- status_byte1_parameter
+	srb_bfr.srchnl <-- channel
+	srb_bfr.retadr <-- error_handler
+        enqueue_srb(srb_bfr)  
+	end
+
+
+        SUBROUTINE error_handler
+
+        (* this is called by srdone task after getting 'done' srb
+                that was queued to report 'Start I/O Error' *)
+
+
+                                                                page 10
+
+	SUBROUTINE Get_Spirit_Command(channel,rt,pst,iocb)  (3.7)
+	begin
+	IF channel = 1 then
+	  process_channel_1_command(iocb)
+	ELSE
+	  IF rt = hiotyp (* halt i/o *) then
+	    process_haltio(pst,iocb)
+	ELSE 
+          IF iocb.sb1 = valid msg then begin
+	    IF cmd = 20 then  (* read *)
+	      Handle_Read_Data(pst,iocb)
+	    ELSE 
+	      IF channel NOT even then
+	      	invalid_iorb_data(x'10')  (* invalid data in iocb cmd byte *)
+	      ELSE
+	        Get_Spirit_Bytes(cmd,pst,iocb)
+	    end 
+	  ELSE
+	    invalid_iorb_data(x'17')  (* 17 = invalid iocb data in an iocb...
+                                  ...field other than the cmd byte *)
+	end
+
+        SUBROUTINE Handle_Read_Data(channel, cmd, pst, iocb)  (3.7.1.1)
+	begin
+	IF channle NOT odd then
+	  invalid_iocb_data(x'10)  (* invalid data in iocb cmd byte *)
+	set pst.inpend bit
+	IF (pst.inque = 0) then
+	  begin
+	    test pst.mbsbkp bit (* flag indicating mbase set backpressure *)
+	    IF bit was OFF then (* can't release bckprsure if mbase wanted it*)
+	      begin
+                set pst.sprbkp bit
+		getbuf(buffer, buffer3)
+	        buffer.msg <-- Release Backpressure
+		que_buffer_and_pst_for_output(buffer, pst)
+	      end
+	  end  
+	ELSE
+	  putque(dfwrdq, pst) (* put port status table on data fwrding que *)
+	end
+
+ 
+                                                                page 11
+
+        SUBROUTINE Process_Haltio(pst, iocb)  (3.8)
+	begin
+	IF iocb.sio = 0 then (* command was completed, nothing to do *)
+	  ignore hio request, nothing else to do
+	ELSE
+	  begin
+            IF SRBQUE = 0 then
+              complete_hio(pst)
+	    ELSE (* an srb to complete pending cmd may be on srq *)
+	      begin
+                getbuf(wrb_bfr, buffer2) (* get a buffer of buffer2 length*)
+                wrb_bfr.wrbsub <-- test_for_conditions_to_complete_haltio
+                wrb_bfr.wrbpst <-- pst
+                wrb_bfr.wriocb <-- iocb
+                putque(wrbque, wrb_bfr, wrbnxt)
+                getbuf(srb_bfr, buffer2)
+                set srb_bfr.hlstsrb bit  (* make a 'no-op' halt srb *)
+                enqueue_srb(srb_bfr)
+	      end
+          end
+        end
+
+        SUBROUTINE complete_hio(pst)
+        begin
+        IF odd(channel) then buf_que <-- pst.iniocb
+        ELSE buf_que <-- pst.opiocb
+        deallocate_data_buffers(buf_que)
+	getbuf(srb_bfr, srb_length)
+	prepare srb_bfr w/ 'failed' bit and 'i/o halted' bit set in status byte 0
+	iocb.hio <-- 0 (?)
+	putque(srbque, srb_bfr)
+        end
+
+	SUBROUTINE Test_for_conditions_to_complete_haltio
+	begin
+        test pst.hsrbrt bit
+        IF bit set then (* 'no-op' halt srb returned, indicating that all...
+                        ...srbs that were on queue at time haltio rec'd...
+                        ...have been processed *)
+	  IF the sio field of the iocb referenced by wrb_bfr <> 0 then
+	    complete_hio
+          ELSE
+            (* nothing to do except MAYBE reset hio field in iocb *)
+        ELSE
+          putque(wrbque, wrb_bfr, wrb_nxt)
+	end
+
+                                                                page 12
+
+	SUBROUTINE Process_Channel_1_Command(iocb) (3.6)
+	begin
+        IF cmd NOT in [x'12',x'24',x'16',x'04',x'06'] then
+          invalid_iorb_data(x'10) (* invalid data in iocb cmd byte *)
+        ELSE
+	CASE iocb.cmd of
+	Reset Interface (12): (3.6.1)
+	  begin
+          Restart_and_Interface_Reset  (7.2)
+	  end
+
+	  Read Extended Status (24):              (3.6.2)
+          begin
+          (* refer to TYM.03 page 1-9 for data to send in srb *)
+          putque(srbque, srb_bfr)
+          end
+
+	  Load Mapping Table (16):	(3.6.3)
+	  begin
+          prepare an srb w/ write data serv. req.
+          srb_bfr.retadr <-- Get_Mapping_Table
+	  putque(srbque, srb_bfr)
+	  end
+
+	  Suspend Mbase (04):			(3.6.4)
+	  begin
+	  set suspnd flag
+          working backward, set flush flag on all SRBs on SRBQUE
+	  prepare a 'wait request block' (wrb)
+          wrb_bfr.wrbpst <-- 0
+	  wrb_bfr.wrbsub <-- suspender  (3.6.4)
+	  putque(wrbque, wrb_bfr, wrbnxt)
+	  end
+
+	  Resume Mbase (06):   (3.6.5)
+	  begin
+	  suspnd <-- 0
+	  prepare and srb w/ normal read status (to 'complete' command *)
+	  srb_bfr.retadr <-- re-que_flushed_and_suspended_srbs
+          srb_bfr.portst <-- 0
+	  putque(srbque, srb_bfr)
+	  end
+
+          Set_S-bus_Timeout_Value (18):  (see tym.03.s)
+          begin
+          sbusto <-- 5 times the value of parameter byte
+          end
+	end
+
+  
+                                                                page 13
+
+	SUBROUTINE re-que_flushed_and_suspended_srbs(srb_bfr)
+	begin
+        WHILE flushq <> 0 DO  (* take srbs from flushq, put 'em on srq *)
+          begin
+	    remove_next_on_queue(flushq, bfr)  (* take bfr from head of que *)
+	    putque(srbque, bfr)
+	  end 
+        WHILE srsque <> 0 DO (* take srbs from srsusq, put 'em on srq *)
+          begin
+	    remove_next_on_queue(srsusq, bfr)  (* take bfr from head of que *)
+	    putque(srbque, bfr)
+	  end 
+	end
+
+	SUBROUTINE Suspender(wrb_bfr)
+	begin
+	IF srbque <> 0 then (* there are still un-flushed srbs *)
+	  putque(wrbque, wrb_bfr)  (* wait blk goes back on wait que*)
+	ELSE (* last srb on srbque at time of suspend is now at end of flusq*)
+          present_normal_status(channel)
+	end
+
+         SUBROUTINE Present_Normal_Status (channel)
+         BEGIN
+           getbuf (srb_bfr, srb_length)
+           srb_bfr.srbyte <-- Read_Status
+           IF odd(channel) then  (* i.e., read channel *)
+             set attention bit in status byte 0
+           ELSE
+             srb_bfr.sb0 <-- 0    
+           srb_bfr.sb1 <-- 0
+           srb_bfr.srchnl <-- channel
+           srb_bfr.retadr <-- 0
+           enqueue_srb(srb_bfr)
+         END
+
+         SUBROUTINE Enqueue_SRB (srb_bfr)
+         BEGIN
+           IF (NOT suspnd) OR (channel = 1) then
+             begin
+               IF srbque = 0 (* nothing on serv. req. queue *) then
+                 begin
+                   timo <-- sbusto  (* sbus timeout value *)
+                   timo <-- timo + fastc (* make into point of t.o.*)
+                   set_timeout(timo, pst, Restart_and_Reset_Interface, tcb)
+                   putque(tout, tcb)
+                 end
+               putque(srbque, srb_bfr, srbnxt)
+             end
+           ELSE 
+             putque (srsusq, srb_bfr)
+         END
+        end
+
+
+        SUBROUTINE Get_Mapping_Table(srb_bfr)  (3.6.3)
+        (* copy mapping table from buffer to which spirit had written*)
+        begin
+        msgmap <-- srb_bfr.buffer_address
+        srb_bfr.srbyte <-- read status (* end cmd w/ read status *)
+        srb_bfr.retadr <-- 0
+        putque(srbque, srb_bfr) 
+        end
+
+                                                                page 14
+
+	GET_SPIRIT_BYTES			(3.7.1.3)
+        begin
+	IF port backpressured then
+	  IF (short_circuit_signal) AND (gobbler or zapper) then
+	    begin
+	      move_data_from_spirit_to_buffer(pst, buffer)
+	      process_message(cmd, pst, buffer)
+	    end
+	  ELSE
+	    set pst.outpnd bit
+	ELSE (* no backpressuring *)
+	  begin
+            pst.wrtcnt <-- 0
+            move_data_from_spirit_to_buffer(pst, buffer)
+            IF it's a circuit signal command then
+              process_message(cmd, pst, buffer)
+            ELSE IF it's a write_data_byte then
+              que_buffer_and_pst_for_output(buffer, pst)
+	  end  (* no backpressure *)
+	end
+
+	SUBROUTINE Que_Buffer_And_Pst_For_Output(buffer, pst)
+	begin
+	ptr <-- pst.outque (* ptr to port's output buffer queue*)
+	putque(ptr,buffer)
+        IF pst.onopq = 0 then (* pst NOT on isis output que *)
+          append_to_queue(iopqnd, pst)
+	end
+
+        SUBROUTINE Process_Write_Data(srb_bfr)
+        begin
+        pst <-- srb_bfr.portst
+        buffer <-- get_halfword_format(srb_bfr, adrmsb) (* get buffer addr*)
+        que_buffer_and_pst_for_output(buffer, pst)
+        end
+
+	SUBROUTINE Process_Circuit_Signal_Long(srb_bfr)
+  	begin
+        pst <-- srb_bfr.portst
+	buffer <-- get_halfword_format(srb_bfr, adrmsb)  (* get buf. addr *)
+        channel <-- srb_bfr.srchnl
+	cmd <-- get_cmd(pst, channel)
+	process_spirit_Message(cmd, pst, buffer)
+	end
+
+        SUBROUTINE Handle_Special_Code(iocb,pst,buffer)  (see tym.03.s)
+        begin
+        CASE iocb.sb1 of
+          01: (login string) que_buffer_and_pst_for_output(buffer, pst)
+          02: set_forwarding_characteristics(iocb,pst)
+          03: handle_automatic_backpressure_ON  
+          04: handle_automatic_backpressure_OFF
+          end
+        end
+        end
+
+                                                                page 15
+
+        SUBROUTINE Handle_Spirit_Zap_or_Detach(pst,srb_bfr)  (3.7.2)
+	begin
+        set hi-order bit of pst.opiocb  (* fg job will check this bit...
+                                        (* ...to see if sio expected *)
+        test pst.zapfis bit
+        IF bit set then (* ISIS sent 1st zap *)
+          begin
+            put a zap on outque
+            deallocate_data_buffers(pst.outque)
+            complete_port_zap(pst, channel)
+          end
+        ELSE
+          begin  (* spirit is starting circuit clearing *)
+            set pst.zapfsp
+            deallocate data_buffers(pst.inchnl)
+            deallocate_data_buffers(pst.outchn)
+	    make_srb(pst,RDS,0BB,,,,Send_Zap_or_Detach_to_Isis,,srb_bfr)
+	    enqueue_srb(srb_bfr)
+          end
+	end
+
+	SUBROUTINE Send_Zap_or_Detach_to_ISIS(srb_bfr)  (3.7.2)
+	begin
+        pst <-- srb_bfr.portst
+	set pst.zaptis bit  (* indicating zap sent to isis *)
+        put zap in oring
+        test pst.zapfis bit  (* has zap been received from isis? *)
+	IF bit set then
+          complete_port_zap(pst)
+        end
+
+	SUBROUTINE Process_Spirit_Message(cmd,pst,buffer)
+	begin
+        iocb <-- pst.opiocb
+        IF iocb.sb1 = special action code then  (*i.e., non-isis msg *)
+          handle_special_code(iocb,pst,buffer)
+        ELSE
+          begin
+            copy circuit_signal and parameters (if any) to buffer
+            IF it's a zapper, gobbler, or backpressure message then
+               CASE iocb.sb1 OF begin
+                detach, zap,
+                zap_acknowledge,
+                zap_with_reason:  Handle_Spirit_Zap_or_Detach
+                gobbler        : Handle_Spirit_Gobbler
+                set_bkprsr     : Handle_Set_Backpressure_From_Spirit
+                release_bkpr   : Handle_Release_Backpressure_From_Spirit
+                end
+            ELSE
+              que_buffer_and_pst_for_output(buffer, pst)
+          end
+        end
+
+                                                                page 16
+
+	SUBROUTINE Handle_Set_Backpressure_From_Spirit(pst, buffer)
+	begin
+        test pst.sprbkp bit (* see if spirit set backpresure *)
+	IF bit NOT set then
+	  begin
+	    test pst.mbsbkp bit  (* see if mbase set bkprsure *)
+	    IF bit NOT set then  (* send backpressure msg *)
+	      que_buffer_and_pst_for_output(buffer, pst)
+	    ELSE
+	      retbuf(buffer, buffer1_len)
+	  end
+        ELSE
+	  retbuf(buffer, buffer1_len)
+	end
+
+	SUBROUTINE Handle_Release_Backpressure_From_Spirit(buffer, pst) (3.7.2)
+	begin
+	reset pst.sprbkp bit  (* reset bit that indicates spirit bckpr req. *)
+	IF the bit was set then
+	  begin
+	    test pst.mbsbkp bit  (* see if mbase had requested backpressure *)
+	    IF bit was NOT set then
+	      que_buffer_and_pst_for_output(buffer, pst)
+	    ELSE
+	      retbuf(buffer, buffer1_len) (* cannot over-ride mbase bckprsure*)
+	  end
+        ELSE
+	  retbuf(buffer, buffer1_len)
+	end
+
+	SUBROUTINE Handle_Gobbler_From_Spirit  (3.7.2)
+	begin
+        deallocate_data_buffers(pst.outchn)
+	que_buffer_and_pst_for_output(buffer, pst)
+	end
+
+        SUBROUTINE Set_Forwarding_Characteristics(iocb,pst)  (3.7.2)
+        begin
+        pst.dfcmsk <-- iocb.sb2
+        timeout <-- iocb.sb3 * 30 (* 30 clock ticks = 1/20th second *)
+        pst.dfctim <-- timeout
+        (* call routine to get timeout blk--pass the timeout value,
+           pst, routine to call at timeout; return tcb)
+        timeout <-- timeout + fastc
+        set_timeout(timeout, pst, Evaluate_Whether_to_Forward, tcb)
+        putque(toutq, tcb)  (* put timeout block on timeout que *)
+        IF pst.inque <> 0 then (* there is input buffered *)
+          IF pst.ondfq = 0 then (* if pst not on data fwrd que, put it on*)
+            append_to_queue(dfwrdq, pst)
+        end
+
+        SUBROUTINE Remove_PST_from_all_queues(pst)
+        begin
+        dequeue(atchdq, pst, atchnx)
+        dequeue(isoutq, pst, opqnxt)
+        dequeue(dfwrdq, pst, dfqnxt)
+        reset hi-order bit of pst.iniocb and pst.opiocb
+        (* hi -order bits of iocb addresses are checked by fg task *)
+        end
+
+
+                                                                page 17
+
+	SUBROUTINE Move_data_from_spirit_to_buffer(pst,iocb,buffer) (3.7.1.4)
+        begin
+	cmd <-- pst.opiocb.cmd (* get cmd byte of output iocb *)
+        IF cmd = write_data_byte OR send_circuit_signal_short then
+	  begin
+            IF cmd = 64 (send circuit signal short) then 
+	      begin
+	        getbuf(buffer, buffer3)
+                copy cmd and parameters (if any) from iocb to buffer
+	      end
+	    ELSE (* cmd = 42 write data byte *)
+	      begin  
+	        getbuf(buffer, buffer3)
+	        copy byte from IOCB to buffer 
+	      end
+            present_normal_status(pst.outchn) (* 'complete' the i/o req. *)
+	  end
+	ELSE  (* it's write data or send circuit signal long *)
+	  begin
+            getbuf(buffer, buffer1)  (* get a buffer for data *)
+            IF cmd = send_circuit_signal_long then
+	      begin
+                copy circuit signal from iocb to buffer
+		ret_adr <-- Process_Circuit_Signal_Long
+	      end
+            ELSE (* write_data *)
+              begin
+                buffer.msg <-- spirit_data_message_code
+                ret_adr <-- Process_Write_Data
+              end
+
+            nmbr_spirit_bytes <-- get_halfword_format(iocb,cb.msb,cb.lsb)
+	    count <-- nmbr_spirit_bytes - pst.wrtcnt
+	    IF count > data_buffer_length then
+	      count <-- data_buffer_length
+	    pst.wrtcnt <-- pst.wrtcnt + count
+            make_write_srb(pst,buffer,count,ret_adr)
+
+	    IF pst.wrcnt = nmbr_spirit_bytes then 
+	      begin
+		re-set pst.outpnd bit
+		enqueue_srb(srb_bfr)
+                present_normal_status(channel)
+	      end
+	    ELSE
+	      begin
+		set pst.outpnd bit
+		enqueue_srb(srb_bfr)
+	      end
+	  end
+	end
+
+
+
+                                                                page 18
+
+		SR DONE STARTER TASK		(3.4)
+
+	begin
+	WHILE srdque <> 0 DO begin  (* take srbs from sr done queue *)
+	  remove_next_on_queue(srdque, srb_bfr)
+	  flags <-- srb_bfr.srstat (* get serv. req. status flags bit array*)
+	  IF flags.flshsr bit set then
+	    putque(flushq, srb_bfr) (* put on flush queue *)
+	  ELSE IF flags.hltsrb bit set then
+	    begin
+	      pst <-- srb_bfr.portst
+	      set pst.hsrbrt bit (* halt srb returned flag *)
+	      retbuf(srb_bfr, buffer2)
+	    end
+	  ELSE IF srb_bfr.srbyte = Read_Data OR Read_Data_And_Status then
+	    begin  
+	      IF flags.retbuf bit set then (* return buffer sbus read from *)
+	        begin  (* first, get the buf addr in a normal format *)
+		  buffer <-- get_halfword_format(srb_bfr, adrmsb)
+		  retbuf(buffer, buffer1)
+		end
+	      retbuf(srb_bfr, buffer2)
+	    end
+          ELSE
+            IF srb_bfr.retadr = 0 then
+              retbuf(srb_bfr, buffer2)
+	    ELSE
+	      begin
+		pst <-- srb_bfr.portst
+		jump and link on subroutine pointed to by srb_bfr.retadr
+		retbuf(srb_bfr, buffer2)
+	      end
+            IF srbque <> 0 then (* if there are srbs on srbque *)
+              begin
+                timo <-- sbusto
+                timo <-- timo + fastc (* get point of sbus timeout *)
+                re_set_timeout(timo, pst)
+              end
+            ELSE (* nothing on srbque, so can't measure sbus response *)
+              cancel_timeout(pst)
+	  end (* while *)
+	end
+
+
+                                                                page 19
+
+			IRING Teardown Task	(4.2)
+
+        begin
+	tuning_param <-- iring teardown task tuning parameter value
+	REPEAT
+	  LOOK (* at iring *)
+	  IF something in IRING then
+            IF APORT bit set then 
+              begin
+	        convert_isis_msg(circuit_signal)
+	        IF msg not recognized then
+		  trace and flush
+	        ELSE
+                  begin
+                    get_pst(port,pst)
+		    IF port=0 then
+		      move_circuit_signal_to_buffer(pst,circuit_signal)
+	            ELSE
+		      handle_iring_message
+                  end
+	      end
+	    ELSE IF aport bit NOT set then (* unattached port *)
+              begin
+                if it's a zap then put a zap on oring
+                flush the message
+              end
+	  tuning_param <-- tuning_param - 1
+	UNTIL tuning_param = 0
+	end
+
+        SUBROUTINE Move_Circuit_Signal_to_Buffer(pst,circuit_signal) (4.4.1.1)
+        begin
+        getbuf(buffer, buftyp1)
+            pst.isisms <-- circuit_signal
+            buffer.msg <-- circuit_signal
+            put paramater bytes, if any, into buffer
+            putque(pst.inque, buffer, bufnxt)
+            IF pst.ondfq = 0 then (* it's NOT on data forwarding queue *)
+              putque(dfwrdq, pst, dfqnxt)
+        end
+
+	SUBROUTINE Handle_Iring_Message		(4.3)
+	begin
+	CASE msg of:
+	pseudo-needle, needle:
+	begin
+        initialize_pst(pst) (* make sure flags reset, etc. *)
+	move_circuit_signal_to_buffer(port0_pst, circuit_signal)
+	putque(atchdq, pst, atcnxt) (* put pst on attched queue*)
+        set APORT bit 
+	end
+
+                                                                page 20  
+
+	set_transmit_limit:
+	begin
+	move_circuit_signal_to_buffer(pst, circuit_signal)
+	pst.xmtlin <-- transmit limit
+	end
+
+	gobbler_message:
+	begin
+	WHILE pst.inque <> 0 DO 
+	  deallocate_data_buffers(pst.inque, bufnxt)
+	move_circuit_signal_to_buffer(pst, circuit_signal)
+	end
+
+	release backpressure:
+	begin
+	clear port bkprssure flag
+	if pst.outpnd = 1 then (* there is output pending *)
+	  putque(isoutq, pst, opqnxt) (* put pst on isis output queue*)
+	move_circuit_signal_to_buffer(pst, circuit_signal)
+	end
+
+	apply backpressure:
+	begin
+	set port backpressure flag
+	move_circuit_signal_to_buffer(pst, circuit_signal)
+	end
+
+	zap messages (9E,9F,BE,BB):
+	begin
+        reset APORT bit 
+	IF pst.zapfsp bit set then (* spirit started circuit clearing *)
+	  IF pst.zaptis bit set then (* mbase has sent zap to isis *)
+	    completely_zap_port(pst) (* remove pst and timeouts from queues *)
+	  ELSE
+	    set pst.zapfis bit (* show zap rec'd but don't pass it on*)
+	ELSE
+	  begin
+            re-set hi-order bit in pst.iniocb (* checked by fg job *)
+	    set pst.zapfis bit
+            deallocate_data_buffers(pst.inque)
+	    move_circuit_signal_to_buffer(pst, circuit_signal)
+	  end
+	end
+
+	any other circuit signal:
+	begin
+	move_circuit_signal_to_buffer(pst,circuit_signal)
+	end
+
+	data message:
+        begin
+        move_circuit_data_to_buffer(pst, msg_len)
+        end
+
+
+                                                                page 21  
+
+	SUBROUTINE Move_Circuit_Data_to_Buffer(pst, msg_len)  (4.4.1.1)
+	begin
+	buffer_data_message(pst, msg_len)
+	IF pst.ondfq NOT set then (* pst is NOT on data fowarding queue *)
+	  putque(dfwrdq, pst, dfqnxt)
+	end
+
+	SUBROUTINE Buffer_Data_Message(pst, msg_len)
+	begin
+	IF pst.dfcact set then (* data fowarding criteria apply *)
+	  begin 
+            timeout <-- pst.dfctim  (* get timeout interval for data fwrding*)
+            timeout <-- timeout + fastc (* make into point of timeout *)
+	    IF pst.inque = 0 then (* no input data before this data msg*)
+              begin
+                set_timeout(timo, pst, Evaluate_Whether_to_Forward, tcb)
+                putque(toutq, tcb)  (* timeout block on timeout queue*)
+              end
+            ELSE
+	      re_set_timeout(timeout, pst) (* re-set t.o. value in t.o. blk*)
+	  end
+	msg_bytes_left <-- msg_len
+	IF pst.inque <> 0 then (* there is a queue *)
+	  begin  (* append msg--or part of it-- to last bufr on queue *)
+	    get_last_data_buffer(pst.inque, buffer)
+	    IF buffer.nfmi < buftyp1_max then (* buffer NOT filled up *)
+	      stuff_buffer(buffer, msg_bytes_left)
+	  end
+	WHILE msg_bytes_left <> 0 DO 
+	  begin
+	    get_and_initialize_data_buffer(buffer)
+	    stuff_buffer(buffer, msg_bytes_left)
+            putque(pst.inque, buffer, bufnxt)
+	  end
+	end
+
+	SUBROUTINE Get_and_Initialize_Data_Buffer(buffer)
+	begin
+	getbuf(buffer, buftyp1)  (* buftyp1 = i/o window buffer *)
+	buffer.cei <-- 0
+	buffer.nfmi <-- 0
+	buffer.length <-- 0
+	end
+
+	SUBROUTINE Stuff_Buffer(buffer, msg_bytes_left)
+	begin
+	count <-- 0	    (* init count of # of bytes put in this buf*)
+	idx <-- buffer.nfmi (* get idx into where to put 1st byte *)
+	REPEAT		    (* buffer.data = start of buffer data area *)
+	  buffer.data[idx] <-- getch  (* getch from ring and put in buf *)
+	  idx <-- idx + 1
+	  count <-- count + 1
+	  msg_bytes_left <-- msg_bytes_left - 1
+	  IF idx = buftyp1_max then (* buffer is filled up *)
+	    begin
+	      buffer.length <-- buffer.length + count
+	      buffer.nfmi <-- idx
+	    end
+	UNTIL (msg_bytes_left = 0) OR (idx = buftyp1_max)
+	end
+
+
+
+                                                                page 22
+
+         SUBROUTINE Data_Forwarding_Task  (4.4.2)
+         begin
+         WHILE dfwrdq <> 0  DO
+           begin
+             get_next_on_queue (dfwrdq, pst, dfqnxt) (* remove pst from q *)
+             IF (pst.inque <> 0) and (pst.inpend <> 0) 
+                (* if there are input buffers and a pending input cmd *)
+               then begin
+                 IF (pst.dfcact <> 0)
+                   then  Evaluate_Whether_to-Forward (pst, fwd_ready)
+                   else  fwd_ready <-- true
+                 IF (fwd_ready)  then Complete_One_Read_Command (pst)
+               end
+           end
+         end
+
+
+         SUBROUTINE Evaluate_Whether_to_Forward (pst, fwd_ready)
+
+         (* Return fwd_ready to indicate whether to proceed now with
+            moving buffered data or circuit signals to Spirit.     *)
+
+         begin
+           (*  If any buffer on the queue is a circuit signal, then all
+               buffers up through that circuit signal are forwardable.
+               Look for a circuit signal.                              *)
+
+           buf_ptr <-- pst.inque
+           fwd_ready <-- false
+           WHILE (buf_ptr <> 0) and (NOT fwd_ready)  DO begin
+             get_next_queue_item (buf_ptr, pst.inque, bufnxt)
+             (* get addr of buffer that follows the one passed in buf_ptr*)
+             IF (buf_ptr <> 0) then
+               IF buf_ptr.msg is circuit-signal  then fwd_ready <-- true
+             end
+           IF fwd_ready  then RETURN
+
+         (* Else, only data are buffered - no circuit signals.  See if any
+            "activation characters" are present - these are specified
+            by a mask set by Set Forwarding Characteristics message from
+            Spirit.  Start scanning from where we stopped on a previous
+            scan, if any; else, begin at the beginning.  While scanning,
+            accumulate a count of characters, to determine whether the
+            buffered data meet the length criterion, if any.        *)
+
+
+           (* Loop through the queued buffers. *)
+
+
+           IF (pst.dft_last_buf_exam == null)
+             then begin                (* no last-char-examined memory *)
+               buf_ptr <-- pst.inque
+               chr_ptr <-- 0
+                chr_count <-- 0
+             end else begin            (* use remembered pointers      *)
+               buf_ptr <-- pst.dft_last_buf_exam
+               chr_ptr <-- pst.dft_last_chr_exam
+               chr_count <-- pst.dft_chr_count  (* get running count *)
+             end
+
+           WHILE (buf_ptr <> 0) and (NOT fwd_ready)  DO
+
+             begin
+               (* Loop through one buffer.  *)
+               UNTIL (fwd_ready) OR (chr_ptr > last byte in buffer) DO
+                 begin
+                   IF buf_ptr.data[chr_ptr] is in forwarding set
+                     then fwd_ready <-- true
+                     else begin
+                       chr_count <-- chr_count + 1
+                       IF chr_count >= pst.dfclim  then fwd_ready <-- true
+                       end
+                   chr_ptr <-- chr_ptr + 1
+                 end
+
+               (* Get another buffer -- but don't forget the last one tested.*)
+               pst.dft_last_buf_exam <-- buf_ptr
+               get_next_queue_item (buf_ptr, pst.inque,  bufnxt)
+               (* get addr of buffer that follows the one passed in buf_ptr*)
+               IF (buf_ptr <> 0) then  chr_ptr <-- 0
+
+             end
+
+           (* Done with scan:  remember our place for next visit.  If we
+              set fwd_ready, then this memory is wasted, but it probably
+              is not worthwhile to test for the special case.           *)
+           pst.dft_last_chr_exam <-- chr_ptr
+           pst.dft_chr_count     <-- chr_count
+         end
+
+
+
+
+         SUBROUTINE Complete_One_Read_Command (pst)
+
+         (* This port has a Read Data command pending, there is something
+            queued for it, and we have decided to proceed.  It no longer
+            matters WHY we chose to proceed.  The routine transfers one
+            circuit signal, or else as much data as possible, limited by
+            how much data is available (at all, or up to the next buffered
+            circuit signal).  If data is sent from multiple buffers, it
+            will require multiple service requests.  We may send only
+            part of the buffer, leaving the rest for a later Read Data
+            command, if the current command's count is exhausted.      *)
+
+         begin
+           buf_ptr <-- pst.inque
+           IF (buf_ptr.msg is circuit_signal)
+             then Forward_Circuit_Signal_Message
+             else
+               rmdr_in_iocb <-- get_funny_format(iocb_count)
+               rmdr_in_buf  <-- buf_ptr.count
+               REPEAT
+                 Forward_One_Service_Request_Worth
+                    (pst, buf_ptr, rmdr_in_buf, rmdr_in_iocb, done_reading)
+                 IF (rmdr_in_buf <= 0)
+                   then begin
+                     IF (pst.dft_last_buf_exam == buf_ptr)
+                       then pst.dft_last_buf_exam <-- null
+
+                     get_next_on_queue (pst.inque, buf_ptr, bufnxt)
+                   end
+                 UNTIL (done_reading)  (* Always true if no more data. *)
+
+         end
+
+
+         SUBROUTINE Forward_One_Service_Request_worth
+                       (pst, buf_ptr, rmdr_in_buf, rmdr_in_iocb, done_reading)
+
+         (* Forwards as much data as possible using one Service Request.
+            Returns done_reading==true if this Service Request ends the
+              Read Data command.  There may be more data in the buffer,
+              or not.  There may be a following data or Circuit Signal
+              buffer, or not.  But no more can be sent until Spirit begins
+              another Read Data command, if then.                       *)
+         begin
+           data_ptr <-- buf_ptr + buf_ptr.cei
+           (* start of data = buffer addr + current_empty_index *)
+           count <-- min( rmdr_in_iocb, buf_ptr.length, 256)
+
+           buf_ptr.cei <-- buf_ptr.cei + count
+           rmdr_in_buf <-- rmdr_in_buf - count
+           rmdr_in_iocb <-- rmdr_in_iocb - count
+
+           IF (rmdr_in_iocb <= 0) OR (rmdr_in_buf <= 0)
+             then begin
+               done_reading <-- true
+               srb_cmd <-- RDS
+             end else srb_cmd <-- RD
+
+           IF (rmdr_in_buf <= 0)
+             then buf_disposal <-- true
+             else buf_disposal <-- false
+
+           Make_Read_SRB (pst, read, srb_cmd, count, data_ptr, buf_ptr,
+                 no_exit, buf_disposal, srb_ptr)
+           Enqueue_SRB (srb_ptr)
+         end
+
+
+         SUBROUTINE Make_Read_SRB (pst, rw, cmd, count, data_ptr, buf_ptr,
+                                exit_call, ret_buf, srb_ptr)
+
+         (* Get and initialize an SRB; return its address.
+              pst = port status table;    rw= read or write (channel);
+              cmd = one of {RD, RDS, RS, WR, WRS};   count= bytes to move;
+              data_ptr = address of first byte to move;
+              buf_ptr = address of buffer;
+              exit_call = subr to call when srb is done (or "noexit"):
+                iff "noexit", srb is returned when done;
+              ret_buf == true to return buffer when srb is done;
+           Make_Read_SRB returns the resulting srb's address in srb_ptr
+
+           Cmd WRS is synthesized by the SubDriver, which first does a
+             Write Data service request, then a Read Status.
+           Make_Read_SRB sets up normal status indication; modify the returned
+             srb to indicate anything else.
+         *)
+         begin
+           getbuf(srb_ptr, srb_length)
+           srb_ptr.srbyte <-- cmd
+           IF (rw == read) then srb_ptr.SRCHNL <-- pst.inchnl
+                           else srb_ptr.SRCHNL <-- pst.outchn
+           srb_ptr.cntmsb <-- msb(count)
+           srb_ptr.cntlsb <-- lsb(count)
+           srb_ptr.adrmsb <-- msb(data_ptr)
+           srb_ptr.adrlsb <-- lsb(data_ptr)
+           IF cmd = RDS (* read data and status *) then
+             set attention bit in status byte 0
+           ELSE
+             srb_ptr.stbyt0 <-- 0
+           srb_ptr.stbyt1 <-- 0
+           srb_ptr.stbyt2 <-- 0
+           srb_ptr.stbyt3 <-- 0
+
+           srb_ptr.optns  <-- 0
+           IF (ret_buf) srb_ptr.srstat <-- srb_ptr.srstat + srb_ret_buf
+
+           srb_ptr.bufadr <-- buf_ptr
+           srb_ptr.retadr <-- exit_call
+           srb_ptr.portst <-- pst
+         end
+
+
+
+
+                                                                page 26
+
+		Global Backpressure Task		(4.4.3)
+
+	begin
+
+        (* backpressure selected ports if amount of buffer space
+           available is less than some threshold, such as the sum
+           of the input transmit limit of attached ports, plus
+           twice the size or the IRING. *)
+
+	IF buffer_space_left < threshold then
+
+	  REPEAT
+
+              (* if Spirit has not sent an 'Automatic Backpressure Not
+                 Permitted' then backpressure port IF (1) it does not have
+                 a pending input command, or (2) it has used more than it's
+                 fair share of buffers (bufmax)   *)
+             (*  Bufmax = ((buffer_total - 10%)/ nports) where nports = 
+                number of active ports  *)
+
+           IF pst.natobp NOT set then
+              IF pst.inpend NOT set then
+                backpressure the port and set pst.mbsbkp
+              ELSE IF pst.bufcnt > maxbuf then
+                  backpressure the port and set pst.mbsbkp
+
+	  UNTIL all port status tables on ATCHDQ have been checked
+
+	ELSE
+
+        (* check ports backpressured by mbase.  if such ports have
+           a pending read command and the number of buffers it has is
+           less than bufmax, then release backpressure *)
+
+          REPEAT
+            IF pst.mbsbkp bit set then
+	      IF pst.inpend set AND (pst.bufcnt < bufmax) then
+	        release backpressure on port
+          UNTIL all port status tables on ATCHDQ have been checked
+
+	end
+
+                                                                page 27
+
+			ISIS Output Task	(6.2)
+
+            
+        pst <-- 0       (* get first on queue *)
+        check_next_on_queue(isoutq, pst, opqnxt)
+        (* while there are port status tables on the queue...*)
+	WHILE (pst <> 0) AND (space_on_oring > 0) DO begin  
+          copy_port_buffer_to_oring(buffer)
+	  IF pst.outque = 0 then
+	    begin
+	      (* remove this pst and get addr of next pst *)
+	      dequeue(isoutq, pst, opqnxt)
+	      IF pst.outpnd = 1 then (*cmd not done--i.e., long write cmd*)
+                begin
+                  iocb <-- pst.opiocb
+                  move_data_from_spirit_to_buffer(pst,iocb)
+	        end
+            end
+          ELSE
+            check_next_on_queue(isoutq, pst, opqnxt)
+          end
+        end
+
+        SUBROUTINE Copy_Port_Buffers_to_ORING  (4.1.1)
+        begin
+        count <-- 0
+        buffer <-- 0  
+	check_next_on_queue(pst.outque, buffer, bufnxt)
+        REPEAT
+          room <-- room_on_oring(buffer.length)
+          IF room then
+            begin
+              bkp_on <-- port_backpressured(port)
+              IF bkp_on then
+                check_for_zap_or_gobbler(buffer)
+              ELSE
+                put_buffer_contents_in_oring(count, buffer)
+            end
+        UNTIL (buffer = 0) OR (pst.xmtlim = count) OR bkp_on OR (NOT room)
+        end
+
+        SUBROUTINE Check_for_Zapper_or_Gobbler(buffer)
+        begin
+        IF (buffer.msg is zapper or) AND room then
+          begin
+            put msg byt in oring
+            dequeue(pst.outque, buffer, bufnxt)
+          end
+	ELSE
+          pst.outpnd <-- 1 
+        end
+
+                                                                page 28
+
+        SUBROUTINE Put_Buffer_Contents_In_ORING(count, buffer)
+	begin
+        IF buffer.msg = data_message then
+          begin
+            bytes_in_buffer <-- buffer.length - buffer.cei
+            IF pst.xmtlim => (bytes_in_buffer + count)
+              max <-- bytes_in_buffer
+            ELSE
+              max <-- pst.xmtlim - count
+            count <-- count + max
+            put max number of bytes in ORING
+            IF max = bytes_in_buffer then
+	      dequeue(pst.outque, buffer, bufnxt)
+            ELSE
+              buffer.cei <-- buffer.cei - max
+          end
+        ELSE  (* circuit signal *)
+          IF pst.xmtlim => (count + buffer.length) then
+            begin
+              count <-- count + buffer.length
+              IF circuit siganl = 14 (* login string *) then
+                put each byte in ORING as param to B3 msg
+              ELSE
+                begin
+                  convert spirit circiut signal to isis msg
+                  put isis msg into ORING
+                end
+	      dequeue(pst.outque, buffer, bufnxt)
+            end
+        ELSE
+          buffer <-- 0
+        end
+
+
+
+
+                                                                page 29
+
+		Timer Driver and Task	(6.1)
+
+	A.  Data Structures
+
+	A.1 Timer control block
+		tocbpn -- time-out control block port number
+			  0 if sbus, -1 if disk/tape server
+		totime -- requested time-out instant
+		toaddr -- address of routine to call in case of time-out
+		tonext -- next tocb in queue
+	A.2 TOUTQ -- time-out control block queue
+
+	B. Subroutines used by this and other tasks
+
+	B.1 Forward_Data  (See Data Forwarding Task -- DFWRDT.DOC)
+	B.2 Restart_and_Reset_Interface (See RSTASK.DOC)
+
+	C. algorithm of task
+
+	begin
+	get current time (fastc)
+	REPEAT
+	  get_next_on_queue(toutq, tocblk, tonext)
+	  IF current_time > tocblk.totime then
+	    call subroutine at address tocblk.toaddr
+	  ELSE
+	    put the tocblk back at the head of the queue
+	UNTIL (toutq = 0) OR current_time < tocblk.totime
+	end
+
+
+                                                                page 30
+
+		Waiting Queue Driver and Task	(6.3)
+
+	begin
+	WHILE wrbque <> 0 DO (* take wait request blocks from queue *)
+	  get_next_on_queue(wrbque, wrb, wrbnxt)
+	  call subroutine designated by wrbsub field of wr block
+	  end
+	end
+
+	(* if the conditions checked by the called subroutine are not met,
+	   then the wait request block is re-queued by the subroutine *)
+
+
+                EVENT TRACE MODULE	(6.5)
+
+	While in de-bugging mode, an event trace is made where
+	the event trace macro (EVT) is used.  The parameters to the macro
+	are event type, a flag to turn off or on time-stamping of the
+	event, and the contents of up to 5 registers.
+
+	A de-bugging mode switch is in the tymfile, along with switches
+	for specific events, and the timpe-stamp switch for each event.
+
+	There are 3 event tables, each 1k bytes.  After each reset of
+	mbase, the next event trace table is used.
+
+		OPERATIONS MONITOR
+
+	The operations monitor (a DDT facility accesed with ?STAT)
+	includes these commands which access the event trace tables:
+
+		ET <n>  display n events back from last event
+		SET <n> display all instances of event n
+		NET	display all new events
+
+	The operations monitor also displays port status table and
+	i/o control block data:
+
+		P <n|A>	display PST n or ALL active port PSTs
+		I <n|A>	display IOCB n or ALL active channel IOCBs
+
+
+                                                                page 32
+
+:       DEFINE SEGMENTS DEDICATED TO S-BUS WINDOW AND BUFFER TYPES
+
+        GL      WINDOW,BUF2SG,BUF3SG,BUF3SZ,BUF2SZ,BUF1SZ
+WINDOW  EQ      0D              :SBUS WINDOW (MSG BLK, IOCBS, TYPE 1 BUFFERS)
+BUF2SG  EQ      3               :BUFFER TYPE 2 IN SEGMENT 3
+BUF3SG  EQ      4               :BUFFER TYPE 3 IN SEGMENT 4
+BUF1SZ  EQ      $A 128
+BUF3SZ  EQ      8
+:       BUF3SZ WILL BE DEFINED LATER ON AS SIZE OF SR BLOCK
+:       BUFFER OFFSETS
+        GL      BUFNXT,BUFPRV,BUFMSG,BUFLEN,BUFCEI,BFNFMI,BUFTYP
+        GL      B3DATA,B1DATA
+BUFNXT  EQ      0
+BUFPRV  EQ      4               :BUFFER TYPE 2 ONLY
+BUFMSG  EQ      4               :BUFFER1, BUFEER3
+BUFLEN  EQ      5               :BUFFER1, BUFFER3
+BUFCEI  EQ      6               :BUFFER1 ONLY
+BFNFMI  EQ      7               :BUFFER1 ONLY
+BUFTYP  EQ      8
+B3DATA  EQ      7               :BUFFER3 START OF DATA
+B1DATA  EQ      9               :BUFFER1 START OF DATA
+
+:       PORT STATUS TABLE EQUATES
+
+
+        GL      PORT,OUTCHN,INCHNL,RETADR,INQUE,OUTQUE
+        GL      ATCHNX,ZAPFIS,ZAPTIS
+        GL      DFCMSK,DFCTIM,OUTPND,INPEND,PSTLEN
+        GL      OPIOCB,INIOCB
+
+PORT    EQ      0               :ISIS PORT NUMBER
+OUTCHN  EQ      2               :S-BUS OUTPUT CHANNEL (EVEN)
+INCHNL  EQ      4               :S-BUS INPUT CHANNEL (ODD)
+OPIOCB  EQ      6               :OUTPUT CHANNEL IOCB
+INIOCB  EQ      $A 10           :INPUT CHANNEL IOCB
+OPQNXT  EQ      $A 14           :NXT PST ON ISIS OUTPUT QUEUE
+OPQPRV  EQ      $A 18           :PREVIOUS PST ON ISIS OUTPUT QUEUE
+DFQNXT  EQ      $A 22           :NXT PST ON DATA FORWARDING QUEUE
+DFQPRV  EQ      $A 26           :PREVIOUS PST ON ISIS OUTPUT QUEUE
+ATCHNX  EQ      $A 30           :NXT PST ON ATTACHED CHANNEL (PORT) QUEUE
+ATCPRV  EQ      $A 34           :PREVIOUS PST ON ATTACHED CHANNEL (PORT) QUEUE
+RETADR  EQ	$A 38		:ADDR OF CMD/MSG HNDLR TO RETURN TO
+INQUE	EQ	$A 42		:INPUT QUEUE POINTER--FROM IRING
+OUTQUE	EQ	$A 46		:OUTPUT QUEUE POINTER--TO ORING
+WRTCNT	EQ	$A 50		:RUNNING BYTE COUNT DURING LONG WRITE DATA CMD
+XMTLIM	EQ	$A 52		:XMIT LIMIT ON OUTPUT FROM SPIRIT
+DFCMSK  EQ      $A 54           :1 BYT MASK DEFINING CHARS THAT START FWRDING
+DFCTIM  EQ      $A 56           :IDLE TIMER CRITERION FOR DATA FORWARDING
+DFCLIM  EQ      $A 58           :DFC LIMIT 
+DFCLBE  EQ      $A 60           :DWFC--LAST BUFFER EXAMINED
+DFCLCE  EQ      $A 62           :DFC--LAST CHAR. EXAMINED
+DFCCHC  EQ      $A 64           :DFC--CHAR COUNT
+FCHCNT	EQ	$A 66		:# OF BYTES CHCKD FOR FORWARDABILITY
+PSTFLG	EQ	$A 68		:PORT STATUS TABLE FLAGS (BIT ARRAY)
+
+PSTLEN  EQ      $A 70
+
+:       PORT STATUS TABLE BIT FLAG OFFSETS
+ZAPFIS  EQ      0               :ZAP REC'D FROM ISIS
+ZAPTIS  EQ      1               :ZAP SENT TO ISIS
+ZAPFSP  EQ      2               :ZAP REC'D FROM SPIRIT
+INPEND  EQ      3               :PENDING INPUT COMMAND
+OUTPND	EQ	4		:PENDING OUTPUT COMMAND
+ONIOPQ  EQ      5               :SET IF PST IS ON ISIS OUTPUT QUEUE
+ONDFQ   EQ      6               :SET IF PST IS ON DATA FORWARDING QUEUE
+DFCACT  EQ      7               :SET IF DATA FWRDING CRITERIA ARE ACTIVE
+HSRBRT  EQ      8               :SET IF A 'HALT SRB' RETRNED BY SUB-DRIVER
+
+:	SERVICE REQUEST BLOCK EQUATES
+        GL	SRBNXT,SRBPRV,SRSTAT,SRDATA
+        GL      SRBYTE,SRCHNL,CNTMSB,CNTLSB,ADRMSB,ADRLSB,STBYT0
+        GL      STBYT1,STBYT2,STBYT3,RETADR,PORTST,SRBLEN
+SRBNXT  EQ      0               :NEXT ON SERVICE REQUEST QUEUE
+SRBPRV  EQ      4               :PREVIOUS ON SERVICE REQEUST QUEUE
+SRSTAT	EQ	8		:SERVICE REQUEST STATUS FLAGS BIT ARRAY
+SRDATA	EQ	$A 12		:START OF SR DATA TO BE PUT IN MSG BLOCK
+SRBYTE	EQ	$A 12		:SERVICE REQUEST BYTE
+SRCHNL	EQ	$A 13		:CHANNEL
+CNTMSB	EQ	$A 14		:COUNT--MOST SIGNIFICANT BYTE
+CNTLSB	EQ	$A 15		:COUNT--LEAST SIGNIFICANT BYTE
+ADRMSB	EQ	$A 16		:ADDRESS OF DATA--MOST SIGNIFICNAT BYTE
+ADRLSB	EQ	$A 17		:ADDRESS OF DATA--LEAST SIGNIFICANT BYTE
+STBYT0	EQ	$A 18		:STATUS BYTE 0
+STBYT1	EQ	$A 19		:STATUS BYTE 1
+STBYT2	EQ	$A 20		:STATUS BYTE 2
+STBYT3	EQ	$A 21		:STATUS BYTE 3
+PORTST  EQ      $A 22           :PORT STATUS TABLE ADDRESS
+RETADR  EQ      $A 23           :RETURN ADDR FROM SR DONE TASK (0 IF NONE)
+SRBNXT  EQ      $A 24          :NEXT ON SERVICE REQUEST QUEUE
+SRBPRV  EQ      $A 25           :PREVIOUS ON SERVICE REQEUST QUEUE
+
+SRBLEN  EQ      $A 26
+BUF2SZ  EQ      SRBLEN
+
+:       OFFSETS INTO SRSTAT (SERVICE REQUEST FLAGS)
+FLSHSR  EQ      0               :FLAG TO PUT SRB ON FLUSH QUEUE
+HLTSRB  EQ      1               :SET IF SRB USED TO FLAG END OF SR QUEUE...
+                                : ...WHEN HALTIO CMD ISSUED
+RETBUF  EQ      2               :FLAG TO RETURN DATA BUFFER
+
+        GL      EVTEMP,ETPARM,EVTRAC,EVTIZ
+:       EVENT TRACE MACRO--PARAMETERS: 
+:                          ETC=EVENT TRACE CODE
+:			   TMSTMP=TIME-STAMP FLAG--0 IF NO TIME-STAMP
+:                          M,N,O,P,Q=REGISTERS W/ DATA RELEVANT TO EVENT
+EVT     MACRO(ETC,TMSTMP,M,N,O,P,Q)
+[       STM     R6,EVTEMP,,
+	IF	TMSTMP
+	L	R7,FASTC,,
+	ELSE
+	LIS	R7,0
+	EI
+        LHI     R9,ETC
+	ST	M,ETPARM
+	ST	N,ETPARM+4
+	ST	O,ETPARM+8
+	ST	P,ETPARM+0C
+	ST	Q,ETPARM+10
+        JAL     R6,EVTRAC
+        LM      R6,EVTEMP,,
+]
+
+:       CRASH CODE AND EVENT TYPE DEFINITIONS
+        GL      CCBUF1,CCEVT1,CCGTEV
+CCBUF1  EQ      0B0             :INVALID BUFFER TYPE
+CCEVT1  EQ      0B1             :INVALID EVENT TYPE CODE (EVTRAC)
+CCGTEV  EQ      0B3               :INVALID EVENT TYPE CODE(GET EVENT )
+
+:       EVENT TYPES
+        GL      NEVTYP          :NUMBER OF EVNT TYPES
+        GL      ET.IOQ,ET.SRQ,ET.GBF,ET.RBF
+NEVTYP  EQ      20              :BALL PARK FIGURE
+ET.IOQ  EQ      1               :IORB PUT ON IORQ
+ET.SRQ  EQ      2               :SRB PUT ON SRQ
+ET.GBF  EQ      3               :GETBUF
+ET.RBF  EQ      4               :RETBUF
+
+
+
+H:'Î
