@@ -1,0 +1,538 @@
+::=======================================================
+::(NSCNET)BXIDEQ.PBG
+::
+::
+:: This part is for BACKGROUND routine.
+::
+::=======================================================
+
+        IF      IDEX
+
+        LO      BSCPTP
+        LO      R100
+        LO      LINE
+        LO      IR100
+        LO      IDS
+        LO      FCB
+        LO      HSEC
+
+PATCH(890906,1420,NIS.KANETA,PA0PTR,,3B+24*NBILIN)
+
+IDEND   EQ      36
+
+        HS      0
+DDTREG  BS      NBILIN          : DDT TMPORARY SAVE AREA
+SIDCHK  BS      NBILIN          : BSCTRACE ID TO LINE STATUS SAVE AREA
+RIDCHK  BS      NBILIN          : BSCTRACE ID FROM LINE SAVE AREA
+IDLINE  BS      1               : LU NUMBER OF ID SAVE AREA
+BGREG   WS      6               : BACKGROUND RESISTER SAVE AREA
+COUNT   BS      NBILIN          : TEXT2 COUNTER
+SAVFLG  HS      1               : ID.ACK SAVE FINISHED FLAG
+ENQIN   HS      1               : IEQMSG FIND FLAG (USE RIO PROCESS)
+ACKIN   HS      1               : IAKMSG  "     "     "
+TEXT3   BS      10*NBILIN       : FOR EXTENDED DDT ID TEXT STRING SAVE AREA
+TEXT4   BS      10*NBILIN       : FOR   "       "   "   "    "     "    "
+
+
+
+:
+: (1) Background initialize process ***
+:
+
+: (1)-1 When DSR drop or recive zap code , DISC process clear ISIS port
+:       mapping and clear TEXT1 , TEXT2  save area and useing flags.
+
+CONPATCH(DISC,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,74+10*NBILIN)
+INT1    ST      R1,BGREG        : SAVE R1 RESISTOR
+        ST      R2,BGREG+4      :  "   R2 RESISTOR
+        ST      R3,BGREG+8      :  "   R3 RESISTOR
+        LR      R1,R14          : R14 = LU# X 2
+        SRLS    R1,1            : R1 = R14/2
+        LR      R3,R1           : COPY R1 TO R3
+        SLLS    R3,4            : LU# X 16
+        LIS     R2,0            : R2 = 0
+        ST      R2,TEXT1,R3     : TEXT1 CLEAR (TEXT1 USE FOR ID SAVE FROM LINE)
+        ST      R2,TEXT1+4,R3   :  "
+        ST      R2,TEXT1+8,R3   :  "
+        ST      R2,TEXT1+0C,R3  :  "
+        ST      R2,TEXT2,R3     : TEXT2 CLEAR (TEXT2 USE FOR ID SAVE FROM NET)
+        ST      R2,TEXT2+4,R3   :  "
+        ST      R2,TEXT2+8,R3   :  "
+        ST      R2,TEXT2+0C,R3  :  "
+        STB     R2,COUNT,R1     : RESET COUNTER (FOR USE TEXT2 COUNTER)
+        RBT     R1,SAVFLG       :  "    ID SAVE FINISH FLAG
+        RBT     R1,ENQIN        :  "    IEQMSG GET FLAG
+        RBT     R1,ACKIN        :  "    IAKMSG GET FLAG
+        RBT     R1,ID.GET       :  "    ID.GET FLAG
+        L       R1,BGREG        : RECOVER R1 RESISTOR
+        L       R2,BGREG+4      :  "      R2 RESISTOR
+        L       R3,BGREG+8      :  "      R3 RESISTOR
+        RL4(R1)                 : FROM SOURCE
+        LHL     R1,OFCB,R1      :  "
+        J       IDISC,,         : RETURN TO SOURCE
+
+:
+: (1)-2 At BBXS start initializing process , clear TEXT save area and flags.
+
+CONPATCH(IZQ,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,0B0+10*NBILINE)
+        ST      R1,BGREG        : SAVE R1 RESISTOR
+        ST      R2,BGREG+4      :  "   R2 RESISTOR
+        ST      R3,BGREG+8      :  "   R3 RESISTOR
+        LIS     R1,0            : R1 = 0
+        LIS     R2,0            : R2 = 0
+INT2    CHI     R1,NBILIN-1     : R1 = LINE NUMBER - 1
+        JG      INT3            : IF R1 IS GREAT , GOTO INT3
+        LR      R3,R1           : COPY R1 TO R3
+        SLLS    R3,4            : LU# X 16
+        ST      R2,TEXT1,R3     : TEXT1 CLEAR (TEXT1 USE FOR ID SAVE FROM LINE)
+        ST      R2,TEXT1+4,R3   :  "
+        ST      R2,TEXT1+8,R3   :  "
+        ST      R2,TEXT1+0C,R3  :  "
+        ST      R2,TEXT2,R3     : TEXT2 CLEAR (TEXT2 USE FOR ID SAVE FROM NET)
+        ST      R2,TEXT2+4,R3   :  "
+        ST      R2,TEXT2+8,R3   :  "
+        ST      R2,TEXT2+0C,R3  :  "
+        ST      R2,TEXT3,R3     : TEXT3 CLEAR ( FOR EXTENDED DDT ID TEXT
+                                : SAVE AREA )
+        ST      R2,TEXT3+4,R3   :  "
+        ST      R2,TEXT3+8,R3   :  "
+        ST      R2,TEXT3+0C,R3  :  "
+        ST      R2,TEXT4,R3     : TEXT4 CLEAR ( FOR EXTENDED DDT ID TEXT
+                                : SAVE AREA )
+        ST      R2,TEXT4+4,R3   :  "
+        ST      R2,TEXT4+8,R3   :  "
+        ST      R2,TEXT4+0C,R3  :  "
+        STB     R2,COUNT,R1     : RESET COUNTER (FOR USE TEXT2 COUNTER)
+        RBT     R1,SAVFLG       :  "    ID SAVE FINISH FLAG
+        RBT     R1,ENQIN        :  "    IEQMSG GET FLAG
+        RBT     R1,ACKIN        :  "    IAKMSG GET FLAG
+        RBT     R1,ID.GET       :  "    ID.GET FLAG
+        AIS     R1,1            : R1 = R1+1
+        J       INT2            : GOTO INT2
+INT3    L       R1,BGREG        : RECOVER R1 RESISTOR
+        L       R2,BGREG+4      :  "      R2 RESISTOR
+        L       R3,BGREG+8      :  "      R3 RESISTOR
+        LCS     R0,1            : FROM SOURCE
+        LIS     R2,0            :  "
+        LHI     R1,ENDFF-BPS    :  "
+        J       IZQ0,,          : RETURN TO SOURCE
+
+:
+: (2) At activate control message process of QUEUE DRIVER , we check
+:     queue command from forground . And if we find IEQMSG or IAKMSG , then
+:     write ID.ENQ or ID.ACK with following format.
+:
+:     SEND TEXT = 09 + ((IEQMSG or IAKMAG)/2+TBIAS) + IDTEXT+ (IDEND/2+TBIAS)
+:                       IEQMSG=32 , IAKMSG=34 , IDEND=36 , TBIAS=8
+:
+
+CONPATCH(RCVCT0-6,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,14C)
+        CLHI    RDATA,IEQMSG    : IS THIS IEQMSG(32) ?
+        JE      RCVCT5          : YES , GOTO RCVT5
+        CLHI    RDATA,IAKMSG    : IS THIS IAKMSG(34) ?
+        JE      RCVCT5          : YES , GOTO RCVT5
+        SHI     RDATA,FSTCTL    : FROM SOURCE
+        SLHLS   RDATA,1         :  "
+        J       RCVCT0,,        : RETURN TO SOURCE
+RCVCT4  JAL     R5,DMS,,        : DISMISS OUTPUT CONTEXT
+RCVCT5  JAL     R5,LOCK,,       : SET LOCK TO PREVENT ANY OTHER FCB FROM
+                                : STARTING A BLOCK
+        J       RCVCT4          : GOTO RCVCT4
+        ST      R1,BGREG        : SAVE R1 RESISTOR
+        ST      R3,BGREG+4      :  "   R3 RESISTOR
+        ST      R4,BGREG+8      :  "   R4 RESISTOR
+        ST      R5,BGREG+0C     :  "   R5 RESISTOR
+        ST      R6,BGREG+10     :  "   R6 RESISTOR
+        ST      R7,BGREG+14     :  "   R7 RESISTOR
+        LB      R1,F.LINE,RAFCB,: LU# GET
+        LR      R6,R1           : COPY R1 TO R6
+        LR      R7,R1           :  "   R1 TO R7
+        SLLS    R6,4            : R6 = LU# X 16
+        LB      R0,TEXT1,R6     : GET LENGTH OF TEXT1
+        AIS     R0,6            : R0 = R0+6
+        LHL     R1,F.PORT,RAFCB,: SET ISIS PORT NUMBER
+        JAL     R4,SLOR,,       : START LOGICAL OUTPUT RECORD
+        LIS   R0,ID.SCF/2+TBIAS : ID.SCF=2 TBIAS=8
+                                : TBIAS = BIAS PAST TYMNET CHARS WHICH
+                                :         ARE INTERNALLY ESC
+        JAL     R4,PUTCH,,      : PUT CHARACTER INTO THE RING
+        STB     RDATA,SIDCHK,R7 : SAVE ID OP CODE TO SIDCHK AREA (FOR DDT)
+        SRLS    RDATA,1         : RDATA / 2
+        AIS     RDATA,TBIAS     : RDATA = RDATA+TBIAS
+        LR      R0,RDATA        : COPY RDATA(R2) TO R0
+        JAL     R4,PUTCH,,      :
+        LB      R3,TEXT1,R6     : GET LENGTH OF TEXT1
+        STB     R3,TEXT4,R6     : SAVE LENGTH OF ID TEXT FROM LINE
+        LIS     R5,0            : R5 = TEMPORARY COUNTER FOR TEXT1
+LOOPTX  AIS     R5,1            : R5 =R5+1
+        LB      R0,TEXT1,R6,R5  : GET TEXT OF TEXT1
+        LR      R1,R0           : R1 = R0 (TEXT DATA)
+        LB      R1,REVTAB,R1,   : CHANGE R1 TO REV-EBCDIC CODE
+        LB      R1,CIDASC,R1,   : CHANGE REV-EBCDIC TO ASCII CODE
+        STB     R1,TEXT4,R6,R5  : SAVE ID TEXT TO TEXT4
+        JAL     R4,PUTCH,,      :
+        CLB     R5,TEXT1,R6,    : COMPARE R5 AND LENGTH OF TEXT1
+        JL      LOOPTX          : IF R5 IS LESS , THEN GOTO LOOPTX
+        LHI    R0,IDEND/2+TBIAS : R0 = IDEND(34)/2 +TBIAS(9)
+        JAL     R4,PUTCH,,      : 
+        JAL     R4,ELODR,,      : END LOGICAL OUTPUT DATA RECORD
+        L       R1,BGREG        : RECOVER R1 RESISTOR
+        L       R3,BGREG+4      :  "      R3 RESISTOR
+        L       R4,BGREG+8      :  "      R4 RESISTOR
+        L       R5,BGREG+0C     :  "      R5 RESISTOR
+        L       R6,BGREG+10     :  "      R6 RESISTOR
+        L       R7,BGREG+14     :  "      R7 RESISTOR
+        JAL     R5,UNLOCK,,     : UNLOCK ISIS PORT AT END OF BLOCK OUTPUT
+        J       RCVXIT,,        : DISMISS CONTROL MESSAGE OR LAST CHR OF BLOCK
+
+
+:
+: (3) At activate input routine of Ring I/O interface , we check IEQMSG and
+:     IAKMSG. And if we find then start save text following with (IEQMSG or
+:     IAKMSG) , and if find IDEND then stop save text.
+:
+:       TEXT2 = LENGTH + (REV-EBCDIC OF RECIVE TEXT)
+
+CONPATCH(GSCB+018,,4)
+        CLHI    RDATA,036               : MAXSCF=36
+
+: (3)-1 When check at GSCB(Get session control byte) if SKIP (+C)
+:       For leagal control code , we check IR1SCX table.
+
+CONPATCH(IR1SD3+14,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,164)
+        LHL     R5,IR1SCX,RDATA         : BRANCH BASED ON SCF TYPE
+        J       IR1BASE,R5,,            : GOTO TABLE ADRESS
+
+:       SESSION CONTROL TABLE (RETURN FROM GSCB)
+
+IR1SCX	HC	IR13BY-IR1BASE		:ID1.SCF - CHARACTER SET
+	HC	IR13BY-IR1BASE		:ID2.SCF - DIALECT
+	HC	IR13BY-IR1BASE		:ID3.SCF - MODE
+	HC	IR13BY-IR1BASE		:IDE.SCF - REMOTE ERROR REASON
+	HC	IR13BY-IR1BASE		:IDF.SCF - OVC HOST LINE NUMBER
+	HC	IR13BY-IR1BASE		:IDV.SCF - OVC'S REQUESTED
+	HC	IR12BY-IR1BASE		:ID4.SCF - STARTUP
+	HC	IR12BY-IR1BASE		:ID5.SCF - HASP SIGNON
+	HC	IR12BY-IR1BASE		:ID6.SCF - HASP SIGNOF
+	HC	IR1EOT-IR1BASE		:ID7.SCF - END TRANSMISSION
+	HC	IR12BY-IR1BASE		:ID8.SCF - END FILE
+	HC	IR12BY-IR1BASE		:ID9.SCF - END CONNECTION
+	HC	IR12BY-IR1BASE		:IDA.SCF - GREEN BALL
+	HC	IR1ETX-IR1BASE		:IDB.SCF - END-TO-END ACK REQ.
+	HC	IR1ACK-IR1BASE		:IDC.SCF - END-TO-END ACK
+	HC	IR12BY-IR1BASE		:IDN.SCF - OVC HOST NUMBER
+	HC	IR1INT-IR1BASE		:IDI.SCF - INTERRUPT OUTPUT (RVI)
+	HC	IR1PIN-IR1BASE		:IDP.SCF - INTERRUPT OUTPUT (EOT)
+	HC	IR1IYB-IR1BASE		:IDY.SCF - IMPLICIT YELLOW BALL
+	HC	IR1IOB-IR1BASE		:IDO.SCF - IMPLICIT ORANGE BALL
+	HC	IR1SOT-IR1BASE		:IDS.SCF - START OF TRANSMISSION
+	HC	IR1PC-IR1BASE		:IDK.SCF - PRIMARY CAPABILITY
+	HC	IR1REQ-IR1BASE		:IDR.SCF - REMOTE BID REQUEST
+	HC	IR1PER-IR1BASE		:IDT.SCF - REMOTE BID PERMIT
+	HC	IR1CAN-IR1BASE		:IDL.SCF - REMOTE BID CANCEL
+        HC      IR1EQ-IR1BASE           :ID.ENQ  - SPECIAL CODE)IDENQ RECIVE
+        HC      IR1AK-IR1BASE           :ID.ACK  - SPECIAL CODE)IDACK RECIVE
+        HC      IR1ED-IR1BASE           :ID.END  - SPECIAL CODE)IDEND RECIVE
+
+IR1EQ   ST      R1,BGREG                : SAVE R1 RESISTOR
+        LB      R1,F.LINE,RAFCB,        : GET LU#
+        SBT     R1,ENQIN                : SET ENGIN FLAG
+        SBT     R1,SAVFLG               : SET SAVFLG FLAG
+        J       IRLINK                  : GOTO IRLINK
+IR1AK   ST      R1,BGREG                : SAVE R1 RESISTOR
+        LB      R1,F.LINE,RAFCB,        : GET LU#
+        SBT     R1,SAVFLG               : SET SAVFLG FLAG
+IRLINK  L       R1,BGREG                : RECOVER R1 RESISTOR
+        LA      RAIS,IR103,,            : IR103 ADRESS SET
+        JR      RLINK                   : RETURN (IDT100+24)
+
+IR1ED   ST      R1,BGREG                : SAVE R1 RESISTOR
+        LB      R1,F.LINE,RAFCB,        : GET LU#
+        RBT     R1,SAVFLG               : RESET SAVFLG FLAG
+        LB      R2,COUNT,R1             : GET TEXT2 COUNTER
+        SLLS    R1,4                    : LU# X 16
+        STB     R2,TEXT2,R1             : SAVE TEXT2 COUNTER TO HEAD OF TEXT2
+        STB     R2,TEXT3,R1             : SAVE TEXT3 COUNTER TO HEAD OF TEXT3
+        LA      RAIS,IR101,,            : IR101 ADRESS SET
+        SRLS    R1,4                    : R1 / 16 (SET R1 LU#)
+        TBT     R1,ENQIN                : IS THIS LINE SET ENQIN FLAG ?
+        JE      IR1ED1                  : YES , GOTO IR1ED1
+        LHI     R0,IEQMSG               : SET IEQMSG(32)
+        JFS     IR1ED2                  : GOTO IR1ED2
+IR1ED1  LHI     R0,IAKMSG               : SET IAKMSG(34)
+IR1ED2  RBT     R1,ENQIN                : RESET ENQIN FLAG
+        L       R1,BGREG                : RECOVER R1 RESISTOR
+        J       IR1ET1,,                : QUEUE CONTROL MESSAGE TO FORGROUND
+
+: (3)-2 TEXT save after change REV-EBCDIC character
+
+CONPATCH(IRPREF,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,98)
+IR110   ST      R1,BGREG                : SAVE R1 RESISTOR
+        LB      R1,F.LINE,RAFCB,        : GET LU#
+        TBT     R1,SAVFLG               : IS THIS LINE SET SAVFLG FLAG ?
+        JE      IR120                   : NO , GOTO IR120
+        ST      R2,BGREG+4              : SAVE R2 RESISTOR
+        ST      R3,BGREG+8              :  "   R3 RESISTOR
+        LB      R2,COUNT,R1             : GET TEXT2 COUNTER
+        SLLS    R1,4                    : LU# X 16
+        AIS     R2,1                    : R2 = R2+1
+        LR      R3,R0                   : COPY R0 TO R3
+        LB      R3,REVTAB,R3,           : CHANGE EBCDIC TO REV-EBCDIC
+        STB     R3,TEXT2,R1,R2          : STORE CHARACTER TO TEXT2
+        LB      R3,CIDASC,R3,           : CHANGE EBCDIC TO ASCII
+        STB     R3,TEXT3,R1,R2          : STORE CHARACTER TO TEXT3 FOR DDT
+        SRLS    R1,4                    : R1 / 16
+        STB     R2,COUNT,R1             : STORE COUNTER
+        L       R1,BGREG                : RECOVER R1 RESISTOR
+        L       R2,BGREG+4              :  "      R2 RESISTOR
+        L       R3,BGREG+8              :  "      R3 RESISTOR
+        JR      RLINK                   : RETURN TO (IDT100+24)
+IR120   L       R1,BGREG                : RECOVER R1 RESISTOR
+        AIS     RDATA,MINP              : FROM SOURCE
+        STH     RDATA,F.RC,RAFCB,       :  "
+        J       IRPREF+8,,              : RETURN TO SOURCE
+
+
+
+: (4) This process need to dispaly NEW STATUS for extended ddt SCOPE command.
+
+
+CONPATCH(DSCXMN,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,5E)
+        LB      R5,IDLINE
+        CLHI    R0,DSCXND               : IS THIS LAST RCV OP CODE ?
+        JG      DSCXH0                  : IF GREAT THEN GOTO DSCXH0
+        J       DSCXMN+8,,              : RETURN TO SOURCE
+DSCXH0  CLHI    R0,XCIDEQ               : IS THIS OP CODE IDENQ ?
+        JE      DSCXH1                  : YES , THEN GOTO DSCXH1
+        CLHI    R0,XCIDAK               : IS THIS OP CODE IDACK ?
+        JE      DSCXH1                  : YES , THEN GOTO DSCXH1
+        J       DSCXHX,,                : RETURN TO SOURCE
+DSCXH1  LHI     R1,HEXB.3
+        SVC     KIO,$A10
+        CLHI    R0,XCIDEQ               : IS THIS OP CODE IDENQ ?
+        JE      DSCXH4                  : YES , GOTO DSCXH4
+        SVC     0B,DSCXX1               : PRINT DSCXX1 TEXT
+DSCXH3  STB     R0,DDTREG,R5            : SAVE R0 TO DDTREG
+        J       DSCCRV,,                : GOTO DSCCRV
+DSCXH4  SVC     0B,DSCXX2               : PRINT DSCXX2 TEXT
+        JBS     DSCXH3                  : GOTO DSCXH3
+DSCXX1  SC      / ID.AK/
+DSCXX2  SC      / ID.EQ/
+
+
+
+CONPATCH(DSC1+8,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,10)
+        STB     R5,IDLINE               : SAVE LU NUMBER TO IDLINE
+        LHL     R1,PTPTRX,,             : FROM SOURCE
+        J       DSC1+0E,,               : RETURN TO SOURCE
+
+CONPATCH(DSCLP,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,0E8)
+DSCLP1  ST      R0,BGREG                : SAVE R0 TO BGREG
+        ST      R5,BGREG+4              :  "   R5 TO BGREG+4
+        LB      R5,IDLINE
+        LB      R0,DDTREG,R5            : GET DDTREG
+        CLHI    R0,XCIDEQ               : IS THIS OP CODE IDENQ ?
+        JE      DSCLP6                  : YES , GOTO DSCLP6
+        CLHI    R0,XCIDAK               : IS THIS OP CODE IDACK ?
+        JE      DSCLP4                  : YES , GOTO DSCLP4
+        LB      R0,SIDCHK,R5,           : GET RCV OP CODE
+        CLHI    R0,032                  : IS THIS CODE ID.ENQ ?
+        JE      DSCLP7                  : GOTO DSCLP7
+        CLHI    R0,034                  : IS THIS CODE ID.ACK ?
+        JE      DSCLP8                  : GOTO DSCLP8
+        JFS     DSCLPY                  : GOTO DSCLPY
+DSCLP2  LIS     R0,0                    : R0 = 0
+        SRLS    R5,4                    : R5 / 16
+        STB     R0,DDTREG,R5            : DDTREG = 0
+DSCLPY  L       R0,BGREG                : REVCOVER R0 RESISTOR
+        L       R5,BGREG+4              :  "       R5 RESISTOR
+DSCLP3  JAL     R14,DSCKBD,,            : FROM SOURCE
+        J       DSCLPX                  :  "     "
+        J       DSCLP+8,,               : RETURN TO SOURCE
+DSCLP4  SVC     K.OUT,DSCXX3            : PRINT DSCXX3 TEXT
+DSCLP5  SLLS    R5,4                    : R5 X 16
+        SVC     K.OUT,TEXT3,R5,         : PRINT ID TEXT
+        SVC     K.OUT,XDCRLF,,          : PRINT XDCRLF TEXT
+        J       DSCLP2                  : GOTO DSCLP2
+DSCLPX  J       DSCEXT,,                : FROM SOURCE
+DSCLP6  SVC     K.OUT,DSCXX4            : PRINT DSCXX4 TEXT
+        J       DSCLP5                  : GOTO DSCLP5
+
+DSCLP7  SVC     K.OUT,DSCXX4            : PRINT DSCXX4 TEXT
+        JFS     DSCLP9
+DSCLP8  SVC     K.OUT,DSCXX3            : PRINT DSCXX3 TEXT
+DSCLP9  LIS     R0,0                    : R0 = 0
+        STB     R0,SIDCHK,R5            : SIDCHK = 0
+        SLLS    R5,4                    : R5 X 16
+        SVC     K.OUT,TEXT4,R5,         : PRINT TEXT4
+        SVC     K.OUT,XDCRLF,,          : PRINT XDCRLF TEXT
+        J       DSCLP2                  : GOTO DSCLP2
+
+DSCXX3  SC      /    ID.ACK text is = /
+DSCXX4  SC      /    ID.ENQ text is = /
+
+
+: (5) This process need to display JST time header for HSCTRC and FGTRC.
+:
+
+        IF      \TIMZON
+        IF      (TIMZON)
+CONPATCH(HE8.5-3A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        SVC     K.OUT,XDCRLF,,          : PRINT XDCRLF TEXT
+        SVC     K.OUT,BSCTI2,,          : PRINT BSCTI2 TEXT
+        J       HE8.5-32,,              : RETURN TO SOURCE
+
+CONPATCH(HE8.5-14,,6)     J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        SVC     K.OUT,HEHDR2,,          : PRINT HEHDR2 TEXT
+        SVC     K.OUT,XDCRLF,,          : PRINT XDCRLF TEXT
+        J       HE8.5-0C,,              : RETURN TO SOURCE
+
+CONPATCH(DE9-3C,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        SVC     K.OUT,XDCRLF,,          : PRINT XDCRLF TEXT
+        SVC     K.OUT,BSCTI2,,          : PRINT BSCTI2 TEXT
+        J       DE9-34,,                : RETURN TO SOURCE
+
+CONPATCH(DE9-16,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        SVC     K.OUT,DEHDR2,,          : PRINT DEHDR2 TEXT
+        SVC     K.OUT,XDCRLF,,          : PRINT XDCRLF TEXT
+        J       DE9-0E,,                : RETURN TO SOURCE
+        EI      (\TIMZON)
+        EI      (TIMZON)
+
+: (6) This process need to dispaly NEW STATUS for extended ddt BSCTRACE
+:     command.
+
+        IF      \TIMZON
+        IF      (TIMZON)
+CONPATCH(BT8.5-3C,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        SVC     K.OUT,XDCRLF,,          : PRINT XDCRLF TEXT
+        SVC     K.OUT,BSCTI2,,          :  "   BSCTI2 TEXT
+        J       BT8.5-34,,              : RETURN TO SOURCE
+
+CONPATCH(BT8.5-16,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        SVC     K.OUT,BTHDR2,,          : PRINT BTHDR2 TEXT
+        SVC     K.OUT,XDCRLF,,          :  "   XDCRLF TEXT
+        J       BT8.5-0E,,              : RETURN TO SOURCE
+        EI      (\TIMZON)
+        EI      (TIMZON)
+
+CONPATCH(BD3+2C,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1E)
+        SVC     K.OUT,BSCXXX,R9,        : DISPLAY TRANSMIT STATUS
+        SVC     K.OUT,BLANK2,,          : DISPLAY BLANK
+        STB     R9,RIDCHK,R3            : SAVE INDEX ADRESS (ID.ENQ = 4B
+                                        : ID.ACK = 50 )
+        STB     R3,IDLINE               : SAVE LU NUMBER TO IDLINE
+        J       BD3+34,,                : RETURN TO SOURCE
+
+
+CONPATCH(BD4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,29B)
+        ST      R0,BGREG                : SAVE R0 TO BGREG
+        ST      R1,BGREG+4              : SAVE R1 TO BGREG+4
+        ST      R2,BGREG+8              :  "   R2 TO BGREG+8
+        LB      R1,IDLINE               : GET LU NUMBER
+        LR      R2,R1                   : R2 = R1
+        SLLS    R2,4                    : R2 = LU # X 16
+        LB      R0,RIDCHK,R1            : GET RIDCHK
+        CLHI    R0,04B                  : IS THIS IDENQ TEXT ?
+        JE      BD8                     : YES , GOTO BD8
+        CLHI    R0,050                  : IS THIS IDACK TEXT ?
+        JE      BD10                    : YES , GOTO BD10
+FRLINE  LB      R0,TEXT4,R2             : GET LENGTH OF TEXT4
+        CHI     R0,0                    : LENGTH IS 0 ?
+        JE      BD7                     : YES , GOTO BD7
+        LB      R0,SIDCHK,R1            : GET RCV OP CODE
+        CLHI    R0,032                  : IS THIS CODE ID.ENQ ?
+        JE      BD11                    : YES , GOTO BD11
+        CLHI    R0,034                  : IS THIS CODE ID.ACK ?
+        JE      BD13                    : YES , GOTO BD13
+BD7     LIS     R0,0                    : R0 = 0
+        STB     R0,RIDCHK,R1            : RIDCHK = 0
+        L       R0,BGREG                : RECOVER R0 RESISTOR
+        L       R1,BGREG+4              :  "      R1 RESISTOR
+        L       R2,BGREG+8              :  "      R2 RESISTOR
+        AIS     R5,BSCLSZ               : FROM SOURCE
+        CHI     R5,BSCLSZ*BSCMON        :  "    "
+        J       BD4+6,,                 : RETURN TO SOURCE
+BD8     SVC     K.OUT,DSCXX5            : PRINT DSCXX5 TEXT
+BD9     SVC     K.OUT,TEXT3,R2,         : PRINT ID TEXT
+        SVC     K.OUT,XDCRLF,,          : PRINT XDCRLF TEXT
+        J       BD7                     : GOTO BD7
+BD10    SVC     K.OUT,DSCXX6            : PRINT DSCXX6 TEXT
+        J       BD9                     : GOTO BD9
+BD11    SVC     K.OUT,DSCXX5            : PRINT DSCXX5 TEXT
+BD12    SVC     K.OUT,TEXT4,R2,         : PRINT ID TEXT
+        SVC     K.OUT,XDCRLF,,          : PRINT XDCRLF TEXT
+        LIS     R0,0                    : R0 = 0
+        STB     R0,SIDCHK,R1            : SIDCHK = 0
+        J       BD7                     : GOTO BD7
+BD13    SVC     K.OUT,DSCXX6            : PRINT DSCXX6 TEXT
+        J       BD12                    : GOTO BD12
+
+DSCXX5  SC      /            ID.ENQ text is = /
+DSCXX6  SC      /            ID.ACK text is = /
+BSCTI2  SC      /CURRENT TIME (JST) = /
+BTHDR2  SC      /LINE  RRTC  STATE   XOPC  XRTC    SECS  TIME STAMP (JST)/
+DEHDR2	SC	/ LINE  EVENT   LOCATION  COUNT  SUB-EVENT  TIME STAMP (JST)  FASTC/
+HEHDR2	SC	/LINE  EVENT   NEW STATE  LOCATION  TIME STAMP (JST)  SEC. ADR.  SEC. TYP./
+
+BSCXXX
+        SC      /DATA/                  :0  DATA
+        SC      /ENQ /                  :1  ENQ
+        SC      /EOT /                  :2  EOT
+        SC      /NAK /                  :3  NAK
+        SC      /TTD /                  :4  TTD
+        SC      /ACK1/                  :5  ACK1(DLE/70)
+        SC      /WACK/                  :6  WACK(DLE/,)
+        SC      /ACK0/                  :7  ACK0(DLE/P)
+        SC      /RVI /                  :8  RVI(DLE/@)
+        SC      /DISC/                  :9  DISC(DLE/EOT)
+        SC      /MBID/                  :10 SOH/ENQ
+        SC      /????/                  :11 NO USEING
+        SC      /????/                  :12  "  "
+        SC      /????/                  :13  "  "
+        SC      /????/                  :14  "  "
+        SC      /IDEQ/                  :15  ID.ENQ
+        SC      /IDAK/                  :16  ID.ACK
+
+ENDPATCH(ID EXCHANGE BACKGROUND SERVICE)
+
+        FO      BSCPTP
+        FO      R100
+        FO      LINE
+        FO      IR100
+        FO      IDS
+        FO      FCB
+        FO      HSEC
+        EI      (IDEX)
+ j)ë
