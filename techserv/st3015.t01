@@ -1,0 +1,205 @@
+:: **********************************************************************
+::           FILE:  Kernel
+::   COMPANY NAME:  Southwestern Bell
+::    NODE NUMBER:  3015                      LOCATION: ST LOUIS
+::    KERNEL HOST:  2768                          HOST: 1385
+::    SLOT NUMBER:  01
+::        VERSION:  6.02                        DATE: 10-MAY-91
+:: **********************************************************************
+:: >>>>>>>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+:: INITIAL VERSION #: 6.02              INITIAL DATE: 10-MAY-91
+:: INITIAL PROJECT #: SR1152            INITIALS: DIANNEZ
+::- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+:: 10-MAY-91 NEW SLOT FOR HOST 1385 FOR CPX432 SR1152      DIANNEZ
+::
+::
+::
+:: **********************************************************************
+
+:Basic Interface Macros  (global to whole slot)
+:----------------------------------------------
+
+SEECONFIGURATION(1)
+LOGII
+PROTOCOL(X.25,HDLC,LAPB)        :
+DPORTS(32)                     : SUPPORTS 32 SESSIONS 
+
+:Host Macros
+:-----------
+
+LINKHOST(0,823)
+HOSTLINKS(823,0)
+  HOSTPORTAVAILABILITY(1,1)     : REPORTS TO SUP WHEN OUT OF CHANNELS
+
+:Link/Frame Macros
+:-----------------
+
+
+:*************************************************************************
+: Start Link Options Group for Link 0
+:*************************************************************************
+
+LINKS(0)                        : LINK 0 - LINK OPTIONS GROUP
+:  LKSPEED(9600,-SATEL)          : USED TO COMPUTE LINK SPEED
+  HDWOPT(-NOCLK)                : CHECK FOR CLOCKS
+
+::COMMENT-PSADR CAN BE EITHER (01,03) IF SLOT IS CONFIGURED AS DTE OR
+::(03,01) IF SLOT IS CONFIGURED AS DCE.  IF (01,03) SET PKTOPT = +HILCN &
+::+PCAUSE. IF (03,01) SET PKTOPT = -HILCN & -PCAUSE.
+
+  K(7)                          : FRAME WINDOW SIZE = 7
+  MAXK(7)                       : MAX FRAME WINDOW SIZE = 7
+  N2(10)                        : RETRANS 10 TIMES AFTER T1 TIMER EXPIRES
+  T1(30)                        : T1 TIMER  = 3 SECONDS
+  IDLELINE(60,20)               : T3 TIMER = 30 SECONDS
+  ILRRC(30)                     : WILL SEND RR WITH P-BIT SET EVRY 30 SECS
+  FRMOPT(-FM128,-DWDSC,-WSABM,-U2OCT)         
+                                 : FRAME OPTIONS
+
+:Packet Level Macros
+:-------------------
+
+  PKTOPT(-PM128,+HILCN,-ZCAUS,+IPRNR,-NONTN,+TKSUP,-BRFCA,-TKDSP,-TRGPF,+PCAUSE,-NODIAG,-NOEEDO)
+
+::COMMENT-CHANNEL MACROS MUST BE SPECIFIED IN THE FOLLOWING ORDER:PVC
+::ONEWAY INC, TWOWAY, ONEWAY OUTGOING.
+
+  CCNL(1,200)                  : DEFINE CHANNELS 200
+  TCNL(1,200)                  : CHANNELS 1-200 ARE 2 WAY
+
+  T10(60,3)                     : RESTART TIMER
+  T11(180)                      : INCOMMING CALL REQUEST TIMER
+  T12(60,3)                     : RESET INDICATION TIMER
+  T13(60,3)                     : CLEAR INDICATION TIMER
+
+::COMMENT-IF CUSTOMER ASKS FOR DIRECT CALL, USE DFDEST MACRO
+
+::COMMENT-CHECK FOR CALLING ADDRESS IN CALLS FROM LINK AND CALLS FROM
+:: NETWORK
+
+  CKOADR(31423512,8,10)         : CLGADR MUST BE 31423512ss ON CALLS FROM LINK
+CHKCLG()
+  DFLADR(31423512,,,+NOCRI,+NOICI)
+                                : LOCAL ADR REQUIRED (SEE CKOADR)
+
+  CKRESPADRS(-NOCLD,-NOCLG)     : CMPARS CLDADR IN CAL ACPT TO  CALL REQ PKT*
+
+:Optional User Facility and Utility Macros (more pkt level)
+:-----------------------------------------------------------
+  NODBIT(OFF)                   :ALLOW D-BIT SUPPORT
+
+  PWIND(2,2,+NEGOTIATION,7,7)   : DEFAULT PACKET WINDOW SIZE=2 WITH NEGOTIATION
+  PSIZE(128,128,-NEGOTIATION)
+                                : DEFAULT PACKET SIZE 128 WITH NEGOTIATION
+  MAXPSIZE(256,256)             : MAXIUM PACKET SIZE IS 256
+  TCLASS(10,10,+NEGOTIATION,-XCLEAR,-PASSTOX)
+                                : TCLASS OF 9600 WITH NEGOTIAIN
+  TCTCSI(1,1,1,1,1,1,2,3,3,4,4,4,4,4,4)
+                                : CHNG CCITT TPUT TO TYMNT 4 OCOMNG CALS
+  CSITTC(6,7,9,11)              : CHNG TYMNT TPUT TO CCITT TPUT 4 ICMNG CALS
+  TCTOPW(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+                                : NO TPUT TO PKTWIND MAPPING
+  TCTOPS(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+                                : NO TPUT TO PKTWIND MAPPING
+  TCTOSC(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)
+                                : ASSUMING CCITT TPUT CONFORMING
+  TARUTILITY(0,0)               : TARIFF UTILITY X.25 ID
+  BOCACCESS(0,0,1385)           : OUTGOING CALLS TO X.75' INTERFACES
+
+  CHARGE(-XCLEAR,+RCNA,-RCNS,-CPNA,+CPT,-RCX,-LCP)::DEFALT OCS CUST DOES NOT
+                                                  :: ACCEPT REV CHARGE CALLS
+
+  FASTSELECT(-SUBSCRIPTION,-ACCEPTANCE)
+                                : NO FASTSELECT, NADA
+  CUG(-SUBSCRIPTION,-INCOMING,-OUTGOING,-PREFOC)
+                                : NO CHECKING OF CUG BY SLOT
+  CUGROUP(NONE,NONE,NONE,-ICB,-OCB)
+                                : DEFINE NO CUGS
+  RPOA(-PASSTOX,+XFORM,+FIRSTSEEN)
+                                : DO NOT PASS ON RPOA SELECTION FACL TO LINK
+                                : WHEN RECEIVED FROM NETWORK IN CLLRQST PKT
+
+  NATIONAL(-XCLEAR,+PASSTOX,-PASSINV)
+                                : PASS ON NATNAL FACILITIES TO LINK
+                                : RECEIVED FROM NETWORK
+  UNKNOWNFACILITY(-XCLEAR,-PASSTOX)
+                                : NOPASS TO NTWRK UNK FACLTIS RECVD FRM LNK
+  FACOPT(-LASTSEEN,-NO84,-NO88,-NONUI,-NORPOA,-INBAR,-OUTBAR)
+                                : NO DUPL FACILTIES
+: ONREGIST(-SUBSCRIPTION,-NOREG)
+                                : X.25 & X.32
+
+:Pad Options Macros (Calls from non-packet mode DTEs)
+:---------------------------------------------------
+
+  CLGADR(-NUIADR,HOSTADR)      : CALLING ADR CONSTUCTED FROM ORG HOST NUMBR
+  CUDSTRING()                   : USER PROMP FOR CALL USER DATA ON INC CALLS
+  INPARI(SAVE,-DATA,-CUD,-ALLCALLS)
+
+                                : DON'T MODIFY PARITY
+  PADOPTIONS(-NECHO,-NCRLF,-NLFCR,-HCRLF,-HLFCR,-NR13,-NR14,-XONOF,-T2741,-U2741)
+                                : THE NETWORK WILL DO THE ECHOING
+  PADIDLETIMER(20,20)           : FORWARD INFO FRM CONSAT AFTER 1/20 SECS
+                                : FORWARD INFOFRM TYMCOM AFTER 1/20 SEC
+  PADFORWARD(126,126)           : DO NOT FORWARD ON ALPHANUMERICS
+  PADBREAK(21)                  : ON BRK SEND INTRPT PKT, INDICATION OF BRK,
+                                : AND DISCARD OUTPUT TO THER TERMINAL
+  PADNATIONAL(00,-NOPASS)       : 00=NATNL SEPORATOR, WILL PASS PARMS TO GTWY
+  ECHOABLE(08,0A,0D,20-7E)      : ECHO BKSP,LF,CR & ALPHNMRCS IN DFERD E-MODE
+
+:Log Report Macros (when and what to report to the supervisor)
+:-----------------------------------------------------------
+
+  LOGINT(8)                     : REPORT INFO TO SUP ERR LOGS EVERY 8 MINS
+  LOGREP(OFF,24-39)             : ONLY FML PROTOCOL ERRS NOT REPORTED TO SUP
+: LOGTHR                        : SET IN TMCS, NOT HERE
+
+:***************************************************************************
+: End of Link Options Group for Link Zero
+:***************************************************************************
+:Global Macros
+:-------------
+
+MTEXT(0001,"0A"0DMicroLinkII: )      : GREETING  MESSAGE FOR INCOMMING CALLS.
+SEGAC(64)                       : EACH ACCOUNTING SEGMENT = 64 CHARS
+
+IDNPREFIX(1,+ICLD,+ICLG,-DNIC)  : USED FOR 10 AND 15 DGT ADDRESSES
+DNICID(3146)                    : DEFAULT DNIC IS 3146 
+
+:Global Storage Allocation Macros
+:--------------------------------
+
+RCVSEC(16)                      : 16 SECTORS PER LINK
+BUFFERPOOL(3584)                : VALUE TO COMPUTE # OF BUFFERLETS
+MAXHOSTS(1)                     : NO MORE THAN ONE HOST ASSIGNED TO SLOT
+THROUGHPUTCLASSTABLES(OFF)      : NO CHANGING OF TPUT MAPPING ALLOWED
+FSLTCO(OFF)                     : NO CHANGING OF FAST SELECT MODS ALLOWED
+COSTCODE(ON)                    : ALLOW XOM MODIFICATION OF HOST COSTING
+TELCOD(OFF)                     : NO CHANGING OF TELENET OPTONS THRU XOM
+DPACOD(OFF)                     : NO CHANGING OF DATAPAC OPTIONS THRU XOM
+CUGCODE(OFF)                    : NO CHANGING OF CUG FACILITIES THRU XOM
+PVCCODE(OFF)                    : NO CHANGING OF PVC OPTIONS THRU XOM
+
+XOMUSERNAME(XOM00)
+XOMUSERNAME(XOM01)
+XOMUSERNAME(XOM02)
+XOMUSERNAME(XOM03)
+XOMUSERNAME(XOM04)
+XOMUSERNAME(XOM05)
+XOMUSERNAME(XOM06)
+XOMUSERNAME(XOM07)
+XOMUSERNAME(XOM08)
+XOMUSERNAME(XOM09)
+XOMUSERNAME(XOM10)
+XOMUSERNAME(XOM11)
+XOMUSERNAME(XOM12)
+XOMUSERNAME(XOM13)
+XOMUSERNAME(XOM14)
+XOMUSERNAME(XOM15)
+XOMUSERNAME(XOM41)
+XOMUSERNAME(XOM42)
+XOMUSERNAME(XOM43)
+XOMUSERNAME(XOM44)
+
+:EOF
+    
