@@ -1,0 +1,352 @@
+                                                          30 OCT 1992(JST)
+                                                          Yuki Furuta (NIS)
+Test access and crash report of Ticket #452014.
+===============================================
+1.Configuration 
+
+Async terminal --- MSV --- T2 gateway -------> XCOM --- UTLAS HOST
+                                H4479         H7417
+                                             node 13457/slot 2/Link 1
+                                      (file) ~afox/13457/t02
+                                      (dump) ~wkeith/nd13457.dump02
+2.Crash
+After log in to the host 7417 by username UTLAS/W from Marunet Japan,
+some host prompt was came back. Then user typed login string to host.
+When the 1st character from the terminal reaches to XCOM, XCOM write
+wrong data to ORING then dispatcher forced the slot to crash.
+
+3.Trace and dump
+-->cron
+
+Slot will HALT on Crash  
+
+-->select
+
+Select routines from the following list:
+
+PB    Packet buffer trace       PT    Packet trace
+FT    Frame trace               BHN   Non-empty dump in hex
+RI    Input ring trace          RO    Output ring trace
+OS    Output sector trace
+CRON  Enable Crstop             CROF  Disable Crstop  
+: ri ro
+
+Enter ports to be displayed: 55
+
+
+IRING----------------------
+I NDL 0055 001C 00CF FB48 1CF9 0590 117F 0068  * U   O{H y     h*
+    0000 0082 172F D308 5554 4C41 532F 578D  *     /S UTLAS/W *
+I TLM 0055 B99D  * U9             *
+
+ORING----------------------
+O DTA 0055 020D 0A  * U              *
+O STP 0055 B100 00  * U1             *
+O STP 0055 B101 01  * U1             *
+O STP 0055 B102 01  * U1             *
+O STP 0055 B103 01  * U1             *
+O QTP 0055 B004  * U0             *
+O QTP 0055 B006  * U0             *
+O QTP 0055 B009  * U0             *
+O QTP 0055 B00A  * U0             *
+O QTP 0055 B00B  * U0             *
+O QTP 0055 B00F  * U0             *
+O QTP 0055 B00C  * U0             *
+O STP 0055 B10D 01  * U1             *
+O QTP 0055 B00E  * U0             *
+O STP 0055 B111 01  * U1             *
+O STP 0055 B112 01  * U1             *
+O YB  0055 AC  * U,             *
+
+IRING----------------------
+I STP 0055 B113 00  * U1             *
+I STP 0055 B112 00  * U1             *
+I STP 0055 B111 00  * U1             *
+I STP 0055 B110 00  * U1             *
+I STP 0055 B10A 00  * U1             *
+I STP 0055 B10E 01  * U1             *
+I STP 0055 B10D 00  * U1             *
+I STP 0055 B10C 00  * U1             *
+I STP 0055 B10B 00  * U1             *
+I STP 0055 B10A 00  * U1             *
+I STP 0055 B109 00  * U1             *
+I STP 0055 B108 00  * U1             *
+I STP 0055 B107 00  * U1             *
+I STP 0055 B106 0B  * U1             *
+I STP 0055 B109 00  * U1             *
+I STP 0055 B108 00  * U1             *
+I STP 0055 B104 01  * U1             *
+I STP 0055 B103 01  * U1             *
+I STP 0055 B102 01  * U1             *
+I STP 0055 B101 00  * U1             *
+I STP 0055 B100 00  * U1             *
+I STP 0055 B100 00  * U1             *
+I STP 0055 B100 00  * U1             *
+I STP 0055 B101 01  * U1             *
+I STP 0055 B102 01  * U1             *
+I STP 0055 B103 01  * U1             *
+I STP 0055 B104 01  * U1             *
+I STP 0055 B106 0B  * U1             *
+I STP 0055 B109 00  * U1             *
+I STP 0055 B10A 00  * U1             *
+I STP 0055 B10B 00  * U1             *
+I STP 0055 B10A 00  * U1             *
+I STP 0055 B10C 00  * U1             *
+I STP 0055 B10D 01  * U1             *
+I STP 0055 B10E 01  * U1             *
+I STP 0055 B111 01  * U1             *
+I STP 0055 B112 01  * U1             *
+I OB  0055 AD  * U-             *
+I STP 0055 B100 00  * U1             *
+I STP 0055 B111 01  * U1             *
+I STP 0055 B10E 01  * U1             *
+I STP 0055 B103 01  * U1             *
+I STP 0055 B100 00  * U1             *
+I STP 0055 B111 01  * U1             *
+I STP 0055 B10E 01  * U1             *
+I STP 0055 B103 01  * U1             *
+I STP 0055 B100 01  * U1             *
+I GB  0055 AA  * U*             *
+I STP 0055 B111 01  * U1             *
+I STP 0055 B10E 01  * U1             *
+I STP 0055 B103 01  * U1             *
+
+ORING----------------------
+O ADA 0055 B700 E007 0101  * U7 `           *
+O DTA 0055 0B0D 0A20 5554 4C41 533A 2020  * U    UTLAS:    *
+O DTA 0055 1063 616C 6C20 636F 6E6E 6563 7465  * U call connecte*
+    640D 0A  *d               *
+O ADA 0055 B700 E00E 8000  * U7 `           *
+O ADA 0055 B700 E002 7417  * U7 ` t         *
+O ADA 0055 B700 E003 0600  * U7 `           *
+O ADA 0055 B700 E004 0031  * U7 `  1        *
+O ADA 0055 B700 E005 0A00  * U7 `           *
+O ADA 0055 B700 E800 0001  * U7 h           *
+O ADA 0055 B700 E700 0000  * U7 g           *
+O ADA 0055 B700 E600 0001  * U7 f           *
+O ADA 0055 B700 E500 0000  * U7 e           *
+O STP 0055 B100 00  * U1             *
+O STP 0055 B111 01  * U1             *
+O STP 0055 B10E 01  * U1             *
+O STP 0055 B103 01  * U1             *
+O STP 0055 B100 00  * U1             *
+O STP 0055 B111 01  * U1             *
+O STP 0055 B10E 01  * U1             *
+O STP 0055 B103 01  * U1             *
+O STP 0055 B100 01  * U1             *
+O STP 0055 B111 01  * U1             *
+O STP 0055 B10E 01  * U1             *
+O STP 0055 B103 01  * U1             *
+O DTA 0055 092E 2E55 544C 4153 0D0A  * U ..UTLAS      *
+O GB  0055 AA  * U*             *
+O DTA 0055 302E 2E55 544C 4153 204C 494E 4523  * U0..UTLAS LINE#*
+    3D20 4A50 4E30 3120 2020 2020 2020 2020  *= JPN01         *
+    2020 3030 3A34 3020 3330 2D4F 4354 2D39  *  00:40 30-OCT-9*
+    320D 0A  *2               *
+O STP 0055 B100 00  * U1             *
+O STP 0055 B111 01  * U1             *
+O STP 0055 B10E 01  * U1             *
+O STP 0055 B103 01  * U1             *
+
+IRING----------------------
+I LDE 0055 A7  * U'             *
+I EDE 0055 A6  * U&             *
+I STP 0055 B100 00  * U1             *
+I STP 0055 B111 01  * U1             *
+I STP 0055 B10E 01  * U1             *
+I STP 0055 B103 01  * U1             *
+
+ORING----------------------
+O STP 0055 B100 01  * U1             *
+O STP 0055 B111 01  * U1             *
+O STP 0055 B10E 01  * U1             *
+O STP 0055 B103 01  * U1             *
+
+ORING----------------------
+O DTA 0055 3220 2020 2020 2020 2020 2020 2020  * U2             *
+    2020 2020 2020 2020 2020 2020 2020 5554  *              UT*
+    4C41 5320 4154 2059 4F55 5220 5345 5256  *LAS AT YOUR SERV*
+    4943 450D 0A  *ICE             *
+
+ORING----------------------
+O DTA 0055 3220 2020 2020 2020 2020 2020 2020  * U2             *
+    2020 2020 2020 2020 2020 2020 2020 5554  *              UT*
+    4C41 5320 4120 564F 5452 4520 5345 5256  *LAS A VOTRE SERV*
+    4943 450D 0A  *ICE             *
+O DTA 0055 1E4C 6F67 6F6E 2050 6C65 6173 652F  * U Logon Please/*  <-- host
+    4964 656E 7469 6669 657A 2D76 6F75 733A  *Identifiez-vous:*    login msg
+    20  *                *
+
+IRING----------------------
+I STP 0055 B100 01  * U1             *
+I GB  0055 AA  * U*             *
+I STP 0055 B111 01  * U1             *
+I STP 0055 B10E 01  * U1             *
+I STP 0055 B103 01  * U1             *
+
+ORING----------------------
+O GB  0055 AA  * U*             *
+
+IRING----------------------
+I LDE 0055 A7  * U'             *
+
+IRING----------------------
+I DTA 0055 0135  * U 5            *           <-- 1st char of logon
+
+  **************  Dispatcher crash at this point *********************
+    DDT 's ring display is corrupt from this point, slot already crashed.
+    ORING displays old point.
+
+ORING----------------------
+O DTA 0055 1E4C 6F67 6F6E 2050 6C65 6173 652F  * U Logon Please/*
+    4964 656E 7469 6669 657A 2D76 6F75 733A  *Identifiez-vous:*
+    20  *                *
+O GB  0055 AA  * U*             *
+O DTA 0055 1E4C 6F67 6F6E 2050 6C65 6173 652F  * U Logon Please/*
+    4964 656E 7469 6669 657A 2D76 6F75 733A  *Identifiez-vous:*
+    20  *                *
+...... continue ............
+
+**********  RINGs from slot *********************************
+
+Slot 02 down: halted- dispatcher crash
+*
+
+ORING
+*r 8050ae 4
+8050AE  03E0  0010               <--------  Oring pointer is wrong
+
+*r 8050b2 400
+8050B2  657A  2D76  6F75  733A  2000  030D  0055  AA01  <-- last good Ring
+8050C2  0000  050D  0A3F  3238  0000  030D  0A21  1000  <-- write wrong
+8050D2  0000  050D  0A3F  3238  0000  030D  0A21  B700      contents from
+8050E2  0000  050D  0A3F  3238  0000  030D  0A21  B700      here
+8050F2  0000  050D  0A3F  3238  0000  030D  0A21  B700
+805102  0000  050D  0A3F  3238  0000  030D  0A21  9E0D      Slot looks into
+805112  0000  050D  0A3F  3238  0000  030D  0A21  9E0D      the loop at some
+805122  0000  050D  0A3F  3238  0000  030D  0A21  9E0D      point.
+805132  0000  050D  0A3F  3238  0000  030D  0A21  9E0D
+805142  0000  050D  0A3F  3238  0000  030D  0A21  9E0D      And see IRING, the
+805152  0000  050D  0A3F  3238  0000  030D  0A21  9E0D      pointer didn't
+805162  0000  050D  0A3F  3238  0000  030D  0A21  9E20      updated, so it
+805172  0000  050D  0A3F  3238  0000  030D  0A21  9E43      might caused from
+805182  0000  050D  0A3F  3238  0000  030D  0A21  9E0D      Iring handler.
+805192  0000  050D  0A3F  3238  0000  030D  0A21  9E8A
+8051A2  0000  050D  0A3F  3238  0000  030D  0A21  9E20
+8051B2  0000  050D  0A3F  3238  0000  030D  0A21  9E47
+8051C2  0000  050D  0A3F  3238  0000  030D  0A21  9E4E
+8051D2  0000  050D  0A3F  3238  0000  030D  0A21  9E20
+8051E2  0000  050D  0A3F  3238  0000  030D  0A21  9E35
+8051F2  0000  050D  0A3F  3238  0000  030D  0A21  9E30
+805202  0000  050D  0A3F  3238  0000  030D  0A21  9E38
+805212  0000  050D  0A3F  3238  0000  030D  0A21  9E38
+805222  0000  050D  0A3F  3238  0000  030D  0A21  9E20
+805232  0000  050D  0A3F  3238  0000  030D  0A21  9E20
+805242  0000  050D  0A3F  3238  0000  030D  0A21  9E20
+805252  0000  050D  0A3F  3238  0000  030D  0A21  0028
+805262  0000  050D  0A3F  3238  0000  030D  0A21  3238
+805272  0000  050D  0A3F  3238  0000  030D  0A21  3238
+805282  0000  050D  0A3F  3238  0000  030D  0A21  2020
+805292  0000  050D  0A3F  3238  0000  030D  0A21  B00A
+8052A2  0000  050D  0A3F  3238  0000  030D  0A21  B10D
+8052B2  0000  050D  0A3F  3238  0000  030D  0A21  4361
+8052C2  0000  050D  0A3F  3238  0000  030D  0A21  B700
+8052D2  0000  050D  0A3F  3238  0000  030D  0A21  533A
+8052E2  0000  050D  0A3F  3238  0000  030D  0A21  6E6E
+8052F2  0000  050D  0A3F  3238  0000  030D  0A21  8000
+805302  0000  050D  0A3F  3238  0000  030D  0A21  0600
+805312  0000  050D  0A3F  3238  0000  030D  0A21  0A00
+805322  0000  050D  0A3F  3238  0000  030D  0A21  0000
+805332  0000  050D  0A3F  3238  0000  030D  0A21  0000
+805342  0000  050D  0A3F  3238  0000  030D  0A21  050D
+805352  0000  050D  0A3F  3238  0000  030D  0A21  050D
+805362  0000  050D  0A3F  3238  0000  030D  0A21  050D
+805372  0000  050D  0A3F  3238  0000  030D  0A21  050D
+805382  0000  050D  0A3F  3238  0000  030D  0A21  050D
+805392  0000  050D  0A3F  3238  0000  030D  0A21  050D
+8053A2  0000  050D  0A3F  3238  0000  030D  0A21  AA0D
+8053B2  0000  050D  0A3F  3238  0000  030D  0A21  4523
+8053C2  0000  050D  0A3F  3238  0000  030D  0A21  2020
+8053D2  0000  050D  0A3F  3238  0000  030D  0A21  2D39
+8053E2  0000  050D  0A3F  3238  0000  030D  0A21  B111
+8053F2  0000  050D  0A3F  3238  0000  030D  0A21  B103
+805402  0000  050D  0A3F  3238  0000  030D  0A21  B111
+805412  0000  050D  0A3F  3238  0000  030D  0A21  B103
+805422  0000  050D  0A3F  3238  0000  030D  0A21  2020
+805432  0000  050D  0A3F  3238  0000  030D  0A21  2020
+805442  0000  050D  0A3F  3238  0000  030D  0A21  5220
+805452  0000  050D  0A3F  3238  0000  030D  0A21  3220
+805462  0000  050D  0A3F  3238  0000  030D  0A21  2020
+805472  0000  050D  0A3F  3238  0000  030D  0A21  5320
+805482  0000  050D  0A3F  3238  0000  030D  0A21  450D    <-- to here
+805492  0A3F  3238  0055  1E4C  6F67  6F6E  2050  6C65
+8054A2  6173  652F  4964  656E  7469  6669  0208  0204
+
+
+IRING from dump
+
+8054AE  0208  0204       <------ last Iring pointer also did not updated
+                                 by slot.
+*r 8054b2 210
+8054B2  0055  001C  00CF  FB48  1CF9  0590  117F  0068
+8054C2  0000  0082  172F  D308  5554  4C41  532F  578D
+8054D2  0055  B99D  0055  B113  000A  AB06  0055  B112
+8054E2  000A  01B8  0055  B111  000A  A704  0055  B110
+8054F2  000B  BF03  0055  B10A  0000  000A  0055  B10E
+805502  0104  AAAA  0055  B10D  0000  0600  0055  B10C
+805512  0000  0600  0055  B10B  0000  0600  0055  B10A
+805522  000B  BF00  0055  B109  0000  000A  0055  B108
+805532  0004  AAAA  0055  B107  000B  BF00  0055  B106
+805542  0B00  000A  0055  B109  0004  AAAA  0055  B108
+805552  000B  BF03  0055  B104  0100  000A  0055  B103
+805562  0104  AAAA  0055  B102  010B  BF0E  0055  B101
+805572  0000  000A  0055  B100  0004  AAAA  0055  B100
+805582  000A  0020  0055  B100  00F9  11D1  0055  B101
+805592  0100  0082  0055  B102  0153  4953  0055  B103
+8055A2  010A  0135  0055  B104  010A  A100  0055  B106
+8055B2  0B0B  0FC0  0055  B109  005F  0533  0055  B10A
+8055C2  00AA  BFC0  0055  B10B  0000  000A  0055  B10A
+8055D2  0004  AAAA  0055  B10C  000A  ABE4  0055  B10D
+8055E2  010A  AA6F  0055  B10E  010A  018D  0055  B111
+8055F2  016A  A7F6  0055  B112  016A  A7F6  0055  AD0A
+805602  0055  B100  000A  B10B  0055  B111  010A  B10A
+805612  0055  B10E  010A  B10C  0055  B103  010A  B10D
+805622  0055  B100  000A  B10E  0055  B111  010A  B111
+805632  0055  B10E  010A  B112  0055  B103  010A  AD0A
+805642  0055  B100  010B  BF0E  0055  AAC0  0055  B111
+805652  015F  0533  0055  B10E  01AA  B10A  0055  B103
+805662  010B  09C0  0055  A70A  0055  A633  0055  B100
+805672  00AA  AAAA  0055  B111  010B  BF00  0055  B10E
+805682  0100  000A  0055  B103  0104  AAAA  0055  B100
+805692  010B  BF0B  0055  AAC0  0055  B111  015F  0533
+8056A2  0055  B10E  01AA  B102  0055  B103  010B  0FC0
+8056B2  0055  A70A  0055  0135  000B  BF09  0055  B10A
+                            ^
+                            |-- last char 35
+
+
+Crash table
+*r 1f08 50
+001F08  005C  0010  0050  0512  FFFF  FFFF  0000  0031
+001F18  0000  0055  0000  0001  0000  0028  0050  63A6
+001F28  0000  0001  0000  0028  0051  0E60  0051  2860
+001F38  0000  0002  0000  0000  0000  0002  0000  009A
+001F48  0000  0008  FFFF  FE0B  FFFF  FFE4  236A  A97F
+
+500512 = SLOR2+0a
+
+500500,30]
+SLOR1+0c        SR      03,f
+SLOR1+0e        JGFS  3
+SLOR1+10        AHI     03,CRQTMP,00
+SLOR2           SIS     03,4
+SLOR2+2         CR      03,0
+SLOR2+4         JGEFS 4
+SLOR2+6         SVC     00,00,00
+SLOR2+0a        JFBS  f
+SLOR3           STH     01,IRING,0f,00
+SLOR3+6         STB     02,IRING+2,0f,00
+SLOR3+0c        AIS     0f,3
+SLOR3+0e        JFR   4
+
+---------------------------------------------------- End of report ---------
