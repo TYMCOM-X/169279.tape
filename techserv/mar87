@@ -1,0 +1,1625 @@
+                                                              February 18, 1987
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TTTTTTTTTTT EEEEEEEEE  CCCCCCCC  HHH    HHH TTTTTTTTTTT IIIIIIIIIII  PPPPPPP
+TTTTTTTTTTT EEEEEEEEE CCCCCCCCCC HHH    HHH TTTTTTTTTTT IIIIIIIIIII PPPPPPPPP
+    TTT     EEE       CCC     CC HHH    HHH     TTT         III     PPP    PPP
+    TTT     EEEEE     CCC        HHHHHHHHHH     TTT         III     PPP    PPP
+    TTT     EEEEE     CCC        HHHHHHHHHH     TTT         III     PPPPPPPPP
+    TTT     EEE       CCC     CC HHH    HHH     TTT         III     PPP
+    TTT     EEEEEEEEE CCCCCCCCCC HHH    HHH     TTT     IIIIIIIIIII PPP
+    TTT     EEEEEEEEE  CCCCCCCC  HHH    HHH     TTT     IIIIIIIIIII PPP
+
+
+
+
+
+
+
+
+
+
+                                March 01, 1987
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     MMDDYY.TIP
+                                                              February 18, 1987
+
+
+
+
+
+
+
+                                   TABLE OF CONTENTS
+
+        Section                                                            Page
+
+
+
+        1.   Status of Nodecode DI.BFL Parameter                              1
+
+
+        2.   TECHALERT -- Nodecode V5.20 Restrictions                         3
+
+
+        3.   Retries Counter on Host Interface                                4
+
+
+        4.   TECHNICAL PUBLICATIONS ANNOUNCEMENT                              6
+
+
+        5.   Basics of the UTS 40 Terminal                                    7
+
+
+        6.   TECHALERT on Re-config of MenuService V 1.13                    10
+
+
+        7.   ExpressTym                                                      12
+
+
+        8.   TECHALERT -- Line Data Corruption                               17
+
+
+        9.   X.25  to  SDLC                                                  18
+
+
+        10.  Testing of New Supervisor Patch                                 20
+
+
+        11.  TECHALERT -- Potential to Crash X.25 Host Interfaces            21
+
+
+        12.  New Model/Product Numbers for Engines                           22
+
+
+        13.  Problems Dumping Nodes?                                         26
+
+
+
+
+
+
+                                                                     MMDDYY.TIP
+        Status of Nodecode DI.BFL Parameter                   February 18, 1987
+
+
+
+
+
+
+                       1 -  Status of Nodecode DI.BFL Parameter
+
+
+
+
+
+
+
+        Original Question by : Edward Tam, Tymnet Communication's Consultant
+                 Response by : Gail Bubsey, HQ Network Staff Consultant
+                        Date : January 28, 1987
+
+
+
+
+
+
+        ORIGINAL QUESTION :
+        -----------------
+           1)  How can one fine tune the DI.BFL parameter in the node code 
+               tymfile?
+
+           2)  What is the default value for the parameter DI.BFL? 
+
+           3)  In XRAY, can the data in BS (display Bufferlet use statistics) 
+               be accurate enough to act as a guildline for the DI.BFL
+               parameter?  If so, how should one interpret the data from BS and
+               calculate the optimal number of bufferlets that is required by a
+               node?
+
+
+
+
+
+
+
+        RESPONSE :
+        --------
+        1.  The parameter 'DI.BFL' is an Isis parameter specifying the number
+            of dispatcher bufferlets to allocate.
+
+        2.  The default is acheived from the following calculations:
+
+                DI.BFL = 6 * NBUF
+                NBUF = (-20)&(2 * DI.CHN + NSLOT + 21)
+                DI.CHN = NDP (default)
+
+        3.  There is nothing in the Xray displays that would give you 
+            information for setting this parameter.  You could set it by hand
+
+                                           1
+        Status of Nodecode DI.BFL Parameter                   February 18, 1987
+
+
+            in the .tym file, but it would be safer to influence its value by
+            finetuning the number of dispatcher ports.  The default is 256d.
+            A minimum value would be # of origination ports on the node + # of
+            destination ports, the sum of this rounded up to the next multiple
+            of 32d.  I can not think of any reason you would really want to 
+            play with this unless you were extremely low on core.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                           2
+        TECHALERT -- Nodecode V5.20 Restrictions              February 18, 1987
+
+
+
+
+
+
+                     2 -  TECHALERT -- Nodecode V5.20 Restrictions
+
+
+
+
+
+
+
+        Written by : Sandra Nilluka, HQ Network Staff Consultant
+              Date : February 02, 1987
+
+
+
+
+
+
+        PRODUCT:  Node Code - TII
+
+        VERSION:  5.20 - Betatest
+
+        RESTRICTIONS:  Reference (BETATEST)TII05.X20 and (BETATEST)TII05.Y20.
+
+
+        (NOTE:  For gateways, the following pertains to the pseudo-node and
+        to Hnet, the network containing the pseudo-node.)
+
+        1.  Version 5.20 is incompatible with supervisor version 41.01 or 
+            lower; supervisors must be version 41.04 or higher.  Specifically, 
+            the parameter OLDSUP for old-style host reports is no longer 
+            provided.
+
+        2.  Version 5.20 is incompatible with Tymnet-I nodecode.  A line will
+            not come up if the other end is Tymnet-I.
+
+        3.  The parameter NETID must be included in TYM files.  This number is
+            0001 for the public network, and 0002 for Bubb net.  For other net-
+            works, refer to the network profile database located on NETDB:23.
+            For selection 8, Networks (desc), 'network no' is the NETID.  If
+            your network is missing, ontyme TYMOPS.K/ADNEY.
+
+
+        For betatest authorization, refer to *** BETA.REQUEST.
+
+
+
+
+
+
+
+
+                                           3
+        Retries Counter on Host Interface                     February 18, 1987
+
+
+
+
+
+
+                        3 -  Retries Counter on Host Interface
+
+
+
+
+
+
+
+        Original Question by : Elaine Espouy, TNSC
+                 Response by : Adela Lee, HQ Network Staff Consultant
+                        Date : January 30, 1987
+
+
+
+
+
+
+        ORIGINAL QUESTION :
+        -----------------
+
+        This is in regards to the timer RETRIES on the HOST interface side. . .
+
+
+        In the documentation, it mentions  that if the hif does not  receive UA
+        (after the  sending of snrm  to the  TIF) before the  end of  the timer
+        (netreplyto),  the  counter  retries  is  decremented  then   the  host
+        interface waits again for an answer from the tif.
+
+
+        In the code, it does not seem to react exactly like this: If the  Ua is
+        not received before the  end of netreplyto, the counter  is decremented
+        but the interface does  not wait anymore for a  UA from the tif  but it
+        goes to see if something is received on host line.
+
+
+        Could you explain how the  retries counter works on the  host interface
+        side.
+
+
+
+
+
+
+        RESPONSE :
+        --------
+
+        Only the first argument of RETRIES  is used in the HIF.  It  counts the
+        number of SNRMs ignored from the host in between SNRMs sent  across the
+
+
+                                           4
+        Retries Counter on Host Interface                     February 18, 1987
+
+
+        network.  With RETRIES defined as (5,0,0) at HIF, the HIF will send one
+        SNRM to  the network for  every other 5  SNRMs received from  the host.
+        This is to avoid too many unnecessary SNRMs to absorb the  command list
+        and to relieve  the network traffic  as well.  The  same implementation
+        applies for XID and TEST frames.
+
+
+        Your observation  is absolutely correct  in that after  NETREPLYTO gets
+        expired and  RETRIES counter gets  decremented in HSOP14,  the protocol
+        handler goes to do receiving rather than transmitting.  In both ERS and
+        SGN documents, there  exists an error  which states "When  this counter
+        (RETRIES) reaches 0, HIF stops looking for a response and goes  back to
+        the  start of  NDM."  According  to our  current design,  the  HIF will
+        always jump from transmitting to receiving state each time when RETRIES
+        counter gets decremented by one regardless if RETRIES reaches 0 or not.
+        Thanks for pointing this out and  I will inform NTD to make  the proper
+        change on the next release.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                           5
+        TECHNICAL PUBLICATIONS ANNOUNCEMENT                   February 18, 1987
+
+
+
+
+
+
+                       4 -  TECHNICAL PUBLICATIONS ANNOUNCEMENT
+
+
+
+
+
+
+
+              Date : February 4, 1987
+
+
+
+
+
+
+                                   The following is a list
+                              of TYMNET technical publications
+                               recently placed into inventory.
+                               You can order these documents
+                              through any TYMNET sales office.
+
+
+
+                      Newly Inventoried TYMNET Technical Documentation:
+                      ------------------------------------------------
+
+        NPD-057-2 Network Products Concepts and Facilities Update Package, 
+        dated 11/86
+
+        NPD-084   MUX Reference Manual, dated 11/86
+
+        NPD-670   Mini-Engine Maintenance Manual, dated 1/87
+
+        NUD-100/2 TYMNET Network Specification, Second Edition Update, 
+        dated 12/86
+
+
+
+                                 For detailed information,
+                              including abstracts and prices,
+                            about TYMNET technical publications:
+                                      Log into TYMNET,
+                             using INFORMATION as the user name.
+                                     Choose menu item 9.
+
+
+
+
+
+
+                                           6
+        Basics of the UTS 40 Terminal                         February 18, 1987
+
+
+
+
+
+
+                          5 -  Basics of the UTS 40 Terminal
+
+
+
+
+
+
+
+        Written by : John Burrough, HQ Network Staff Consultant
+              Date : February 04, 1987
+
+
+
+
+
+
+
+        The  UTS  40  is  an  intelligent,  programmable,  microprocessor-based
+        display  terminal  used  for  interactive  communications  with  a host
+        processing system.  Interface to a host is accomplished by means  of an
+        EIA RS-232C synchronous communications interface which operates in half
+        duplex mode at line rates up to 9600 bits per second.  A direct connect
+        interface  capability is  provided for  distances up  to 200  feet.  An
+        optional 8-bit peripheral interface is also available that  supports up
+        to four peripheral devices.
+
+
+        Data for display is transferred to the cathode ray tube (CRT)  from the
+        key-board  interface,  the   communications  interface,  or   from  the
+        peripherals through the peripheral interface.
+
+
+        The operational  mode of the  UTS 40 is  predetermined and stored  in a
+        cartridge that is easily inserted  into the back of the  terminal.  For
+        instance, the  UTS 40 can  be made to  look like an  older model  CRT -
+        i.e., the UTS 400.
+
+
+        UTS 40 operating  parameters, as well as  transmission characteristics,
+        can  be selected  by an  operator using  the "control  page",  a 2-line
+        display described  below.  This  is similar in  concept to  the "setup"
+        parameters  of  a  VT100.  The  parameters  are  stored  in nonvolatile
+        random-access memory (RAM) and need not be re-entered each time the UTS
+        40 is turned on and off.
+
+
+        An 8K buffer memory, a standard feature of the UTS 40, allows  the host
+        to bypass the displayed screen memory.  By entering data in  the buffer
+
+
+                                           7
+        Basics of the UTS 40 Terminal                         February 18, 1987
+
+
+        memory,  the  host  can communicate  with  UTS  40  peripherals without
+        disturbing the display screen or the entry of data (however, the screen
+        bypass memory contents can be displayed by pressing the DISP  1-2 key).
+        Since the UTS 40 peripheral interface allows concurrent  operation, the
+        screen bypass memory can  be used to perform 2  simultaneous peripheral
+        operations.
+
+
+        The  screen  bypass also  enables  us to  use  the crt  as  a data-comm
+        monitor, as will be described  below.  This is incredibly useful  to us
+        here at headquarters.
+
+
+        You can also  program this terminal.  Using  COBOL!!!!!  Unfortunately,
+        that added expense to an already-fairly-expensive terminal -  hence, it
+        was never a big money-maker for Sperry.  None of our customers use this
+        feature.
+
+
+        You can hook up all kinds of terminals to the back of a Sperry terminal
+        - they are all linked together in a daisy chain fashion.  You  can hook
+        up cassettes, diskettes, printers and a magnetic stripe reader.   Up to
+        4 peripherals can be connected to a Sperry terminal at a time.
+
+
+        There  is  also an  optional  loadable character  set  feature  for the
+        terminal - but this requires an extra board.
+
+
+        When the uts 40 comes  on, it runs an internal diagnostic.   Of course,
+        what terminal doesn't.  It also keeps an internal log of  various error
+        conditions, but I have never had any reason to look at that.
+
+
+        The Sperry has an unbelievably  good line monitor built right  into it,
+        it is  just amazing.   The terminal  itself is  ergonometircally fairly
+        nice.  The keyboard  is fairly heavy, but  this terminal is at  least 6
+        years old, so this is to be expected.
+
+
+        It is an "editing"  keyboard, so you have  all kinds of keys  to delete
+        characters, insert lines,  etc.  You can  also generate a  whole screen
+        definition (i.e.,  this field  is protected,  this one  is unprotected,
+        this one allows numeric right-justified only, etc...).
+
+
+        Basically, you could say that the UTS 40 system is quite similar to the
+        IBM  3270 system,  with  certain qualifications.   The UTS  40  is more
+        advanced in functionality  than the 3270.  The  communications protocal
+        used on  the Univac systems  is much more  complicated than  3270 comm.
+        protocal.  (A big part of the complication is this:  Univac sends ACK's
+        back  in the  same message  as another  message -  like   a "piggyback"
+
+
+                                           8
+        Basics of the UTS 40 Terminal                         February 18, 1987
+
+
+        situation - sounds like a great idea, doesn't it?  Too bad it turns the
+        Univac protocal into a com plicated mess).
+
+
+        Also,  IBM   (originally)  put  all   their  intelligence   into  their
+        controllers, which  are basically boxes  connected to dumb  crt's.  The
+        Univac  intelligence  is   in  the  terminals  themselves,   which  are
+        customarily connected to the outside world via multiplexors.
+
+
+        Finally, here are a few notes about the Control Page.
+
+        To get into it, press                FCTN CONTL PAGE.  Here are typical
+        entries for the control page.
+
+        PRINT     put PR in the "to" field.
+        XFER      we do not use this
+        STA       this shows you a device status of a peripheral if something
+                  goes wrong.  Then you will dig for hours to find out where in
+                  the documentation those status codes are.
+        PRNT      we just set this to PRNT.
+        XFER      we do not use this.
+        XMIT      When you press the XMIT key to transmit your data to the 
+                  mainframe, what portion of the screen do you want 
+                  transmitted?
+
+                  ALL - transfer all data
+                  VAR - transfer all unprotedted fields
+                  CHAN- transfer all changed unprotected fields.
+
+                  We always use VAR.  You can really get screwed up if you use
+                  the wrong mode.
+        MM        Maintenance Mode.  This has a million functions, most of
+                  which are of interest to only a few people.  However, if you 
+                  type 'LM' here, one of your screens becomes a data comm-
+                  monitor!  Also, the MM field is used in conjunction with the
+                  PARAM field to tell the UTS 40 what peripherals it is 
+                  connected to.
+        ADR       I have never used.
+        SEARCH    "
+        PARAM     Another field with a million functions - has information very
+                  similar to SETUP on a VT100 - like baud rate, keyboard click,
+                  etc.  Here is also where you specify what the station's RID
+                  and SID address is, a very important thing.
+
+        In  my  next  techtip  article,  I  will  go  deeper  into  the  Univac
+        communications protocal.
+
+
+
+
+
+
+
+                                           9
+        TECHALERT on Re-config of MenuService V 1.13          February 18, 1987
+
+
+
+
+
+
+                   6 -  TECHALERT on Re-config of MenuService V 1.13
+
+
+
+
+
+
+
+        Written by : John Burke
+              Date : February, 1987
+
+
+
+
+
+
+
+        If you are responsible for the re-configure of Menu Server, please read
+        the attached memo from John Burke very carefully.
+
+
+        The default buffer size is 80, and the maximum is 255 characters.
+
+        Regards,
+
+        Ted Yeh
+        HQ Network Staff Consultant
+
+
+
+
+
+
+
+        ALL ANALYSTS who configure Menu  Server MUST be aware of  the follo
+        problem:
+
+            The analyst must configure the "user buffer" UBUFER to be big
+            enough to hold all the strings involved in a login.  There is one
+            UBUFER reserved for each simultaneous user.  Use the macro:
+         
+                BIGGERubuffer(nbytes)
+         
+            to get a UBUFER whose size is nbytes (decimal) the default size is
+            80 (decimal) bytes if BIGGERubuffer is omitted.
+         
+            To figure the size required for UBUFER: find the COMMAND macro
+            which has the most bytes in its login and match strings.  You must
+            count all strings which get used during the login: c.string macros,
+
+                                          10
+        TECHALERT on Re-config of MenuService V 1.13          February 18, 1987
+
+
+            c.SEEUpto macros and the other match-string macros, any rotor 
+            entry, c.password, and c.username.  Then add 3 more for each macro,
+            for overhead.  Then add 32 or so, to permit user typeahead before 
+            the login completes.
+         
+            If the UBUFER is not big enough, you will CERTAINLY GET A CRASH,
+            since MSV (v1 r13) does not check for overflow.
+         
+
+        I discovered this bug a few months after our section took over the Menu
+        Server, and there was not time to get the fix into Release 13.   But it
+        will be fixed in the next release, and people won't have to worry about
+        BIGGERubuffer any more.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          11
+        ExpressTym                                            February 18, 1987
+
+
+
+
+
+
+                                    7 -  ExpressTym
+
+
+
+
+
+
+
+        Written by : Mary Chalmers, Tymnet Product Marketing
+              Date : February 5, 1987
+
+
+
+
+
+
+                             NEW NETWORK SERVICE AVAILABLE
+
+           ****************************************************************
+
+                                      ExpressTym
+                               The SNA to  PC Connection
+
+
+        ExpressTym is a new Tymnet  service now available which offers  an easy
+        to  install total  system  solution for  connecting remote  PCs  to IBM
+        mainframes.   By utilizing  Tymnet's  SNA Service  for  IBM mainframes,
+        users  of ExpressTym  are provided  with a  unique way  of  solving the
+        common  problems  normally associated  with  connecting the  PC  to IBM
+        mainframes, including security and remote user installation.   No other
+        company offers a similar service.
+
+
+        ExpressTym is  a software-based  solution, which  allows a  company the
+        flexibility of tailoring the service to its specific needs.  Highlights
+        of ExpressTym are:
+
+
+        - A customized network gateway that allows easy access to  multiple IBM
+        applications and SNA domains, and other network services via the Tymnet
+        network.   Individual   menus  are   customized  to   display  possible
+        applications  for  the  end  user  to  access  on  IBM,  DEC  and other
+        asynchronous hosts.
+
+
+        - A IBM PC software package specially designed for use with ExpressTym.
+        This software package  is designed to give  the end user a  quick start
+        and ease of use.  The package comes configured for use  with ExpressTym
+
+
+                                          12
+        ExpressTym                                            February 18, 1987
+
+
+        and can be easily started  from DOS by the end user.   Special features
+        include:   3270   keyboard  emulation;   Ten   user-definable  softkeys
+        available  to  simplify  repetitive tasks;  Two  special  online "Help"
+        screens; Fast  Screen Display,  similar to real  3270 SNA  devices; and
+        3287 printer emulation via an attached printer or the PC's disk drive.
+
+
+        -  Tymnet's  advanced  protocol conversion  connects  IBM  PCs  and IBM
+        compatible PCs  to IBM  host applications  as 3270  Information Display
+        Systems  via standard  remote SNA/SDLC  connections to  37X5  Front End
+        Processors.
+
+
+        - End-to-End Error  free communication of  data across the  network and
+        over  the less  expensive local  asynchronous connection  via  the X.PC
+        protocol.
+
+
+        Tymnet  has  a  special  introductary  offer  for  new  customers using
+        ExpressTym of free software installtion on all orders received  by July
+        1, 1987.   This means a  customer could save  up to  $2900.  ExpressTym
+        costs the typical customer about $8 to $10 per hour and the PC software
+        is priced at $175 with volume discounts available.
+
+                                      ExpressTym
+                                SPECIAL PRICING DETAILS
+
+
+        In an effort to generate excitement and interest in Tymnet's ExpressTym
+        product a special introductory  offer of free software  installation is
+        being offered for all orders that meet the following qualifications:
+
+        I.  NEW CUSTOMERS
+         
+            1.  ALL PRODUCTS COMPRISING THE EXPRESSTYM "PACKAGE" MUST BE
+                ORDERED CONCURRENTLY
+         
+            2.  THE ORDER MUST BE RECEIVED BY JULY 1, 1987
+         
+            3.  ORDERS MUST INCLUDE ALL OF THE FOLLOWING PRODUCTS:
+                      SHI-3270S
+                      TEM-CMTS
+                      MS-00(Menu Service)
+                      1439 X.PC or X.PC USER NAME REQUEST
+                      SMARTYM PC software
+         
+            4.  A COPY OF THE ORDER LETTER, ORDER # AND TEA FOR SMARTYM
+                FOR THIS SERVICE MUST BE SENT TO VIRGINIA LELAND WHO WILL
+                MAKE THE NECESSARY BILLING ARRANGEMENTS
+         
+
+        II.  UPGRADES ON EXISTING SNA ASYNC-TO-3270 SERVICE
+
+
+                                          13
+        ExpressTym                                            February 18, 1987
+
+
+        Existing  SNA Async-to-3270  customers  can upgrade  to  ExpressTym and
+        receive free installation on  the Menu Service (MS-00) and  a dedicated
+        X.PC Network Server.  In order to qualify:
+
+            1.  THE CUSTOMER MUST HAVE SHI-3270S AND TEM-CMTS INSTALLED AS
+                OF FEB. 1, 1987 AND ALL OTHER PRODUCTS MUST BE ORDERD
+                CONCURRENTLY
+         
+            2.  THE ORDER MUST BE RECEIVED BY JULY 1, 1987
+         
+            3.  ORDERS MUST INCLUDE ALL OF THE FOLLOWING PRODUCTS:
+                      MS-00(Menu Service)
+                      1439 X.PC or X.PC USER NAME REQUEST
+                      SMARTYM PC software
+         
+            4.  A COPY OF THE ORDER LETTER, ORDER #, TEA FOR SMARTYM AND
+                CID# FOR THE CUSTOMER MUST BE SENT TO VIRGINIA LELAND WHO
+                WILL MAKE THE NECESSARY BILLING ARRANGEMENTS
+         
+        EXAMPLES:
+         
+        The following Standard Installation charges will be eliminated
+        when a dedicated X.PC Network Server is ordered:
+         
+                              standard charge
+        SHI-3270                $1,000
+        TEM-CMTS                   400
+        MS-00                      750
+        1439 X.PC(dedicated)       750
+                               -------
+                                $2,900
+         
+        The following Standard Installation charges will be eliminated
+        when a Public X.PC Network Server is used:
+         
+                              standard charge
+        SHI-3270                $1,000
+        TEM-CMTS                   400
+        MS-00                      750
+                               -------
+                                $2,150
+         
+
+                              ALTERNATIVES TO EXPRESSTYM
+
+
+        The alternaive  to ExpressTym  are sync  boards for  the PC  like IRMA,
+        PCOX, ect.  or Host Application  Software like Simware,  Packet/3270 or
+        Relay.
+
+
+        These  other solutions  have  more 3270  bells and  whistles  like file
+
+
+                                          14
+        ExpressTym                                            February 18, 1987
+
+
+        transfer,  color, graphics,  Extended Attribute  but  cost substantialy
+        more per month.
+
+
+        ExpressTym   offers the  advantages of  being part  of the  network and
+        offering  the  enhaced  feature  of  the  network  like  management and
+        security.
+
+
+        The following  matrix is  s competitive  comparison of  Tymnet's newest
+        Async to 3270  product, EXPRESSTYM to  PC's with boards  emulating 3270
+        type devices and SIMWARE.
+                                             EXPRESSTYM  PC BOARDS   SIMWARE
+         
+        3270 Keybord Emulation                  Yes         Yes        Yes
+        User Definable Softkeys                 Yes         Yes        Yes
+        Online Help Screens                     Yes         Yes        Yes
+        Error Correction and Detection          Yes         Yes        Yes
+        3287 Printer Emulation                  Yes         Yes        Yes
+        Software Solution                       Yes         No         Yes,lots
+        PC Memory Upgrade                       No          Yes        No
+        BIOS Chip Change for Upgrade            No          Yes        No
+        Ease of Installation                    Yes      No/Maybe      No
+        Requires Synchronous Port on PC         No          Yes        No
+        Network Resident 3270 Controller        Yes         No         No
+        Enhanced IBM Security (session clearing)Yes         Yes        Yes
+        Transparent Print Support               Yes         Yes        Yes
+        24 Hr. a Day Support                    Yes         No         No
+        Large Capital Outlay of Money           No          Yes        Yes
+        International Keyboard Support          Yes         Yes        No
+        Cost Effective                          Yes         No    Occasionally
+        Network Monitoring                      Yes         No         No
+        Single Vendor                           Yes         No         No
+        Enhanced Security                       Yes         No       Maybe
+        Optimization Feature                    Yes         Yes        Yes
+        Dynamic Rerouting                       Yes         No         No
+        Flexability (multiple host access       Yes         No         No
+        IBM, DEC, HP, ETC...)
+        Ease of Making Changes to Configuration Yes         No         No
+        Ease of Use                             Yes         No         Yes
+        Network Management                      Yes         No         No
+        Custom Network Gateway                  Yes         No         No
+        Inexpensive Async Connection with XPC   Yes         No         No
+        Typical Hourly Cost                   $8-$10     $14-$20    $10-$11
+        Cost of NPSI on the FEP                 No          No         Yes
+        NPSI Maintanence Costs                  No          No         Yes
+        CPU Resources                           No          No         Yes
+        Cost of SIMWARE                         No          No         Yes
+        SIMWARE Maintanence Cost                No          No         Yes
+        File Transfer                           No          Yes        Yes
+        Multiple IBM Host Sessions              Yes         Yes        Yes
+        Color Capabilities                      No          Yes        No
+        Graphic Capabilities                    No          Yes        No
+
+                                          15
+        ExpressTym                                            February 18, 1987
+
+
+        Binary Mode                             No          Yes        No
+        3270 Extended Attributes                No          Yes        Yes
+        Increased Character Count/Cost Due to   No          No         Yes
+                        Protocol Translation
+        Terminal's/PC's Operate in HDX Mode     No          No         Yes
+        Operates Under BTAM, TCAM & VTAM        Yes         Yes        No
+        Allows Customer Pure SNA Environment    Yes         Yes        No
+        (with SIMWARE X.25 or Async Ports Used)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          16
+        TECHALERT -- Line Data Corruption                     February 18, 1987
+
+
+
+
+
+
+                        8 -  TECHALERT -- Line Data Corruption
+
+
+
+
+
+
+
+        Written by : Sandra Nilluka, HQ Network Staff Consultant
+              Date : February 06, 1987
+
+
+
+
+
+
+        PRODUCT:  TII - Nodecode
+
+        VERSION:  5.nn
+
+        PROBLEM:  Line data corruption may occur in a node when there are
+                  DMA devices (SIO, disk, tape) and the ROM I/O board has
+                  microcode version 15.
+
+        SYMPTOM:  Node receives split or invalid character pairs on a link,
+                  and then snips the link.  Check the neighbor.
+                  Reference Xray manual, crypto message 39, types 01/02/03.
+                 -or-
+                  Node crashes upon detection of split character pairs or
+                  other illegal protocol.  Check the node.
+                  Reference Xray manual, crash codes 1463/1663/1A63/1C63/
+                                                     2E63/5A63.
+
+        SOLUTION:  Upgrade microcode on ROM I/O board from version 15 to 18.
+                   18 is the latest version.  Also, 17 does NOT have this
+                   problem.
+                   ** It is estimated that there are 200 nodes in the  **
+                         public network with version 15 microcode.
+
+
+        NOTE:  If you have a version 15 node with symptoms other than those
+               described above, please ontyme *** nodecode with a description.
+               The tech alert will be updated accordingly.
+
+
+
+
+
+
+
+                                          17
+        X.25  to  SDLC                                        February 18, 1987
+
+
+
+
+
+
+                                  9 -  X.25  to  SDLC
+
+
+
+
+
+
+
+        Written by : Debbie Hoffman, Product Marketing
+              Date : February 06, 1987
+
+
+
+
+
+
+
+        Do  you have  a prospect  or existing  customer who  has  SNA/SDLC type
+        devices connected to an  international X.25 network who need  to access
+        SNA Hosts  in the U.S.?   If your  answer is yes,  then our  newest IBM
+        product X.25 to SDLC is just what you're looking for.
+
+
+        Tymnet's X.25 to  SDLC service using  the Qualified Link  Logic Control
+        (QLLC), provides network resident protocol conversion between SNA hosts
+        and remote SNA/SDLC devices connected to an X.25 network.
+
+            Highlights
+         
+         -  Eliminates the need to install, run and maintain NPSI on the
+            IBM host.
+         -  Allows quick and easy X.25-to-SDLC protocol conversion at
+            minimal cost.
+         -  Increases the efficiency of the Front End Processor by
+            concentrating remote devices on a single host port.
+         -  Supports IBM's implementation of Qualified Link Logic Control
+            (QLLC).
+         
+            Applications
+         
+         -  Gives international companies the ability to connect X.25
+            attached SNA terminals and PC's to the corporate mainframe.
+         -  Allows 3270 and 525X terminals connected to X.25 public net-
+            works access to SNA hosts without running X.25 support on the
+            SNA host.  
+         -  Provides a transparent Tymnet link for a wide variety of
+            equipment that supports SDLC.  
+         -  Enables an SNA/SDLC terminal connected to Tymnet (via SDLC
+            TIF) access to an IBM host connected to a foreign X.25 net-
+
+                                          18
+        X.25  to  SDLC                                        February 18, 1987
+
+
+            work.  
+         -  Allows 8100 hosts that do not support X.25 to access a 37X5
+            which does support X.25.  
+         
+            Specifications
+         
+         -  Interface Protocol
+            * SDLC PU Types 1,2, and 4
+            * X.25 CCITT with IBM's QLLC support
+         
+         -  X.25-to-SDLC
+            * Supports X.25 SVC's and PVC's
+            * Closed User Groups
+            * Reverse Charging
+         
+         -  SDLC-to-SDLC
+            * one PVC per PU
+            * RR, RNR, Reject handled locally
+            * Transparent non-sequenced and information frame
+         
+            Product Ordering
+         
+         -  The SHI-SDLC product code should be entered for all orders.  
+         
+
+        The X.25-to-SDLC service has  been implemented in the  Private Networks
+        for  some  time  with  much  success  for  simple  configura-tions.  We
+        currently have one Public Net customer Betatesting this service with no
+        problems coming in  from the U.K. and  Aus-tralia, and we  have another
+        customer waiting in  the wings.  Get  your Betatest requests  in today,
+        the file is on Ontyme and is called :exec *** Beta.Request.
+
+
+        This  service  ensures  error-free,  economical   data  communica-tions
+        without  the complex  procedures  generally associated  with  using IBM
+        hosts via the X.25 (NPSI) software.
+
+
+        If you have any questions  regarding this service, please feel  free to
+        give me a call a (408)942-5321, or Ontyme me at NSMS.D/Hoffman.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          19
+        Testing of New Supervisor Patch                       February 18, 1987
+
+
+
+
+
+
+                         10 -  Testing of New Supervisor Patch
+
+
+
+
+
+
+
+        Written by : Gail Bubsey, HQ Network Staff Consultant
+              Date : February 16, 1987
+
+
+
+
+
+
+
+        There  has been  an ongoing  anomaly concerning  the use  of  NOSPAS in
+        supervisors of  which some of  you may be  aware.  Use of  this option,
+        meant to inhibit  the building of  user circuit passthroughs  through a
+        supervisor while  allowing command circuit  passthroughs, often  led to
+        severe takeover problems  within the network.   Should a major  link go
+        out, you would see  many "Cannot takeover xxxx through  xxxx" mesasges,
+        and traces of  the command circuits  which were eventually  built would
+        show strange  and unusual  paths being  taken.  The  way to  get around
+        these anomalies was to simply not use the NOSPAS option.
+
+
+        NTD has now written a patch for these anomalies and my problem  is that
+        I am  unable to  recreate the original  takeover inconsistencies  in my
+        lab.   If your  network  has experienced  this  problem or  you  have a
+        network with the following qualifications and would like to help us out
+        by testing this new patch, please give me a call for further details:
+
+        Qualifications:
+                1. you must be running version 41.01 of the sup.
+                2. your network must have been configured so that
+                   as little user passthrough traffic is likely to 
+                   go through the sups as possible.
+                3. the network's gateways are not directly attached
+                   to the sups and are not likely to have their
+                   circuits routed through the sups.
+                4. the network has some off hours when this type of
+                   configuration testing can be done.
+
+
+        Please call me if you have  the time and inclination to help  with this
+        testing.
+
+
+                                          20
+        TECHALERT -- Potential to Crash X.25 Host Interfaces  February 18, 1987
+
+
+
+
+
+
+              11 -  TECHALERT -- Potential to Crash X.25 Host Interfaces
+
+
+
+
+
+
+
+        Written by : Carl Langdon, Mgr. Network Systems Support
+              Date : February 16, 1987
+
+
+
+
+
+
+        TO:  ALL USERS OF CONSAT 6.02--IIX CAPABILITY
+             (THIS INCLUDES OUTDIAL USERS ALSO)
+
+        RE:  POTENTIAL TO CRASH X.25 HOST INTERFACES
+
+        PROBLEM:  WHEN USING THE CONSAT 6.02, IF THE USER TYPES AHEAD, AND IF
+                  THE IIX CAPABILITY IS ON (I.E., 'NOIIX' FLAG IS OFF) THEN THE
+                  X.25 SLOT MAY CRASH.
+
+        SOLUTION: USE THE SET FLAG MACRO TO SET THE 'NOIIX' FLAG ON TO DISABLE
+                  THE IIX CAPABILITY.
+
+        NOTE:     IF THE XPAD CAPABILITY IS NEEDED, THEN CONTACT TECHNICAL
+                  SERVICES TO DISCUSS ALTERNATIVES.  THE CONTACT POINT 
+                  INITIALLY WILL BE MYSELF.
+
+
+        NOTE:     THIS SITUATION IS BEING ADDRESSED BY NTD AT THIS TIME.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          21
+        New Model/Product Numbers for Engines                 February 18, 1987
+
+
+
+
+
+
+                      12 -  New Model/Product Numbers for Engines
+
+
+
+
+
+
+
+        Written by : Rourke McCusker, Product Marketing
+              Date : February 18, 1987
+
+
+
+
+
+
+
+        This memo  formally announces Tymnet's  new product numbering  plan for
+        the Engine family.  Attached  are documents which explain the  plan and
+        the  relationship between  generic Engine  models, product  numbers and
+        part numbers.
+
+
+        Product level assemblies are now identified by product  numbers instead
+        of part numbers  (5700XX-XXX).  Product numbers contain  alphabetic and
+        numeric characters making them inherently more descriptive than numeric
+        only part  numbers.  You will  find the product  numbers easier  to use
+        than part numbers.
+
+
+        The product numbers are administered by marketing, at a level above the
+        Engineering part number level.  This new plan accomodates the inclusion
+        of MAC III and future enhancements in Engine products.
+
+
+        The product numbers listed are  valid in the Order Entry  System (OES),
+        Manufacturing's system, the  Planet program, the Equipment  Summary and
+        associated price lists.  All  Engine product orders should use  the new
+        product numbers,  not the  old part numbers.   The following  files are
+        available in the PNETS directory on system 38 :
+
+
+        TEQUIP.DOC    Equipment Summary - Version 3.60
+        TUSPRI.DOC    Domestic Equipment Prices - Version 3.60
+        MAINT.DOC     Domestic Maintenance Prices - Version 3.60
+        MODEL.DOC     Model/Product Number and Cross Reference Lists
+
+
+
+
+                                          22
+        New Model/Product Numbers for Engines                 February 18, 1987
+
+
+          T Y M N E T   E N G I N E   M O D E L   N U M B E R S
+
+        PRODUCT      MODEL NUMBER    PRODUCT NUMBER
+
+        Engine          TE-400        E-4XXX-VV
+        Dual-Mini       TE-300        D-3XXX-VV
+        Mini-Engine     TE-200        M-2XXX-VV
+        Micro-Engine    TE-100        U-1XXX-VV
+        ATC             TA-10         A-01XX-VV
+
+        FORMAT OF PRODUCT NUMBER:
+        X-XXXX-VV
+        ---------
+        X         = Tymnet equipment or E = Engine, D = Dual-Mini etc.
+         -        
+          X       = Major model designator (corresponds to model number series)
+           X      = Reserved
+            X     = Special configuration (MAC II, MAC III, CPU III, etc.)
+             X    = Spl. equipment (Memory size, PSM card cage, Microcode, etc)
+              -   
+               V  = Reserved
+                V = Voltage (110, 220, etc)
+
+        _______________________________________________________________________
+
+        PRODUCT NUMBER SUMMARY:
+
+
+        ENGINE PRODUCTS - TE-400
+
+        E-4001-01  Engine, 1024 KB Memory (MAC II)
+        E-4001-02  Engine, 1024 KB Memory, 220 Volt (MAC II)
+        E-4002-01  Engine, 1024 KB Memory, 2 C/C (MAC II)
+        E-4002-02  Engine, 1024 KB Memory, 2 C/C, 220 Volt (MAC II)
+
+        E-4061-01  Engine, 1024 KB Memory, MAC III
+        E-4061-02  Engine, 1024 KB Memory, MAC III, 220 Volt 
+        E-4062-01  Engine, 1024 KB Memory, MAC III, 2 C/C 
+        E-4062-02  Engine, 1024 KB Memory, MAC III, 2 C/C, 220 Volt
+
+
+        DUAL-MINI-ENGINE PRODUCTS - TE-300
+
+        D-3001-01  Dual-Mini Switcher (MAC II, 512 KB Memory)
+        D-3001-02  Dual-Mini Switcher, 220 Volt (MAC II, 512 KB Memory)
+        D-3002-01  Dual-Mini, 1024 KB Memory (MAC II)
+        D-3002-02  Dual-Mini, 1024 KB Memory, 220 Volt (MAC II)
+
+        D-3061-01  Dual-Mini, 1024 KB Memory, MAC III
+        D-3061-02  Dual-Mini, 1024 KB Memory, MAC III, 220 Volt
+
+        MINI-ENGINE PRODUCTS - TE-200
+
+
+                                          23
+        New Model/Product Numbers for Engines                 February 18, 1987
+
+
+        M-2001-01  Mini-Engine Switcher (MAC II, 512 KB Memory)
+        M-2001-02  Mini-Engine Switcher, 220 Volt (MAC II, 512 KB Memory)
+        M-2002-01  Mini-Engine, 1024 KB Memory (MAC II)
+        M-2002-02  Mini-Engine, 1024 KB Memory, 220 Volt (MAC II)
+
+        M-2061-01  Mini-Engine, 1024 KB Memory, MAC III
+        M-2061-02  Mini-Engine, 1024 KB Memory, MAC III, 220 Volt
+
+        MICRO-ENGINE PRODUCTS - TE-100
+
+        U-1002-01  Micro-Engine 2, 512 KB
+        U-1002-02  Micro-Engine 2, 512 KB, 220 Volt
+        U-1003-01  Micro-Engine 3, 1024 KB
+        U-1003-02  Micro-Engine 3, 1024 KB, 220 Volt
+        U-1004-01  Micro-Engine 4, 1024 KB
+        U-1004-02  Micro-Engine 4, 1024 KB, 220 Volt
+
+        ATC PRODUCTS - TA-10
+
+        A-0101-01  ATC, 4 ports
+        A-0101-02  ATC, 4 ports, 220 Volt
+        A-0102-01  ATC, 8 ports
+        A-0102-02  ATC, 8 ports, 220 Volt  
+
+
+
+        PART NUMBER TO PRODUCT NUMBER CROSS REFERENCE
+
+        Old          New
+        Part No.     Product No. Description
+
+        570035-001   E-4001-01   ENGINE, 1024 KB MEMORY, 1 C/C
+        570035-002   E-4001-02   ENGINE, 1024 KB MEMORY, 220 V, 1 C/C
+        570035-003   E-4002-01   ENGINE, 1024 KB MEMORY, 2 C/C
+        570035-004   E-4002-02   ENGINE, 1024 KB MEMORY, 220 V, 2 C/C
+        MKTG-101     E-4061-01   ENGINE, MAC III 1024 KB MEMORY, 1 C/C
+        MKTG-102     E-4062-01   ENGINE, MAC III 1024 KB MEMORY, 2 C/C
+        MKTG-103     E-4061-02   ENGINE, MAC III 1024 KB MEMORY, 220 V, 1 C/C
+        MKTG-104     E-4062-02   ENGINE, MAC III 1024 KB MEMORY, 220 V, 2 C/C
+
+        570033-001   D-3002-01   DUAL-MINI, 1024 KB MEMORY
+        570033-002   D-3002-02   DUAL-MINI, 1024 KB MEMORY, 220 V
+        570033-003   D-3001-01   DUAL-MINI SWITCHER
+        570033-004   D-3001-02   DUAL-MINI SWITCHER, 220 V
+        MKTG-120     D-3061-01   DUAL-MINI, MAC III 1024 KB MEMORY
+        MKTG-121     D-3061-02   DUAL-MINI, MAC III 1024 KB MEMORY, 220 V
+
+        570036-001   M-2002-01   MINI-ENGINE, 1024 KB MEMORY
+        570036-002   M-2002-02   MINI-ENGINE, 1024 KB MEMORY, 220 V
+        570036-003   M-2001-01   MINI-ENGINE SWITCHER
+        570036-004   M-2001-02   MINI-ENGINE SWITCHER, 220 V
+        MKTG-110     M-2061-01   MINI-ENGINE, MAC III 1024 KB MEMORY
+        MKTG-111     M-2061-02   MINI-ENGINE, MAC III 1024 KB MEMORY, 220 V
+
+                                          24
+        New Model/Product Numbers for Engines                 February 18, 1987
+
+
+
+        570011-001   U-1002-01   MICRO-ENGINE 2, 512 KB MEMORY
+        570011-002   U-1002-02   MICRO-ENGINE 2, 512 KB MEMORY, 220 V
+        570011-005   U-1003-01   MICRO-ENGINE 3, 1024 KB MEMORY
+        570011-006   U-1003-02   MICRO-ENGINE 3, 1024 KB MEMORY, 220 V
+        570011-007   U-1004-01   MICRO-ENGINE 4, 1024 KB MEMORY
+        570011-008   U-1004-02   MICRO-ENGINE 4, 1024 KB MEMORY, 220 V
+
+        570013-001   A-0102-01   ATC, 8 PORTS
+        570013-002   A-0102-02   ATC, 8 PORTS, 220 V
+        570013-003   A-0101-01   ATC, 4 PORTS
+        570013-004   A-0101-02   ATC, 4 PORTS, 220 V
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          25
+        Problems Dumping Nodes?                               February 18, 1987
+
+
+
+
+
+
+                             13 -  Problems Dumping Nodes?
+
+
+
+
+
+
+
+        Written by : Gail Bubsey, HQ Network Staff Consultant
+              Date : February 18, 1987
+
+
+
+
+
+
+
+        If you are encountering  problems dumping nodes, but not  loading them,
+        this could be the result of an obsolete version of the boot prom in the
+        target node.
+
+
+        Version 1 of the boot had a known problem which occasionally manifested
+        itself by  allowing you  to load  but not  dump the  node.  If  you are
+        seeing this  problem, have an  FE check your  version of boot  prom and
+        upgrade it to version 6 if it is down level.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          26
+   ; ù
