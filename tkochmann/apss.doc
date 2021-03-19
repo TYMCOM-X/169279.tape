@@ -1,0 +1,1330 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                           TYMSHARE'S
+
+
+                AUTOMATIC PORT SWITCHING SYSTEM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                PRELIMINARY RELEASE
+                                                NOT FOR DISTRIBUTION
+          
+                                                LAST UPDATE 08 DEC. 1983
+
+                                                GARY R. STOY
+
+
+
+
+
+
+
+
+
+
+
+
+
+                      TABLE OF CONTENTS
+
+
+                 I.  INTRODUCTION
+
+                II.  PHYSICAL DESCRIPTION
+
+                     A.  CARD CAGE
+                     B.  BACKPLANE
+                     C.  POWER SUPPLY
+                     D.  CONTROL CARD
+                     E.  I/O INTERFACE CARDS (SECTION NOT COMPLETE)
+
+               III.  SOFTWARE OPERATION AND CONTROL
+
+                     A.  HEARTBEAT SIGNAL PATTERN
+                         1.  ISRM TO PSM COMMUNICATION
+                         2.  PSM TO ISRM COMMUNICATION
+                     B.  ISRM SLOT OPERATOR INTERFACE
+                         1.  INFORMATION COMMAND
+                         2.  PSM CONTROL COMMAND
+                         3.  MISCELLANEOUS COMMANDS
+
+                IV.  APSS INSTALLATION PROCEDURE
+
+                     A.  GENERAL
+                     B.  MATERIALS AND TOOLS
+                     C.  ENGINE CONNECTION PROCEDURE
+                     D.  SLIDE RACK MOUNTING PROCEDURE
+                     E.  CARD CAGE-SLIDE RACK ATTACHMENT PROCEDURE
+                     F.  FLAT BRAID CABLE INSTALLATION PROCEDURE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+AUTOMATIC PORT SWITCHING SYSTEM
+
+
+
+INTRODUCTION
+
+    The Automatic Port Switch System (APSS) is a modified Engine/ISIS
+
+configuration that is intended to improve network availability and
+
+reliability of selected ISIS (Internally Switched Interface System)
+
+applications slots.  This increased availability and reliability is
+
+accomplished by providing a method by which a failing system can be 
+
+switched to redundant and/or shared system configurations.
+
+   The basic APSS hardware includes two Tymnet Engines and one Port
+
+Switch Module (PSM).  The Engines run under the control of ISIS II
+
+software.  This software system is a set of rules for user defined
+
+applications.  ISIS allows many defined applications to run simul-
+
+taneously in a single machine by partitioning applications into
+
+different slots.
+
+    A software module called the ISRM (ISIS System Recovery Module)
+
+is loaded into one of these applications slots and provides the user
+
+interface and control of the PSM.
+
+    The PSM is a device that is used to switch network I/O ports
+
+from a failed machine to an operational one.  In most cases PSM will
+
+switch I/O ports from a primary machine (Engine) to a back up machine.
+
+    The ISRM operates in conjunction with the PSM to monitor the
+
+performance of slots via the KERNAL which is the control center of
+
+ISIS.  ISIS controls the activation and deactivation (i.e. Halts
+
+and Restarts)  of application slots so that one application environment
+
+of a failing machine may be shifted to another working machine.  It is
+
+assumed that only one application environment of the two machines will
+
+be active at any given time.  The ISRM runs as its own applications 
+
+
+
+slot and may run in any slot in a given machine.  Its current memory
+
+requirements are 9 Kbytes.
+
+
+
+     
+PHYSICAL DESCRIPTION       
+
+
+GENERAL
+
+    The PSM is packaged in an aluminum card cage 19.0 inches wide,
+
+12.25 inches high and 9.75 inches deep that contains a power supply
+
+module, control card module, and various I/O interface modules.  The
+
+I/O interface modules may be of the SIO or NON-SIO variety and may
+
+be switched or unswitched version of these card modules.
+
+    The Automatic Port Switch System is a modified Engine/ISIS con-
+
+figuration where all involved Engines must be bolted together
+
+physically to insure that there will be a low resistance return
+
+path at all points of contact between Engine cabinets. The PSM
+
+is mounted on isolated sliding racks inside engine cabinets.  The
+
+sliding racks allow the PSM unit(s) to be pulled forward for access
+
+to rear ribbon cable connectors.  Each Engine will have a single
+
+chassis (Tall Mini) and will support the installation of up to three
+
+PSM units.
+
+    The PSM will consolidate three components of the current Engine
+
+system into one.  It replaces the I/O connector panel, SIO daughter
+
+board card cage, and front panel monitor assembly.  The PSM is an in-
+
+dependently powered and electrically isolated unit.  It is com-
+
+patible with the Engine in all electrical, mechanical, and cabling
+
+aspects.  The PSM draws less than 100 watts when fully loaded and may 
+
+be powered from an ordinary wall outlet.  The unit will have no U.L.
+
+or municipal code problems since there is no exposed AC anywhere.
+
+    A further description of the Tymnet Engine can be found in the
+
+Tymnet Engine Maintenance Manual and Engine Documentation and for
+
+this reason only the Port Switch module will be discussed in detail
+
+in the document.
+
+
+CARD CAGE
+
+    The card cage has 17.0 inches of usable width that is divided into
+
+20 equally divided slots.  Each slot can hold a vertically mounted circuit
+
+module that is inserted from the front and held in place by top and bottom
+
+captive mounting screws.  Free convection cooling is achieved by the 
+
+vertical mounting of circuit modules along with the top and bottom cooling
+
+vents on PSM card cage.  This arrangement insures minimal thermal stress
+
+on the existing internal Engine environment.  All circuit modules will
+
+connect to a backplane. 
+
+
+
+
+BACKPLANE
+
+    The backplane is a center mounted strip across the back of 
+
+card cage.  The backplane provides the following traces for inter-
+
+connection of circuit modules:
+
+                 1.  D.C. POWER
+
+                 2.  FOUR SIO BUSSES
+
+                 3.  DEDICATED "HEARTBEAT" PORT
+
+                 4.  MODULE CONNECTORS
+
+                 5.  GROUND RETURNS
+
+
+
+    The PSM's primary power supply provides D.C. voltage (+5,-5,+15,-15)
+
+to all circuit modules via traces on the backplane.  The backplane also
+
+provides traces for signal return grounds.
+
+A total of four SIO busses connect to the backplane via the control card.
+
+The backplane of the PSM I/O section (16 slots) is divided into two 
+
+sections. Each 8 slot section has 2 SIO busses on the backplane where one
+
+will be switched between primary and backup and the other never will
+
+be switched (unswitched).  The switched SIO bus lines are selected 
+
+by the control card from either the primary and backup engine to
+
+propagate the selected bus over the backplane.
+
+    Switch control signals propagate over the backplane to all slots
+
+for switching control of NON-SIO circuit card modules from primary
+
+to backup.
+
+    There is a hardwired backplane connection from control card
+
+connector to dedicated "HEARTBEAT" port on adjacent switched sync 
+
+card module (NON-SIO).
+
+    All PSM circuit modules are attached to the backplane by 96-PIN
+
+DIN connectors.  Each circuit module is keyed to prevent improper
+
+insertion of a module into a specific slot.
+
+
+
+
+POWER SUPPLY MODULE
+
+    The PSM primary power supply is plugged into backplane connector
+
+and occupies the 3 left most slots of card cage.  It supplies regu-
+
+lated voltages of +5,-5,+15,-15.  The primary power supply is an 
+
+enclosed, shielded, plug-in unit with a detachable A.C. power cord.
+
+This circuit module fully compliant with domestic and international
+
+emission requirements.
+
+    The front panel of power supply has a pilot indicator to indicate
+
+if power is being applied.  The front panel also has a status light to 
+
+indicate if supply is in NORMAL or FAILED MODE.  
+
+    The connector on the rear of the primary power supply allows for
+
+the connection of redundant or backup power sources.  These connections
+
+may be from one of three sources:
+
+                    1.  ENGINE POWER SUPPLY
+
+                    2.  EXTERNAL POWER SUPPLY
+
+                    3.  BATTERY
+
+    In the event of a primary power supply failure, circuitry on supply
+
+module will allow a backup supply to provide service automatically. If a
+
+failure occurs, a flag will be sent to control card to inform the system
+
+of this malfunction.
+
+
+
+
+
+
+CONTROL CARD
+
+    The PSM control card is plugged into the backplane connector in
+
+the right most slot of card cage.  The functions of the control card
+
+include:
+
+                 1.  "HEARTBEAT" MONITOR
+
+                 2.  AUTOMATIC SWITCHING CAPABILITY
+
+                 3.  MANUAL OVERRIDE CAPABILITY
+
+                 4.  INDICATE STATUS OF SWITCHING
+
+                 5.  MONITOR SIGNALS OF SELECTED CHANNEL
+
+                 6.  ASYNC/SYNC INDICATOR
+
+                 7.  SYSTEM ALARM   
+
+Automatic switch control will be determined by "HEARTBEAT" 
+
+criteria set in software and operator interface commands sent
+
+to PSM by "HEARTBEAT".  The manual override capability of
+
+automatic switching is provided by a switch on the front panel of
+
+control card.  The manual override options include:
+
+                 1.  FORCED PRIMARY MODE
+
+                 2.  SLAVE MODE    
+
+                 3.  FORCED BACKUP MODE
+
+                 4.  NORMALIZE MODE   
+
+
+LED'S on front panel indicate the status of switching function (PRIMARY
+
+or BACKUP)
+
+    The PSM control card monitors information sent to it from the ISRM
+
+slot in the engine via the "HEARTBEAT".  The "HEARTBEAT" is basically 
+
+the information signal that is sent to the PSM on a special dedicated
+
+(NON-SIO) port.  The information that the ISRM sends to the PSM is 
+
+included in a 64 Bit Pattern and is broken down as follows:
+
+                 1.  32 BIT SYNC PATTERN (0-31)
+
+                 2.  SWITCH TO PRIMARY BIT (32)
+
+                 3.  SWITCH TO BACKUP BIT (33)
+
+                 4.  RESERVED (FUTURE) (34-35)
+
+                 5.  12 BIT TEST VALUE FOR FRAME ERROR COUNT (FEC) (36-47)
+
+                 6.  ONE'S COMPLIMENT OF DATA OF BITS 32-47 (48-63)
+
+    The PSM replies to the ISRM slot with a 64 Bit Pattern with 
+
+information regarding its status that includes:
+
+                 1.  32 BIT SYNC PATTERN (0-31)
+
+                 2.  POWER SUPPLY FAILURE BIT (ACTIVE LOW) (32)
+
+                 3.  PRIMARY STATUS BIT (33)
+
+                 4.  MANUAL OVERRIDE STATUS BIT (ACTIVE LOW) (34)
+
+                 5.  MASTER, SLAVE MODE BIT  (35)
+
+                 6.  RESERVED (FUTURE)  (36-47)
+
+                 7.  ONE'S COMPLIMENT OF DATA OF BITS 32-47 (48-63)
+
+    The multiplexed monitor makes it possible to view on the front panel
+
+the signals of any one of 8 ASYNC or 4 SYNC ports.  There are also
+
+LED's to indicate whether an ASYNC or SYNC group of ports is connected
+
+to multiplexed monitor.  A switch on the front panel of control card
+
+selects the desired ports signals to be displayed by LED's.  An audio
+
+tone is also available for each of these signals.
+
+    The control card issues a signal to the NON-SIO interface module 
+
+card as to which Engine the PSM should select for its output SIO ports.
+
+
+The control card selects a SIO bus line from either the primary
+
+or backup Engine to propagate the selected bus over the backplane.
+
+A total of four SIO busses connect to the control card.  
+
+These busses are from the SIO motherboard(s) (2 maximum) of both
+
+primary and backup Engines that connect to back of control card by
+
+ribbon cables (34 pin).
+
+    There is a set of electrically isolated relay contacts on the
+
+control card for a separate system alarm function.  A power-fail
+
+condition will activate a system alarm (if connected) by opening
+
+a set of contacts on the control card.
+
+
+
+
+SOFTWARE OPERATION AND CONTROL
+
+     A software module called the ISRM (ISIS SYSTEM RECOVERY 
+
+MODULE) provides the software control of the Port Switch
+
+Module and user interface.  The ISRM works in conjunction with
+
+the PSM while it monitors the performance of all slots that 
+
+are specified in the ISRM.TYM file.
+
+     Under normal operating conditions, the entire load is 
+
+carried by the primary machine, where all lines (ports) are
+
+connected to primary machine and all slots in backup machine
+
+are halted by ISRM.  When slots fail to meet set criteria the
+
+ISRM instructs these slots to HALT and respective slots to 
+
+RESTART.  The load is then switched to these backup slots.
+
+Automatic software operation can be overridden by the PSM
+
+master hardware switch, located on the front panel of the 
+
+control card.
+
+
+
+     It is assumed that each slot, including ISRM slot, exist   !! 
+
+on separate machines and only one of each type slot within	!!
+
+the applications environment (APSS) will be active at any time.	!!
+
+     In essence, the basic APSS configuration consists of two
+
+slots that exist on separate machines for the same applications  FORx2
+
+environment for redundancy purposes in case of primary failure.       
+
+     The slots that are monitored by ISRM are considered part
+
+of an "APSS load-group" that is specified in ISIS KERNAL.TYM file.
+
+This parameter in the .TYM file is a MACRO call that declares 
+
+which slots are to be monitored by ISRM.  Slots which are 
+
+not a member of any load group will not be subject to protection
+
+by APSS.  The ISRM needs to monitor the crash status of each 
+
+application slot through information provided by the KERNAL HOST
+
+in order for the ISRM slot to evaluate the health of each slot.
+
+     The ISRM will switch the primary load group to backup only
+
+when a quorum of slots are down.  A running slot has a down cost
+
+of zero (0) and does not contribute to the quorum.
+
+     A halted or down slot has a down cost that is specified in
+
+the ISRM.TYM file and contributes that much to the quorum.  A
+
+slots down cost represents the value to be added to the accum-
+
+ulated down cost used in evaluating the load worthiness of the
+
+primary machine.  The accumulated down cost is the arithmetic
+
+sum of the assigned down cost for all slots which are down or 
+
+halted.  When the accumulated down cost reaches the threshold
+
+of 1000, there is said to be a down quorum and the load will
+
+be removed from service by instructions from the ISRM to the 
+
+PSM to switch associated ports to the backup machine.  
+
+In the event one or more backup machines are unable to take over the 
+
+load, service may be interrupted indefinitely.
+
+     The APSS does not automatically return to the normal (pri-
+
+mary) state following a load-failure.  Once healthiness is res-
+
+tored, it is necessary to manually switch via software commands
+
+to desired machine.  
+
+
+
+
+HEARTBEAT SIGNAL PATTERN
+
+  "HEARTBEAT" is a term for a 64-bit signal pattern that passes
+
+command and status information between ISRM slot and the port
+
+switch module (PSM).  The "HEARTBEAT" is a bi-directional signal
+
+where transmit and receive data are completely independent from
+
+one another.  The communication signal path utilizes one dedicated
+
+sync line (non-SIO) from both primary and backup engine.  The clock
+
+sources are supplied by both the engine and PSM.  The engine supplies a
+
+4800 bps transmit clock to the PSM and the PSM supplies a 1200 bps clock
+
+to the engine.
+
+
+ISRM TO PSM HEARTBEAT PATTERN
+
+  The ISRM slot sends all command information to the PSM via
+
+the 64-bit signal pattern, also known as a frame.  One frame can be broken
+
+down as follows:
+                        +--------+--------+--------+--------+
+                        |   sync pattern  |  data  |  data  |
+                        +--------+--------+--------+--------+
+                         0              31 32    47 48    63
+
+                    where:
+
+                        data and data are one's compliments
+                        sync pattern is 00000000000000000000000000000001
+                            data consists of:
+                            0   STP     switch to primary
+                            1   STB     switch to backup
+                            2-3         reserved (should be 0)
+                            4-15        12 bit test value for FEC
+
+
+SYNC PATTERN
+
+  The "HEARTBEAT" sync pattern is a unique pattern to both the
+
+engine and PSM.  It consists of thirty-one zeros followed by a one
+
+which is bits 0-31 in the 64-bit frame.)
+
+
+
+
+DATA PATTERN
+
+  A 16-bit data pattern immediately follows the 32-bit           
+
+sync pattern.  Bits 32 and 33 are used to control the direction
+
+of switching, either 'switch to primary' (STP) or 'switch to
+
+backup' (STB), respectively.  If the active engine fails, the PSM
+
+will switch load to the state designated in either bit 32 or 33.
+
+The 'failed event count' (FEC) test value is included in bits 36
+
+through 47.  The PSM is constantly comparing this test value with         
+
+the actual failed event count.  If the test value is less than or
+
+equal to the actual failed event count the PSM will switch states.
+
+The FEC test value can be set by the operator of the ISRM
+
+slot so that the PSM will switch at specific amount of failed
+
+events.
+
+  Bits 48-63 are the data compliment field which is exactly
+
+the one's compliment of the previous data field.
+
+
+
+
+FAILED EVENTS
+
+  There are two categories of failed events:  1)  When 'BAD DATA' is
+
+detected in one heartbeat frame, one failed event is counted or 2)  When   
+
+'NO DATA' is detected in one of four heartbeat frames.  The 'BAD DATA'
+
+failed event occurs either when there was a mismatch in one or more bits
+
+in the previous frame data field or a mismatch between data field and its
+
+compliment (bits 48-63).  The 'NO DATA' failed event occurs
+
+when a frame does not have the correct ID header pattern once every four
+
+frames.
+
+  There will always be a minimum of 17 failed events per second.
+
+ failed events correspond to the 'NO DATA' time period after
+
+ISRM sends its four consecutive heartbeat frames to the PSM.
+
+There is a maximum of 21 failed events per second when all four 
+
+heartbeat frames are detected as 'BAD DATA' by the PSM.
+
+
+
+
+
+PSM TO ISRM HEARTBEAT PATTERN
+
+  The PSM sends its status information to the ISRM slot via the
+
+64-bit heartbeat frame.  Remember, the PSM is sending its data
+
+at 1200 bps which is four times slower than the ISRM data rate.
+
+The PSM 64-bit heartbeat frame can be broken down as follows:
+
+                        +--------+--------+--------+--------+
+                        |   sync pattern  |  data  |  data  |
+                        +--------+--------+--------+--------+
+                         0              31 32    47 48    63
+
+                    Where:
+
+                        data and data are one's compliments
+                        sync pattern is 00000000000000000000000000000001
+                                ___
+                        Data consists of:
+                            0   PSF     power supply failure
+                            1   PRI/BU  primary not backup
+                            2   MANUAL  not manual override
+                            3   MASTER  master, not slave mode
+                            3-15        reserved
+
+
+
+SYNC PATTERN
+
+  The "HEARTBEAT" sync pattern header is a unique pattern to both
+
+PSM and engine.  This header pattern consists of thirty-one zeros followed
+
+by a one, which is bits 0-31 in the 64-bit frame.
+
+
+DATA PATTERN
+
+  A 16-bit data pattern immediately follows the 32-bit sync pattern.
+
+Bit 32 of this data pattern is an active low power supply fail signal.
+
+If the power supply fails, the control card senses this failure
+
+and sets this bit low.  Bit 33 indicates the PSM's present mode
+
+of operation.  A '1' in this field indicates that I/O is routed to
+
+primary engine and '0' indicated that I/O is routed to backup engine.
+  
+Bit 34  is the manual force bit (MFB) which indicates that PSM
+
+has been manually forced by front panel switch either into primary(1)
+
+or backup(0) mode and cannot be controlled by ISRM.  Bit 35 indicates
+
+that PSM has been manually set to slave mode by front panel switch. 
+
+When set to '0', PSM is controlled by master port switch module.
+
+  Bit 48-63 is the data compliment field which is the one's compliment
+
+of the data field.
+
+
+
+
+ISRM Slot Operator Interface
+
+     The ISRM operator interface is accessed remotely or by the
+
+TTY port on the front of the multifunction card by using DDT
+
+commands.
+
+***  NOTE:  Before using DDT Commands, operator must have
+
+            thorough knowledge of this dynamic debugging tool
+
+            (refer ISIS II manual for more detailed information).
+
+Log in to the APSS Kernal Host and specify the slot where the ISRM
+
+software resides.  When the "*" prompt occurs the user is connected
+
+to DDT for the specified slot.  To enter into the ISRM slot, the
+
+operator types "?STAT" cr. At this time DDT enters the slot and prompts
+
+the operator with ":>" and at this time the operator enters one of the
+
+following commands:
+ 
+
+     INFORMATION COMMANDS
+        
+         Status     - display APSS slot configuration and status
+         Psm        - display Port Switch and Load Group status
+         Help       - Prints PSM menu
+         Help PSM   - print list of PSM diagnostic commands
+
+     OPERATOR INTERFACE COMMANDS
+
+         CEAse      - request to switch to backup
+         RESume     - request to switch to primary
+         OVErride   - override automatic switch to backup
+         AUTomatic  - enable automatic switch to backup
+
+     MISCELLANEOUS
+
+         SPSS lg rd - simulate port switch status
+         EXIt       - log off
+         Quit       - return to DDT
+
+
+     INFORMATION COMMANDS    
+
+	 STATUS
+
+         Status states slot status and configuration information about
+
+         the system.
+
+         EXAMPLE:
+        :>STATUS
+        slot  sts   cost   load-groups
+          0   RUN   1000        0* 1* 2
+          1   DWN                  1*
+          2   SBY                     2
+
+        Primary load status: -okay
+        Accumulated down cost: 0
+        Load groups active: 0 1
+
+        :>
+
+The first section of output  from the STATUS command is a table
+
+showing various attributes os all APSS eligible slots.
+
+    SLOT
+         Slot field is merely the decimal slot number.  Only slots
+
+         which are APSS eligible are shown, one of which is a member
+
+         of at least one real load group.
+
+    STS
+
+         STS field indicates the state of the slot as follows:
+
+           1) RUN state: slot is up and running
+
+           2) SBY state: (standby) slot is loaded and ready to run,
+              but is waiting for a load
+
+           3) DWN state: (down) slot is halted or crashed
+
+    COST     
+
+         Cost field indicates the down cost as defined in the .TYM
+
+         file for each primary slot.  Only primary load slots have a
+
+         down cost.
+     
+    LOAD-GROUPS FIELD
+
+
+         Load-groups field lists load groups of which the slot is a
+
+         member.  Load groups which are active are shown with an  
+
+         asterisk(*).  A pseudo load group called active standby may be
+
+         shown for some slots as ASB*.  The load group membership is
+
+         defined in the .TYM file and is following the slot status 
+
+         section is summary information.
+
+
+
+    PRIMARY LOAD STATUS
+
+         A one line description of the status of load group 0 is given.
+
+         If no abnormal conditions exist, the flag "-okay" is shown. 
+
+         Otherwise, the abnormal conditions are described with one or 
+
+         more of the following flags:
+
+
+           1)  [BACKUP-POWER]: The associated PSM has lost its
+               internal power and is running on backup power.
+
+           2)  [BACKUP]: The  associated PSM  is in the backup mode
+               and has switched the load to the backup machine(s).
+
+           3)  [MANUAL]: The associated  PSM is in  manual mode
+               and is no longer under control of the ISRM software.
+
+           4)  [SLAVE]: The associated  PSM is in slave  mode -
+               this condition indicates a hardware configuration error.
+
+           5)  [NO-STATUS]: No  valid status has  been received
+               from the PSM.
+
+           6)  [LOAD-FAIL]: The ISRM software has  detected the
+               cost of down slots totaling in excess of  the threshold
+               (1000) for a down quorum.
+
+           7)  [TARDY]: A valid  status has not been  seen from
+               the associated PSM in over 2 seconds.
+
+           8)  [CLOCK-FAIL]: The receive data clock provided by
+               the associated PSM has not ticked in over 1 second.
+
+           9)  [CSI-FAIL]:  Connect  sync input  SVC  failure -
+               usually indicates a software configuration error.
+
+          10)  [OVERRIDE]: The override command has been given
+               to prevent the ISRM software from switching the  load to
+               backup in the event of a load failure.
+
+          11)  [REQUEST-PRIMARY]: The resume command  has been
+               issued to switch the load to primary and  the associated
+               PSM has not yet responded.
+
+          12)  [REQUEST-BACKUP]:  The cease  command  has been
+               issued to force the load to switch to backup.
+
+
+
+     LOAD GROUPS ACTIVE
+
+         The load groups which are currently active on this machine are
+
+         listed.  Normally, only  load group 0 is  active.  This field 
+
+         will show NONE if no load groups are currently active on this
+
+         machine.  This is the only instance when it is safe to perform
+
+         maintenance operations on the machine which might have an adverse
+
+         effect on load.
+
+
+
+     PSM COMMAND
+     
+         The PSM command is used to obtain detailed status of each PSM. 
+
+         The data received from the PSM associated with each load group is
+
+         interpreted and displayed.
+
+        EXAMPLE:
+        :>PSM
+         0 -okay
+         1 [backup]
+         2 -okay
+
+        :>
+
+
+
+    PSM CONTROL COMMANDS
+
+         PSM Control Commands switch a load group between primary and 
+
+        backup machines.  These commands cause an interruption in service
+
+        for a load group until the backup machines are able to take over.
+
+        In the event that one or more backup machines are unable to take
+
+	over, service may be interrupted indefinately.
+
+	*** - THIS COMMAND SHOULD BE USED WITH CARE ***
+
+        The user should perform a STATUS command and check the Active
+
+        Load Group field to verify that no other load groups are active
+
+        before taking the machine down for any reason.  These commands
+
+        have no effect on other load groups (1-N) which may be active on
+
+        the machine.  
+
+        Since commands to the PSM are sent on low speed serial lines,
+
+        it may take 2 or 3 seconds for the PSM to actually switch 
+
+        following a CEASE command.
+
+
+
+
+EXAMPLE:
+
+  _____        
+:>CEASE        
+        Warning: this will cause an interruption of service.
+                                      _
+        Okay to proceed with command? Y
+        Requesting switch to backup.
+
+        :>
+
+
+
+               ______ _______
+               RESUME Command
+
+        The RESUME command is used to cause the primary load group (0) to 
+	switch back to the  primary node.  This will  cause an interruption  
+	in service for this load group until the primary machine is able to 
+	take over.  In the event the primary machine is unable to take over,
+	service may be interrupted indefinately.  This command should be used
+	only when the operator is reasonably certain that the primary machine
+	is adequately capable of maintaining  the load.  This command  has no
+	effect on other load groups (1-N).
+
+     
+     EXAMPLE:
+
+          ______
+        :>RESUME
+        Warning: this will cause an interruption of service.
+                                      _
+        Okay to proceed with command? Y
+        Requesting switch to primary.
+
+        :>
+
+        Note that following a load-failure (failure due to critical slots down)
+        the  APSS does  not automatically return  to  the  normal  state when
+        healthiness is restored.  It is necessary to manually switch  the load
+GID?    back to the primary with the RESUME command. (see the APSS GID for the
+        philosophy behind this restriction)
+
+
+
+               ________ _______
+               OVERRIDE Command
+
+        The OVERRIDE command forces the machine to continue running its normal
+        load even  though it  may be unhealthy.  This  is used for maintenance
+        purposes to  override the controls  set by the .TYM file.  The command
+        does not  affect the  current state  of the  load group,  only on how
+	future failures affect it.
+
+     EXAMPLE:
+          ________
+        :>OVERRIDE
+        Automatic switch to backup overriden.
+
+        :>
+
+
+
+
+
+               ____ _______
+               SPSS Command
+
+        The SPSS command simulates the status of a port switch.  The command 
+	may only be issued for a port switch which is tardy (i.e. not
+	reporting status).
+
+        SPSS takes two arguments.   If the  arguments  are  omitted,  they are
+        prompted for. The first argument is the load-group  number associated
+        with the port switch.  The second argument is the 16-bit status  to be
+        simulated (in hex).
+
+
+     EXAMPLE:
+
+
+          ____ _ ____
+        :>SPSS 1 9000
+
+        :>
+
+        This command would simulate the port switch associated with load group
+	1 being in  the [backup]  state.  Figure 5 shows the  meanings  of the
+        various port switch status codes.
+
+               
+                CODE     MODE              STATUS
+               __________________________________________________
+                0000    [slave]          [backup] [backup-power]
+                1000                     [backup] [backup-power]
+                2000    [slave] [manual] [backup] [backup-power]
+                3000            [manual] [backup] [backup-power]
+                4000    [slave]                   [backup-power]
+                5000                              [backup-power]
+                6000    [slave] [manual]          [backup-power]
+                7000            [manual]          [backup-power]
+                8000    [slave]          [backup]
+                9000                     [backup]
+                A000    [slave] [manual] [backup]
+                B000            [manual] [backup]
+                C000    [slave]
+                D000
+                E000    [slave] [manual]
+                F000            [manual]
+
+                          Figure 5.  Port Switch Status Codes
+
+
+
+
+
+
+
+APSS INSTALLATION PROCEDURE
+
+GENERAL
+
+  The basic automatic port switching system consists of at least
+
+two Tymnet engines and one port switch module (PSM).  Although the
+
+system may contain more engines and PSM's, depending on the
+
+specific configuration and applications, this installation
+
+guide will instruct field personnel to install the  most basic port
+
+switch system.  If the configuration dictates that there are more 
+
+components for the system, apply the instructions in this manual for     
+
+each component.
+
+  Procedures for the installation of the basic engine can be found in
+
+the 'TYMNET ENGINE MAINTENANCE' manual.  Site requirements should be
+
+adhered to as described in the 'TYMNET ENGINE SITE PREPARATION
+
+GUIDE'.  Site preparation is the customer's responsibility but it is
+
+the field engineer's responsibility to ascertain before installation
+
+that all requirements in the 'site preparation guide' have been met.  Any
+
+discrepancies should be referred to the field engineer's immediate
+
+manager.
+
+
+
+  There are specific installation requirements that must be followed
+
+to insure a common return path for all elements in the system.  These
+
+additional precautions insure a low resistance return path at all   
+
+points of contact between all components of the system.  The 
+
+configuration requirements include physically bolting each
+
+engine frame together and installing 1/2" flat braid cables between each
+
+engine and port switch module in the system.  Refer to figure (  ).
+
+Bolting the engine frames together also makes the system rigid so that
+
+interconnecting cables can not be disturbed.
+
+
+
+PORT SWITCH MODULE (PSM) INSTALLATION PROCEDURE
+
+
+     Materials and Tools Needed:
+	
+        1.  FLUKE VOM METER (OR EQUIVALENT)
+        2.  ELECTRIC DRILL
+        3.  1 - 1/4" DRILL BIT
+        4.  1 - 1/2" DRILL BIT
+        5.  METAL HOLE PUNCH
+        6.  WIRE BRUSH DRILL ATTACHMENT
+        7.  RACHET SET (WITH 3/8" SOCKET)
+        8.  CRESCENT WRENCH (TO FIT 3/8" HEX NUT)
+        9.  THICK BLADE SCREWDRIVER
+       10.  THIN BLADE SCREWDRIVER
+       11.  CHANNEL LOCK PLIERS              
+       12.  6' TAPE RULER
+       13.  WHITE MARKING PEN
+       14.  SMALL HAMMER
+       15.  6 - 3/8"X 1.5" HEX BOLTS
+       16.  6 - 3/8" HEX NUTS
+       17.  12 - 1.0" WASHERS (TYPE?)
+       18.  6 - 3/8" SLIT LOCK WASHERS
+       19.  4 - 6/32 X 1/2" SCREWS (PER PSM)
+       20.  6 - 4-40 X 3/4" SCREWS (PER PAIR OF ENGINES)
+       21.  2 - 4-40 X 1.0" SCREWS (PER PAIR OF ENGINES)
+       22.  4 - 6/32 STAR TYPE LOCK WASHERS (PER PSM)
+       23.  WIRE WRAP TOOL
+       24.  PORT SWITCH MODULE KIT
+       25.  2 - TYMNET ENGINES (EITHER TALL OR MINI OR A COMBINATION OF)
+
+
+
+PHYSICAL ENGINE CONNECTION PROCEDURE
+
+1.  Disconnect power from both Engines involved with installation.
+
+2.  Remove adjacent side skins on engine by grasping panel and lifting  
+    up and then pulling away from frame.
+
+3.  Remove I/O connector panel (ASB 64-1) at bottom-rear of each
+    engine.
+
+4.  Remove mounting bracket for I/O connector panel.
+
+5.  Remove power distribution unit (P/N SCA1-5) on the adjacent sides of
+    engines to be connected.
+
+6.  Measure and mark the locations of holes to be drilled as specified in
+    ECO 83-161.
+
+7.  Start hole for drill by using metal hole punch and hammer.
+
+8.  Arrange plastic or some type of covering to protect all
+    electronic components from metal filings.
+
+9.  Drill hole by using 1/8" drill bit at specified locations. (this
+    hole is used as a guide for the 1/2" drill bit.)
+
+10. Drill holes at specified locations using 1/2" drill bit.
+
+11. Using drill with wire brush attachment, remove paint from frame 
+    around drilled holes so that metal is exposed approximately an area
+    1" in diameter around each hole.                                
+
+12. On right-most engine remove top-front and bottom-front brass       
+    skin hangers with channel lock pliers.
+
+13. On left-most engine remove top-back and bottom-back brass      
+    skin hangers with channel lock pliers.
+
+14. Move engines so that they are aligned side-by-side and totally
+    flush.
+
+15. Install bolts in hole with washers intact as shown in figure (  )
+    and then tighten with rachet and crescent wrench.  
+
+
+SLIDE RACK MOUNTING INSTALLATION PROCEDURE
+
+1.  From inside of cabinet on side  rack mounting rail, measure from
+    bottom of rail 7-1/8" up and mark with white ink pen. Repeat this
+    for each corner of engine frame.  (For mini engine measure up 9.0")
+
+2.  Set left side mounting bracket so that oval screw holes on bracket
+    are in the back of engine frame.
+
+3.  Mount bracket so that bottom edge is at measured white ink marks.
+    Secure bracket front with 1-screw just so that it holds
+    it in place while bracket-back can be secured with 1-screw.
+
+4.  Install other screw in bracket-front and do the same for 
+    bracket-back.
+
+5.  Repeat steps 1 through  4  for right side mounting bracket.
+
+6.  Verify that rack mount brackets are exactly horizontal.  Then
+    tighten screws.
+
+
+
+
+INSTALLATION PROCEDURE TO ATTACH CARD CAGE TO SLIDE RACK         
+
+
+1.  Refer to figure ( ).  Fully extent slide member ( ) press thumb 
+    lever ( )to disengage latch and continue moving fixed slide
+    ( ) until intermediate slide member ( ) is completely extended.
+
+2.  Repeat procedure with other slide member.              
+
+3.  Align card cage rails with bracket slide members,           
+    then slide card cage into rack.
+
+4.  Insert card cage completely into rack by gripping corners of  
+    card cage, push until slide rails totally retracted.
+
+
+
+FLAT BRAID CABLE INSTALLATION PROCEDURE
+
+
+1.  Remove four screws on ground plane of backplane at the bottom
+    of lowest chassis of engine configuration (as shown in figure (  ))
+
+2.  Attach (X) flat braid return cables with (  ) replacement screws,
+    (four total) to ground plane of lowest engine chassis.  Where (X)
+    is dependent on the number of PSM's included in the system configuration.
+    Do not overtighten screws into backplane.
+
+             CAUTION:  Make sure that braided cables don't touch 
+                       terminator boards or that they don't come in
+                       contact with anything but engine's ground
+                       plane.
+
+3.  Repeat procedure for all engines in the system.
+
+
+4.  Secure (Y) flat braid cables to screws (four total) that are
+    inserted through card cage chassis from the inside pointing upward
+    with nut.  Where (Y) is dependent on number of engines to be
+    connected to PSM.
+  _ù
