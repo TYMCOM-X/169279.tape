@@ -1,0 +1,812 @@
+
+
+
+
+
+
+       Slot Crash Table
+       ----------------
+       
+       CRAT  :  Start of Crash Table area                       (H)
+       CRSHCT : Crash count...how many times slot has crashed   (H) 
+       CRASHC : Crash Code (init'd to manual restart)           (H)
+       CPOINT : where crash occurred                            (W)
+       CFROM  : where crash was called from                     (W)
+       CRREG  : crash register save area                        (16W)
+       
+       
+       Crash Codes
+       -----------
+       
+          1   -    manual restart
+          0   -    power failure
+         0E   -    parity error
+         10   -    dispatcher crash
+         11   -    illegal instruction
+         12   -    illegal SVC
+         13   -    system crash
+         14   -    protection violation
+         15   -    non-recoverable device check
+                   To do a slot crash analysis:
+          
+          Log into DDT* in the slot that has crashed
+          
+          *R E0050,4           : get the slot execution start address
+      E0050  xxxA  AAAA        : AAAAA is the start address
+           
+          *R AAAAA,8           : get the crash code address
+      AAAAA  2401 4000 YYYY zzzz  : YYYY is the crash code address
+      
+          *R HHHH,4C           : HHHH is equal to YYYY-2
+           At this point, the display will show the following:
+           
+           Crash count   :  halfword
+           Crash code    :  halfword
+           Crash address :  1  word
+           Crash from    :  1  word
+           Crash registers :  16 words
+           
+           
+
+____________________________________________________________________________
+
+        * to get into DDT :
+          1. through the network, by directing the log-in to the kernel
+          host of that engine, then type
+             ^x  where   x   is the slot number
+             
+          2. using NAD and build aux. circuit to DDT
+          
+          3. on site, using TTY into the multifunction card.
+          
+      
+       
+
+
+
+
+			  Engine Dump Analysis
+			  --------------------
+
+This package contains information on dump analysis programs for most
+types of Engines in use in the network.
+
+The first portion is the file (ENGDIAG)ENGDMP.DOC and a sample run of
+that file.  The second portion is the file (ENGDIAG)T2SOLO.DOC and a
+sample run of that file.  Both of these are NAD command files.
+
+In order to use them effectively, you must also have a copy of the
+TYMNET ENGINE POCKET GUIDE.
+
+
+
+Which file do you use for a particular dump??
+
+ENGDMP is used for all ISIS machines, TYMNET I or TYMNET II, running
+version 4.11 or later of ISIS kernel, and for version 5.0 and above of
+TYMNET II SOLO code (not yet released) and also, although you will
+probably never see it, version 4.51 and above of TYMNET I ENGINE
+remote code. 
+
+T2SOLO is used for all TYMNET II SOLO machines, with or without async,
+running version 4.00 and above of node code.
+
+There is no method for analyzing dumps of TYMNET I remote code.
+
+
+THIS IS A DOCUMENT DESCRIBING THE COMMON CRASH TABLE FOR ALL TYMNET
+ENGINE SOFTWARE.
+
+SUPPORTED SOFTWARE:
+
+TYMNET I REMOTE		###451 AND ABOVE
+TYMNET II SOLO		###4?? AND ABOVE
+ISIS KERNEL		4.11   AND ABOVE
+
+
+THE TABLE IS ORGANIZED INTO THREE PARTS. FIRST THERE IS A CRASH TABLE
+HEADER, WHICH CONTAINS GENERAL INFORMATION ABOUT THE NODE. SECOND
+THERE IS A CRASH TABLE SUMMARY, WHICH CONTAINS BASIC INFORMATION FOR
+THE LAST 16 CRASHES. THIRD AND LAST THERE IS THE DETAILED CRASH TABLE,
+WHICH WILL CONTAIN EXTENSIVE DATA FOR THE FIRST CRASH OF THE MACHINE
+(EXCLUDING POWER FAILS AND MANUAL RESTARTS) AND THE THE LAST CRASH
+(AGAIN NO POWER FAILS OR MANUAL RESTARTS).
+
+PHYSICAL LOCATION 0006C WILL ALWAYS CONTAIN THE PHYSICAL ADDRESS OF THE
+BEGINNING OF THE THE CRASH TABLE.
+
+CRASH TABLE HEADER:
+
+NODENUMBER	HS	1	:MACHINE NODE NUMBER
+NODETYPE	HS	1	:NODE TYPE (SEE TABLE BELOW)
+TABVER		HS	1	:VERSION OF CRASH TABLE
+CODVER		HS	1	:VERSION OF CODE
+TAKETIME	WS	1	:REAL TIME OF FIRST TAKE OVER (GMT)
+CRCNT		HS	1	:CURRENT CRASH COUNT
+
+CRASH SUMMARY:
+
+CRCNT		HS	1	:CRASH COUNT FOR ENTRY
+CRID		HS	1	:CRASH ID (SEE TABLE BELOW)
+CRPSD		WS	2	:CRASH PSW AND PC
+CRTIME		WS	1	:REAL TIME OF CRASH (GMT)
+
+DETAIL TABLE:
+
+CRCNT		HS	1	:CRASH COUNT FOR ENTRY
+CRID		HS	1	:CRASH ID (SEE TABLE BELOW)
+CRPSD		WS	2	:CRASH PSW AND PC
+CRTIME		WS	1	:REAL TIME OF CRASH (GMT)
+REGS0		WS	$0 10	:REGISTER SET 0
+REGSF		WS	$0 10	:REGISTER SET F (OR CURRENT SET)
+MACREGS		HS	$0 30	:MAC REGISTERS (LOCATIONS 300-35F)
+LASTSLOT	HS	1	:LAST SLOT EXECUTED (FILLED BY ISIS ONLY)
+
+
+
+THE SUMMARY TABLE IS A PUSH DOWN STACK, MEANING THAT THE FIRST ENTRY IS
+FOR THE LAST CRASH, THE SECOND ENTRY IS THE PREVIOUS CRASH AND SO ON.
+THE CRASH TABLE WILL NOT BE OVER WRITTEN BY REPETITIVE LOADS AND THE
+SOFTWARE WILL NOT INITIALIZE IT. SO IF THE MACINE IS RELOADED WITH THE
+SAME CODE WE CAN STILL READ OUT OLD CRASH INFORMATION.
+
+THE TAKETIME LABEL WILL CONTAIN THE REAL TIME VALUE OF THE FIRST TAKEOVER
+(IN GMT) AFTER A RELOAD. HOWEVER UPON FIRST STARTUP THE VALUE WILL BE SET
+TO HEX 80000000. ALSO ANY CRASHES OCCURING BEFORE THE FIRST TAKEOVER WILL
+BE THE NUMBER OF SECONDS PLUS THE INITIAL VALUE. ALL VALID TIMES WILL NOT
+HAVE THE HIGH ORDER BIT ON.
+
+NODE TYPES:
+
+
+
+CRASH ID'S:
+
+        Crash  codes  will  be  one byte,  with  the  high-order  nibble
+        designating  the general  crash type  and  the low-order  nibble
+        giving additional information.
+
+
+          2x - Parity error
+          20 - Non-DMA
+          21 - DMA
+
+          3x - Unexpected interrupt
+          30 - Non-microcode device
+          31 - Microcode-controlled device
+
+          4x - Instruction failure
+          40 - Illegal instruction (memory location bad)
+          41 - Legal illegal instruction (memory location OK)
+          42 - Instruction malfunction (e.g., illegal result)
+
+          5x - MAC error
+          50 - Protection violation
+          51 - Out of bounds
+          52 - DMA time-out
+          53 - Presence error
+          54 - Write interrupt
+          55 - Fetch error
+
+          6x - Software-detected errors (common)
+          60 - Illegal SVC
+          61 - Dispatcher detected error
+          62 - Hardware consistency error
+          63 - Software consistency error
+          64 - GCI crash - empty buffer
+          65 - GCI crash - illegal buffer index
+          66 - Bufferlet error - illegal free list pointer
+
+          7x - Software-detected errors (code-dependent)
+
+          8x - Configuration error
+          80 - Not enough memory
+          81 - Required device not assigned
+          82 - Wrong device type
+
+          9x - Device failure
+          90 - Busy/not ready
+          91 - Status error
+          92 - Missing interrupt
+
+          Ax-Fx - Reserved for future use.
+
+
+        The above crash codes will be used  in the CRID (crash ID) field
+        of the crash  table, for crash reports  to the SUP log,  and for
+        console displays.  The format of console displays is as follows:
+
+           +----+----+----+----+----+----+----+----+----+
+           ^    ^  D ^  E ^  A ^  D ^  t ^  t ^  c ^  c ^
+           +----+----+----+----+----+----+----+----+----+
+
+        where DEAD indicates  a crash, tt defines the node  type, and cc
+        is the crash code.
+
+        To run  ENGDMP  you must first invoke the NAD assembler:
+
+        -R NADcr
+        xxxxxx (version #)
+        ;X    (ENGDIAG)ENGDMPcr
+
+        The program is self prompting from this point on.
+
+
+
+
+-r nad
+062382
+;x   (engdiag)engdmp
+
+;; ENTER FILE NAME OF THE DUMP (FOLLOWED BY A CONTROL D)
+%F   (netcon)nd2775.dmp
+
+;G
+Data ranges read:
+0-7FFE 7FFF-0FFFD 0FFFE-17FFC 17FFD-1FFFB 1FFFC-27FFA 27FFB-2FFF9
+2FFFA-30007 
+
+
+;4   6C\   630   ;\   5FD0007   
+PHCRTB:   .
+;; CRASH TABLE STARTS AT
+PHCRTB=   630   
+;; CRASH FOR NODE
+PHCRTB+$80\   2775   
+;; NODE TYPE
+;;  0 - TYMNET I REMOTE
+;;  7 - ISIS NODE
+PHCRTB+$A2\   7   
+;; SOFTWARE VERSION
+PHCRTB+$A6\   502   
+;; MACHINE CRASH COUNT
+PHCRTB+$814\   2   
+;;
+;; SUMMARY TABLE
+;;
+;;CRCT CRID CRASH PSD        TIME
+8%2   PHCRTB+0E,PHCRTB+10C\
+   2  452    0 67F2    1 3D28 110D 2A7F
+   1    0    0 0B98    0    0 8000    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+
+
+;;
+;; DETAIL TABLE
+;;
+;; FIRST FATAL CRASH
+;;
+;;CRCT CRID CRASH PSD        TIME
+8%2   PHCRTB+10E,PHCRTB+11C\
+   2  452    0 67F2    1 3D28 110D 2A7F
+
+
+;; REGISTER SET 0
+8%4   PHCRTB+11E,PHCRTB+15C\
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+
+
+;; REGISTER SET F (OR CURRENT SET)
+8%4   PHCRTB+15E,PHCRTB+19C\
+      80     59B4        0  2547690     1560  6A52190  7058C90        0
+       0        0        0        0        0        0     67F2    13D28
+
+
+;;
+;; MAC SEGMENTATION REGISTERS
+8%4   PHCRTB+19E,PHCRTB+1DC\
+ 163E090  7E3F730  2547690  8449C90  6A52190  7058C90        0        0
+       0        0        0        0        0        0   13DEF0   4005B0
+
+
+;;
+;; MAC STATUS REGISTERS
+;; (340,344,348,34C)
+4%4   PHCRTB+1DE,PHCRTB+1EC\
+       0     0B32   0FFFFE     0B32
+
+
+;;
+;; DETAIL TABLE
+;;
+;; LAST FATAL CRASH
+;;
+;;CRCT CRID CRASH PSD        TIME
+8%2   PHCRTB+200,PHCRTB+20E\
+       0        0        0        0        0        0        0        0
+
+
+;; REGISTER SET 0
+8%4   PHCRTB+210,PHCRTB+24E\
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+
+
+;; REGISTER SET F (OR CURRENT SET)
+8%4   PHCRTB+250,PHCRTB+28E\
+       0        0        0        0        0        0        0        0
+       0        0        0        0        0        0        0        0
+
+
+;;
+;; MAC SEGMENTATION REGISTERS
+8%4   PHCRTB+290,PHCRTB+2CE\
+       0        0        0        0        0        0        0        0
+       0        0        0        0        0        0        0        0
+
+
+;;
+;; MAC STATUS REGISTERS
+;; (340,344,348,34C)
+4%4   PHCRTB+2D0,PHCRTB+2DE\
+       0        0        0        0
+
+
+;;
+;;
+;; FOR MORE INFORMATION ABOUT THE ABOVE DATA PULL THE FILE
+;; (ENGDIAG)ENGDMP.DOC
+;;
+;; USE A  %Q  TO EXIT.
+%q
+EXIT
+
+
+THERE IS A NEW FILE AVAILABLE THAT ALLOWS FOR EASY ANALYSIS OF TYMNET II
+SOLO DUMPS.
+
+TO USE:
+
+-R NAD
+
+;X    (ENGDIAG)T2SOLO    (CARRAGE RETURN)
+
+YOU WILL BE ASKED TO ENTER THE FILENAME FOR THE MACHINE. THIS IS THE
+FILE THAT WAS LOADED. (IE. (TYMISIS)ND2273.BND) 
+
+****  REMEMEBER TO END THE LINE WITH A CONTROL-D, NOT A CARRAGE RETURN.
+
+YOU WILL THEN BE REQUESTED TO ENTER THE FILENAME OF THE DUMP.
+(IE. (CCM)ND2273.DMP)
+
+THE PROGRAM WILL THEN PRINT COMMENTS FOLLOWED BY THE DATA READ FROM THE
+DUMP.
+
+EXAMPLE:
+
+PHCRAD\   0
+PHCRAD+2\   8A
+PHCRID\   8
+PHCRID+2\   2
+
+TO READ THIS JUST TAKE THE VALUE FOLLOWING THE LABEL: PHCRAD+2  IT IS
+8A. LOOK IT UP IN THE TABLE ABOVE (ON THE OUTPUT) AND IT SAYS MAC
+INTERRUPT. DO THE SAME WAY FOR ALL OTHER LABELS.
+
+ADDTIONAL INFORMATION CAN BE OBTAINED FROM THE ENGINE POCKET GUIDE.
+
+
+
+
+
+-r nad
+062382
+;x   (engdiag)t2solo
+
+;;ENTER FILENAME FOR T-II SOLO [.BND] (END WITH CONTROL-D)
+%F   (tymisis)nd2355.bnd
+
+%G
+
+;;ENTER FILENAME OF DUMP (END WITH CONTROL-D)
+%F   (netcon)nd2355.dmp
+
+;G
+Data ranges read:
+0-7FFE 7FFF-0FFFD 0FFFE-17FFC 17FFD-1FFFB 1FFFC-27FFA 27FFB-2FFF9
+2FFFA-30007 
+
+
+;;PHCRAD   :  00 - MANUAL RESTART
+;;            84 - MACHINE MALFUNCTION
+;;            86 - ILLEGAL I/O INTERRUPT
+;;            88 - ILLEGAL INSTRUCTION
+;;            8A - MAC INTERRUPT
+;;            8C - POWER UP
+;;            8E - MAC/DMA TIMEOUT
+;;
+;4   S0PH+20,S0PH+22\
+PHCRAD\   88   
+
+
+;;PHCRID   :  00 - MANUAL RESTART
+;;            01 - POWER FAILURE
+;;            02 - OUTPUT WAIT
+;;            04 - ILLEGAL INSTRUCTION
+;;            05 - MAC/DMA TIMEOUT
+;;            08 - MAC INTERRUPT
+;;            10 - OOPS CALLED
+;;            80 - NO SUCH PROCESS
+;;            0F - # OF MAC REGISTERS IN USE
+;;           800 - START OF PRIVILEDGED CODE
+;;
+S0PH+24,S0PH+25\
+PHCRID\   4   
+
+
+;;CRASH COUNT IS EQUAL TO PHCRID+2
+;;
+S0PH+26,S0PH+27\
+PHCRID+2\   0C   
+
+
+;;CRASH REGISTERS
+;;
+;4   S0PH+28,S0PH+66\
+PHERRG\   1   
+PHERRG+4\   5   
+PHERRG+8\   80000000   
+PHERRG+0C\   178C   
+PHERRG+10\   1AE   
+PHERRG+14\   1   
+PHERRG+18\   700   
+PHERRG+1C\   0FFFFAA85   
+PHERRG+20\   29EC   
+PHERRG+24\   135EC   
+PHERRG+28\   79   
+PHERRG+2C\   7   
+PHERRG+30\   4C83   
+PHERRG+34\   5664   
+PHERRG+38\   24   
+PHERRG+3C\   4498   
+
+
+;;VALUE OF LAST PARITY ERROR DURING DUMP
+;;
+;4   348,34A\
+ANIZFL+8\   87802   
+
+
+;;ILLEGAL INSTRUCTION OLD PSW
+;;
+;4   S0PH+6C,S0PH+72\
+PHILIP\   1   
+PHILIP+4\   18694   
+
+
+;;MAC INTERRUPT OLD PSW
+;;
+;4   S0PH+74,S0PH+7A\
+PHMACP\   67F8   
+PHMACP+4\   2FFFE   
+
+
+;;MAC INTERRUPT STATUS REGISTERS (340,344,348,34C)
+;;   (SAVED AT TIME OF ERROR)
+;;
+;4   S0PH+7C,S0PH+8A\
+PHSMAC\   11   
+PHSMAC+4\   2D826   
+PHSMAC+8\   0F0200   
+PHSMAC+0C\   0D5026   
+
+
+;;COUNT OF ILLEGAL DEVICE INTERRUPTS
+;;
+S0PH+8C,S0PH+8D\
+PHMALP\   0   
+
+
+;;DEVICE ADDRESS FROM LAST ILLEGAL DEVICE INTERRUPT
+;;
+S0PH+8E,S0PH+8F\
+PHMALP+2\   0   
+
+
+;;REFER TO THE ENGINE POCKET GUIDE FOR A MORE DETAILED DESCRIPTION
+;;OF THE INTERRUPT REGISTERS.
+;;
+;;DUMP ANALYSIS COMPLETE. USE %Q TO EXIT.
+%q
+EXIT
+
+-
+
+-R NAD
+062382
+;X   (ENGDIAG)ENGDMP
+
+;; ENTER FILE NAME OF THE DUMP (FOLLOWED BY A CONTROL D)
+%F   (CES)ND3170.DM1
+
+;G
+Data ranges read:
+0-1647 
+
+
+;4   6C\   1300   ;\   6780007   
+PHCRTB:   .
+;; CRASH TABLE STARTS AT
+PHCRTB=   1300   
+;; CRASH FOR NODE
+PHCRTB+$80\   3170   
+;; NODE TYPE
+;;  0 - TYMNET I REMOTE
+;;  7 - ISIS NODE
+PHCRTB+$A2\   7   
+;; SOFTWARE VERSION
+PHCRTB+$A6\   502   
+;; MACHINE CRASH COUNT
+PHCRTB+$814\   2   
+;;
+;; SUMMARY TABLE
+;;
+;;CRCT CRID CRASH PSD        TIME
+8%2   PHCRTB+0E,PHCRTB+10C\
+   2   40    0 9DAE    0    0 1181 FAC3
+   1    0    0 1860    0    0 8000    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+
+
+;;
+;; DETAIL TABLE
+;;
+;; FIRST FATAL CRASH
+;;
+;;CRCT CRID CRASH PSD        TIME
+8%2   PHCRTB+10E,PHCRTB+11C\
+   2   40    0 9DAE    0    0 1181 FAC3
+
+
+;; REGISTER SET 0
+8%4   PHCRTB+11E,PHCRTB+15C\
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+
+
+;; REGISTER SET F (OR CURRENT SET)
+8%4   PHCRTB+15E,PHCRTB+19C\
+E0010001      402      0B7      3FC    0A40E       5C    43ED4      402
+       0     2AE2    10854    4B900       38      3FC        0        4
+
+
+;;
+;; MAC SEGMENTATION REGISTERS
+8%4   PHCRTB+19E,PHCRTB+1DC\
+0FF00010 0A160630  216A890   86CA90  0D6D3B0  106E190   76F290    6FA90
+ 0D6FB90        0        0        0        0        0   15F6F0  11005B0
+
+
+;;
+;; MAC STATUS REGISTERS
+;; (340,344,348,34C)
+4%4   PHCRTB+1DE,PHCRTB+1EC\
+FFFF0400 FFC017FA 7FC00000 FFF017FA
+
+
+;;
+;; DETAIL TABLE
+;;
+;; LAST FATAL CRASH
+;;
+;;CRCT CRID CRASH PSD        TIME
+8%2   PHCRTB+200,PHCRTB+20E\
+       0        0        0        0        0        0        0        0
+
+
+;; REGISTER SET 0
+8%4   PHCRTB+210,PHCRTB+24E\
+   0    0    0    0    0    0    0    0
+   0    0    0    0    0    0    0    0
+
+
+;; REGISTER SET F (OR CURRENT SET)
+8%4   PHCRTB+250,PHCRTB+28E\
+       0        0        0        0        0        0        0        0
+       0        0        0        0        0        0        0        0
+
+
+;;
+;; MAC SEGMENTATION REGISTERS
+8%4   PHCRTB+290,PHCRTB+2CE\
+       0        0        0        0        0        0        0        0
+       0        0        0        0        0        0        0        0
+
+
+;;
+;; MAC STATUS REGISTERS
+;; (340,344,348,34C)
+4%4   PHCRTB+2D0,PHCRTB+2DE\
+       0        0        0        0
+
+
+;;
+;;
+;; FOR MORE INFORMATION ABOUT THE ABOVE DATA PULL THE FILE
+;; (ENGDIAG)ENGDMP.DOC
+;;
+;; USE A  %Q  TO EXIT.
+%Q
+EXIT
+
+-LOG
+13.81 tru
+terminal time: 0:01:21
+                     Tymnet Training & Education
+                            Lesson Plan
+
+   Course  :  FE,Software & ISIS                Date  :
+   Lesson  :  Slot Crash Analysis               Course No. CMT.401
+   Week  :      Day  :     Period  :  1         Lesson No. LP154.401
+
+_______________________________________________________________________________
+
+_________________________________________________________________________________
+
+                Basically , there are two ways to get the contents of the 
+                slot crash information.
+
+                1.  If the engine is still running, but the slot is crashed.
+                
+                  1. get into the slot with NAD.
+                  2. if there is any message printed out upon entering the slot,
+                     write it down for later reference.
+                  3. do a ::?VERN to get the version number of both the 
+                     slot and of ISIS.
+                  4. do a ::?HIST to see if the slot has been crashing 
+                     frequently in the recent past.
+                  5. try to determine what esternal circumstances preceded                     
+                     thsh.
+                  6. record the results.
+                  7. if CRSTOP has been set, dump the slot with LOADII and 
+                     restart the slot. always attach the symbol table from the 
+                     corresponding NIB file to the dump file soon after
+                     the dump is complete.
+                  8. if CRSTOP has not been set, look at the crash table.
+                  9. if the crash code is 10 (dispatcher crash).
+                      1. try to determine the circumstances preceding the
+                      crash.
+                      2. try to reproduce the crash.
+                      3. if the crash cannot be reproduced, enable CRSTOP 
+                      and BUFTRC and get a dump of the slot after the next
+                      crash.
+                  10.if the crash code is 14 (protection violation), or if
+                     the crashes occur frequently, see if the cause of the 
+                     crash can be determined solely from the crash table.
+                     
+                     Things that you should be getting from the crash
+                     table :
+                      1. crash count,
+                      2. crash type,
+                      3. crash location, specified as a label plus displacement,
+                      4. locations of executable code contained in the reg.,
+                         specified as a label plus displacement.
+
+
+
+                  IF THE SLOT SHOWS NO RESPONSE:
+                      ---> user and/or host receives no response,
+                      IRING/ORING pointers do not move, even though user/host
+                      claims to be sending data,
+                      
+                      1. get into the slot with NAD.
+                      2. if a message is printed out upon entering the slot,
+                         write it down for later reference.
+                      3. use DDT to check CPU usage to see if the slot is 
+                         using an abnormally large amount of CPU. The slot
+                         may be caught in a loop.
+                      4. check IRING/ORING pointers to see if they are 
+                         unequal. If they are unequal and remain so,
+                         the code may be caught in a loop.
+                      5. check the background and foreground PSD to see if 
+                         the address changes. If things are moving slow 
+                         enough to see the address change, you've located 	
+                         the code area caught in a loop.
+                      
+                         1. take some sample readings of the PSD that is 
+                         moving and determine the locations (label plus
+                         displacement) to which they refer.
+                         
+                         2. go to the appropriate source listing and examine 
+                         the area of code that is having the problems. 
+                         Try to determine what could be causing the code to 
+                         loop.
+                         
+                         3. submit your findings to your tech sup. rep.
+                         
+                         
+                         
+                         Example:
+                         
+                         -GO (NETCON)LOADII
+                         
+                         NODE LOADER VERSION- 2.11
+                         ENTER FUNCTION:G
+                         ENTER GATEWAY HOST:xxx
+                         ENTER PASSWORD FOR EXTERNAL NET:
+                         
+                         ENTER FUNCTION:U
+                         ENTER KERNEL HOST NUMBER:yyy
+                         CIRCUIT BUILT
+                         ENTER SLOT NUMBER:z
+                         ENTER FILE FOR SLOT:aabbbb.D0z
+                         
+                         READING FROM ADDRESS:E0000 BYTES=    326
+                         *
+                         READING FROM ADDRESS:00000 BYTES=  13784
+                         **********************************
+                         READING FROM ADDRESS:10000 BYTES=  23588
+                         ************************************************
+                         READING FROM ADDRESS:20000 BYTES=  15492
+                         **************************************
+                         READING FROM ADDRESS:30000 BYTES=   3072
+                         *******
+                         SLOT DUMP COMPLETE
+                         
+                         EXIT
+
+
+
+
+
+
+                        Get into NAD and do the following:
+                        
+                        -R NAD
+                        062382
+                        %F    aabbbb.N0z
+                        
+                        %G
+                        %F    aabbbb.D0z
+                        
+                        ;G
+                        
+                        Data ranges read:
+                        0-35D7 10000-15C23 20000-23C83 30000-30BFF 0E0000-0E0145
+                        
+                        ORING[   2C
+                        ORING+2\    0A09B
+                        ORING+4\    2C
+                        
+                        ORING,ORING+ORSIZE[
+                        
+                        
+                        8%2
+                        
+                        ORING,ORING+ORSIZE[
+                        2C  A09B    2C  A19B  2C A0D3  2C A1C2
+                        2C  A0CF    2C  A1C4  2C  1B2  24  18D
+                        |
+                        |
+                        |
+                        (until the end of ORING)
+                        
+                        
+  @eL
