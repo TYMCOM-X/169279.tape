@@ -1,0 +1,40 @@
+
+  To>	Don Johnson
+
+
+From>	T.C.Kochmann
+
+Date>	18-Sept-89
+
+Subj>	PICO Firmware Modifications
+-------------------------------------------------------------------------
+
+Don:
+
+	A variety of modifications have been made to the PICO 1.7 Firmware
+addressing some of the old firmware constraints we documented when this
+version was released as well as a couple of new bugs.  The changes are:
+
+  I.	Tymsync and Mailbox Interrupt Priorities raised to level 6 for
+	the 68010.  ATN1 interrupts were being lost in the Tymsync mode
+	at the mailbox level leaving the associated channel in a TX-ENDING
+	state until a board reset clears it.
+
+ II.	The RTS/CTS and DTR/DSR control signal bit array reversed in the
+	Tymsync mode only for ISIS.  The MSB to LSB order of bits for the
+	bit array was set up for the 68010 and not reordered for the
+	Engine.  HDLC and Async modes are proper and unchanged.
+
+III.	Oversize records greater than the specified packet length, typically
+	1/8th the receive buffer size are now thrown away at the firmware
+	level.  All protocols will no longer "see" the oversize records
+	written into slot memory areas.
+
+ IV.	Async flow control changed to "X-OFF" at the firmware level on
+	receipt of 13x when DC3/DC1 flow-control is enabled as well as
+	pass the 13x onto the ISIS slot to handle.  All subsequent bytes
+	received will be passed on except for 11x which will release the
+	"X-OFF" condition.  Previously neither 13x or 11x was passed on.
+
+
+Tim
