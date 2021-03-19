@@ -1,0 +1,3596 @@
+                                                             November 5, 1987
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        DISK DIAGNOSTIC USER'S GUIDE
+
+
+                                VERSION 3.02
+
+
+
+
+
+
+
+                         NETWORK TECHNOLOGY DIVISION
+                              November 5, 1987
+
+
+
+
+
+
+
+        ******************************************************************
+        **                  PROPRIETARY INFORMATION                     **
+        **                                                              **
+        **  TYMNET, MDC's  proprietary  rights are included  in the     **
+        **  information disclosed herein.  The recipient, by receiving  **
+        **  this document,  agrees that neither this document nor  the  **
+        **  information disclosed herein nor any part thereof shall be  **
+        **  reproduced  or  transferred to other documents or used  or  **
+        **  disclosed  to  others for manufacturing or for  any  other  **
+        **  purpose  except as specifically authorized in  writing  by  **
+        **  TYMNET, MDC.                                                **
+        ******************************************************************
+
+
+
+
+
+
+
+
+
+                                                  10 MB Disc Diag. User Guide
+                                                             November 5, 1987
+
+
+
+
+
+
+
+                                 TABLE OF CONTENTS
+
+      Section                                                            Page
+
+
+      1.   OVERVIEW                                                         1
+
+      2.   DEDICATED MEMORY ALLOCATION                                      2
+
+      3.   EQUIPMENT                                                        3
+
+      4.   ENGINE CONFIGURATION CONSTRAINTS                                 4
+        4.1   Test Limitations                                              4
+        4.2   Other Requirements                                            4
+
+      5.   LOADING PROCEDURE                                                5
+
+      6.   OPERATING PROCEDURE                                              6
+
+      7.   COMMANDS                                                         7
+        7.1   ADDT - Add Tests Command                                      7
+        7.2   BYAD - Select Bypass of Address Checking                      8
+        7.3   CONT - Continue From Platter to Platter or Drive to Drive     8
+        7.4   CORE - Select Core memory type                                9
+        7.5   DATA - Specify Scope Loop Data Pattern                       10
+        7.6   DELH - Delete a Head From Tests                              11
+        7.7   DELT - Delete Tests Command                                  11
+        7.8   DRIV - Specify Drive for Tests                               12
+        7.9   FORM - Select Test 24 and Run                                12
+        7.10  HCYL - Specify Highest Cylinder Tested                       13
+        7.11  HELP - Diagnostic Test Descriptions                          13
+        7.12  LCYL - Specify Lowest Cylinder Tested                        14
+        7.13  LIST - Diagnostic command definitions                        14
+        7.14  LOOP - Specify Loop Count                                    15
+        7.15  MESG - Message Control Command                               16
+        7.16  OPTN - Display Current Options                               17
+        7.17  PLTR - Select Platter for Tests                              17
+        7.18  RUN  - Begin Selected Test(s)                                18
+        7.19  SCOP - Specify Scope Loop Tests Read/Write Mode              19
+        7.20  SECT - Select Scope Loop Head and Sector                     20
+        7.21  SEEK - Select Scope Loop Seek or Restore Mode                20
+        7.22  SEMI - Select MOS memory type                                21
+        7.23  SIZE - Select Scope Buffer Transfer Count                    21
+        7.24  SLCH - Specify Selector Channel Device Address               22
+        7.25  SNUM - Specify Sectors Transferred During Tests              22
+        7.26  STOP - Error Stop Control Command                            23
+        7.27  TEST - Specify Test Numbers                                  23
+        7.28  TIME - Specify Memory Type Time Constant                     24
+
+                                                  10 MB Disc Diag. User Guide
+                                                             November 5, 1987
+
+
+        7.29  WRIT - Select Read/Write Mode                                25
+        7.30  XDRV - Specify Secondary Drive Command                       26
+
+      8.   DIAGNOSTIC DESCRIPTIONS                                         27
+        8.1   TEST 1 - Status Test                                         27
+        8.2   TEST 2 - Seek/Restore Test                                   27
+        8.3   TEST 3 - Oscillating Seek Test                               28
+        8.4   TEST 4 - Random Seek Test                                    29
+        8.5   TEST 5 - Interrupt Seek Test                                 29
+        8.6   TEST 6 - Multisector Test                                    30
+        8.7   TEST 7 - Interrupt Data Test                                 30
+        8.8   TEST 8 - Spiral Data Pattern Test                            31
+        8.9   TEST 9 - Worst Case Data Test                                31
+        8.10  TEST 10 - Random Data Test                                   32
+        8.11  TEST 11 - Read Only Test                                     32
+        8.12  TEST 12 - Multi-Disc Test                                    33
+        8.13  TEST 13 - Format Mode Test                                   34
+        8.14  TEST 14 - Manual Intervention Test                           35
+        8.15  TEST 15 - Normal Mode Oscilloscope Loop                      37
+        8.16  TEST 16 - Format Mode Oscilloscope Loop                      37
+        8.17  TEST 17 - Defective Track Oscilloscope Loop                  38
+        8.18  TEST 18 - Parity Error Oscilloscope Loop                     39
+        8.19  TEST 19 - Bad Address Oscilloscope Loop                      40
+        8.20  TEST 20 - Faulty Head Oscilloscope Loop                      41
+        8.21  TEST 21 - Read Check Oscilloscope Loop                       41
+        8.22  TEST 22 - Seek Oscilloscope Loop                             42
+        8.23  TEST 23 - Alignment Test                                     42
+        8.24  TEST 24 - Disc Formatter                                     43
+
+      9.   ERROR DESCRIPTION                                               45
+        9.1   Type 0 Error - Command Error                                 45
+        9.2   Type 1 Error - Interrupt Error                               46
+        9.3   Type 2 Error - Status Error                                  47
+        9.4   Type 3 Error - Data Compare Error                            48
+        9.5   Y-Field Error Messages                                       49
+        9.6   Z-Field Error Messages                                       49
+
+
+                                   APPENDICES
+                                   ==========
+
+
+      I.   DISC SUB-SYSTEM BIT ASSIGNMENTS                                 50
+        I-1   Table A-1 - Eselch status, command                           50
+        I-2   Table A-2 - Controller command, status, data                 51
+        I-3   Table A-3 - Disk file (Drive) command, status, data          53
+        I-4   Table A-4 - 10 M-Byte Sector Format                          54
+
+
+      II.  Test Data Patterns                                              55
+
+
+      III. Test Console Displays                                           56
+
+                                                  10 MB Disc Diag. User Guide
+                                                             November 5, 1987
+
+
+      IV.  Functions To Implement In Late Releases                         58
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                  10 MB Disc Diag. User Guide
+      OVERVIEW                                               November 5, 1987
+
+
+
+
+
+      1 -  OVERVIEW
+
+
+
+      This version  of the  10M-byte disc  diagnostic includes  the following
+      major types of  tests to verify the  proper operation of the  DISC sub-
+      system:
+
+
+           1.  Seek  and  Seek/Restore tests,  which  verify  the proper
+               operation   of   head  positioning   logic   and  related
+               interrupts.
+
+           2.  Pseudo  random, and  "worst case"  data write/read/verify
+               tests,   which   exercise  data   handling   and  storage
+               components  of  the drive  sub-system;  these  tests also
+               validate data pathways to and from drive hardware.
+
+           3.  "Format mode" tests,  which verify performance  of format
+               hardware and related error detection circuitry.
+
+           4.  Tests   which  verify   proper  operation   of  interrupt
+               hardware.
+
+           5.  Oscilloscope-loop   type   "tests",   which   provide   a
+               technician   with   troubleshooting   tools,   useful  in
+               correcting drive malfunctions(s).
+
+           6.  Disc Formatter,  which is  used to  format the  disc. The
+               disc  formatter  is  run  on  each  disc  to  insure  the
+               integrity of the disc.
+
+
+      Additional  diagnostic  capabilities  exist  to  provide  a   means  of
+      verifying  proper  operation  of  drive  front  panel  switches (Manual
+      Intervention Test), and to control drive head positioning  for purposes
+      of alignment (Alignment "test").
+
+      To run the  Multi-Disc Test (Test  12), both of  the drives need  to be
+      powered on.
+
+
+
+
+
+
+
+
+
+
+
+      1                                           10 MB Disc Diag. User Guide
+      DEDICATED MEMORY ALLOCATION                            November 5, 1987
+
+
+
+
+
+      2 -  DEDICATED MEMORY ALLOCATION
+
+
+
+      The  only dedicated  location  of the  disc Diagnostic  is  the program
+      starting address:
+
+                             0A00 - Starting Address.
+
+      NOTE: When the diagnostic is started or restarted at 0A00,  all options
+      are reset  to their  default values.  The options  can be  displayed by
+      typing OPTN. Typing  OPTN at the start  of the diagnostic  will display
+      the following default option:
+
+
+                     TEST  1,2,3,4,5,6,7,8,9,10
+                     BYAD 0000                       SCOP 0000
+                     CONT 0000                       SECT 0000
+                     DATA 00BD                       SEEK 0000
+                     DELH 0000                       SIZE 0001
+                     DRIV 0000                       SLCH 00F0
+                     HCYL 0193                       SNUM 0004
+                     LCYL 0000                       STOP 0000
+                     LOOP 0001                       TIME 0140
+                     MESG 0001                       XDRV 0001
+                     PLTR 0002                       WRIT 0000
+
+
+           * SEE HELP COMMAND FOR ALL TEST NAMES AND THEIR PURPOSES
+
+           * SEE LIST COMMAND FOR ALL COMMAND NAMES AND THEIR PURPOSES
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      2                                           10 MB Disc Diag. User Guide
+      EQUIPMENT                                              November 5, 1987
+
+
+
+
+
+      3 -  EQUIPMENT
+
+
+
+      The  system  configuration must  include  a minimum  of   64K  bytes of
+      memory.
+
+      System configuration must include an ESELCH, 10 MB DISC  CONTROLLER, 10
+      MB DISC DRIVE(S), TYMNET ENGINE.
+
+      A terminal must be connected to the TTY port on the multifunction board
+      -  the  Disc Diagnostic  does  not operate  without  a terminal/display
+      device.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      3                                           10 MB Disc Diag. User Guide
+      ENGINE CONFIGURATION CONSTRAINTS                       November 5, 1987
+
+
+
+
+
+      4 -  ENGINE CONFIGURATION CONSTRAINTS
+
+
+
+
+
+
+      4.1  Test Limitations
+
+
+      Seek  incomplete,  drive  unsafe,  and  write  check  errors  cannot be
+      synthesized and therefore cannot be tested.
+
+      This version of the diagnostic has not been run on a  system containing
+      more than two drives.
+
+
+
+
+      4.2  Other Requirements
+
+
+      The Memory diagnostic  and CPU diagnostic  should be run  without error
+      before running the disc diagnostic.
+
+      Disc packs must be previously formatted using Test 24 (Disc Formatter),
+      or type FORM command (see FORM command description).
+
+
+      The disc drive must be on line.
+
+                  **********************************************
+
+      THE FORMAT MODE SWITCH AT  THE FRONT OF THE DISC CONTROLLER  P.C.B MUST
+      BE IN THE "F" (FORMAT) POSITION !!!! This configuration is required for
+      Format Mode Test (Test 13 and Test 16 - 20), if the format  mode switch
+      did not turn to the "F" position the following message is output:
+
+                 "THE FORMAT SWITCH MUST BE IN THE < F > POSITION"
+
+      If the switch is  not marked with an "F"  on the 10 MB  Disc Controller
+      P.C.B, locate the switch on the right hand side of the P.C.B.  and flip
+      it to the right.
+
+                  **********************************************
+
+
+
+
+
+
+      4                                           10 MB Disc Diag. User Guide
+      LOADING PROCEDURE                                      November 5, 1987
+
+
+
+
+
+      5 -  LOADING PROCEDURE
+
+
+
+      The disc  diagnostic uses the  standard loading procedure  described in
+      the  DIAGNOSTICS  INTRODUCTION  section of  the  DIAGNOSTIC  USER GUIDE
+      MANUAL and the LOADII USER GUIDE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      5                                           10 MB Disc Diag. User Guide
+      OPERATING PROCEDURE                                    November 5, 1987
+
+
+
+
+
+      6 -  OPERATING PROCEDURE
+
+
+
+      After the diagnostic has been loaded, it initializes and starts itself.
+      If stopped, the diagnostic is restarted by pressing on the console:
+
+                              DTA, A, 0, 0, ADR, RUN
+
+      At this  point the  diagnostic outputs to  the terminal  the diagnostic
+      title, a  warning message.   Note: This warning  message and  all other
+      warning messages in  the diagnostic are  accompanied by the  ringing of
+      the terminal bell for a few seconds.
+
+      The diagnostic then outputs a  prompt (*), which indicates it  is ready
+      to accept commands. Type at the terminal:
+
+                                      RUN<CR>
+
+      After the  RUN command  has been entered,  the diagnostic  executes the
+      default tests (Tests 1 - 10).
+
+      Test 1 is always run as a default whether it is specified or not.
+
+      As  each test  starts  its number  is  displayed. If  a  test completes
+      without detecting an  error, NO ERROR  is output and  program execution
+      continues.  If an  error is detected, an  error message is  output (see
+      "Error Descriptions", (Page 45), and execution continues with  the next
+      test. However, if  the MESG option  is equal to  3, no message  will be
+      output (see MESG command descriptions).
+
+      At the  end of  each pass through  the diagnostic,  the pass  count and
+      error count are output to the terminal.
+
+      During execution of some of the tests, some or all of the  following is
+      displayed on the Engine hex display console:
+
+                                     xxccchhss
+
+      where ccc is a cylinder number, hh is a head number, and ss is a sector
+      number (xx is not used).
+
+      Testing is terminated by entering "BREAK" key.  Execution is terminated
+      and the asterisk command prompt (*) is returned to the  display device.
+      (NOTE: The BREAK key may have  to be pressed more than one  time before
+      the diagnostic will recognize it.)
+
+
+
+
+
+      6                                           10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+
+
+
+      7 -  COMMANDS
+
+
+
+      The  following commands  permit  selection of  non-default  options and
+      modes of operation.  If the diagnostic detects an error in syntax or an
+      invalid command value, it outputs a question mark "?", followed  by the
+      asterisk command prompt (*).
+
+      If the  operator enters  the BREAK  key in  the middle  of a  string of
+      values for a command, all values entered before the BREAK will  be used
+      by the diagnostic.
+
+      Use  the option  command "OPTN"  to display  the current  value  of any
+      command.
+
+      Use the option command "LIST" to display the all commands' names.
+
+      Use the option command "HELP" to display the test descriptions.
+
+
+
+
+      7.1  ADDT - Add Tests Command
+
+
+      Usage: All TESTS
+
+      Syntax: ADDT nn
+
+      Default: None
+
+      Values:  Any valid test number in decimal (1 through 24).
+
+      Description:  This command selects  the tests to be executed,  where nn
+      is the test number (decimal) in that test.
+
+      TEST and DELT commands also affect the selected tests.
+
+
+
+
+
+
+
+
+
+
+
+
+
+      7                                           10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.2  BYAD - Select Bypass of Address Checking
+
+
+      Usage: TEST 2, 3, 4, 13, 22.
+
+      Syntax: BYAD n
+
+      Default: 0
+
+      Values:  0 or
+      Description:  This command determines whether tests 2, 3, 4, 13, and 22
+      perform address checking.
+
+
+           BYAD 0 = Perform address checking.
+
+           BYAD 1 = By-pass address checking.
+
+
+
+
+
+      7.3  CONT - Continue From Platter to Platter or Drive to Drive
+
+
+      Usage: All TESTS
+
+      Syntax: CONT n
+
+      Default: 0
+
+      Values:  0, 1, 2, or 3.
+
+      Description: This command  determines how many platters/drives   may be
+      tested in  one pass  of the  diagnostic by  a single  entry of  the RUN
+      command.
+
+      If no CONT command is entered, then the default value is  selected. The
+      values for n have the following meanings:
+
+
+           0 - Only the platter and drive selected by the PLTR  and DRIV
+               commands will be tested.
+
+           1 - Both platters (removable and fixed) of the drive selected
+               by the DRIV command will be tested.
+
+           2 - Both platters and both drives will be tested.
+
+           3 - The platter selected  by the PLTR command will  be tested
+               in both drives.
+
+
+      8                                           10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      NOTE: After  the  diagnostic has  finished  testing  both platters
+            specified by  the CONT  1 and CONT  2 commands,  the platter
+            option (PLTR) contains the value of the platter last tested,
+            not the value  of the platter selected  at the start  of the
+            test.
+
+            After  the  diagnostic  has  finished  testing  both  drives
+            specified  by the  CONT  2 and  CONT 3  commands,  the drive
+            option (DRIV) contains the  value of the drive  last tested,
+            not the  value of  the drive  selected at  the start  of the
+            test.
+
+      STOP command also affect the selected CONT command.
+
+      If an error is detected in the Disk Formatter (Test 24), the diagnostic
+      will not continue to the  next drive or platter; and execution  of Test
+      24 will terminate.
+
+
+
+
+      7.4  CORE - Select Core memory type
+
+
+      Usage: TEST 1, 24.
+
+      Syntax: CORE
+
+      Default: None
+
+      Description: This command automatically changes the TIME command to 140
+      (Core memory).
+
+      TIME and SEMI commands also affect the time constant.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      9                                           10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.5  DATA - Specify Scope Loop Data Pattern
+
+
+      Usage: TEST 15, 16, 17, 18, 19, 20.
+
+      Syntax: DATA nn
+
+      Default: BD
+
+      Values:  0 hex to FF hex.
+
+      Description:   This  command  defines  the  data  pattern  used  during
+      read/write scope loop tests (Tests 15  - 20). If DATA is given  a value
+      of zero, the following message will be output instead of executing test
+      18 (Parity Error Scope Loop Test):
+
+
+           * DATA MUST BE NON-ZERO IN THIS TEST
+
+
+      and execution of test 18 is terminated.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      10                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.6  DELH - Delete a Head From Tests
+
+
+      Usage: TEST 8, 9, 10.
+
+      Syntax: DELH n
+
+      Default: 0
+
+      Values: 0, 1, or 2.
+
+      Description:   This  command  determines  whether  a  head  is bypassed
+      (deleted) during tests 8 through 10.
+
+
+           If DELH 0 - No heads are deleted.
+
+           If DELH 1 - Head 0 (upper head) is deleted.
+
+           If DELH 2 - Head 1 (lower head) is deleted.
+
+
+
+
+
+      7.7  DELT - Delete Tests Command
+
+
+      Usage: All TESTS
+
+      Syntax: DELT nn
+
+      Default: None
+
+      Values:  Any valid test number in decimal (1 through 24).
+
+      Description: This command deletes tests from execution, where nn is the
+      test number (decimal) in that test.
+
+      ADDT and TEST commands also affect the selected tests.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      11                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.8  DRIV - Specify Drive for Tests
+
+
+      Usage: All TESTS
+
+      Syntax: DRIV n
+
+      Default: 0
+
+      Values: 0, 1, 2, or 3.
+
+      Description:  DRIV selects a  logical disc drive unit for  testing.  An
+      error message is displayed if DRIV specifies a non-existent  drive unit
+      (e.g.  drive 2 on a system configured with drives 0 and 1 only).
+
+      This version of the diagnostic has not been run on a  system containing
+      more than two drives.
+
+
+
+
+      7.9  FORM - Select Test 24 and Run
+
+
+      Usage: TEST 24
+
+      Syntax: FORM
+
+      Default: None
+
+      Description: This  command specifies  the formatter  for 10  MB drives,
+      performs a surface analysis,  and then formats the disc.   This command
+      is the equivalent of the "TEST 24" and "RUN" commands.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      12                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.10  HCYL - Specify Highest Cylinder Tested
+
+
+      Usage: TEST 3, 5, 8, 9, 10, 11, 12, 22, 24.
+
+      Syntax: HCYL nnn
+
+      Default: *193 hex.
+
+      Values: 0 to 197 hex - Should be greater than or equal to "LCYL".
+
+      Description:  This command  establishes the high cylinder  boundary for
+      read and write tests.  If HCYL is less than LCYL, the following message
+      is output:
+
+                      "INVALID HIGH CYLINDER (HCYL) COMMAND"
+
+      *Note: Cylinder number from 194 - 197 reserved for alternate use.
+
+
+           1st defect cylinder number: Alternate cylinder number 194
+
+           2nd defect cylinder number: Alternate cylinder number 195
+
+           3rd defect cylinder number: Alternate cylinder number 196
+
+           4th defect cylinder number: Alternate cylinder number 197
+
+
+      The user can change the  HCYL command to include cylinders  beyond 193.
+      The only effect of such a  change is to reduce the number  of available
+      alternate cylinders for use by the Disk Formatter (Test 24).
+
+
+
+
+      7.11  HELP - Diagnostic Test Descriptions
+
+
+      Usage: Not used by any TESTS.
+
+      Syntax: HELP
+
+      Default: None
+
+      Description:  This  command  displays  all  of  the  tests'  names  and
+      definitions.
+
+      See OPTN command for a list of current commands and their values.
+
+      See LIST command for all of the command names and their purposes.
+
+
+
+      13                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.12  LCYL - Specify Lowest Cylinder Tested
+
+
+      Usage: TEST 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22,
+                  24.
+
+
+      Syntax: LCYL nnn
+
+      Default: 0
+
+      Values:  0 to 197 hex.
+
+      Description:  This command sets the low cylinder boundary for  read and
+      write tests.
+
+
+
+
+      7.13  LIST - Diagnostic command definitions
+
+
+      Usage: Not used by any TESTS.
+
+      Syntax: LIST
+
+      Default: None
+
+      Description:  This  command displays  all  of the  commands'  names and
+      definitions.
+
+      See OPTN command for a list of current commands and values.
+
+      See HELP command for all of the test names and their purposes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      14                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.14  LOOP - Specify Loop Count
+
+
+      Usage: All TESTS
+
+      Syntax: LOOP nnnn
+
+      Default: 1
+
+      Values:  1 to FFFF hex.
+
+      Description:   This command  specifies the  number of  times  tests are
+      executed.  The "OPTN" command will display the current value of "LOOP",
+      as well as all other commands.
+
+
+      NOTE:  If a number greater than FFFF is input, the monitor  converts it
+      to FFFF.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      15                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.15  MESG - Message Control Command
+
+
+      Usage: All TESTS
+
+      Syntax: MESG n
+
+      Default: 1
+
+      Values: 1, 2, 3, 4, 5, 6, or 7.
+
+      Description:  This  command  controls the  type  of  messages  that the
+      diagnostic will print.  If no command is  entered, then the  default is
+      selected. The values for n have the following meanings:
+
+
+           1 - Display all messages
+
+           2 - Display only error messages  *
+
+           3 - Display no messages
+
+           4 - Display  only pass  and error  counts (includes  only the
+               last end of test message)
+
+           5 - Display only error messages and pass and error counts  *
+
+           6 - Display all messages except error messages (includes test
+               heading and "NO ERROR" messages)
+
+           7 - Display only pass and error counts once every 10 passes
+
+
+      * The error messages include  the number of the failing  test. The
+        last end of  test message  is also  displayed at the end  of the
+        last pass through the selected tests.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      16                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.16  OPTN - Display Current Options
+
+
+      Usage: Not used by any TESTS.
+
+      Syntax: OPTN
+
+      Default: None
+
+      Description:  This command displays  current values for all commands.
+
+      NOTE: When the diagnostic is started or restarted at 0A00,  all options
+      are reset to their default values.
+
+      See HELP command for all of the test names and their purposes.
+
+      See LIST command for all of the command names and their purposes.
+
+
+
+
+      7.17  PLTR - Select Platter for Tests
+
+
+      Usage: All TESTS except TEST 5.
+
+      Syntax: PLTR n
+
+      Default:  2
+
+      Values:  1 or 2.
+
+      Description:  This command specifies which platter (fixed or removable)
+      will be used during tests.
+
+
+           PLTR 1 - Specifies the FIXED platter.
+
+           PLTR 2 - Specifies the REMOVABLE platter.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      17                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.18  RUN  - Begin Selected Test(s)
+
+
+      Usage: All TESTS
+
+      Syntax: RUN
+
+      Default: None
+
+      Description:   This   command  initiates   execution  of   those  tests
+      previously selected using the "TEST" command.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      18                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.19  SCOP - Specify Scope Loop Tests Read/Write Mode
+
+
+      Usage: TEST 15, 16, 17, 18, 19, 20.
+
+      Syntax: SCOP n
+
+      Default: 0
+
+      Values:  0, 1, 2, or 3.
+
+      Description:  SCOP specifies  the way data  will be handled  during the
+      Scope Loop Tests (Tests 15 decimal through 20 decimal).
+
+
+           If SCOP = 0 mode = READ/WRITE.
+
+           If SCOP = 1 mode = READ  ONLY.
+
+           If SCOP = 2 mode = WRITE ONLY.
+
+           If SCOP = 3 mode = READ/WRITE/VERIFY.
+
+
+      If a value  is entered which conflicts  with a test which  has specific
+      requirements for  the value  of "SCOP", the  following message  will be
+      output:
+
+                              "INVALID SCOP COMMAND"
+
+      and execution of the test is terminated.
+
+      Note: The SCOP in no way  changes the effect of the WRIT  command. That
+      is, if the  SCOP command selects  a write mode and  WRIT = 0,  tests is
+      through 20 decimal will not execute.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      19                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.20  SECT - Select Scope Loop Head and Sector
+
+
+      Usage: TEST 12, 15, 16, 17, 18, 19, 20, 21.
+
+      Syntax: SECT hhss
+
+      Default: 0000
+
+      Values: HH = 00 or 01.
+              SS = 00 to 17 hex.
+
+      Description:  This  command selects  a head and  sector for  scope loop
+      tests (Tests  15 -  20 decimal),  where hh is  the head  and ss  is the
+      sector; the specific head selected is also affected by the PLTR command
+      - PLTR 1  specifies a fixed platter,  while PLTR 2 selects  a removable
+      cartridge.
+
+      If HH 00 - The TOP head is selected for the platter under test.
+
+      If HH 01 - The BOTTOM head is selected for the platter under test.
+
+      If an improper "SECT" value is entered or if SECT=0117 (hex) and SIZE=1
+      (second  sector transfered  is out  of the  SECT command's  range), the
+      following message will be output:
+
+                    "INVALID SECTOR/HEAD NUMBER (SECT) COMMAND"
+
+      and execution of the selected test is terminated.
+
+
+
+
+      7.21  SEEK - Select Scope Loop Seek or Restore Mode
+
+
+      Usage: TEST 22.
+
+      Syntax:  SEEK n
+
+      Default: 0
+
+      Values:  0 or 1.
+
+      Description:  This option is used  with the Seek Scope Loop  Test (Test
+      21.   It determines  whether Test  21 SEEKS  between two  cylinders, or
+      SEEKS LCYL followed by a RESTORE to cylinder 0.
+
+      If SEEK 0 - Test 21 SEEKS to LCYL (low cylinder) followed by  a RESTORE
+      (as opposed to a seek) to CYLINDER 0.
+
+      If SEEK 1 -  Test 21 SEEKS between LCYL and HCYL.
+
+
+      20                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.22  SEMI - Select MOS memory type
+
+
+      Usage: TEST 1, 24.
+
+      Syntax: SEMI
+
+      Default: None
+
+      Description: This command automatically changes the TIME command to 150
+      (MOS memory).
+
+      TIME and CORE commands also affect the time constant.
+
+
+
+
+      7.23  SIZE - Select Scope Buffer Transfer Count
+
+
+      Usage: TEST 12, 15, 16.
+
+      Syntax: SIZE n
+
+      Default: 1
+
+      Values:  1 or 2
+
+      Description:   This command  selects either  a one  or two  sector data
+      transfer for  the Multi-disc  test (Test 12)  and the  read/write scope
+      loops (Tests 15 and 16).
+
+
+           SIZE 1 = One sector transfer.
+
+           SIZE 2 = Two sector transfer.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      21                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.24  SLCH - Specify Selector Channel Device Address
+
+
+      Usage: TEST 1, 24.
+
+      Syntax: SLCH nn
+
+      Default: F0
+
+      Values:  0 to FF hex.
+
+      Description:   This  command  specifies  the  selector  channel  device
+      address.
+
+
+
+
+      7.25  SNUM - Specify Sectors Transferred During Tests
+
+
+      Usage: TEST 8, 9, 10.
+
+      Syntax: SNUM n
+
+      Default: 4
+
+      Values:  1, 2, 3, 4, or 5.
+
+      Description:  This command  specifies the number of  sectors transfered
+      during data tests (Tests 8 - 10 decimal); "N" sectors are transfered.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      22                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.26  STOP - Error Stop Control Command
+
+
+      Usage: TESTS 1-23
+
+      Systax: STOP nnnn
+
+      Default: 0
+
+      Values: 0 to FFFF hex.
+
+      Description:  This command  controls what  action the  diagnostic takes
+      when an error is encountered. If the error count is equal to the number
+      entered with  the STOP  command, the diagnostic  program will  stop, no
+      matter what value  has been entered  for the LOOP  command.  Otherwise,
+      the diagnostic continued to the next test.
+
+      NOTE:  If a number greater than FFFF is input, the monitor  converts it
+      to FFFF.
+
+      If an error is detected in the Disk Formatter (Test 24), the diagnostic
+      will  not continue  to the  next test;  and execution  of Test  24 will
+      terminate.
+
+
+
+
+      7.27  TEST - Specify Test Numbers
+
+
+      Usage: All TESTS
+
+      Default: Tests 1 through 10
+
+      Values:  Any valid test number in decimal (1 through 24).
+
+      Description:  This command specifies the tests to be run, where n  is a
+      test number in decimal. Enter  test numbers separated by a  comma; e.g.
+      "TEST 3,5,7<cr>" specifies that tests  three, five and seven are  to be
+      executed (enter  "RUN"  to  begin tests).  Test  1  (Status  Test) will
+      ALWAYS be the first test executed - it can not be "by-passed".
+
+      Entering TEST  followed IMMEDIATELY  by a  carriage return  will select
+      default tests (tests 1 through 10).
+
+      ADDT and DELT commands also affect the selected tests.
+
+
+
+
+
+
+
+
+      23                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.28  TIME - Specify Memory Type Time Constant
+
+
+      Usage: TEST 1, 24.
+
+      Syntax: TIME nnn
+
+      Default: 140 (CORE Memory)
+
+      Values:  140 or 150.
+
+      Description:   MOS or  Core type  memories have  different  cycle times
+      which  affect  the  duration  of  spin  timers  used  during diagnostic
+      operation.  For this reason  it is necessary to provide  the diagnostic
+      with a value required to produce a 1 milli-second time out value.
+
+
+           If TIME 140 - Memory type = CORE.
+
+           If TIME 150 - Memory type = MOS.
+
+           If the system has both Core and MOS, use TIME 140.
+
+
+      If TIME = 150 (MOS memory) prior to entering the "RUN" command  for the
+      Seek Scope Loop (Test 21), the following message is output:
+
+              THE TEST TIME COMMAND MUST BE SET TO 140 FOR CORE MEMORY
+
+      and execution of Test 21 is terminated.
+
+      CORE and SEMI commands also affect the time constant.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      24                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.29  WRIT - Select Read/Write Mode
+
+
+      Usage: TEST 6, 7, 8, 9, 10, 13, 14, 15, 16, 17, 18, 19, 20, 23, 24.
+
+      Syntax: WRIT n
+
+      Default: 0
+
+      Values:  0,1
+
+      Description:   This command  specifies the  mode of  operation  for the
+      currently selected pack.
+
+      WRIT 0 - Read Only Mode: A CE (i.e. alignment) pack or customer pack is
+      currently selected.
+
+      WRIT 1 - Read/Write Mode: A Read/Write (i.e. scratch) pack is currently
+      selected.
+
+      Any test that writes  on the disc checks the  WRIT flag for a  value of
+      "1" prior  to executing. If  the WRIT flag  equals "1", the  write type
+      test  executes.  If  the  WRIT flag  equals  "0", the  write  type test
+      displays the warning message:
+
+
+      NOTE: TERMINATING TEST. WRITE TYPE TEST TRIED WHEN WRIT FLAG = 0.
+
+      and immediately  terminates execution  of that  test, then  continue to
+      next test.
+
+      This procedure,  in conjunction  with having the  default value  of the
+      WRIT flag equal to "0", will help prevent accidental damage to customer
+      or CE type discs.
+
+      Tests  that do  not write  on the  disc, do  not check  the  WRIT flag.
+      Therefore, they can be run on  customer or CE packs if no  scratch pack
+      is available.
+
+      WARNING: WRIT should never be set to 1 for a CE or customer pack. If it
+      is, the pack will be destroyed.
+
+      Test 23, the Alignment Test, handles the WRIT flag differently than any
+      other test. Test 23 is only useful for CE packs. Therefore, if  Test 23
+      is started and the WRIT flag equals "1", Test 23 changes the  WRIT flag
+      to "0" to keep subsequent tests from writing on the CE pack.
+
+      After executing, Test 23 displays the following message:
+
+
+      * ALIGNMENT TEST COMPLETED. PLEASE REMOVE THE CE PACK AND INSERT A
+        SCRATCH PACK INTO DRIVE!!  TO REENABLE DISC WRITES, TYPE  WRIT 1
+        AT END OF TEST
+
+      25                                          10 MB Disc Diag. User Guide
+      COMMANDS                                               November 5, 1987
+
+
+      7.30  XDRV - Specify Secondary Drive Command
+
+
+      Usage: TEST 12
+
+      Syntax: XDRV n
+
+      Default: 1
+
+      Values:  0, 1, 2, or 3.
+
+      Description:   This  command specifies  which  disc drive  will  be the
+      secondary disc drive in the Multi-Disc Test (test 12).
+
+      This version of the diagnostic has not been run on a  system containing
+      more than two drives.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      26                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+
+
+
+      8 -  DIAGNOSTIC DESCRIPTIONS
+
+
+
+
+      The test descriptions show the commands used by each test to access the
+      disk (or channel) or to set internal time constants.  Each one of these
+      commands is used by one, more than one, or all of the tests.  The other
+      commands are not shown because  they are more general and  either apply
+      to all tests  or are not relevant  to any particular test.   (These are
+      the test  select/control commands, the  informational commands,  or the
+      error handling command.)
+
+
+
+
+      8.1  TEST 1 - Status Test
+
+
+      Commands used:  CONT, CORE, DRIV, PLTR, SEMI, SLCH, TIME.
+
+      Execution time:  Approximately 2 seconds.
+
+      This test  senses initial selector  channel, disc controller,  and disc
+      drive status.   This test  is always the  first run  and cannot  be by-
+      passed.
+
+      Test 1 does not change the console display.
+
+
+
+
+
+      8.2  TEST 2 - Seek/Restore Test
+
+
+      Commands used:  BYAD, CONT, DRIV, PLTR.
+
+      Execution time:  Approximately 4 seconds.
+
+      This test checks the restore command and all cylinder address bits.  It
+      does not directly test head positioning hardware.  Following  each seek
+      and restore operation the address  at head 0, sector 0 of  the selected
+      cylinder is checked unless address checking is bypassed ("BYAD 1").
+
+      This test performs the following operations:
+
+
+           Step  1 - Restore the disc drive
+           Step  2 - Seek the highest cylinder (HCYL)
+
+      27                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+           Step  3 - Restore to cylinder 0
+           Step  4 - Seek to cylinder 256
+           Step  5 - Restore to cylinder 0
+           Step  6 - Seek cylinder 128
+           Step  7 - Restore
+           Step  8 - Seek cylinder 64
+           Step  9 - Restore
+           Step 10 - Seek cylinder 32
+           Step 11 - Restore
+           Step 12 - Seek cylinder 16
+           Step 13 - Restore
+           Step 14 - Seek cylinder 8
+           Step 15 - Restore
+           Step 16 - Seek cylinder 4
+           Step 17 - Restore
+           Step 18 - Seek cylinder 2
+           Step 19 - Restore
+           Step 20 - Seek cylinder 1
+
+
+
+      Test  2 changes  the CCC  field of  the console  display to  HCYL, 100,
+      80,40, 20, 10, 8, 4, 2, and 1 (hex). The HH and SS fields are zeroed.
+
+
+
+
+
+      8.3  TEST 3 - Oscillating Seek Test
+
+
+      Commands  used:  BYAD, CONT, DRIV, HCYL, PLTR.
+
+      Execution time:  Approximately 1 minute maximum.
+
+      This test checks the head positioning servo by twice  executing forward
+      and reverse seeks of all possible lengths, and cylinders.
+
+      The  test restores,  verifies  cylinder address,  then  seeks cylinders
+      HCYL, 1, HCYL-1, 2, HCYL-2, 3, HCYL-3, 4 ...  HCYL-(HCYL-l), HCYL, HCYL
+      -HCYL(=0).   After each  seek, the  address is  checked  unless address
+      checking is bypassed ("BYAD 1").
+
+      Test 3 changes the CCC field of the console display to 0 - HCYL. The HH
+      and SS fields are zeroed.
+
+
+
+
+
+
+
+
+
+      28                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+      8.4  TEST 4 - Random Seek Test
+
+
+      Commands used:  BYAD, CONT, DRIV, PLTR.
+
+      Execution time:  Approximately 30 seconds.
+
+      This test  is intended to  find intermittent errors  or errors  in head
+      positioning that may  otherwise escape detection.   Multiple iterations
+      of  this  test,  (achieved  through  the  use  of  the  "LOOP" command)
+      constitute the most comprehensive  test of seek, and  head positioning,
+      hardware.
+
+      This  test restores,  followed by  1000 pseudo-random  (i.e.  Fibonacci
+      number sequence) seek/address verify operations.  After each  seek, the
+      address is checked unless address checking is bypassed ("BYAD 1").
+
+      Test 4 zeros the CCC, HH, and SS fields in the console display.
+
+
+
+
+
+      8.5  TEST 5 - Interrupt Seek Test
+
+
+      Commands used: CONT, DRIV, HCYL.
+
+      Execution time:  Approximately 2 seconds.
+
+      This test  checks seek  interrupt hardware.  This  test does  not check
+      head positioning  hardware nor verify  sector addresses.  It  should be
+      run in  conjunction with other  seek tests  (Tests 2 -  4) in  order to
+      fully test seek hardware.
+
+
+           1.  Heads SEEK to Track 0.
+
+           2.  Heads Seek to Track HCYL using interrupt control.
+
+           3.  A seek to  Track HCYL command  is issued again;  a second
+               interrupt with  RSRW (Ready to  Seek Read Write)  true is
+               expected.
+
+
+      Test 5 changes the CCC field of the console display to 0 and  HCYL. The
+      HH and SS fields are zeroed.
+
+
+
+
+
+
+
+      29                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+      8.6  TEST 6 - Multisector Test
+
+
+      Commands used:  CONT, DRIV, LCYL, PLTR, WRIT.
+
+      Execution time:  Approximately 2 seconds.
+
+      This test should always be run prior to running tests 8 - 10.   This is
+      the only test that verifies proper handling of cylinder overflow by the
+      disc sub-system.
+
+      This  test exercises  multisector  data transfer,  head  switching, and
+      cylinder  overflow logic.   This is  the only  test  which specifically
+      checks proper execution of multisector transfers and  cylinder overflow
+      detection logic.  It operates as follows:
+
+
+           1.  SEEK (low cylinder) "LCYL"  and perform a 262  byte write
+               at the highest sector of head 0.  This will cause 6 bytes
+               of data to  be "overflowed" onto  head 1, sector  0; this
+               data will be read/compared to verify  proper multi-sector
+               operation and head switching logic.
+
+           2.  A 262  byte write  to the highest  sector of  the highest
+               track  is  performed,  and  the  cylinder  overflow  flag
+               tested, to verify proper overflow detection.  A  256 byte
+               read of the sector  is then performed to  validate proper
+               data transfer.
+
+           3.  An attempt  to read  from a  non-existent sector  will be
+               used to synthesize a "CMP" (compare) error.   Upon proper
+               detection  of this  error the  disc sub-system  is reset;
+               "CMP" is verified to have been cleared.
+
+
+      Test 6 changes  the CCC field  of the console  display to LCYL.  The HH
+      field is 0 or 1;  the SS field is 0 to 18.
+
+
+
+
+
+      8.7  TEST 7 - Interrupt Data Test
+
+
+      Commands used:  CONT, DRIV, LCYL, PLTR, WRIT.
+
+      Execution time:  Approximately 2 seconds.
+
+      This test checks data  transfer interrupt sequencing; it DOES  NOT test
+      data transfer logic.  Data currently on the disc is not destroyed.
+
+
+
+      30                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+      While under interrupt control, this test seeks the low  cylinder "LCYL"
+      and reads four  bytes from head 0,  sector 0.  The selector  channel is
+      expected  to  interrupt,  after which  the  controller  is  expected to
+      interrupt.  Status is then checked (longitudinal parity is ignored).
+
+      Test 7 changes the CCC field of the console display to LCYL. The HH and
+      SS fields are zeroed.
+
+
+
+
+
+      8.8  TEST 8 - Spiral Data Pattern Test
+
+
+      Commands used:  CONT, DELH, DRIV, HCYL, LCYL, PLTR, SNUM, WRIT.
+
+      Execution time:  Approximately 16 minutes, 40 seconds  maximum.
+
+      This test writes an ascending  8-bit data pattern (i.e.  00 to  FF hex)
+      to each of the 256 byte sectors bounded by "LCYL" and "HCYL".
+
+      Testing is performed on all  sectors bounded by low cylinder  "LCYL" to
+      high cylinder  "HCYL" in  a write/read/verify  sequence; the  number of
+      sectors transfered during a given write/read operation is determined by
+      "SNUM" - 4 sectors default, 5 maximum. The larger the SNUM command, the
+      faster the test  since a larger SNUM  checks more sectors  per transfer
+      (revolution) than a smaller SNUM.
+
+      Defective sector errors will be reported to the display device but WILL
+      NOT cause termination of Test 8.
+
+      Test 8 changes  the CCC field  of the console  display to LCYL  - HCYL.
+      The HH field is 0 and 1; SS field is 0 - 17.
+
+
+
+
+
+      8.9  TEST 9 - Worst Case Data Test
+
+
+      Commands used:  CONT, DELH, DRIV, HCYL, LCYL, PLTR, SNUM, WRIT.
+
+      Execution time:  Approximately 16 minutes, 40 seconds maximum.
+
+      This test utilizes  a data pattern of  "BD" hex; this value  was chosen
+      for its  alternating "one-zero-one-one"  ("B" hex),  and "one-one-zero-
+      one" (D hex) - (so called worst case),  bit pattern.
+
+      Testing is performed on all  sectors bounded by low cylinder  "LCYL" to
+      high cylinder  "HCYL" in  a write/read/verify  sequence; the  number of
+
+
+      31                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+      sectors transfered during a given write/read operation is determined by
+      "SNUM" - 4  sectors default, 5 maximum.   The larger the  SNUM command,
+      the  faster  the test  since  a  larger SNUM  checks  more  sectors per
+      transfer  (revolution) than a smaller SNUM.
+
+      Defective sector errors will be reported to the display device but WILL
+      NOT cause termination of Test 9.
+
+      Test 9  changes the  CCC field of the  console display to LCYL  - HCYL.
+      The HH field is 0 and 1; the SS field is 0 - 17.
+
+
+
+
+
+      8.10  TEST 10 - Random Data Test
+
+
+      Commands used:  CONT, DELH, DRIV, HCYL, LCYL, PLTR, SNUM, WRIT.
+
+      Execution time:  Approximately 16 minutes, 40 seconds maximum.
+
+      This  is  the most  thorough  write/read/verify diagnostic  -  the data
+      pattern is a Fibonacci pseudo-random number sequence.
+
+      Testing is performed on all  sectors bounded by low cylinder  "LCYL" to
+      high cylinder  "HCYL" in  a write/read/verify  sequence; the  number of
+      sectors transfered during a given write/read operation is determined by
+      "SNUM" - 4  sectors default, 5 maximum.   The larger the  SNUM command,
+      the  faster  the test  since  a  larger SNUM  checks  more  sectors per
+      transfer  (revolution) than a smaller SNUM.
+
+      Defective sector errors will be reported to the display device but WILL
+      NOT cause termination of test 10.
+
+      Test 10 changes CCC field of the console display to LCYL - HCYL  The HH
+      field is 0 and 1; the SS field is 0 - 17.
+
+
+
+
+
+      8.11  TEST 11 - Read Only Test
+
+
+      Commands used:  CONT, DRIV, HCYL, LCYL, PLTR.
+
+      Execution time:  Approximately 8 minutes 30 seconds maximum.
+
+      This test performs seek and read operations with normal error checking.
+      It does not alter disc data  or compare the data read with any expected
+      value.
+
+
+      32                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+      This test  seeks low cylinder  "LCYL", followed by  a sector  by sector
+      read of each  cylinder, until all  cylinders between "LCYL"  and "HCYL"
+      have been read.
+
+      Test 11 changes the  CCC field of the  console display to LCYL  - HCYL.
+      The HH field displays 0 and 1; the SS field displays 0 -17.
+
+
+
+
+
+      8.12  TEST 12 - Multi-Disc Test
+
+
+      Commands used:  CONT, DRIV, HCYL, LCYL, PLTR, SECT, SIZE, XDRV.
+
+      Execution time: Approximately 45 seconds.
+
+      This test performs alternating (non-simultaneous) multi-disc operations
+      on two disc drives.  To run this test,  both drives need to  be powered
+      on.
+
+           Step 1  - The test starts by  checking ESELCH status for  not busy
+                     and controller status for IDLE.
+
+           Step 2  - The test then restores  the drive specified by  the XDRV
+                     command.
+
+           Step 3  - When  controller status  IDLE equals  1  (indicating the
+                     completion  of  the  disc  operation  initiated  in  the
+                     previous step), the test restores the drive specified by
+                     the DRIV command.
+
+           Step 4  - When controller status IDLE equals 1, the test  seeks to
+                     the cylinder specified by HCYL on the XDRV drive.
+
+           Step 5  - When  controller status  IDLE equals  1  (indicating the
+                     XDRV  drive has  reached  the HCYL  cylinder),  the test
+                     writes the cylinder number on the HCYL cylinder of drive
+                     XDRV.
+
+           Step 6  - When controller status IDLE equals 1, the test  seeks to
+                     cylinder 1 on the drive specified by DRIV.
+
+           Step 7  - When controller  status IDLE equals  1, the  test writes
+                     the cylinder number (1) on cylinder 1 of drive DRIV.
+
+           Step 8  - When controller status IDLE equals 1, the test  seeks to
+                     sector 0, cylinder LCYL on drive XDRV.
+
+           Step 9  - When  controller   status  IDLE   equals  1,   the  test
+                     writes/reads/verifies  random   data  on   sector  SECT,
+                     cylinder LCYL of drive XDRV.
+
+      33                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+           Step 10 - When controller status IDLE equals 1, the test  seeks to
+                     sector 0, cylinder LCYL on drive DRIV.
+
+           Step 11 - When  controller   status  IDLE   equals  1,   the  test
+                     writes/reads/verifies  random   data  on   sector  SECT,
+                     cylinder LCYL of drive DRIV.
+
+           Step 12 - The test then repeats steps 8 through 11 a total  of 127
+                     times.  This procedure  gives  a total  256  random data
+                     transfers, which alternate between drive DRIV  and drive
+                     XDRV.
+
+
+      To check  data transfers  between the fixed  and removable  platters in
+      same drive of a 10 MB disc drive, specify  the same drive for  both the
+      DRIV and XDRV commands.
+
+      NOTE: If the "BREAK" key  is entered while testing a  single drive
+            with  this  test,  the  value of  PLTR  command  may  not be
+            restored to the value it had at the start of the test.
+
+      Test 12 changes the  CCC field of the  console display to LCYL.  The HH
+      and SS fields display 0 and the value specified by the SECT command.
+
+
+
+
+
+      8.13  TEST 13 - Format Mode Test
+
+      Commands used:  BYAD, CONT, DRIV, LCYL, PLTR, WRIT.
+                      FORMAT MODE SWITCH ON CONTROLLER = "FORMAT MODE".
+
+      Execution time:  Approximately 2 seconds.
+
+      This test  is used for  format mode checking  of a disc  cartridge.  It
+      does not destroy existing format, nor perform surface analysis tests.
+
+      This test seeks low  cylinder "LCYL" and performs the  following format
+      mode writes using head 0:
+
+           Step 1 - Sector 0 is formatted with DEF TRK SET.
+           Step 2 - Sector 2 is formatted with a faulty parity field.
+           Step 3 - Sector 4 is formatted with a faulty sector address field.
+           Step 4 - Sector 6 is formatted properly.
+           Step 5 - Sector 7 is formatted with a faulty head bit (=1).
+
+      The following normal mode reads are performed:
+
+           Step 1 - Sector 0 is read, DEF track status expected
+           Step 2 - Sector 2 is read, parity error expected
+           Step 3 - Sector 4 is read, address compare error expected
+           Step 4 - Sectors 6 and 7 are read in one data transfer,
+
+      34                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+                    address compare error expected
+
+
+
+      After  each seek,  the address  is checked  unless address  checking is
+      bypassed ("BYAD 1").
+
+      At the end of this test, sectors 0 - 7 are reformatted correctly.
+
+      The Disc Controller Format  switch must be in the  appropriate position
+      (toward the "F") to enable  the hardware to respond to format  read and
+      write operation.  If the  format switch  not in  the <F>  position, the
+      following message is output:
+
+
+                  "THE FORMAT SWITCH MUST BE IN THE <F> POSITION"
+
+      and execution of test 13 is terminated.
+
+      WARNING:  If this  test terminates  normally or by  use of  the "break"
+      key,  the format  of the  disc will  be restored  to normal.  Any other
+      termination,  such as  hitting  the boot  switch, will  leave  the disc
+      incorrectly formatted.
+
+      Test 13 changes the  CCC field of the  console display to LCYL.  The HH
+      field is 0, the SS field is 0 - 7.
+
+
+
+
+
+      8.14  TEST 14 - Manual Intervention Test
+
+
+      Commands used:  CONT, DRIV, PLTR, WRIT.
+
+      Execution time:  Directly affected by operator.
+
+      This test checks the manual controls at the front of a disc drive unit;
+      because it  requires operator  interaction, it is  not included  in the
+      default sequence.
+
+      The test should be initiated on a currently operating drive  unit.  The
+      following sequence is based on successful completion of  each preceding
+      step:
+
+
+           1.  The operator is requested  to turn the DISK  DRIVE switch
+               off  and to  press  the return  key after  the  switch is
+               turned  off. The  diagnostic then  checks the  disc drive
+               status for the not ready condition.
+
+
+
+      35                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+           2.  The operator  is requested to  press the return  key when
+               the SAFE light at  the front of the unit  is illuminated.
+               The diagnostic does not  check any status at  this point.
+               The  only purpose  of  this step  is do  ensure  that the
+               operator  has allow  the drive  to reach  the  SAFE state
+               before  going  on  to the  next  step,  which  checks the
+               drive's ready status.
+
+           3.  The operator is requested  to turn the DISK  DRIVE switch
+               on, wait until the  READY light comes on, and  then press
+               the return key. The diagnostic then checks the disc drive
+               status for the ready condition.
+
+           4.  This step verifies that  the write protect status  bit of
+               the platter selected  by the PLTR  command can be  set to
+               the write protect condition.
+
+               If PLTR=2 (specifies the removable platter), the operator
+               is requested to turn the PROTECT REMOVABLE switch  on and
+               to press the  return key after  the switch is  turned on.
+               The  diagnostic  then  checks  if  the  PROTECT REMOVABLE
+               status bit is on.
+
+               If PLTR=1 (specifies the fixed platter), the  operator is
+               requested  to turn  the PROTECT  FIXED switch  on  and to
+               press the return key  after the switch is turned  on. The
+               diagnostic then checks if the PROTECT FIXED status bit is
+               on.
+
+           5.  This step verifies that  the write protect status  bit of
+               the platter selected  by the PLTR  command can be  set to
+               the write enable condition.
+
+               If PLTR=2 (specifies the removable platter), the operator
+               is requested  to  turn the  PROTECT REMOVABLE  switch off
+               and to press  the return key  after the switch  is turned
+               off. The diagnostic then checks if the  PROTECT REMOVABLE
+               status bit is off.
+
+               If PLTR=1 (specifies the fixed platter), the  operator is
+               requested to  turn the  PROTECT FIXED  switch off  and to
+               press the return key after the switch is turned off. This
+               diagnostic then checks if the PROTECT FIXED status bit is
+               off.
+
+
+      Note: The lights in the disc drive's rocker switches are  often broken.
+      If this is the case,  the operator may have trouble remembering  how to
+      turn disc drive switches on and  off. To assist in this case,  here are
+      the following definitions of "on" and "off":
+
+
+
+
+      36                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+           1.  If the  top half of  a rocker switch  is pressed  in, the
+               switch is on.
+
+           2.  If the bottom half of a rocker switch is pressed  in, the
+               switch is off.
+
+
+      If Test  14 is unable  to detect successful  completion of any  step it
+      will re-display the current (most recently displayed) prompt;  the test
+      may be exited for this, or any other reason, by entering "break" key.
+
+      "MESG" command does not change the message output in this test.
+
+      Test 14 does not change the console display.
+
+
+
+
+
+      8.15  TEST 15 - Normal Mode Oscilloscope Loop
+
+
+      Commands used:  CONT, DATA, DRIV, LCYL, PLTR, SCOP, SECT, SIZE, WRIT.
+
+      Execution time:  Approximately 3 minutes 45 seconds maximum.
+
+           NOTE:  All scope  loop have a  "built in" loop  counter which
+                  controls their duration.  For longer intervals use the
+                  "LOOP" command.
+
+      This test  loops through a  write/read operation, with  read/write mode
+      determined by the value of  the "SCOP" command. The accessed  sector is
+      determined by the LCYL and SECT commands.
+
+
+      Test 15 changes the  CCC field of the  console display to LCYL.  The HH
+      and SS fields display the SECT number.
+
+
+
+
+
+      8.16  TEST 16 - Format Mode Oscilloscope Loop
+
+      Commands used:  CONT, DATA, DRIV, LCYL, PLTR, SCOP, SECT, SIZE, WRIT.
+                      FORMAT MODE SWITCH ON CONTROLLER = "FORMAT MODE".
+
+
+      Execution time:  Approximately 3 minutes 45 seconds maximum.
+
+           NOTE:   All  scope  loop  have  a  "built  in" loop
+                  counter which controls their  duration.  For
+
+
+      37                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+                  longer intervals use the "LOOP" command (See
+                  page 15).
+
+      This  test reads  and writes  in format  mode.  The  header  is written
+      properly (without "DEF TRK" (defective track bit), with normal parity).
+      Scope loop read/write mode is determined by "SCOP". The accessed sector
+      is determined by the LCYL and SECT commands.
+
+      The Disc Controller Format  switch must be in the  appropriate position
+      (toward the "F") to enable  the hardware to respond to format  read and
+      write operation.  If the  format switch  not in  the <F>  position, the
+      following message is output:
+
+                  "THE FORMAT SWITCH MUST BE IN THE <F> POSITION"
+
+      and execution of test 16 is terminated.
+
+      Test 16 changes the CCC field  of the console display to LCYL.   The HH
+      and SS fields display the SECT number.
+
+
+
+
+
+      8.17  TEST 17 - Defective Track Oscilloscope Loop
+
+      Commands used:  CONT, DATA, DRIV, LCYL, PLTR, SCOP, SECT, WRIT.
+                      (SCOP=1 and 3 are illegal options).
+                      FORMAT MODE SWITCH ON CONTROLLER = "FORMAT MODE".
+
+
+      Execution time:  Approximately 3 minutes 45 seconds maximum.
+
+           NOTE:  All scope  loop have a  "built in" loop  counter which
+                  controls their duration.  For longer intervals use the
+                  "LOOP" command (See page 15).
+
+      This test writes "DEF TRK" (defective track bit) into the header, using
+      format mode.  If  SCOP=0, A normal read  is then attempted  - defective
+      track status is expected. The accessed sector is determined by the LCYL
+      and SECT commands.
+
+      The Disc Controller Format  switch must be in the  appropriate position
+      (toward the "F") to enable  the hardware to respond to format  read and
+      write operation.  If the  format switch  not in  the <F>  position, the
+      following message is output:
+
+                  "THE FORMAT SWITCH MUST BE IN THE <F> POSITION"
+
+      and execution of test 17 is terminated.
+
+      WARNING:  If this  test terminates  normally or by  use of  the "break"
+
+
+      38                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+      key,  the format  of the  disc will  be restored  to normal.  Any other
+      termination,  such as  hitting  the boot  switch, will  leave  the disc
+      incorrectly formatted.
+
+      Test 17 changes the  CCC field of the  console display to LCYL.  The HH
+      and SS fields display the SECT number.
+
+
+
+
+
+      8.18  TEST 18 - Parity Error Oscilloscope Loop
+
+      Commands used:  CONT, DATA, DRIV, LCYL, PLTR, SCOP, SECT, WRIT.
+                      (SCOP = 1 and 3 are illegal options).
+                      (DATA must be non-zero for parity error synthesis).
+                      FORMAT MODE SWITCH ON CONTROLLER = "FORMAT MODE".
+
+
+      Execution time:  Approximately 3 minutes 45 seconds maximum.
+
+           NOTE:  All scope  loop have a  "built in" loop  counter which
+                  controls their duration.  For longer intervals use the
+                  "LOOP" command (See page 15).
+
+      This test writes a normal  header in format mode, followed by  a sector
+      write with bad data parity.  If SCOP=0, a normal read is performed  - a
+      parity error is expected. The accessed sector is determined by the LCYL
+      and SECT commands.
+
+      Data must be non-zero to synthesize a parity error.  If DATA is given a
+      value  of  zero,  the  following  message  will  be  output  instead of
+      executing test 18 (Parity Error Scope Loop Test):
+
+
+           * DATA MUST BE NON-ZERO IN THIS TEST
+
+
+      and execution of test 18 is terminated.
+
+      The Disc Controller Format  switch must be in the  appropriate position
+      (toward the "F") to enable  the hardware to respond to format  read and
+      write operation.  If the  format switch  not in  the <F>  position, the
+      following message is output:
+
+                  "THE FORMAT SWITCH MUST BE IN THE <F> POSITION"
+
+      and execution of test 18 is terminated.
+
+      WARNING:  If this  test terminates  normally or by  use of  the "break"
+      key,  the format  of the  disc will  be restored  to normal.  Any other
+      termination,  such as  hitting  the boot  switch, will  leave  the disc
+      incorrectly formatted.
+
+      39                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+      Test 18 changes the  CCC field of the  console display to LCYL.  The HH
+      and SS fields display the SECT number.
+
+
+
+
+
+      8.19  TEST 19 - Bad Address Oscilloscope Loop
+
+      Commands used:  CONT, DATA, DRIV, LCYL, PLTR, SCOP, SECT, WRIT.
+                      (SCOP = 1 and 3 are illegal options).
+                      FORMAT MODE SWITCH ON CONTROLLER = "FORMAT MODE".
+
+
+      Execution time:  Approximately 3 minutes 45 seconds maximum.
+
+           NOTE:  All scope  loop have a  "built in" loop  counter which
+                  controls their duration.  For longer intervals use the
+                  "LOOP" command (See page 15).
+
+      This test writes an invalid  sector number into the header  under test.
+      If SCOP=0,  a normal read  is performed and  a header compare  error is
+      expected.  The  accessed sector  is  determined by  the  LCYL  and SECT
+      commands.
+
+      The Disc Controller Format  switch must be in the  appropriate position
+      (toward the "F") to enable  the hardware to respond to format  read and
+      write operation.  If the  format switch  not in  the <F>  position, the
+      following message is output:
+
+                  "THE FORMAT SWITCH MUST BE IN THE <F> POSITION"
+
+      and execution of test 19 is terminated.
+
+      WARNING:  If this  test terminates  normally or by  use of  the "break"
+      key,  the format  of the  disc will  be restored  to normal.  Any other
+      termination,  such as  hitting  the boot  switch, will  leave  the disc
+      incorrectly formatted.
+
+      Test 19 changes the  CCC field of the  console display to LCYL.  The HH
+      and SS fields display the SECT number.
+
+
+
+
+
+
+
+
+
+
+
+
+
+      40                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+      8.20  TEST 20 - Faulty Head Oscilloscope Loop
+
+      Commands used:  CONT, DATA, DRIV, LCYL, PLTR, SCOP, SECT, WRIT.
+                      (SCOP = 1 and 3 are illegal options).
+                      FORMAT MODE SWITCH ON CONTROLLER = "FORMAT MODE".
+
+
+      Execution time:  Approximately 3 minutes 45 seconds maximum.
+
+           NOTE:  All scope  loop have a  "built in" loop  counter which
+                  controls their duration.  For longer intervals use the
+                  "LOOP" command (See page 15).
+
+      This test writes a faulty  head number into the header under  test.  If
+      SCOP=0,  a  normal read  is  executed  and a  header  compare  error is
+      expected.   The accessed  sector  is determined  by the  LCYL  and SECT
+      commands.
+
+      The Disc Controller Format  switch must be in the  appropriate position
+      (toward the "F") to enable  the hardware to respond to format  read and
+      write operation.  If the  format switch  not in  the <F>  position, the
+      following message is output:
+
+                  "THE FORMAT SWITCH MUST BE IN THE <F> POSITION"
+
+      and execution of test 20 is terminated.
+
+      WARNING:  If this  test terminates  normally or by  use of  the "break"
+      key,  the format  of the  disc will  be restored  to normal.  Any other
+      termination,  such as  hitting  the boot  switch, will  leave  the disc
+      incorrectly formatted.
+
+      Test 20 changes the  CCC field of the  console display to LCYL.  The HH
+      and SS fields display the SECT number.
+
+
+
+
+
+      8.21  TEST 21 - Read Check Oscilloscope Loop
+
+
+      Commands used:  CONT, DRIV, LCYL, PLTR, SECT.
+
+      Execution time:  Approximately 2 minutes.
+
+           NOTE:  All scope  loop have a  "built in" loop  counter which
+                  controls their duration.  For longer intervals use the
+                  "LOOP" command (See page 15).
+
+      This test read checks the sector specified by LCYL and SECT.
+
+
+
+      41                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+      Test 21 changes the  CCC field of the  console display to LCYL.  The HH
+      and SS fields display the SECT number.
+
+
+
+
+
+      8.22  TEST 22 - Seek Oscilloscope Loop
+
+
+      Commands used:  BYAD, CONT, DRIV, HCYL, LCYL, PLTR, SEEK.
+
+      Execution time:  Approximately 11 minutes 30 seconds, maximum.
+
+           NOTE:  All scope  loop have a  "built in" loop  counter which
+                  controls their duration.  For longer intervals use the
+                  "LOOP" command (See page 15).
+
+      This test seeks to a track and verifies its address (if BYAD = 0). If a
+      defective track  is discovered  an advisory  message is  displayed, and
+      execution of the test continues.
+
+      If "SEEK 0", the test SEEKS  LCYL followed by a RESTORE to Track  0. (7
+      minutes 17 seconds maximum)
+
+      If  "SEEK 1",  the test  SEEKs between  LCYL and  HCYL. (11  minutes 30
+      seconds maximum)
+
+      If "SEEK 0", Test  21 changes the CCC  field of the console  display to
+      LCYL. The HH and SS fields are zeroed.
+
+      If "SEEK 1", Test  21 changes the CCC  field of the console  display to
+      LCYL and HCYL.  The HH and SS fields are zeroed.
+
+
+
+
+
+      8.23  TEST 23 - Alignment Test
+
+      Commands used:  CONT, DRIV, PLTR, WRIT.
+                      (PLTR should equal 2 (removable cartridge)).
+
+      Execution time:  Directly affected by operator.
+
+      This test provides a means of performing head alignments.
+
+           Head  Alignment:   The test  seeks  cylinder  146 -
+                  enter a  carriage return  to proceed  to the
+                  next alignment step (Index to Burst).
+
+           Index to  Burst:  The  test seeks  cylinder 10  - a
+
+
+      42                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+                  carriage  return will  advance  to "Velocity
+                  Adjust - I".
+
+           Velocity  Adjust   -I:   The  test   seeks  between
+                  cylinders  236  and  237  until  a  carriage
+                  return  is  entered -  "Velocity  Adjust II"
+                  will automatically begin.
+
+           Velocity  Adjust  -II:   The  test   seeks  between
+                  cylinders  0 and  405 until  carriage return
+                  terminates Test 23.
+
+           NOTE: After  executing, please  remove the  CE pack
+                  and  insert a  scratch pack  into  drive. To
+                  reenable disc writes, type WRIT 1.
+
+      Test  23 changes  the CCC  field of  the console  display to  092, 00A,
+      EC/ED, 0/195. The HH and SS fields are zeroed.
+
+
+
+
+
+      8.24  TEST 24 - Disc Formatter
+
+
+      Commands used: CONT,  CORE, DRIV, HCYL,  LCYL, PLTR, SEMI,  SLCH, TIME,
+                     WRIT.
+
+
+      Execution  time:  Approximately  1  minute  3  seconds   (write  only).
+      Approximately 3 minutes 5 seconds (read/write).
+
+      The formatter for 10M byte drives performs a surface analysis  and then
+      formats the disk.  Defective cylinder found during the surface analysis
+      are flagged as defective by setting the defective track bit  (DEFT TRK)
+      in  the sector  format of  each sector  in the  cylinder.  An alternate
+      cylinder  map  is generated  within  the diagnostic  for  all defective
+      cylinders.  After the surface  analysis is completed, this  test clears
+      the disk by writting zeros.
+
+      If the default command values have not been changed, the disc formatter
+      will format  the standard  format range. The  standard format  range is
+      DRIVE 0, REMOVABLE PLATTER (PLTR  = 2), CYLINDERS 0 -  193 (inclusive).
+      194 - 197 (inclusive) are  used for alternate tracks. If  the cylinders
+      selected are the same as those in the standard format range (0  - 193),
+      all of the alternate cylinders (194 - 197) are formatted.
+
+      To specify a format range other than the standard format range, use the
+      DRIV, HCYL, LCYL, and PLTR commands.
+
+      The WRIT command must be set to 1 to run this test. (Set WRIT 1)
+
+
+      43                                          10 MB Disc Diag. User Guide
+      DIAGNOSTIC DESCRIPTIONS                                November 5, 1987
+
+
+      The disc controller format  switch must be in the  appropriate position
+      (toward the "F") to enable  the hardware to respond to format  read and
+      write operations.
+
+      Before formatting ran start, the operator must successfully  answer the
+      following four (4) introductory question:
+
+
+           * TEST  24 (DISC  FORMATTER)  WILL DESTROY  CUSTOMER  OR "CE"
+               PACKS!   ARE  YOU  SURE SUCH  PACKS  HAVE  BEEN REMOVED??
+               (ANSWER Y OR N):
+
+           * OK! JOB WILL DESTROY EXISTING FORMAT DATA ON  SCRATCH PACKS
+               AS WELL AS CUSTOMER AND "CE" PACKS!! CONTINUE?? (ANSWER Y
+               OR N):
+
+           * FORMAT SWITCH IN < F > POSITION? (ANSWER Y OR N):
+
+           *  TYPE N  KEY FOR  WRITE ONLY.   TYPE Y  KEY  FOR WRITE/READ
+               VERIFY.
+
+
+      Enter a "y" character to proceed  to the next step. If a  "n" character
+      is entered to any of the first three questions, execution is terminated
+      and the asterisk command prompt (*) is returned to the  display device.
+      If a "n" character is entered to the last question, the  Disc Formatter
+      writes  without  reading and  verifying.  If any  character  is entered
+      incorrectly, the following message will be output:
+
+
+
+           ?  * PLEASE RE-ENTER CORRECT CHARACTER (ANSWER Y OR N):
+
+
+      The operator may use the  CONT command to format more than  one platter
+      and/or  drive  at  a  time. In  this  case  the  Disc  Formatter's four
+      introductory questions will only  be asked once (before  formatting the
+      first platter).  The format  mode selected (write/read verify  or write
+      only) will apply to all selected platters/drives.
+
+      If an error  occurs in the Disk  Formatter, the CONT and  STOP commands
+      will be ignored; and execution of the Disk Formatter will terminate.
+
+      While  formatting the  disc,  this test  cannot be  exited  by entering
+      "break", This  restriction has  been implemented to  keep test  24 from
+      terminating with the disc partially formated.
+
+      "MESG" command does not change the message output in this test.
+
+      Test 24 changes the  CCC field of the  console display to LCYL  - HCYL.
+      The HH and SS fields are zeroed.
+
+
+
+      44                                          10 MB Disc Diag. User Guide
+      ERROR DESCRIPTION                                      November 5, 1987
+
+
+
+
+
+      9 -  ERROR DESCRIPTION
+
+
+
+      Error messages are sent to the terminal.  A typical message consists of
+      a four digit error code  that indicates the error type and  is followed
+      by additional information.   The error type  is indicated by  the first
+      two digits of the error code.
+
+
+                00 - Type 0 - Command error.
+                10 - Type 1 - Interrupt error.
+                20 - Type 2 - Status error.
+                30 - Type 3 - Data compare error.
+
+
+
+      NOTE: Another  type  of  error can  occured  without  causing  an error
+      message.  This type of error is a 1E9 DEAD display on the console. This
+      console display has occured when  the test was run using a  bad ESELCH,
+      if this console display or any other console display occurs, the memory
+      has probably been disturbed and the test should be reloaded.
+
+
+
+
+      9.1  Type 0 Error - Command Error
+
+
+      When an improper command is  detected, an error message will  be output
+      to  the terminal  followed  by the  'asterisk prompt'  (*).   The error
+      message consists  of an  error code  followed by  a description  of the
+      invalid command.  The format of this message is:
+
+                      0000 (Description of invalid command.)
+
+      Where the description is one of the following:
+
+
+                INVALID HIGH CYLINDER (HCYL) COMMAND
+                INVALID SECTOR/HEAD NUMBER (SECT) COMMAND
+                INVALID SCOP COMMAND
+                DATA MUST BE NON-ZERO IN THIS TEST
+                THE TEST PLTR SHOULD EQUAL 2 (REMOVABLE PLATTER)
+                THE TEST TIME COMMAND MUST BE SET TO 140 FOR CORE MEMORY
+                THE FORMAT SWITCH MUST BE IN THE <F> POSITION
+
+
+
+
+
+      45                                          10 MB Disc Diag. User Guide
+      ERROR DESCRIPTION                                      November 5, 1987
+
+
+      9.2  Type 1 Error - Interrupt Error
+
+
+      When the  diagnostic detects  an interrupt error,  an error  message is
+      output and the program execution is terminated and the asterisk command
+      prompt (*) is returned to the display device. The terminal displays:
+
+                             100n   PSW=pppp, LOC=llll
+
+      where n is  an Engine interrupt type,  pppp is the program  status word
+      when the  interrupt was sensed,  and llll the  location counter  at the
+      time the interrupt was sensed.
+
+      The Engine interrupt types are listed below:
+
+
+                1001 - Immediate interrupt (Device address error).
+                1002 - Illegal instruction interrupt.
+                1003 - Machine malfunction interrupt.
+                1005 - MAC interrupt.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      46                                          10 MB Disc Diag. User Guide
+      ERROR DESCRIPTION                                      November 5, 1987
+
+
+      9.3  Type 2 Error - Status Error
+
+
+      When the diagnostic  detects a status type  error, an error  message is
+      output and the program jumps to the next test. The terminal display:
+
+           20yz   DEV=dd, STA=s1 s2 s3, CYLINDER=vvv, HEAD=hh, SECTOR=kk
+
+      where:
+
+        y  is the Y-field (See Y-field error messages - Page 49)
+        z  is the Z-field (See Z-field error messages - Page 49)
+       dd**is the device address in error
+       s1  is the SELCH status
+       s2  is the controller status
+       s3  is the drive status
+      vvv  is the current cylinder number
+       hh  is the current head number
+       kk  is the current sector number
+
+      **The device address dd also indicates the controller or the  drive and
+      platter in error according to the following table:
+
+
+                B6 = Disc controller
+
+                C6 = Removable platter, drive 0
+
+                C7 = Fixed platter, drive 0
+
+                D6 = Removable platter, drive 1
+
+                D7 = Fixed platter, drive 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      47                                          10 MB Disc Diag. User Guide
+      ERROR DESCRIPTION                                      November 5, 1987
+
+
+      9.4  Type 3 Error - Data Compare Error
+
+
+      When the diagnostic detects a type 3 error, an error message  is output
+      and the program jumps to the next test. The message format is:
+
+            30yz DEV=dd, STA=s1 s2 s3, CYLINDER=vvv, HEAD=hh, SECTOR=kk
+                  GOOD=aaaaaaaaaaaaaaaaaaaa, BAD=bbbbbbbbbbbbbbbbbbbb
+
+      where:
+
+        y  is the Y-field (See Y-field error messages - Page 49)
+        z  is the Z-field (See Z-field error messages - Page 49)
+       dd**is the device address in error
+       s1  is the SELCH status
+       s2  is the controller status
+       s3  is the drive status
+      vvv  is the current cylinder number
+       hh  is the current head number
+       kk  is the current sector number
+
+      aaaaaaaaaaaaaaaaaaaa  is the data (hex) written to the disc
+      bbbbbbbbbbbbbbbbbbbb  is the data (hex) read from the disc
+
+      NOTE:  Type 3 errors are data comparison errors. Type 3 errors occur if
+      the  Disc  Formatter's  surface  analysis has  failed  5  retries  on a
+      cylinder and all of the available alternate cylinders have already been
+      assigned.
+
+      Type 3 errors  can only occur  in test 24.  If a data  comparison error
+      occurs in any other test, a type 2 error message with an error  code of
+      2084 is output.
+
+      **The device address dd also indicates the controller or the  drive and
+      platter in error according to the following table:
+
+
+                B6 = Disc controller
+
+                C6 = Removable platter, drive 0
+
+                C7 = Fixed platter, drive 0
+
+                D6 = Removable platter, drive 1
+
+                D7 = Fixed platter, drive 1
+
+
+
+
+
+
+
+
+      48                                          10 MB Disc Diag. User Guide
+      ERROR DESCRIPTION                                      November 5, 1987
+
+
+      9.5  Y-Field Error Messages
+
+
+      0 - Expecting initial status
+      1 - Performing seek operation, prior to command
+      2 - Performing seek operation , after command
+      3 - Performing restore operation, prior to command
+      4 - Performing restore operation, after command
+      5 - Performing read-check operation
+      6 - Performing write operation
+      7 - Performing read operation
+      8 - Performing data comparison operation
+      9 - Expecting write protect status from controller
+      A - Expecting defective track status from controller
+      B - Expecting address comparison error status from controller
+      C - Expecting cylinder overflow status from controller
+      D - Expecting longitudinal parity error/write protect 
+          violation status from controller
+      E - Expecting drive not ready status from controller
+      F - Expecting write protect status from controller
+
+
+
+
+      9.6  Z-Field Error Messages
+
+      0 - Controller status error (cylinder numbers 193 - 197, in
+          hexadecimal).
+      1 - Drive status error
+      2 - Time-out (The status snapshot after time-out may be irrelevant)
+      3 - Controller status error
+      4 - Data comparison error on normal read
+      5 - Data comparison error on offset read (Multi-sector test only)
+      9 - Selector channel address wrong after interrupt
+      A - Controller address wrong after interrupt
+      B - Selector channel status error
+      C - Expected error not found
+      E - Destination drive (XDRV) address compare error interrupt
+          (Multi-disc test only)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      49                                          10 MB Disc Diag. User Guide
+      DISC SUB-SYSTEM BIT ASSIGNMENTS                        November 5, 1987
+
+
+
+
+      APPENDIX I.   DISC SUB-SYSTEM BIT ASSIGNMENTS
+
+
+
+
+
+      I-1  Table A-1 - Eselch status, command
+
+              Extended Selector Channel Status and Command Byte Data
+
+                                    Bit Number
+                   8      9     10     11    12     13     14     15 
+                   -------------------------------------------------
+      Status                  Memory Memory Busy
+      Byte                    Mlftn  Parity
+                                     Fail
+
+
+                                    Bit Number
+                   8      9     10     11    12     13     14     15 
+                   -------------------------------------------------
+      Command         Extended                     Selch
+      Byte            Address  Read    Go   Stop   Status
+                      Read
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      50                                          10 MB Disc Diag. User Guide
+      DISC SUB-SYSTEM BIT ASSIGNMENTS                        November 5, 1987
+
+
+      I-2  Table A-2 - Controller command, status, data
+
+                    Controller Command, Status, and Data Bytes
+
+                                    Bit Number
+                    0     1     2     3     4     5     6     7 
+                    ___________________________________________
+      Instruction   X     X     X     X     0     0     0     1   Read
+                    X     X     X     X     0     0     1     0   Write
+                    X     X     X     X     0     0     1     1   Read
+                                                                   Check
+
+
+                                    Bit Number
+                    0     1     2     3     4     5     6     7
+                    -------------------------------------------
+      CMD           X     X     X     X     0     1     0     1   Read
+                                                                   Format
+                    X     X     X     X     0     1     1     0   Write
+                                                                   Format
+                    X     X     0     0     1     0     0     0   Reset
+
+
+
+                                    Bit Number
+                    0     1     2     3     4     5     6     7
+                    -------------------------------------------
+                               Head  Sect  Sect  Sect  Sect  Sect
+      WD            X     X    0/1    16    8     4     2     1
+
+
+                                    Bit Number
+                    0     1     2     3     4     5     6     7
+                    -------------------------------------------
+      RD                             Sect  Sect  Sect  Sect  Sect
+      Controller    0     0     0     16    8     4     2     1
+      Idle
+
+
+                                    Bit Number
+                    0     1     2     3     4     5     6     7
+                    -------------------------------------------
+                         Addr                                Data
+      SS          Over-  Comp  Def   Cyl   Bsy   Ex    Cont  Transfer
+                  run    Fail  Trk   Ov                Idle  Error
+
+
+
+
+
+
+
+
+
+      51                                          10 MB Disc Diag. User Guide
+      DISC SUB-SYSTEM BIT ASSIGNMENTS                        November 5, 1987
+
+
+                                    Bit Number
+                    0     1     2     3     4     5     6     7
+                    -------------------------------------------
+      Read
+      Controller   Data  Data  Data  Data  Data  Data  Data  Data
+      Not Idle*     0     1     2     3     4     5     6     7
+
+      *This RD is generated by SELCH hardware.
+      Do not issue RD while the controller is not idle.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      52                                          10 MB Disc Diag. User Guide
+      DISC SUB-SYSTEM BIT ASSIGNMENTS                        November 5, 1987
+
+
+      I-3  Table A-3 - Disk file (Drive) command, status, data
+
+                     Disk File Command, Status, and Data Bytes
+
+                                    Bit Number
+                    0    1     2     3      4     5     6     7 
+                    -------------------------------------------
+      CMD          Dis   En     X     X     X     X   Seek  Restore
+
+
+
+                                    Bit Number
+                    0    1     2     3      4     5     6     7 
+                    -------------------------------------------
+      WD           128   64    32    16     8     4     2     1    Cylinder
+                                                                    Address
+
+
+                                    Bit Number
+                    0    1     2     3      4     5     6     7 
+                    -------------------------------------------
+                                     Disk                    Disk
+      SS           Wrt   Wrt   Ill   Addr  Not   Ex    Seek  Not
+                   Prot  Chk   Addr  Intlk RSRW        Inc   Ready
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      53                                          10 MB Disc Diag. User Guide
+      DISC SUB-SYSTEM BIT ASSIGNMENTS                        November 5, 1987
+
+
+      I-4  Table A-4 - 10 M-Byte Sector Format
+
+                            10M Byte Disk Sector Format
+
+      +---------------------------------------------------------------------+
+      |     |  Header   |     |                          |Longitudinal|     |
+      |Sync |  Field*   | Gap |256 8 Bit Byte Data Field |Parity Field| Gap |
+      |Field|Byte |Byte |     |                          |Byte |Byte  |     |
+      |     | 0   | 1   |     |                          | 0   | 1    |     |
+      +---------------------------------------------------------------------+
+      *Header field detail shown below.
+
+      Header Field Byte 0
+
+      +-----------------------------------------------+
+      |Not  |Deft |Head | 16  |  8  |  4  |  2  |  1  |
+      |Used |Trk  |0/1  |     |     |     |     |     |
+      +-----------------------------------------------+
+                         <------Sector Address------->
+
+      Header Field Byte 1
+
+      +-----------------------------------------------+
+      | 128 | 64  | 32  | 16  |  8  |  4  |  2  |  1  |
+      |     |     |     |     |     |     |     |     |
+      +-----------------------------------------------+
+       <--------------Cylinder Address--------------->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      54                                          10 MB Disc Diag. User Guide
+      Test Data Patterns                                     November 5, 1987
+
+
+
+
+      APPENDIX II.   Test Data Patterns
+
+
+      Data patterns used by write mode tests are:
+
+      Test 6  - Multi-sector test - FF hex.
+
+      Test 7  - Interrupt data test - FF hex.
+
+      Test 8  - Spiral Data pattern test - 00 to FF hex, in ascending order.
+
+      Test 9  - Worst case data test - BD hex.
+
+      Test 10 - Random data test - pseudo random Fibonacci number sequence.
+
+      Test 12 - Pseudo random Fibonacci number sequence.
+
+      Test 15 - 20 - Operator selected data pattern tests.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      55                                          10 MB Disc Diag. User Guide
+      Test Console Displays                                  November 5, 1987
+
+
+
+
+      APPENDIX III.   Test Console Displays
+
+
+      TEST       CONSOLE DISPLAY
+
+       1         Does not change
+
+       2         CCC changes to HCYL,100,80,40,20,10,8,4,2,1 (hex)
+
+                 HH and SS are zeroed
+
+       3         CCC: 0 - HCYL, HH and SS are zeroed
+
+       4         CCC, HH, and SS are zeroed
+
+       5         CCC: 0 and HCYL, HH and SS are zeroed
+
+       6         CCC changes to LCYL, HH is 0 or 1, SS is 0 to 18
+
+       7         CCC changes to LCYL, HH and SS are zeroed
+
+       8         CCC: LCYL - HCYL, HH is 0 and 1, SS is 0 to 17
+
+       9         CCC: LCYL - HCYL, HH is 0 and 1, SS is 0 to 17
+
+       10        CCC: LCYL - HCYL, HH is 0 and 1, SS is 0 to 17
+
+       11        CCC: LCYL - HCYL, HH is 0 and 1, SS is 0 to 17
+
+       12        CCC changes to LCYL, HH and SS are zero and SECT value
+
+       13        CCC changes to LCYL, HH is 0, SS is 0 to 7
+
+       14        Does not change
+
+       15        CCC changes to LCYL, HH and SS are SECT number
+
+       16        CCC changes to LCYL, HH and SS are SECT number
+
+       17        CCC changes to LCYL, HH and SS are SECT number
+
+       18        CCC changes to LCYL, HH and SS are SECT number
+
+       19        CCC changes to LCYL, HH and SS are SECT number
+
+       20        CCC changes to LCYL, HH and SS are SECT number
+
+
+
+
+
+
+      56                                          10 MB Disc Diag. User Guide
+      Test Console Displays                                  November 5, 1987
+
+
+      TEST       CONSOLE DISPLAY
+
+       21        CCC changes to LCYL, HH and SS are SECT number
+
+       22        SEEK 0: CCC changes to LCYL, HH and SS are zeroed
+
+                 SEEK 1: CCC changes to LCYL to HCYL, HH and SS are zeroed
+
+       23        CCC changes to 092, 00A, EC/ED, 0/195, HH and SS are zeroed
+
+       24        CCC changes from LCYL to HCYL, HH and SS are zeroed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      57                                          10 MB Disc Diag. User Guide
+      Functions To Implement In Late Releases                November 5, 1987
+
+
+
+
+      APPENDIX IV.   Functions To Implement In Late Releases
+
+
+      1. Change  FORM  command  so  that  it  only  executes  Test  24  (Disk
+      Formatter)    once  and so that it has no permanent effect on  the Test
+      command.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      58                                          10 MB Disc Diag. User Guide
+lLÏ
