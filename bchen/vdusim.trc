@@ -1,0 +1,842 @@
+SUBJ: 1st SABB VDU Hangup Problem Simulation
+
+Set up Configuration
+--------------------
+
+AS/400 ---Modem--Modem-----HIF-----------TIF-----Modem--Modem--- CU
+                        ^                     ^                  5394
+                      Datascope            Datascope              |
+                                                                  |
+                                                                  |
+                                                              Terminal
+                                                                3197
+
+Problem Description
+-------------------
+1. Test Procedure and Result
+   a.  Got AS400 signon screen from the terminal
+   b.  Enter username and password to sign on to AS400
+   c.  Sign on is successful. Retrieved the help menu of AS400
+   d.  Partial help menu was displayed upon the screen of the terminal
+   e.  AS/400 Signon screen was somehow displayed upon the screen of
+       the terminal
+   f.  'b' to 'e' was repeated for 3 times.  For the third time, the
+       terminal was somehow hung up with the partial help menu displayed
+       upon the screen.  The hangup was due to the retry limit of AS400
+       was reached.
+
+2. Findings
+   The datascope log revealed that
+   . For the help menu, 5 data frames (INFO) were sent from the AS400
+     to the terminal
+   . The first 4 were well received by the terminal
+   . The 5th one (with poll/final bit = 1) sent from the AS400, was well
+     received by the HIF, but was somehow aborted in the middle of its'
+     transmission from the TIF to the terminal (with the poll/final bit
+     set to 0)
+     This explain why the partial help menu was got
+   . A XID frame was sent from the TIF to the terminal right after the
+     5th aborted information frame
+
+3. Questions
+   1.  Why was the 5th information frame sent from the AS400, which was
+       well received by the HIF, aborted in the middle of its'
+       transmission from the TIF to the terminal ?
+   2.  Where did the XID frame which followed right after the 5th aborted
+       information frame sent from the TIF to terminal, originated from ?
+       Since XID frame was sent end-to-end, the XID frame must have been
+       sent by AS400 to the terminal.  But, the XID frame we found was
+       sent from AS400 to the HIF after the HIF has sent a XID frame to
+       AS400.  So, who initiated the first XID frame ?
+
+
+HIF DATASCOPE LOG:
+------------------
+
+NB:                                           '*' indicates that frames
+                                              are travelling from left to
+                  Start     SDLC       End    right (ie. AS400 -> HIF).
+                  of        frame      of     No '*' indicates frames are
+                  SDLC      contents   SDLC   travelling from right to
+                  frame      |         frame  left (ie. AS400 <- TIF).
+                   |         |           |    |
+                   |         |           |    |
+One column  --->   S  xxxxxxxxxxxxxxxx  GGE   *
+with two    --->   f  xxxxxxxxxxxxxxxx  ggf   *
+rows, is one
+data byte
+
+
+**** HP 4952 Printer Output **** 
+                                 
+                                 
+Block   1         Print Page   1
+S03GGE    S03GGE    S03GGE    S0
+f31ggf    f31ggf    f31ggf    f3
+     S01GGE    S01GGE    S01GGE *   <------ RR frames sent from
+     f31ggf    f31ggf    f31ggf *   <------ AS400 to HIF
+3GGE    S03GGE    S03GGE    S03G 
+1ggf    f31ggf    f31ggf    f31g 
+   S01GGE    S01GGE    S01GGE   *
+   f31ggf    f31ggf    f31ggf   *
+GE    S03GGE    S03GGE    S03GGE 
+gf    f31ggf    f31ggf    f31ggf 
+ S01GGE    S01GGE    S01GGE    S*
+ f31ggf    f31ggf    f31ggf    f*
+    S03GGE    S03GGE    S03GGE   
+    f31ggf    f31ggf    f31ggf   
+01GGE    S01GGE    S01GGE    S01*
+31ggf    f31ggf    f31ggf    f31*
+  S03GGE    S03GGE    S03GGE     
+  f31ggf    f31ggf    f31ggf     
+GGE    S01GGE    S01GGE    S01GG*
+ggf    f31ggf    f31ggf    f31gg*
+S03GGE    S03GGE    S03GGE    S0 
+f31ggf    f31ggf    f31ggf    f3 
+E    S01GGE    S01GGE    S01GGE *
+f    f31ggf    f31ggf    f31ggf *
+                                 
+Block   1         Print Page   2 
+3GGE    S03GGE    S03GGE    S03G 
+1ggf    f31ggf    f31ggf    f31g 
+   S01GGE    S01GGE    S01GGE   *
+   f31ggf    f31ggf    f31ggf   *
+GE    S03GGE    S03GGE    S03GGE 
+gf    f31ggf    f31ggf    f31ggf 
+ S01GGE    S01GGE    S01GGE    S*
+ f31ggf    f31ggf    f31ggf    f*
+    S03GGE    S03GGE    S03GGE   
+    f31ggf    f31ggf    f31ggf   
+01GGE    S01GGE    S01GGE    S01*
+31ggf    f31ggf    f31ggf    f31*
+  S03GGE    S03GGE    S03GGE     
+  f31ggf    f31ggf    f31ggf     
+GGE    S01GGE    S01GGE    S01GG*
+ggf    f31ggf    f31ggf    f31gg*
+S03GGE    S03GGE    S03GGE    S0 
+f31ggf    f31ggf    f31ggf    f3 
+E    S01GGE    S01GGE    S01GGE *
+f    f31ggf    f31ggf    f31ggf *
+23C09200FGGES03GGE
+0C3300115ggff31ggf               
+                 S023C0900401001*       <--- 1st Info Frame
+                 f32C32004041001*
+                                 
+Block   1         Print Page   3 
+                                 
+022C9A4A94EA84C89921002C84A8848A*
+10286603604250853701310960385034*
+                                 
+9A9948A4894894898848994A88884898*
+92690920950150195106690689380956*
+                                 
+9998A89948A48A889889848984A9A210*
+69413965092015193123501540864014*
+                                 
+02998AA4A884C899498A64A884898999*
+10795220385085370258B03850956694*
+                                 
+8A89948994A88A4898848A4A89A9444E*
+1396506690381301951092028665B003*
+                                 
+889648821002A9A4998AA4CF7CAA8988*
+855B09601510864079522062E5735545*
+                                 
+Block   2         Print Page   4 
+                                 
+84889964889948994A88489A898488A9*
+408537B0853706690385055399504927*
+                                 
+98A48A4A89A9421002C84GGES023C090*       <--- 2nd Info Frame
+318092028665B01710960ggff34C3000*
+                                 
+A8848A9A9948A4894894898848994A88*
+38503492690920950150195106690689*
+                                 
+884994A988888848989998A89948A210*
+38056027539693095669413965092018*
+                                 
+028A889889848984A9A4998AA4A884C8*
+10151931235015408640795220385085*
+                                 
+99498A648AA898884889948994A88489*
+370258B0573554540853706690385055*
+                                 
+Block   2         Print Page   5 
+                                 
+A8982100288A998A48A4A89A9444E889*
+3995019104927318092028665B003855*
+                                 
+4A9A4889499994899A89849948889A89*
+08640315096330669619406902132619*
+                                 
+84A899A884A88210028AA89888488994*
+403896478038501A1057355454085370*
+
+8984A88488994899488884898842GGES*       <--- 3rd Info Frame
+15403850853706690513801951B0ggff*
+                                 
+023C0901002E8A8894A9984889964889*
+36C30001C106938950264508537B0359*
+                                 
+A8894A998A49949898A8A48984888898*
+31950669420690789125201950897839*
+                                 
+Block   2         Print Page   6 
+                                 
+88A884A8A84A8999A210028984A98899*
+7835406938085336601D101540454593*
+                                 
+89898499649949999889998488A998AA*
+95957069B06504656389645049273182*
+                                 
+6488889888A884A8A8210028888689A8*
+B0897839783540693801E10897809535*
+                                 
+9A8AA48984A9889989898444C888A899*
+529380154045459395957B0014493965*
+                                 
+8948989998A8994889AA4A88A821002A*
+1309566941396501264303852501F106*
+                                 
+998A49949898A8A48A48A889889848A4*
+69420690789125209201519312350280*
+                                 
+Block   2         Print Page   7 
+                                 
+998GGES023C090AA8984A884E88498A4*       <--- 4th Info Frame
+795ggff38C3000229570385031202580*
+                                 
+A9499A84A8848A9A992110298AA4A94A*
+36046550385034926901010557303603*
+                                 
+88488889888A884A99849949898A8489*
+85089783978354066940690789125015*
+                                 
+84A8894998AA8984A884C9A89498A402*
+40385507952295703850553590258B00*
+                                 
+1102C84A9A48899A84A94A88A4A88489*
+11109608640386625036059560385095*
+                                 
+89998A89948994998499499984984A88*
+66941396506690655069046950660385*
+                                 
+Block   2         Print Page   8 
+                                 
+A84A998A499211029898A8A64CF7E88A*
+25066942069012107891252B066E5956*
+                                 
+884A9988A48894884AA884A94A89A4A9*
+54036793203150250425403602866086*
+
+A48498AA49GGES033C09284A884A9988*       5th Info Frame 
+4010392306ggff3AC310060385036793*       (Frame was aborted in the
+               -                         middle of its' transmission
+                                         from TIF to terminal)
+                                        Poll/final bit = 1
+                                        (Underlined byte)
+A21102A88A4A9A488A84A88A884A8988*
+20131038130864081550595654029535*
+                                 
+4889AA4998AA8984A884C899498A4211*
+0699230795229570385085370258B015*
+                                 
+02E8894CFF7E8898848988A48A488A8A*
+1068550611E251938095457092013395*
+                                 
+Block   3         Print Page   9 
+                                 
+864A9A48894998AA4CFF4A94A89A4A88*
+5B086403150795220611036028660385*
+                                 
+4E889882114244444D99844422CF7CA8*
+025193801632000004695BBB0063E579*
+                            S0DG   <------  RR frame sent from
+                            f31g   <------  HIF to AS400
+A202CFF7C89889210001020500GGE   *
+3000612E315353031141084200ggf   *
+GE    S0DGGE    S0DGGE    S0DGGE 
+gf    f31ggf    f31ggf    f31ggf 
+ S03GGE    S03GGE    S03GGE    S*
+ f31ggf    f31ggf    f31ggf    f*
+    S0DGGE    S0DGGE    S0DGGE   
+    f31ggf    f31ggf    f31ggf   
+03GGE    S03GGE    S03GGE    S03*
+31ggf    f31ggf    f31ggf    f31*
+  S0DGGE    S0DGGE    S0DGGE     
+  f31ggf    f31ggf    f31ggf     
+GGE    S03GGE    S03GGE    S03GG*
+ggf    f31ggf    f31ggf    f31gg*
+                                 
+Block   3         Print Page  10 
+S0DGGE    S0DGGE    S0DGGE    S0 
+f31ggf    f31ggf    f31ggf    f3 
+E    S03GGE    S03GGE    S03GGE *
+f    f31ggf    f31ggf    f31ggf *
+DGGE    S0DGGE    S0DGGE    S0DG 
+1ggf    f31ggf    f31ggf    f31g 
+   S03GGE    S03GGE    S03GGE   *
+   f31ggf    f31ggf    f31ggf   *
+GE    S0DGGE    S0DGGE    S0DGGE 
+gf    f31ggf    f31ggf    f31ggf 
+ S03GGE    S03GGE    S03GGE    S*
+ f31ggf    f31ggf    f31ggf    f*
+    S0DGGE    S0DGGE    S0DGGE   
+    f31ggf    f31ggf    f31ggf   
+03GGE    S03GGE    S03GGE    S03*
+31ggf    f31ggf    f31ggf    f31*
+  S0DGGE    S0DGGE    S0DGGE     
+  f31ggf    f31ggf    f31ggf     
+GGE    S03GGE    S03GGE    S03GG*
+ggf    f31ggf    f31ggf    f31gg*
+S0DGGE    S0DGGE    S0DGGE    S0 
+f31ggf    f31ggf    f31ggf    f3 
+E    S03GGE    S03GGE    S03GGE *
+f    f31ggf    f31ggf    f31ggf *
+                                 
+Block   3         Print Page  11 
+DGGE    S0DGGE    S0DGGE    S0DG 
+1ggf    f31ggf    f31ggf    f31g 
+   S03GGE    S03GGE    S03GGE   *
+   f31ggf    f31ggf    f31ggf   *
+GE    S0DGGE    S0DGGE    S0DGGE 
+gf    f31ggf    f31ggf    f31ggf 
+ S03GGE    S03GGE    S03GGE    S*
+ f31ggf    f31ggf    f31ggf    f*
+    S0DGGE    S0DGGE    S0DGGE   
+    f31ggf    f31ggf    f31ggf   
+03GGE    S03GGE    S03GGE    S03*
+31ggf    f31ggf    f31ggf    f31*
+  S0DGGE    S0DGGE    S0DGGE     
+  f31ggf    f31ggf    f31ggf     
+GGE    S03GGE    S03GGE    S03GG*
+ggf    f31ggf    f31ggf    f31gg*
+S0DGGE    S0DGGE    S0DGGE    S0 
+f31ggf    f31ggf    f31ggf    f3 
+E    S03GGE    S03GGE    S03GGE *
+f    f31ggf    f31ggf    f31ggf *
+DGGE    S01GGE    S0B110F0000030 
+1ggf    f3Fggf    f3F14500300001 
+   S03GGE    SFBGGE             *
+   f31ggf    fFFggf             *
+                                 
+Block   5         Print Page  12 
+000000000GGE    S07GGE    S01GGE 
+500007000ggf    f33ggf    f31ggf 
+           S09GGE    S01GGE    S*
+           f33ggf    f31ggf    f*
+            S03GGE    S03GGE     
+            f31ggf    f31ggf     
+0135680000GGE    S01GGE    S01GG*
+30D5B00D11ggf    f31ggf    f31gg*
+S03GGE    S03GGE    S03GGE    S0 
+f31ggf    f31ggf    f31ggf    f3 
+E    S01GGE    S01GGE    S01GGE *
+f    f31ggf    f31ggf    f31ggf *
+3GGE    S03GGE    S03GGE    S03G 
+1ggf    f31ggf    f31ggf    f31g 
+   S01GGE    S01GGE    S01GGE   *
+   f31ggf    f31ggf    f31ggf   *
+GE    S03GGE    S03GGE    S03GGE 
+gf    f31ggf    f31ggf    f31ggf
+ S01GGE    S01GGE    S01GGE    S*
+ f31ggf    f31ggf    f31ggf    f*
+    S03GGE    S03GGE    S03GGE   
+    f31ggf    f31ggf    f31ggf   
+01GGE    S01GGE    S01GGE    S01*
+31ggf    f31ggf    f31ggf    f31*
+                                 
+Block   5         Print Page  13 
+  S0235E9080000GGES03GGE         
+  f30D5F000400Dggff31ggf         
+GGE                    S03346800*
+ggf                    f32D3B00D*
+    S05GGE    S05GGE    S05GGE   
+    f31ggf    f31ggf    f31ggf   
+00GGE    S03GGE    S03GGE    S03*
+11ggf    f31ggf    f31ggf    f31*
+  S05GGE    S05GGE    S05GGE     
+  f31ggf    f31ggf    f31ggf     
+GGE    S03GGE    S03GGE    S03GG*
+ggf    f31ggf    f31ggf    f31gg*
+S05GGE    S05GGE    S0434E800000 
+f31ggf    f31ggf    f32D3B00D110 
+E    S03GGE    S03GGE           *
+f    f31ggf    f31ggf           *
+8800GGES05GGE                    
+4000ggff31ggf                    
+            S053C6803000BB180088*
+            f34D3B00107700010055*
+                S07GGE    S07GGE 
+                f31ggf    f31ggf 
+00000000000000GGE    S05GGE    S*
+00700000000021ggf    f31ggf    f*
+                                 
+Block   5         Print Page  14 
+    S07GGE    S07GGE    S07GGE   
+    f31ggf    f31ggf    f31ggf   
+05GGE    S05GGE    S05GGE    S05*
+31ggf    f31ggf    f31ggf    f31*
+  S063CE803000BB1800880000000000 
+  f34D3B001077000100550070000000 
+GGE                             *
+ggf                             *
+0000GGES07GGE                S09 
+0021ggff31ggf                f31 
+            S073C0920F00D20GGE  *
+            f36C33004305802ggf  *
+GGE    S09GGE    S09GGE    S09GG 
+ggf    f31ggf    f31ggf    f31gg 
+  S07GGE    S07GGE    S07GGE    *
+  f31ggf    f31ggf    f31ggf    *
+E    S09GGE    S083C09200801D200 
+f    f31ggf    f36C3300008078120 
+S07GGE    S07GGE                *
+f31ggf    f31ggf                *
+10000000000000040GGES09GGE
+2110E200A33200405ggff31ggf       
+                         S093C09*
+                         f38C330*
+                                 
+Block   6         Print Page  15 
+                            S0BG 
+                            f31g 
+20F01D21010000000000000040GGE   *
+0430781002110E200A33200405ggf   *
+GE    S0BGGE    S0BGGE    S0BGGE 
+gf    f31ggf    f31ggf    f31ggf 
+ S09GGE    S09GGE    S09GGE    S*
+ f31ggf    f31ggf    f31ggf    f*
+    S0BGGE    S0A3C09200800D21GG 
+    f31ggf    f38C330000805800gg 
+09GGE    S09GGE                 *
+31ggf    f31ggf                 *
+ES0BGGE    S0BGGE              S 
+ff31ggf    f31ggf              f 
+      S0BGGE    S0B3C480C0000GGE*
+      f31ggf    f3AD3B0090001ggf*
+0DGGE                            
+31ggf                            
+    S0A3C09004010110010010000000*
+    f3CC320040410811111111117000*
+                                 
+100010124444444444444E8894D90034*
+90001162000000000000029750652170*
+
+
+
+
+
+TIF DATASCOPE LOG:
+------------------
+
+NB:                                           '*' indicates that frames
+                                              are travelling from left to
+                  Start     SDLC       End    right (ie. TIF -> terminal).
+                  of        frame      of     No '*' indicates frames are
+                  SDLC      contents   SDLC   travelling from right to
+                  frame      |         frame  left (ie. TIF <- terminal).
+                   |         |           |    |
+                   |         |           |    |
+One column  --->   S  xxxxxxxxxxxxxxxx  GGE   *
+with two    --->   f  xxxxxxxxxxxxxxxx  ggf   *
+rows, is one
+data byte
+
+                                 
+**** HP 4952 Printer Output **** 
+                                 
+                                 
+Block   1         Print Page   1 
+     S0FGGE                S01GG 
+     f31ggf                f31gg 
+S0BGGE    S0B3C09210F110FGGE    *
+f31ggf    f3EC33005811571ggf    *
+E    S01GGE    S003C090040100102 
+f    f31ggf    f3AC3200404100110 
+S0BGGE    S0BGGE                *
+f31ggf    f31ggf                *
+2C9A4A94EA84C89921002C89948A4999 
+28660360425085370131085370920796 
+                                *
+A8888489948994CE6FFF488A998AA444 
+59454066901330121400049273182B00 
+                                *
+E884AA98498488994999A88882100288
+38503875066085370796594540141045 
+                                *
+9898A4994A8849988A8994984A8848A9 
+75542065038503631396506603850349 
+                                *
+                                 
+Block   1         Print Page   2 
+A994210024922C994899488A998AA64A 
+269B0161006006690133049273182B03 
+                                *
+88489999A89848989998A89948A4999A 
+85066336695709566941396509207965 
+                                *
+88887210024622E88A4A88488A998A48 
+9454A018500000681303850492731809 
+                                *
+A4AA884899210024622GGES01GGE     
+2042540669019500000ggff31ggf     
+                           S0DGG*
+                           f31gg*
+S003C090C9A4A94AA84A88488A998A21 
+f3CC3000866036042503850492731801 
+E                               *
+f                               *
+0024622C9A4A94AA84A8848999898498 
+A5000008660360425038503644154039 
+                                *
+                                 
+Block   1         Print Page   3 
+984884A889848A4998210024622C
+55096038595092065501B50000086603 
+                                *
+94AA84A88489A9A488898A4898498989 
+60425038505539806953420154071914 
+                                *
+8A8949898488489A210024622E88A48A 
+535903955096015801C5000006813064 
+                                *
+98A899498AA4898488A8A848984A88A4 
+53396502582019501339550154068130 
+                                *
+A88A489210024922E88489999A898489 
+385804601E1006003850663366957095 
+                                *
+89998A89948A489A94999A888848994A 
+66941396509201326079659454066902 
+                                *
+                                 
+Block   1         Print Page   4 
+9888GGES003C09088848988A60210028 
+7539ggff3EC3000693019512B001F504 
+                                *
+898988984994A884AA9849848989998A 
+57554957065038503875066095669413 
+                                *
+899488898488A998A887211024622D89 
+9650259570492731854A011500000455 
+                                *
+AA744D88989849848888499A89921102 
+42A00451595706605138067396501250 
+                                *
+4622C9A9A4499999A8985488A998AA74 
+0000553980D796473957D049273182A0 
+                                *
+4D889898A48984AA849848994A89A8A4 
+04515957201540425066013305134520 
+                                *
+                                 
+Block   1         Print Page   5 
+899211028888489A9A48889821102462 
+66901390513805539806953401450000 
+                                *
+2D8AA488A998AA744D88989848984AA8 
+03923049273182A00451595701540425 
+                                *
+49848888489GGES003C0929A99211424 
+06605138036ggff30C31003445016320 
+                                *
+4444D99844422CF7CA8A202CFF7C8988 
+00004695BBB0063E5793000612E31535 
+                                *
+9211024C54CDDEDCCCE4CCD4CDDD44FF 
+301812D3D0367899783092403697B019 
+                                *
+FF64FFFF400000000000000000000000 
+80B01991B00000000000000000000000 
+                                *
+                                 
+Block   2         Print Page   6 
+00000000000000000020201020500GGE 
+00000000000000000020041084200ggf 
+                                *
+S01GGE    S01GGE    S01GGE    S0 
+f31ggf    f31ggf    f31ggf    f3 
+     S03GGE    S03GGE    S03GGE *
+     f31ggf    f31ggf    f31ggf *
+1GGE    S01GGE    S01GGE         
+1ggf    f31ggf    f31ggf         
+   S03GGE    S03GGE    S033C0920*
+   f31ggf    f31ggf    f30C33001*
+    S03GGE    S03GGE    S023C090        <--- 1st Info Frame
+    f31ggf    f31ggf    f32C3200 
+0FGGE    S03GGE    S03GGE       *
+15ggf    f31ggf    f31ggf       *
+0401001022C9A4A94EA84C89921002C8 
+40410011028660360425085370131096 
+                                *
+4A8848A9A9948A4894894898848994A8 
+03850349269092095015019510669068 
+                                *
+                                 
+Block   2         Print Page   7 
+88848989998A89948A48A88988984898 
+93809566941396509201519312350154 
+                                *
+4A9A21002998AA4A884C899498A64A88 
+086401410795220385085370258B0385 
+                                *
+48989998A89948994A88A4898848A4A8 
+09566941396506690381301951092028 
+                                *
+9A9444E889648821002A9A4998AA4CF7 
+665B003855B09601510864079522062E 
+                                *
+CAA898884889964889948994A88489A8 
+5735545408537B085370669038505539 
+                                *
+98488A998A48A4A89A9421002C84GGES 
+9504927318092028665B01710960ggff 
+                                *
+                                 
+Block   2         Print Page   8 
+03GGE    S023C090A8848A9A9948A48        <--- 2nd Info Frame
+31ggf    f34C3000385034926909209 
+    S05GGE                      *
+    f31ggf                      *
+94894898848994A88884994A98888884 
+50150195106690689380560275396930 
+                                *
+8989998A89948A210028A88988984898 
+95669413965092018101519312350154 
+                                *
+4A9A4998AA4A884C899498A648AA8988 
+08640795220385085370258B05735545 
+                                *
+84889948994A88489A8982100288A998 
+40853706690385055399501910492731 
+                                *
+A48A4A89A9444E8894A9A48894999948 
+8092028665B003855086403150963306 
+                                *
+                                 
+Block   2         Print Page   9 
+99A89849948889A8984A899A884A8821 
+69619406902132619403896478038501 
+                                *
+0028AA898884889948984A8848899489 
+A1057355454085370154038508537066 
+                                *
+9488884898842GGES023C0901002E8A8        <--- 3rd Info Frame
+90513801951B0ggff36C30001C106938 
+                                *
+894A9984889964889A8894A998A49949 
+950264508537B0359319506694206907 
+                                *
+898A8A4898488889888A884A8A84A899 
+89125201950897839783540693808533 
+                                *
+9A210028984A98899898984996499499 
+6601D10154045459395957069B065046 
+                                *
+                                 
+Block   3         Print Page  10 
+99889998488A998AA6488889888A884A 
+56389645049273182B08978397835406 
+                                *
+8A8210028888689A89A8AA48984A9889 
+93801E10897809535529380154045459 
+                                *
+989898444C888A8998948989998A8994 
+395957B0014493965130956694139650 
+                                *
+889AA4A88A821002A998A49949898A8A        <--- 4th Info Frame
+1264303852501F106694206907891252 
+                                *
+48A48A889889848A4998GGES023C090A 
+09201519312350280795ggff38C30002 
+                                *
+A8984A884E88498A4A9499A84A8848A9 
+29570385031202580360465503850349 
+                                *
+                                 
+Block   3         Print Page  11 
+A992110298AA4A94A88488889888A884 
+26901010557303603850897839783540 
+                                *
+A99849949898A848984A8894998AA898 
+66940690789125015403855079522957 
+                                *
+4A884C9A89498A4021102C84A9A48899 
+03850553590258B00111096086403866 
+                                *
+A84A94A88A4A8848989998A899489949 
+25036059560385095669413965066906 
+                                *
+98499499984984A88A84A998A4992110 
+55069046950660385250669420690121 
+                                *
+29898A8A64CF7E88A884A9988A488948 
+07891252B066E5956540367932031502 
+                                *
+                                 
+Block   3         Print Page  12 
+84AA884A94A89A4A9A48498AA49GGES0        <--- 5th Info Frame 
+504254036028660864010392306ggff3               (Aborted)
+                                *
+23C09284A884A9988A21102A88A4A9A4        Poll/final bit = 1       
+AC310060385036793201310381308640        (Underlined byte)
+-
+                                *
+88A84A88A884A89884889AA4998AA898 
+81550595654029535069923079522957 
+                                *
+4A884C899498A421102E8894CFF7E889 
+0385085370258B0151068550611E2519 
+                                *
+8848988A48A488A8A864A9A48894998A 
+380954570920133955B0864031507952 
+                                *
+        Aborted in the middle, frame not completed yet. (Underlined bytes)
+         ||
+A4CFF4A94AAES0BGGE                   <--- XID Frame sent from
+206110360aaff3Fggf                   <--- TIF to terminal
+         --
+
+                 S0B110F00000300*
+                 f3F145003000015*
+                                 
+Block   3         Print Page  13 
+          S09GGE    S01GGE    S0 
+          f33ggf    f31ggf    f3 
+00000000GGE    S07GGE    S01GGE *
+00007000ggf    f33ggf    f31ggf *
+035680000GGES01GGE               
+0D5B00D11ggff31ggf               
+                 S0335E9080000GG*
+                 f30D5F000400Dgg*
+S03GGE    S0234680000GGES03GGE   
+f31ggf    f32D3B00D11ggff31ggf   
+E    S03GGE                  S05*
+f    f31ggf                  f31*
+  S03GGE                 S05GGE  
+  f31ggf                 f31ggf  
+GGE    S0534E8000008800GGE    S0*
+ggf    f32D3B00D1104000ggf    f3*
+   S043C6803000BB180088000000000 
+   f34D3B00107700010055007000000 
+5GGE                            *
+1ggf                            *
+00000GGES05GGE                   
+00021ggff31ggf                   
+             S073CE803000BB18008*
+             f34D3B0010770001005*
+                                 
+Block   4         Print Page  14 
+                 S07GGE    S063C 
+                 f31ggf    f36C3 
+800000000000000GGE    S07GGE    *
+500700000000021ggf    f31ggf    *
+0920F00D20GGES07GGE              
+3004305802ggff31ggf              
+                  S093C09200801D*
+                  f36C3300008078*
+                      S09GGE     
+                      f31ggf     
+20010000000000000040GGE    S09GG*
+1202110E200A33200405ggf    f31gg*
+S083C0920F01D2101000000000000004 
+f38C3300430781002110E200A3320040
+E                               *
+f                               *
+0GGES09GGE                 S0BGG 
+5ggff31ggf                 f31gg 
+         S0B3C09200800D21GGE    *
+         f38C330000805800ggf    *
+E    S0A3C480C0000GGES0BGGE      
+f    f3AD3B0090001ggff31ggf      
+S0BGGE                    S0D3CC*
+f31ggf                    f3AD3B*
+                                 
+Block   4         Print Page  15 
+     S0DGGE    S0C3C090040101100 
+     f31ggf    f3CC3200404108111 
+80CGGE    S0DGGE                *
+009ggf    f31ggf                *
+10010000000100010124444444444444 
+11111117000900011620000000000000 
+                                *
+E8894D9003421022EAAA894444444444 
+29750652170012F028235400B0B0B0B0 
+                                *
+44721042EFFFFFFF21022EA8AAAA8944 
+B0A0125021015647013F02422823540B 
+                                *
+4444444721042DCDECD444421022C8A9 
+0B0B0B0A013508953590000014F04927 
+                                *
+98A44444444444721042CDCFFFF44421 
+3180B0B0B0B0B0A01450754319700001 
+                                *
+
+-------------------------------------------------------------------------
+
+SUBJ: 2nd SABB VDU Hangup Problem Simulation
+
+Problem Description :
+According to the first Simulation result, it was revealed that the 5th
+information frame was well received by the HIF, but was somehow aborted
+in the middle of its' transmission from the TIF to the terminal.  That
+explains why the partail help menu was got.  However, we could not
+figure out why the 5th frame was being aborted by the TIF because we did
+not know the HIF and TIF status at that time.  Therefore, this time we
+have set up a 2nd simulation with the same set up configuration as
+before, but this time we manually halted the slot, and then take both the
+HIF and TIF slot dumps for your investigation.  There is no datascope
+trace for the 2nd simulation, because we have already got the datascope
+trace in our 1st simulation.
+
+Set up Configuration
+--------------------
+
+AS/400 ---Modem--Modem-----HIF-----------TIF-----Modem--Modem--- CU
+                                                                 5394
+                                                                  |
+                                                                  |
+                                                                  |
+                                                              Terminal
+                                                                3197
+
+
+Problem Description
+-------------------
+
+1. Test Procedure and Result
+
+   1st test,
+   a.  Got AS400 signon screen from the terminal
+   b.  Enter username and password to sign on to AS400
+   c.  Sign on is successful. Retrieved the help menu of AS400
+   d.  Partial help menu was displayed upon the screen of the terminal
+   e.  AS/400 Signon screen was somehow displayed upon the screen of
+       the terminal
+   f.  We manually halted the slot, take slot dump as (HSBCNET:33)
+       D02026.D01 and D02026.D02.
+
+   2nd test,
+   a.  Got AS400 signon screen from the terminal
+   b.  Enter username and password to sign on to AS400
+   c.  Sign on is successful. Retrieved the help menu of AS400
+   d.  Partial help menu was displayed upon the screen of the terminal
+   e.  We manually halted the slot, take slot dump as (HSBCNET:33)
+       D12026.D01 and D12026.D02.
+
+   The difference between the 1st test and the 2nd test is the time when
+   the slot was halted manually.
+   For the 1st test, we halted the slot when the AS/400 signon screen was
+   displayed on the screen after the partial help menu was got.
+   For the 2nd test, we halted the slot just right after the partial help
+   menu was got, but before the AS/400 signon screen was displayed.
+
+2. Questions
+   1.  Why was the 5th information frame sent from the AS400, which was
+       well received by the HIF, aborted in the middle of its'
+       transmission from the TIF to the terminal ?
+
+   \@	Iv
