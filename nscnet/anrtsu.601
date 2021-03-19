@@ -1,0 +1,3103 @@
+	RA	0
+
+:**********************************************************************
+:**********************************************************************
+:	BBXS 6.01 PATCH FILE
+:**********************************************************************
+:**********************************************************************
+
+	REMARK	%
+	REMARK	%*********************************************************
+	REMARK	%*                                                       *
+	REMARK	%*  If the PATCH1 area overflows, it will be necessary   *
+	REMARK	%*  to include the following statement in the Tymfile:   *
+	REMARK	%*                                                       *
+	REMARK	%*       OPTION(P1SIZE,4096)                             *
+	REMARK	%*                                                       *
+	REMARK	%*********************************************************
+	REMARK	%
+
+:**********************************************************************
+:
+:	This patch is merely a test of the PATCH.LIB routine.  All it
+:	does is provide a monitor for each line that keeps track of
+:	how many times BSCPTP was called.  It does this in a halfword
+:	table indexed by line number called CALCNT.
+:
+:	This patch serves no purpose but to validate the PATCH.LIB
+:	routine.
+
+	PATCH(850110,1021,E/BUELL,BSCPTP+48,,6)
+	J	BSCMON,,		:JUMP TO THE PATCH
+
+	CONPATCH(PA1PTR,,0C)
+BSCMON	HS	0
+	LO	BSCEXC
+	ST	R4,PRUNL,R2		:REPLACE PATCHED INSTRUCTION
+	FO	BSCEXC
+	LIS	R4,1			:BUMP CALL COUNTER
+	LO	FCB
+	AHM	R4,CALCNT,RL2
+	FO	FCB
+	JR	R5			:RETURN FROM BSCPTP
+
+	CONPATCH(PA0PTR,,(NBILIN*2))
+	GL	CALCNT
+CALCNT	HS	0			:DEFINE AND ZERO THE COUNTERS
+	RE	NBILIN
+	HC	0
+	ER
+
+	ENDPATCH(Count calls to BSCPTP for each line)
+
+
+	IF	NMLV
+:************************************************************************
+:
+:	This patch fixes a bug in HASP CRC generation for non-transparent
+:	frames.  The bug caused the STX in the SOH/STX sequence to NOT
+:	be included in the CRC.  The bug was probably introduced during
+:	a merging of the source for MLVPTP.
+
+	LO	BSCPTP
+	LO	BSCCRC
+	LO	BSCDEF
+
+	PATCH(860204,1901,NTD.E/BUELL,CRCSTX+8,,14)
+	CRCACC(RL2,R10,R12,R14)
+
+	ENDPATCH(Fix HASP non-transparent frame CRC problem)
+
+	FO	BSCPTP
+	FO	BSCCRC
+	FO	BSCDEF
+
+	EI	(NMLV)
+
+
+
+	IF	NMLV
+:************************************************************************
+:
+:	This patch fixes a problem in HASP signon that caused a signon
+:	string of the form username:mvc host#:ovc host# to be sent to 
+:	the Sup.
+
+	LO	LINE
+	LO	FCB
+	LO	IMS50
+
+	PATCH(860205,1634,NTD.E/BUELL,IMSPN9-0A,,6)
+	LB	R0,F.LINE,RAFCB,	:SET THE COLON LAST FLAG
+
+	ENDPATCH(Fix a problem with HASP OVC signon)
+
+	FO	LINE
+	FO	FCB
+	FO	IMS50
+
+	EI	(NMLV)
+
+
+	IF	NMLV
+:************************************************************************
+:
+:	This patch fixes a problem with a "backpressured" RTI.  This
+:	was fixed once before(?) but R0 was used as an index register
+:	so the fix never worked.  Oh, well.
+
+:*****	NOTE:  Remove the definitions of RCBREQ and RCBPER from MLVPTP
+
+	LO	BSCPTP
+	LO	BSCDEF
+
+	PATCH(860206,1709,NTD.E/BUELL,MXDAT5+18,,1A)
+	LO	FCB
+	LB	R5,BBUFER+RCBPS,R3,	:GET THE FIRST RCB
+	LB	R5,REVTAB,R5,
+	CHI	R5,RCBREQ		:IS IT REQUEST TO INITIATE ?
+	JEFS	MXDAT6			:YES
+	CHI	R5,RCBPER		:IS IT PERMIT TO INITIATE ?
+	JN	MXDAT4			:NO, BE SUSPENDED, NEXT
+	FO	FCB
+
+	ENDPATCH(Fix the backpressured RTI problem)
+
+	FO	BSCPTP
+	FO	BSCDEF
+
+	EI	(NMLV)
+
+
+
+	IF	NMLV
+:************************************************************************
+:
+:	This patch eliminates the HASP interface to crash on an unrecoverable
+:	error, such as protocol violation by the transmitter.
+:	HASP will now zap the circuit.
+
+	LO	BSCPTP
+	LO	BSCDEF
+
+	PATCH(860221,1702,B/KRUEGER,SHINIT-10,,8)
+MERROR	SBT	RL,BSCZAP		:REQUEST BACKGROUND TO ZAP THE CIRCUIT
+	J	MIDLE
+
+	CONPATCH(SHINIT,MSDISC)
+
+	SUBTTL	** MULTILEAVING **  STATE TABLES - HOST INTERFACE  **  MLVPTP
+
+:       RESPONSE WHILE LINE IN INIT STATE : SHINIT
+:       -------------------------------------------
+:       THE HOST INTERFACE HAS SENT  SOH,ENQ TO THE HOST AND IS WAITING
+:       A POSITIVE ACKNOWLEDGMENT ACK0 FROM HOST. IF HOST NOT RESPODING
+:       OR HOST RESPODING BUT NOT APPROPRIATE (I.E. OTHER THAN
+:       ACK0), AFTER 3 SEC., THE HOST INTERFACE WILL SEND SOH,ENQ
+:       AGAIN.  IF NOT RECEIVE ACK0 WITHIN  XXX  SEC,  THEN  DISCONNECT.
+
+SHINIT	HC	MERROR-PSEG		:GOOD DATA ETX BLOCK
+	HC	HINIT2-PSEG		:GOOD DATA ETB BLOCK(F12/10/21/83/CHS)
+	HC	MERROR-PSEG		:ENQ
+	HC	MERROR-PSEG		:EOT
+	HC	HINIT1-PSEG		:NAK
+	HC	MIDISC-PSEG		:DLE,EOT (DISCONNECT SIGNAL)
+	HC	MERROR-PSEG		:ACK1
+	HC	MERROR-PSEG		:WACK
+	HC	HBDACK-PSEG		:ACK0
+	HC	MERROR-PSEG		:RVI
+	HC	MERROR-PSEG		:TTD (STX,ENQ)
+	HC	MERROR-PSEG		:MULTI-LEAVING BID (SOH,ENQ)
+	HC	MERROR-PSEG		:DATA ABORT (ENQ,EOT,NAK IN TEXT)
+	HC	RCVRTY-PSEG		:LOST SYNCHRONIZATION
+	HC	HINIT1-PSEG		:OVERRUN (EXCEED RCV RESOURCE LIMIT)
+	HC	HINIT1-PSEG		:NO INITIAL BUFFERLET AVAILABLE
+	HC	HINIT1-PSEG		:TIMEOUT BEFORE MSG RECEIVED
+	HC	HINIT1-PSEG		:CRC ERROR IN DATA MESSAGE
+	HC	MERROR-PSEG		:LOST DATA (BUFFERLET UNAVAILABLE)
+	HC	RCVRTY-PSEG		:UNIDENTIFIABLE MSG
+	HC	MERROR-PSEG		:FORCED COMPLETION BY BACKGROUND
+
+	IF	NMLI
+
+:	WAITING FOR MLI HOST TO RESPOND WITH "PREADY" BLOCK : SHMLIR
+:	------------------------------------------------------------
+
+SHMLIR	HC	MERROR-PSEG		:GOOD DATA ETX BLOCK
+	HC	HMLICO-PSEG		:GOOD DATA ETB BLOCK
+	HC	MERROR-PSEG		:ENQ
+	HC	MERROR-PSEG		:EOT
+	HC	SNRNAK-PSEG		:NAK
+	HC	MIDISC-PSEG		:(DLE,EOT) DISCONNECT
+	HC	MERROR-PSEG		:ACK1 
+	HC	MERROR-PSEG		:WACK
+	HC	BIDAGN-PSEG		:ACK0 - RESPOND WITH ACK0
+	HC	MERROR-PSEG		:RVI
+	HC	MERROR-PSEG		:TTD (STX,ENQ)
+	HC	MERROR-PSEG		:MULTILEAVING BID 
+	HC	MERROR-PSEG		:DATA ABORT
+	HC	RCVRTY-PSEG		:LOST SYNCHRONIZATION
+	HC	HINIT1-PSEG		:OVERRUN
+	HC	HINIT1-PSEG		:NO INITIAL BUFFERLET AVAILABLE
+	HC	HINIT1-PSEG		:TIMEOUT BEFORE MESSAGE RECEIVED
+	HC	HINIT1-PSEG		:CRC ERROR IN DATA MESSAGE
+	HC	MERROR-PSEG		:LOST DATA (BUFFERLET UNAVAILABLE)
+	HC	RCVRTY-PSEG		:UNIDENTIFIABLE MSG
+	HC	MERROR-PSEG		:FORCED COMPLETION BY BACKGROUND		
+	
+	EI	(NMLI)
+
+	SUBTTL	** MULTILEAVING **  STATE TABLES - TERMINAL INTERFACE  **  MLVPTP
+
+:       WAITING FOR TERMINAL TO SEND SOH,ENQ OR DLE,ENQ (MLI): STINIT
+:       ---------------------------------------------------
+:       THE TERMINAL INTERFACE IS WAITING THE TERMIAL TO BID.
+
+STINIT	HC	MERROR-PSEG		:GOOD DATA ETX BLOCK
+	HC	TINIT1-PSEG		:GOOD DATA ETB BLOCK(F12/10/21/83/CHS)
+	HC	RBSCBD-PSEG		:ENQ (BSC 2780/3780 LINE BID)
+	HC	MERROR-PSEG		:EOT
+	HC	TINIT1-PSEG		:NAK
+	HC	MIDISC-PSEG		:DLE,EOT (DISCONNECT SIGNAL)
+	HC	MERROR-PSEG		:ACK1
+	HC	MERROR-PSEG		:WACK
+	HC	TINIT1-PSEG		:ACK0
+	HC	MERROR-PSEG		:RVI
+	HC	MERROR-PSEG		:TTD (STX,ENQ)
+	HC	TRMLBD-PSEG		:MULTI-LEAVING BID (SOH,ENQ)
+	HC	MERROR-PSEG		:DATA ABORT (ENQ,EOT,NAK IN TEXT)
+	HC	RCVRTY-PSEG		:LOST SYNCHRONIZATION
+	HC	TINIT1-PSEG		:OVERRUN (EXCEED RCV RESOURCE LIMIT)
+	HC	TINIT1-PSEG		:NO INITIAL BUFFERLET AVAILABLE
+	HC	TINIT1-PSEG		:TIMEOUT BEFORE MSG RECEIVED
+	HC	MERROR-PSEG		:CRC ERROR IN DATA MESSAGE
+	HC	MERROR-PSEG		:LOST DATA (BUFFERLET UNAVAILABLE)
+	HC	RCVRTY-PSEG		:UNIDENTIFIABLE MSG
+	HC	MERROR-PSEG		:FORCED COMPLETION BY BACKGROUND
+
+
+:	WAITING FOR THE SYSTEM SIGN ON CARD : STWSG
+:	-----------------------------------------------
+:	THE TERMINAL INTERFACE ACKNOWLEGE THE LINE BID WITH A
+:	AFFIRMATIVE ACK0, AND WAITING FOR THE RECEIVING OF A SYSTEM
+:	SIGN ON CARD IMAGE.
+:
+:	FOR MLI (APRIL-84) WAITING FOR "PSIGNON" RECORD
+:	-----------------------------------------------
+STWSG	HC	MERROR-PSEG		:GOOD DATA ETX BLOCK
+	HC	TRSGON-PSEG		:GOOD DATA ETB BLOCK
+	HC	MERROR-PSEG		:ENQ
+	HC	MERROR-PSEG		:EOT
+	HC	MERROR-PSEG		:NAK
+	HC	MIDISC-PSEG		:DLE,EOT (DISCONNECT SIGNAL)
+	HC	MERROR-PSEG		:ACK1
+	HC	MERROR-PSEG		:WACK
+	HC	TRACK0-PSEG		:ACK0
+	HC	MERROR-PSEG		:RVI
+	HC	MERROR-PSEG		:TTD (STX,ENQ)
+	HC	TRMLBD-PSEG		:MULTI-LEAVING BID (SOH,ENQ)
+	HC	MERROR-PSEG		:DATA ABORT (ENQ,EOT,NAK IN TEXT)
+	HC	RCVRTY-PSEG		:LOST SYNCHRONIZATION
+	HC	MERROR-PSEG		:OVERRUN (EXCEED RCV RESOURCE LIMIT)
+	HC	MERROR-PSEG		:NO INITIAL BUFFERLET AVAILABLE
+	HC	TRTMOT-PSEG		:TIMEOUT BEFORE MSG RECEIVED
+	HC	TRCRCR-PSEG		:CRC ERROR IN DATA MESSAGE
+	HC	RCVRTY-PSEG		:LOST DATA (BUFFERLET UNAVAILABLE)
+	HC	RCVRTY-PSEG		:UNIDENTIFIABLE MSG
+	HC	MERROR-PSEG		:FORCED COMPLETION BY BACKGROUND
+
+
+
+
+:	WAITING FOR THE REQUEST TO INITIATE BLOCK : STRTIN
+:	------------------------------------------------------
+:       THE TERMINAL INTERFACE IS WAITING TO RECEIVE THE FIRST RECORD -
+:	A 'REQUEST TO INITIATE' RECORD, TO GRANT PERMISION TO SEND
+:	NETCMD RECORD.
+:
+:	FOR MLI (APRIL-84) TERMINAL INTRF. WAITING FOR "PCOMPLETE" RECORD.
+:	------------------------------------------------------------------
+
+STRTIN	HC	MERROR-PSEG		:GOOD DATA ETX BLOCK
+	HC	TIRTIN-PSEG		:GOOD DATA ETB BLOCK
+	HC	MERROR-PSEG		:ENQ
+	HC	MERROR-PSEG		:EOT
+	HC	TIRNAK-PSEG		:NAK
+	HC	MIDISC-PSEG		:DLE,EOT (DISCONNECT SIGNAL)
+	HC	MERROR-PSEG		:ACK1
+	HC	MERROR-PSEG		:WACK
+	HC	TIRACK-PSEG		:ACK0
+	HC	MERROR-PSEG		:RVI
+	HC	MERROR-PSEG		:TTD (STX,ENQ)
+	HC	TIRST-PSEG		:MULTI-LEAVING BID (SOH,ENQ)
+	HC	MERROR-PSEG		:DATA ABORT (ENQ,EOT,NAK IN TEXT)
+	HC	RCVRTY-PSEG		:LOST SYNCHRONIZATION
+	HC	TIOVRN-PSEG		:OVERRUN (EXCEED RCV RESOURCE LIMIT)
+	HC	TINBUF-PSEG		:NO INITIAL BUFFERLET AVAILABLE
+	HC	TITMOT-PSEG		:TIMEOUT BEFORE MSG RECEIVED
+	HC	TICRCR-PSEG		:CRC ERROR IN DATA MESSAGE
+	HC	TILTDT-PSEG		:LOST DATA (BUFFERLET UNAVAILABLE)
+	HC	RCVRTY-PSEG		:UNIDENTIFIABLE MSG
+	HC	MERROR-PSEG		:FORCED COMPLETION BY BACKGROUND
+
+:	WAITING FOR THE NETCMD RECORD : STNCMD
+:	----------------------------------------
+:	TERMINAL INTERFACE HAS GRANTED PERMISTION TO THE WORK STATION,
+:	AND IS WAITING FOR THE NETCMD CARD.
+
+STNCMD	HC	MERROR-PSEG		:GOOD DATA ETX BLOCK
+	HC	TNCMD-PSEG		:GOOD DATA ETB BLOCK
+	HC	MERROR-PSEG		:ENQ
+	HC	MERROR-PSEG		:EOT
+	HC	TNRNAK-PSEG		:NAK
+	HC	MIDISC-PSEG		:DLE,EOT (DISCONNECT SIGNAL)
+	HC	MERROR-PSEG		:ACK1
+	HC	MERROR-PSEG		:WACK
+	HC	TNRACK-PSEG		:ACK0
+	HC	MERROR-PSEG		:RVI
+	HC	MERROR-PSEG		:TTD (STX,ENQ)
+	HC	TNRST-PSEG		:MULTI-LEAVING BID (SOH,ENQ)
+	HC	MERROR-PSEG		:DATA ABORT (ENQ,EOT,NAK IN TEXT)
+	HC	RCVRTY-PSEG		:LOST SYNCHRONIZATION
+	HC	RCVRTY-PSEG		:OVERRUN (EXCEED RCV RESOURCE LIMIT)
+	HC	RCVRTY-PSEG		:NO INITIAL BUFFERLET AVAILABLE
+	HC	TNTMOT-PSEG		:TIMEOUT BEFORE MSG RECEIVED
+	HC	TNCRCR-PSEG		:CRC ERROR IN DATA MESSAGE
+	HC	RCVRTY-PSEG		:LOST DATA (BUFFERLET UNAVAILABLE)
+	HC	RCVRTY-PSEG		:UNIDENTIFIABLE MSG
+	HC	MERROR-PSEG		:FORCED COMPLETION BY BACKGROUND
+
+
+:	WAITING FOR A EOF RECORD TO COMPLETE 'SIGNON' : STNEOF
+:	--------------------------------------------------------
+:	TERMINAL INTERFACE HAS RECEIVED A PRESUMMED NETCMD RECORD, AND
+:	IS WAITING FOR THE MANDATORY EOF RECORD .
+
+STNEOF	HC	MERROR-PSEG		:GOOD DATA ETX BLOCK
+	HC	TEEOF-PSEG		:GOOD DATA ETB BLOCK
+	HC	MERROR-PSEG		:ENQ
+	HC	MERROR-PSEG		:EOT
+	HC	TERNAK-PSEG		:NAK
+	HC	MIDISC-PSEG		:DLE,EOT (DISCONNECT SIGNAL)
+	HC	MERROR-PSEG		:ACK1
+	HC	MERROR-PSEG		:WACK
+	HC	TERACK-PSEG		:ACK0
+	HC	MERROR-PSEG		:RVI
+	HC	MERROR-PSEG		:TTD (STX,ENQ)
+	HC	TERST-PSEG		:MULTI-LEAVING BID (SOH,ENQ)
+	HC	MERROR-PSEG		:DATA ABORT (ENQ,EOT,NAK IN TEXT)
+	HC	RCVRTY-PSEG		:LOST SYNCHRONIZATION
+	HC	RCVRTY-PSEG		:OVERRUN (EXCEED RCV RESOURCE LIMIT)
+	HC	RCVRTY-PSEG		:NO INITIAL BUFFERLET AVAILABLE
+	HC	TETMOT-PSEG		:TIMEOUT BEFORE MSG RECEIVED
+	HC	TECRCR-PSEG		:CRC ERROR IN DATA MESSAGE
+	HC	TELTDT-PSEG		:LOST DATA (BUFFERLET UNAVAILABLE)
+	HC	RCVRTY-PSEG		:UNIDENTIFIABLE MSG
+	HC	MERROR-PSEG		:FORCED COMPLETION BY BACKGROUND
+
+
+	SUBTTL	 ** MULTILEAVING **   STATE TABLES  - TERMINAL/HOST  **  MLVPTP
+
+:	RESPONSE WHILE LINE IN NORMAL (ACTIVE) STATE : SNORM
+:	----------------------------------------------------
+:	NORMAL RECEIVING AND TRANSMITTING .....
+
+SNORM	HC	MERROR-PSEG		:GOOD DATA ETX BLOCK
+	HC	RDATB-PSEG		:GOOD DATA ETB BLOCK
+	HC	MERROR-PSEG		:ENQ
+	HC	MERROR-PSEG		:EOT
+	HC	SNRNAK-PSEG		:NAK
+	HC	MIDISC-PSEG		:DLE,EOT (DISCONNECT SIGNAL)
+	HC	MERROR-PSEG		:ACK1
+	HC	MERROR-PSEG		:WACK
+	HC	SNRACK-PSEG		:ACK0
+	HC	MERROR-PSEG		:RVI
+	HC	MERROR-PSEG		:TTD (STX,ENQ)
+	HC	SNRST-PSEG		:MULTI-LEAVING BID (SOH,ENQ)
+	HC	MERROR-PSEG		:DATA ABORT (ENQ,EOT,NAK IN TEXT)
+	HC	RCVRTY-PSEG		:LOST SYNCHRONIZATION
+	HC	SNOVRN-PSEG		:OVERRUN (EXCEED RCV RESOURCE LIMIT)
+	HC	RCVRTY-PSEG		:NO INITIAL BUFFERLET AVAILABLE
+	HC	SNTMOT-PSEG		:TIMEOUT BEFORE MSG RECEIVED
+	HC	SNCRCR-PSEG		:CRC ERROR IN DATA MESSAGE
+	HC	SNLTDT-PSEG		:LOST DATA (BUFFERLET UNAVAILABLE)
+	HC	RCVRTY-PSEG		:UNIDENTIFIABLE MSG
+	HC	MERROR-PSEG		:FORCED COMPLETION BY BACKGROUND
+	FO	BSCPTP
+	FO	BSCDEF
+
+	LO	HSEC
+
+	CONPATCH(ERCK+10,,4)
+	JE	ERCK+24			:NO--SKIP
+
+	CONPATCH(ERCK+20,,4)
+	JLER	R2			:YES--TAKE NORMAL RETURN
+	NOPR
+
+	FO	HSEC
+
+	ENDPATCH(Eliminate HASP crash on protocol violation)
+	
+	EI	(NMLV)
+
+:************************************************************************
+:
+:	This patch fixes a bug in the BSCRCV synchronization logic.
+:	Registers RSYF and RSYT were not restored after Dismiss when
+:	waiting for ring data.
+
+	LO	BSCDEF
+	LO	BSCRCV
+
+	PATCH(860314,1045,NTD.B/KRUEGER,RSYN95+6,,6)
+	J	SYNFX1,,		:JUMP TO PATCH
+
+	CONPATCH(PA1PTR,,18)
+SYNFX1	HS	0
+	L	RCB,RCBSV2,RL2,RL2	:AND RCB
+	L	RSYF,TSYFLG,RL2,RL2	:REESTABLISH ADDR OF SYNC BIT ARRAY
+	L	RSYT,TSYTAB,RL2,RL2	:REESTABLISH ADDR OF SYNC TABLE
+	J	RSYN95+0C,,
+
+	ENDPATCH(Fix BSCRCV synchronization bug)
+
+	FO	BSCDEF
+	FO	BSCRCV
+
+
+
+	IF	NFDX
+:************************************************************************
+:
+:	The following patch adds checks for halt and gobble after each 
+:	dismiss in BSCXFD and forces DDCPTP to crash when the Full Duplex
+:	Timer detects an illogical situation.
+:
+	LO	BSCDEF
+	LO	BSCHDX
+	LO	BSCEXC
+
+:	The following subroutine replaces subroutine  XFDCKT.
+
+	PATCH(860318,1733,NTD.B/KRUEGER,XFDCKT,,6)
+XFDDMS	J	XFDFX1,,		:JUMP TO PATCH
+
+:  XFDDMS -- DISMISS FULL DUPLEX TRANSMITTER
+:  -----------------------------------------
+:  THIS ROUTINE FOLLOWS A CALL TO XDMISS WITH
+:  o 	SETTING BIT 'XFDUP' TO INDICATE TO THE PROTOCOL PROCESSOR THAT THIS
+:  	PROCESS IS STILL UP AND RUNNING.
+:  o	CHECKING BIT 'XFDHLT' TO DETERMINE IF THE PROTOCOL PROCESSOR REQUESTED
+:	THE FULL DUPLEX TRANSMITTER TO HALT. RESET BIT TO INDICATE TO 
+:	PROTOCOL PROCESSOR THAT HALT PROCEESING COMPLETED.
+:  o	CHECKING BIT 'XFDGBL' TO DETERMINE IF THE PROTOCOL PROCESSOR REQUESTED
+:	THE FULL DUPLEX TRANSMITTER TO GOBBLE THE XMT QUEUE. RESET BIT TO
+:	INDICATE COMPLETION OF GOBBLE PROCESSING.
+:  o	CHECKING IF THE TIMEOUT SPECIFIED BY 'BSXTIM' HAS EXPIRED.
+:
+:	CALLING SEQUENCE:	JAL	R5,XFDDMS
+:
+:	INPUT:		'BSXTIM' HAS FASTC VALUE OF END OF TIMEOUT
+:
+:	OUTPUT:		CONDITION CODE
+:				>= 0	- TIMER NOT EXPIRED YET
+:				< 0	- TIMEOUT OCCURED
+:			
+:			JUMP TO 'XFD300' IF 'XFDHLT' WAS SET
+:			JUMP TO 'XFD400' IF 'XFDGBL' WAS SET
+
+:XFDDMS
+	CONPATCH(PA1PTR,,32)
+XFDFX1	HS	0
+
+	ST	R5,BSXRTA,RL2,RL2	:SAVE RETURN ADDRESS
+
+	JAL	R5,XDMISS,,		:DISMISS
+	SBT	RL,XFDUP,,		:INDICATE XMT PROC UP AND RUNNING
+
+	RBT	RL,XFDHLT,,		:CHECK AND RESET BIT
+	JN	XFD300,,		:JUMP IF HALT WAS REQUESTED
+	RBT	RL,XFDGBL,,		:CHECK AND RESET BIT
+	JN	XFD400,,		:JUMP IF GOBBLE WAS REQUESTED
+
+	L	R5,BSXRTA,RL2,RL2	:RESTORE RETURN ADDRESS
+	L	RAD,BSXTIM,RL2,RL2	:GET FASTC TIME OF END TIMEOUT
+	S	RAD,FASTC,,		:SUBTRACT CURRENT FASTC
+	JR	R5			:RETURN WITH CONDITION BITS SET
+
+:	End of subroutine
+
+	CONPATCH(XFD05+4,,52)
+XFD10X
+	JAL	R5,XFDDMS		:DISMISS (NO TIMEOUT CHECK)
+
+	FDQCHK(XQ,BSCXFD,XFD20,XFD20)	:GO TO XFD20 IF XMT QUEUE NOT EMPTY
+:		  .NONE  .DATA .ELSE	:ELSE BACK TO BEGINNING OF LOOP
+	NOP
+	NOP
+	NOP
+	NOP
+
+
+	CONPATCH(XFD10,,4)
+	J	XFD10X
+
+	CONPATCH(XFD20+1C,,8)
+	JAL	R5,XFDDMS		:DISMISS (CHECK FOR TIMEOUT)
+	NOP
+
+	CONPATCH(XFD30+0C,,8)
+	JAL	R5,XFDDMS		:DISMISS (CHECK FOR TIMEOUT)
+	NOP
+
+	CONPATCH(XFD50+12,,8)
+	JAL	R5,XFDDMS		:DISMISS (CHECK FOR TIMEOUT)
+	NOP
+
+	CONPATCH(XFD60+8,,8)
+	JAL	R5,XFDDMS		:DISMISS (CHECK FOR TIMEOUT)
+	NOP
+	
+	CONPATCH(XFD110,,8)
+	JAL	R5,XFDDMS		:DISMISS (CHECK FOR TIMEOUT)
+	NOP
+
+	CONPATCH(XFD220,,10)
+	JAL	R5,XFDDMS		:DISMISS (CHECK FOR TIMEOUT)
+	NOP
+	NOP
+	NOP
+
+	CONPATCH(XFD300+36,,4)
+	NOP
+
+	CONPATCH(XFD400+36,,4)
+	NOP
+
+	FO	BSCHDX
+
+
+	LO	BSCPTP
+
+	CONPATCH(DPT130+10,,10)
+	LA	R0,XRUNL,RL2,RL2
+	LA	R1,RRUNL,RL2,RL2
+	JAL	R10,CRASH
+
+	CONPATCH(DXWT10,,6)
+	J	PTPFX1,,		:JUMP TO PATCH
+
+	CONPATCH(PA1PTR,,18)
+PTPFX1	HS	0
+	JAL	R5,PDMISS,,		:DISMISS
+	JAL	R5,DPTTIM,,		:FDX PROCS UP AND RUNNING?
+	JN	DPT130,,		:NO--FATAL ERROR
+	J	DXWT10+6,,
+
+	FO	BSCPTP
+
+	ENDPATCH(Full Duplex clean up)
+
+	FO	BSCDEF
+	FO	BSCEXC
+
+	EI	(NFDX)
+
+
+
+:**********************************************************************
+:
+:	NSR642
+:	Updated 9/8/86 ERB - Fix ESC #21073
+:	Updated 10/30/86 BK - Fix ESC #33933
+:
+:	This patch adds two new features to BBXS Version 6.01.  Both
+:	features delay the inbound queue processing.
+:
+:
+:	Circuit Building Delay
+:	----------------------
+:
+:	Syntax:   LOPTION(#,BCBD,value)
+:
+:	Default:  0 (no circuit building delay)
+:
+:	This feature if enabled, causes an interface to delay the scan
+:	of the inbound queue for a /$NETCMD SIGNON record.  This causes
+:	the circuit building to be delayed for the number of seconds
+:	specified by value, after the interface enters the LREADY state
+:	(i.e. DSR detected).  The purpose of this is to allow a host
+:	time to reinitialize after clearing a call.
+:
+:
+:	Data Forwarding Delay
+:	---------------------
+:
+:	Syntax:   LOPTION(#,BDFD,value)
+:
+:	Default:  0 (no data forwarding delay)
+:
+:	This feature if enabled, causes an interface to delay forwarding
+:	of data in the inbound direction after a circuit has been
+:	established.  Value represents the number of seconds of delay.
+:	The purpose of this feature is to allow a host receiving a call
+:	time to set itself up before any data arrives.
+:	This delay is a one-shot and occurs as soon as the circuit is
+:	completed (i.e. the line enters the LACTIV state).
+
+:****************************************
+:>>>>>>	The following code belongs in LINE
+
+	PATCH(860329,1254,NTD.E/BUELL,PA1PTR,,(NBILIN*2*2))
+:	DEFIE CIRCUIT BUILDING DELAY TIMES
+
+CBDTIM	HS	0
+Q	EQ	0
+	RE	NBILIN
+	IF	\BCBD|Q|
+	HC	BCBD|Q|
+	ELSE
+	HC	0
+	EI	(\BCBD)
+Q	EQ	Q+1
+	ER
+
+:	DEFINE THE DATA FORWARDING DELAY TIMES
+
+DFDTIM	HS	0
+Q	EQ	0
+	RE	NBILIN
+	IF	\BDFD|Q|
+	HC	BDFD|Q|
+	ELSE
+	HC	0
+	EI	(\BDFD)
+Q	EQ	Q+1
+	ER
+
+	CONPATCH(PA0PTR,,(NBILIN*4))
+L.IBDT	WS	NBILIN			:TIMER ARRAY FOR INBOUND DELAY
+
+:****************************************
+:>>>>>>	The following code belongs in QIO
+
+	LO	FCB
+
+	CONPATCH(PA0PTR,,(NGS*2))
+IBEFLG	HS	NGS			:INBOUND ENABLED
+
+	CONPATCH(QIO2+8,,6)
+	J	IBDFX1,,
+
+	CONPATCH(PA1PTR,,12)
+IBDFX1	NH	R1,GPROC		:EXCLUDE FCB'S ALREADY PROCESSED
+	NH	R1,IFLAG,RGRP		:MASK OF FCB'S WAITING
+	NH	R1,IBEFLG,RGRP		:MASK OF FCB'S WITH INBOUND ENABLED
+	J	QIO2+10,,
+
+:********************
+	IF	DEBUG
+	CONPATCH(AFLG+1A,,6)
+	ELSE
+	CONPATCH(AFLG+0E,,6)
+	EI	(DEBUG)
+	J	IBDFXE,,
+
+	CONPATCH(PA1PTR,,10)
+IBDFXE	STH	R2,F.BIT,RAFCB,		:SAVE BIT NO. IF FCB
+	SBT	R2,IBEFLG		:ASSURE BIT ON FOR INSURANCE
+	IF	DEBUG
+	J	AFLG+20,,
+	ELSE
+	J	AFLG+14,,
+	EI	(DEBUG)
+
+:********************
+	CONPATCH(RFLG+16,,6)
+	J	IBDFXF,,
+
+	CONPATCH(PA1PTR,,10)
+IBDFXF	STH	R0,F.BIT,RAFCB,		:MARK UNASSIGNED
+	RBT	R2,IBEFLG		:ASSURE BIT OFF FOR INSURANCE
+	J	RFLG+1C,,
+
+	FO	FCB
+
+:****************************************
+:>>>>>> The following code belongs in HSEC
+
+	LO	HSEC
+	LO	FCB
+	LO	LINE
+	LO	IDS
+
+IBESET	MACRO(REG,VALUE)
+ [	LHL	RAFCB,OFCB,RL2,RL2	:GET THE BIT NUMBER
+	LHL	REG,F.BIT,RAFCB,
+	IF	VALUE
+	SBT	REG,IBEFLG		:ENABLE INBOUND
+	ELSE
+	RBT	REG,IBEFLG		:DISABLE INBOUND
+	EI	(VALUE)
+ ]
+
+IBDINI	MACRO(REG,VALUE)
+ [	LHL	REG,VALUE,RL2,		:DOES THIS LINE SUPPORT INBOUND DELAY
+	JE	IBDI1			:NO
+	A	REG,SLOWC,,		:START THE TIMER
+	ST	REG,L.IBDT,RL2,RL2
+	IBESET(REG,0)			:DISABLE INBOUND
+	J	IBDI2
+IBDI1	ST	REG,L.IBDT,RL2,RL2	:STOP THE TIMER
+	IBESET(REG,1)			:ENABLE INBOUND
+IBDI2
+	KILL	IBDI1,IBDI2
+ ]
+
+IBDTST	MACRO(REG)
+ [	L	REG,L.IBDT,RL2,RL2	:IS THE INBOUND DELAY TIMER RUNNING
+	JE	IBDT1			:NO
+	S	REG,SLOWC,,		:HAS THE TIMER EXPIRED
+	JG	IBDT2			:NO
+	LIS	REG,0			:STOP THE TIMER
+	ST	REG,L.IBDT,RL2,RL2
+IBDT1	IBESET(REG,1)			:ENABLE INBOUND
+IBDT2
+	KILL	IBDT1,IBDT2
+ ]
+
+:********************
+	CONPATCH(HSC01,,6)		:>> LACTIVE
+	J	IBDFX2,,
+
+	CONPATCH(PA1PTR,,3A)
+IBDFX2	IBDTST(R1)			:TEST THE DATA FORWARDING TIMER
+	RLINE(R1)			:READ LINE NUMBER [LAG..F27]
+	TBT	R1,BSCDSB		:HAS LINE BEEN DISABLED FROM DDT?
+	J	HSC01+8,,
+
+:********************
+	CONPATCH(SIG0A1,,6)		:>> LTRL
+	J	IBDFX3,,
+
+	CONPATCH(PA1PTR,,4E)
+IBDFX3	IBDINI(R0,DFDTIM)		:INITIALIZE THE DATA FORWARDING TIMER
+	LA	RALS,LACTIVE,,
+	LIS	R0,0
+	J	SIG0A1+6,,
+
+:********************
+	IF	NMLV			:>> LTRL
+	IF	NMLI
+	CONPATCH(SIGAM2+16,,6)
+	ELSE
+	CONPATCH(SIGAM2+4,,6)
+	EI	(NMLI)
+	J	IBDFX4,,
+
+	CONPATCH(PA1PTR,,4E)
+IBDFX4	IBDINI(R0,DFDTIM)		:INITIALIZE THE DATA FORWARDING TIMER
+	LA	RALS,LACTIVE,,
+	LIS	R0,0
+	IF	NMLI
+	J	SIGAM2+1C,,
+	ELSE
+	J	SIGAM2+0A,,
+	EI	(NMLI)
+	EI	(NMLV)
+
+:********************
+	CONPATCH(SIG0B+4,,6)		:>> LTRR
+	J	IBDFX5,,
+
+	CONPATCH(PA1PTR,,4E)
+IBDFX5	IBDINI(R0,DFDTIM)		:INITIALIZE THE DATA FORWARDING TIMER
+	LA	RALS,LACTIVE,,
+	LIS	R0,0
+	J	SIG0B+0A,,
+
+:********************
+	CONPATCH(EPTPSW,,6)		:>> LSWRR
+	J	IBDFX6,,
+
+	CONPATCH(PA1PTR,,4E)
+IBDFX6	IBDINI(R0,DFDTIM)		:INITIALIZE THE DATA FORWARDING TIMER
+	LA	RALS,LACTIVE,,
+	LIS	R0,0
+	J	EPTPSW+6,,
+
+:********************
+	CONPATCH(HSC00,,6)		:>> LREADY
+	J	IBDFX7,,
+
+	CONPATCH(PA1PTR,,3A)
+IBDFX7	IBDTST(R1)			:TEST CIRCUIT BUILDING DELAY
+	RLINE(R1)			:GET LINE NUMBER [LAG..F27]
+	TBT	R1,BSCDSB		:HAS THE LINE BEEN DISABLED?
+	J	HSC00+8,,
+
+:********************
+	CONPATCH(RTYPT,,6)		:>> LWT
+	J	IBDFX8,,
+
+	CONPATCH(PA1PTR,,4C)
+IBDFX8	IBDINI(R0,CBDTIM)		:INITIALIZE THE CIRCUIT BUILDING DELAY TIMER
+	L	R0,L.TMO,RL2,RL2
+	J	RTYPT+6,,
+
+:********************
+	CONPATCH(SWITCH+1E,,6)		:>> LDOWN
+	J	IBDFXD,,
+
+	CONPATCH(PA1PTR,,18)
+IBDFXD	IBESET(R0,1)			:ENABLE INBOUND
+	LA	RALS,LSWRDY,,
+	JR	RLINK
+
+:***************************
+:	Added 10/30/86  ESC #33933
+
+	CONPATCH(HSC08,,6)		:>> LHLTB
+	J	IBDF10,,
+
+	CONPATCH(PA1PTR,,3A)
+IBDF10	HS	0
+	IBDTST(R0)			:TEST THE DATA FORWARDING TIMER
+	RLINE(R0)
+	TBT	R0,BSCHLT
+	J	HSC08+8,,
+
+:	In order to patch IBDTST for HSC02 we need to free up some code
+:	at ZAP01.
+
+	CONPATCH(ZAP01,,6)
+	J	IBDZ01,,
+
+	CONPATCH(PA1PTR,,12)
+IBDZ01	HS	0
+	JAL	R2,RTYCK,,		:SKIP IF NO RETRY OPTION
+	J	IBDZ02			:NON-SKIP RETURN
+	J	DROP2,,			:SKIP RETURN
+IBDZ02
+	JAL	R2,RFSTMO,,		:REFRESH SIGNON TIMEOUT
+	J	DROP2,,
+
+	CONPATCH(LIDLE,,2)		:>> LIDLE
+	HC	ZAP01+6-HBASE		:JUMP TABLE ADDR FOR HSC02
+
+	CONPATCH(ZAP01+6,,6)
+	J	IBDH02,,		:JUMP TO CODE FOR HSC02
+
+	CONPATCH(PA1PTR,,1E)
+IBDH02	HS	0
+	IBDTST(R1)			:TEST THE DATA FORWARDING TIMER
+	JR 	RLINK
+
+	FO	FCB
+	FO	LINE
+	FO	IDS
+	FO	HSEC
+
+:****************************************
+:>>>>>> The following code belongs in BSCRCV
+
+	LO	BSCDEF
+	LO	BSCRCV
+
+	IF	NFDX
+	CONPATCH(RSYN10+8,,10)
+	ELSE
+	CONPATCH(RSYN10,,10)
+	EI
+
+	TBT	RL,BSCEFR		:FORCE RECEIVE COMPLETE ENABLED?
+	JE	RSYN15			:NO--SKIP
+	TBT	RL,BSCFRC		:FORCE RECEIVE COMPLETE REQUESTED?
+	JN	RPFCOM			:YES--GO ACTIVATE FORCE RCV COMPLETE
+
+	LO	BSCDEF
+	FO	BSCRCV
+
+:****************************************
+:>>>>>> The following code belongs into BSCPTP
+
+	LO	BSCPTP
+
+	CONPATCH(RCV100+0C,,8)
+	NOP	,,
+	NOP	,,
+
+	FO	BSCPTP
+
+:	End of code for ESC #33933 (10/30/86)
+
+:****************************************
+:>>>>>>	The following code belongs in R100
+
+	LO	R100
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	CONPATCH(R1DRN+0E,,6)
+	J	IBDFX9,,
+
+	CONPATCH(PA1PTR,,12)
+IBDFX9	SBT	R0,IBEFLG		:ENABLE INBOUND
+	SBT	R0,BPOS			:OVERRIDE BACKPRESSURE MECHANISM
+	SBT	R0,BPS			:NOT BACKPRESSURED
+	J	R1DRN+16,,
+
+:********************
+	CONPATCH(R1DRN+0A,,4)
+	NOP				:DON'T RESET SIGNOFF
+
+	FO	R100
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+:****************************************
+:>>>>>>	The following code belongs in R700
+
+	IF	NVMB
+
+	LO	R100
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	CONPATCH(R7DRN+0E,,6)
+	J	IBDFXA,,
+
+	CONPATCH(PA1PTR,,12)
+IBDFXA	SBT	R0,IBEFLG		:ENABLE INBOUND
+	SBT	R0,BPOS			:OVERRIDE BACKPRESSURE MECHANISM
+	SBT	R0,BPS			:NOT BACKPRESSURED
+	J	R7DRN+16,,
+
+:********************
+	CONPATCH(R7DRN+0A,,4)
+	NOP				:DON'T RESET SIGNOFF
+
+	FO	R100
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+	EI	(NVMB)
+
+:****************************************
+:>>>>>>	The following code belongs in C500
+
+	IF	NMLV
+
+	LO	C500
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	CONPATCH(C5DRN+0E,,6)
+	J	IBDFXB,,
+
+	CONPATCH(PA1PTR,,12)
+IBDFXB	SBT	R0,IBEFLG		:ENABLE INBOUND
+	SBT	R0,BPOS			:OVERRIDE BACKPRESSURE MECHANISM
+	SBT	R0,BPS			:NOT BACKPRESSURED
+	J	C5DRN+16,,
+
+:********************
+	CONPATCH(C5DRN+0A,,4)
+	NOP				:DON'T RESET SIGNOFF
+
+	FO	C500
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+	EI	(NMLV)
+
+:****************************************
+:>>>>>>	The following code belongs in R500
+
+	IF	NMLV
+
+	LO	R500
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	CONPATCH(R5DRN+0E,,6)
+	J	IBDFXC,,
+
+	CONPATCH(PA1PTR,,12)
+IBDFXC	SBT	R0,IBEFLG		:ENABLE INBOUND
+	SBT	R0,BPOS			:OVERRIDE BACKPRESSURE MECHANISM
+	SBT	R0,BPS			:NOT BACKPRESSURED
+	J	R5DRN+16,,
+
+:********************
+	CONPATCH(R5DRN+0A,,4)
+	NOP				:DON'T RESET SIGNOFF
+
+	FO	R500
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+	EI	(NMLV)
+
+	ENDPATCH(Add the Circuit Building and Data Forwarding Delay options)
+
+
+
+:**********************************************************************
+:
+:	NSR652
+:
+:	This patch fixes the problem with the SCOPE command in version
+:	6.01
+
+	LO	BSCPTP
+	LO	BSCDEF
+
+	IF	PTPTSW
+
+	PATCH(860321,1145,NTD.E/BUELL,RCV110+1E,,2)
+	NOPR
+
+	CONPATCH(RCV110+22,,2)
+	NOPR
+
+	IF	NVMB
+	IF	NVMBT
+	CONPATCH(LIOEOT+30,,0C)
+	ELSE
+	CONPATCH(LIOEOT+1C,,0C)
+	EI	(NVMBT)
+	OHI	R0,0FF			:FLAG NO RCV OP PERFORMED	:
+	STH	R0,PTPTTB,R6,		:TRACE				:
+	AIS	R6,4			:ADVANCE TRACE INDEX		:
+	EI	(NVMB)
+
+	ENDPATCH(Fix the SCOPE bug)
+
+	EI	PTPTSW
+
+	FO	BSCPTP
+	FO	BSCDEF
+
+
+
+:**********************************************************************
+:
+:	NSR275
+:
+:	This patch causes the interface to actually use the Transmit
+:	Limit (TLM) sent by the dispatcher.
+
+:****************************************
+:>>>>>>	THE FOLLOWING CODE BELONGS IN IR100
+
+	LO	IR100
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	PATCH(860329,1523,NTD.E/BUELL,IR1BASE+52,,2)
+	HC	IR1TLM-IR1BASE		: B9	TRANSMIT LIMIT
+
+	CONPATCH(PA1PTR,,0A)
+IR1TLM	LHL	R1,IPORT		:GET THE PORT NUMBER
+	STB	RCPA,XLIMIT,R1		:SAVE THE TRANSMIT LIMIT
+	JR	RLINK
+
+	FO	IR100
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+:****************************************
+:>>>>>>	THE FOLLOWING CODE BELONGS IN IR300
+
+	IF	VMSW
+
+	LO	IR100
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	CONPATCH(IR3BASE+52,,2)
+	HC	IR3TLM-IR3BASE		: B9	TRANSMIT LIMIT
+
+	CONPATCH(PA1PTR,,0A)
+IR3TLM	LHL	R1,IPORT		:GET THE PORT NUMBER
+	STB	RCPA,XLIMIT,R1		:SAVE THE TRANSMIT LIMIT
+	JR	RLINK
+
+	FO	IR100
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+	EI	(VMSW)
+
+:****************************************
+:>>>>>>	THE FOLLOWING CODE BELONGS IN ILS00
+
+	LO	ILS00
+	LO	FCB
+	LO	IDS
+	LO	LINE
+	LO	RCL
+
+	CONPATCH(ILSBASE+52,,2)
+	HC	ILSTLM-ILSBASE		: B9	TRANSMIT LIMIT
+
+	CONPATCH(PA1PTR,,0A)
+ILSTLM	LHL	R1,IPORT		:GET THE PORT NUMBER
+	STB	RCPA,XLIMIT,R1		:SAVE THE TRANSMIT LIMIT
+	JR	RLINK
+
+	FO	ILS00
+	FO	FCB
+	FO	IDS
+	FO	LINE
+	FO	RCL
+
+:****************************************
+:>>>>>>	THE FOLLOWING CODE BELONGS IN IMS50
+
+	IF 	NMLV
+
+	LO	IMS50
+	LO	FCB
+	LO	IDS
+	LO	LINE
+	LO	RCL
+
+	CONPATCH(IMSBASE+52,,2)
+	HC	IMSTLM-IMSBASE		: B9	TRANSMIT LIMIT
+
+	CONPATCH(PA1PTR,,0A)
+IMSTLM	LHL	R1,IPORT		:GET THE PORT NUMBER
+	STB	RCPA,XLIMIT,R1		:SAVE THE TRANSMIT LIMIT
+	JR	RLINK
+
+	FO	IMS50
+	FO	FCB
+	FO	IDS
+	FO	LINE
+	FO	RCL
+
+	EI	(NMLV)
+
+:****************************************
+:>>>>>>	THE FOLLOWING CODE BELONGS IN IRS00
+
+	LO	IRS00
+	LO	FCB
+	LO	IDS
+	LO	LINE
+	LO	RCL
+
+	CONPATCH(IRSBASE+52,,2)
+	HC	IRSTLM-IRSBASE		: B9	TRANSMIT LIMIT
+
+	CONPATCH(PA1PTR,,0A)
+IRSTLM	LHL	R1,IPORT		:GET THE PORT NUMBER
+	STB	RCPA,XLIMIT,R1		:SAVE THE TRANSMIT LIMIT
+	JR	RLINK
+
+	FO	IRS00
+	FO	FCB
+	FO	IDS
+	FO	LINE
+	FO	RCL
+
+:****************************************
+:>>>>>>	THE FOLLOWING CODE BELONGS IN QIO
+
+	LO	FCB
+
+	CONPATCH(QIO2+26,,6)
+	J	TLMFX1,,
+
+	CONPATCH(PA1PTR,,16)
+TLMFX1	LHL	R1,F.PORT,RAFCB,	:INITIALIZE TRANSMIT LIMIT
+	LB	RABO,XLIMIT,R1
+	L	RLINK,F.AA,RAFCB,	:GET ACTIVATION ADDRESS
+	J	QIO2+2C,,
+
+	FO	FCB
+
+:****************************************
+:>>>>>>	THE FOLLOWING CODE BELONGS IN IX100
+
+	LO	IX100
+	LO	FCB
+	LO	IDS
+
+	CONPATCH(SRD+6,,2)
+	NOPR
+
+:********************
+	CONPATCH(SRD+0E,,6)
+	J	TLMFX2,,
+
+	CONPATCH(PA1PTR,,14)
+TLMFX2	SVC	DISMISS,0		:LET DISPATCHER RUN
+	LHL	R1,F.PORT,RAFCB,	:GET ISIS PORT NUMBER
+	LB	RABO,XLIMIT,R1		:GET TRANSMIT LIMIT
+	J	SRD,,
+
+:********************
+	CONPATCH(SRD1+8,,0A)
+	NOP
+	NOPR
+	NOPR
+	NOPR
+
+:********************
+	CONPATCH(SRD1+2A,,2)
+	NOPR
+
+	FO	IX100
+	FO	IDS
+	FO	FCB
+
+	ENDPATCH(Enable transmit limit from the dispatcher)
+
+
+
+:**********************************************************************
+:
+:	PIR2058
+:
+:	This patch adds an inactivity timout feature to version 6.01.
+:
+:
+:	Inbound Inactivity Timer
+:	------------------------
+:
+:	Syntax:   LOPTION(#,BIIT,value)
+:
+:	Default:  0 (inactivity timer disabled)
+:
+:	This feature, if enabled, causes a circuit to be zapped if
+:	the inbound queue (data from the local device) is empty for
+:	longer than the number of seconds specified by value.
+
+:****************************************
+:>>>>>>	THE FOLLOWING CODE BELONGS IN LINE
+
+	LO	LINE
+
+	PATCH(860329,1647,NTD.E/BUELL,PA1PTR,,(NBILIN*2))
+:	DEFINE THE INBOUND INACTIVITY TIMER VALUES
+IITIM	HS	0
+Q	EQ	0
+	RE	NBILIN
+	IF	\BIIT|Q|
+	HC	BIIT|Q|
+	ELSE
+	HC	0
+	EI	(\BIIT|Q|)
+Q	EQ	Q+1
+	ER
+
+	CONPATCH(PA0PTR,,(NBILIN*4))
+L.IIT	WS	NBILIN			:TIMER ARRAY FOR INBOUND INACTIVITY
+
+	FO	LINE
+
+:****************************************
+:>>>>>>	THE FOLLOWING CODE BELONGS IN QIO
+
+	LO	FCB
+
+IITINI	MACRO(REG)
+ [	LHL	REG,IITIM,RL2,		:DOES THIS LINE SUPPORT THE INACTIVITY TIMER
+	JEFS	IIT1			:NO
+	A	REG,SLOWC,,		:REFRESH THE TIMER
+IIT1	ST	REG,L.IIT,RL2,RL2
+	KILL	IIT1
+ ]
+
+	CONPATCH(QIO2+20,,6)
+	J	IITFX1,,
+
+	CONPATCH(PA1PTR,,28)
+IITFX1	AR	R1,R2			:CALCULATE FCB INDEX (COUNTING BY 2'S)
+	LHL	RAFCB,IFCB,R1		:LOOKUP REL. FCB ADDRESS
+	LB	RL2,F.LINE,RAFCB,	:GET THE LINE NUMBER
+	SLLS	RL2,1
+	IITINI(R1)			:REFRESH THE INACTIVITY TIMER
+	J	QIO2+26,,
+
+	FO	FCB
+
+:****************************************
+:>>>>>>	THE FOLLOWING CODE BELONGS IN HSEC
+
+	LO	HSEC
+	LO	FCB
+	LO	LINE
+	LO	IDS
+
+:	(FAKE THE DEFINITION OF THE E.IIT EVENT.  USE E.TIME FOR NOW.)
+:	DFHEVN(E.IIT)
+E.IIT	EQ	E.TIME
+
+:********************
+	CONPATCH(SIG0A1+0C,,6)		:>> LTRL
+	J	IITFX2,,
+
+	CONPATCH(PA1PTR,,20)
+IITFX2	ST	R0,L.PVCT,RL2,RL2	:F10..JXB
+	IITINI(R0)			:INITIALIZE THE INACTIVITY TIMER
+	J	SIG0A1+12,,
+
+:********************
+	IF	NMLV			:>> LTRL
+	IF	NMLI
+	CONPATCH(SIGAM2+22,,6)
+	ELSE
+	CONPATCH(SIGAM2+10,,6)
+	EI	(NMLI)
+	J	IITFX3,,
+
+	CONPATCH(PA1PTR,,20)
+IITFX3	ST	R0,L.PVCT,RL2,RL2	:F10..JXB
+	IITINI(R0)			:INITIALIZE THE INACTIVITY TIMER
+	IF	NMLI
+	J	SIGAM2+28,,
+	ELSE
+	J	SIGAM2+16,,
+	EI	(NMLI)
+	EI	(NMLV)
+
+:********************
+	CONPATCH(SIG0B+0A,,6)		:>> LTRR
+	J	IITFX4,,
+
+	CONPATCH(PA1PTR,,20)
+IITFX4	ST	R0,L.TIME,RL2,RL2
+	IITINI(R0)			:INITIALIZE THE INACTIVITY TIMER
+	J	SIG0B+10,,
+
+:********************
+	CONPATCH(EPTPSW+6,,6)		:>> LSWRR
+	J	IITFX5,,
+
+	CONPATCH(PA1PTR,,20)
+IITFX5	ST	R0,L.TIME,RL2,RL2
+	IITINI(R0)			:INITIALIZE THE INACTIVITY TIMER
+	J	EPTPSW+0C,,
+
+:********************
+TMORG	EQ	.			:>> LACTIVE
+	CONPATCH(IBDFX2+2C,,6)
+	J	IITFX6,,
+	ORG	TMORG
+
+	IF	HSCMON
+QQQQQQ	EQ	12
+	ELSE
+QQQQQQ	EQ	0A
+	EI	(HSCMON)
+
+	CONPATCH(PA1PTR,,(QQQQQQ+18))
+IITFX6	JAL	R5,IITTST		:CHECK THE INACTIVITY TIMER
+	SKPEVT(CDROPV,E.IIT)
+	RLINE(R1)			:READ LINE NUMBER [LAG..F27]
+	TBT	R1,BSCDSB		:HAS LINE BEEN DISABLED FROM DDT?
+	J	HSC01+8,,
+CDROPV	J	CDROP1,,
+
+:********************
+	CONPATCH(PA1PTR,,16)
+:	CHECK THE INACTIVITY TIMER: IITTST
+:	----------------------------------
+:	LINK ON R5.  SKIP RETURN (+4) IF NOT TIMED OUT
+:	ELSE NORMAL RETURN.  DESTROYS R1.
+IITTST	L	R1,L.IIT,RL2,RL2	:IS THE TIMER RUNNING
+	JE	4,R5			:NO
+	S	R1,SLOWC,,		:HAS IT TIMED OUT
+	JG	4,R5			:NO
+	JR	R5			:YES
+
+	FO	HSEC
+	FO	FCB
+	FO	LINE
+	FO	IDS
+
+	ENDPATCH(Add the inactivity timer option)
+
+
+
+:**********************************************************************
+:
+:	This patch changes the action taken when a /$NETCMD SIGNON
+:	record is detected while a circuit is established.  It used
+:	to treat this as a SIGNOFF but this casued problems for VMB.
+:	Since it is a procedural error to submit a SIGNON during a
+:	session, E.ERR will now be reported to HSEC and the circuit
+:	will be cleared under this condition.
+:	NSR #862, ESC #99750
+
+:****************************************
+:>>>>>>	The following code belongs in R100
+
+	LO	R100
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	PATCH(860407,1123,NTD.E/BUELL,LSG+10,,6)
+	J	SONFX1,,
+
+	CONPATCH(PA1PTR,,0E)
+SONFX1	JGE	LSGERR
+	STB	R1,LCNTR1,R2		:NOT YET...STORE COUNT AND PROCEED
+	J	LSG+18,,
+
+	CONPATCH(PA1PTR,,18)		:PLACE THIS CODE AT THE END OF LSG
+:	SIGNON ATTEMPTED WITH CIRCUIT ESTABLISHED, CLEAR LINK
+	GL	LSGERR
+LSGERR	JAL	R5,PRLS,,		:RETURN THE PARSE BUFFER
+	LHI	R0,E.ERR		:REPORT THE ERROR
+	LB	R2,F.LINE,RAFCB,
+	JAL	R5,MCALL,,
+	JR	RLINK
+
+	FO	R100
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+	ENDPATCH(Report E.ERR on double /$NETCMD SIGNON)
+
+
+
+	IF	NVMB!NMLV
+:**********************************************************************
+:
+:	This patch adds the code for LCNTR1 to R700 and R500.  LCNTR1
+:	is used to determine if a /$NETCMD SIGNON record has been
+:	submitted during a session, which is a procedural error.
+
+:****************************************
+:>>>>>>	The following code belongs in R100
+
+	LO	R100
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	PATCH(860407,1432,NTD.E/BUELL,PA1PTR,,0)
+	GL	LCNTR1
+
+	FO	R100
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+:****************************************
+:>>>>>>	The following code belongs in R700
+
+	IF	NVMB
+
+	LO	R100
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	CONPATCH(R7INI1+4,,6)
+	J	LCFX1,,
+
+	CONPATCH(PA1PTR,,12)
+LCFX1	JAL	R5,LCINIT,,		:INITIALIZE LINE COUNTER
+	LH	RABI,F.IP2,RAFCB,	:GET SIGN EXTENDED RABI
+	J	R7INI1+0A,,
+
+	FO	R100
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+	EI	(NVMB)
+
+:****************************************
+:>>>>>>	The following code belongs in R500
+
+	IF	NMLV
+
+	LO	R500
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	CONPATCH(R5INI+4C,,6)
+	J	LCFX2,,
+
+	CONPATCH(PA1PTR,,12)
+LCFX2	JAL	R5,RELBUF,,		:RELBUF O.K. WITH RABI SIGN EXTENDED
+	JAL	R5,LCINIT,,		:INITIALIZE LINE COUNTER
+	J	R5INI+52,,
+
+:********************
+	CONPATCH(LSG,,6)
+	J	LCFX3,,
+
+	CONPATCH(PA1PTR,,24)
+LCFX3	LB	R2,F.LINE,RAFCB,	:BIT # OF FCB
+	LB	R1,LCNTR1,R2		:INCREMENT 1ST LINE COUNTER
+	AIS	R1,1
+	CLHI	R1,3			:THREE TIMES?
+	JGE	LSGERR			:YES, SO ZAP THE CIRCUIT
+	STB	R1,LCNTR1,R2		:NOT YET...STORE COUNT AND PROCEED
+	LB	R0,F.MODE,RAFCB,	:DO WE HAVE A CIRCUIT ALREADY?
+	J	LSG+6,,
+
+:********************
+	CONPATCH(SOF4+10,,6)
+	J	LCFX4,,
+
+	CONPATCH(PA1PTR,,0E)
+LCFX4	JAL	R5,LCINIT,,		:INITIALIZE LINE COUNTER
+	JAL	R5,PRLS,,		:RELEASE PARSE BUFFER
+	JR	RLINK
+
+	FO	R500
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+	EI	(NMLV)
+
+	ENDPATCH(Fix double /$NETCMD SIGNON for HASP and VMB)
+
+	EI	(NVMB!NMLV)
+
+
+
+:**********************************************************************
+:
+:	The following patch just removes a couple of unnecessary
+:	instructions from R100
+
+	LO	R100
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	PATCH(860407,1433,NTD.E/BUELL,STR+38,,8)
+	NOPR
+	NOP	,,,
+
+	ENDPATCH(Cleanup R100)
+
+
+
+:**********************************************************************
+:
+:	The following patch cleans up the usage of SIGNON and SIGNOF
+:	for outbound (Remote Signon, IRS00).
+
+	LO	IRS00
+	LO	FCB
+	LO	IDS
+	LO	LINE
+	LO	RCL
+
+	PATCH(860407,1436,NTD.E/BUELL,CREIR1+3C,,4)
+	NOP
+
+	CONPATCH(DELIRS+6,,4)
+	NOP
+
+	CONPATCH(CRICP1+0C,,4)
+	NOP
+
+:****************************************
+:
+:	The definition of an F.BIT indexed
+:	bit array named LINATT should be
+:	to QIO and all references in IRS00
+:	to SIGNOF should be changed to
+:	reference this array.
+
+	FO	IRS00
+	FO	FCB
+	FO	IDS
+	FO	LINE
+	FO	RCL
+
+	ENDPATCH(Cleanup the usage of SIGNON and SIGNOF for IRS00)
+
+
+
+:**********************************************************************
+:
+:	NOTE:	Remove the second definition of R5RST2 from R500.
+:
+:**********************************************************************
+
+
+
+:**********************************************************************
+:
+:	This patch fixes up the MCALL processing in the receivers,
+:	(R100 and R500) for NETCMDs.  On some of the error MCALLs
+:	the code used to exit through PEXIT.  They will now exit
+:	with a JR RLINK which will cause them to return to QIO with
+:	new context as established by the MCALL.  Mostly this is
+:	necessary because HSEC calls DNI during the MCALL to set
+:	up the inbound queue to be drained.  This draining is
+:	accomplished by setting the receiver's state to 00 (Discard
+:	All).  If an exit is performed through PEXIT the state
+:	processing code within the receiver may change the state
+:	causing the drain to be ignored.
+
+:****************************************
+:>>>>>>	The following code belongs in R100
+
+	LO	R100
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	PATCH(860408,0735,NTD.E/BUELL,LSGF8,,6)
+	J	MCFX1,,
+
+	CONPATCH(PA1PTR,,16)
+MCFX1	JAL	R5,PRLS,,		:RETURN THE PARSE BUFFER
+	LIS	R0,E.ZAP
+	LB	R2,F.LINE,RAFCB,
+	JAL	R5,MCALL,,		:CLEAR THE LINE
+	JR	RLINK
+
+:********************
+	CONPATCH(LSGF,,6)
+	J	MCFX2,,
+
+	CONPATCH(PA1PTR,,8)
+MCFX2	JAL	R5,PRLS,,		:RETURN THE PARSE BUFFER
+	JR	RLINK
+
+:********************
+	CONPATCH(SOFERR+14,,2)
+	JR	RLINK
+
+	FO	R100
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+:****************************************
+:>>>>>>	The following code belongs in R500
+
+	IF	NMLV
+
+	LO	R500
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	CONPATCH(LSGF8,,6)
+	J	MCFX3,,
+
+	CONPATCH(PA1PTR,,16)
+MCFX3	JAL	R5,PRLS,,		:RETURN THE PARSE BUFFER
+	LIS	R0,E.ZAP
+	LB	R2,F.LINE,RAFCB,
+	JAL	R5,MCALL,,		:CLEAR THE LINE
+	JR	RLINK
+
+:********************
+	CONPATCH(LSGF,,6)
+	J	MCFX4,,
+
+	CONPATCH(PA1PTR,,8)
+MCFX4	JAL	R5,PRLS,,		:RETURN THE PARSE BUFFER
+	JR	RLINK
+
+:********************
+	CONPATCH(SOFERR+14,,2)
+	JR	RLINK
+
+	FO	R500
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+	EI	(NMLV)
+
+	ENDPATCH(Cleanup MCALL processing for /$NETCMDs)
+
+
+
+:**********************************************************************
+:
+:	This patch removes some code from R100 in the SIGNOFF processing
+:	routine which was supposed to allow a TYMNET session to be
+:	split in the middle of a frame.  However, this code did not
+:	function due to numerous bugs and is therefore being deleted.
+
+:****************************************
+:>>>>>>	This code belongs in R100
+
+	LO	R100
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	PATCH(860412,1708,NTD.E/BUELL,SOF3+8,,6)
+	J	SOFFX1,,
+
+	CONPATCH(PA1PTR,,28)
+SOFFX1	ST	RLINK,F.RET1,RAFCB,	:SAVE RETURN ADDRESS
+	LHI	RDATA,(EOTMSG-FSTCTL)*2	:FAKE THE EOT
+	L	R3,F.BASI,RAFCB,
+	LHL	R4,P.CTL,R3,RDATA
+	JEFS	SOF3.5
+	AR	R4,R3
+	JALR	RLINK,R4
+SOF3.5	L	RLINK,F.RET1,RAFCB,	:RESTORE RETURN ADDRESS
+	J	CREBBA+12,,		:DELETE A BUNCH OF CODE
+
+	CONPATCH(SOF4+38,,6)
+	JAL	R5,IZPROC,,		:INITIALIZE THE LINE
+
+	FO	R100
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+	ENDPATCH(Cleanup /$NETCMD SIGNOF processing)
+
+
+
+:**********************************************************************
+:
+:	This patch fixes a small problem in the pseudo-interrupt logic
+:	in BSCPTP.
+
+	LO	BSCPTP
+	LO	BSCDEF
+
+	PATCH(860414,0917,NTD.E/BUELL,SXRENQ+4,,2)
+	HC	IPSRV1-PSEG		:ENQ
+
+	ENDPATCH(Fix fix pseudo-RVI problem)
+
+	FO	BSCDEF
+	FO	BSCPTP
+
+
+
+:**********************************************************************
+:
+:	This patch fixes a few problems in the LDISABLE code.
+
+:****************************************
+:>>>>>>	The following code belongs in CONFIG
+
+:	Remove the definition of DSBTIM
+
+:****************************************
+:>>>>>>	The following code belongs in HSEC
+
+	LO	HSEC
+	LO	LINE
+	LO	FCB
+	LO	IDS
+
+	PATCH(860417,1907,NTD.E/BUELL,PA1PTR,,6*16)
+
+HSCEVN	HS	0
+	DFHEVN(E.HSEC)			:HSEC ADDR
+	DFHEVN(E.ERR)			:PROCEDURAL ERROR DETECTED BY BACKGROUND PROCESSES
+	DFHEVN(E.DSC)			:DISCONNECT REQUEST DEQUEUED
+	DFHEVN(E.ZAP)			:CIRCUIT ZAP (PROBABLE LOSS OF NETWORK CIRCUIT)
+	DFHEVN(E.ATT)			:ATTACH LINE (INTENTION TO SIGNON)
+	DFHEVN(E.DET)			:DETACH LINE (ABANDON SIGNON)
+	DFHEVN(E.SIG)			:SIGNON COMPLETE.
+
+	DFHEVN(E.DSRD)			:DSR DROPPED (FOUND BY DSRCHK)
+	DFHEVN(E.FGER)			:FOREGROUND ERROR (FOUND BY ERCK)
+	DFHEVN(E.BQNS)			:BUFFERLET QUOTA EXCEEDED AND NO SIGNON RECORD SEEN
+	DFHEVN(E.MERR)			:MULITLEAVING ERROR
+	DFHEVN(E.DSRU)			:DSR UP (FOUND BY DSRCHK)
+	DFHEVN(E.TIME)			:L.TIME TIMEOUT
+	DFHEVN(E.FHLT)			:FOREGROUND HAS HALTED (IN RESPONSE TO BSCHLT)
+	DFHEVN(E.GBLC)			:OUTBOUND QUEUE GOBBLE COMPLETE
+	DFHEVN(E.OB)			:ORANGE BALL RECEIVED
+	DFHEVN(E.QCLR)			:BOTH QUEUES ARE CLEAR
+	DFHEVN(E.DLY)			:L.DLY TIMEOUT
+	DFHEVN(E.NCLK)			:NO TRANSMIT CLOCKS
+	DFHEVN(E.KPA)			:KEEP ALIVE TIMER TIMEOUT
+	DFHEVN(E.DSBL)			:DISABLE FROM EXTENDED DDT
+	DFHEVN(E.ENBL)			:ENABLE FROM EXTENDED DDT
+
+:********************
+	CONPATCH(KPDOWN-12,,6)
+	J	DSBFX1,,
+
+	CONPATCH(PA1PTR,,0)
+DSBFX1	TSTEVT(JN,DSBLIN,E.DSBL)	:YES
+	J	KPDOWN,,
+
+DSBLIN	LIS	R4,2			:ISIS CODE FOR "HOST SHUT"
+	STB	R4,XHMSG
+	JAL	R3,HSTANS,,		:SEND "HOST SHUT" MSG
+	LA	RALS,LDISAB,,		:YES, SO SET STATE TO "LDISABLE"
+	JR	RLINK
+
+:********************
+	CONPATCH(ERR18-8,,6)
+	J	DSBFX2,,
+
+	CONPATCH(PA1PTR,,0)
+DSBFX2	JAL	R3,HSTHPA,,		:REPORT HOST PORT AVAILABILITY
+	RPTEVT(E.ENBL)
+	LA	RALS,LDOWN,,		:AND RESET STATE
+	J	ERR18,,
+
+:********************
+TMORG	EQ	.
+	CONPATCH(IBDFX7+30,,6)
+	J	DSBFX3,,
+	ORG	TMORG
+
+	CONPATCH(PA1PTR,,0)
+DSBFX3	TBT	R1,BSCDSB		:HAS THE LINE BEEN DISABLED?
+	TSTEVT(JN,DROP2`,`,,E.DSBL)	:YES
+	J	HSC00+0C,,
+
+:********************
+TMORG	EQ	.
+	IF	HSCMON
+	CONPATCH(IITFX6+1A,,6)
+	ELSE
+	CONPATCH(IITFX6+0C,,6)
+	EI	(HSCMON)
+	J	DSBFX4,,
+	ORG	TMORG
+
+	CONPATCH(PA1PTR,,0)
+DSBFX4	TBT	R1,BSCDSB		:HAS LINE BEEN DISALBED FROM DDT?
+	TSTEVT(JN,DROP1`,`,,E.DSBL)	:YES
+	J	HSC01+0C,,
+
+:********************
+	CONPATCH(HSC11,,6)
+	J	DSBFX5,,
+
+	CONPATCH(PA1PTR,,0)
+DSBFX5	RLINE(R0)
+	TBT	R0,BSCDSB		:HAS THE LINE BEEN DISABLED BY DDT?
+	TSTEVT(JN,ERR11`,`,,E.DSBL)	:YES
+	TBT	R0,DTRDSR,,
+	J	HSC11+0A,,
+
+	FO	HSEC
+	FO	LINE
+	FO	IDS
+	FO	FCB
+
+:****************************************
+:>>>>>>	The following code belongs in HSCTRC
+
+	IF	HSCMON
+
+	LO	LINE
+	LO	FCB
+	LO	HSEC
+
+	CONPATCH(HD3,,6)
+	LB	R0,HSCEVN+6,R8,R9
+
+	FO	LINE
+	FO	FCB
+	FO	HSEC
+
+	EI	(HSCMON)
+
+	ENDPATCH(Fix the ENABLE/DISABLE logic)
+
+
+
+	IF	\BSYN
+:**********************************************************************
+:
+:	This patch fixes SYN insertion.  Previously only one SYN was
+:	inserted every second, however, the IBM documentation specifies
+:	that two SYNs should be inserted for non-transparent frames.
+:	Also, the required SYN characters following an ITB/CRC
+:	sequence were not inserted.
+
+:****************************************
+:>>>>>>	The following code belongs in XSUBS
+
+	LO	XSUBS
+	LO	FCB
+	LO	EBCCHR
+
+:	INSSYN - UNCONDITIONALLY INSERT SYNC
+:	------------------------------------
+INSSYN	MACRO[
+	IF	\BSYN
+	LIS	R5,0			:FORCE SYN INSERTION
+	STH	R5,F.CNT,RAFCB,
+	JAL	R5,SYNCHK,,
+	JFS	INSS5
+	NOPR
+	JFS	INSS9
+INSS5	JAL	R5,BBFAIL,,
+INSS9
+	KILL	INSS9
+	EI	(\BSYN)
+	]
+
+:********************
+	PATCH(860420,1345,NTD.E/BUELL,SC1,,6)
+	J	SIFX1,,
+
+	CONPATCH(PA1PTR,,24)
+SIFX1	LHI	RDATA,RSYN		:ADD SYN/SYN TO BLOCK
+	JAL	R5,BWCI,,
+	J	SC3VCT
+	JAL	R5,BWCI,,
+	J	SC3VCT
+	J	SC1+0C,,
+
+SC3VCT	J	SC3,,
+
+	FO	XSUBS
+	FO	FCB
+	FO	EBCCHR
+
+:****************************************
+:>>>>>>	The following code belongs in X100
+
+	LO	X100
+	LO	FCB
+	LO	EBCCHR
+
+	CONPATCH(EOB0-18,,6)
+	J	SIFX2,,
+
+	CONPATCH(PA1PTR,,20)
+SIFX2	INSSYN
+	J	EOB0-10,,
+
+	FO	X100
+	FO	FCB
+	FO	EBCCHR
+
+	ENDPATCH(Fix SYN insertion problems)
+
+	EI	(\BSYN)
+:
+:****************************************************************
+:	This patch requires that the variable "ACCOUN" be defined
+:	in the TYMfile by the use of the OPTION statement:
+:
+:	OPTION(ACCOUNT,12345)	:5 digit accounting host number
+:
+:
+	IF	1-(ATHOST%AHOST)	:IF AHOST = ATHOST
+	IF	\ACCOUN
+	LO	R100
+	IF	NMLV
+	FO	R500
+	EI	:(NMLV)
+	PATCH(860514,1216,NTD.P/SPIES,LSG+$08A,,4)
+	FO	R100
+	LHI	R0,ACCOUN
+	IF	NMLV
+	LO	IMS50
+	CONPATCH(CREIMS+$0160,,4)
+	FO	IMS50
+	LHI	R0,ACCOUN
+	EI	:(NMLV)
+	ENDPATCH(FORCE ACCOUNTING HOST NUMBER = "ACCOUNT")
+	ELSE
+	REMARK %
+	REMARK %*** ACCOUNTING HOST NUMBER NOT PROPERLY DEFINED !!!
+	REMARK %
+	REMARK %*** ABORTING ASSEMBLY...
+	REMARK %
+	QUIT 	1	:EXIT TO SYSTEM
+	EI	:(\ACCOUNT)
+	EI	:1-(ATHOST%AHOST)
+:
+
+
+	IF	VMSW
+:**********************************************************************
+:
+:	This patch causes an IRS to be placed just before an ETB for
+:	an outbound virtual mode non-transparent 3780 frame.
+
+	LO	IR100
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	PATCH(860714,0928,NTD.E/BUELL,IRPUTA+8,,6)
+	J	IRSFX6,,
+
+	CONPATCH(PA1PTR,,50)
+IRSFX6	JE	IRPUTB,,		:..THEN SKIP
+	LIS	R0,XPRSW		:IS IT A TRANSPARENT FRAME
+	TBT	R0,F.IRFL,RAFCB,
+	JN	IRPTA4			:YES
+	LHL	R4,F.AII,RAFCB,		:IS IT AN EBCDIC 3780 FRAME
+	LB	R0,F.DIAL,R4,
+	LO	EBCCHR
+	LHI	RDATA,IRS
+	FO	EBCCHR
+	CHI	R0,E3780
+	JE	IRPTA2			:YES
+	LHI	RDATA,ASCRS		:IS IT AN ASCII 3780 FRAME
+	CHI	R0,A3780
+	JN	IRPTA4			:NO
+IRPTA2	LHI	RCL,ID.SDF		:OUTPUT THE IRS
+	PUTR
+IRPTA4	LIS	RCL,ID.ETB		:..ELSE DRIVE ETB
+	J	IRPUTA+0E,,
+
+	CONPATCH(EOF01B,,6)
+	J	IRSFX7,,
+
+	CONPATCH(PA1PTR,,56)
+IRSFX7	LIS	R0,XPRSW		:IS IT A TRANSPARENT FRAME
+	TBT	R0,F.IRFL,RAFCB,
+	JN	EOF01D			:YES
+	LHL	R4,F.AII,RAFCB,		:IS IT AN EBCDIC 3780 FRAME
+	LB	R0,F.DIAL,R4,
+	LO	EBCCHR
+	LHI	RDATA,IRS
+	FO	EBCCHR
+	CHI	R0,E3780
+	JE	EOF01C			:YES
+	LHI	RDATA,ASCRS		:IS IT AN ASCII 3780 FRAME
+	CHI	R0,A3780
+	JN	EOF01D			:NO
+EOF01C	LHI	RCL,ID.SDF		:OUTPUT THE IRS
+	PUTR
+EOF01D	LIS	R0,0			:CLEAR COUNTERS AND FLAGS
+	STB	R0,F.NREC,RAFCB,	:..
+	J	EOF01B+8,,
+
+	CONPATCH(IRPUT+20,,6)
+	J	IRSFX8,,
+
+	CONPATCH(PA1PTR,,1A)
+IRSFX8	LIS	R0,XPRSW		:IS IT TRANSPARENT MODE
+	TBT	R0,F.IRFL,RAFCB,
+	JN	IRPUT9,,		:YES
+	LHL	R4,F.AII,RAFCB,		:..
+	J	IRPUT+26,,
+
+	ENDPATCH(Terminate 3780 non-transparent frames with IRS/ETB)
+
+	FO	IR100
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+	EI	(VMSW)
+
+
+	IF	NDDCMP
+:************************************************************************
+:
+:	This patch limits the DDCMP frame byte count to the Receive
+:	Resource Limit (RORUNC) as a protection to a garbled DDCMP
+:	header with an erroneous large byte count.
+:	It also sets bit RFDUP while receiving data from the Sync Ring
+:	to indicate to the Protocol Processor that the Full Duplex Receiver
+:	is still running.  (ESC# 94473)
+
+	LO	BSCRCV
+	LO	BSCDEF
+
+	PATCH(860721,0927,NTD.B/KRUEGER,CT220+12,,6)
+	J	RFDUP1,,
+
+	CONPATCH(PA1PTR,,18)
+RFDUP1	HS	0
+	CH	RC,RORUNC,RL2		:MESSAGE LONGER THAN RESOURCE LIMIT?
+	JLE	CT220+1A,,		:NO--SKIP
+	LH	RC,RORUNC,RL2		:YES--LIMIT BYTE COUNT TO RESRCE LIMIT
+	STH	RC,DRCNT,RL2
+	J	DRPOVR,,		:GO PROCESS OVERRUN CONDITION
+
+	CONPATCH(DRPGBL-0C,,6)
+	J	RFDUP2,,
+
+	CONPATCH(PA1PTR,,10)
+RFDUP2	HS	0
+	SBT	RL,RFDUP		:INDICATE FDX RCV STILL RUNNING
+	LCS	R3,1
+	AHM	R3,DRCNT,RL2		:DECREMENT MSG BYTE COUNT
+	J	DRPGBL-06,,
+
+	CONPATCH(DRPGBL,,6)
+	J	RFDUP3,,
+
+	CONPATCH(PA1PTR,,10)
+RFDUP3	HS	0
+	SBT	RL,RFDUP		:INDICATE FDX RCV STILL RUNNING
+	LCS	R3,1
+	AHM	R3,DRCNT,RL2		:DECREMENT BYTE COUNT
+	J	DRPGBL+6,,
+
+	ENDPATCH(Limit DDCMP byte count)
+
+	FO	BSCRCV
+	FO	BSCDEF
+
+	EI	(NDDCMP)
+
+
+
+	IF	VMSW
+	IF	\NOCSC
+	IF	NOCSC
+:************************************************************************
+:
+:	This patch fixes a bug in 3780 Virtual Mode.  This bug caused
+:	an IGS immediately following an STX to be ignored.
+
+:****************************************
+:>>>>>>	The following code belongs in IX300
+
+	LO	IX100
+	LO	FCB
+	LO	IDS
+	LO	LINE
+	LO	EBCCHR
+
+	PATCH(860815,1057,NTD.E/BUELL,PA1PTR,,84)
+	KILL	BB3004,SDF304,SCF304,BH3004,TR3004,BT3004,EB3004,EB1304,EOR304
+	KILL	CSC278
+
+:	CHECK FOR COMPONENT SELECTION CHARACTER : IX304
+:	-----------------------------------------------
+	IX3MAC(04)
+	
+BB3004
+SCF304
+BH3004
+TR3004
+	JR	RLINK			:HANDLE AS IN IX302
+
+BT3004
+	LA	RAOS,IX302,,		:HANDLE AS IN IX302
+	J	BT3002,,
+
+EB3004
+	LA	RAOS,IX302,,		:HANDLE AS IN IX302
+	J	EB3002,,
+
+EB1304
+	LA	RAOS,IX302,,		:HANDLE AS IN IX302
+	J	EB1302,,
+
+EOR304
+	LA	RAOS,IX302,,		:HANDLE AS IN IX302
+	J	EOR302,,
+
+:       IF WE FIND A CSC, GOBBLE IT
+SDF304
+	LA	RAOS,IX302,,		:SWITCH BACK TO DATA STATE
+	LB	R0,F.DIAL,RAFCB,	:IS IT 2780
+	CHI	R0,E2780
+	JEFS	CSC278			:YES
+	CHI	R0,A2780
+	JEFS	CSC278			:YES
+	CHI	RDATA,DC1		:IS CHAR DCx?
+	JL	SDF302,,			:NO
+	CHI	RDATA,DC3
+	JG	SDF302,,			:NO
+	JR	RLINK
+
+CSC278	CHI	RDATA,ESC		:IS IT AN "ESC"?
+	JN	SDF302,,			:NO
+	LA	RAOS,IX305,,		:YES, SO DISCARD THIS AND NEXT CHAR
+	JR	RLINK
+
+	CONPATCH(BT3002+0C,,6)
+	J	IGSFX1,,
+
+	CONPATCH(PA1PTR,,8)
+IGSFX1	LA	RAOS,IX304,,		:CHECK FOR COMPONENT SELECT CHARACTER
+	JR	RLINK
+
+	ENDPATCH(Recognize IGS following STX)
+
+	FO	IX100
+	FO	FCB
+	FO	IDS
+	FO	LINE
+	FO	EBCCHR
+
+	EI	(NOCSC)
+	EI	(\NOCSC)
+	EI	(VMSW)
+
+
+
+	IF	VMSW
+:**********************************************************************
+:
+:	This patch fixes a bug in IX300 that caused an extra carriage
+:	return to be sent on the net when the end of a 3780 non-
+:	transparent frame was found.  This is due to the fact that
+:	3780 frames end with IRS/ETB, both of which caused a carriage
+:	return.
+
+:****************************************
+:>>>>>>	The following code belongs in IX300
+
+	LO	IX100
+	LO	FCB
+	LO	IDS
+	LO	LINE
+	LO	EBCCHR
+
+	PATCH(860816,1432,NTD.E/BUELL,EOR302,,6)
+	J	IRSFXA,,
+
+	KILL	EOR302,EB3002
+
+	CONPATCH(PA1PTR,,3E)
+IRSFXA	CHI	RCL,0C			:IS IT END-OF-BLOCK
+	JE	EB3002			:YES
+
+EOR302	LB	RDATA,F.ERC,RAFCB,	:LOAD EOR CHARACTER
+	JER	RLINK			:IF NULL - RETURN
+	JAL	R5,WRTBYT,,		:PUT IN ORING
+	JR	RLINK
+
+EB3002	LHL	R0,F.BIT,RAFCB,		:IS IT TRANSPARENT MODE
+	TBT	R0,TRFLG
+	JN	EOR302			:YES
+	LB	R0,F.DIAL,RAFCB,	:IS IT 3780
+	CLHI	R0,E3780
+	JG	EOR302			:NO
+	CLHI	R0,A3780
+	JL	EOR302			:NO
+	JR	RLINK			:YES, IGNORE
+
+	CONPATCH(EB1302,,6)
+	J	IRSFXB,,
+
+	CONPATCH(PA1PTR,,3E)
+IRSFXB	LHL	R0,F.BIT,RAFCB,		:IS IT TRANSPARENT MODE
+	TBT	R0,TRFLG
+	JN	ERC			:YES
+	LB	R0,F.DIAL,RAFCB,	:IS IT 3780
+	CLHI	R0,E3780
+	JG	ERC			:NO
+	CLHI	R0,A3780
+	JGE	NOERC,,			:YES
+
+ERC	LB	RDATA,F.ERC,RAFCB,	:LOAD EOR CHARACTER
+	JE	NOERC,,			:IF NULL - SKIP
+	JAL	R5,WRTBYT,,		:PUT IN ORING
+	J	NOERC,,
+
+	ENDPATCH(Don't send PRO.ERECORD at end of non-transparent 3780 frame)
+
+	FO	IX100
+	FO	FCB
+	FO	IDS
+	FO	LINE
+	FO	EBCCHR
+
+	EI	(VMSW)
+
+
+
+:**********************************************************************
+:
+:	This patch fixes a bug in BLDPVC of HSEC that caused 3780
+:	frames that were built to not have an IRS preceeding the block
+:	terminating ETX.  This caused a no end-of-record condition
+:	for Virtual Mode, and therefore the end-of-record character
+:	was not sent following the record.
+
+:****************************************
+:>>>>>>	The following code belongs in HSEC
+
+	LO	HSEC
+	LO	FCB
+	LO	LINE
+	LO	IDS
+	LO	EBCCHR
+
+	PATCH(860830,1108,NTD.E/BUELL,PVC06+1E,,6)
+	J	IRSFXC,,
+
+:-----	FIXED  1ST 2 LINES  11/14/86   ESC #33222  ESC #55992
+	CONPATCH(PA1PTR,,44)
+IRSFXC	LHL	RAFCB,OFCB,RL2,RL2	:GET THE POINTER TO THE INBOUND FCB
+	LB	R0,F.DIAL,RAFCB,	:GET THE DIALECT
+	CLHI	R0,A3780		:IS IT 3780
+	JLFS	PVC90			:NO
+	CLHI	R0,E3780
+	JGFS	PVC90			:NO
+	LHI	RDATA,RIRS		:ADD AN IRS
+	JAL	R5,PVBWCI,,
+	JAL	R10,CRASH,,
+PVC90	HS	0
+	LHI	RDATA,RETB		:END MSG
+	JAL	R5,PVBWCI,,
+	JAL	R10,CRASH,,
+	JAL	R5,PVBEOM,,		:GO QUEUE MSG
+	J	PVC98,,
+
+	FO	HSEC
+	FO	FCB
+	FO	LINE
+	FO	IDS
+	FO	EBCCHR
+
+	ENDPATCH(Add IRS before ETX for LOG.STRING)
+
+
+
+:********************************************************
+:
+:	NSR# 864:
+:       This patch will fix (Marubeni esc #96919) logon
+:       problem (/$NETCMD PROFILE followed by /$NETCMD 
+:       SIGNON).
+
+:****************************************
+:>>>>>>	The following code belongs in ILS00
+
+        LO      ILS00
+        LO      LINE
+	LO	FCB
+	LO	IDS
+	LO	RCL
+
+        PATCH(860723,0530,QSATS.N/SHUKLA,ILSL1+08,,6)
+        J       ILSLFX,,
+        
+        CONPATCH(PA1PTR,,1F)
+
+ILSLFX  HS      0               
+        LIS     R0,0
+        L       R2,L.LOGON,R1,R1
+        ST      R0,L.LOGON,R1,R1
+        JE      ILSGA9,,
+        L       R6,LG.GAT,R2
+        J       ILSGA0,,
+
+        FO      ILS00
+        FO      LINE
+	FO	FCB
+	FO	IDS
+	FO	RCL
+
+	IF	NMLV
+:****************************************
+:>>>>>>	The following code belongs in IMS50
+
+	LO	IMS50
+	LO	FCB
+	LO	IDS
+	LO	LINE
+	LO	RCL
+
+	CONPATCH(IMSLOK+12,,6)
+	J	ILSFX2,,
+
+	CONPATCH(PA1PTR,,1E)
+ILSFX2	LIS	R0,0
+	L	R2,L.LOGON,R1,R1	:GET THE LOGON STRING POINTER
+	ST	R0,L.LOGON,R1,R1	:RESET THE POINTER
+	JE	IMSGA9,,		:JUMP IF NO LOGON STRINGS
+	L	R6,LG.GAT,R2		:GET GATEWAY STRING POINTER
+	J	IMSGA0,,
+
+	FO	IMS50
+	FO	FCB
+	FO	IDS
+	FO	LINE
+	FO	RCL
+
+	EI	(NMLV)
+
+        ENDPATCH(FIX LOGON PROFILE PROBLEM)
+
+
+
+	IF	NMLV
+:************************************************************************
+:
+:	NSR# 863  (ESC# 01505):
+:	This patch fixes a MLV slot crash experienced by FIRN.
+:
+:***********************************
+:>>>>>>> This code belongs in MLVPTP
+
+	LO	BSCPTP
+	LO	BSCDEF
+
+	PATCH(860903,1939,NTD.B/KRUEGER,TIRTI1+2,,4)
+	STB	R1,LXMTOP,RL		:SAVE LAST NON-NAK XMT OPCODE
+
+	FO	BSCPTP
+	FO	BSCDEF
+
+	ENDPATCH(MLV slot crash caused by invalid STB instruction)
+
+	EI	(NMLV)
+
+
+:**********************************************************************
+:
+:	ESC #21748, NSR #951
+:
+:	This patch fixes a bug that was causing NETCMDs ending with
+:	and IGS sequence (3780) to not be recognized.
+
+:****************************************
+:>>>>>>	The following code belongs in R100
+
+	LO	R100
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	PATCH(860908,1944,NTD.E/BUELL,PRS3+34,,2)
+	NOPR
+
+	ENDPATCH(Fix NETCMDs terminated with IGS)
+
+	FO	R100
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+	
+:************************************************************************
+:
+:	This patch fixes several bugs that were introduced when a bug
+:	was fixed at RCV110 in BSCPTP restoring the Receive Return Code.
+
+	LO	BSCPTP
+	LO	BSCDEF
+
+:*****************************************
+:>>>>>> The following code belongs in BSCPTP
+
+	PATCH(861015,2103,NTD.B/KRUEGER,XLCMX+0C,,6)
+	J	RRCFX1,,
+
+	CONPATCH(PA1PTR,,0C)
+RRCFX1	HS	0
+	LHL	R4,SXMT,R2,R2		:GET XMT PROCESS FOR RESPONSE
+	J	PSEG,R4,,		:GO CONTINUE TRANSMISSION
+
+	CONPATCH(XTMOT-0A,,6)
+	J	RRCFX2,,
+
+	CONPATCH(PA1PTR,,10)
+RRCFX2	HS	0
+	SLLS	R2,1			:MAKE RCV RETURN CODE HW INDEX
+	LHL	R4,SRCV,R2,		:GET PROCESSOR FOR RCV DATA STATE
+	SRLS	R2,1			:RESTORE RCV RETURN CODE
+	J	PSEG,R4,,		:GO PROCESS DATA JUST RCV'D
+
+	CONPATCH(XRNENQ+8,,6)
+	J	RRCFX3,,
+
+	CONPATCH(PA1PTR,,10)
+RRCFX3	HS	0
+	SLLS	R2,1			:MAKE RCV RETURN CODE HW INDEX
+	LHL	R4,PSEG,R4,R2		:GET PROCESS FOR RESPONSE
+	SRLS	R2,1			:RESTORE RCV RETRUN CODE
+	J	PSEG,R4,,		:GO EXECUTE
+
+
+:**************************************
+:>>>>>> The following code belongs in VMBPTP
+
+	IF	NVMB
+
+	CONPATCH(VERFY+66,,6)
+	J	RRCFX4,,
+
+	CONPATCH(PA1PTR,,8)
+RRCFX4	HS	0
+	SRLS	R2,1
+	J	PSEG,R5,,
+
+	EI	(NVMB)
+
+	FO	BSCPTP
+	LO	BSCDEF
+
+	ENDPATCH(Fix several bugs related to RCV RETURN CODE)
+
+: this patch is for the cc14 crashes experienced at dupont. the 
+: patch corrects the previous patch.
+	LO	BSCPTP
+	LO	BSCDEF
+	IF	NVMB
+	PATCH(880617,1624,BGOUZE,VERFY+66,,6)
+	HC	NAK10-PSEG		:RESTORE THE PREVIOUS STATE TABLE
+	HC	UNI10-PSEG
+	HC	UNI10-PSEG
+ 
+	CONPATCH(VERFY+58,,6)
+	J	RRCFX4,,		:GO BACK TO THE ORIGINAL PATCH
+
+	ENDPATCH(PROTECTION VIOLATIONS IN VMBPTP)
+	EI	:NVMB
+	FO	BSCPTP
+	FO	BSCDEF
+:**********************************************************************
+:
+:	NSR #1009, Esc. 25536 - Phillips/TNSC
+:
+:	This patch fixes a bug that may occur in extended DDT when
+:	using the DR command while there is alot of traffic being
+:	displayed.  Under this condtion is is quite possible for the 
+:	rings to overrun the display because there may be several
+:	lines active at 9600 BPS while the display terminal itself
+:	if probably displaying at a max. of 9600 baud.  If the fill
+:	pointer for the ring passes the current location being displayed
+:	by DDT, when DDt goes to display the next message in the
+:	ring it will not be abutted with the message just displayed.
+:	This causes the display routine to start a search for a valid
+:	port number, indicating the start of a message.  During this
+:	search the ring index is not checked against the current fill
+:	pointer (the display index may pass the fill index) and it
+:	is not checked against the end of the ring.  This can cause
+:	it to run out beyond the bounds of the ring segment causing
+:	an illegal memory reference.
+
+:>>>>>>	****************************************
+:	The following code belongs in RNGINT
+
+
+	PATCH(861022,0928,NTD.E/BUELL,XDRISM+16,,6)
+	J	RNGFX1,,
+
+	CONPATCH(PA1PTR,,20)
+RNGFX1	JLE	XDR0A5,,		:OK, CONTINUE
+
+	AIS	R1,4			:MOVE TO NEXT POSSIBLE PORT NUMBER
+	CR	R1,RS			:CHECK FOR WRAP
+	JLFS	XDRM5
+	SR	R1,RS
+XDRM5	CLH	R1,NFMI,RR		:HAVE WE CAUGHT UP WITH THE FILL INDEX?
+	JER	R13			:YES--RETURN
+	J	XDRISM,,		:LOOP LOCKING FOR VALID PORT NUMBER
+
+	ENDPATCH(Fix a bug in the ring interpreter)
+
+	
+
+:**********************************************************************
+:
+:	PATCHREPORT	Report final lengths of PATCH0 and PATCH1 areas, and
+:			report number of patches.
+
+PATCHREPORT MACRO[
+ REMARK %%%  FINAL LENGTH OF PATCH0 AREA IS  
+ NUMBER pa0ptr-patch0
+ REMARK x  BYTES  %
+
+ REMARK %  FINAL LENGTH OF PATCH1 AREA IS  
+ NUMBER pa1ptr-patch1
+ REMARK x  BYTES  %
+
+ REMARK %  NUMBER OF PATCHES:  
+ NUMBER (PAHPTR-PATHIS)/10$A
+ REMARK %%%
+]
+
+
+	IF	MAXHST
+:**********************************************************************
+:
+:	This patch changed the definition of RHLINE so that it points
+:	to a single line for each relative host number, even though
+:	the host number may be used in a rotor (defined for more than
+:	one line).
+
+:****************************************
+:>>>>>>	The following code belongs in LINE
+
+
+	LO	LINE
+	LO	FCB
+
+:********************
+	PATCH(870401,1008,NTD.E/BUELL,RHLINE,,(MAXHST*2))
+
+	RA	$A10
+
+Q	EQ	0
+	RE	MAXHST
+QQQ	EQ	.
+QQ	EQ	0
+	RE	NBILIN
+	IF	\LH|QQ|
+	IF	1-(LH|QQ|%Q)
+	HC	QQ
+	EI
+	EI
+QQ	EQ	QQ+1
+	ER
+	IF	.-QQQ
+	ORG	QQQ+2
+	ELSE
+	HC	-1
+	EI
+Q	EQ	Q+1
+	ER
+	LIST
+
+	RA	0
+
+	FO	LINE
+	FO	FCB
+
+
+:****************************************
+:>>>>>>	The following code belongs in MAIN
+
+	LO	MAIN
+	LO	FCB
+	LO	LINE
+
+:********************
+	CONPATCH(DNHST1-0C,,6)
+	J	DNHFX1,,
+
+	CONPATCH(PA1PTR,,12)
+DNHFX1	JL	DNHST1,,
+	TBT	R3,HKEYON,,		:IS THERE A HOST KEY IN USE?
+	J	DNHST1-6,,
+
+:********************
+	CONPATCH(DNHST1+6,,6)
+	J	DNHFX2,,
+
+	CONPATCH(PA1PTR,,10)
+DNHFX2	LR	R3,R3			:IS THERE A HOST KEY
+	JLFS	DNHST2			:NO
+	LB	R0,HKEYTB,R3,
+DNHST2	J	DNHST1+0C,,
+
+	FO	FCB
+	FO	LINE
+
+	ENDPATCH(Fix the definition of RHLINE which affects the Host Key)
+
+	EI	(MAXHST)
+
+
+:**********************************************************************
+:
+:	This patch causes the slot to crash when it receives a "Host
+:	Not Acceptable" ISIS message.  This will probably be due to
+:	a host being considered an imposter.
+
+:****************************************
+:>>>>>>	The following code belongs in RIO
+
+	LO	MAIN
+	LO	FCB
+
+:********************
+	PATCH(870404,1038,NTD.E/BUELL,INMSLN+0B,,1)
+	BC	0			: 0B	HOST NOT ACCEPTABLE
+
+	FO	FCB
+
+	ENDPATCH(Crash on ISIS "Host Not Acceptable" message)
+
+
+
+:**********************************************************************
+:
+:	This patch initializes the Recieve Ring (RRING) fill index
+:	before performing the Connect Synchronous Input SVC.
+
+:****************************************
+:>>>>>>	The following code belongs in BSCHDX
+
+	LO	BSCHDX
+	LO	BSCRCV
+
+:********************
+	PATCH(870404,1932,NTD.E/BUELL,BSCRHI+6,,6)
+	J	RRXFX1,,
+
+	CONPATCH(PA1PTR,,14)
+RRXFX1	L	R3,RRINGX,R1,		:GET RING ADDRESS FOR LINE (IN BSCRCV)
+	SRHLS	R1,2			:RESTORE BYTE INDEX
+	LIS	R2,0			:INITIALIZE THE FILL INDEX
+	STH	R2,,R3
+	J	BSCRHI+0C,,
+
+	FO	BSCHDX
+	FO	BSCRCV
+
+	ENDPATCH(Initialize the receive ring index)
+
+
+
+	IF	VMSW
+:**********************************************************************
+:
+:	This patch fixes a bug in the padding logic that would cause a
+:	full record to be padded with one occurrance of the pad 
+:	character.  The loop logic is adjusted to check if the record
+:	length is equal to the max length before adding the pad char.
+:
+:**********************************************************************
+
+:>>>>>>>>>>>>>>> The following code belongs in IR300.
+
+
+	LO	IR100
+	LO	FCB
+	LO	IDS
+
+	PATCH(870611,1335,NTD.D/EDUARDO,IRPAD1,,6)
+	J	IRPFX1,,
+
+	CONPATCH(PA1PTR,,38)
+IRPFX1	HS	0
+	LH	R0,F.NCHR,RAFCB,	:INC CHAR COUNT
+	CH	R0,F.MCHR,RAFCB,	:IF MORE NEEDED
+	JGE	IRPFX2
+	AIS	R0,1
+	STH	R0,F.NCHR,RAFCB,
+	LB	RDATA,F.PAD,RAFCB,	:LOAD PAD CHAR
+	LIS	RCL,ID.SDF		:STREAM DATA
+	PUTR				:DRIVE OUTPUT
+	J	IRPFX1			:THEN LOOP
+IRPFX2	L	R4,IR3SVE 		:ELSE LOAD RETURN
+	JR	R4			:RETURN TO CALLER
+
+	ENDPATCH(Fix padding loop logic.)
+
+	FO	IR100
+	FO	IDS	
+	FO	FCB
+
+	EI	(VMSW)
+
+
+
+	IF	VMSW
+:**********************************************************************
+:
+:	This patch reinitializes the Virtual Mode Profile setting for
+:	a line to null for each call.  This prevents a caller from
+:	inadvertently picking up a Profile setting left over from a
+:	previous call.  All calls to Virtual Mode hosts must specify a Profile,
+:	either in a PVC or LOGON macro or via a NETCMD PROFILE issued
+:	before the NETCMD SIGNON.
+:
+:**********************************************************************
+
+:>>>>>>>>>>>>>>>>>> The following code belongs in LINIT.
+
+	LO	FCB
+	LO	LINE
+
+	PATCH(870609,0945,NTD.D/EDUARDO,IZPROC+1C,,6)
+	J	IZPRFX,,
+
+	CONPATCH(PA1PTR,,1C)
+IZPRFX	HS	0
+	LHL	R5,P.INI,R2,
+	LB	R3,F.LINE,RAFCB,
+	SLLS	R3,2
+	LIS	R0,0
+	ST	R0,L.PROFILE,R3,
+	J	IZPR1,,
+
+	ENDPATCH(Reinitialize VM Profile between calls.)
+
+	FO 	FCB
+	FO	LINE 
+
+	EI	(VMSW)
+
+
+
+
+
+
+	IF 	VMSW
+:**********************************************************************
+:
+:	This patch fixes a bug in PRO.PAD logic that caused record padding
+:	to always be turned off.  The patch checks if the 
+:	PRO.PAD feature was enabled for each Profile defined in the tymfile.
+:	If defined, it sets the PADSW bit in the Profile's data structure.
+:	To locate the Profile data structure, it starts at LCLSGN and
+:	works backward to the first Profile, and from there goes to each
+:	Profile defined.
+:
+:**********************************************************************
+
+:>>>>>>> This code modifies data areas allocated in LINE.
+
+	PATCH(870612,1145,NTD.D/EDUARDO,PA1PTR,,0)
+
+	LO	LINE
+
+QTMORG	EQ	.
+
+PROPNT	EQ	LCLSGN				: POINT TO 1ST DATA AFTER
+                                                : PROFILE DEFINITIONS
+PROPNT	EQ	(@3)&(PROPNT+3)     		: ALIGN ON WORD BNDARY
+
+:::::	Back up over all Profiles defined.
+:::::	Profile data structure is 23 bytes long.  PRON is the number of
+:::::	Profiles defined in the tymfile. The rest is a standard function for
+:::::	assuring PROPNT points to a fullword boundary since each Profile
+:::::	begins on a fullword boundary.
+
+PROPNT	EQ	PROPNT-(((@3)&($A23+3))*PRON)
+
+
+Q	EQ	1
+	RE	PRON
+	IF	PRPA|Q|				: PADDING WAS REQUESTED
+	ORG	PROPNT+PR.FL			: POINT TO PADSW
+	BC	80				: TURN PADSW ON
+	EI	(PRPA|Q|)
+Q	EQ	Q+1
+PROPNT	EQ	PROPNT+((@3)&($A23+3))		: ADVANCE TO NEXT PROFILE
+	ER
+
+	ORG	QTMORG
+
+	FO	LINE
+
+	ENDPATCH(Enable PRO.PAD feature when tymfile specifies it.)
+	EI	(VMSW)
+
+
+
+
+	IF	NDDCMP
+:***********************************************************************
+:	
+:	This patch ensures that the Full Duplex watch timer does not
+:	expire when continuous sync characters are received from
+:	the line. (Esc #38965)
+
+	LO	BSCRCV
+	LO	BSCDEF
+	LO	BSCHDX
+
+:	The following portion of this patch is done to get some space
+:	for a jump address
+
+	PATCH(870528,1821,NTD.B/KRUEGER,DRPNID,,6)
+	J	DSYNFX,,		:JUMP TO PATCH AREA
+
+	CONPATCH(PA1PTR,,10)
+DSYNFX	HS	0
+	LHI	R2,DRENID		:ERROR CODE: NO CLASS ID
+	JAL	R0,DRERR,,		:SET UP ERROR MSG IN BB
+	J	DRDONE,,
+
+:	The actual patch starts here
+
+	CONPATCH(DRSIDM+8,,2)
+	HC	DRPNID+6-RSEG		:DSYN - EAT LEADING SYN'S
+
+	CONPATCH(DRPNID+6,,6)
+	J	DSYNF2,,		:JUMP TO NEW DRPEAT IN PATCH AREA
+
+	CONPATCH(PA1PTR,,6)
+DSYNF2	HS	0
+	SBT	RL,RFDUP		:INDICATE FDX RECEIVER UP AND RUNNING
+	JR	RRET			:GO GET NEXT CHARACTER
+
+	FO	BSCRCV
+	FO	BSCDEF
+	FO	BSCHDX
+
+:	This is just some clean-up
+
+	LO	BSCPTP
+
+	CONPATCH(DPT130+10,,0C)
+	NOP	,,,
+	NOP	,,,
+
+	FO	BSCPTP
+
+	ENDPATCH(Prevent FDX timeout for continuous sync stream)
+
+	EI	(NDDCMP)
+
+
+
+:**********************************************************************
+:
+:	This patch fixes a bug in MLVPTP for illegal transmission
+:	of opcode "FE".
+
+	IF	NMLV
+
+	LO	BSCPTP
+	LO	BSCDEF
+	LO	BSCHDX 
+
+	PATCH(071687,1530,QSATS.A/SHARMA,TIRNAK,,4)
+	LH	R1,BSXOPC,RL2
+
+	CONPATCH(TNRNAK,,4)
+	LH	R1,BSXOPC,RL2
+
+	CONPATCH(TERNAK,,4)
+	LH	R1,BSXOPC,RL2
+
+	CONPATCH(SNRNAK+8,,4)
+	LH	R1,BSXOPC,RL2
+
+	ENDPATCH(FIXES BUG FOR ILLEGAL OPCODE `FE')
+
+	FO	BSCPTP
+	FO	BSCDEF
+	FO	BSCHDX
+
+	EI	
+
+
+
+	IF	SRSIM
+:**********************************************************************
+:
+:	This patch allows the interface to behave the same when leased
+:	lines are genned, regardless of whether real physical lines
+:	or the sync ring simulator is being used.
+:
+:**********************************************************************
+
+:>>>>>>  The following code belongs in BSCSRS.
+
+	LO	BSCDEF
+
+	PATCH(870817,1000,NTD.D/EDUARDO,SYDTR,,(((NLUS-1)/16)+1)*2)
+	HS	0
+	RE	((NLUS-1)/16)+1
+	HC	0
+	ER
+
+	CONPATCH(SYI1+40,,4)
+	RBT	RLU,SYDTR
+
+	FO	BSCDEF
+
+	ENDPATCH(Allow leased lines to work with sync ring simulator.)
+
+	EI	(SRSIM)
+
+
+	IF 	SRSIM
+:**********************************************************************
+:
+:	This patch issues an error if an odd number of lines is genned
+:	when also using the sync ring simulator.  The sync ring simulator
+:	code assumes an even number of lines.  When this patch is
+:	incorporated into source, the call to .ABORT may be omitted because
+:	it will be called in CHECK near the end of the assembly process.
+:
+:	Note: in new source, define ER.003 = 3 and make it global in the
+:	'I' file.  Replace '3' in call to ERROR with it for consistency.
+:
+:**********************************************************************
+
+:>>>>>>> This code belongs in CONFIG.
+
+
+	PATCH(870817,1100,NTD.D/EDUARDO,PA0PTR,,0)
+	
+	IF	NBILIN&1		: ODD NUMBER OF LINES
+	ERROR(TYPERR,3,ODD NUMBER OF LINES GENNED WITH SRSIM)
+	REMARK	%
+	.ABORT
+	EI	(NBILIN&1)
+
+	ENDPATCH(Report error if odd number of lines used with SRSIM.)
+
+	EI	(SRSIM)
+
+
+
+
+
+:**********************************************************************
+:
+:  This patch fixes code that assumed R0 contained the line number, when
+:  in fact R0 had been reused for other purposes and no longer contained
+:  the line number.
+:
+:**********************************************************************
+:>>>>>>This code belongs in HSEC.
+
+	LO	HSEC
+	LO 	LINE
+	LO	FCB
+
+	PATCH(871216,1030,NTD.D/EDUARDO,HSC0D+2E,,6)
+	J	H0DFX,,
+
+	CONPATCH(PA1PTR,,10)
+H0DFX	RLINE(R0)				:GET LINE NUMBER INTO R0
+	L	R1,L.TIME,RL2,RL2		:LOAD TIMER
+	J	HSC0D+34,,			:GO BACK & TEST IT
+	
+	CONPATCH(GBLOK,,6)
+	J	GBKFX,,
+
+	CONPATCH(PA1PTR,,10)
+GBKFX	RLINE(R0)				:GET LINE NUMBER INTO R0
+	TBT	R0,TTDISC,,			:DOES TERM SUPPORT DISCONNECT
+	J	GBLOK+6,,			:GO BACK & FIND OUT
+
+
+	ENDPATCH(Set up R0 with line number before use)
+
+	FO	LINE
+	FO 	HSEC
+	FO	FCB
+
+
+
+::----------------------------------------------------
+::  This patch fixed ZENGINKYO logon in BJSN option.
+::  (*) ZENGINKYO protocol has two type of headder
+::      see R122,one is '0000000045' and other is
+::      '1000000045'x , and in a transparent text in BSC,
+::      DLE is inserted for data '10'x, R106,R127 are done
+::      that. But the first type of header will be skipped
+::      in R127.
+::
+:: NOTE: To use this patch, include the statement "OPTION(BJSN,ON)"
+::       in the tymfile.
+::
+::----------------------------------------------------
+:>>>>>>This code belongs in R100.
+
+        LO      R100
+        LO      FCB
+        LO      BSCDEF
+        LO      LINE
+
+        IF      \BJSN
+        PATCH(871209,0915,ALOK.SHARMA,DAT06,,6)
+        J       DAT06N,,
+
+        CONPATCH(PA1PTR,,32)
+DAT06N  CHI     RDATA,RNUL
+        JN      STTR,,
+        LB      R4,F.LINE,RAFCB,        : DOES THIS PORT SUPPORT JAPAN SIGN ON
+        TBT     R4,JSNLIN,,
+        JE      STTR,,                  : NO , SKIP
+        LB      R0,LCNTR1,R4,           : ARE WE ALREADY SIGNON
+        JN      STTR,,                  : YES
+        LA      RAIS,R11E,,             : SKIP R127
+        JR      RLINK
+        ENDPATCH(FIX BJSN ZENGINKYO LOGON)
+        FO      R100
+        FO      FCB
+        FO      BSCDEF
+        FO      LINE
+        EI      (\BJSN)
+
+
+
+:**********************************************************************
+:
+:	>>>>>>>>>>>>>>>>  THIS STATEMENT MUST THE THE LAST
+:	>>>>>>>>>>>>>>>>  IN THE PATCH FILE
+
+	PATCHREPORT
+  4 2Ñ
