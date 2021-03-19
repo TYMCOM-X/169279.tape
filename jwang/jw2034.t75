@@ -1,0 +1,77 @@
+:	ITS Diagnostic X.75 interface               Date: 30-MAY -84   BY: JWANG
+:	Node: 2034   Kernel: 1893   Slot: 1   Hosts: 3741, 3742  Version: 2.01
+:	XOM Host: 3869
+
+
+PROTOCOL(X.75,HDLC,SLP)		:Global interface type for slot
+DPORTS(16)			:Number of ISIS dispatcher ports
+
+HOSTLINKS(3741,0)		:Assign host 3741 to PTT side
+HOSTLINKS(3742,1)		:Assign host 3742 to ITS side
+
+XOMUSERNAME(INTLTECH)		:Username allowed to login to XOM
+XOMUSERNAME(ISISTECH)		:Username allowed to login to XOM
+XOMHOST(3869)			:Host number associated with XOM
+
+LINKS(0-1)			:Common parameters for links
+TCNL(1,32)			:Two way logical channel range
+HIHOSTNUMBER(6000)		:Login new way if NTN length .GE. 6 digits
+				: and first are 6 digits less than HIHOST
+NETUSERNAMEPREFIX(ITS.)		:Username prefix for new login format
+CLGADR(-NUIADR,HOSTADR)		:Use host number in call request
+PSIZE(128,128,-NEGOTIATION)	:Packet size options
+PWIND(2,2,-NEGOTIATION)		:Packet window options
+
+               : 7,7     CHANGED TO 11,11 IN TCLASS
+TCLASS(7,7,NEGOTIATION,PASSTOX,-XCLEAR)	:Throughput class options
+NATIONAL(XCLEAR,-PASSTOX)		:National options cleared, stripped
+UNKNOWNFACLITY(XCLEAR,-PASSTOX)		:Unknown  options cleared, stripped
+CHARGE(CPT,-RCX,RCNA,-CPNA,-RCNS)	:Reverse charge options
+PKTOPT(+NONTN,+TKSUP,TKDSP)		:Packet level options
+
+PADIDLETIMER(60,10)		:PAD idle timer - Tymsat, Tymcom
+PADFORWARD(126,0)		:PAD forwarding - Tymsat, Tymcom
+PADBREAK(1+4+16)		:Send interrupt, PAD break message
+				: and discard output to terminal
+ECHOABLE(07-0A,0D,20-7E)	:Echo certain control characters
+
+LINKS(0)
+GATEWAY(2341,isistech"3A1255"3Bcome"20back"3B)  : TO UK (VER1.15)
+GATEWAY(2342,002162"3B)		:Provide gateway to UK via TELENET
+GATEWAY(3020,DPAC"3B)		:Provide gateway to DATAPAC
+GATEWAY(3135,isistech"3A3781"3Bcome"20back"3B) :PROVIDE GATEWAY TO ALASCOM
+GATEWAY(3110,isistech"3A3517"3Bcome"20back"3B) : TO TELENET
+GATEWAY(3206,isistech"3A920"3Bcome"20back"3B) :PROVIDE GATEWAY TO BUBBNET
+GATEWAY(9945,isistech"3A371"3Bcome"20back"3B)   :WUI TO H.K.
+GATEWAY(9946,isistech"3A2850"3Bcome"20back"3B)  :RCA TO H.K.
+GATEWAY(4542,isistech"3A371"3Bcome"20back"3B) :ITT TO h.K.
+GATEWAY(9948,isistech"3A1212"3Bcome"20back"3B)  :ITT TO H.K.
+
+
+LINKS(0)			:Link options for link 0 - PTT
+PKTOPT(+HILCN)			:Packet level options
+K(7)
+MAXK(7)
+:FRMOPT(FM128)                  :Frame level options
+PSADR(1,3)			:Frame level addresses
+ILRRC(60)			:Send RR command every 60 seconds if idle
+
+LINKS(1)			:Link options for link 1 - ITS
+PKTOPT(-HILCN)			:Packet level options
+:FRMOPT(FM128)                  :Frame level options
+K(7)
+MAXK(7)
+PSADR(3,1)			:Frame level addresses
+ILRRC(30)			:Send RR command every 30 seconds if idle
+
+
+MTEXT(0000,"8D"8A"07* ITS * : )	:Change default 'REMOTE' header message
+MTEXT(0001,"8D"8A"07* PTT * : )	:Change default 'LOCAL'  header message
+
+MAXGATEWAY(20)			:Set aside storage for GATEWAY macros
+MAXODNIC(4)			:Set aside storage for ODNIC   macros
+
+L1ENABLE(03,7E)			:Set data forwarding characters
+L1ENABLE(04,3C)			:Set idle timer to 3+ seconds
+L1ENABLE(07,15)			:Set break handling - dec 21
+
