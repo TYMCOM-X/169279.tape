@@ -1,0 +1,72 @@
+	IF 1-\P.LEVL
+P.LEVL	EQ	800000
+	EI
+I.LEVL	EQ	0
+MP.LEV	EQ	0
+:
+:	Begin Patch LEVel
+:
+:	Begins a patch level block and verifies if level needs to
+:	be assembled.  The block will be assembled if the argument
+:	is greater than or equal to the defined value of P.LEVL.
+:
+:	Called:		BP.LEV(4)	:Begin patch level 4
+:
+BP.LEV	MACRO(.P.L.)[
+	IF	I.LEVL
+	REMARK	%%***** BEGIN PATCH BLOCK INSIDE EXISTING BLOCK!!! ****%%
+	KILL	P.LEVL
+	ELSE
+I.LEVL	EQ	I.LEVL+1
+	EI
+	IF	.P.L.-MP.LEV
+MP.LEV	EQ	.P.L.
+	EI
+	IF	P.LEVL-(.P.L.-1)
+CP.LEV	EQ	.P.L.
+]
+:
+:	End Patch LEVel
+:
+:	Ends a patch level block or sub-block.
+:
+:	Called:		EP.LEV
+:
+EP.LEV	MACRO[
+	IF	I.LEVL
+	ELSE
+	REMARK	%%***** EP.LEV WITHOUT A BP.LEV!!! *****%%
+	EI
+I.LEVL	EQ	I.LEVL-1
+]
+:
+:	EXception Patch LEVel
+:
+:	Begins a patch level exception block and verifies if level
+:	needs to be assembled.  The block will be assembled if the
+:	argument is less than P.LEVL.
+:
+:	Called:		EXP.LEV(8)	:Begin exception level block 8
+:
+EXP.LEV	MACRO(.P.L.)[
+	IF	I.LEVL
+	IF	I.LEVL-1
+	REMARK	%%***** EXCEPTION BLOCK WITHIN AN EXCEPTION BLOCK!!! *****%%
+	KILL	P.LEVL
+	ELSE
+I.LEVL	EQ	I.LEVL+1
+	EI
+	ELSE
+	REMARK	%%***** EXCEPTION PATCH BLOCK NOT INSIDE EXISTING BLOCK!!! ****%%
+	KILL	P.LEVL
+	EI
+	IF	CP.LEV-(.P.L.-1)
+	REMARK	%%***** EXCEPTION BLOCK LEVEL NOT GREATER THAN BEGIN BLOCK LEVEL!!! *****%%
+	KILL	P.LEVL
+	EI
+	IF	.P.L.-MP.LEV
+MP.LEV	EQ	.P.L.
+	EI
+	IF	P.LEVL-(.P.L.-1)
+	ELSE
+]
