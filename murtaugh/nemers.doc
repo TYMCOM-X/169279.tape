@@ -1,0 +1,985 @@
+1
+
+
+-
+-
+-
+0                            Network Event Monitor
+-
+                        External Reference Specification
+-
+-
+-
+-
+-                                 Romolo Raffo
+-                                Tymshare Inc.
+-                         Network Technology Division
+-                              September 30, 1983
+-
+-     
+      ^                                                                  ^
+      ^ This document is the sole  property and confidential information ^
+      ^ of Tymshare,  inc., and may  not be copied  in whole or  part or ^
+      ^ disclosed to any  third party without the  prior written consent ^
+      ^ of Tymshare.                                                     ^
+      ^                                                                  ^
+      
+-
+-
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-                              Table of Contents
++                              _____ __ ________
+-     1.0 INTRODUCTION.................................................1
+0     2.0 Progam Access of NEM Data....................................2
+0        2.1 Start Time Selection......................................2
+0        2.2 Stop Time Selection.......................................3
+0        2.3 Events to Send, Main Events Only..........................3
+0        2.4 Events to Send, All Events................................4
+0        2.5 Nodes to Access...........................................5
+0        2.6 Nodes to Ignore...........................................5
+0        2.7 Host to Access............................................6
+0        2.8 Hosts to Ignore...........................................6
+0        2.9 Single Supervisor.........................................7
+0        2.10 Nodes to Access (Obsolete)...............................7
+0        2.11 Nodes to Ignore (Obsolete)...............................8
+0        2.12 Host to Access (Obsolete)................................9
+0        2.13 Hosts to Ignore (Obsolete)...............................9
+0     3.0 Event Record Format..........................................11
+0     4.0 Example of a Selection.......................................20
+-
+-
+-
+-
+-
+-
+0                                                                   Page i
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-     SECTION 1.0 INTRODUCTION
++     _______ _ _ ____________
+-     The logger data used  by TMCS, is collected by a  separate slot run-
+      ning NEM (Network Event Monitor).   NEM collects logger records from
+      each of  the supervisors  and consolidates them  into a  single time
+      sequenced file.  The TMCS Log command  builds a circuit to this slot
+      and specifies  the selection  criteria for  NEM to  use in  choosing
+      which logger  records to send.   The selection criteria  may include
+      the time of  the first and last  records, and the events,  nodes and
+      hosts numbers for which records should be sent.  The direct request-
+      ing of  logger data  from NEM can  be done  by any  network program,
+      irrespective of TMCS.  This documents describes how this is done.
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+                                                    INTRODUCTION    Page 1
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-     SECTION 2.0 Progam Access of NEM Data
++     _______ _ _ ______ ______ __ ___ ____
+-     In the  following description of how  to select and  receive records
+      from NEM,  the program requesting  data will  be referred to  as the
+      consumer.  Node numbers  will be in octal, host and  event number in
+      decimal and all other numbers in hexidecimal.
+0     The logger data is accessed by building a circuit to username NETEV-
+      ENT.  The  username NETEVENT will home  to the NEM host.   After the
+      circuit is successfully  built, NEM  sends a  handshake to  the con-
+      sumer.  The consumer must also send the same handshake to NEM before
+      sending selection criteria.  The handshake is the four bytes 01, 02,
+      03, 04.  After  sending the handshake, the consumer  then sends data
+      selection criteria.  The  sending of selection criteria  is ended by
+      sending the single byte  of value 06.  This also tells  NEM to start
+      sending the data selected.   If a stop time is not  specified in the
+      selection criteria, NEM  will continue to send  logger records until
+      the consumer  zaps the circuit.   If a  stop time is  specified, NEM
+      will send a logger record with an event number of zero after all the
+      selected logger records are sent.  The  used can then either zap the
+      circuit or  send a  new selection  criteria, ending  with a  06 byte
+      indicating to NEM  to start sending again.  This  reselection can be
+      repeated indefinitely, as long as the selection criteria specifies a
+      stop time.
+0     Each selection criteria is  one byte, indicating the  type of crite-
+      ria, followed by data for the criteria, of which the number of bytes
+      of data depends on the  particular criteria.  All selection criteria
+      have a  default value.   The following  is a  list of  all selection
+      criteria.
+-     SECTION 2.1 Start Time Selection
++     _______ _ _ _____ ____ _________
+-     Selection type: 05
+0     Selection  data:  Four bytes  of  time  followed  by four  bytes  of
+          sequence number.  The  time is either seconds  since 1/1/74 0:00
+          GMT, or FFFFFFFF  indicating that selection should  begin at the
+          time the selection criteria is received.  The sequence number is
+          used  to distinguish  events with  the same  event time.   Since
+          there can be more than one record  in the database with the same
+          event time, they  are assigned a sequence  number, starting with
+          sequence number zero.  The sequence number restarts at zero with
+          each new  event time.  The first  event record sent will  be the
+          one  with the  specified  time, or  if there  is  no such  event
+          record, the first event with a greater time.
+0     Default: Start  at current  time.  This is  equivalent to  sending a
+          start time of FFFFFFFF.
+-
+                                            Start Time Selection    Page 2
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-     Example:
+0         05
+          1118B4C400000006
+0         Start  selection with  the  seventh record  with  event time  of
+          2/2/1983 19:30:16 GMT or the first record with a greater time.
+-     SECTION 2.2 Stop Time Selection
++     _______ _ _ ____ ____ _________
+-     Selection type: 0C
+0     Selection  data:  Four bytes  of  time  followed  by four  bytes  of
+          sequence number.   The time  is seconds  since 1/1/74  0:00 GMT.
+          The sequence number is used to  distinguish events with the same
+          event time.   Since there  can be  more than  one record  in the
+          database with the same event time,  they are assigned a sequence
+          number, starting with sequence number zero.  The sequence number
+          restarts at zero with each new  event time.  The time given will
+          be the time of the last data record  sent, or if ther is no such
+          record, the last data record will have time less than the speci-
+          fied stop  time.  The  last data  record will  be followed  by a
+          record with event number zero.
+0     Default: Send records until the circuit is zapped.
+0     Example:
+0         0C
+          1120B4C800000000
+0         Select  data records  with  event time  less  than  or equal  to
+          2/8/1983 21:08:24 GMT.
+-     SECTION 2.3 Events to Send, Main Events Only
++     _______ _ _ ______ __ ____  ____ ______ ____
+-     Selection type: 07
+0     Selection data:  256 bits (32 bytes)  referring to events  0-255.  A
+          value  of one  means send  record for  the corresponding  event.
+          Note with  this criteria, only main  events can be  selected, no
+          subevent selection is possible.  If  the main event is selected,
+          all subevents for that main event  will be sent.  To select isis
+          events, select main events 8 and 12.  See selection type 11, for
+          full event selection.
+0     Default: Select all events.  Equivalent to  a type 07 selection with
+          256 one bits of selection data.
+-
+                                Events to Send, Main Events Only    Page 3
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-     Example:
+0         07
+          0000203E08000000000000000000000000000000000000000000000000000000
+0         Select events 18, 26-30 and 36.
+-     SECTION 2.4 Events to Send, All Events
++     _______ _ _ ______ __ ____  ___ ______
+-     Selection type: 11
+0     Selection data: 1024  bits (128 bytes) with a one  bit indicating an
+          event selected.  The following table  show to which event number
+          each bit refers.
+0               Bit range       Event numbers
++               ___ _____       _____ _______
+                  0-255           0-255 (main events)
+                  256-306         4.0-4.50
+                  307-327         7.0-7.20
+                  328-583         8.0-8.255
+                  584-639         12.0-12.55
+                  640-660         19.0-19.20
+                  661-691         32.0-32.30
+                  692-947         isis 0-FF
+                  948-978         80.0-80.30
+                  979-1023        Reserved for future use
+0         To select a subevent, such as 8.23, the corresponding main event
+          must also be selected, such as event 8.  To select all the sube-
+          vents for an  event with subevents, both the main  event and all
+          the subevents  must be  selected.  To  select an  event with  no
+          subevents, only the  main event is selected.  To  select an isis
+          event,  main  events 8  and  12,  and  the  isis event  must  be
+          selected.
+0     Default: Select all events.  Equivalent to  a type 11 selection with
+          selection data of 1024 one bits.
+0     Example:
+0         11
+          0088000080000200000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000080000000030000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+0         Select isis events 0A and 0B, and events 32.3 and 54.
+-
+-
+                                      Events to Send, All Events    Page 4
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-     SECTION 2.5 Nodes to Access
++     _______ _ _ _____ __ ______
+-     Selection type: 13
+0     Selection data: Zero  or more sequences of 256 bits  (32 bytes) each
+          preceeded by a single byte of 8 bits with the last sequence fol-
+          lowed by  a byte of  all one bits.  If  the byte before  the 256
+          bits has value 'x', then the bits refer to node numbers x*400 to
+          x*400+377 (all numbers are octal), e.g. if the byte has value 3,
+          the nodes refered  to are 1400-1777 (node numbers  in octal).  A
+          bit value  of one means access  that node.  This  corresponds to
+          the TMCS  profile node  access list and  is used  in conjunction
+          with selection type 13, Nodes  to Ignore, for message selection.
+          The criteria  for selection is described  in the TMCS  manual in
+          the Report Selection chapter.
+0     Default: Allow access to all node messages.
+0     Example:
+0         12
+          04
+          FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+          05
+          FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+          06
+          FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+          07
+          FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+          FF
+0         Select only Tymnet II nodes, node numbers 2000-3777.
+-     SECTION 2.6 Nodes to Ignore
++     _______ _ _ _____ __ ______
+-     Selection type: 13
+0     Selection data: Zero  or more sequences of 256 bits  (32 bytes) each
+          preceeded by a single byte of 8 bits with the last sequence fol-
+          lowed by  a byte of  all one bits.  If  the byte before  the 256
+          bits has value 'x', then the bits refer to node numbers x*400 to
+          x*400+377 (all numbers are octal), e.g. if the byte has value 6,
+          the nodes refered  to are 3000-3377 (node numbers  in octal).  A
+          bit value  of one means ignore  that node.  This  corresponds to
+          the TMCS  Ignore Node  command list and  is used  in conjunction
+          with selection type 12, Nodes  to Access, for message selection.
+          The criteria  for selection is described  in the TMCS  manual in
+          the Report Selection chapter.
+-
+0                                                Nodes to Ignore    Page 5
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-     Default: Do not  ignore any nodes, use  access list only  for selec-
+          tion.
+0     Example:
+0         13
+          04
+          7F00000000000000000000000000000000000000000000000000000000000000
+          FF
+0         Ignore the supervisor nodes 2001-2007.
+-     SECTION 2.7 Host to Access
++     _______ _ _ ____ __ ______
+-     Selection type: 09
+0     Selection data: Zero  or more sequences of 256 bits  (32 bytes) each
+          preceeded by a single byte of 8 bits with the last sequence fol-
+          lowed by  a byte of  all one bits.  If  the byte before  the 256
+          bits has value 'x', then the bits refer to host numbers x*256 to
+          x*256+255 (all numbers are decimal), e.g.  if the byte has value
+          1, the hosts  refered to are 256-511 (host  numbers in decimal).
+          A bit value of one means  access that host.  This corresponds to
+          the TMCS  profile host  access list and  is used  in conjunction
+          with selection type 0B, Hosts  to Ignore, for message selection.
+          The criteria  for selection is described  in the TMCS  manual in
+          the Report Selection chapter.
+0     Default: Allow access to all host messages.
+0     Example:
+0         09
+          00
+          00000000000000000000000000000000000000000000000000FFFFFFFFFFFFFF
+          01
+          FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0000000000000000000000000000
+          FF
+0         Select host 200-399.
+-     SECTION 2.8 Hosts to Ignore
++     _______ _ _ _____ __ ______
+-     Selection type: 0B
+0     Selection data: Zero  or more sequences of 256 bits  (32 bytes) each
+          preceeded by a single byte of 8 bits with the last sequence fol-
+          lowed by  a byte of  all one bits.  If  the byte before  the 256
+-
+                                                 Hosts to Ignore    Page 6
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-         bits has value 'x', then the bits refer to host numbers x*256 to
+          x*256+255 (all numbers are decimal), e.g.  if the byte has value
+          2, the hosts  refered to are 512-767 (host  numbers in decimal).
+          Selection data: 4096 bits (512  bytes) referring to hosts 0-4095
+          (host numbers in decimal).  A bit value of one means ignore that
+          host.  This corresponds to the TMCS Ignore Host command list and
+          is used in conjunction with selection  type 0E, Hosts to Access,
+          for message selection.  The criteria  for selection is described
+          in the TMCS manual in the Report Selection chapter.
+0     Default: Do not  ignore any hosts, use  access list only  for selec-
+          tion.
+0     Example:
+0         0F
+          00
+          0000000000000000000000000000007F00000000000000000000000000000000
+          FF
+0         Ignore the supervisor hosts 121-127.
+-     SECTION 2.9 Single Supervisor
++     _______ _ _ ______ __________
+-     Selection type: 0D
+0     Selection data: One byte of data specifying a supervisor.  The value
+          of the data byte is the  supervisor host number minus 121.  Only
+          event records from the given supervisor will be selected.
+0     Default: Send event records for all supervisors.
+0     Example:
+0         0D
+          03
+0         Select events records from supervisor 124 only.
+-     SECTION 2.10 Nodes to Access (Obsolete)
++     _______ _ __ _____ __ ______  ________
+-     Selection type: 08
+0     Selection  data: 2048  bits (256  bytes) referring  to nodes  0-3777
+          (node numbers in  octal).  A bit value of one  means access that
+          node.  This corresponds to the TMCS profile node access list and
+          is used in conjunction with selection  type 0A, Nodes to Ignore,
+          for message selection.  The criteria  for selection is described
+          in the TMCS manual in the Report Selection chapter.
+-                                     Nodes to Access (Obsolete)    Page 7
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-     Default: Allow access to all node messages.  Equivalent to a type 08
+          node selection with 2048 one bits of selection data.
+0     Example:
+0         08
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+          FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+          FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+          FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+0         Select only Tymnet II nodes, node numbers 2000-3777.
+-     SECTION 2.11 Nodes to Ignore (Obsolete)
++     _______ _ __ _____ __ ______  ________
+-     Selection type: 0A
+0     Selection  data: 2048  bits (256  bytes) referring  to nodes  0-3777
+          (node numbers in  octal).  A bit value of one  means ignore that
+          node.  This corresponds to the TMCS Ignore Node command list and
+          is used in conjunction with selection  type 08, Nodes to Access,
+          for message selection.  The criteria  for selection is described
+          in the TMCS manual in the Report Selection chapter.
+0     Default: Do not  ignore any nodes, use  access list only  for selec-
+          tion.  Equivalent  to a  type 0A node  selection with  2048 zero
+          bits of selection data.
+0     Example:
+0         0A
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          7F00000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+0         Ignore the supervisor nodes 2001-2007.
+-
+-
+-                                     Nodes to Ignore (Obsolete)    Page 8
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-     SECTION 2.12 Host to Access (Obsolete)
++     _______ _ __ ____ __ ______  ________
+-     Selection type: 0E
+0     Selection  data: 4096  bits (512  bytes) referring  to hosts  0-4095
+          (host numbers in decimal).  A bit value of one means access that
+          host.  This corresponds to the TMCS profile host access list and
+          is used in conjunction with selection  type 0F, Hosts to Ignore,
+          for message selection.  The criteria  for selection is described
+          in the TMCS manual in the Report Selection chapter.
+0     Default: Allow access to all host messages.  Equivalent to a type 0E
+          host selection with 4096 one bits of selection data.
+0     Example:
+0         0E
+          00000000000000000000000000000000000000000000000000FFFFFFFFFFFFFF
+          FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+0         Select host 200-399.
+-     SECTION 2.13 Hosts to Ignore (Obsolete)
++     _______ _ __ _____ __ ______  ________
+-     Selection type: 0F
+0     Selection  data: 4096  bits (512  bytes) referring  to hosts  0-4095
+          (host numbers in decimal).  A bit value of one means ignore that
+          host.  This corresponds to the TMCS Ignore Host command list and
+          is used in conjunction with selection  type 0E, Hosts to Access,
+          for message selection.  The criteria  for selection is described
+          in the TMCS manual in the Report Selection chapter.
+0     Default: Do not  ignore any hosts, use  access list only  for selec-
+          tion.  Equivalent  to a  type 0F host  selection with  4096 zero
+          bits of selection data.
+-                                     Hosts to Ignore (Obsolete)    Page 9
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-     Example:
+0         0F
+          0000000000000000000000000000007F00000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+0         Ignore the supervisor hosts 121-127.
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+0                                    Hosts to Ignore (Obsolete)    Page 10
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-     SECTION 3.0 Event Record Format
++     _______ _ _ _____ ______ ______
+-     The records sent by  NEM to the consumer are all  sixteen bytes long
+      and have the following format.
+0         Bytes 1-4  : First data word
+          Bytes 5-8  : Second data word
+          Byte  9    : Supervisor host minus 121 e.g. 2 means host 123.
+          Bytes 10-11: Event time sequence number
+          Byte  12   : Event number
+          Bytes 13-16: Event time
+0     The two data words are sent as  the one's complement of their actual
+      value.  This is done to reduce network  traffic by reducing the num-
+      ber of zero bytes sent.
+0     Below is a list of all event  record types, ordered by event number.
+      Each event record type begins with the event number in decimal, fol-
+      lowed by the event description and the format of the two data words.
+      The format is enclosed in brackets and  the two data words are sepa-
+      rated by a semicolon.  If a data words  is to be treated as two half
+      words, the half words  are seperated by a comma.  If  a half word is
+      to be treated as two bytes, the  bytes are separated by a dash.  All
+      data is given in hexidecimal.
+-     Event   Event description and data format
++     _____   _____ ___________ ___ ____ ______
+         1    Attempt to shut all lines to awake supervisor  [0; 0]
+0        2    Supervisor crash        [address; 0]
+0        3    Unexpected takeover response  [0; node#]
+0        4    Operator request        [data determined by subtype; subtype]
+0             subtype      subtype description and data format
++             _______      _______ ___________ ___ ____ ______
+              0       shut line request - node pair not
+                      connected  [node#, node#; 0]
+              1       retake  [node#; 1]
+              2       retake failure  [node#; 2]
+              3       rebori  [line#, node#; 3]
+              4       rebori failure  [line#, node#; 4]
+              5       down line load  [line#, node#; 5]
+              6       down line load failure  [line#, node#; 6]
+              7       sleep  [0; 7]
+              8       awake  [0; 8]
+              9       read IRC rotate table [0; 9]
+              A       update request  [node#; 0A]
+              B       update failure  [node#; 0B]
+              C       trace request  [node#; 0C]
+              D       trace failure  [node#; 0D]
+              E       unbori (Tymnet II)  [node#; 0E]
+-                                           Event Record Format    Page 11
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-             F       unbori failure (Tymnet II)  [node#; 0F]
+              10      read class and group defs [0; 10]
+              11      neighbor change [node#, addr; neigh, 11]
+              12      Tymnet II port status [node#; 12]
+              13      Tymnet II port request failure [node#; 13]
+              14      sync port request [node#; 14]
+              15      sync port request failure [node#; 15]
+              16      link cost request [neigh#, node#; 16]
+              17      link cost request failure [neigh# ,node#; 17]
+0        5    Accounting file filling up [# of blocks left; shift count]
+0        6    Lost node               [up stream node#; node#]
+0        7    Host confusion
+              [old host table entry, reporting base#; host#, subtype]
+              where the "old" entry consists of the old base# with
+              the two high order bits being flags, say 'xy'.
+              The meaning of these flags is as follows -
+0             xy      meaning
++             __      _______
+              00      up and answered
+              10      up and shut
+              01      down (was answered when went down)
+              11      down (was shut when went down)
+0             subtype         description
++             _______         ___________
+              1       duplicate hosts
+              2       up host reporting up on another base
+                        or on wrong position on base
+              3       up host reporting up
+              4       another host reports up on base and
+                        position of already up host
+              5       zero host# (no old entry)
+              6       host reported gone but not there
+              7       host number too big (no old entry)
+0        8    Tymnet II node report      [node#, data; data, data]
+0        9    Illegal record          [sr1; sr2, sr3]
+0       10    Non-fatal error         [data; address in supervisor]
+               Data and address are implementation dependent and
+               are used for debugging.
+0       11    Unable to takeover      [node#; subtype]
+0             subtype   description
++             _______   ___________
+              0       no path
+              1       cost too large
+0       12    Tymnet I node error report   [node#; sr2,sr3]
+-
+                                            Event Record Format    Page 12
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-       13    Rotate problem          [subtype; node#, node#]
+0             subtype         description
++             _______         ___________
+              0       list3 entry not found (mapped node#'s)
+              1       neighbor mismatch in list3
+              2       list1 too long
+              3       list2 entry too large
+              4       list2 or list3 too long
+              5       list1 has zero node#
+              6       list1a has zero or invalid entry for IRC number
+              7       list2 wrong size
+              8       list1 has illegal node# (unmapped single node#)
+              9       list1 has a duplicate link (mapped node pair)
+              A       illegal node# in rotation group (unmapped node pair)
+              B       duplicated link in rotation groups (unmapped pair)
+              C       list2 entry for link doesn't point to the
+                      beginning of a rotation group (mapped node pair)
+              D       IRC link not in own rotation group (unmapped node pair)
+              E       rotation group entry not on list1 (unmapped node pair)
+0       14    Message too long for Tymnet II command
+              [message address; supervisor PC]
+0       15    Bad subtype in Tymnet II message [node#; type-subtype]
+0       16    Rebuild error   [node#, base#; neighbor 1, neighbor 2]
+               Neighbors define the link outage causing the rebuild request.
+               Neighbor 1 is closest to the source node, and the fat zapper
+               it emitted claims the link to neighbor 2 went out.  A rebuild
+               error occurs if any of the node numbers are invalid.
+0       17    Rebuild failure         [node#, base#; 0]
+0       18    Line out                [line#, node#; zap count]
+0       19    Link status     [node#, subtype;  data, neigh#]
+0             subtype     description and data format
++             _______     ___________ ___ ____ ______
+              0       link overloaded   [node#, 0; 0, neigh#]
+              1       link error rate [node#, 1; error rate, neigh#]
+              2       line attached   [node#, 2; speed-line position, neigh#]
+              3       new link        [node#, 3; speed-line position, neigh#]
+              4       line detached   [node#, 4; reason-line position, neigh#]
+              5       link out        [node#, 5; reason-line position, neigh#]
+              6       link out of bandwidth [node#, 6; 0 neigh#]
+0       20    Bad mud                 [virtual block#; logid]
+0       21    Invalid port zero message  [length, value; value, value]
+0       22    Input dispatcher inconsistency  [port#, node#; type]
+0       23    Supervisor message input invalid [port#, node#; port#]
+-                                           Event Record Format    Page 13
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-       24    Active supervisor received pill  [count; # of other supervisor]
+0       25    Supervisor message input invalid type  [node#; type]
+0       26    Line overloaded         [line#, node#; 0]
+0       27    Line error rate         [line#, node#; sr3/64]
+0       28    Out of channels         [line#, node#; 0]
+0       29    Out of passthroughs     [node#; 0]
+0       30    Too many characters from node [node#; buffer#]
+0       31    Supervisor going to sleep      [0; 0]
+0       32    Host status             [subtype, host#; sr2, base#]
+0             subtype      description
++             _______      ___________
+              1       coming up
+              2       down
+              3       answered
+              4       shut
+              5       host reports answered or shut but not in host table
+              6       host reports answered or shut on wrong base
+              7       host gone
+              8       host reported down but not on base (no sr2)
+              9       down host reporting down (no sr2)
+0       33    Line ok     [line#, reporting node#; 0]  if Tymnet I
+                          [node#, reporting node#; 0]  if Tymnet II
+0       34    Class or group too large   [subtype; data]
+0             subtype         description
++             _______         ___________
+              0       group too large (data is group number)
+              1       class too large (data is class number)
+0       35    Starting takeover       [0; 0]
+0       36    Line reset              [line#, node#; zap count]
+0       37    Takeover progress report
+               8 bits - state 0
+               8 bits - state 1
+               8 bits - state 2
+               8 bits - state 3
+              11 bits - state 4
+              10 bits - state 5
+              11 bits - state 6
+0       38    Access failure          [sign=0  UUN; group, host]
+                                      [sign=1  UUN; class, node]
+-                                           Event Record Format    Page 14
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-       39    Rotate read failure     [disk error return; 0]
+0       40    Node takeover timeout   [node#; state]
+0       41    Network error at takeover [line#, node#; 0, subtype]
+0             subtype        description
++             _______        ___________
+              0       duplicate neighbor
+              1       neighbor does not know us
+              2       node is own neighbor
+              3       permuter tables not same size
+              4       illegal neighbor number
+              5       too many groups (no line#)
+              6       too many or zero lines (no line#)
+              7       too many hosts (no line#)
+              8       illegal node# (no line#)
+              9       wrong supervisor number returned (no line#)
+              A       invalid buffer number [line*64+channel#, node#;
+                                              buffer#, 0A]
+0       42    Neighbor mismatch in circuit zap
+               [Tymnet II node#; Tymnet I node#]
+0       43    Line shut               [0; node#, node#]
+0       44    Change in crash count
+               [version, node#; crash mark loc, crash count]
+0       45    Cannot read class and group definitions  [disk error return; 0]
+0       46    Supervisor fight        [node#; sr2 (echo)]
+0       47    Line unshut             [0; node#, node#]
+0       48    Line unoverloaded       [line#, node#; 0]
+0       49    Mud error        [subtype dependent; virtual block, subtype]
+0             subtype     description and data format
++             _______     ___________ ___ ____ ______
+              0       negative group as home [UUN; virtual block, 0]
+              1       class number too big   [UUN; virtual block, 1]
+              2       group number too big   [UUN; virtual block, 2]
+              3       displacment error  [byte position; virtual block, 3]
+              4       zero displacment   [byte position; virtual block, 4]
+0       50    Congestion report       [line#, node#; neigh node#]
+0       51    Login rate (last minute only)
+               [# timeouts, # logins; peak time, average time]
+                where times are in 1/100 second.
+0       52    Tymnet II circuit too long     [source node#; host#]
+-
+                                            Event Record Format    Page 15
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-       53    Start of takeover       [upstream; node#]
+0       54    End of takeover  [cost, node#;
+                                Tymnet II controlling node, upstream node]
+0       55    Tymnet II message too long  [port#; length]
+0       56    Cannot takeover node    [node# that cannot be taken; upstream]
+0       57    Zapper received on command circuit   [0; Tymnet II node#]
+0       58    Sync port#             [node#; value, port#]
+                      for sync ports, value is:
+                              neigh# + 8000 if line up
+                              neigh# if line down
+                              zero is line was never up
+                      for sio ports, value is same as sync + 4000
+0       59    Link cost             [node#; neigh#, cost]
+0       60    Zapper received on unused Tymnet I command port   [0; port#]
+0       61    Invalid sup message on a Tymnet I port
+                              [port#, controlling Tymnet II node#; sr1]
+0       62    Large time discrepance  [magnitude in sec; value with sign]
+0       63    Unable to read super clock  [subtype; data]
+0             subtype         description
++             _______         ___________
+              0       superclock not present [0; 0]
+              1       superclock time out of range [1; time
+                         in seconds since 1974 provided by superclock]
+0       64    Supervisor buffer zap
+               [node#, Tymnet II node upstream; buffer size, buffer#]
+0       65    New link between Tymnet I and Tymnet I node is
+              out of channels in Tymnet I side only.
+               [0; Tymnet I node#, Tymnet II node#]
+0       66    Black ball received on command channel
+               [port#, zapsize; node# controlled by this port]
+0       67    Black ball received on unassigned Tymnet I channel
+               [port#, zapsize; 0]
+0       68    Gobbler received on command channel
+               [port#, 0; node# controlled by this port]
+0       69    Gobbler received on assigned Tymnet I channel
+               [port#, 0; 0]
+-
+                                            Event Record Format    Page 16
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-       70    Invalid character pair received on command channel
+               [port#, character pair; node# controlled by port]
+0       71    Invalid character pair received on unassigned Tymnet I channel
+               [port#, character pair; 0]
+0       72    Port hang by node
+               [node#, port#; 1 (2 if permanent hang)]
+0       73    Port hang query response
+               [node#, port#; 0]
+               [node#, 0; 1 (all responses in)]
+0       74    ALU and cost    [max length, max cost; ALU*10, ave cost*10]
+0       75    This message is the same as 130 except that in the
+              class case it lists a host number not a node number.
+0       76    Supervisor time change by operator     [old time; 0]
+              (Event time for this message gives new time.)
+0       77    Invalid port 1 message  [length, 2 bytes data; 4 bytes data]
+0       78    Disk not ready          [0;0]
+0       79    Disk went ready         [0;0]
+0       80    Login error         [subtype-TID, requesting host; node, buffer]
+0             subtype        description
++             _______        ___________
+              1*      invalid tid
+              2*      invalid requesting host number
+              3*      requesting host not on node
+              4*      requesting host down on node
+              5       null character string
+              6       unexpected characters during state 5
+              7       unexpected characters during state 7
+              8       unterminated login string (Tymnet II versions 300+)
+              9*      normal login dropped because of bad password
+              A*      normal login dropped because of bad user name
+              B*      aux circuit request dropped due to bad user name
+              C*      user name too long (> 20 decimal characters)
+              D       UUN for bad password in type 9 (replaces node/buffer)
+                      (a subtype D always immediately follows the subtype 9)
+              E       duplicate Tymnet II normal login request
+              (Note - asteriked items will hang user.  Remaining items
+              indicate procedural errors in node code.)
+0       81    Data on unassigned port         [port, count; word of data]
+0       82    Lost supervisor's base  [0; 0]
+0       83    Excessive login acknowledgement delay (> 8 seconds)
+-                                           Event Record Format    Page 17
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-                             [0,time in 1/100 sec.;node, buffer/ack]
+0       84    Kernel and sio status   [kernel status,sio status;
+                                       supervisor version, kernel version]
+              This message only applies to the split supervisor.
+              Kernel status is 12 bits of crash count followed by 4 bits
+              of reason for the last crash:   0 - manual restart
+                                              1 - power up
+                                              2 - sio link out
+                                              3 - ring pair mismatch
+              Sio status consists of 1 byte of interrupt count and 1 byte
+              for the last status returned.
+0       85    User entered message    [2 words of data]
+0       86    Too many invalid user names     [node#, invalid count;
+                                              total try count]
+0       87    Too many invalid passwords      [node#, invalid count;
+                                              total try count]
+0       88    Too many login session failures
+                                              [node#, failure count;
+                                              total login sessions]
+0       89    Node lost due to invalid trace response size
+                                      [node#, size; first word of data]
+0       90    Excessive communication delay to node
+                      [node#, total occurances all external nodes;
+                       round trip delay, adjusted delay]
+0             (Note - time is in 1/100 seconds, and adjustment
+              removes estimated sup/base round trip delay time.
+              These reports are throttled to a maximum
+              of one per second).
+0       91    Unexplained execution delay     [0;time in seconds]
+0       92    Supervisor activity rates
+                      [avg. exec loops/10 seconds (for .1 count accuracy),
+                       avg. times input discovered/10 seconds;
+                       avg. times backpressure encountered/10 seconds,
+                       last node to which backpressure prevented output]
+0       93    Supervisor internal performance times
+                      [avg. msec. per executive loop,
+                       avg. msec. dispatching input;
+                       avg. sup/base communication time in msec.,
+                       peak sup/base time in msec.]
+0       94    External communication times
+                      [avg. external communication time in 1/100 sec.,
+-                                           Event Record Format    Page 18
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-                      avg. adjusted external time in 1/100 sec.;
+                       peak adjusted time, node# for peak time]
+0             (Note - adjustment removes sup/base interaction time.)
+0       95    Excessive communication delay to own base node
+                      [times excessive delay encountered;
+                       time in 1/100 second]
+0             (Note - these reports are throttled to a maximum
+              of one per second).
+0       96    Control port backpressure exceeding 1 minute
+                      [control port; node controlled by port]
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-                                           Event Record Format    Page 19
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-     SECTION 4.0 Example of a Selection
++     _______ _ _ _______ __ _ _________
+-     The following is an example of  a NEM record selection.  The records
+      requested are  for event  6 (lost node),  for nodes  2100-2137, from
+      2/15/83 0:00  GMT to  2/16/83 0:00 GMT.   The lines  containing data
+      sent by  the consumer start  with C> and  those sent from  NEM begin
+      with N>.
+0     N> 01020304
+      C> 01020304
+      C> 13
+      C> 00
+      C> FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+      C> 01
+      C> FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+      C> 02
+      C> FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+      C> 03
+      C> FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+      C> 04
+      C> FFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+      C> 05
+      C> FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+      C> 06
+      C> FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+      C> 07
+      C> FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+      C> FF
+      C> 07
+      C> 0200000000000000000000000000000000000000000000000000000000000000
+      C> 05
+      C> 1128C60000000000
+      C> 0C
+      C> 112A178000000000
+      C> 06
+      N> FFFFFBD5FFFFFBAF030A0611291EAC
+      N> FFFFFBD5FFFFFBB303140611291EAC
+      N> FFFFFBA5FFFFFBAF030706112965FC
+      N> FFFFFB34FFFFFBA00123061129E738
+      N> FFFFFFFFFFFFFFFF010100112A1780
+      C> "Zaps the circuit"
+0     The above record  selection is equivalent to  the following sequence
+      of TMCS commands and there response, for a TMCS configured for nodes
+      1-3777.
+0     *select nodes 2100-2137
+0     *select event 6
+0     *log 2/15 0:0 to 2/16 0:0
+-
+                                         Example of a Selection    Page 20
+-
+0
+1     Network Event Monitor ERS                         September 30, 1983
+
+
+-     2/15/83 6:18:20 supervisor: 124
+      2120 lost, upstream was 2052
+      2114 lost, upstream was 2052
+0     2/15/83 11:22:36 supervisor: 124
+      2120 lost, upstream was 2132
+0     2/15/83 20:34:00 supervisor: 122
+      2137 lost, upstream was 2313
+0     *
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-                                        Example of a Selection    Page 21
+-
+  /[!
