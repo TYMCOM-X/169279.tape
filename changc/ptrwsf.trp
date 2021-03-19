@@ -1,0 +1,123 @@
+:------------------------------------------------------------------------------
+: Patch name:  PTRWSF.TRP                     Product and Version:  CMTI 07.04
+: Description of Problem:  #
+:
+:    ESC #377914 reports a type 14 crash. The crash occurred at the instruction
+:    "STB  R0,SCN,R8,R7" while the CMT processed the following SCS data from
+:    the IRING (the data came from the printer port #65) :
+:
+:    	    I 21B00 DAT 0065 3DC0 9401 00DF 0000 0627 F300 0041
+:                       0005 0505 0505 0505 40C3 C3C3 C3C3 C3C3
+:		        C3C3 C3C3 C340 05C7 C7C7 C7C7 C7C7 C7C7
+:		        .......................................
+:		        .......................................
+:
+:    This trap patch turns on the hardware trace when a F3 command is reached.
+:    and turns off the the hardware trace when exit. There are four exit points.
+:    ABORT2, SF.RDP, WSFER6, and DSPEND.
+:    read from the IRING. 
+:    It sets up one trap : when we start to process the F3 command and the 
+:    screen buffer addrees is in the code area the CMT will crash with the
+:    crash code F3.
+:
+:    *** NOTE ***	The P0SIZE in the T file need to be enlarged by
+:			issue the instruction "P0SIZE  EQ  8000"
+:
+:-----------------------------------------------------------------------------
+
+        LO      FRNTND
+        LO      TRACE
+	LO	DSP
+	LO	TP
+	LO	PRT
+	LO	LOGON
+PATCH(090991,1100,CC,TRPSD,,8)
+TRCPSD  WC      1000,0000
+ZZSIZE	EQ	4
+CONPATCH(PA0PTR,,44*60*ZZSIZE+12)
+TRCREG  WS      11*60*ZZSIZE
+INDXSV  HS      1
+TRWORK  WS      4
+CONPATCH(TRACE,,3E)
+        STM     R14,TRWORK,,
+        LHL     R15,INDXSV,,
+        STM     R0,TRCREG,R15,
+        L       R14,TRCPSD+4,,
+        ST      R14,TRCREG+40,R15,
+        AHI     R15,44
+        CI      R15,60*44*ZZSIZE
+        JLFS    NOWRAP
+        LIS     R15,0
+NOWRAP  STH     R15,INDXSV,,
+        LM      R14,TRWORK,,
+        UPSW    TRCPSD,,
+CONPATCH(IPSD,,8)
+        WC      1000,TRINPT
+
+CONPATCH(DSPDAT,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,0A)
+	J	TRBGN,,			:Jump to process with trace on         
+
+TRINPT  JALR	R1,R1			:From source
+	JALR	R1,R1			:From source
+	STB	R0,DIX25+1,R12		:From source
+	J	DSPDAT+8,,		:Return to source
+
+CONPATCH(SF.SCS,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,0A)
+	IF	SCSSW			:Begin of conditional assembly
+	L	R8,DCSCN,R12		:Get the screen buffer address
+	CI	R8,20000		:Is R0 in the code area ?
+	JGE	ZWSF09			:No, jump
+	JAL	R10,CRASH,,		:Crash the slot with the
+	HC	0			:crash code F3
+	BC	4*R1,0F3		:
+
+ZWSF09  LIS	R0,WSFBIT		:From source
+	SBT	R0,CBITS,R11		:From source
+	J	SF.SCS+6,,		:Return to source
+	EI	:SCSSW			:End of conditional assembly
+
+CONPATCH(ABORT2,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,20)
+	UPSW	ZWSF03			:Trun off the trace
+ZWSF03  WC      0000,ZWSF13		:
+ZWSF13  LH	R0,TPORT,R11		:From source
+	SBT	R0,EBFWAK,,		:From source
+	J	ABORT2+8,,		:Return to source
+
+CONPATCH(SF.RDP,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,30)
+	IF	SCSSW			:Begin of conditional assembly
+	UPSW	ZWSF04			:Trun off the trace
+ZWSF04  WC      0000,ZWSF14		:
+ZWSF14  LIS	R3,1			:From source
+	AHM	R3,SFTERR		:From source
+	J	SF.RDP+6,,		:Return to source
+	EI	:SCSSW			:End of conditional assembly
+
+CONPATCH(WSFER6,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,30)
+	IF	SCSSW			:Begin of conditional assembly
+	UPSW	ZWSF05			:Trun off the trace
+ZWSF05  WC      0000,ZWSF15		:
+ZWSF15  LIS	R3,WSFBIT		:From source
+	RBT	R3,CBITS,R11		:From source
+	J	WSFER6+6,,		:Return to source
+	EI	:SCSSW			:End of conditional assembly
+
+TRAOFF  UPSW    TROFF			:Turn off trace
+TROFF   WC      0000,TRINPT     	:
+
+ENDPATCH(ENABLES JUMP TRACE FOR THE WSF PROCESSING ROUTINE)
+	FO	LOGON
+	FO	PRT
+	FO	TP
+	FO	DSP
+        FO      TRACE
+        FO      FRNTND
