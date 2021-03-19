@@ -1,0 +1,60 @@
+
+  To>	Don Johnson
+
+From>	T.C.Kochmann
+
+Date>	10-Nov-89
+
+Subj>	HKSBC PICO upgrades
+------------------------------------------------------------------------------
+
+Don:
+
+	Here it is this morning...  I have gone over the ECO with Hal
+Burton and provided him the logic specifics required for the schematic
+revisions.  Bruce and I found last night that the problem experienced
+in the 1.08 upgrade as regards the X.25 interface is not an unknown
+problem to the bank.  It has been observed on version 1.07.  It may well
+be a result of improper IOC strapping of the units on site.  The 1.07
+PICO Bruce found installed was misstrapped for an interesting mix of
+V.24 and V.35 signals but it worked "most of the time".  Rather than
+properly strap the 1.08 box he strapped it as the 1.07 had been as again
+HSBC reported that it always worked fine at that time.  He experienced
+all kinds of link level problems last night which I was able to monitor
+from here.  Once the ports were restrapped the CRC error count he
+reported the previous day ceased to occur but the line still did not
+come up.  After freezing everything and calling STS to analyze the
+condition I had him halt, reverse LU's in the slot (as one was working
+and one was not), reverse the cables to reflect the logical change and
+reinitialize the slot as STS was unable to provide any additional
+insight into the condition.  The interface came up clean immediately
+and ran all night.  All tests were reported to have been activated
+for a worst case scenario but they actually only generated about 600
+CPS in and 600 CPS out on the node.
+
+     This morning after running all day the node crashed and was reloaded
+by their NCC staff without a dump of the node but I was able to logon
+and found in the crash detail table that the node experienced a 220
+crash, a non-DMA parity error in the Kernel on a CPU cycle.  This is
+the second of the 6 PICOs received for the HSBC upgrade to fail with
+faulty memory/mac type errors, a 33% failure rate.  This does not
+appear to be at all related to the 1.08 upgrade rework.  It does reflect
+yet another problem that appears to be occurring on a large number of
+the more recent EP 470302-001 boards.  Obviously we are not adequately
+testing the EP portion of PICO.  In response to this I have already
+started to modify an X.25 test for multiple LUs with a throughput
+host embedded plus modify each slot and the Kernel to crash and halt
+on errors.  At this time errors could occur an go unnoticed as I
+do not have them set to halt on errors in mfg.  Bruce will return to
+the bank in the morning and replace the EP with the spare.  C&Ws
+upgrade failed because of what appears to be a CCW error for which
+there is a Node Code patch already installed in the released source
+files to address.  They will regen and reload.
+
+     SNA testing will proceed today in our lab using the same channels
+that Ford uses for SNA and HSBC uses for X.25.  The rework itself seems
+to be holding up to tests.  Additionally the diagnostic has now run 14
+hours without error for the first time.
+
+Tim
+
