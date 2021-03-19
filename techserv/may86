@@ -1,0 +1,1876 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TTTTTTTT   EEEEEE    CCCCCC    HHH   HHH   TTTTTTTT   IIII   PPPPP       SSSS
+TTTTTTTT   EEEEEE   CCC   CC   HHH   HHH   TTTTTTTT   IIII   PP   PP    SS  SS
+   TT      EE       CC         HHH   HHH      TT       II    PP    PP   SS
+   TT      EEEE     CC         HHHHHHHHH      TT       II    PPPPPPP     SSSS
+   TT      EE       CC         HHH   HHH      TT       II    PP             SS
+   TT      EEEEEE   CC    CC   HHH   HHH      TT      IIII   PP         SS  SS 
+   TT      EEEEEE    CCCCCC    HHH   HHH      TT      IIII   PP          SSSS 
+
+
+
+
+
+
+
+
+
+
+                               May 01, 1986
+
+
+
+                              TABLE OF CONTENTS
+                              -----------------
+
+
+
+MEMORY REQUIRMENTS OF ASYNC-TO-3270; by M Chalmers. . . . . . . . . . . . . 01
+
+NODECODE BETATEST VERSION 5.11 - XRAY WARNING; by S Nilluka . . . . . . . . 03
+
+EXPLANATION OF TYMNET'S NETWORK SECURITY; by S White. . . . . . . . . . . . 04
+
+DATA SCOPE -- BISYNC PROTOCOL TRACE (FOR BBXS); by N Shukla . . . . . . . . 08
+
+TECHALERT -- TMCS VERSION 10.00; by S Chiang. . . . . . . . . . . . . . . . 10
+
+TECHALERT -- TAPE DRIVE PROBLEMS; by S Chiang . . . . . . . . . . . . . . . 13
+
+PRODUCT ANNOUNCEMENT: TYMNET-TELEX TRUNK GATEWAY. . . . . . . . . . . . . . 15
+
+MERLIN, NEW RELEASE 2.10; by F Chen . . . . . . . . . . . . . . . . . . . . 18
+
+FULL RELEASE AND LIMITED RELEASE REPORT; by J Gomes . . . . . . . . . . . . 19
+
+APPROVALS FOR LIMITED RELEASE OF SNA VERSION 1.04; by J Gomes . . . . . . . 24
+
+GENERIC BACKUP REQUEST SKELETON; by B Agua. . . . . . . . . . . . . . . . . 25
+
+CONTROL FIELD IN MUD BUFFER; by J Liu . . . . . . . . . . . . . . . . . . . 27
+
+HOW TO DEFINE MESSAGE IN MSGTEX; by D Tai . . . . . . . . . . . . . . . . . 28
+
+ASSOCIATED PRINTER SUPPORT FOR CMT MODE FOR A TOTAL OF 255 DEVICES; D Tai . 29
+
+QUESTIONS & ANSWERS REGARDING CMT; by N Chin. . . . . . . . . . . . . . . . 30
+
+QUESTIONS ON DIALECTS SUPPORT BY BBXS; by N Shukla. . . . . . . . . . . . . 31
+
+XCOM DISCONNECT COMMAND; by S Tsui. . . . . . . . . . . . . . . . . . . . . 32
+
+NODECODE WITH ALL SIO (NO SYNC) LINES; by S Nilluka . . . . . . . . . . . . 33
+
+NEW RAM VERSION 10.07 PATCH FILE; by J Smith. . . . . . . . . . . . . . . . 34
+
+THE 'NOTORIOUS' SINGLE-BIT PARITY ERROR & ILLEGAL INSTR/MEMORY REFERENCES . 35
+
+SUPERVISOR 41.04 APPROVED FOR LIMITED RELEASE . . . . . . . . . . . . . . . 36
+
+
+
+
+
+
+                                     01
+                                  --------
+
+
+                    MEMORY REQUIREMENTS OF ASYNC-TO-3270
+                    ------------------------------------
+                    ------------------------------------
+
+
+Written by : Mary Chalmers, Mkting Product Mgr.                  
+      Date : April 01, 186
+
+
+
+
+      Many of you have been asking, "How many devices can one SNA/CMT be
+   genned for, before more SNA/CMT slots and a Network Connection need to be
+   ordered?"
+ 
+      The answer is; SNA/CMT can support approximately 45 devices.  That's 23 
+   simultaneous users, with CRT's and Printers and 19 terminal types, or 45 
+   simultaneous CRT's and 19 terminal types.  (Note:  23 users, with printers,
+   will give a very slow response time in most applications.  45 simultaneous
+   users will exceed the capacity of even a 14.4 line in most applications.) 
+
+      The memory capacity of the engine is fully utilized with these configur-
+   ations.  This means you will need to order another SNA/CMT and Network
+   Connection if you need more device addresses.  This question will come up 
+   if:
+
+   a. one-to-one addressing is being used for either security or printer 
+      support.
+   b. wild card addressing is being used for CRT's only, and the number of 
+      simultaneous users the customer expects in the "busy hour" exceeds the 
+      capacity of the Network Connection.
+ 
+      What if your customer has more simultaneous users, fewer terminal types
+   or requires more device addresses?
+ 
+   1. The Field CC will need to figure out what you can support in one
+      Engine.  (In order to help you, guidelines have been prepared and are
+      available in Ontyme *** SNA/CMT.SIZE.  These guidelines contain infor-
+      mation collected from NTD, Tech Svcs, and Management Sciences and 
+      contain the necessary formulas to model memory size.  Once a configur-
+      ation has been modeled, then the CC should gen it to make sure each 
+      SNA/CMT/NetConnection will fit in the memory of 1 Engine.  If it fits in
+      1 Engine, you can then submit your order.
+ 
+   2. At the present time, a special configuration with special pricing, is 
+      available for SNA/CMT that will support approximately 75 to 86 devices.
+      CAUTION!!, If 86 devices are genned, then the engine is fully utilized 
+      and there is no room for upgrades, patches, etc.  Once again it is a 
+      good idea to have your CC gen this to make sure your SNA configuration 
+      will fit on 1 Engine.  If you need this special arrangement you should
+      contact Product Marketing for pricing information before you quote 
+      prices to your customers.  This configuration consists of a mini-Engine 
+      for SNA, and a Micro hardwired to the mini for the CMT.
+ 
+   What other alternatives do you have?
+ 
+   1. Consider using Bisync.  At the present time, all IMS shops must use this
+      option if they require printers.  Additionaly, 1 slot can support 255 
+      device addresses and the CMT will comfortably allow as many simultaneous
+      users as the Network Connection will allow.  All this will fit in 1 
+      Engine's memory.
+ 
+   How many simultaneous users will a Network Connection support?
+ 
+      This is very dependent upon the customers application.  Experience has 
+   shown that the number of simultaneous users can vary from as few as 10 to 
+   as many as 25 before response time is impacted.
+ 
+   What's going to be available in the future?
+
+      CRM4 will be ready for beta test this year.  Bisync will be ready in 
+   3Q86 and SNA in 4Q86.  This will allow wild card addressing to be used for
+   CRT and Printer pairing.  This will help because the HIF slot will only 
+   need to be genned for the number of simultaneous users expected.  
+   (Reminder:  The Network Connection(s) has to be considered first to make
+   sure it will handle the expected traffic in the busiest hour.)
+
+
+
+
+
+                                     03
+                                  --------
+
+
+                NODECODE BETATEST VERSION 5.11 - XRAY WARNING
+                ---------------------------------------------
+                ---------------------------------------------
+
+
+Written by : Sandra Nilluka, HQ Network Staff Consultant
+      Date : April 2, 1986
+
+
+
+
+   WARNING - TII V5.11
+
+      When using the Xray "DB" command, DO NOT use more than five (5) nodes 
+   in the node list.
+
+
+      For the following versions of nodecode, the Xray "DB" command (with a 
+   node list exceeding five (5) nodes) will crash the node in which Xray is 
+   running:
+   
+                          20511 - Solo Consat
+                          00511 - Solo Switcher
+                          10511 - Isis Nodecode
+
+
+
+      This problem will be fixed in the next betatest release of nodecode 
+   version 5.11.
+
+
+
+
+
+                                     04
+                                  --------
+
+
+                  EXPLANATION OF TYMNET'S NETWORK SECURITY
+                  ----------------------------------------
+                  ----------------------------------------
+
+
+Written by : Steve White, Field Communication's Consultant
+             ** Originally written as a response to a customer's enquiry **
+
+
+
+
+      THANK YOU FOR YOU ENQUIRY REGARDING THE PASSWORD SECURITY, OFFERED BY 
+   TYMNET.  IN REPLY TO YOUR TELEX, I SHALL ANSWER YOUR QUESTIONS IN THE ORDER
+   IN WHICH YOU GAVE THEM, BUT FIRST, SOME GENERAL INFORMATION:
+
+
+      TYMNET USES USERNAMES/PASSWORDS TO CONTROL THREE SECURITY ORIENTED 
+   FUNCTIONS:
+
+   a) IS THIS USER AN AUTHORISED USER?
+   b) IS THIS USER ALLOWED TO ORIGINATE A CALL FROM THIS POSITION IN THE 
+      NETWORK?
+   c) IS THIS USER ALLOWED TO PLACE A CALL TO THE REQUESTED DESTINATION?
+
+      FUNCTION (a), IS ACHIEVED BY THE NETWORK SUPERVISOR (CENTRAL ROUTING
+   COMPUTER), WHICH CHECKS THAT THE USERNAME IS PRESENT ON IT'S MASTER USER
+   DIRECTORY (MUD) AND THAT THE PASSWORD GIVEN, MATCHES.  (NOTE: THE PASSWORD
+   IS SCRAMBLED AND IS NOT KEPT ANYWHERE, BY THE NETWORK, IN ITS NATIVE FORM.)
+   THERE ARE FIVE NETWORK SUPERVISORS (ON PUBLIC TYMNET).  EACH HAS ITS OWN 
+   MUD WHICH IS UPDATED FROM A SINGLE CONTROLLING USER DIRECTORY (CUD).  ONLY
+   ONE SUPERVISOR IS ACTIVE CONTROLLING THE NETWORK AT ANY GIVEN TIME.  THE 
+   OTHERS ARE ON HOT STANDBY.
+
+      FUNCTIONS (b) AND (c) ARE ACHIEVED BY DEFINING CLASSES AND GROUPS.  A
+   CLASS OR GROUP CONSISTS OF A NUMBER OF NODES (SWITCHES) AND/OR HOSTS.
+
+   CLASS = A SET OF ORIGINATION POINTS IN THE NETWORK.
+   GROUP = A SET OF DESTINATION POINTS IN THE NETWORK.
+
+      EACH USERNAME HAS AN ASSOCIATED PROFILE (KEPT ON THE CUD AND MUD) SET AT
+   THE TIME IT IS ISSUED AND CHANGABLE ONLY BY VALIDATION'S PERSONNEL.  THE
+   CLASSES IN THE PROFILE DEFINE 'WHERE', ON TYMNET, THIS USERNAME MAY ENTER
+   THE NETWORK AND A LIST OF HOSTS OR GROUPS, IN THE PROFILE, DEFINE WHERE THE
+   USERNAME MAY PLACE A CALL TO.
+
+
+   CALL ORIGINATION POINT CHECK - FUNCTION(b)
+   ------------------------------------------
+
+   THE SUPERVISOR CHECKS THAT THE LOCATION, FROM WHICH A USERNAME IS LOGGING
+   INTO THE NETWORK, APPEARS IN AT LEAST ONE CLASS IN THE USERNAME'S PROFILE.
+   IF THE USERNAME IS VALID, BUT THE USER'S PROFILE DOES NOT ALLOW ACCESS FROM
+   THIS LOCATION, THEN THE MESSAGE "ACCESS NOT PERMITTED" IS ISSUED AND THE
+   USER IS INVITED TO "PLEASE LOG IN:  ".
+
+   CALL DESTINATION CHECK - FUNCTION (c)
+   -------------------------------------
+
+   THE DESTINATION OF THE CALL MAY BE DETERMINED COMPLETELY BY THE PROFILE OF
+   THE USERNAME, IN WHICH CASE THE CALL GETS ROUTED TO ONE OF A LIST OF HOSTS
+   IN THE PROFILE.  WHICH HOST RECEIVES THE CALL, IS DETERMINED BY A SET OF
+   PRIORITIES AND/OR THE LEAST "COST" ROUTE TO A HOST IN THE SET OF
+   ALTERNATIVES.  COST IS NOT A MONETARY VALUE; IT IS A COMPLEX CALCULATION
+   BASED ON NETWORK RESOURCE UTILIZATION AT THE TIME OF THE CALL.
+
+   THE USER MAY HAVE THE CAPABILITY TO SPECIFY A DESIRED DESTINATION:  SEE THE
+   DESCRIPTION OF <HOST NAME FIELD> BELOW.  WITH THIS CAPABILITY, THE
+   SUPERVISOR CHECKS THAT THE REQUESTED DESTINATION IS LISTED IN THE USERNAME
+   PROFILE.  IF THE REQUESTED DESTINATION IS NOT FOUND IN THE PROFILE THEN A
+   MESSAGE "ACCESS BARRED" IS GIVEN TO THE USER AND THEN AN INVITATION TO
+   "PLEASE LOG IN:"  IS GIVEN.  A USERNAME ALWAYS HAS A DEFAULT DESTINATION SO
+   THAT IF THE USER MAKES NO SELECTION THEN ONE IS MADE BASED ON THE USERNAME
+   PROFILE.
+
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   NOW, TO ANSWER YOUR QUESTIONS EACH IN TURN....
+
+   1) A USERNAME ON TYMNET MAY CONSIST OF THE CHARACTERS :
+      A-Z, a-z, 0-9, dash (-), slash (/), period (.), comma (,) and the 
+      asterisk (*).
+
+   note: usernames that are purely numeric, may only be issued by TYMNET
+         validations personnel and are reserved for TYMNET's implementation
+         of X.121.
+
+      A PASSWORD ON TYMNET MAY CONSIST OF CHARACTERS:
+      A-Z, a-z, 0-9, space, dash, slash, period, comma, asterisk, hash (#), 
+      dollar ($) and ampersand (&).  Alpha-Control characters may be used 
+      also, but PAD users should be careful to AVOID the PAD RECALL character
+      (CTRL-P is commonly used for PAD recall) and the user-data separator 
+      (often a comma). 
+
+   2) THE MAXIMUM LENGTH OF A USERNAME ON PUBLIC TYMNET IS 12 CHARS.  (TRUNC-
+      ATION IS AUTOMATIC WITHOUT A MESSAGE.)
+      THE MAXIMUM LENGTH OF A PASSWORD ON PUBLIC TYMNET IS 30 CHARS.
+      THE MINIMUM LENGTH OF A PASSWORD IS THE NULL PASSWORD (CARRIAGE RETURN).
+
+      TYMNET RECOMMENDS PASSWORDS BE AT LEAST 7 CHARACTERS LONG TO GIVE
+      ADEQUATE SECURITY.  WE ALSO ADVISE THAT THERE SHOULD BE AT LEAST ONE 
+      NON-ALPHA CHARACTER.
+   
+   NOTE: THESE RESTRICTIONS DO NOT APPLY TO PRIVATE NETWORKS, BASED ON TYMNET
+   TECHNOLOGY.
+
+   3) AN ALGORITHM IS USED TO DETERMINE THE TIME AND THE NUMBER OF ATTEMPTS 
+      A USER MAY HAVE TO ENTER THE CORRECT USERNAME/PASSWORD COMBINATION.  
+      EACH FAILED ATTEMPT TO ENTER A USERNAME OR PASSWORD, ADDS TO A 'PENALTY
+      SCORE'.  IF THE PENALTY SCORE EXCEEDS A PRESET VALUE, THE FOLLOWING 
+      MESSAGE IS ISSUED AND THE CALL CLEARED.  SIGNALS TO THE MODEM ARE 
+      DROPPED SO THE USER MUST RE-DIAL TO TRY AGAIN.
+  
+      "PLEASE SEE YOUR REPRESENTATIVE IF YOU ARE HAVING TROUBLE LOGGING IN"
+
+      THE ALGORITHM ALLOWS FOR 3 ATTEMPTS TO ENTER THE USERNAME AND PASSWORD,
+      ANY COMBINATION OF THREE ATTEMPTS IS ALLOWED.  FOR EXAMPLE:  IF THE USER
+      ENTERS HIS USERNAME 2 TIMES INCORRECTLY AND THEN GETS IT CORRECT ON THE
+      THIRD ATTEMPT, HE HAS ONLY ONE ATTEMPT TO GET THE PASSWORD ENTERED 
+      CORRECTLY.
+
+      ENTERING <ESCAPE>, AT ANYTIME DURING LOG-IN, ABORTS THE LOG-IN AND 
+      CAUSES THE "PLEASE LOG IN: " PROMPT TO BE RE-ISSUED.  <ESCAPE> DOES ADD
+      TO THE 'PENALTY SCORE' THUS REDUCING THE NUMBER OF ATTEMPTS THE USER MAY
+      MAKE TO ENTER THE CORRECT USERNAME AND PASSWORD.
+
+   EXAMPLE:  IF THE USER USED 3 <ESCAPES>'S, THEN TWO ATTEMPTS AT THE
+             USERNAME/PASSWORD WOULD THEN BE ALLOWED.
+   
+      THE TIMEOUT LIMIT IS 2 MINUTES FOR NO ACTIVITY.  THERE IS NO PENALTY 
+      APPLIED TO THE USERNAME SO THE USER MAY IMMEDIATELY RE-DIAL AND PLACE 
+      FURTHER CALL ATTEMPTS.  A LOG IS KEPT OF FAILED CALL ATTEMPTS BY THE 
+      NETWORK SUPERVISOR.  THIS LOG IS EXAMINED BY NETWORK SECURITY PERSONNEL.
+
+   4) I AM NOT SURE I UNDERSTAND WHAT YOU ARE REFERRRING TO, WHEN ASKING
+      ABOUT DOUBLE PASSWORDS.  HERE ARE SOME OF THE POSSIBILITIES:
+
+      AT THE PLEASE LOG IN PROMPT, A USER MAY ENTER :
+      <USERNAME>:<HOST NAME FIELD>;<PASSWORD>
+
+      THE <HOST NAME FIELD> AND <PASSWORD> ARE OPTIONAL.  TYPICALLY, A USER
+      ENTERS JUST THE USERNAME AND PASSWORD.  THE USER'S CALL IS ROUTED BASED
+      ON THE PROFILE OF THE USERNAME.  THE USERNAME MAY BE MULTI-TARGETTED, 
+      PRIORITY TARGETTED, OR MULTI/PRIORITY TARGETTED TO A GROUP OF HOSTS ON 
+      WHICH THIS USER IS ALLOWED ACCESS.
+
+
+   THE FOUR DISTINCT USES FOR THE HOST NAME FIELD ARE AS FOLLOWS....
+   
+   SIMPLE USE OF THE <HOST NAME FIELD>
+   -----------------------------------
+
+   BY PLACING A TYMNET HOST NUMBER IN THE FIELD AFTER THE COLON(:), THE USER
+   MAY BE ABLE TO DIRECT HIS CALL TO A PARTICULAR HOST, OUT OF THE SET OF 
+   HOSTS TO WHICH HIS USERNAME ALLOWS HIM TO GO.  SUCH A USERNAME IS SAID TO 
+   HAVE THE 'COLON OPTION'.  MANY, PERHAPS MOST, USERNAMES ARE SET-UP TO 
+   IGNORE THE COLON OPTION IN WHICH CASE DATA IN THE <HOST NAME FIELD> IS 
+   IGNORED BY THE SUPERVISOR DURING ROUTING AND THE CALL IS ROUTED (IF THE 
+   USERNAME/PASSWORD IS VALID) ACCORDING TO THE USERNAME PROFILE.
+
+   SUB-HOST ADDRESSING (:HHHHH.SSSS)
+   ---------------------------------
+
+   IF THE USERNAME HAS THE CAPABILITY TO SELECT A DESTINATION FROM IT'S
+   PROFILE, THEN IT ALSO MAY SPECIFY A SUB-HOST ADDRESS.  THIS IS DONE BY
+   INSERTING A PERIOD (.)  IN THE <HOST NAME FIELD>.
+
+   FOR EXAMPLE:  
+                    PLEASE LOG IN: <USERNAME>:.02;<PASSWORD>
+
+   REQUESTS THE CALL BE ROUTED TO THE DEFAULT HOST FOR <USERNAME> AND SELECTS
+   SUB-HOST 02.  A HOST COULD ALSO HAVE BEEN SPECIFIED BEFORE THE PERIOD.  
+   FOUR DIGITS ARE AVAILABLE FOR THE SUB-HOST.
+
+   TARGET PROFILES
+   ---------------
+
+   THE <HOST NAME FIELD> MAY ALSO BE USED FOR 'OUTBOUND' USERS (PLACING CALLS
+   TO OTHER NETS) TO ENTER THE DNIC OF THEIR DESTINATION AND OPTIONALLY THE 
+   TNIC OF THE INTERNATIONAL RECORD CARRIER THEY WISH TO USE.  FOR EXAMPLE 
+   USERNAME 'T.OUTGOING' MAY BE SET UP TO ALLOW THE USER TO ENTER....
+
+   T.OUTGOING:G4408T3119;<PASSWORD>
+
+   IF THIS USERNAME/PASSWORD IS CORRECT, THEN THE CALL GETS SET-UP TO GO TO
+   JAPAN VIA TRT TELECOMMUNICATIONS AND THE USER IS PROMPTED TO ENTER THE REST
+   OF THE X.121 ADDRESS.  THIS USE OF THE <HOST NAME FIELD>, WE CALL 'TARGET 
+   PROFILES'.
+    
+   NOTE: This is a relatively new feature and is not the way all 'outbound'
+         calls are placed.
+
+   HOST NAMES
+   ---------- 
+
+   THE FOURTH USE FOR THE <HOST NAME FIELD> IS CALLED 'HOST NAMES' AND IT MAY
+   WELL BE THAT THIS IS THE FEATURE ABOUT WHICH YOU WERE ENQUIRING.
+
+   THIS FEATURE IS DUE FOR RELEASE IN THE SECOND QUARTER OF 1987.  IT WILL 
+   ENABLE THE USER TO ENTER AN ALPHA-NUMERIC NAME IN THE FIELD AFTER THE
+   COLON - A HOST NAME.  THIS WILL BE A TYPE OF USERNAME, ASSOCIATED WITH THE
+   USERNAME BEFORE THE COLON, POSSIBLY REQUIRING A SECOND PASSWORD.  THE HOST
+   NAME IS USED TO ROUTE THE CALL IN ASSOCIATION WITH THE USERNAME AND ALLOWS 
+   THE USER TO USE MORE NATURAL LANGUAGE TO LOG IN.  THE USAGE EXAMPLE THAT 
+   FOLLOWS IS, I HOPE, SELF EXPLANATORY AND ILLUSTRATES HOW FRIENDLY SUCH A 
+   SYSTEM WILL BE TO USE.
+
+   PLEASE LOG IN : BIG-COMPANY:JAPAN-HQ;<PASSWORD1>;<PASSWORD2>
+
+   PLEASE LOG IN : BIG-COMPANY:USA-HQ;<PASSWORD1>;<PASSWORD2>
+
+   NOTE: THE PASSWORDS ARE OPTIONAL
+
+   THERE ARE SO MANY POSSIBILITIES FOR THIS, IT IS NOT POSSIBLE TO GO INTO 
+   THEM HERE AND SINCE THIS FEATURE IS STILL IN DEVELOPMENT IT IS NOT 
+   APPROPRIATE TO TRY AND GIVE DETAILS WHICH MAY BE SUBJECT TO CHANGE.
+
+
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+      TYMNET'S X.121 ADDRESSING SCHEME ALSO HAS SEVERAL SECURITY FEATURES
+   MANY OF WHICH, WE BELIEVE, ARE UNIQUE TO TYMNET.
+
+      VERY BRIEFLY, THERE ARE 4 POSSIBILITIES FOR A TYMNET HOST AS FAR AS 
+   EXTERNAL NETWORK ACCESS IS CONCERNED:
+
+   1) ACCESS FROM GATEWAYS NOT ALLOWED.
+   2) ACCESS FROM GATEWAYH FULL X.121 ADDRESS AND PASSWORD REQUIRED 
+      BEFORE THE CIRCUIT IS BUILT.
+   3) ACCESS FROM GATEWAYS WITH ABBREVIATED X.121 ADDR "31069" WHICH CAUSES 
+      THE TYMNET SUPERVISOR TO REQUEST A VALID USERNAME/PASSWORD BEFORE
+      CIRCUIT IS BUILT.
+   4) ACCESS WITH A FULL X.121 ADDR (SLIGHTLY DIFFERENT FORMAT) WITH NO
+      NETWORK SECURITY REQUIREMENT TO FULFILL BEFORE THE CIRCUIT IS BUILT.
+
+      THE X.121 ADDRESSING SCHEME TYMNET EMPLOYS ALSO ALLOWS FOR ONE ADDRESS 
+   TO BE PRIORITY-TARGETTED, MULTI-TARGETTED OR MULTI/PRIORITY TARGETTED TO A
+   SET OF HOSTS.  THIS ALLOWS A SINGLE ADDRESS TO BE USED TO DIRECT A CALL TO
+   ONE OF A SET OF PRIMARY HOSTS (CHOSEN BY THE LEAST COST PATH THROUGH THE 
+   NET) OR IF NONE OF THE FIRST PRIORITY HOSTS ARE AVAILABLE TO GO TO ONE OF 
+   A SET OF SECOND PRIORITY HOSTS (CHOSEN BY LEAST COST) AND SO ON.
+
+      WE HAVE FOUND THE SCHEME IS FLEXIBLE TO CUSTOMER'S NEEDS AND HAS THE 
+   POWER TO CONTROL ACCESS FROM FOREIGN NETS TO AN EXACTING DEGREE.
+
+      NATURALLY, TYMNET CANNOT GUARD AGAINST THE NEGLIGENT USE OF USERNAME/
+   PASSWORDS BY THEIR RIGHTFUL OWNERS, HOWEVER PASSWORD CHANGES CAN BE 
+   EFFECTED IN ABOUT 20 MINUTES FOR USERNAMES WHOSE PASSWORDS HAVE BEEN 
+   COMPROMISED.
+
+
+
+                                     08
+                                  --------
+
+
+               DATA SCOPE -- BISYNC PROTOCOL TRACE (FOR BBXS)
+               ----------------------------------------------
+               ----------------------------------------------
+
+
+Written by : Nirmala Shukla, HQ Network Staff Consultant
+      Date : April 10, 1986
+
+
+
+
+      There have been many occasions in which I have been asked questions
+   regarding DATA SCOPE, thus I have decided to document it:
+
+
+
+
+               DATA SCOPE -- BISYNC PROTOCOL TRACE (FOR BBXS)
+
+
+   :>SCOPE 1 <CR>
+
+   Using Extended DDT, the above command displays in a realtime trace of the
+   Bisynchroneous protocol dialog occuring on the line specified by the argue-
+   ment.
+
+
+   XOP   = INTERFACE XMIT OPCODE
+   XMNE  = INTERFACE XMIT MNEMONICS
+   ROP   = INTERFACE RECIEVE OPCODE
+   RMNE  = INTERFACE RECIEVE MNEMONICS
+
+   The opcode and mnemonics Interface transmits to local device on 
+   a specified line are defined as followings:
+
+   XOP XMNE
+   0   DATA   = DATA
+   1   ENQ    = ENQ
+   2   EOT    = EOT
+   3   NAK    = NAK
+   4   TTD    = TTD 
+   5   ACK1   = DLE/70
+   6   WACK   = DLE/,
+   7   ACK0   = DLE/P
+   8   RVI    = DLE/@
+   9   DISC   = DLE/EOT
+   0A  MBID   = SOH/ENQ
+
+   The opcode and mnemonics Interface recieves from local device on a 
+   specified line are defined as followings:
+
+   ROP RMNE
+   0   ETX    = GOOD DATA ETX
+   1   ETB    = GOOD DATA ETB
+   2   ENQ    = ENQ
+   3   EOT    = EOT
+   4   NAK    = NAK
+   5   DISC   = DLE/EOT
+   6   ACK1   = DLE/P
+   7   WACK   = DLE/,
+   8   ACK0   = DLE/70
+   9   RVI    = DLE/@
+   0A  TTD    = STX/ENQ
+   0B  MBID   = SOH/ENQ
+   0C  ABRT   = ENQ,EOT,NAK IN TEXT
+   0D  LSYN   = LOST SYNC (BAD RECIEVE CLOCK)
+   0E  ORUN   = OVERRUN (FRAME TOO LARGE, GREATER THAN MAXDSZ)
+   0F  NBUF   = NO INITIAL BUFFERLET
+   10  RTIM   = TIMEOUT BEFORE MESSAGE RECIEVED
+   11  CRC    = CRC ERROR
+   12  LOST   = LOST DATA (BUFFERLET UNAVAILABLE)
+   13  UNKN   = UNKNOWN (UNIDENTIFIABLE MESSAGE, AFTER SYNC SEQUENCE) 
+   14  FCOM   = FORCED RECIEVE COMPLETION (LINE BID MONITORING ABORTED, 
+                NORMALLY WE SEE THIS BEFORE WE ENQ)
+
+   ERROR MESSAGEES
+   
+   FD  ERR RTY  = ERROR RETRY
+   FE  RCV RTY  = RECIEVE RETRY
+   FF  INI RCV  = INITIAL RECIEVE
+
+
+
+                                     10
+                                  --------
+
+
+                       TECHALERT -- TMCS VERSION 10.00
+                       -------------------------------
+                       -------------------------------
+
+
+Written by : Shirley Chiang, HQ Mgr. Application's Support
+      Date : April 14, 1986
+
+
+
+
+      TMCS version 10.00 has just been released to the BASELINE by NTD. 
+   There are two major functions introduced in version 10.00 - RELOAD and 
+   ALARM which would require either a specially configured s/w environment, or
+   that of h/w.  Please read the following, carefully, if you are a technical
+   support person, otherwise you may skip the middle section and jump to the
+   CONCLUSION.
+
+
+
+      In order to facilitate the RELOAD functions in TMCS version 10.00, a
+   special software configuration will be required.  The basics of this s/w 
+   environment consists of the following elements:
+
+         ISIS     version 5.08 or up             5.08 is in full release
+
+    Node Code     version 5.10                   5.10 is in betatest
+
+     Sup Code     version 41.02 or up            41.02 is in betatest
+
+          ELF     version 3.10 or up             3.10 is in full release
+
+     
+      However, we recommend a modified list of the above configuration, due
+   to the comlicacy involved in the support of multi-version and multi-release
+   for the products, especially the Node Code and Sup Code.
+
+      Let me first brief you on the status of existing betatest versions
+   of N.C. and Sup Code:
+
+
+
+   Node Code    Special features             Currently in   Target date of
+   version                                   betatest       limited release
+
+   ------------------------------------------------------------------------
+   5.07         5.06 +                       yes            none
+                handling of host 1A msgs
+
+   5.10         5.07 +                       yes            7/01/86
+                support of MXP machines 
+
+   5.11         5.10 +                       yes            open
+                support of Solo Consat
+
+   5.12         5.11 +                       yes            open
+                support of Network Console's
+                interface with Xray
+
+   5.13         5.12 +                       yes            open
+                support of TII gateway
+
+   5.14         5.13 +                       yes            open
+                support of Tymstar
+
+   5.15         Consolidation of all the     no
+                above versions               (estimated betatest beginning
+                                              in mid-June/86, limited re-
+                                              lease in Dec./86)
+
+   ========================================================================
+
+   Sup Code version       Release Status
+   ------------------------------------------------------------------------
+
+   41.02                 To be deleted in mid-April.
+
+   41.03                 To be deleted in mid-April.
+
+   41.04                 Currently betatesting in Tymnet and Bubbnet.
+                         Target date of limited release on 4/30/86 con-
+                         tingent upon the availability of an additional
+                         betatest site preferably a private net.
+
+   ========================================================================
+
+
+
+
+
+
+   CONCLUSION
+   ----------
+
+      TMCS version 10.00, without the RELOAD/ALARM, is considered to be in
+   full release and compatible with the full release version of ISIS(5.08), 
+   Node Code(5.06), Sup(41.01) and ELF(3.10).
+
+      TMCS version 10.00, WITH the RELOAD/ALARM, is pulled back to the beta-
+   test status and requires the following s/w configuration recommended by 
+   Hqtech with consent of HQQA and NTD:
+
+          ISIS      version 5.08                 full release
+
+     Node Code      version 5.10                 betatest
+
+      Sup Code      version 41.04                betatest
+
+           ELF      version 4.00                 betatest
+
+        CONSAT      version 3.07                 full release  (for ALARM)
+
+
+      Therefore, to install TMCS 10.00 with the RELOAD/ALARM, the standard 
+   procedures for acquiring the usage of betatest products must be followed 
+   through Marketing and HQQA.
+
+ 
+
+   DOCUMENTATION
+   --------------
+
+      The Reference Manual, for version 10.00, is to be ready for the final
+   review.  This cycle will take anywhere from one week to a month or so.
+   After the feekback is collected, it has to go through the preparation of
+   production and then will be sent to the Printer.  We understand the 
+   inconvenience this may have caused you and the customers, as it has on us,
+   but please be patient while the Documentation group is trying its best to
+   work out the schedule.  In the interim, make use of the Baseline documents
+   and any Techtips coming your way, and of course, we are always here to
+   answer any questions and provide you with assistance.
+
+
+   
+
+
+
+
+                                     13
+                                  --------
+
+
+                      TECHALERT -- TAPE DRIVE PROBLEMS
+                      --------------------------------
+                      --------------------------------
+
+
+Written by : Shirley Chiang, HQ Mgr. Application's Support
+      Date : April 15, 1986
+
+
+
+
+      During the past two months, a few incidents have occurred and esca-
+   lated to us, in regard to the tape problems when running RAM (Raw Account-
+   ing Merger) version 10.05 or 10.07.  It took us an extroadinary amount of
+   time and effort to find that some of these were hardware related faults and
+   actually should have been checked out upon installation; in particular, 
+   problems such as tape running off the reel, drive intermittenly going off-
+   line, or data density errors.
+
+      These problems are not necessarily associated with RAM, but since RAM is
+   the one application that makes the most use of the tape unit as its primary
+   data storage medium, these symptoms tend to be mostly seen along with this
+   product.
+
+       To avoid any waste of time in the future, should similar situations
+   occur in your support area, I'd like to share our experiences and strongly
+   recommend that you read the followings carefully.  After reading my memo, 
+   you may even want to walk up to the tape drive nearby and check the 
+   installation as preventive action.
+
+      Currently there are two types of tape drives - Kennedy 9000 and 9100,
+   supported by Tymnet Engines.  They interface with the Engines through
+   TC-140 tape controller, manufactured by Western Peripherals.  The tape
+   driver routine, in ISIS, does not distinguish between these different
+   models as they are made compatible at the controller level.  In other 
+   words, it is transparent to the operating system and application software.
+
+      The way ISIS retrieves the device status is by issuing the SSR command
+   to sense the standard or normal status which includes eight bits for error,
+   e-o-f, e-o-t or b-o-t, no motion, busy, examine, end-of-medium and device 
+   unavialable.  If the Extended Status is desired, an additional OC (output 
+   Command) instruction, with a hex value of 33, must be executed prior to the
+   SSR command.  The Extended status also has eight bits for parity error, 
+   timing error, rewinding, illegal command, high density, file protected, 
+   b-o-t and 9-track.
+
+      However, in the current versions of ISIS, the Extended status has always
+   been sensed before the normal status, which is not recommended by Interdata
+   and is different from the way the stand-alone tape diagonostics handle it,
+   although so far we have not had sufficient evidence to prove it a problem.
+
+      At any rate, there is somthing in the h/w setup you want to pay special
+   attention to, as it will definitely affect the tape operations:
+
+
+   1.  Speed chip on the tape controller board
+
+       -  Use the chip of part number 120023-5 (or 01200237-5) for 75 IPS
+          on Kennedy 9100 drives been widely installed for almost all of
+          our applications using the tape unit, such as RAM, Netval, TMCS
+          and Network Console.
+ 
+          [note: chip part number 120023-4 (or 01200237-4) is for 45 IPS
+          on Kennedy 9000.]
+
+       -  This chip locates at A24 on the tape controller board and the part
+          number is on the bottom of the chip.
+
+   Symptom if incorrect chip is mounted:
+
+       -  Causing data errors at 1600 density.
+
+
+   2.  Address switch on the tape drive
+
+       -  Be sure the seating and wire connection are secured.
+
+   Symptom if switch is not seated properly or the wire connection is loose:
+  
+       -  Causing the device to go off-line intermittenly.
+
+
+   3.  The miniature dip switch on the Tape Control Adapter paddle board
+       (plugged to the back of the tape drive)
+
+       -  This set of Congfiguration Switches includes 8 switches and must
+          be set as follows:
+
+          S1    S2    S3    S4    S5    S6    S7    S8
+          off   on    off   off   off   off   on    off
+                ---                           ---
+
+       -  Switch #2 and #7 MUST BE SET ON for Kennedy drives.
+
+       -  On top of other functions, Switch #2 actually governs the signaling
+          of end-of-tape and the transfer of this signal to the controller
+          so the s/w can recognize the e-o-t.
+
+          [note: reference page 2-10 and 2-15 of "Model TC-140/148 Tape
+          Controller Hardware Manual", published by Western Peripherals
+          on March, 1978.]
+
+    Symptom if swich #2 is set off:
+
+       -  Causing the controller not able to sense the e-o-t and conse-
+          quently the applications s/w to continue writing to the tape
+          and eventually the tape going off the reel.
+
+
+      If you encounter the above described symptoms and still fail to correct
+   the problems with our suggested methods, please let us know immediately.
+
+      Thanks to Richard Ho, of NTS, for providing the specific h/w informa-
+   tion.
+    
+
+
+
+                                     15
+                                  --------
+
+
+                            PRODUCT ANNOUNCEMENT
+                         TYMNET-TELEX TRUNK GATEWAY
+                         --------------------------
+                         --------------------------
+
+
+      Date : April 16, 1986
+
+
+
+
+    Integrated Communications Applications is pleased to announce the
+    Tymnet-to-Telex Gateway using Telex Trunk Signalling.  The Gateway
+    permits Telex subscribers to reach a Telex center through Tymnet,
+    instead of dedicating a leased line to their Telex machine.  The
+    Gateway further permits owners of IBM PC's to subscribe to Telex;
+    with our PC Message Handler software, FMH, the PC receives Telex
+    messages in real time in the background, while the user runs normal
+    PC applications.
+ 
+    This interface provides direct Telex connection, rather than store-
+    and-forward service.  It permits conversational Telex, where the
+    parties alternately type questions and answers to each other.
+ 
+    Customers who connect to the Gateway with more than one terminal,
+    can pool their terminals, to receive each message on any available
+    terminal.  Combinations of PC's and Telex machines can be grouped.
+ 
+    The Gateway currently communicates with FTCC's Telex center using
+    a form of the common trunk signalling used by the various Telex
+    companies to interconnect with each other.  The Gateway software is
+    flexible and easily adjusted for hookup to any Telex company.
+ 
+ 
+Hooking up Subscribers
+ 
+    A subscriber using a Telex machine must be hooked up to a dedicated
+    port on a Consat, version 3.05 or later.  A PVC is configured for
+    the subscriber to reach the Gateway.  The Telex machine must use
+    EIA signal levels; if it uses Current Loop signalling, the machine
+    requires a conversion.
+ 
+    A subscriber with a PC is usually hooked up through modems and a
+    dedicated line, to a dedicated port on any convenient Tymsat, and
+    usually a PVC is configured.  The FMH software from FTCC is
+    installed in the Customer's PC. Customers wanting non-PVC service,
+    and/or dial-up, should discuss their needs with our
+    representatives.
+ 
+ 
+ 
+Signalling between the Gateway and the Telex Center
+ 
+    Telex companies commonly interconnect from one to another using
+    forms of trunk signalling which they designate Type-A, Type-B, and
+    Type-C.
+ 
+    The Gateway, as released, uses a certain combination of subscriber
+    and Telex Type-A Trunk signalling.  A Telex center contemplating
+    connection with Type-A signalling should check the details with our
+    representatives.
+ 
+    The Telex center must connect to a Tymnet Engine using EIA signal
+    levels; Current-Loop signals must go through a signal converter.
+ 
+    Type-B and Type-C signalling: The Gateway is flexible, and could be
+    adapted for Type-B or Type-C signalling with a small development
+    effort.
+ 
+ 
+ 
+Store-and-Forward Service
+ 
+    McDonnell-Douglas already offers a Telex Store-And-Forward service
+    through Ontyme and FTCC.  The customer subscribes to Ontyme and to
+    FTCC's MACS service.  The customer can then both prepare Telexes on
+    Ontyme and receive Telexes; FTCC's MACS system periodically calls
+    into Ontyme to pick up Telexes which the customer prepared and to
+    give the customer all received messages.
+ 
+    The customer uses any type of terminal which communicates with
+    Ontyme.
+ 
+ 
+ 
+Possible Additional Applications
+ 
+    We have proposed enhancements to widen opportunities to provide
+    customers with Telex service through Tymnet.  These enhancements
+    are not presently scheduled, but will be prioritized if there is
+    sufficient market.  The main proposals are:
+ 
+      o Use of Ascii terminals through Tymnet for a) direct Telex
+        transmission, and b) reception.
+ 
+      o Direct connection of Ascii terminals through Tymnet to FTCC's
+        MACS Store-and-Forward service, without Ontyme.
+ 
+      o Use of Tymnet to connect Telex centers, either for a single
+        Telex company or between companies, replacing their
+        long-distance trunk lines with Tymnet service.
+ 
+      o Use Tymnet to do dial-out service for a Telex company.  Telex
+        companies presently use special hardware to perform dial-out
+        to customers, and must do a hardware change for every customer
+        update.
+ 
+        Replace the Telex company's special hardware with software;
+        simplify their updates of customers.  (The dial-out would most
+        likely be performed in the Telex company's private Tymsat, and
+        would not require additional Tymnet development outside of the
+        Telex Gateway.  Particularly, this would not require Tymnet's
+        proposed dial-out directory service, referred to as
+        "out-dial".)
+ 
+      o Permit Telex callers to log-in to arbitrary services on Tymnet.
+        This would permit all Telex subscribers to use their Telex
+        machine as a general-purpose terminal, for data base queries
+        etc.
+ 
+      o Telex service directly between two customers on Tymnet, without
+        going through a Telex Switch.
+ 
+ 
+ 
+Contact People
+ 
+    For more information, contact:
+ 
+        Lana Vaysburd   408-446-6538    Ontyme TNAD.L/VAYSBURD
+        John Burke      408-446-8062    Ontyme TNAD.J/BURKE
+ 
+
+
+
+
+                                     18
+                                  --------
+
+
+                          MERLIN, NEW RELEASE 2.10           
+                          ------------------------
+                          ------------------------
+
+
+Written by : Fun-Lin Chen, HQ Network Staff Consultant
+      Date : April 17, 1986
+
+
+
+
+      Merlin, new version 2.10, is now available on all Tymnet systems. 
+   Changes in this version are:
+
+   1). Merlin will now bind the Split-Kernel Supervisor.  Previously, files
+       were loaded seperately through the Split-Kernel but now can be
+       bound into a single loadable file.
+
+   2). Bug fix for problem in how segments in Pascal slots tagged in the
+       CTA table (for use by ISRS).
+
+      If you have any questions on the new version of Merlin, please call me
+   at (408)-942-5190 or send an Ontyme message to NSS.F/CHEN.
+
+
+
+                                     19
+                                  --------
+
+
+        FULL RELEASE AND LIMITED RELEASE REPORTS AS OF 15 APRIL 1986
+        ------------------------------------------------------------
+        ------------------------------------------------------------
+
+
+Written by : John Gomes, Mgr. HQ Quality Assurance
+      Date : April 21, 1986
+
+
+
+
+                             FULL RELEASE REPORT
+
+
+      The  monthly PRODUCTS IN FULL RELEASE report,  as of 15 APR 86 is 
+      attached for your reference use.  This report is comprised of all 
+      fully released products and their respective version of code.
+
+      Any  product or product version number that is not  contained  in 
+      this report will be considered in beta test,  limited release  or 
+      unsupported.   If  you  have a customer requesting beta  test  or 
+      limited release products,  you must have approval from HQ Quality 
+      Assurance and HQ Technical Services,  before installation. If you 
+      have  a customer who has a product with a version number that  is 
+      older  than  those  specified,   please  contact  HQ    Technical  
+      Services to assure that the version is still supported,  as it is 
+      Technical Services who supports the majority of these products.
+      
+      This  report is put out by HQ Quality Assurance.   Our definition 
+      of  a fully released product may differ from that of Baseline  or 
+      others.   Please  keep  in  mind that the  HQ  Quality  Assurance 
+      definition  of  a product with Full Release Status is  a  product 
+      which  has been proven reliable and has general  accesibility  to 
+      all customers.
+
+      For your information:
+
+      1.  Menu Service version 1.11 is now in Full Release.
+      2.  Varian Async Tymcom is deleted.
+      3.  Varian Bisync Tymcom is deleted.
+      4.  ISCS Consolidated Consat 2.07 is deleted.
+      5.  ISCS Consolidated Consat 3.04 is added.
+
+      Please  review the following report,  and as soon as you have any 
+      updates,  changes,  deletions or additions, notify me IMMEDIATELY 
+      at:
+                            ONTYME: NSS.J/GOMES 
+                            PHONE: (408) 942-5142
+
+      Thank you for your assistance!
+
+
+
+
+      =================================================================
+
+                      PRODUCTS IN FULL RELEASE REPORT
+                                  15 APR 86
+
+      The  following report is comprised of all fully released products 
+      and  their respective version of code.   For  your  conveinience, 
+      products  will be sectioned by category,  also their acronym will 
+      be given.
+
+      (note: changes are denoted by an asterisk - *)
+
+
+      CATEGORY   PRODUCT                                  VERSION
+      -----------------------------------------------------------
+      ELECTRONIC MESSAGE SYSTEM
+           ONTM: Ontyme                                     17.33
+           ONTM: Ontyme                                     17.10
+           ONTM Database Restore                             1.06
+
+      GATEWAY INTERFACES
+           I2G1: ISIS Gateway                                4.07
+           I2G1: ISIS Gateway                                4.04
+           I2G1: ISIS Gateway                                4.03
+
+      NETWORK ACCOUNTING
+           RAM: Raw Accounting Merger                       10.07
+           RAM: Raw Accounting Merger                       10.05
+
+      NETWORK CIRCUIT-MULTIPLEXING UTILITY
+           MUX: Multiplexor                                  3.02
+
+      NETWORK CIRCUIT-REBUILDING UTILITY
+           REBUILD: Rebuild                                  5.06
+
+      NETWORK CODE-GENERATING UTILITIES
+           CPAS: Concurrent Pascal Compiler                  1.01
+           CPAS: Concurrent Pascal Compiler                  1.00
+           MERLIN:  Merge & Link                             2.01
+           MERLIN: Merge & Link                              1.60
+           NAD: Node Assembler/Debugger                      1.10
+           PNUC: Pascal Nucleus                             10.06
+           PNUC: Pascal Nucleus                              8.02
+
+      NETWORK CODE-LOADING UTILITIES
+           ELF: Engine Load Facility                         3.10
+           ELF: Engine Load Facility                         3.05
+           LOAD II: Load II                                  2.16
+           LOAD II: Load II                                  2.12
+           LOAD II: Load II                                  1.16
+
+      NETWORK COMMUNICATIONS SOFTWARE
+           NODE: Node Code                                   5.06
+
+      NETWORK DISK-FORMATTING UTILITY
+           MSCTST: MSC Stand Alone Disk Diagnostic           4.00
+
+      NETWORK MANAGEMENT     
+           ACCT: Accounting Slave for Sup                    5.01
+           ERLG: Error Log Slave for Sup                     7.01     
+           SUP: Supervisor                                  41.01
+           SYSM:  System Message Slave for Sup               5.01 
+           UN2: UN2 Slave under Sup code                     5.01
+           UTIL: Utility Slave for Sup                       1.02
+
+      NETWORK MONITORING
+           PRB: Probe                                       35.01
+           NCDM: Network Console Disk Maint.                 1.00
+           NCRE: Network Console Resource Est.               1.00
+           NEM: Network Event Monitor                        4.07
+           NMDM: NEM Disk Maintenance                        1.03
+           NMRE: NEM Resource Estimator                      1.00
+           NTCN: Network Console                             3.01
+           NTCN: Network Console                             3.00
+           NTCN: Network Console                             2.06
+      **   TMCS: Tymnet Monitor & Control System            10.00
+           TMCS: Tymnet Monitor & Control System             7.08
+           TMDM: TMCS Disk Maintenance                       2.01
+           TMDM: TMCS Disk Maintenance                       1.03
+           TMDM: TMCS Disk Maintenance                       1.02
+           TMDM: TMCS Disk Maintenance                       1.01
+           TMRE: TMCS Resource Estimator Prog.               2.00
+           XRAY: XRAY                                        5.06
+
+      ** = WITHOUT RELOAD & ALARM FUNCTIONS
+      
+      NETWORK PLANNING SYSTEM
+           CONFIGURATOR                                      2.00
+           LLTA                                              1.00
+           MDR                                               1.00    
+           PLANET                                            2.00
+           PMED                                              1.00
+           PORTS                                             1.00
+           TMDT                                              2.00
+           TYMTAP                                            1.10
+
+      NETWORK VALIDATIONS
+           NVAL: Network Validations                         2.05
+      *    NVAL: Network Validations                         1.16
+           NVAL: Network Validations                         1.14
+           NVDM: Netval Disk Maintenance Pgm.                1.02
+
+      NODE OPERATION SYSTEMS
+           DDT: Dynamic Debugging Tool                       5.08
+           ISIS: Internally Switched Interface System        5.08
+ 
+      OPERATIONS MANAGERS
+           TOM: Tymcom Operations Manager                    2.03
+  
+      SNA TERMINAL & HOST INTERFACE
+           SNA: Systems Network Architecture                 1.03
+ 
+      TYMNET NETWORK HOST INTERFACE
+           ACOM: Async Tymcoms                               2.03
+
+      TYMNET NETWORK TERMINAL INTERFACE
+           ISCS: ISIS Consolidated Consat                    3.05
+           ISCS: ISIS Consolidated Consat                    3.04
+
+      X.25/X.75 NETWORK INTERFACE
+           XCOM: X.25/X.75 Interface                         3.01
+           XCOM: X.25/X.75 Interface                         2.02
+           XCOM: X.25/X.75 Interface                         2.01
+
+      X780/HASP/MULTILEAVING
+           BBXS: X780/HASP/Multileaving                      5.02
+           BBXS: X780/HASP/Multileaving                      5.01
+           BBXS: X780/HASP/Multileaving                      3.06
+
+      3270 NETWORK INTERFACES
+           CMTI: 3270 Character Mode Terminal                2.06
+           CMTI: 3270 Character Mode Terminal                2.03
+           CMTI: 3270 Character Mode Terminal                2.00
+           PBH: 3270 Host Interface                          7.03
+           PBH: 3270 Host Interface                          7.02
+           PBH: 3270 Host Interface                          7.01
+           PBT: 3270 Terminal Interface                      5.03
+           PBT: 3270 Terminal Interface                      5.02
+           PBT: 3270 Terminal Interface                      5.01
+
+      MENU SERVICE
+           MENU SERVICE                                      1.11
+
+
+
+
+
+                           LIMITED RELEASE REPORT
+
+
+      The  following  report  will  inform and update  you  each  month 
+      regarding  products that are upgraded to LIMITED  RELEASE.   This 
+      report entails;   product name and version (and location of  test 
+      site(s) when information is supplied).
+
+      A  product  which  is  in limited  release  has  undergone  "Beta 
+      Testing"  and corresponding "Completion Criteria" (see Beta  Test 
+      Guide-lines).   It is the responsibility of Product Marketing, HQ 
+      Technical  Services,   and HQ Support to review beta test results 
+      of the product to determine suitability for limited release.
+      
+      Upon reaching limited release, a product is then available to our 
+      customers,  but  not  yet released to  the  open  market.   These 
+      limited release products are supported by HQ Tech.
+
+      All  changes to this report are denoted by an asterisk (*) in the 
+      left hand column.  If you have any updates to this report, please 
+      send me an Ontyme  (NSS.J/GOMES) or call me at 408-942-5142.
+
+      For your information:
+   
+      1.  SNA LU3 1.04 (Formerly 1.05) is now in Limited Release.  
+      2.  X.PC Network Server 1.05 is now in Limited Release.
+
+      Thank You For All Your Support!
+
+
+
+      =======================================================================
+
+                                LIMITED RELEASE REPORT
+
+                                    AS OF 15 APR 86
+                                                       
+      =======================================================================
+
+
+      PRODUCT:    3270 PBH (BSC HIF)
+        VERSION:  7.05
+
+
+
+      PRODUCT:    3270 PBT (BSC TIF)
+        VERSION:  5.05
+                  (Unrestricted Use)
+
+
+
+      PRODUCT:    ATC  Asynchronous Terminal Concentrator
+        VERSION:  1.20
+
+
+      PRODUCT:    RAM   Raw Accounting Merger
+        VERSION:  11.04
+
+
+
+      PRODUCT:    SDLC  Sync Data Link Control Network Interface
+        VERSION:  1.10
+
+
+
+      PRODUCT:    X.PC Network Server
+        VERSION:  1.05
+
+
+
+      PRODUCT:  SNA W/LU3 Printer Support
+        VERSION:  1.04 (Formerly 1.05)
+
+
+
+                                     24
+                                  --------
+
+
+              APPROVALS FOR LIMITED RELEASE OF SNA VERSION 1.04
+              -------------------------------------------------
+              -------------------------------------------------
+
+
+Written by : John Gomes, Mary Chalmers
+      Date : April 18, 1986
+
+
+
+
+      Due to popular demand for SNA version 1.04 with LU3 Printer Support, in 
+   CMT, we are asking you to get proir approval if you have a site that will 
+   install before July 15, 1986.
+ 
+      The reason we are asking you to get an approval is to insure that the 
+   technical resources will be available when you are installing.
+ 
+      To get an approval for either an existing or new customer, please send 
+   the answers to the following questions to *** LIMITEDSNA.  You will get a 
+   response within 48 hours.
+ 
+   Customer name?
+   Sales Rep name and phone?
+   CC name and phone?
+   Has CC been trained on SNA?
+   What is the expected date of installation?
+ 
+
+
+
+                                     25
+                                  --------
+
+
+                       GENERIC BACKUP REQUEST SKELETON
+                       -------------------------------
+                       -------------------------------
+
+
+Written by : Beryl Agua, Project Implementation
+      Date : April 22, 1986
+
+
+
+
+      PROJECT IMPLEMENTATION IS RESPONSIBLE FOR PROCESSING ALL CODE BACKUP 
+   REQUESTS SUBMITTED BY THE FIELD.  THE FIELD HAS BEEN USING A GENERIC
+   SKELETON LOCATED ON (TYMNET:25)BACKUP.SKL TO HELP STREAMLINE THE BACKUP
+   PROCESS.  THIS HAS MADE A SIGNIFICANT DIFFERENCE IN PROCESSING TIME.
+
+      IN AN EFFORT TO FURTHER SIMPLIFY THE BACKUP REQUEST PROCESS, THERE IS
+   NOW AN EXEC PROGRAM AVAILABLE FOR YOUR CONVENIENCE VIA ONTYME.  YOU MAY 
+   ACCESS THIS PROGRAM BY TYPING THE FOLLOWING AT THE PROMPT:
+
+   EXEC *** FORMS.BACKUP
+
+   THIS FILE HAS BEEN VALIDATED ON ALL INTERNAL HOSTS.  PLEASE CONTACT ME
+   DIRECTLY IF YOU ARE UNABLE TO ACCESS THIS FILE THROUGH YOUR HOST.  BELOW
+   YOU WILL FIND AN EXAMPLE OF THE BACKUP SKELETON:
+
+
+
+
+
+
+   ***************************************************************************
+   * TO:       PROJECT IMPLEMENTATION/CODE GENERATION
+   * FR:       
+   * PHONE #:  
+   * RE:       BACKUP AND BIND REQUEST
+   ***************************************************************************
+   *
+   * FILES LOCATED:  
+   *
+   * NODE:              
+   * KERNAL HOST:       
+   * SLOT:              
+   * SLOT HOST:         
+   * VERSION:           
+   * INTERFACE:         
+   * AMT SLOT GENS TO:  
+   * EXCEED MEM ALLOC:  
+   *
+   * CUSTOMER:  
+   *
+   *
+   *
+   ***************************************************************************
+   *     FOR INTERNAL USE BY TECHNICAL SUPPORT
+   *
+   *
+   * REASON FOR CHANGE:  
+   *
+   *
+   * BND CKSUM:  
+   *
+   *          (  ) CHECKSUMS SYS 25     (  ) CHECKSUMS SYS 70
+   *          (  ) RE BOUND SYS 25      (  ) RE BOUND SYS 70
+   *
+   * DATE ALL THE ABOVE VERIFIED TO BE CORRECT __________
+   *
+   ***************************************************************************
+
+
+
+
+      AS A REMINDER, BACKUP REQUESTS WILL ONLY BE ACCEPTED FROM THE FOLLOWING
+   DIRECTORIES AND ASSOCIATED CODE MANAGEMENT SYSTEM (DEPENDING ON NODE 
+   NUMBER):
+
+   VALID DIRECTORIES:  WATECH, CENTCODE, METTECH, INTLTECH, PNTS
+   ----- -----------
+
+   CODE MANAGEMENT SYSTEMS: 
+   ---- ---------- -------
+
+                       NODES LESS THAN 5000          NODES 5000 AND ABOVE
+                       ----- ---- ---- ----          ----- ---- --- -----
+                       (TYMNET DIRECTORY)            (TYM5 DIRECTORY)
+ 
+   PRIMARY SYSTEM/     25 - DALLAS KL                54 - DALLAS KL
+   LOADING SYSTEM
+
+   BACKUP SYSTEM       70 - CUPERTINO KI             33 - CUPERTINO KL
+
+
+      ANY BACKUP REQUEST RECEIVED IN ANY FORMAT OTHER THAN IS STATED ABOVE
+   WILL BE REJECTED BACK TO THE ORIGINATOR.  REVISED CODE GENERATION 
+   PROCEDURES WILL FOLLOW SHORTLY.  I CAN BE REACHED AT (408)942-5180, 
+   TYMOPS.B/AGUA, IF YOU HAVE ANY FURTHER QUESTIONS OR COMMENTS.
+
+   THANK YOU FOR YOUR COOPERATION AND CONTINUED SUPPORT.
+
+
+
+
+                                     27
+                                  --------
+
+
+           QUESTION & ANSWER REGARDING CONTROL FIELD IN MUD BUFFER
+           -------------------------------------------------------
+           -------------------------------------------------------
+
+
+Question by : Thomas Chow, Int'l Communication Consultant
+Response by : Jeff Liu, HQ Network Staff Consultant
+
+
+
+
+ORIGINAL QUESTION:
+
+   'TYPE MUD' after a 'READ MUD' doesn't display the control field.  However, 
+   after a 'READ CUD', the control field in the MUD buffer is shown.  Why is 
+   the control field in MUD buffer displayed after a READ CUD instead of a 
+   READ MUD?                                         --------
+   --------
+
+
+
+RESPONSE:
+
+   In Netval version 1.14, 'TYPE MUD' after a 'READ MUD' doesn't display the
+   Control field; but after 'READ CUD', a flag is turned on to display the
+   control field and then 'TYPE MUD' will also display the control field
+   identical to the control field of TYPE CUD.  If the operator wants to
+   compare the CUD and MUD blocks, then use "COmpare" command to display
+   the differences or output "NO DIFFERENCES" if all words are in the
+   CUD and MUD blocks match.  "TYPE CUD" and "TYPE MUD" will not tell the
+   operator if both blocks are identical since many fields are not displayed
+   such as password.
+
+
+
+                                     28
+                                  --------
+
+
+        QUESTIONS & ANSWER REGARDING 'HOW TO DEFINE MESSAGE IN MSGTEX' 
+        --------------------------------------------------------------
+        --------------------------------------------------------------
+
+
+Question by : Pauline Campbell, Tymnet Communication Consultant
+Response by : Dianna Tai, HQ Network Staff Consultant
+
+
+
+
+ORIGINAL QUESTION:
+
+   I WANT TO SEND THE DISCONNECT MESSAGE : 
+
+             00 06 D3 D6 C7 C6 C6 04 06 01 06 83 00 F3 00
+   
+   TO THE VTAM (VMCP) F.E., BUT DO NOT KNOW HOW TO TRANSLATE THE NON GRAPHIC
+   CHARACTERS FOR THE 'MSGTEX' OPTION.  IS THERE A CHART THAT WE HAVE TO 
+   TRANSLATE ALL EBCDIC CHARS (HEX) INTO RECOGNIZABLE FORM FOR THE OPTION?
+
+
+
+
+RESPONSE:
+ 
+   The chart you requested can be found on the TYMNET ENGINE POCKET GUIDE, 
+   page 5 and 6.  Besides this, there are several rules you can follow
+   to define the disconnect message in MSGTEX:
+ 
+   1. Upper case alphabetic characters A to Z can all be defined by graphic 
+      symbols, ended with a period.
+ 
+   2. Space (HEX 40) can be defined as SP. (note: also ends with a period).
+ 
+   3. Other characters, including the lower case characters, numerical
+      characters, and other symbols have to be entered by their HEX values.
+      They do not need to be followed by a period.
+ 
+   4. The 2 digit's HEX value will not be accepted by NAD, at gen time, if it 
+      starts with the alphabetical character: A to F.  To avoid that, add an
+      '0' before this value. 
+ 
+   5. The message will be put into specific memory location preceeded by the 
+      control unit address and device address and ready to send out at the 
+      appropriate time.
+ 
+      The disconnect message you indicated can be defined as follows:
+      MSGTEX(00,06,L.,O.,G.,F.,F.,04,06,01,06,83,00,0F3,00)
+ 
+      Please note that since this message is a long read format, you might 
+      need to add an AID followed by 2 bytes cursor address in front of the
+      whole message. Please discuss with the customer on this issue.
+
+
+
+                                     29
+                                  --------
+
+
+      ASSOCIATED PRINTER SUPPORT FOR CMT MODE FOR A TOTAL OF 255 DEVICES
+      ------------------------------------------------------------------
+      ------------------------------------------------------------------
+
+
+Question by : Carolyn Weidner, Tymnet Communication Consultant
+Response by : Dianna Tai, HQ Network Staff Consultant
+
+  
+
+
+ORIGINAL QUESTION:
+
+   A customer currently has 128 ports which are specific targetted.  Patch 
+   located under (DTAI:54)ITT128.PAT was written to permit 128 devices.  The 
+   customer now requests associated printer support for these devices.  I have 
+   been told that we can support a total of 255 devices per interface.  Should
+   I interpret this as eight complete control units, or eight control units 
+   minus one device?  What restrictions should I be aware of when attempting 
+   this?  (ex.-number of simultaneious users, targetting restrictions, is this
+   patch still valid, core requirements, has this ever been done before) 
+
+
+
+
+
+
+RESPONSE:
+
+   1. PBH, as well as, PBT can only support up to 255 devices per slot.
+      That is, 8 control unit minus one device.
+
+   2. The number of simultaneous users to be defined in the tymfile depends 
+      on the load of the node and traffic.  However, I have seen 101 and 127.
+
+   3. Targetting restrictions -- what is your concerns here?  You can use wild
+      card or you can also use one-to-one mapping.  It depends on how you 
+      define them in the CMT tymfile.
+
+   4. The patch ITT128.PAT has been incorported into the SOURCE patch 
+      PBH07.P03.  Please remove the ITT128.PAT from your command file.
+
+   5. According to PBH07.X03, 255 devices need 244K core memory.  We have 
+      genned a PBH 7.03 here with 255 devices (combination of 1920 bytes 
+      CRTs and Printers) of 127 simultaneous users and got 214K memory 
+      requirement.
+
+   6. I have seen configurations using CMT that have 50 CRTs and 50 PRTs
+      defined in the PBH 7.03 and PBH 7.05 and up to 101 simultaneous users
+      in macro HSTPRT.  But not 255 devices.
+
+
+
+                                     30
+                                  --------
+
+
+                      QUESTIONS & ANSWERS REGARDING CMT
+                      ---------------------------------
+                      ---------------------------------
+
+
+Questions by : Tod Fiste, Tymnet Communication Consultant
+Response  by : Norman Chin
+
+
+
+
+ORIGINAL QUESTIONS:
+
+   1. WHAT IS THE PURPOSE OF COM (CMT OPERATIONS MONITOR)?  IS THIS INTENDED 
+      TO BE A CUSTOMER-USABLE PRODUCT LIKE TOM?  ARE THE FEATURES IT ADVER-
+      TIZES IN THE CMTI.ERS MANUAL GOING TO BE IMPLEMENTED (THE ONLY THING I
+      CAN GET TO WORK IS THE REAL-TIME RING TRACE), AND IN WHAT VERSION?
+
+   2. WHAT IS THE CONDITION OF THE STATUS LINE FEATURE IN CMT? LAST TIME I 
+      HEARD THERE WERE SOME PROBLEMS.  ALSO WHAT VERSION OF CODE IS IT 
+      IMPLEMENTED IN?
+
+   3. WHAT VERSION OF CODE IS THE TEMPUSLINK FILE TRANSFER OPTION IMPLEMENTED
+      IN?  HOW DOES IT WORK AND HOW WELL DOES IT WORK?  WHO HAS TESTED IT?
+
+
+
+
+
+RESPONSE:
+ 
+1. COM.
+   The purpose of COM is to help us monitor the activities of the rings
+   and to help us in our debugging.  It is intended to be used by HQTECH,
+   NTD, and even you when something needs to be monitored.  It is not
+   intended for customer use like TOM.  This tool is implemented in
+   version 3.00 and any new versions after.  All features advertised on
+   the CMTI.ERS manual are implemented.  If you find anything not working
+   the way it is advertised, please contact us.  Please be sure to test
+   on version 3.00 when you are using COM and not 2.06.
+ 
+2. Status line.
+   Status line is implemented on version 3.00.  Currently, we have a few
+   betatest customers running this version and are happy with it.  Any
+   problems that were brought to our attention have been resolved by NTD.
+   If you know of any problems that I don't know of, please let me know.
+ 
+3. TEMPUSLINK file transfer.
+   TEMPUSLINK is a package running on the PC and on the host application to
+   allow file transfer to work.  There is a customer (CHRYSLER) which uses
+   this package going through CMTI (2.06) with a 3101 emulation selection.
+   Any versions after 2.06 would also support file transfer but only a few
+   terminal emulation macros (eg. VT100M, CM3101) have this capability.
+ 
+
+
+
+                                     31
+                                  --------
+
+
+                   QUESTIONS ON DIALECTS SUPPORTED BY BBXS
+                   ---------------------------------------
+                   ---------------------------------------
+
+
+Written by : Nirmala Shukla, HQ Network Staff Consultant
+      Date : April 24, 1986
+
+
+
+
+Q.1.   Can you specify as to which release supports which dialects?
+
+
+ANS.1. The following releases, support the following dialects in BBXS code:
+
+        BBXS03.#06       2780/3780 NATIVE MODE, HASP MULTILEAVING & 
+                         TRANSPARENT BISYNCHRONOUS
+        
+        BBXS05.#01       2780/3780 VIRTUAL MODE, RSCS/VMB AND ABOVE DIALECTS.
+
+        BBXS05.#02       DOS/MLI AND ABOVE DIALECTS.
+
+        BBXS06.#01       DDCMP AND ABOVE DIALECTS.
+
+
+
+Q.2.   Can you name the dialects which can be mixed together and the
+       ones which run individually?
+
+
+ANS.2. The following dialects can be mixed together:
+
+         2780/3780 NATIVE MODE
+         2780/3780 VIRTUAL MODE
+         HASP MULTILEAVING
+         
+
+        The following dialects should be used individually:
+
+         DOS/MLI
+         RSCS/VMB
+         DDCMP
+
+
+
+
+
+                                     32
+                                  --------
+
+
+                           XOM DISCONNECT COMMAND
+                           ----------------------
+                           ----------------------
+
+
+Written by : Shiao-Ming Tsui, HQ Network Staff Consultant
+      Date : April 25, 1986
+
+
+
+
+      Network Console, in Public Net, has been updated from version 2.07
+   to 3.01 since April 23.  The command to exit XOM and get back to NTCN is 
+   changed to "RETurn".  "DISconnect" is not a valid command for 3.01.  
+
+
+
+
+                                     33
+                                  --------
+
+
+                       NODECODE WITH NO SYNC, ONLY SIO
+                       --------------------------------
+                       --------------------------------
+
+
+Written by : Sandra Nilluka, HQ Network Staff Consultant
+      Date : April 18, 1986                  
+
+
+
+
+      There are tho methods of implementating nodecode with all SIO, and
+   no sync, in an Isis environment:
+
+      1. Use a dummy sync line definition for nodecode.  Specifically,
+         set the NLINES to equate to 1, and use one S.REF statement
+         for slot zero.
+
+         This applies to full release status nodecode version 5.06 and
+         limited release status nodecode version 5.07.
+
+      2. Upgrade to betatest status nodecode version 5.10, which does
+         require a betatest agreement.
+
+
+      If the customer is a good candidate for betatesting, we would welcome 
+   additional betatest sites.  I refer you to John Gomes, manager of HQ 
+   Quality Assurance, for betatest agreements.
+
+
+
+
+
+                                     34
+                                  --------
+
+
+                       NEW RAM VERSION 10.07 PATCH FILE
+                       --------------------------------
+                       --------------------------------
+
+
+Written by : Jan Smith, HQ Network Staff Consultant
+      Date : April 28, 1986
+
+
+
+
+   *********************************************************************
+   *                                                                   *
+   *                NEW RAM VERSION 10.07 PATCH FILE                   *
+   *                                                                   *
+   *********************************************************************
+
+   NEW PATCHES ADDED TO THE (SOURCE)RAM.P07 FILE ARE:
+
+   (1)  RAM can now process a five bit termination code. The termination
+        code is contained in accounting message 14 subtype 0 message 
+        type 0. The maximun vlue of the determination code is (26)d.  
+        Before the implementation of the patch, RAM could only interprete
+        a maximun determination code of (15)d.
+
+   (2)  A patch has been added to correct the block count in the 
+        EOF1 record. The block count is now being incremented at the
+        time RAM is required to write a block of data to tape due to
+        a time-out.  A time-out occurs approximately every 15 minutes.
+        If the tape data is blocked, there may be an incomplete block
+        that has to be written to tape.                     
+
+
+
+
+                                     35
+                                  --------
+
+
+                  THE 'NOTORIOUS' SINGLE-BIT PARITY ERROR             
+                                     AND
+                  ILLEGAL INSTRUCTIONS/MEMORY REFERENCES
+                  ---------------------------------------
+                  ---------------------------------------
+
+
+Written by : Sandra Nilluka, HQ Network Staff Consultant
+      Date : April 28, 1986
+
+
+
+
+   FCO RELEASE:
+
+   Field Change Orders (FCOs) have been released to resolve the problem of a
+   false single-bit parity error in MAC-II:
+
+                     .FCO 85-462  CAS Timing Change
+                     .FCO 85-418  ERO Change
+
+   The above, are co-requisites; the pair must be installed.  Also, the 
+   machine must be brought up to current revision level.
+
+
+   PROBLEM DESCRIPTION:
+
+   Due to a hardware timing problem, a memory fetch request results in a 
+   "false" single-bit parity error and "false" data fetched.
+
+
+   SYMPTOMS/DETECTION:
+
+   The primary symptom is that a crash occurs due to an illegal instruction or
+   illegal memory reference that is, in fact, NOT illegal.  Once, a dispatcher
+   crash was caused by this problem.
+
+   Supporting evidence is occurrence of the single-bit parity error a short 
+   time before the crash - a few seconds - on chip numbers that are a multiple
+   of 22:
+                  .22, 44, 66, 88, 110, 132, 154 and 176.
+
+   To determine existence of single-bit parity error:
+      .Use DDT ?MEM for ISIS nodes
+      .Use XRAY QE for SOLO nodes.
+
+
+
+
+
+                                     36
+                                  --------
+
+
+               SUPERVISOR 41.04 APPROVED FOR LIMITED RELEASE
+               ---------------------------------------------
+               ---------------------------------------------
+
+
+Written by : John Gomes, HQ Q.A. Mgr.
+      Date : April 30, 1986
+
+
+
+
+          The Supervisor version 41.04 has been accepted for Limited
+          Release.  This is effective as of 30 Apr 1986.
+
+          Field Communication Consultants who have customers who wish
+          to upgrade to this version must contact Quality Assurance
+          for approval.  Customers who have beta test versions 41.02
+          and 41.03 must upgrade, as these versions will no longer be
+          supported.
+
+          Please send all requests, which should contain company name,
+          address and requested installation date to NSS.J/GOMES.
+          (Note - A Beta Test Agreement is not required.)
+
+          If you have any other questions concerning this subject,
+          please contact me via Ontyme or call me at 408-942-5142.
+
+          Thank you for your continued support.
+
+
+   @_
