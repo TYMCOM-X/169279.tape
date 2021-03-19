@@ -1,0 +1,314 @@
+.       <<      STDDFS.PUB        >>
+.       <<      Standard PUB definitions	>>
+
+.DEVICE TTY
+.PAGE FRAME 58 HIGH 79 WIDE
+.AREA TEXT LINES 4 TO 56 CHAR 9 TO 79
+.TITLE AREA HEADING LINES 1 TO 3 CHAR 9 TO 79
+.TITLE AREA FOOTING LINE 58 CHAR 9 TO 79
+.COUNT PAGE FROM 1 TO 999
+.indext1 _ 0;
+
+
+.	<<	Initial section definition, define banner	>>
+.MACRO SECTION(NAME,SUBNAME)	
+.BANNER _ "NAME";
+.BANNER1 _ "SUBNAME";
+.EVERY HEADING(,,{DATE})
+.EVERY FOOTING(,{BANNER1},{BANNER})
+.COUNT S1 FROM 1 TO 99
+.COUNT S2 FROM 1 TO 99 IN S1 PRINTING  S1! & "." & S2 
+.COUNT S3 FROM 1 TO 99 IN S2 PRINTING "!.1"
+.COUNT S4 FROM 1 TO 99 IN S3 PRINTING "!.1"
+.COUNT FIGNO INLINE FROM 1 TO 99 IN S1 PRINTING "!.1."
+.				
+
+
+.	<<	Create Title Page	>>
+.MACRO TITLEPAGE(FILE,KLUDGE)	
+.	<<	TITLE PAGE	>>
+.GROUP SKIP 5
+.BEGIN CENTER TURN ON "{#"
+.LIBRARY FILE;
+.SKIP 1
+TYMNET
+NATIONAL TECHNICAL SUPPORT
+{date}
+.IF LINES > 14 THEN SKIP (LINES-14)/2;
+KLUDGE
+.IF LINES > 14 THEN SKIP (LINES-14);
+====================================================================
+|          Tymnet's  proprietary  rights  are  included  in  the   |
+|   information disclosed herein.   The recipient,  by receiving   |
+|   this document,  agrees  that neither this  document nor  the   |
+|   information  disclosed  herein nor any part thereof shall be   |
+|   reproduced or transferred to  other  documents  or  used  or   |
+|   disclosed  to  others  for  manufacturing  or  for any other   |
+|   purpose except  as  specifically authorized  in  writing  by   |
+|   Tymnet.     						   |
+====================================================================
+.END
+.	<<	The text	>>
+.INSERT CONTENTS
+.PORTION MAIN
+.FILL
+.INDENT 0,0
+.EVERY FOOTING({PAGE},{BANNER1},{BANNER})
+.TABS 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64
+.TABBREAK
+.PAGE _PAGE! _ 1
+.				
+
+
+
+.	<<	Switch to Appendix Heading	>>
+.MACRO MAKEAPPENDIX 
+.COUNT S1 FROM 1 TO 99 PRINTING "I"
+.COUNT S2 FROM 1 TO 99 IN S1 PRINTING  S1! & "-" & S2 
+.COUNT S3 FROM 1 TO 99 IN S2 PRINTING "!.1"
+.COUNT S4 FROM 1 TO 99 IN S3 PRINTING "!.1"
+.COUNT FIGNO INLINE FROM 1 TO 99 IN S1 PRINTING "!.1."
+.SEND CONTENTS	
+
+
+\\\\\\\APPENDICES
+\\\\\\\==========
+.		
+
+.IF LINE NEQ 0 THEN NEXT PAGE ;
+.EVERY HEADING (,,{DATE})
+.GROUP SKIP 25
+.BEGIN CENTER TURN ON "#"
+##*   ****  ****  ***** *   * ****  ***** *   *
+#* *  *   * *   * *     **  * *   *   *    * *#
+***** ****  ****  ****  * * * *   *   *     *##
+*   * *     *     *     *  ** *   *   *    * *#
+*   * *     *     ***** *   * ****  ***** *   *
+.END
+
+.MACRO SEC(NAME)	 TURN ON "#{\"
+.IF LINE NEQ 0 THEN NEXT PAGE ;
+.EVERY HEADING (NAME,,{DATE})
+.NEXT S1
+.GROUP SKIP 4
+.ONCE CENTER
+APPENDIX {S1!}.   NAME
+.SKIP 2
+.SEND CONTENTS	
+
+
+{S1!}. \NAME{PAGE!}
+.LEVL _ 1	
+.			
+.		     
+
+
+
+.	<<	Build the Index	>>
+.MACRO MAKEINDEX	
+.PORTION INDEX <<GENERATE INDEX>>
+.BEGIN TURN ON "{#\"
+.IF LINE NEQ 0 THEN NEXT PAGE ;
+.EVERY HEADING(INDEX,,{DATE})
+.ONCE CENTER
+INDEX
+.SEND CONTENTS	
+.BEGIN GROUP
+.SKIP 2
+\\\\\\\ INDEX
+\\\\\\\ ====={page}
+.END		
+.END
+.BEGIN AREA TEXT LINES 6 TO 56 CHARS 9 TO 79 IN 2 COLUMNS 4 APART
+.PLACE TEXT
+.NOJUST  TURN ON "#{"   PREFACE 0; SPREAD_0
+.INDENT 0,0
+.VARIABLE LETTER,PHR,LASTPG,DFLG,PGNX,PGTST
+.LETTER _ PHR _ LASTPG _ DFLG _ NULL
+.AT "<" PHRASE ">" PGNO ""	
+.PGNX _ "PGNO"
+.IF PGNX[1] = "@" THEN START PGTST _ PGNX[2 TO 50] END
+.                 ELSE START PGTST _ PGNX END
+.IF ^"PHRASE" = PHR THEN START
+.	IF PGTST NEQ LASTPG THEN START
+.		DFLG
+.		DFLG _ NULL
+.		}, {PGTST        END
+.	ELSE NULL
+.       END
+.ELSE   START   <<NEW PHRASE, GO TO A NEW LINE>>
+.	DFLG
+.	DFLG _ NULL
+.	BREAK
+.	PHR _ ^"PHRASE"
+.       IF LETTER NEQ PHR[1] THEN SKIP 2
+PHRASE  {PGTST
+.       LETTER _ PHR[1];
+.       END << END SIGNAL RESPONSE >>
+.LASTPG _ PGTST
+.IF PGNX[1] = "@" THEN START DFLG _ "@" END
+.				
+.RECEIVE "<>"
+.DFLG
+.END
+.			
+
+
+
+.	<<	Build A Glossary	>>
+.MACRO MAKEGLOSSARY	
+.PORTION GLOSSARY <<GENERATE GLOSSARY>>
+. BEGIN TURN ON "{", "#", ""
+. IF LINE NEQ 0 THEN NEXT PAGE ;
+. EVERY HEADING(,GLOSSARY,{date})
+. SEND CONTENTS 
+.BEGIN GROUP
+.SKIP 2
+\\\\\\\GLOSSARY
+\\\\\\\========{page}
+.END		
+. END
+.PLACE TEXT
+. BEGIN TURN ON "#\{" SPREAD_1 INDENT 0,0
+. TABS 25,30,35,40,45,50,55,60
+. AT "<" ID ">" PHRASE "" 
+.  START   <<NEW ID, GO TO A NEW LINE>>
+.  TOPIC(|ID|)
+.   BEGIN GROUP
+	ID#--#\PHRASE{
+.   END
+.  END
+.                            
+. RECEIVE "<>"
+. END
+.			
+
+
+
+.	<<	Make Table of Contents	>>
+.MACRO MAKECONTENT 
+.PORTION CONTENTS
+.EVERY HEADING( , ,{DATE})
+.BEGIN NOFILL FLUSH LEFT  TURN ON "#{\"
+.INDENT 0,0
+.NEXT PAGE
+.EVERY FOOTING( ,{BANNER1},{BANNER})
+.TABS 3,6,9,15,21,27,30,33,36,39,42,45,48,51,54,57,60,63,66,69
+.GROUP SKIP 5
+.ONCE CENTER
+TABLE OF CONTENTS
+.SKIP 1
+SectionPage
+.SKIP 1
+.RECEIVE
+.END
+.		   
+
+
+.	<<	Sectioning Definitions	>>
+.MACRO SEC(NAME)	 TURN ON "{\"
+.IF LINE NEQ 0 THEN NEXT PAGE;
+.EVERY HEADING(NAME,,{DATE})
+.NEXT S1
+.GROUP SKIP 4
+.ONCE CENTER
+{S1} -  NAME
+.SKIP 1
+.SEND CONTENTS	
+.SKIP 2
+{S1}. \NAME{PAGE}{BREAK;
+.LEVL _ 1	
+.			
+
+.MACRO SS(NAME)		 TURN ON "{\"
+.IF LINES < 15 THEN NEXT PAGE ELSE SKIP 6
+.NEXT S2
+.ONCE CENTER
+{S2!}  NAME
+.SKIP 1
+.SEND CONTENTS	 IF LEVL > 2 THEN SKIP 1
+\{S2!} \NAME{PAGE}{BREAK;
+.LEVL _ 2	
+.			
+
+.MACRO SSS(NAME)	 TURN ON "{\"
+.IF LINES < 12 THEN NEXT PAGE ELSE SKIP 5
+.NEXT S3
+.ONCE NOFILL FLUSH LEFT TURN ON "#"
+############{S3!}  NAME
+.SEND CONTENTS	 IF LEVL > 3 THEN SKIP 1
+\\{S3!} \NAME{page}{BREAK;
+.LEVL _ 3	
+.			
+
+.MACRO SSSS(NAME)	 TURN ON "{\"
+.IF LINES < 9 THEN NEXT PAGE ELSE SKIP 3
+.NEXT S4
+.ONCE NOFILL FLUSH LEFT
+{S4!}  NAME
+.SEND CONTENTS	 IF LEVL > 4 THEN SKIP 1
+\\\{S4!} \NAME{PAGE}{BREAK;
+.LEVL _ 4	
+.			
+
+.MACRO SSSSS(NAME)	 TURN ON "{"
+.IF LINES < 6 THEN NEXT PAGE ELSE SKIP 2
+.ONCE FLUSH LEFT
+NAME
+.			
+
+
+.	<<	Definition for Footnotes	>>
+.COUNT FOOTNOTE INLINE IN PAGE PRINTING "(i)"
+.AT "$$" ENTRY "`"	 NEXT FOOTNOTE; ! ;
+.SEND FOOT	 TURN ON "{" PREFACE 1; SPREAD_1; INDENT 0,0
+{!} ENTRY
+.		
+.			
+
+
+.	<<	Definitions for Index	>>
+.AT "~<" PHRASE ">"	 }PHRASE{
+.SEND INDEX; }<PHRASE>{page!}{
+.			
+
+.MACRO TOPIC(PHRASE)	
+.BEGIN TURN ON "{"
+.SEND INDEX; }<PHRASE>{page!}{ 
+.END
+.			
+
+.	<<	special index entry to declare definitions	>>
+.MACRO DTOPIC(PHRASE)	
+.BEGIN TURN ON "{"
+.SEND INDEX; }<PHRASE>@{page!}{ 
+.END
+.			
+
+.MACRO SEE(PHRASE,ALTERNATE)	 TURN ON "{"
+.SEND INDEX; }<PHRASE>see ALTERNATE{
+.			
+
+
+.	<<	Data-Formatting Definitions	>>
+.MACRO OFFSET  SKIP PREFACE 0 INDENT 3,7 TURN ON "#" 
+
+.MACRO OFFFSET  INDENT 7, 10 
+
+.MACRO BLOX  PREFACE 1 INDENT 7,15,7 TURN ON "#" 
+
+.MACRO BOX  SKIP GROUP VERBATIM 
+
+
+.	<<	Figure-numbering Definitions	>>
+
+.MACRO FIG  NEXT FIGNO; }Figure {FIGNO! 
+
+.MACRO FIGR  }Figure {FIGNO! 
+
+
+.	<<	GLOSSARY generation	>>
+
+.MACRO DESCRIBE(ID,PHRASE)  TURN ON "{"
+.SEND GLOSSARY; }<ID>PHRASE{
+.CONTINUE 
