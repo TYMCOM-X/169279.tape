@@ -1,0 +1,164 @@
+	SUBTTL	Asynch Ring Handler Package
+:******************************************************************
+:
+:	This program is the sole property and confidential
+:	information of Tymshare, Inc., and may not be copied
+:	in whole or in part or disclosed to any third party
+:	without the prior written consent of Tymshare.
+:
+:*******************************************************************
+	RA	0		:	ARING.LIB
+:	ASYNC RING HANDLING
+
+	GL	NAPORT,IZASYN,AGCI,AWCI,AWCP
+	GL	NGRP,RBS,DSR,DTR,CP,TAM,TOPORT,FPORT,ARING
+	SEG	A.DATA
+	MO	.,ASYNC
+
+:	INPUT CODES
+:	0	escape...always followed by second char
+:	1-FF	data codes 0-FF
+:	0\0	escaped data code 0
+:	0\8x	escaped terminal speed:
+:		x=0	10 cps
+:		x=1	15 cps
+:		x=2	30 cps
+:		x=3	40 cps
+:		x=4	60 cps
+:		x=5	120 cps
+:		x=6	30 cps (3767)
+:		x=7	14.7 cps (2741)
+:	0\90	escaped break detected
+:	0\91	escaped break end
+
+:	OUTPUT CODES
+:	0	escape...always followed by second char
+:	1-FF	data code
+:	0\0	data 0
+:	0\1-8F	delay time
+:	0\90-AF	output baud rate
+:	0\B0-CF	input baud rate
+:	0\D0-DF	enter connect mode
+:	0\E0	enter data mode
+:	0\E1	disconnect
+:	0\E2	enable
+:	0\E3	RS up
+:	0\E4	RS down
+
+Q	HS	0		:REMEMBER WHERE WE ARE
+	ORG	0
+:	DEFINE RING BLOCK ENTRIES
+RSIZE	EQ	$A14		:SIZE OF A RING
+RIF	BS	1		:RING INPUT FILL INDEX
+RIE	BS	1		:RING INPUT EMPTY INDEX
+RI	BS	RSIZE		:THE INPUT RING
+ROF	BS	1		:RING OUTPUT FILL INDEX
+ROE	BS	1		:RING OUTPUT EMPTY INDEX
+RO	BS	RSIZE		:THE OUTPUT RING
+RBS	BS	0		:SIZE OF RING BLOCK
+
+	ORG	Q		:RETURN TO NORMAL ADDRESS SPACE
+
+NGRP	EQ	(NAPORT+$A15)/16	:THE NUMBER OF GROUPS IN USE
+DSR	HS	NGRP		:DATA SET READY TERM
+DTR	HS	NGRP		:DATA TERMINAL READY TERM
+CP	HS	NGRP		:CARRIER PRESENT TERM
+TAM	HS	NGRP		:TRANSMITTER ACTIVE MASK
+TOPORT	HS	NGRP		:DATA IN RING TO GO TO PORT
+FPORT	HS	NGRP		:DATA IN RING COMING FROM PORT
+
+ARING	BS	10*NGRP*RBS	:THE RING STORAGE
+
+	SEG	A.CODE
+
+:	Get a char from Async input ring
+:	R4	link
+:	R5	port #
+:	normal return if ring empty, turns off FPORT bit
+:	else skip return, char in R0
+AGCI	LR	R1,R5		:COPY PORT #
+	SLLS	R1,5
+	LB	R2,ARING+RIE,R1	:GET EMPTY INDEX
+	CLB	R2,ARING+RIF,R1	:TEST IF RING EMPTY
+	JEFS	AGCI2		:SKIP IF SO
+	AIS	R4,4		:NOT EMPTY...SET SKIP RETURN
+	LB	R0,ARING+RI,R1,R2	:GET THE CHAR
+	AIS	R2,1		:BUMP INDEX
+	CLHI	R2,RSIZE
+	JLFS	AGCI1
+	LIS	R2,0		:FOLD INDEX IF NECESSARY
+AGCI1	STB	R2,ARING+RIE,R1	:SAVE IT
+	CLB	R2,ARING+RIF,R1	:CHECK IF NOW EMPTY
+	JNR	R4		:EXIT IF NOT
+AGCI2	RBT	R5,FPORT	:ELSE TURN OFF BIT FLAG
+	CLB	R2,ARING+RIF,R1	:CHECK IF STILL EMPTY (AVOID POSSIBLE RACE CONDITION)
+	JER	R4		:EXIT IF SO
+	SBT	R5,FPORT	:ELSE TURN IT ON
+	JR	R4		:AND EXIT
+
+
+:	Place a single char in Async output ring
+:	R4	link
+:	R5	port #
+:	R0	char to transmit
+AWCI	LR	R1,R5		:COPY PORT #
+	SLLS	R1,5		:INDEX INTO RINGS
+	LB	R2,ARING+ROF,R1	:INDEX INTO RING
+	STB	R0,ARING+RO,R1,R2	:PLACE CHAR
+	AIS	R2,1
+	CLHI	R2,RSIZE
+	JLFS	AWCI1		:SKIP IF NO RING FOLDING
+	LIS	R2,0
+AWCI1	LB	R3,ARING+ROE,R1	:GET EMPTY POINTER
+	SR	R3,R2		:HOW MUCH ROOM IS LEFT?
+	JGEFS	AWCI2
+	AIS	R3,RSIZE
+AWCI2	SIS	R3,4		:LEAVE AT LEAST 4 CHARS OF SLOP
+	JGEFS	AWCI3
+	RBT	R5,TAM		:ELSE SET ACTIVE
+AWCI3	STB	R2,ARING+ROF,R1	:UPDATE INDEX
+	SBT	R5,TOPORT	:FLAG IT IN PLACE
+	JR	R4		:AND EXIT
+
+
+:	Place escaped char in Async output ring
+:	R4	link
+:	R5	port #
+:	R0	char to transmit
+AWCP	LR	R1,R5		:COPY PORT #
+	SLLS	R1,5		:INDEX INTO RINGS
+	LB	R2,ARING+ROF,R1	:INDEX INTO RING
+	LIS	R3,0		:SET ESCAPE
+	STB	R3,ARING+RO,R1,R2
+	AIS	R2,1
+	CLHI	R2,RSIZE
+	JLFS	AWCP1		:SKIP IF NO RING FOLDING
+	LIS	R2,0
+AWCP1	STB	R0,ARING+RO,R1,R2	:PLACE CHAR
+	AIS	R2,1
+	CLHI	R2,RSIZE
+	JL	AWCI1		:GO CLEAN UP IF NO FOLD
+	LIS	R2,0
+	J	AWCI1
+
+:	InitialiZe ASYNc
+:	R0	link
+:	Preserves NO registers
+IZASYN	LIS	R1,0
+	LCS	R2,1
+	LHI	R3,2*NGRP-2
+IZA1	STH	R1,DSR,R3	:DSR = 0
+	STH	R2,DTR,R3	:DTR = 1
+	STH	R1,CP,R3	:CP = 0
+	STH	R2,TAM,R3	:TAM = 1
+	STH	R1,TOPORT,R3	:TOPORT = 0
+	STH	R1,FPORT,R3	:FPORT = 0
+	SIS	R3,2
+	JGE	IZA1		:DO FOR ALL GROUPS
+	LHI	R2,10*NGRP*RBS-4	:INITIALIZE RINGS
+IZA2	ST	R1,ARING,R2
+	SIS	R2,4
+	JGEBS	IZA2
+	JR	R0		:AND RETURN
+
+	EM
