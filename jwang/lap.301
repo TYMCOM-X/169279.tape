@@ -1,0 +1,28 @@
+:
+: escalation: 218351
+: reported by : HSBCNET
+:
+: PROBLEM: SOMETIMES THE XCOM LAP LINK LEVEL ENTERS A LOOP AND UNABLE TO 
+:          BRING UP THE LINK LEVEL. 
+
+  IF   HDLC&LAP
+PATCH(881215,1800,JWANG,T1S520+8,,4)
+        J       T1S510
+CONPATCH(SSRNAR+8,,4)
+        JG      RFG200
+CONPATCH(SSBARM+4,,4)
+        NOP     0,0,0
+CONPATCH(SSBARM+0C,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        LIS     R5,6
+        STB     R5,XSSTAT,RL,
+        LIS     R5,1
+        STB     R5,XPSTAT,RL,
+        J       RFG210,,
+CONPATCH(TNAR60+0E,,4)
+        NOP     0,0,0
+CONPATCH(TNAR60+1E,,4)
+        NOP     0,0,0
+ENDPATCH(PATCH TO BRING UP LAP LINK FOR HSBCNET)
+   EI
