@@ -1,0 +1,2114 @@
+
+
+           
+           
+
+
+                              THROUGHPUT TESTING HOST
+
+                                   User's Guide
+
+                                   Tymshare Inc.
+
+                              Data Networks Division
+
+                                    VERSION 13
+
+                                 January 21, 1981
+
+          +-------------------------------------------------------------+
+          ^                                                             ^
+          ^     This document is the sole property and confidential     ^
+          ^    information of Tymshare, Inc., and may not be copied     ^
+          ^      in whole or part or disclosed to any third party       ^
+          ^       without the prior written consent of Tymshare.        ^
+          ^                                                             ^
+          +-------------------------------------------------------------+
+
+                   FOR USE BY TYMSHARE OR TYMNET PERSONNEL ONLY
+
+
+           
+
+
+           
+           
+
+                                 T_a_b_l_e_ _o_f_ _C_o_n_t_e_n_t_s_
+
+          1.0 OVERVIEW.................................................1
+
+          2.0 COMMAND FORMAT AND SYNTAX................................2
+
+          3.0 REPORTING COMMANDS.......................................4
+
+             3.1 Help Command - H......................................4
+
+             3.2 Interval Command - I..................................6
+
+             3.3 List Command - L......................................7
+
+             3.4 Report Command - R...................................10
+
+             3.5 Version Command - V..................................14
+
+          4.0 CIRCUIT BUILDING AND ZAPPING COMMANDS...................15
+
+             4.1 Auxiliary Circuit Command - A........................15
+
+             4.2 Rebuild On Command - D...............................17
+
+             4.3 Rebuild Off Command - E..............................17
+
+             4.4 Kill Command - K.....................................18
+
+             4.5 Make Normal Circuit Command - M......................18
+
+             4.6 Quit Command - Q.....................................20
+
+             4.7 Zap Command - Z......................................20
+
+          5.0 INPUT/OUTPUT COMMANDS...................................21
+
+             5.1 Burst Command - B....................................21
+
+             5.2 CPS Command - C......................................21
+
+             5.3 Output Off Command - F...............................22
+
+             5.4 Output On Command - N................................22
+
+             5.5 Automatic Output On Command - O......................23
+
+             5.6 Build ISIS Message Command - P.......................24
+
+             5.7 Speed Command - S....................................24
+
+             5.8 Send ISIS Message Command - X........................25
+
+
+                                                                   Page i
+
+
+           
+           
+
+          6.0 TRACING COMMANDS........................................26
+
+             6.1 Trace Command - T....................................26
+
+             6.2 Untrace Command - U..................................26
+
+             6.3 Time Trace Command - W...............................27
+
+          7.0 ERROR MESSAGES..........................................28
+
+          8.0 HOST GENERATION.........................................31
+
+             8.1 Generating the Throughput Testing Host...............31
+
+             8.2 Files Required for Host Generation...................32
+
+             8.3 Sample Throughput Testing Host Tymfile...............32
+
+             8.4 Sample Command File..................................34
+
+             8.5 Sample Load Slot and Go File.........................34
+
+          9.0 APPLICATIONS............................................35
+
+             9.1 Stand Alone Node Code................................35
+
+             9.2 ISIS II..............................................36
+
+             9.3 Gateway Code.........................................36
+
+             9.4 Loopback Testing of TYMSAT Code......................37
+
+          10.0 CONSTRAINTS............................................39
+
+             10.1 Logging Off.........................................39
+
+             10.2 Messages From ISIS..................................39
+
+             10.3 Character Output Algorithm..........................40
+
+             10.4 Auxiliary Circuits..................................40
+
+             10.5 Host and Port Limitations...........................41
+
+
+
+                                                                  Page ii
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _1_._0_ _O_V_E_R_V_I_E_W_
+
+          The Throughput Testing Host is a tool used to test the perform-
+          ance of a network, or a specific function within a network.  It
+          allows the user  to evaluate  the load  capacity and  the effi-
+          ciency of data transmission in the network.  It only runs under
+          ISIS II on a Tymnet Engine.   Earlier versions of ISIS will not
+          support the  Throughput Testing Host.   It is assumed  that any
+          user of this  product is familiar with the  TYMNET network, and
+          has a working knowledge of  normal and auxiliary circuits, ISIS
+          II slots, ports, NAD, and PROBE.
+
+          The Throughput Testing Host can simulate network logins by cre-
+          ating normal and  auxiliary circuits, and can  generate data on
+          those circuits.  The user has the option of specifying the num-
+          ber of circuits built, the  circuit type (auxiliary or normal),
+          and the frequency  and quantity of data  transmitted.  The user
+          also has control  over the frequency and  format of statistical
+          reports generated by the Host.
+
+          The Host may  be used to test the following  products: TYMNET I
+          and TYMNET II Node Codes, Stand  Alone Node Code, ISIS II Code,
+          TYMSAT Code, Gateway  Code, and TYMCOM Code.   In addition, the
+          Host can be configured  to test the accuracy  of data transmis-
+          sion and data turn-around time using its "time/trace" feature.
+
+          The Throughput  Testing Host  allows multiple  terminals to  be
+          logged in,  but only  one terminal  may issue  commands to  the
+          Host.  Commands issued from other terminals are not interpreted
+          as commands,  nor are  they echoed.  They  are treated  as test
+          data input  to the Host.  The  range of port  numbers available
+          for logins  is specified at  system generation.  With  TYMNET I
+          Node Code, the highest port number  is usually 63.  With TYMNET
+          II Node Code, the highest port number is usually 89.
+
+          The first terminal to log in  is assigned the highest available
+          port number,  and is  considered the "boss".   The boss  is the
+          only terminal  able to issue commands  that alter the  state of
+          the Host,  its ports, or  the test processing  being performed. 
+          The boss is also the only terminal that can receive performance
+          data from the Host.
+
+
+
+                                                       OVERVIEW    Page 1
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _2_._0_ _C_O_M_M_A_N_D_ _F_O_R_M_A_T_ _A_N_D_ _S_Y_N_T_A_X_
+
+          The  following sections  describe the  commands available,  and
+          indicate default  values and  permitted value  ranges for  each
+          command.  In the command  syntax, uppercase characters indicate
+          mandatory  elements of  the command,  and lowercase  characters
+          indicate variable or optional elements of the command.
+
+          Where examples are  given, user entries are  shown in lowercase
+          characters  and Host  responses in  uppercase characters.   The
+          example of  the Help command is  an exception in that  the Host
+          response is  not shown  in uppercase.   Actual output  from the
+          Host appears in mixed upper and lower case.
+
+          Commands entered incorrectly generate  error responses from the
+          Host.  The system parses commands  to check for validity before
+          the user types a Carriage  Return.  Execution takes place after
+          the Carriage  Return if  the system  detects no  errors.  Error
+          messages are discussed in Section 7.0.
+
+          Note: Those familiar  with  versions of the  Throughput Testing
+          Host earlier  than Version 13  are advised that  the parameters
+          for using the H, L, N, Q,  and R commands have changed signifi-
+          cantly.  Please read the sections for these commands closely.
+
+          The general syntax of commands input to the Host is:
+
+               cv,p1,p2
+
+          where c = a single character command name (upper or lower case)
+                v = an optional value
+               p1 = an optional beginning port number
+               p2 = an optional ending port number
+
+          The comma preceding the beginning port number (p1) is mandatory
+          if the beginning port number is  to be specified, even if value
+          (v) is  omitted. The  comma between  beginning (p1)  and ending
+          (p2) port  numbers is mandatory if  two port numbers are  to be
+          specified.   Commas  should  not be  input  in  commands  which
+          require a value but do not allow port numbers.
+
+          If one  single port  number is  to be  specified, it  should be
+          entered in the beginning port number position.  The ending port
+          number and  its preceding comma may  be omitted (e.g.,  L,62 or
+          C10,60).
+
+          If no port number is specified  in a command which expects one,
+          the command  will affect  all active ports.   If only  one port
+          number is specified, the command will affect the specified port
+          only.
+
+
+
+                                      COMMAND FORMAT AND SYNTAX    Page 2
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          The circuit building commands, the  build ISIS message command,
+          and the report selection command deviate from this syntax.  The
+          syntax used  in these  commands is  described in  Sections 3.4,
+          4.1, 4.5, and 5.6.
+
+          An error in command syntax or a typographical error may be cor-
+          rected by terminating  the command with an Escape  instead of a
+          Carriage Return.  Any command terminated with an Escape will be
+          ignored.  An  Escape entered  during execution  of the  Help or
+          List command will terminate output and return the system to the
+          command  level.  An  Escape  entered  during execution  of  the
+          Report command will  terminate output for that  interval, but a
+          new report will output at the expiration of the next interval.
+
+
+
+                                      COMMAND FORMAT AND SYNTAX    Page 3
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _3_._0_ _R_E_P_O_R_T_I_N_G_ _C_O_M_M_A_N_D_S_
+
+          These commands enable the Host  to provide statistical informa-
+          tion regarding the  circuits used by the Host.   A Help command
+          is included.
+
+          S_E_C_T_I_O_N_ _3_._1_ _H_e_l_p_ _C_o_m_m_a_n_d_ _-_ _H_
+
+          Syntax:  Hv
+
+          Default value of "v":  0
+
+          Permitted range of value "v":  0 - 3
+
+          Description:  The  Help command  requests a  list of  available
+               commands.  If  "v" = 0 or  null, the Host lists  the three
+               categories of help summaries  available (general commands,
+               circuit building commands, and report selection commands). 
+               If "v" = 1, the Host prints  a list of all commands, their
+               value ranges, and  a brief description of each.   If "v" =
+               2, the Host  prints a description of  the circuit building
+               commands and their  required parameters.  If "v"  = 3, the
+               Host prints a description of the Report command formats.
+
+          Examples:
+
+          h
+
+          Help Summary:
+
+          H0 or H    This summary
+          H1         Help commands in general
+          H2         Help commands for building circuits
+          H3         Help commands for Reports (R command)
+
+
+                                               Help Command - H    Page 4
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          h1
+
+          Command Summary
+          Commands are in the format: C[value][,beg port[,end port]]<cr>
+          (Parameters enclosed in brackets are optional if applicable.)
+
+          CMD  V RANGE  OPERATION
+          B    1-157    Set burst rate (0 or none = 157)
+          C    1-65535  CPS (0 or none = output bursts continuously)
+          D    none     Rebuild circuit when zapped  (E to cancel)
+          E    none     Rebuild off                  (D to start)
+          F    0-1      Output off                   (N for on)
+          I    1-32767  Report interval in seconds (0 or none = previous)
+          K    1-32767  Kill port after # seconds (0 or none=do not kill)
+          L    0-1      List port parameters
+          N    0-2      Output test data to a port      (F for off)
+                        (0 - Normal, 1 - W/Port#, 2 - Echo Input)
+          O    none     Automatic output on port   (Cancel with F)
+          P    0-2      Maintains ISIS message for X command
+                        (Command uses no port specifications)
+          Q    none     Quit, zaps all ports and exits
+          S    1-32767  Max CPS for terminal (initialized by TID)
+          T    none     Trace - verify loopback input (U to stop)
+          U    none     Untrace - Stop verification (W, T to start)
+          V    ignored  Version and 1st Host number displayed
+          W    none     Time trace - report round-trip time (U to stop)
+          X    none     Send ISIS message on port
+          Z    none     Zap port
+
+          h2
+
+          Building Circuits
+
+          To build  one or more  circuits, the  user must enter  at least
+          three lines.
+
+          #1: Axx         Mxx           Where xx = # of circuits to be
+                                        built
+          #2: user:sys    user:sys;pass user = username, sys = system or
+                                        Host#, pass = password
+          #3: Initial-log Initial-log   This is the initial login string.
+              The initial login string may contain <cr>s and must be <=63
+              characters long. The login string must be terminated with a
+              Control D, even if null.
+
+
+
+                                               Help Command - H    Page 5
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          h3
+
+          Report selection command formats:
+
+             Ra[,b[,c]]   Selects reports numbered a, b, c. (Cumulative)
+             R0           Clears all reports. (No reports selected)
+             R            selects all reports. (1 - 6)
+
+          Each line of the following example is controlled by the report
+          number enclosed in [brackets].
+
+          PORT ICPS OCPS    ICHAR    OCHAR   ERR TRSYNC               [1]
+            62   50   50     1550     1550     0   off                [2]
+          Total CPS=   204,  Avg CPS=   102                           [3]
+          I/O chars: In= 3101, Out= 3103                              [4]
+          Traces: Total=  224, Avg time= 0.023, Peak time= 0.053 sec  [5]
+          Logons: Total=    5, Avg time= 5.961, Peak time= 6.438 sec, [6]
+                  Failed= 2
+
+          S_E_C_T_I_O_N_ _3_._2_ _I_n_t_e_r_v_a_l_ _C_o_m_m_a_n_d_ _-_ _I_
+
+          Syntax:  Iv,p1,p2
+
+          Default value of "v":  No command = 60
+                                 No value specified = 0
+
+          Permitted range of value "v":  0 - 32767
+
+          Description:  This  command specifies  the report  interval, in
+               "v" seconds, for ports in the range "p1,p2", and activates
+               the Report  command, Type 2  for these ports  (see Section
+               3.4).  The  report interval will  be set to  the specified
+               value for all active  ports if no port  numbers are speci-
+               fied.  If  "v" = 0 or  null, the interval is  not changed,
+               but the timer clock is restarted.  This enables the report
+               function to  include ports which  were activated  after it
+               was first  turned on.   The port  range specified,  or all
+               active ports  if none are  specified, will be  reported at
+               the interval specified in a previously issued command.  If
+               no Interval command has been previously issued, 60 seconds
+               is assumed.
+
+          Examples:
+
+               I20,62    Set  the  Report  interval to  20  seconds,  and
+                         include port 62 only in Report Type 2.
+
+               I         Set all active  ports to report at  therval
+                         specified by the last I command (or 60 seconds).
+
+
+                                           Interval Command - I    Page 6
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _3_._3_ _L_i_s_t_ _C_o_m_m_a_n_d_ _-_ _L_
+
+          Syntax:  Lv,p1,p2
+
+          Default value of "v":  0
+
+          Permitted range of value "v":  0-1
+
+          Description:   This command  causes the  output of  statistical
+               information concerning the  status of ports in  the speci-
+               fied range.  If "v" = 0,  all active ports will be listed. 
+               If  "v" =  1,  all inactive  ports  with automatic  output
+               turned on (using the  O command) will be  listed (see Sec-
+               tion 5.5).   An Escape  will terminate  the output  of the
+               list.
+
+               The types  of statistics  output by  the List  command are
+               described  below.   Included  are  related  commands  that
+               directly affect the statistics being compiled for the List
+               command.  A heading  line precedes the listing  of statis-
+               tics.
+
+               P_O_R_T_
+
+               Related commands: A, M, Q, Z
+
+               Description: This  field indicates  the port  number being
+                    reported.
+
+               O_R_I_G_
+
+               Related commands: A, M, Q, Z
+
+               Description: This  field indicates  the originating  node. 
+                    ORIG will be  zero if this  Host originated  the cir-
+                    cuit.
+
+               B_U_R_S_T_
+
+               Related command: B
+
+               Description: This field indicates the number of characters
+                    per record to be sent to ISIS II. The range is from 1
+                    to 157.
+
+
+
+                                               List Command - L    Page 7
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+               C_P_S_
+
+               Related command: C
+
+               Description: This  field indicates  the maximum  number of
+                    characters  per second  that  the  Host will  output. 
+                    Characters per second is set  by the CPS command (see
+                    Section 5.2).  The range is 1 - 65535.  The Host will
+                    not limit the output if the  value of the CPS command
+                    is zero or null.  Note that output will be limited by
+                    network  backpressure, or  by the  size  of the  ISIS
+                    ring.
+
+               Z_A_P_
+
+               Related command: K
+
+               Description:  This field  reflects the  number of  seconds
+                    left in this  port's lifetime.  The port  will not be
+                    zapped automatically by the Host  if the value of the
+                    Kill command is zero or null (see Section 4.4).
+
+               M_A_X_C_P_M_
+
+               Related command: S
+
+               Description: This field is initialized  by the TID (Termi-
+                    nal Identifier) and indicates the speed of the device
+                    (terminal or other host) logged into this port.
+
+               O_U_T_P_U_T_
+
+               Related commands: N, F
+
+               Description: This field  indicates whether an  output pat-
+                    tern is being sent out through this port.  The Output
+                    On command  turns on  the output  and the  Output Off
+                    command turns it off (see Sections 5.3 and 5.4).
+
+               R_E_P_O_R_T_
+
+               Related commands: R, I
+
+               Description: This field indicates whether the Report func-
+                    tion is  on or  off for a  given port.   The Interval
+                    command sets the  interval at which the  reports will
+                    be given, and specifies which  ports will be reported
+                    (see Section 3.2).  The Report command determines the
+                    type(s) of report that will print (see Section 3.4).
+
+
+
+                                               List Command - L    Page 8
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+               A_U_T_O_
+
+               Related commands: O, F
+
+               Description: This  field indicates  whether the  automatic
+                    output function is turned on using the O command (see
+                    Section 5.5).  If it is on, output will automatically
+                    be turned on  after a circuit is  zapped and rebuilt. 
+                    This simulates  network conditions by  allowing  data
+                    to be  transmitted as  soon as  the circuit  has been
+                    rebuilt.  (See also the Rebuild field in this list.)
+
+               T_R_A_C_E_
+
+               Related commands: T, U, W, N
+
+               Description: This field indicates whether  the Trace func-
+                    tion is turned on.  The Trace  command turns on trac-
+                    ing,  which compares  incoming data  with data  being
+                    output by the Host (see  Section 6.1).  It causes any
+                    nonmatches  to be  listed  in the  ERR  field of  the
+                    Report command, Type  2 (see Section 3.4).   The Time
+                    Trace command  not only  traces, but  also times  the
+                    round trip  of the data  being sent, which  is listed
+                    using the  Report command, Type  5 (see  Sections 3.4
+                    and 6.3).  The Time Trace  command does not require a
+                    Trace command.  The Output On  command is required to
+                    turn output on, or no data  will be sent (see Section
+                    5.4).  The  Untrace command is  used to turn  off the
+                    checking of  data as it  comes in (see  Section 6.2). 
+                    These commands are typically used in conjunction with
+                    loopback and permanent connect  I/O procedures.  They
+                    are also used  with a second Throughput  Testing Host
+                    in loopback mode (see Section 5.4).
+
+               R_E_B_U_I_L_D_
+
+               Related commands:  D, E, X
+
+               Description: This  field indicates  whether the  automatic
+                    rebuild function has been turned on  using the D com-
+                    mand, or turned off using the E command (see Sections
+                    4.2 and 4.3).   Rebuild can only be turned  on by the
+                    Host originating the circuit (ORIG = 0).  The Rebuild
+                    command  is typically  used in  conjunction with  the
+                    Kill command  to initiate  logins, generate  traffic,
+                    zap existing ports,  and issue more logins  (see Sec-
+                    tion 4.4).
+
+
+
+                                               List Command - L    Page 9
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+               O_U_T_D_A_T_
+
+               Related commands: N, F
+
+               Description: This field indicates the current value of the
+                    Output On command, which determines  the type of data
+                    being output from this port (see Section 5.4).
+
+          Examples:
+
+               L0,62     List port 62 (if active).
+
+               L,4,34    List all active  ports between  4 and  34 inclu-
+                         sive.
+
+               L         List all active ports.
+
+               L1        List all  inactive ports  with automatic  output
+                         turned on using the O command.
+
+          Sample output:
+
+          L0
+          List of Active Ports.
+          PORT ORIG BURST CPS ZAP MAXCPM OUTPUT REPORT AUTO TRACE REBUILD OUTDAT
+            62    0     1   0   0  30720  OFF    OFF   OFF   OFF    OFF      0
+            61    0     1   0   0  30720  OFF    OFF   OFF   OFF    OFF      0
+
+          S_E_C_T_I_O_N_ _3_._4_ _R_e_p_o_r_t_ _C_o_m_m_a_n_d_ _-_ _R_
+
+          Syntax:  Rv1,v2,v3
+
+          Default value of "v":  No command = no report generated
+                                 No value specified = all reports  gener-
+                                                      ated
+
+          Permitted range of value "v":  0 - 6
+
+          Description:  This command  turns on report generation  for all
+               active ports.   A maximum of six  types of reports  may be
+               requested,  where  "v1,v2,v3"   represents  the  specified
+               types.  The interval at which the  reports occur is speci-
+               fied by the Interval command (see Section 3.2).
+
+               Note: Up to three report types may be specified by issuing
+               one Report command.  Four to six report types may be spec-
+               ified  by issuing  two Report  commands.   All six  report
+               types may be specified by entering the Report command with
+               no specified  value.  Previously requested reports  may be
+               cleared by  entering the  Report command  with "v"  set to
+
+
+                                            Report Command - R    Page 10
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+               zero.  The user may then request the output of a different
+               set of reports.
+
+               The six report types are as follows:
+
+               R_e_p_o_r_t_ _T_y_p_e_ _O_n_e_ _-_ _H_e_a_d_i_n_g_s_
+
+               Type One turns on headings only.   This allows the user to
+               decide if  headings are desired  at each  report interval. 
+               If the interval  is short, the user may  prefer to display
+               only data, without headings.
+
+               R_e_p_o_r_t_ _T_y_p_e_ _T_w_o_ _-_ _C_i_r_c_u_i_t_ _S_p_e_c_i_f_i_c_ _S_t_a_t_i_s_t_i_c_s_
+
+               Type Two displays data in the following categories:
+
+               PORT = Port number assigned by the Throughput Host.
+
+               ICPS = Input characters per second  for the current report
+                    interval.   This  figure is  initialized  whenever  a
+                    report is requested.  Once the  data is reported, the
+                    figure is reinitialized, and counting begins again at
+                    zero.
+
+               OCPS = Output characters per second for the current report
+                    interval.   This  figure is  initialized  whenever  a
+                    report is requested.  Once the  data is reported, the
+                    figure is reinitialized, and counting begins again at
+                    zero.
+
+               ICHAR = Total number of input  characters during the life-
+                    time of this port.  This number is cleared and reini-
+                    tialized only  when the  circuit is  zapped and  then
+                    rebuilt.
+
+               OCHAR = Total number of output characters during the life-
+                    time of this port.  This number is cleared and reini-
+                    tialized only  when the  circuit is  zapped and  then
+                    rebuilt.
+
+               ERR = Number of loopback errors.  These errors will not be
+                    checked for  unless the  Trace command,  or the  Time
+                    Trace command  is used  (see Sections  6.1 and  6.3). 
+                    The  figure is  initialized  when  a new  circuit  is
+                    built.
+
+               TRSYNC =  Synchronization factor of  a loopback  or traced
+                    line.  If TRSYNC  is "off", either the  loopback con-
+                    nection  is  not  yet  complete,  a  data  error  has
+                    recently occurred, the trace is  not on, or no output
+                    is being performed.
+
+                                            Report Command - R    Page 11
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+               Note: ICHAR, OCHAR,  and ERR can be set to  zero using the
+               Output Off command with "v" set to one (see Section 5.3).
+
+               Example:
+
+               r1,2
+               PORT ICPS OCPS    ICHAR    OCHAR   ERR TRSYNC
+                 62   22   54     314       593     1   on
+
+               R_e_p_o_r_t_ _T_y_p_e_ _T_h_r_e_e_ _-_ _C_P_S_ _S_t_a_t_i_s_t_i_c_s_
+
+               Type Three displays two pieces of information:
+
+               Total CPS = The sum of the values of ICPS and OCPS for all
+                    active ports during the current interval.
+
+               Average CPS  = The average ICPS  and OCPS figures  for all
+                    active ports during the current interval.
+
+               Report Type  Three does  not depend on  the presence  of a
+               request for  Report Type Two, but  will only print  if the
+               value of  ICPS or OCPS is greater than zero.
+
+               Example:
+
+               r3
+               TOTAL CPS =    76  AVERAGE CPS =    76
+
+               R_e_p_o_r_t_ _T_y_p_e_ _F_o_u_r_ _-_ _I_n_p_u_t_/_O_u_t_p_u_t_ _S_t_a_t_i_s_t_i_c_s_
+
+               Type Four displays totals of all  input and output charac-
+               ters during the current interval.
+
+               Example:
+
+               r4
+               I/O CHARS: IN=99750, OUT=   30
+
+
+
+                                            Report Command - R    Page 12
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+               R_e_p_o_r_t_ _T_y_p_e_ _F_i_v_e_ _-_ _T_i_m_e_ _T_r_a_c_e_ _S_t_a_t_i_s_t_i_c_s_
+
+               Type Five displays statistics generated  by the Time Trace
+               command (see Section  6.3).  Included are total  number of
+               traces,  average turn-around  time,  and peak  turn-around
+               time.  Turn-around time  is the time required  to transmit
+               test data from one node to another and back.  Peak turn-a-
+               round  time is  the longest  amount of  time (worst  case)
+               required  to perform  that task.   Report  Type Five  will
+               print only if traces have been received and counted.
+
+               Example:
+
+               r5
+               Traces: Total=  21, Avg time=0.635, Peak time=1.085 sec.
+
+               R_e_p_o_r_t_ _T_y_p_e_ _S_i_x_ _-_ _L_o_g_i_n_ _S_t_a_t_i_s_t_i_c_s_
+
+               Type Six  displays login  statistics.  Included  are total
+               number of logins during the  current interval, average and
+               peak times required  to complete login, and  the number of
+               failed logins.  Login time is the  amount of time it takes
+               to  build a  circuit.  It  begins  with the  pseudo-needle
+               request, and ends with the receipt of the needle.
+
+               Example:
+
+               r6
+               Logons: Total=  31, Avg time=1.331, Peak time= 3.847 sec.,
+                       Failed= 0
+
+               Values  in the  Report  command may  be  combined to  turn
+               several reports on or  off simultaneously, as in  the fol-
+               lowing examples:
+
+               r1,2,3      Turns on reports 1, 2, and 3 only.
+               r4          Add report 4 to reports 1, 2, and 3.
+               r0,5,6      Turn off reports 2, 3, and 4, and turn on re-
+                           ports 5 and 6.
+               r0          Turn off all reports.
+               r           Turn on all reports.
+
+               Sample output for all reports:
+
+               r
+               PORT ICPS OCPS    ICHAR    OCHAR   ERR TRSYNC
+                 62   22   54      314      593     1   ON
+               TOTAL CPS =     76  AVERAGE CPS =     76
+               I/O CHARS: IN=99750, OUT=00030
+               Traces: Total= 21, Avg time=0.635, Peak time=6.367 sec.
+               Logons: Total= 31, Avg time=4.334, Peak time=9.648 sec.
+                       Failed= 0
+
+                                            Report Command - R    Page 13
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _3_._5_ _V_e_r_s_i_o_n_ _C_o_m_m_a_n_d_ _-_ _V_
+
+          Syntax:  V
+
+          Default value of "v":  None
+
+          Permitted range of value "v":  None
+
+          Description:  This command requests  the current version number
+               of the Throughput  Testing Host, as well as  the number of
+               the first Throughput Testing Host in a multi-host slot.
+
+          Example:
+
+               v
+               VERSION 12.14, FIRST HOST IS #170
+
+
+
+                                           Version Command - V    Page 14
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _4_._0_ _C_I_R_C_U_I_T_ _B_U_I_L_D_I_N_G_ _A_N_D_ _Z_A_P_P_I_N_G_ _C_O_M_M_A_N_D_S_
+
+          These commands are  used for circuit manipulations  while using
+          the Throughput Testing Host.
+
+          S_E_C_T_I_O_N_ _4_._1_ _A_u_x_i_l_i_a_r_y_ _C_i_r_c_u_i_t_ _C_o_m_m_a_n_d_ _-_ _A_
+
+          Syntax:
+
+               Field 1:  Ann  (Carriage Return)
+               Field 2:  username:sysno  (Carriage Return)
+               Field 3:  initial login string (optional)  Control D
+
+          Default value of "nn":  1
+
+          Permitted range  of "nn":  1  - 16.  The  value of "nn"  may be
+               less than or equal to total  number of unused ports, up to
+               a maximum of 16.
+
+               Note:  If circuits  are to  be built  from one  Throughput
+               Testing  Host to  the same  Throughput  Testing Host,  the
+               value of "nn" may not be greater  than one half the sum of
+               the unused ports.   Under TYMNET I, only  six circuits may
+               be built from one Host to itself at one time due to delays
+               in the utilization of internal permuter tables.
+
+          Description:   This command  instructs the  Host  to build  the
+               specified auxiliary circuits.   The parameters illustrated
+               in the command syntax are as follows:
+
+               Field 1 specifies  the number of auxiliary  circuits to be
+               built.  Field 1 must be terminated by a Carriage Return.
+
+               Field 2 includes the user's username and the system number
+               of the  host to which  circuits are being  built.  Circuit
+               speed control characters  may be included in  the username
+               string.   If the  circuits  are being  built  to the  most
+               recently  specified username  and Host,  the username  and
+               system number may be omitted.   Field 2 must be terminated
+               by a Carriage Return if it is  to be followed by the login
+               string text contained in Field 3.
+
+               Field 3 contains an optional login  string to be transmit-
+               ted to the  target host.  Field 3  provides user responses
+               expected by the target Host, such as username and password
+               entries required  to pass  through a  gateway.  The  login
+               string has a maximum length of 63 characters.  It may con-
+               tain Carriage Returns or other control characters.
+
+
+
+                                 Auxiliary Circuit Command - A    Page 15
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+               Note: The entire command sequence  must be terminated by a
+               Control D.
+
+               When creating more than one circuit,  it is sometimes eas-
+               ier to create  a single circuit first to be  sure that the
+               syntax format,  the  username, and the password  are valid
+               on the target host.  Additional circuits may then be built
+               by using the format "Ann Carriage Return Control D", where
+               "nn" is  the number  of additional  circuits to  be built. 
+               The previous username, password, and  login string will be
+               used to create "nn" circuits.
+
+               Note:  Currently,  only 16  circuits may  be built  at one
+               time.  If  "nn" is  greater than 16,  the system  will try
+               unsuccessfully to build the  specified circuits.  Only the
+               first 16 will be  built.  The remainder will  cause a mes-
+               sage:
+
+               FORMAT ERROR
+               nnn ZAPPED
+
+               to be output, where "nnn" is the port number being zapped.
+
+          Examples:
+
+               A                    Build one Auxiliary circuit to system
+               myname:100           100.
+               Control D            Note: The phrase "myname:100" is the
+                                    login string required to log in to
+                                     system 100.
+
+               A                    Build one Auxiliary circuit through a
+               gateway              gateway to system 100 in another net-
+               myname:100;password  work.
+               Control D            Note: The word "gateway" is the gate-
+                                    way username whose home host is the
+                                    gateway host.  The phrase "myname:-
+                                    100;passord" is the login string re-
+                                    quired to log in to system 100.
+
+               A4                   Build four Auxiliary circuits through
+               net1                 a gateway to another network, through
+               net2                 another gateway to a different net-
+               myname:100;password  work, and finally to system 100.
+               Control D            Note:  Both "net1" and "net2" are
+                                    gateway usernames whose home hosts
+                                    are gateway hosts.  The phrase
+                                    "myname:100;password" is the login
+                                    string required to log in to system
+                                    100.
+
+
+                                 Auxiliary Circuit Command - A    Page 16
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _4_._2_ _R_e_b_u_i_l_d_ _O_n_ _C_o_m_m_a_n_d_ _-_ _D_
+
+          Syntax:  D,p1,p2
+
+          Default value of "v":  None
+
+          Permitted range of value "v":  None
+
+          Description:  This  command specifies  that when  ports in  the
+               range "p1,p2" are zapped, the circuit(s) should be rebuilt
+               automatically.  This  command only  applies to  ports that
+               this Host has originated.  The Rebuild On command utilizes
+               the  same  username  and  password  that  were  originally
+               issued.  The Rebuild Off command will turn off this option
+               for the specified ports (see Section  4.3).  The Quit com-
+               mand will turn off this option  for all ports (see Section
+               4.6).
+
+          Examples:
+
+               D         Turn rebuild on for all ports originating here.
+               D,62      Turn rebuild  on for port  62 (if  it originates
+                         here).
+
+          S_E_C_T_I_O_N_ _4_._3_ _R_e_b_u_i_l_d_ _O_f_f_ _C_o_m_m_a_n_d_ _-_ _E_
+
+          Syntax:  E,p1,p2
+
+          Default value of "v":  None
+
+          Permitted range of value "v":  None
+
+          Description:  This command turns off automatic circuit rebuild-
+               ing turned  on by  the Rebuild command,  for ports  in the
+               range "p1,p2"  (see Section 4.2).   This will  only affect
+               ports originating at this  Host.  Note that the  Quit com-
+               mand also  turns off  rebuild for  all ports  (see Section
+               4.6).
+
+          Examples:
+
+               E         Turns off all rebuild.
+               E,62      Turns off rebuild on port 62.
+
+
+                                       Rebuild Off Command - E    Page 17
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _4_._4_ _K_i_l_l_ _C_o_m_m_a_n_d_ _-_ _K_
+
+          Syntax:  Kv
+
+          Default value of "v":  0
+
+          Permitted range of value "v":  0 - 32767
+
+          Description:  This command specifies the  interval, in "v" sec-
+               onds, after which  new circuits will be  zapped.  Existing
+               circuits will not  be affected.  Only those  circuits cre-
+               ated  after the  execution  of the  Kill  command will  be
+               zapped.  The message "nn Killed"  will be displayed at the
+               terminal when the circuits are killed to indicate the port
+               number of  each zapped circuit.  If  "v" = 0 or  null, the
+               circuits will not  be zapped automatically.  They  will be
+               maintained indefinitely, or until  an explicit Zap command
+               is issued (see Section 4.7).
+
+          Examples:
+
+               K         Do not limit the lifetime of new circuits.
+               K120      Zap new circuits after 120 seconds.
+
+          S_E_C_T_I_O_N_ _4_._5_ _M_a_k_e_ _N_o_r_m_a_l_ _C_i_r_c_u_i_t_ _C_o_m_m_a_n_d_ _-_ _M_
+
+          Syntax:
+
+               Field 1:  Mnn  (Carriage Return)
+               Field 2:  username:sysno;password  (Carriage Return)
+               Field 3:  initial login string (optional)  Control D
+
+          Default value of "nn":  1
+
+          Permitted range  of "nn":  1  - nn.  The  value of "nn"  may be
+               less than  or equal to the  total number of  unused ports. 
+               The maximum number of possible ports  is equal to the num-
+               ber of ports  specified in the Tymfile minus  one (NPORT -
+               1) (see  Section 8.3).   Note that if  circuits are  to be
+               built  from  one  Throughput  Testing  Host  to  the  same
+               Throughput  Testing Host,  the value  of "nn"  may not  be
+               greater than one half the sum of the unused ports.
+
+          Description:   This command  instructs the  Host  to build  the
+               specified normal circuits.  The  parameters illustrated in
+               the command syntax are as follows:
+
+               Field  1 specifies  the number  of normal  circuits to  be
+               built.  Field 1 must be terminated by a Carriage Return.
+
+
+                               Make Normal Circuit Command - M    Page 18
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+               Field 2 includes the user's username,  and the system num-
+               ber and password  of the Host to which  circuits are being
+               built.  Circuit  speed control characters may  be included
+               in the username  string.  If the circuits  are being built
+               to the most recently specified host, the username and sys-
+               tem number may be omitted.  Field  2 must be terminated by
+               a Carriage  Return if it  is to  be followed by  the login
+               string text contained in Field 3.
+
+               Field 3 contains an optional login  string to be transmit-
+               ted to the  target host.  Field 3  provides user responses
+               expected by the target host, such as username and password
+               entries required  to pass  through a  gateway.  The  login
+               string has a maximum length of 63 characters.  It may con-
+               tain Carriage Returns or other control characters.
+
+               Note: The entire command sequence  must be terminated by a
+               Control D.
+
+
+               When creating more than one circuit,  it is sometimes eas-
+               ier to create  a single circuit first to be  sure that the
+               command syntax, and the username and password are valid on
+               an active host.  Additional circuits  may then be built by
+               using the  format "Mnn Carriage  Return Control  D", where
+               "nn" is  the number  of additional  circuits to  be built. 
+               The previous username, password, and  login string will be
+               used to create "nn" circuits.
+
+          Examples:
+
+               M                   Build one normal circuit to system 10.
+               myname:10;password  Note:  The phrase "myname:10;password"
+               Control D           is the login string required to log in
+                                   to system 10.
+
+               M3                  Build three Normal circuits to system
+               myname:10;password  10, and transmit the letter "Z" with a
+               Z                   Carriage Return.  The phrase "myname:-
+               Control D           10;password" is the login string re-
+                                   quired to log in to system 10.
+                                   Note that if system 10 is a Throughput
+                                   Testing Host, and one of the circuits
+                                   is built to the boss port, the "Z"
+                                   being transmitted will be interpreted
+                                   as a Zap command.  All circuits will
+                                   be zapped.
+
+
+
+                               Make Normal Circuit Command - M    Page 19
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _4_._6_ _Q_u_i_t_ _C_o_m_m_a_n_d_ _-_ _Q_
+
+          Syntax:  Q
+
+          Default value of "v":  None
+
+          Permitted range of value "v":  None
+
+          Description:  This command zaps all ports and logs off the boss
+               terminal.  It  also turns off  the Rebuild command  so the
+               Host will not automatically  rebuild circuits and continue
+               to transmit data patterns (see Section 4.2).
+
+          S_E_C_T_I_O_N_ _4_._7_ _Z_a_p_ _C_o_m_m_a_n_d_ _-_ _Z_
+
+          Syntax:  Z,p1,p2
+
+          Default value of "v":  None
+
+          Permitted range of value "v":  None
+
+          Description:  This command instructs  the Host to zap  the cir-
+               cuits  of ports  in the  range "p1,p2".   The message  "nn
+               Zapped" will be displayed to indicate the port number "nn"
+               of each circuit being zapped.
+
+               Note: In order  to zap the boss port only  and leave other
+               circuits intact, the  value of "p1" should  be the highest
+               port number (e.g., Z,63).
+
+          Examples:
+
+               Z         Zap  all ports,  including the  boss port.   The
+                         Quit  command is  preferred  for this  operation
+                         (see Section 4.6).
+               Z,60      Zap port 60.
+               Z,30,40   Zap ports 30 through 40.
+
+
+                                               Zap Command - Z    Page 20
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _5_._0_ _I_N_P_U_T_/_O_U_T_P_U_T_ _C_O_M_M_A_N_D_S_
+
+          These commands control the output of data.
+
+          S_E_C_T_I_O_N_ _5_._1_ _B_u_r_s_t_ _C_o_m_m_a_n_d_ _-_ _B_
+
+          Syntax:  Bv,p1,p2
+
+          Default value of "v":  No command = 1
+                                 No value specified = 157
+
+          Permitted range of value "v":  0 - 157
+
+          Description:  This command  specifies a burst rate.   The burst
+               rate determines the size, in number of characters, of each
+               data record output on ports in  the range "p1,p2".  It may
+               be used  to simulate interactive  traffic to  some extent. 
+               Lower burst rates result in proportionally higher overhead
+               than higher  burst rates.  The speed  at which a  burst is
+               output is specified by the CPS command (see Section 5.2).
+
+          S_E_C_T_I_O_N_ _5_._2_ _C_P_S_ _C_o_m_m_a_n_d_ _-_ _C_
+
+          Syntax:  Cv,p1,p2
+
+          Default value of "v": 0 (Bursts will be output continuously)
+
+          Permitted range of value "v":  0 - 65535
+
+          Description:   This command  specifies  the  maximum number  of
+               characters that  the Throughput Testing Host  will attempt
+               to output in any one second interval on ports in the range
+               "p1,p2".  If "v" = 0 or null, the host will not limit out-
+               put.  Output will  only be limited by  backpressure, or by
+               the size of the Host's ISIS ring.
+
+
+                                               CPS Command - C    Page 21
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _5_._3_ _O_u_t_p_u_t_ _O_f_f_ _C_o_m_m_a_n_d_ _-_ _F_
+
+          Syntax:  Fv,p1,p2
+
+          Default value of "v":  0
+
+          Permitted range of value "v":  0 - 1
+
+          Description:   For ports  in the  range  "p1,p2", this  command
+               turns off output of test  data previously initiated by the
+               Output On  command or by  the Automatic Output  On command
+               (see Sections 5.4 and 5.5).  It  also turns off the Report
+               command and the  Trace command for ports  in the specified
+               range (see Sections 3.4 and 6.1).   If "v" = 1, the totals
+               for the ICHAR, OCHAR, and ERR  in the Report command, Type
+               2 (R2) will be set to zero (see Section 3.4).
+
+          Examples:
+
+               F       Turn all output off.
+               F,62    Turn output to port 62 off.
+               F1      Turn all output off and set Report totals to zero.
+
+          S_E_C_T_I_O_N_ _5_._4_ _O_u_t_p_u_t_ _O_n_ _C_o_m_m_a_n_d_ _-_ _N_
+
+          Syntax:  Nv,p1,p2
+
+          Default value of "v":  0
+
+          Permitted range of value "v":  0 - 2
+
+          Description:  If "v" = 0 or 1,  this command turns on output of
+               data for any circuit in the  range "p1, p2" Data length is
+               determined by the current burst  rate, and transmission is
+               determined by  the CPS rate  specified for each  port (see
+               Sections 5.1 and 5.2).  The Host will transmit "B" charac-
+               ters at a  time at a maximum of "C"  characters per second
+               through the specified ports.
+
+               If "v"  = 0,  the data  pattern transmitted  will be  "XYZ
+               0123456789".  If  "v" =  1, the  data pattern  transmitted
+               will be "nnn 0123456789", where  "nnn" is the sending port
+               number.
+
+               If "v"  = 2, the command  creates a loopback  condition by
+               turning off the  output of data patterns,  and causing the
+               port to echo all data input to it.  The loopback condition
+               may be preserved by use of the Automatic Output On command
+               (see Section 5.5).  The tracing  option is also turned off
+               for the specified port(s) (see Sections 6.1 and 6.2).
+
+                                         Output On Command - N    Page 22
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          Examples:
+
+               N         Turn ouput on for all ports.
+                         Data pattern: XYZ 0123456789
+               N1,62     Turn output on for port 62.
+                         Data pattern: 062 0123456789
+               N2        Turn output off and echo all incoming data.
+               N2,20,30  Turn output off  and echo all incoming  data for
+                         ports 20-30.
+
+          S_E_C_T_I_O_N_ _5_._5_ _A_u_t_o_m_a_t_i_c_ _O_u_t_p_u_t_ _O_n_ _C_o_m_m_a_n_d_ _-_ _O_
+
+          Syntax:  O,p1,p2
+
+          Default value of "v":  None
+
+          Permitted range of value "v":  None
+
+          Description:  This command enables automatic  output of data on
+               any circuit built from a port  in the range "p1,p2".  Data
+               length is specified  by the current burst  rate, and speed
+               of transmission by the current  CPS rate (see Sections 5.1
+               and  5.2).  The  Host will  transmit a  data pattern  (XYZ
+               0123456789, for  example) "B"  characters at  a time  at a
+               maximum  of "C"  characters per  second  to the  specified
+               port(s).   Output  data  patterns are  sent  to  specified
+               active ports without user intervention.  The loopback con-
+               dition established with the Output  On command may be used
+               in conjunction  with the  Automatic Output  On command  to
+               create an automatic loopback condition (see Section 5.4).
+
+          Examples:
+
+               O         Turn on Automatic Output for all ports.
+               O,1,16    Turn on Automatic Output for ports 1 through 16.
+
+
+                               Automatic Output On Command - O    Page 23
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _5_._6_ _B_u_i_l_d_ _I_S_I_S_ _M_e_s_s_a_g_e_ _C_o_m_m_a_n_d_ _-_ _P_
+
+          Syntax: Pv
+
+          Default value of "v": 0
+
+          Permitted range of value "v": 0-2
+
+          Description:  This  command controls  the buffer  used to  send
+               messages with the  Send ISIS Message command  (see Section
+               5.8).  If  "v" =  0, the  command will  clear the  message
+               buffer and disable the Send ISIS Message command (see Sec-
+               tion 5.8).   If "v"  = 1, the  buffer will  accept another
+               line (or  lines) of input.  The  input string will  be the
+               hex representation of the message to be sent.  The charac-
+               ters 0-9 and A-F are the  only characters accepted by this
+               command.  The  alphabetic characters A-F  may be  input in
+               upper or lower  case.  A message can have a  maximum of 32
+               bytes.  The  first byte  (two hex  digits) represents  the
+               message type.  See  the ISIS II documentation  for message
+               type definitions.   Only message types 1-9D  are permitted
+               unless the Host is configured otherwise (see Section 8.3). 
+               Spaces and Carriage  Returns are ignored, and  may be used
+               to  format large  message strings.   An invalid  character
+               will terminate  the action  of the  command and  clear the
+               message buffer.  Input is terminated by entering a Control
+               D.  If "v" = 2, the current contents of the buffer will be
+               displayed to the boss port in hex.
+
+          Example:
+
+               p1            Enter message in buffer.
+               03c1c2c3      Message (hex equivalent to ABC).
+               p2            Display message contained in buffer.
+               03c1c2c3      Message displayed.
+               p0            Clear message from buffer.
+
+          S_E_C_T_I_O_N_ _5_._7_ _S_p_e_e_d_ _C_o_m_m_a_n_d_ _-_ _S_
+
+          Syntax:  Sv,p1,p2
+
+          Default value of "v":  No command = speed initialized by TID
+                                 No value specified = 0
+
+          Permitted range of value "v":  0 - 32767
+
+          Description:  This command specifies the maximum speed (charac-
+               ters per second) for ports in the range "p1,p2".
+
+
+                                             Speed Command - S    Page 24
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _5_._8_ _S_e_n_d_ _I_S_I_S_ _M_e_s_s_a_g_e_ _C_o_m_m_a_n_d_ _-_ _X_
+
+          Syntax: X,p1,p2
+
+          Default value of "v": None
+
+          Permitted range of value "v": None
+
+          Description: This command sends the  contents of the buffer set
+               up by the  Build ISIS Message command with "v"  set to one
+               (see Section 5.6).  The contents of  the buffer is sent as
+               an ISIS message to the dispatcher for the specified ports. 
+               The message is sent only once.  If the buffer is empty, no
+               data is sent.  In that case, the message "NO DATA FOR MES-
+               SAGE" will be returned and displayed.
+
+
+
+                                 Send ISIS Message Command - X    Page 25
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _6_._0_ _T_R_A_C_I_N_G_ _C_O_M_M_A_N_D_S_
+
+          These commands provide for the  verification of test data being
+          sent by the Throughput Testing Host.
+
+          S_E_C_T_I_O_N_ _6_._1_ _T_r_a_c_e_ _C_o_m_m_a_n_d_ _-_ _T_
+
+          Syntax:  T,p1,p2
+
+          Default value of "v":  None
+
+          Permitted range of value "v":  None
+
+          Description:  This command turns on  tracing to verify accurate
+               loopback of  the input data.   A "LOOPBACK  ERROR" message
+               will be output if a discrepancy is detected.  Note that if
+               the circuit is built to another  Throughput Host, the Out-
+               put On command with "v" set to  two must be enabled at the
+               echoing Host for  loopback to occur (see  Section 5.4).  A
+               hardwire  loopback may  also be  done  on an  asynchronous
+               port.  See also Sections 6.2 and 6.3.
+
+          Examples:
+
+               T         Trace all ports.
+               T,60      Trace port 60.
+
+          S_E_C_T_I_O_N_ _6_._2_ _U_n_t_r_a_c_e_ _C_o_m_m_a_n_d_ _-_ _U_
+
+          Syntax:  U,p1,p2
+
+          Default value of "v":  None
+
+          Permitted range of value "v":  None
+
+          Description:  This command  turns off tracing initiated  by the
+               Trace command and the Time Trace command (see Sections 6.1
+               and  6.3).  Note  that data  being looped  back using  the
+               Untrace command is not checked for accuracy.
+
+          Examples:
+
+               U         Turn off all tracing.
+               U,60      Turn off tracing on port 60.
+
+
+
+                                           Untrace Command - U    Page 26
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _6_._3_ _T_i_m_e_ _T_r_a_c_e_ _C_o_m_m_a_n_d_ _-_ _W_
+
+          Syntax:  W,p1,p2
+
+          Default value of "v":  None
+
+          Permitted range of value "v":  None
+
+          Description:   This  command  turns on  tracing  of  round-trip
+               transmission time in loopback  mode.  Data collected using
+               the Time Trace  command may be displayed  using the Report
+               command, Type  5 (see Section  3.4).  The  Untrace command
+               turns off this tracing  (see Section 6.2).  See  also Sec-
+               tion 6.1.
+
+          Examples:
+
+               W         Time and trace all ports.
+               W,50,52   Time and trace ports 50 through 52.
+
+
+
+                                        Time Trace Command - W    Page 27
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _7_._0_ _E_R_R_O_R_ _M_E_S_S_A_G_E_S_
+
+          This  section describes  the error  messages  generated by  the
+          Host, the meaning, and the probable cause of each message.
+
+          ? (H FOR HELP)
+
+               This is a general error message generated when the initial
+               login string is too long, when  there is a syntax error in
+               the command string, or when  there are too many parameters
+               in the command string.   It is also generated  when nonnu-
+               meric input is entered in the v, p1, or p2 field of a com-
+               mand.
+
+          COMMAND NOT RECOGNIZED
+
+               This message is  output when an invalid  command character
+               is entered (e.g., G, J, Y, or a nonalphabetic character).
+
+          A VALUE WAS GIVEN, BUT NOT EXPECTED, PLEASE RETRY
+
+               This message is output when  the Host encounters a command
+               containing a value "v" where no  value is permitted.  Com-
+               mands that do not permit a specified value are D, E, F, O,
+               Q, T, U, W, and Z.
+
+               Typically, this error message occurs  because the user has
+               omitted the comma  preceding the first port  number speci-
+               fied.
+
+          PORT# OR PARAMETER OUT OF RANGE
+
+               This message is output when the user specifies a port num-
+               ber greater than the possible  maximum, or a value outside
+               the permitted range.  This error  message might also occur
+               if the comma preceding the first specified port number has
+               been omitted.
+
+          ESCAPE DETECTED
+
+               This message is output  when the Host acknowledges  a com-
+               mand or  output of  data terminated  with an  Escape.  The
+               command will be ignored by the Host.
+
+
+
+                                                ERROR MESSAGES    Page 28
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          LOOPBACK ERROR:  PORT: nnn   EXPECTED: xx   RECEIVED: yy
+
+               This  message is  output when  the Trace  function of  the
+               Throughput Testing Host has  detected a transmission error
+               on port "nnn".   "Expected" is the field  sent. "Received"
+               is the field  received.  The values of "xx""  and "yy" are
+               in hex.
+
+          TOO MANY CIRCUITS
+
+               This response is output when all of the circuits allocated
+               to the Host  are in  use, and the  user requests  an addi-
+               tional circuit using the Auxiliary  Circuit command or the
+               Make Normal  Circuit command (see  Sections 4.1  and 4.5). 
+               The user may change the NPORT parameter in the Tymfile, or
+               enter the Zap command to zap some of the existing circuits
+               (see Sections 4.7 and 8.3).
+
+          ISIS UNABLE TO COMPLETE REQUEST
+
+               This message is output  when the  user tries to build more
+               circuits in a given slot than ISIS will permit.  Reconfig-
+               uring the node  for more circuits, or zapping  some of the
+               existing circuits should  correct the problem.   This mes-
+               sage is also  output when the slot being used  to build an
+               auxiliary circuit  does not  have Aux-Circuit  status.  It
+               will also print if  the TYMNET I Node Code is  in the pro-
+               cess of zapping  an old circuit, and it  has suspended the
+               use of the  remaining free ports.  Wait a  few seconds and
+               try again  to see if  this is  the case.  The  user should
+               call a network representative if the output of the message
+               persists.
+
+          NO DATA FOR MESSAGE
+
+               This message is output when the Build ISIS Message command
+               with "v"  set to two or  the Send ISIS Message  command is
+               used, and there  is no data present in  the message buffer
+               (see Sections 5.6 and 5.8).
+
+          NON-TEXT MESSAGES NOT ALLOWED
+
+               This message is output when an attempt is made to generate
+               a nontext ISIS message  using the Build ISIS  Message com-
+               mand with "v"  set to one (see Section 5.6).   The Host is
+               protected against such action.
+
+
+
+                                                ERROR MESSAGES    Page 29
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          FORMAT ERROR
+          nnn ZAPPED
+
+               This  message  is  output  when  the  number  of  circuits
+               requested using the Auxiliary  Circuit command exceeds the
+               limit that  the Supervisor can  handle (see  Section 4.1). 
+               The value "nnn" is the port number being zapped.
+
+
+
+                                                ERROR MESSAGES    Page 30
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _8_._0_ _H_O_S_T_ _G_E_N_E_R_A_T_I_O_N_
+
+          This section describes the tools and methods required to gener-
+          ate a Throughput Testing Host.
+
+          One host  number per  Throughput Testing  Host is  typical, but
+          multiple host  numbers may be used  as target host  numbers for
+          testing purposes.  Multiple  host numbers in a  slot permit the
+          user to build  circuits to the Throughput  Testing Host without
+          having the  first port arbitrarily  become the boss  port.  The
+          first (and  highest) port to log  in to the lowest  host number
+          will become the  boss port.  Note that "host  number" refers to
+          the network  address used  to communicate with  a process  or a
+          portion of a process in an ISIS slot.
+
+          Each host number will be  assigned a consecutive logical number
+          starting with zero.  The data pattern for each host number will
+          begin with the  logical number assigned to it  (e.g., the first
+          host number  will have  a data  pattern 0123456789,  the second
+          will have a data pattern 123456789:).
+
+          S_E_C_T_I_O_N_ _8_._1_ _G_e_n_e_r_a_t_i_n_g_ _t_h_e_ _T_h_r_o_u_g_h_p_u_t_ _T_e_s_t_i_n_g_ _H_o_s_t_
+
+          To generate a Throughput Testing Host, proceed as follows:
+
+          1)   Verify that the files listed in Section 8.2 exist.
+
+          2)   Run NAD  (e.g., R NAD).
+
+          3)   Execute the command file  (e.g., ;X TPUT1.CMD).
+
+          4)   The command  file will  request a  host number.   Type the
+               host number and Control D.  (Do not type a Carriage Return
+               after the host number.)
+
+          5)   Wait for NAD to finish assembling  (e.g., it will print LO
+               BID).
+
+          6)   Create  an auxiliary  circuit to  the Kernel  of the  node
+               being loaded.
+
+          7)   Once the slot has been established, load the slot by exec-
+               uting the  TPUT1.LSG (Throughput  Host Load  Slot and  Go)
+               command file (see Section 8.5).
+
+          8)   Log off the NAD to DDT circuit by typing Control Z twice.
+
+          9)   Exit NAD by typing %Q.
+
+
+                        Generating the Throughput Testing Host    Page 31
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _8_._2_ _F_i_l_e_s_ _R_e_q_u_i_r_e_d_ _f_o_r_ _H_o_s_t_ _G_e_n_e_r_a_t_i_o_n_
+
+          Files required  to generate  a Throughput  Testing Host  are as
+          follows:
+
+          1)   TPUT1.TYM   Tymfile describing system parameters (see Sec-
+                           tion 8.3).
+
+          2)   TPUT1.NAD   NAD (assembly language)  file with  all neces-
+                           sary code.
+
+          3)   TPUT1.CMD   Command file  used to  assemble the  Host (see
+                           Section 8.4).
+
+          4)   TPUT1.LSG   Command file used to load  a slot and start it
+                           (see Section 8.5).
+
+
+          S_E_C_T_I_O_N_ _8_._3_ _S_a_m_p_l_e_ _T_h_r_o_u_g_h_p_u_t_ _T_e_s_t_i_n_g_ _H_o_s_t_ _T_y_m_f_i_l_e_
+
+          :        TYMFILE FOR THE THROUGHPUT TESTING HOST
+          :        PARAMETERS WITH [REQUIRED] AFTER THEM
+          :        SHOULD NOT BE CHANGED
+
+                  GL     IRSIZE,ORSIZE,CNTRL,NPORT
+                  GL     CRSTOP,ENGINE     :crash on stop, engine
+
+          :        REQUIRED PARAMETERS (OTHERS ARE NOT SUPPORTED)
+
+          ENGINE  EQ  1          :runs on an engine     [REQUIRED]
+          ISIS2   EQ  1          :ISIS II version       [REQUIRED]
+
+          :        NUMBER OF HOSTS FOR THIS SLOT
+
+
+          :        DEFINE I/O CONNECTIONS BETWEEN HOST AND ISIS
+
+          NPORT   EQ  $A 64      :Number of ports (or circuits that can
+                                 :be built)
+          NM      EQ  4          :Number of 1/4 K pages for input/output
+                                 :rings
+          IRSIZE  EQ  200*NM-4   :Input ring size in bytes
+          ORSIZE  EQ  IRSIZE     :Output ring size in bytes
+
+          :BACKPRESSURE
+
+                        Sample Throughput Testing Host Tymfile    Page 32
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          :There are two ways to handle backpressure: send messages
+          :through the rings, or set bits in a bit array to define the
+          :backpressured ports.  The former works with all versions of
+          :ISIS II; the latter only works with versions later than 3.04.
+
+          ISISBP  EQ  0          :ISIS backpressure array handling off
+          CNTRL   EQ  200*ISISBP :ISIS State Word (200 = Backpressure
+                                 :Arrays)
+          SNDORD  EQ  0          :Send normal pattern (XYZ, 0-9, CR, LF)
+                                 :Set to 1 for Host number only.
+                                 :If the symbol SNDORD is defined, a
+                                 :special pattern consisting of the 8
+                                 :bit binary value of the Host ordinal
+                                 :will be sent (e.g., x00, x01).  The
+                                 :first circuit built to Host ordinal
+                                 :zero will become the boss.  If testing
+                                 :is done using any other Host, none
+                                 :will inadvertently become the boss.
+
+           IF ISIS2              :[REQUIRED]
+
+          :-----------------------------
+          Q       EQ  0          :    /
+                  RE  MAXHST     :   /
+          HOST|Q| EQ  HOSTNO+Q   :  /  DEFINE SEQUENTIAL HOST NUMBERS
+          Q       EQ  Q+1        : /
+                  ER             :/
+          :-----------------------
+
+          MAXPORT EQ  NPORT-1    :Maximum number of ports. (90)
+
+
+          HPRTO   EQ  MAXPRT/2   :Maximum ports for first Host.
+
+           ELSE                  :Therefore not ISIS II (for possible
+                                 :expansion to support ISIS I).
+                  GL             NPORTT,MXDEV,HOSTNO
+          NPORTT  EQ  NPORT/2    :Number of ports for terminations.
+          MXDEV   EQ  0          :Maximum number of Auxiliary devices.
+           EI                    :End If (ISIS2)
+
+          ANYMSG   EQ  0         :Only text message (types 1-9D) may be
+                                 :entered using the P1 command.
+                                 :If set to 1, any data may be entered by
+                                 :the P1 command, allowing building of
+                                 :nontext ISIS messages.  This
+                                 :option allows the user to send any
+                                 :type of ISIS/network message.
+
+
+
+                        Sample Throughput Testing Host Tymfile    Page 33
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          PRTANS   EQ  0         :Nonboss ports send no login message.
+                                 :If set to 1, nonboss ports output an
+                                 :initial login message (CR, LF, "nnn
+                                 :Port", CR, LF -- where nnn is the port
+                                 :number) upon circuits built to those
+                                 :ports.
+
+          S_E_C_T_I_O_N_ _8_._4_ _S_a_m_p_l_e_ _C_o_m_m_a_n_d_ _F_i_l_e_
+
+          ;; ENTER # OF HOSTS  [FOLLOWED BY CNTRL-D (^D)]
+          $A[MAXHST:
+          ;; ENTER 1ST HOST #  [FOLLOWED BY CNTRL-D (^D)]
+          $A[HOSTNO:
+          ;; ENTER 1 TO STOP ON CRASH:  [FOLLOWED BY CNTRL-D (^D)]
+          $A[CRSTOP:
+          0[
+           TITLE THROUGHPUT TESTING HOST         VERSION 13
+          111,60;%
+          ;@(ISIS2)TPUT13.TYM
+          ;@(ISIS2)START.LIB
+          ;@(ISIS2)FRING.LIB
+          ;@(ISIS2)BID.LIB
+          ;@(ISIS2)CRASH.LIB
+          ;@(ISIS2)TPUT13.NAD
+          ;@(ISIS2)FINISH.LIB
+           LO RING
+           LO CRASH
+           LO BID
+
+          S_E_C_T_I_O_N_ _8_._5_ _S_a_m_p_l_e_ _L_o_a_d_ _S_l_o_t_ _a_n_d_ _G_o_ _F_i_l_e_
+
+          Note: The  symbol "^V"  represents Control  V in  the following
+          example:
+
+          :H:I:A^VCTA,CTASIZ:W;R3F4C4D41430D/^VSEG0,S0SIZE:WSEG1,S1SIZE:W^V;E
+
+
+
+                                  Sample Load Slot and Go File    Page 34
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _9_._0_ _A_P_P_L_I_C_A_T_I_O_N_S_
+
+          The Throughput Testing Host may be used to test new or recently
+          modified network  products.  All  tests involving  the building
+          and zapping of circuits will test the Supervisor.  The Host may
+          also be used for the extraction of network performance data.
+
+          Note that using the  Throughput Testing Host can  and will sig-
+          nificantly degrade the performance  of the network(s) involved. 
+          If  all products  are  performing  properly, the  network  will
+          recover at the conclusion of these tests.
+
+          A brief  description of the  typical configuration  for testing
+          each of these applications follows.  Keep in mind that they are
+          very likely to  change, depending on the portion  of code being
+          tested.
+
+          S_E_C_T_I_O_N_ _9_._1_ _S_t_a_n_d_ _A_l_o_n_e_ _N_o_d_e_ _C_o_d_e_
+
+          To set up  a test for Stand  Alone Node Code,  proceed  as fol-
+          lows:
+
+          1)   Assemble and load  two  Throughput Testing Hosts  on oppo-
+               site sides of the machine containing the code.
+
+          2)   Shut a  sufficient number of  lines to guarantee  that all
+               circuits  between the  Hosts must  pass  through the  node
+               being tested.  (Use PROBE to do this.)
+
+          To test the the  ability of the Stand Alone Node  to handle new
+          circuits being built, proceed as follows:
+
+          1)   Establish a number of circuits from  one Host to the other
+               using the  Auxiliary Circuit  command or  the Make  Normal
+               Circuit command (see Sections 4.1 and 4.5).
+
+          2)   Set those circuits  to be rebuilt automatically  using the
+               Rebuild command (see Section 4.2).
+
+          3)   Set new circuits to have a limited lifetime using the Kill
+               command (see Section 4.4).
+
+          4)   Zap all ports except the boss (e.g., Z,1,62).  These ports
+               will be rebuilt automatically.
+
+          5)   After the period specified with  the Kill command (K), the
+               originating Host  will report  those circuits  as "Killed"
+               (see Section 4.4).  The  message "nn Killed" will  be dis-
+               played to  indicate the  port number  "nn" of  the circuit
+
+
+                                         Stand Alone Node Code    Page 35
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+               being killed.  At about the  same time, the receiving Host
+               will  report those  ports as  "Zapped".   The message  "nn
+               Zapped" will be displayed to indicate the port number "nn"
+               of the  circuit being zapped.   The circuits will  then be
+               rebuilt by the originating Host and reported by both Hosts
+               (as nn Port, nn Aux Port, or nn Normal Port).
+
+          Note that all of the above commands should be given by only one
+          Host.
+
+          To test the ability  of a new version of Stand  Alone Node Code
+          to handle data in high volumes:
+
+          1)   Establish a number of circuits from one Host to the other.
+
+          2)   Turn on the output  at both ends using the  Output On com-
+               mand (see Section 5.4).
+
+          3)   Monitor the number of characters  making their way through
+               the circuit(s) using  the Interval command and  the Report
+               command (see Sections 3.2 and 3.4).
+
+          S_E_C_T_I_O_N_ _9_._2_ _I_S_I_S_ _I_I_
+
+          Throughput Testing Host  runs under ISIS II.  To  test ISIS II,
+          proceed as follows:
+
+          1)   Load one Throughput Testing Host.
+
+          2)   Build circuits from one Host to itself.
+
+          3)   Send data along these circuits.
+
+          To test the ability of ISIS II to  build and zap circuits, turn
+          rebuild on using  the D command (see Section  4.2), and proceed
+          as in Section 9.1, above.
+
+          More complex testing of ISIS II requires additional Hosts simi-
+          lar to tests for Stand Alone Node Code, above.
+
+          S_E_C_T_I_O_N_ _9_._3_ _G_a_t_e_w_a_y_ _C_o_d_e_
+
+          Testing the Gateway Code requires at least two Throughput Test-
+          ing Hosts, one in each network.  To test the Gateway Code, pro-
+          ceed as follows:
+
+          1)   Load one Host in each network.
+
+          2)   Make sure only one Gateway connects the two networks.
+
+                                                  Gateway Code    Page 36
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          3)   Establish a set of circuits between one Host and the other
+               using the   Auxiliary command or  the Make  Normal Circuit
+               command, with the optional login string included (see Sec-
+               tions 4.1 and 4.5).  Build an  equal number of circuits in
+               each direction.
+
+          4)   Use the  Output On command  to test for  data transmission
+               through the gateway (see Section  5.4).  Monitor both ends
+               using the  Interval command  and the  Report command  (see
+               Sections 3.2 and 3.4).
+
+          5)   Use the Kill  command and the Rebuild command  to test the
+               Gateway for  its handling  of a  large number  of circuits
+               (see Sections 4.2 and 4.4).  Monitor  both ends by observ-
+               ing the  "nn port" and  "nn zapped" messages  displayed at
+               the terminals connected to each Host.
+
+          6)   To quit, use the Q command at both ends (see Section 4.6). 
+               This will also turn off all rebuilds.
+
+          S_E_C_T_I_O_N_ _9_._4_ _L_o_o_p_b_a_c_k_ _T_e_s_t_i_n_g_ _o_f_ _T_Y_M_S_A_T_ _C_o_d_e_
+
+          To perform loopback testing of TYMSAT code, execute the follow-
+          ing instructions:
+
+          1)   Check the  staus of PCNDSW  in the TYMSAT  node's Tymfile. 
+               It should be turned on (set to 1).
+
+          2)   Assuming the node in question is running the correct code,
+               crash the node  and bring it up.  This is  done to "clear"
+               any permanent circuits that  may exist.  It is  not neces-
+               sary if there is a free port.  If the code is not correct,
+               regenerate the node.
+
+          3)   Log into the Throughput Testing Host to set up a boss ter-
+               minal.  The terminal does not have  to be connected to the
+               node that was just brought up.
+
+          4)   Connect a terminal to the node  using a hardwired port and
+               log in to the Throughput Testing Host.
+
+          5)   Verify a  successful login  connection by  outputting data
+               from the  boss terminal  to the port.   Any values  may be
+               used, but the following are recommended.
+
+               B5   Burst Rate = 5
+               C5   CPS Output = 5
+               N    Output On
+
+
+
+                               Loopback Testing of TYMSAT Code    Page 37
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+               A test  pattern (XYZ  0123456789, for  example) should  be
+               received at the terminal attached directly to the node.
+
+          6)   Create the loopback.  Disconnect the terminal and tie pins
+               2 and  3 of the node  interface cable (male  end) together
+               with a jumper wire.
+
+                         DB-25 Connector          (Male)
+
+                . 2 3 . . . . . . . . . .     "2" and "3" = pins 2 and 3
+                 . . . . . . . . . . . .      "." = unconnected pins
+
+          7)   The loopback  is complete.   Reports printed  at the  boss
+               terminal should indicate input characters being received.
+
+          Note: Steps  4 through  7 may be  repeated to  build additional
+          circuits between the Throughput Testing Host and the TYMSAT.
+
+
+
+                               Loopback Testing of TYMSAT Code    Page 38
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _1_0_._0_ _C_O_N_S_T_R_A_I_N_T_S_
+
+          This section describes limitations  imposed upon the Throughput
+          Testing Host  by the Throughput  Testing Host itself,  by ISIS, 
+          and by TYMNET I and II Node Code.
+
+          S_E_C_T_I_O_N_ _1_0_._1_ _L_o_g_g_i_n_g_ _O_f_f_
+
+          If the boss logs  off without zapping all ports,  the next cir-
+          cuit built  to the Host  will be  assigned to the  highest port
+          number, and considered the new boss  (whether it was built by a
+          user at  a terminal, built from  another Host, or  rebuilt from
+          this Host).  If a circuit from another Host sends characters to
+          the new port, the  Host will attempt to interpret  them as com-
+          mands.  The  characters, and the  Host's error  responses, will
+          increment the count of input/output characters.
+
+          Similarly, if one port is set for automatic rebuild using the D
+          command and the user zaps that port,  it will be rebuilt out of
+          the boss port (typically port 63) (see Section 4.2).  This will
+          result  in a  "stuck system".   The fastest  and most  reliable
+          method of regaining  control of this Host  is to log in  to the
+          ISIS II Kernel Host, and to halt  and execute the slot that the
+          Throughput Host is  in by using DDT.  This will  cause the slot
+          to drop all its circuits and  reinitialize the Host.  To accom-
+          plish this, the user needs "Good-Guy" status for that node.
+
+          S_E_C_T_I_O_N_ _1_0_._2_ _M_e_s_s_a_g_e_s_ _F_r_o_m_ _I_S_I_S_
+
+          The following messages from ISIS  are ignored by the Throughput
+          Testing Host:
+
+               A2     Flush Output
+               A3     Flush Input
+               A6     Enter Deferred Echo Mode
+               A7     Leave Deferred Echo Mode
+               A8     Enter Transparency Mode
+               A9     Leave Transparency Mode
+               AA     Green Ball
+               AB     Red Ball
+               AE     Break Detected
+               B0     Query Terminal Parameter
+               B1     Set Terminal Parameter
+               B9     Transmit Limit
+               BA     Break End
+
+
+                                            Messages From ISIS    Page 39
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          The  following messages  from ISIS  will  cause the  Throughput
+          Testing Host to crash:
+
+               9E     Detach  (Yellow Ball and Zap)
+               B3     Normal Login Character
+               B7     Addendum to Accounting
+
+          S_E_C_T_I_O_N_ _1_0_._3_ _C_h_a_r_a_c_t_e_r_ _O_u_t_p_u_t_ _A_l_g_o_r_i_t_h_m_
+
+          The character output algorithm controls the rate of output from
+          the boss to  all subsequently logged  in terminals.   The algo-
+          rithm is  controlled by three  commands:  Burst Rate,  CPS, and
+          Speed (see Sections 5.1, 5.2, and 5.7).  It attempts to produce
+          an evenly distributed output for defined B, C, and S values, as
+          follows:
+
+          1)   It calculates the elapsed time  within the current minute,
+               and calculates the  number of characters that  should have
+               been output in that time span.
+
+          2)   If the program is behind at  this clock tick, it outputs a
+               burst of characters defined by the Burst command (see Sec-
+               tion 5.1).   This is  repeated for  each terminal  on each
+               background execution cycle.  Only one  burst is output per
+               cycle.
+
+          3)   At the beginning of a one minute interval, the output rate
+               of the  previous interval is  checked against  the optimum
+               output rate.  The program will attempt  to catch up to the
+               optimum output rate  unless it is behind by  more than can
+               be made up in one mnute plus one second (maximum CPM minus
+               desired CPM plus 1 second of  character output).  If it is
+               behind by  more than the above  criteria, it will  set the
+               port "not behind", and will not try to catch up.
+
+          S_E_C_T_I_O_N_ _1_0_._4_ _A_u_x_i_l_i_a_r_y_ _C_i_r_c_u_i_t_s_
+
+          To build  auxiliary circuits,  the slot  must have  Aux-Circuit
+          status.   Otherwise,  the  message  "ISIS  UNABLE  TO  COMPLETE
+          REQUEST" will print (see Section 7.0).
+
+
+
+                                            Auxiliary Circuits    Page 40
+
+
+          Throughput Testing Host User's Guide           January 21, 1981
+           
+
+          S_E_C_T_I_O_N_ _1_0_._5_ _H_o_s_t_ _a_n_d_ _P_o_r_t_ _L_i_m_i_t_a_t_i_o_n_s_
+
+          A maximum of 90 ports and 16 Hosts may be specified in the Tym-
+          file under TYMNET II Node Code.   Note, however, that a maximum
+          of only 64 ports  and one Host may be specified  in the Tymfile
+          under TYMNET I Node Code.
+
+
+
+                                     Host and Port Limitations    Page 41
+
+ #@-™
