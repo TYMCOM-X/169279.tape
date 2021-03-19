@@ -1,0 +1,38 @@
+
+C***********************************
+C
+C       PAP31.FTF
+C
+C***********************************
+
+C
+C       SUBROUTINE TO GET DATA FROM PORT
+C       IF DATA IS NOT RETURNED IN 10 MINUTES
+C       THE USER WILL BE DROPED FROM THE HOST
+C
+        SUBROUTINE DATCHR(ANS,FLAG)
+C
+        INTEGER ANS,PCE,I,J,FLAG
+C
+50      ans='     '
+100     DO 200 I=1,5
+180     DO 275 J=1,600
+        CALL GETCHR(-1,PCE)
+        IF ((PCE.LT.0).OR.(PCE.EQ."177)) GOTO 270
+        IF (PCE.EQ."015) return
+        IF ((PCE.GE."141).AND.(PCE.LE."172))PCE=PCE-"040
+        CALL PUTC(I,ANS,PCE)
+        IF (I.EQ.5) GOTO 200
+        I=I+1
+        goto 275
+270     CALL WAIT(1.)
+275     CONTINUE
+        IF (FLAG.NE.0) GOTO 180
+        TYPE 305
+305     FORMAT(1X,'TIME OUT...   NOW LEAVING SYSTEM')
+        CALL DBEND
+        CALL BYE
+200     CONTINUE
+        RETURN
+        END
+C
