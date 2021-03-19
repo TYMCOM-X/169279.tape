@@ -1,0 +1,50 @@
+: For XCOM version 3.00
+: Task 1: Call from Consat. Xcom create a Call Request Packet with PID
+:         51000000.
+: Task 2: XCOM receives a call from the link. If the PID is 51000000,
+:         XCOM pretend that call is from PAD.
+: Task 3: on the same slot, some link/host use PID 51000000 while others
+:         use CCITT PID 01000000 as a call from PAD. So, this patch set
+:         a link bit array.
+
+: Special patch for NSCNET.
+: Japanese national packet network support 51000000 as the Japanese
+: domestic protocol ID. This patch is to use 51000000 P.ID as a call
+: from PAD.
+: SET THE CORRESPONDING BIT OF THE LINK TO 1 ON THE BIT ARRAY TO 
+: ENABLE THIS PATCH. THE SLOT CAN HAVE UP TO 16 LINKS TO USE THIS PATCH.
+: FOR EXAMPLE, 
+: SET 'JPNPID[8000' IN THE COMMAND FILE IF LINK 0 WANT TO USE PID '51'.
+:     'JPNPID[6000' FOR THE LINK 1 TO USE PID '51'.
+:     'JPNPID[0C000' FOR BOTH LINK 0 AND LINK1 TO USE PID '51'.
+: DEFAULT VALUE FOR JPNPID IS JANPID[0000 FOR ALLL LINKS TO USE CCITT '01'.
+
+PATCH(851212,1400,JWANG,PA0PTR,,2)
+JPNPID  HC      0               :DEFAULT TO USE CCITT PID '01'
+CONPATCH(PCR505-12,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,24)
+        TBT     RL,JPNPID,,     :USE JAPANESES TYPE PID?
+        JEFS    .+0E            :NOT, JUMP
+        CLHI    R7,51           :FROM PAD?
+        JN      PCR600,,
+        JFS     .+0C
+        CLHI    R7,PI.PAD       :FROM PAD?
+        JN      PCR600,,
+        J       PCR505-0A,,
+CONPATCH(CRQ310-8,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,20)
+        SBT     R2,ITICAL,,
+        TBT     RL,JPNPID,,     :USE JAPANESES TYPE PID?
+        JEFS    .+0C            :NO, JUMP
+        LHI     R0,51           :USE 51 AS PAD-CALL
+        J       CRQ310,,
+        LIS     R0,PI.PAD       :USE 01 AS PAD-CALL
+        J       CRQ310,,
+ENDPATCH(SPECIAL PATCH FOR JAPANESE PROTOCOL ID 51000000)
+
+
+PATCHREPORT
+FINPATCH
+
