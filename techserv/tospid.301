@@ -1,0 +1,79 @@
+  IF SID.FM
+PATCH(850621,1000,BPC,PA0PTR,,NDPORT*4)
+        GL      SUBDIG
+SUBDIG  HS      NDPORT
+CONPATCH(NST118,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,0E)
+        LIS     R8,0            :INITIALIZE R8 FOR SPID '00000000'
+        JAL     R4,GETCH,,      :REPLACE WHAT WAS OVER WRITTEN.
+        J       NST118+06,,
+CONPATCH(NST130+4,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,0C)
+        RBT     R1,NUN.F,,
+        J       NST120,,                :PREVENT FALL THROUGH TO NST140
+CONPATCH(NST140,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,0E)
+        NHI     R0,0F
+        SLLS    R8,4
+        OR      R8,R0
+        J       NST120,,
+CONPATCH(NST160-36,,12)
+        LHL     R1,DPORT
+        SLLS    R1,1
+        STH     R8,SUBDIG,R1,
+        J       NST160,,        :BACK TO MAIN CODE
+CONPATCH(CLDT10+10,,22)
+        AIS     R1,4            :RIGHT 2 BYTES OF DTESAV
+        L       R0,DTESAV,R1,
+        LHL     R3,DPORT
+        SLLS    R3,1            :offset to subdig
+        LH      R4,SUBDIG,R3,   :SPID
+        OR      R4,R0
+        ST      R4,DTESAV,R1,
+        J       CLDT30,,
+ENDPATCH(ALLOW UP TO 8 SUB-PROCESS ID ONLY IF CLDADR IS 14 DIGITS)
+  EI
+  IF X.25&CUGENA
+PATCH(851018,1200,BPC,ESP900+62,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,3E)
+        LHL     R8,IPORT
+        SLLS    R8,3
+        LR      R6,RL
+        SLHLS   R6,CLD.SC
+        L       R0,CLD.LT,R6,
+        ST      R0,DTESAV,R8,
+        L       R0,CLD.LT+4,R6,
+        LHL     R6,DPORT
+        SLLS    R6,1
+        LHL     R6,SUBDIG,R6,
+        OR      R0,R6
+        ST      R0,DTESAV+4,R8,
+        LIS     R8,0
+        STH     R8,ESPTMP,,
+        J       ESP900+50,,
+ENDPATCH(uses canned called address plus spid across to host from iix)
+  ELSE
+PATCH(851018,1200,BPC,ESP900+48,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,3E)
+        LHL     R8,IPORT
+        SLLS    R8,3
+        LR      R6,RL
+        SLHLS   R6,CLD.SC
+        L       R0,CLD.LT,R6,
+        ST      R0,DTESAV,R8,
+        L       R0,CLD.LT+4,R6,
+        LHL     R6,DPORT
+        SLLS    R6,1
+        LHL     R6,SUBDIG,R6,
+        OR      R0,R6
+        ST      R0,DTESAV+4,R8,
+        LIS     R8,0
+        STH     R8,ESPTMP,,
+        J       ESP900+50,,
+ENDPATCH(uses canned called address across to host from iix)
+  EI
