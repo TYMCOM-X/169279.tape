@@ -1,0 +1,53 @@
+:*******************************************************************************
+:(NSCNET)SLBID.701
+:*******************************************************************************
+:
+: This patch apply to BBXS version 7.01
+:
+: 1. In case of terminal side modem off at SLBID, BBXS TIF send ENQ to terminal
+:    untill recive zap from HIF and after this sequence goto LCLEAR. But it's
+:    long time (70 sec) untill reived zap. So in this case, BBXS send ENQ 3
+:    times to terminal and go to LHLTA and send ZAP.
+:
+: 2. When BBXS send FFREQ to BG, reset GOTPER flag after sending FFREQ.
+:
+:*******************************************************************************
+
+        LO      BSCDEF
+        LO      BSCPTP
+
+PATCH(900718,2100,NIS.KANETA,IRBID,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+IRBID2  LHI     R1,SLBID-PSEG           : From source
+        STH     R1,STATE,RL2,,          :  "    "
+        LIS     R0,0                    : R0 = 0
+        STB     R0,RETRY,RL,,           : Retry counter value = 0
+        J       IRBID1,,                : Return to source
+
+CONPATCH(IBID30,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,3C)
+        LB      R5,RETRY,RL,,           : Get retry counter value
+        CI      R5,3                    : Is retry counter 3 ?
+        JGE     IBID40                  : If great than 3, skip to IBID40
+        AIS     R5,1                    : R5 = R5 + 1
+        STB     R5,RETRY,RL,,           : Save retry counter value
+        LIS     R1,XCENQ                : From source
+        LIS     R4,0                    :  "    "
+        J       XMTRCV,,                :  "    "
+IBID40  LIS     R0,0                    : Set 0
+        STB     R0,RETRY,RL,,           : Clear retry counter
+        J       IDISCS,,                : Behave as if recive DISC
+
+CONPATCH(IRENQ2,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,16)
+        ROPQND(FFREQ)           : From source
+        RBT     RL,GOTPER,,     : Reset GOTPER flag
+        J       IRENQ2+0A,,     : Return to source
+
+ENDPATCH(Behave as if recive DISC at SLBID STATUS)
+
+        FO      BSCDEF
+        FO      BSCPTP
