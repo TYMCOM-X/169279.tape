@@ -1,0 +1,258 @@
+
+
+
+
+                                M E M O R A N D U M
+
+
+
+
+    DATE:      06/06/86                                 T Y M N E T - N T D
+
+    TO:        Elliot Schneider
+    CC:        John Coons
+               Mel Cruts
+               Duane Hentrich
+               Jonathan Davar
+
+    FROM:      Rong Chu
+               Ext. 7291  Bldg. H
+               ONTYME: NTD.R/CHU
+               Dept: Microcode Development
+
+    SUBJECT:   Console Protocol Specification
+               Supplement to TSI Architectural Specification
+               Revision 2.4
+
+    ***********************************************************************
+
+
+            This is  the updated specification  of the console  protocol between
+    the Channel Processor(CP) and the Execution Processor(EP).
+
+            A new console function(command #  05) has been added to  the console
+    protocol to identify the microcode version and assemble date.
+
+
+
+
+
+
+        ------------
+
+         Rong Chu
+
+
+
+
+    CONSOLE PROTOCOL
+
+            The   TSI   project   does  not   support   hardware   front  panel.
+    Functionality equivalent to that of the Engine front panel will  be provided
+    by console firmware through the console terminal serial port.
+
+            The  specification  of  the  console  protocol  between  the Channel
+    Processor(CP)  and the  Execution  Processor(EP) is  provided  here.  Engine
+    memory  physical address  370H is  assigned for  Console mail.   The Console
+    mail-box is 14  bytes in length.  The  console mail-box format layout  is in
+    Figure XX-XX.  The parts of the console mail-box are as follows:
+
+    (1) The first mail-box item, physical byte location 370H, is  "CFLAG".  When
+    power-up, the CP writes zero  into CFLAG to guarantee a  correct initiation.
+    A  CFLAG  of zero  indicates  an in-active  mail-box.   To  initiate console
+    activity,  the  CP writes  FFH  to this  location  triggering  an unmaskable
+    interrupt  to the  EP.   The EP  writes 7FH  to  the CFLAG  to  conclude the
+    operation.
+
+    (2) The second mail-box item, physical byte location 371H, should  be always
+    zero.
+
+    (3) The  third mail-box item,  physical byte location  372H, is  unused.  It
+    needs not to be initialized.
+
+    (4) The fourth mail-box item, physical byte location 373H, is the "Command".
+    Command indicates that an action is needed to be done by the EP.  A detailed
+    description  of  the  commands  and  parameters  is  provided  in  the  next
+    paragraph.
+
+    (5) The fifth  mail-box item, physical byte  locations 374H to 377H,  is the
+    "Parameter".   The  parameter is  a  data value  to  accompany  a particular
+    command that passed from the CP to the EP.
+
+    (6)  The  sixth mail-box  item,  physical  locations 378H  to  37DH,  is the
+    "Response".  This item is one or two data values that passed from the  EP to
+    the CP  to respond to  a command.  The  unused parameter and  response bytes
+    need not to be initialized.
+
+            All the  console commands  but the RUN-S/S  command with  the single
+    step bit  in I/O port  set to zero  will cause the  EP to enter  wait state.
+    After entering wait state, a RUN-S/S command with the single step bit in I/O
+    port set to zero is necessary to release the EP from wait state and continue
+    running.
+
+            The  console command  is  decoded by  the microcode  from  the least
+    significant  bit  toward  to  the most  significant  bit.   This  causes the
+    duplicated commands with different command number.  The  duplicated commands
+    and illegal commands can be used for future extension.
+
+            The CP  in the  TSI project has  the capability  to access  the main
+
+
+
+
+    memory.  Therefore, the memory operation functions are mainly handled by the
+    console firmware with  an option to  stop the EP  using a read  PSW command.
+    The functions that require response  from EP are listed in Figure  YY-YY and
+    described as following.
+
+    (a) Read PSW  -  command number "00"H
+
+            This command  does not  need a  parameter.  The  EP will  respond by
+    writing  PSW  value  into physical  byte  location  37A-37B.   Physical byte
+    locations 378-379 and 37C-37D are not used.
+
+    (b) Run-S/S  -  command number "01"H and "09"H
+
+            This command does  not need a  parameter but the  target instruction
+    single step bit  in I/O port needs  to be set up  by CP before  sending this
+    command.  When the single step bit in I/O port is set to one, the  EP enters
+    wait state immediately after finishing execution of the current instruction.
+    This  command forces  EP to  execute the  following instruction.   After the
+    execution of the next instruction, the  single step bit in I/O port  will be
+    examined to decide either continue running if the single bit is zero or wait
+    if the single step bit is one.  The EP will respond by writing PC value into
+    physical byte location 378-37B and by writting PSW value into  physical byte
+    location 37C-37D.  The returned PC and PSW values are the current  values at
+    the instant the  command is executed  if the single  step bit is  zero.  The
+    returned PC and PSW values are the values after the execution of the command
+    if the single step bit is one.
+
+    (c) Write PSW  -  command number "02"H
+
+            The new PSW value should be written into physical byte location 376-
+    377 before  sending this  command.  Physical byte  location 374-375  will be
+    ignored.  No response value will be set.
+
+    (d) Reset  -  command number "03"H, "07"H, "0B"H, and  "0F"H
+
+            These  commands  will  reset  EP.  No  parameter  is  needed  and no
+    response value will be set.
+
+    (e) Read GR  -  command number "#4"H
+
+            This  command does  not need  a parameter.   The register  number is
+    coded into  command number second  least nibble #.   The EP will  respond by
+    writing  general  register  value  into  physical  byte   location  378-37B.
+    Physical byte location 37C-37D is not used.
+
+    (f) Ucode Number -  command number "05"H
+
+            This command  does not  need a  parameter.  The  EP will  respond by
+    writing the date(month,day,year)  that microcode is assembled  into physical
+    byte location 378-37B and by writting microcode version number into physical
+    byte location  37C-37D.  Example:  "06251986"  in physical  location 378-37B
+
+
+
+
+    means this microcode  is assembled on June  25th, 1986.  "E020"  in physical
+    location 37C-37D means microcode version E02.0.
+
+    (g) Write GR  -  command number "#6"H
+
+            The  register  number  is coded  into  command  number  second least
+    significant  nibble  #.   The  new register  value  should  be  written into
+    physical byte  location 374-377  before sending  this command.   No response
+    value will be set.
+
+    (h) Read PC  -  command number "08"H
+
+            This command  does not  need a  parameter.  The  EP will  respond by
+    writing  PC  value  into  physical  byte  location  378-37B.   Physical byte
+    location 37C-37D is not used.
+
+    (i) Write PC  -  command number "0A"H
+
+            The new PC value should be written into physical byte  location 375-
+    377  before  sending  this  command.  Physical  byte  location  374  will be
+    ignored.  No response value will be set.
+
+    (j) Illegal  -  command number "0C"H, "0D"H, and "0E"H
+
+            These commands are not used.   The EP will respond by  writing "DEAD
+    0BAD" into physical byte  location 378-37B.  Physical byte  location 37C-37D
+    is not used.
+
+
+
+
+    +----------------+-----------------+----------------+-----------------+
+    | 370            | 371             | 372            | 373  Command    |
+    | Console Flag   | Zero            | Unused         | (GR #) |  CMD   |
+    +----------------+-----------------+----------------------------------+
+    | 374              375               376              377             |
+    |                      Parameter  (4 bytes)                           |
+    +---------------------------------------------------------------------+
+    | 378              379               37A              37B             |
+    |                      Response   (4 bytes)                           |
+    +----------------------------------+----------------------------------+
+    | 37C              37D             |
+    |      Response   (2 bytes)        |
+    +----------------------------------+
+
+                   Figure XX-XX  TSI CONSOLE MAIL-BOX FORMAT
+
+
+
+
+    +-------------+------------------------+------------------------+
+    |             |  CP --> EP             |  EP --> CP             |
+    |  Command #  |  Parameter data        |  Expected response     |
+    +=============+========================+========================+
+    |     00      |                        |  PSW value in 37A-37B  |
+    | (Read PSW)  |        None            |   (16 bits)            |
+    +-------------+------------------------+------------------------+
+    |     01      |                        | PC in 378-37B(32 bits) |
+    | (RUN - S/S) |        None            | PSW in 37C-37D(16 bits)|
+    +-------------+------------------------+------------------------+
+    |     02      |  New PSW value in      |                        |
+    | (Write PSW) |  376-377 (16 bits)     |        None            |
+    +-------------+------------------------+------------------------+
+    |     03      |                        |                        |
+    |   (Reset)   |        None            |        None            |
+    +-------------+------------------------+------------------------+
+    |     #4 *    |                        |  REG value in 378-37B  |
+    | (Read GR #) |        None            |   (32 bits)            |
+    +-------------+------------------------+------------------------+
+    |     05      |                        | Assem. date in 378-37B |
+    |  (Ucode #)  |        None            |  version # in 37C-37D  |
+    +-------------+------------------------+------------------------+
+    |     #6 *    |  New REG value in      |                        |
+    | (Write GR #)|  374-377 (32 bits)     |        None            |
+    +-------------+------------------------+------------------------+
+    |     07      |                        |                        |
+    |   (Reset)   |        None            |        None            |
+    +-------------+------------------------+------------------------+
+    |     08      |                        |  PC value in 378-37B   |
+    | (Read PC)   |        None            |   (32 bits)            |
+    +-------------+------------------------+------------------------+
+    |     09      |                        | PC in 378-37B(32 bits) |
+    | (RUN - S/S) |        None            | PSW in 37C-37D(16 bits)|
+    +-------------+------------------------+------------------------+
+    |     0A      |  New PC value in       |                        |
+    | (Write PC)  |  374-377 (32 bits)     |        None            |
+    +-------------+------------------------+------------------------+
+    |     0B      |                        |                        |
+    |   (Reset)   |        None            |        None            |
+    +-------------+------------------------+------------------------+
+    |   0C - 0E   |                        | "DEAD 0BAD" in 378-37B |
+    |(Illegal CMD)|        None            |   (32 bits)            |
+    +-------------+------------------------+------------------------+
+    |     0F      |                        |                        |
+    |   (Reset)   |        None            |        None            |
+    +-------------+------------------------+------------------------+
+
+    * # is the register number to be read or write.
+
+               Figure YY-YY  TSI CONSOLE COMMAND TABLE
+
