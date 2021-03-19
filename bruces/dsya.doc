@@ -1,0 +1,913 @@
+
+
+
+
+
+
+
+
+                                 TYMNET ENGINE
+
+
+
+
+                            DIAGNOSTICS USER'S GUIDE
+
+
+
+
+                             SYNC/ASYNC DIAGNOSTIC
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                  ^                                                             ^
+                  ^  This  document  is the  sole  property  and  confidential  ^
+                  ^  information of Tymshare, Inc.,  and may not be copied  in  ^
+                  ^  whole or part or disclosed to any third party without the  ^
+                  ^  prior written consent of Tymshare.                         ^
+                  ^                                                             ^
+
+
+
+
+
+                                 Tymshare, Inc.
+                             Data Network Division
+
+
+
+
+                                30 November 1983
+Sync/Async Diagnostic                                           30 November 1983
+
+
+
+                                    CONTENTS
+                                    ________
+       1.0 OVERVIEW ..................................................... 2
+       2.0 EQUIPMENT .................................................... 2
+       3.0 CONFIGURATION CONSTRAINTS .................................... 3
+       4.0 LOADING PROCEDURES ........................................... 3
+       5.0 OPERATING PROCEDURES ......................................... 3
+          5.1 Procedure with a Terminal ................................. 4
+          5.2 Procedure without a Terminal .............................. 4
+          5.3 Optional Procedure ........................................ 5
+       6.0 COMMANDS ..................................................... 6
+          6.1 Data Pattern Command ...................................... 6
+          6.2 Constant Command .......................................... 7
+          6.3 Inhibit Command ........................................... 7
+          6.4 Cancel Inhibit Command .................................... 7
+          6.5 Inhibit Data Command ...................................... 8
+          6.6 Continue Data Command ..................................... 8
+          6.7 Inhibit Idle Sync Command ................................. 8
+          6.8 Continue Idle Sync Command ................................ 9
+          6.9 Inhibit Sync Command ...................................... 9
+          6.10 Continue Sync Command .................................... 9
+          6.11 Inhibit Error Command .................................... 9
+          6.12 Continue Error Command .................................. 10
+          6.13 Inhibit Terminal Command ................................ 10
+          6.14 Device Respond Command .................................. 10
+          6.15 Begin Testing Command ................................... 11
+          6.16 Stop Command ............................................ 11
+       7.0 DIAGNOSTIC DESCRIPTION ...................................... 11
+       8.0 ERROR DESCRIPTIONS .......................................... 12
+          8.1 Terminal Error Messages .................................. 13
+          8.2 Console Error Messages ................................... 13
+       9.0 DATA PATTERNS ............................................... 14
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                               i
+Sync/Async Diagnostic                                           30 November 1983
+
+
+
+                             SYNC/ASYNC DIAGNOSTIC
+
+
+
+                             SECTION 1.0 OVERVIEW
+                             ____________________
+
+
+The Sync/Async diagnostic verifies the proper operation of the  synchronous and
+asynchronous I/O boards on both  the Engine and the Micro-Engine.  All existing
+sync and async I/O lines in  the address ranges 20-5F, 91-AF, and C1-FE  and at
+address BF are tested.
+
+
+
+                             SECTION 2.0 EQUIPMENT
+                             _____________________
+
+
+To run the Sync/Async diagnostic the regular Engine must have no less  than 64K
+bytes of memory, at least  one asynchronous or synchronous interface  board and
+test (loopback) plugs. The Micro-Engine needs only the test (loopback) plugs. A
+terminal is optional.
+
+For the regular Engine, two  types of loopback plugs are available.   One type,
+test plug sets AST 5-1 (sync)  and AST 6-1 (async), tests only the  boards. The
+second type, test plug sets AST 7-1 (sync) and AST 8-1 (async), is connected at
+the  connector  panel  and   tests  the  connector  panel   and  board-to-panel
+interconnecting cabling at the same time the boards are tested.
+
+Sync test plug set AST 5-1 consists of four sync test plugs for  connectors X4,
+X6, X7, and X9 and four clock plugs for connectors X3, X5, X8, and X10,  all on
+the front  edge of the  sync board.  Async  test plug set  AST 6-1  consists of
+eight async test plugs  that plug into connectors  X3 through X10 on  the front
+edge of the async board.
+
+The four clock plugs that are part of sync test plug set AST 5-1 are  also used
+with loopback plugs AST 7-1.
+
+For the Micro-Engine there are  four sets of test (loopback) plugs.   The async
+test plug set 630031-001 is for  connector J11, async 0.  The other  async test
+plug set, AST8-1, are for connectors J7, J9 and J10 (async 1-5, async  6-10 and
+async 11-15). The sync test plug  set 630025-001 is for connector J1  (sync 10,
+11, 14, 15). The other sync  test plug set 630030-001 is for connector  J2, J3,
+J4 and J8 (sync 2,  sync 3, sync 6 and sync  7). All test plugs for  the Micro-
+Engine connect to the rear of the system.
+
+
+
+
+
+
+                                                                          Page 2
+Sync/Async Diagnostic                                           30 November 1983
+
+
+
+                     SECTION 3.0 CONFIGURATION CONSTRAINTS
+                     _____________________________________
+
+
+It is  possible to test  only a few  sync or async  lines. Only those  lines to
+which loopback plugs  are connected are tested.  Lines not connected  should be
+eliminated from  the test procedure  using the 'UInn'  command before  the 'GO'
+command is given (see Section 6.3).   Any lines connected to the network  or to
+hardware other than the loopback plugs may interfere with the operation  of the
+diagnostic as well as the network.
+
+Except for the boards under test, the hardware must be in known  working order.
+If  there is  any doubt  regarding the  hardware's condition,  run the  CPU and
+Memory diagnostics.
+
+DMA devices, e.g., the 200/300M byte disk controller and the SIO  board, should
+be unplugged from the backplane because they may interfere with  the diagnostic
+program.
+
+If a terminal is used it must be connected to the multifunction board or  if on
+a Micro-Engine to the multifunction port connector.
+
+If two sync boards are used,  all clocks must be set at 4800  baud.  Otherwise,
+false errors will  occur on the sync  lines. The Engine cannot  accommodate two
+sync boards at 9600 baud.
+
+If the Engine has a  sync board that runs at  19,200 baud, then at most  4 sync
+lines may be set to 19,200 baud. The remaining lines on that board must  set at
+9600 baud. If there  is a second sync board  in the system, it must  be removed
+before starting the  test. Otherwise, the system  may hang or false  errors may
+occur.
+
+
+
+                        SECTION 4.0 LOADING PROCEDURES
+                        ______________________________
+
+
+The  Sync/Async diagnostic  uses the  standard loading  procedure  described in
+Diagnostics Introduction.
+
+
+
+                       SECTION 5.0 OPERATING PROCEDURES
+                       ________________________________
+
+
+The  Sync/Async diagnostic  can be  run using  the console  alone or  using the
+console and a terminal. On a regular Engine the diagnostic normally is run with
+a  terminal  connected  to  the multifunction  board.   On  a  Micro-Engine the
+diagnostic is normally run with a terminal connected to the  multifunction port
+on the rear of the Micro-Engine.
+                                                                          Page 3
+Sync/Async Diagnostic                                           30 November 1983
+
+
+
+                     SECTION 5.1 Procedure with a Terminal
+                     _____________________________________
+
+
+To run the diagnostic with a terminal, perform the following:
+
+
+   Step 1 Connect a terminal to the multifunction board.
+
+   Step 2 Load the diagnostic by one of the standard methods
+          described in Diagnostics Introduction.
+
+   Step 3 Connect the loopback plugs to the boards to be tested.
+
+   Step 4 Start the diagnostic by pressing the following on the
+          console:
+
+                              DTA, A, 0, 0, ADR, RUN
+
+
+
+Note that  if the  diagnostic was  loaded with  LOADII, then  step four  is not
+needed. The program will automatically start executing.
+
+At this point the program  will initialize itself, print the  diagnostic title,
+check and  indicate what type  of Engine  it is running  in (regular  or Micro-
+Engine)  and  will  check  all  synchronous  and  asynchronous  lines  for sync
+response.  The  program  will  print  and  flag  those  not  responding  in the
+responding device table so they will not be tested. It will then output  to the
+terminal a prompt (*). The prompt indicates that the program is ready to accept
+commands. Type at the terminal:
+
+                                    GO<CR>
+
+
+The diagnostic will start and repeat continuously until the machine halts or is
+interrupted by  the user.  While the  diagnostic is  testing the  hardware, the
+second and third leftmost digits on the display console will increment  on each
+pass through the diagnostic.
+
+
+
+                   SECTION 5.2 Procedure without a Terminal
+                   ________________________________________
+
+
+To run the diagnostic without a terminal, perform the following:
+
+
+
+
+
+                                                                          Page 4
+Sync/Async Diagnostic                                           30 November 1983
+
+
+
+   Step 1 load the diagnostic as described in Diagnostics Introduction.
+
+   Step 2 Connect the loopback plugs to the boards to be tested.
+
+   Step 3 Start the diagnostic by pressing the following on the
+          console:
+
+                            DTA, A, 0, 4, ADR, RUN
+
+
+
+Note:  If the  Diagnostic was  loaded with  LOADII, the  diagnostic  will start
+itself  during step  one.  This will  be indicated  by  an A00  on  the display
+console. The program will not be doing anything at this time, so  just continue
+on with steps two and three as above.
+
+The program will start, initialize itself, display the address of those devices
+responding and run the diagnostic until the machine halts or is  interrupted by
+the user. While the diagnostic is running, the second and third leftmost digits
+on the display console will increment on each pass through the program.   If an
+error is  found, it  will be  displayed on  the console.  If this  error occurs
+constantly, the pass count will not be incremented. In this case,  the contents
+of the display will not change.
+
+
+
+                        SECTION 5.3 Optional Procedure
+                        ______________________________
+
+
+An optional procedure causes the  diagnostic to not display the  device address
+of lines that  responded when an  I/O operation is  performed on them  when the
+program is first started. All other aspects of the diagnostic remain the same.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                          Page 5
+Sync/Async Diagnostic                                           30 November 1983
+
+
+
+To run the optional procedure change the data in memory locations 1E50 and 1E52
+to C830 0000  after the loopback  plugs are installed.   To do this,  press the
+following keys on the console:
+
+       DTA, 1, E, 5, 0, ADR, DTA, C, 8, 3, 0, WRT, DTA, 0, 0, 0, 0, INC
+
+
+Continue  with Step  4 in  the  procedure with  a terminal  and Step  3  in the
+procedure without a terminal.
+
+If a terminal is connected, the  addresses of the devices that respond  when an
+I/O operation is performed will not be output to the terminal.
+
+If  no  terminal is  connected,  the addresses  will  not be  displayed  on the
+console.
+
+To change  back to having  the device address  output, change this  location in
+memory back to its original value.  To do this press the following keys  on the
+console:
+
+       DTA, 1, E, 5, 0, ADR, DTA, C, 8, 3, 0, WRT, DTA, 0, 0, 0, 1, INC
+
+
+Continue  with Step  4 in  the  procedure with  a terminal  and Step  3  in the
+procedure without a terminal.
+
+
+
+                             SECTION 6.0 COMMANDS
+                             ____________________
+
+
+Commands  that can  be used  with the  Sync/Async diagnostic  are given  in the
+following sections. If  the diagnostic detects an  error in syntax,  it outputs
+'ILLEGAL OPTION' to the terminal and returns with a prompt(*).
+
+
+
+                       SECTION 6.1 Data Pattern Command
+                       ________________________________
+
+
+Syntax: DX
+
+Default: 0001
+
+
+
+
+
+
+
+                                                                          Page 6
+Sync/Async Diagnostic                                           30 November 1983
+
+
+
+Description: This command displays the initial data pattern on the terminal. To
+change the pattern, type
+
+                                   nnnn<CR>
+
+
+where  nnnn is  the new  value, expressed  as a  four digit  hexadecimal number
+immediately after the DX  command. If the default  pattern is to be  kept, type
+the <CR> only.
+
+
+
+                         SECTION 6.2 Constant Command
+                         ____________________________
+
+
+Syntax: CX
+
+Default: 3191
+
+Description: This  command specifies  a value to  be added  to a  data halfword
+after each transmission to obtain a new halfword.  This value may be changed in
+the same manner as the data pattern (see Section 6.1).
+
+
+
+                          SECTION 6.3 Inhibit Command
+                          ___________________________
+
+
+Syntax: UI[nn]
+
+Default: None
+
+Description: This command inhibits testing  of line nn, where nn is  the device
+address in hexadecimal. Each line must be inhibited separately (after  a <CR>).
+For sync card lines, it is necessary to inhibit only the receive device address
+which is always an even address. The corresponding transmit address is the next
+higher odd address. If nn = 00 all lines will be inhibited.
+
+Note that there must not be a space between the UI and [nn].
+
+
+
+                      SECTION 6.4 Cancel Inhibit Command
+                      __________________________________
+
+
+Syntax: UC[nn]
+
+Default: None
+
+                                                                          Page 7
+Sync/Async Diagnostic                                           30 November 1983
+
+
+
+Description: This command cancels the  effect of the Inhibit command,  where nn
+is the  device address in  hexadecimal. Each line  must be returned  to testing
+separately (after a <CR>). For sync  card lines it is necessary to  enable only
+the receive device address, which is always an even address.  The corresponding
+transmit address  is the next  higher odd address.  If nn =  00 all  lines were
+inhibited  will be  enabled.  This causes  the  responding device  table  to be
+output, followed by a new command line prompt (*).
+
+Note that there must not be a space between the UI and [nn].
+
+
+
+                       SECTION 6.5 Inhibit Data Command
+                       ________________________________
+
+
+Syntax: ID
+
+Default: Disabled
+
+Description: This command inhibits  the reporting of data errors.  However, the
+error count is still incremented so that when the S command is given  the total
+error count will be printed instead of just those reported.
+
+
+
+                       SECTION 6.6 Continue Data Command
+                       _________________________________
+
+
+Syntax: CD
+
+Default: Enabled
+
+Description: This command enables the reporting of data errors.
+
+
+
+                     SECTION 6.7 Inhibit Idle Sync Command
+                     _____________________________________
+
+
+Syntax: II
+
+Default: Disabled
+
+Description:  This command  inhibits the  reporting of  idle sync  line errors.
+However, the error  count is still  incremented so that  when the S  command is
+given the total error count will be printed instead of just those reported.
+
+
+
+                                                                          Page 8
+Sync/Async Diagnostic                                           30 November 1983
+
+
+
+                    SECTION 6.8 Continue Idle Sync Command
+                    ______________________________________
+
+
+Syntax: CI
+
+Default: Enabled
+
+Description: This command enables the reporting of idle sync line errors.
+
+
+
+                       SECTION 6.9 Inhibit Sync Command
+                       ________________________________
+
+
+Syntax: IS
+
+Default: Disabled
+
+Description: This command inhibits the reporting of sync line  errors. However,
+the error count is  still incremented so that when  the S command is  given the
+total error count will be printed instead of just those reported.
+
+
+
+                      SECTION 6.10 Continue Sync Command
+                      __________________________________
+
+
+Syntax: CS
+
+Default: Enabled
+
+Description: This command enables the reporting of sync errors.
+
+
+
+                      SECTION 6.11 Inhibit Error Command
+                      __________________________________
+
+
+Syntax: IA
+
+Default: Disabled
+
+Description: This command inhibits  the reporting of all errors.   This command
+overrides  the  CD, CI  and  CS commands.  However,  the error  count  is still
+incremented so that when  the S command is given total error count  wil be
+printed instead of just those reported.
+
+
+                                                                          Page 9
+Sync/Async Diagnostic                                           30 November 1983
+
+
+
+
+
+
+                      SECTION 6.12 Continue Error Command
+                      ___________________________________
+
+
+Syntax: CA
+
+Default: Enabled
+
+Description: This command  enables the reporting  of all errors.   This command
+overrides the IS, II and IS commands.
+
+
+
+                     SECTION 6.13 Inhibit Terminal Command
+                     _____________________________________
+
+
+Syntax: IT
+
+Default: Disabled
+
+Description:  This  command  inhibits  the outputing  of  all  messages  to the
+terminal.
+
+Note: The  terminal is reenabled  automatically (IT command  disabled) whenever
+the command processing routine is  entered by restarting the diagnostic  at A00
+or inputing an S command.
+
+
+
+                      SECTION 6.14 Device Respond Command
+                      ___________________________________
+
+
+Syntax: DR
+
+Default: None
+
+Description:  This  command  reinitializes  the  device  responding  table  and
+displays the addresses  of responding devices on  the terminal. The  DR command
+will override the IT and UI commands.
+
+
+
+
+
+
+
+
+                                                                         Page 10
+Sync/Async Diagnostic                                           30 November 1983
+
+
+
+                      SECTION 6.15 Begin Testing Command
+                      __________________________________
+
+
+Syntax: GO
+
+Default: None
+
+Description: This command starts the diagnostic.
+
+
+
+                           SECTION 6.16 Stop Command
+                           _________________________
+
+
+Syntax: S
+
+Default: None
+
+Description: This  command stops the  program. The Stop  command has  no effect
+while the terminal is outputing information (e.g., if the program is constantly
+reporting errors). Unlike  the other commands, the  Stop command is  used while
+the diagnostic  is running. The  Stop command returns  with an error  count and
+then a prompt (*) indicating the program is ready to accept a command.
+
+
+
+                      SECTION 7.0 DIAGNOSTIC DESCRIPTION
+                      __________________________________
+
+
+After the  Sync/Async diagnostic  has been loaded  and started,  the diagnostic
+will  test all  lines in  the address  ranges 20-5F,  91-AF, and  C1-FE  and at
+address  BF.  A flag  is  set  in a  table  for each  device  that  responds by
+activating  the  SYN0  signal,  and the  addresses  to  be  tested  are thereby
+established. If  a terminal  is connected, the  title of  the program  is first
+output to the  terminal, followed by  the type of Engine  ( regular or  micro )
+that the diagnostic found it self running in and then followed by the addresses
+of all responding devices (if enabled see 5.3) and then a prompt  (*). Commands
+may now be entered. After entering any other commands, enter the GO  command to
+begin testing.
+
+If no terminal is connected, the program, if enabled, outputs the  addresses of
+the devices that responded to  the display console. The diagnostic  delays long
+enough for each address to be read. The test is then automatically started.
+
+To determine  the shift factor  needed to  align the data  for sync  lines, the
+diagnostic outputs the pattern 0000 to all transmit sync addresses and  waits a
+short time for  the pattern to  be seen by the   sync receive lines.  The first
+interrupt from each sync transmit address causes a special routine to be called
+
+                                                                         Page 11
+Sync/Async Diagnostic                                           30 November 1983
+
+
+
+that outputs a pattern of 0001  to that address. This pattern is  recognized on
+the receive  line by  another special  routine that  computes the  shift factor
+needed to position  the incoming data for  comparison to the  transmitted data.
+These special routines  are run only  once for each  sync address. If  the word
+0001 is not recognized in the incoming data stream within three interrupts, the
+message  "NO SYNC  UNIT  nn" is  displayed on  the  terminal, and  the  test is
+restarted  from  the  beginning  (nn  is  the  address  of  the  sync  unit not
+responding).
+
+Once  the initial  0001 sync  pattern is  run, the  interrupt pointer  table is
+modified so  that another  routine is  called to  handle sync  interrupts. This
+routine adds the constant specified  by the CX command (default value  3191) to
+the initial data word specified by the DX command (default value 0001)  to form
+the current data word to be sent,  and then sends that word. The next  time the
+routine is called  (by a sync  interrupt), the constant  is again added  to the
+latest data word, and this new  value is sent. On receive interrupts,  the data
+is read and checked against the data sent using the previously determined shift
+factor to align  the data. An  error is generated if  the data received  is not
+equal to the data sent.
+
+The async  boards and the  control address  (BF) of the  sync board  are tested
+between sync card interrupts. The  data sent to these addresses is  computed in
+much the same manner as that sent to the sync addresses. The constant  value is
+added to the data word each  time an address is checked. An error  is generated
+if the data sent is not equal to the data received.
+
+An error is reported if a  sync card does not generate an interrupt  within the
+expected   interval   (the   interval   will   vary   with   different   Engine
+configurations). Each  time an   error is  detected and  reported, the  test is
+restarted from the beginning.
+
+If  in one  complete pass  through the  async lines  no errors  are  found, the
+diagnostic will  increment a  pass count that  is displayed  on the  second and
+third left most digits of the display console. The count displayed is  reset to
+zero on the next pass after it becomes 0FF in hexadecimal.
+
+
+
+                        SECTION 8.0 ERROR DESCRIPTIONS
+                        ______________________________
+
+
+Error messages are sent to the  terminal, if one is attached. In all  cases the
+error message is sent to the display console. The error message consists of the
+device address.  For a  data error, the  data received  is also  displayed. The
+diagnostic then restarts from the beginning.
+
+
+
+
+
+
+                                                                         Page 12
+Sync/Async Diagnostic                                           30 November 1983
+
+
+
+                      SECTION 8.1 Terminal Error Messages
+                      ___________________________________
+
+
+The following error messages  are sent to the  terminal.  For a data  error the
+terminal displays:
+
+                              UNIT = xx yyyy zzzz
+
+
+where xx  is the device  address, yyyy is  the data received,  and zzzz  is the
+constant added to the data pattern to obtain the next data pattern to be used.
+
+Note: To troubleshoot these errors, set the constant value to 0000 and the data
+value to the data value used when the error occurred (see sections 6.1 and 6.2)
+and then rerun the test.
+
+For an idle channel error, which  occurs when a sync unit does not  generate an
+interrupt within the time allowed, the terminal displays:
+
+                                IDLE UNIT = xx
+
+
+where xx is the device address.  For a no sync return error, which  occurs when
+the data 0001 is first transmitted on a sync line and is not returned to a sync
+receive unit within three interrupts, the terminal displays:
+
+                                NO SYNC UNIT xx
+
+
+where xx is the device address.
+
+For an illegal interrupt error, the terminal displays:
+
+                    ILLEGAL INTERRUPT FOR DEVICE NUMBER xx
+
+
+where xx is the device address.
+
+If an error  is found, the diagnostic  restarts at the beginning.   Async lines
+with addresses greater  than that in  which the error  is detected will  not be
+tested. If there is an async line error, the sync lines will not be tested.
+
+
+
+                      SECTION 8.2 Console Error Messages
+                      __________________________________
+
+
+Whether or not a terminal  is connected, the following error messages  are sent
+to the console. The console displays  the most recent error.  In all  the error
+
+                                                                         Page 13
+Sync/Async Diagnostic                                           30 November 1983
+
+
+
+messages below, zz  is the current  pass count. If  the error is  constant, the
+pass count will not increment.
+
+
+
+For a data error, the console displays:
+
+                                   1zzxxyyyy
+
+
+where xx is the device address and yyyy is the data received.
+
+For  an  idle channel  error,  which occurs  if  a unit  does  not  generate an
+interrupt within the time allowed, the console displays:
+
+                                   2zzxx0000
+
+
+where xx is the device address.  For a no sync return error, which  occurs when
+the data  0001 is  transmitted on a  sync line  and is not  returned to  a sync
+receive unit within three interrupts, the console displays:
+
+                                   3zzxx0000
+
+
+where xx is the device address.
+
+Note: To troubleshoot these errors, set the constant value to 0000 and the data
+value to the data value used when the error occurred (see sections 6.1 and 6.2)
+and then rerun the test.
+
+For an illegal interrupt error the console displays:
+
+                                   4zzxx0000
+
+
+where xx is the device address.
+
+If an error is found the  test restarts at the beginning. Lines  with addresses
+greater than that in which the error is detected will not be tested.
+
+
+
+                           SECTION 9.0 DATA PATTERNS
+                           _________________________
+
+
+The data pattern 0000 is output to all sync and async addresses being tested.
+
+After an  interrupt is received,  the data pattern  0001 is  transmitted. After
+each transfer the pattern is incremented by the constant (default value 3191).
+
+                                                                         Page 14
+Sync/Async Diagnostic                                           30 November 1983
+
+
+
+The starting data pattern can be changed by using the DX command.  The constant
+value can be changed by using the CX command.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                         Page 15
+ 93
