@@ -1,0 +1,85 @@
+  
+
+
+
+
+     There are normally two situations which will cause a file damage
+message to be generated.  The first is when there is actual damage to
+the key tables in the database.  The second occurs when a user opens a
+database that has already been opened for update, by another user.
+Within the PAPER program, opening a base does not generate an error but
+attempting to set the update lock on, does.  This error is what causes
+the program to print the message "Database Busy".  The program then waits
+a short time and tries again until it is succesful in setting the update 
+lock on.  It can then write to a database, release the lock, and continue
+on it's way.  The following is a procedure to follow if users start
+experiencing "Database Busy" for extended periods of time.
+
+1.  Check with the other customer service and ops groups to see if anyone
+    is running a report or some other procedure which would cause a base
+    to be locked.  If this is the case simply wait until they are finished.
+    If there is some compelling reason why you or someone else cannot wait
+    then ask that the procedure be terminated and postponed until later.
+    If the other user refuses then the last resort is to contact the system
+    operator and have that user's job terminated.  This is absolutely a
+    last resort and should rarely be considered.
+
+2.  If no one seems to be running any report or procedure then type:
+    R COM;BASCHK.CMD followed by 2 carriage returns, at the exec prompt.
+    If no file damaged messages are reported, then the database busy
+    condition should clear.
+
+    If file damaged messages are reported for any of the bases, note the
+    times and type the above again.  If the messages are no longer reporting
+    then the database busy condition should clear.
+
+    If the messages are still reporting then compare the times with the
+    original ones.  if they are not the same and the most recent ones are
+    close to the current time then this is an indication that the database
+    is being opened and closed normally, and the database busy condition
+    should clear shortly.
+
+    If the times reported are the same and from some time in the past then
+    there are 2 possibilities.(at the very least).  The first is that someone
+    you have not talked to is running a report or procedure.  The time will
+    indicate when the database was originally locked.  In this case go back 
+    to step 1.  This will usually be the case.
+    The other possibility is that there is actual damage to the database.
+    This is not rare, but is also not a regular occurrence.
+    From here on this procedure will deal with correcting actual database
+    damage, with(naturally) a couple of exceptions.
+
+3.  VERY IMPORTANT-  Type:
+
+    R COM;COPYPS.CMD          (This will create backup copies of the)
+                              (current databases in the (MURTAUGH)  )
+                              (directory.  The archive bases can be )
+                              (restored from tape, but this is the  )
+                              (only way to protect the current bases)
+    At this point you should contact the other customer service and
+    operations groups and tell them to stop using the program until
+    you are finished.
+
+4.  a.  Rename the database in question.
+        ex.  RENAME BASE1.DMS AS BA1.DMS
+             If you get a message  **File being modified**  try again
+             a couple of times at 5 to 10 second intervals.  If this
+             persists it is another indication that someone has the 
+             database locked.  Return to step 1.
+
+     
+    b.  Once the database is renamed, open the renamed base and turn the
+        update on.
+        ex.  -R (UPL)X22
+             *O BA1        (The .DMS extension is not necessary         )
+                           (and you should see the file damaged message )
+
+             *UPD ON      
+
+        Once the update is on, do the following commands:
+
+             *FI ALL
+             *DUMP TO BASE1.DMS             !! IMPORTANT !!
+                                       (Make sure that the filename you)
+                                       (specify here is the same as the)
+                                       (one you renamed from.          )
