@@ -1,0 +1,46 @@
+:
+: TWO INSTRUCTION ARE MODIFIED.  FROM 'NR' TO 'OR'.
+:
+:     JAMES WANG          JULY, 16, 1986
+:
+
+
+
+
+PATCH(850222,1100,STUTZMAN,NST220,,6)
+:	Insert patch to check if we have exceeded the maximum
+:	throughput class for this link.
+	J	PA1PTR,,
+CONPATCH(PA1PTR,,3E)
+	LB	R4,TTR.LT,RL,	:Get the max TC allowed on this link.
+	CR	R2,R4		:Compare with previously derived TC.
+	JE	NST224		:Skip if equal the max, all OK.
+	JLFS	NST222		:Skip if at least Xmit TC is OK.
+:	Here if Xmit TC may be bad.  It could be equal the max in the case
+:	where only the Rcv TC exceeds the max.  This case is handled like the
+:	Xmit TC was exceeded, even though it wasn't --- the max Xmit TC is
+:	forced into the computed working TC.  This case should not occur often
+:	and other algorythms take more code.  Rcv TC is unknown and checked
+:	later at NST222.
+	LR	R3,R4		:Copy max TC (both Xmit and Rcv).
+	NHI	R3,0F0		:Mask off max Rcv TC, left with max Xmit TC.
+	NHI	R2,00F		:Mask off bad Xmit TC, save Rcv TC.
+	OR	R2,R3		:Merge max Xmit TC into R2.
+:	Here (NST222) if Xmit TC (left 4 bits) are OK.
+NST222	LR	R3,R2		:Copy current working TC.
+	NHI	R3,00F		:Mask off Xmit TC (already checked), keep RCV.
+	NHI	R4,00F		:Mask of max Xmit TC.
+	CR	R3,R4		:Check RCV TC (right 4 bits).
+	JLFS	NST224		:Skip if everything is OK!
+:	Here if we have exceeded max Rcv TC.  Force to max.
+	NHI	R2,0F0		:Mask off bad Rcv TC, keep Xmit TC.
+	OR	R2,R4		:Merge max Rcv TC into R2.
+:	Here (NST224) after TC is fully checked.  Value in R2 is now OK!
+:		Resume NST220 logic....
+NST224	LHL	R4,IPORT	:Get IPORT for index.
+	STB	R2,TCLTR,R4,	:Save computed TC for later.
+	J	NST220+0A,,	:Return!
+ENDPATCH(Update TID to/from Throughput Class mapping tables and logic.)
+
+
+
