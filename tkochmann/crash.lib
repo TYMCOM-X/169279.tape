@@ -1,0 +1,285 @@
+	SUBTTL	ISIS STARTUP AND CRASH LIBRARY	- CRASH.LIB
+        REMARK  %CRASH.LIB    11-15-84 AWT
+	REMARK	%THIS VERSION HAS AN OPTION FOR EXTENDED CRASH PROCESSING.
+
+:******************************************************************
+:
+:	This program is the sole property and confidential
+:	information of Tymshare, Inc., and may not be copied
+:	in whole or in part or disclosed to any third party
+:	without the prior written consent of Tymshare.
+:
+:*******************************************************************
+	RA	0		:	CRASH.LIB	MFR 07/14/81
+
+:       Set UPSW to turn off tracing.
+:       Added CTIME and CRTIME to save crash times in GMT.
+:       Added a NCRSAV option to keep old copies of crash tables.
+:         April 13, 1983 AWT
+:
+:	Changed the supervisor's log message to report the PRODID.
+:	Sep. 20, 1982 SCY.
+:	ENTRY2 (restart service) changed to clear input and output
+:	rings PRIOR to issuing Restart SVC to prevent crash-loop if
+:	Dispatcher has crashed. June 17, 1982 MDS.
+
+:			ISIS - II Version
+:
+	GL	CRASH,CRASHC,CPOINT,CFROM,CRREG,ENTRY,START,CRAT,CRSHCT,CRSTOP
+        GL      PRODID,NCRSAV,CTIME,CRTIME,EXCRSH
+	MO	.,CRASH
+
+
+:	Generalized crash package.
+:	Handles both software and hardware crashes.  On any crash, the
+:	registers are saved in CRXREG, and CRSHCT is incremented.
+:	Software crashes occur via  JAL R10,CRASH .  CRASH saves (R10) in cell
+:	CPOINT.  Software crashes may be "good" or "bad"...if "good", the
+:	calling sequence is:
+
+:		JAL	R10,CRASH
+:						from a bad one
+:		HC	0		:this key distinguishes a good crash
+:		BC	4*L,Y		:first byte is 4*register linked to
+:						routine, Y is the reason
+:	then register (L) is saved in CFROM, and Y is saved in CRASHC
+
+:	in the event of a hardware failure, CPOINT contains the instruction
+:	address at the time of failure, CRASHC contains the failure reason,
+:	and CFROM is set =-1.
+
+:	On completion of crash, transfers to label START, defined
+:	in the user code.
+:
+:	The symbol CRSTOP may be set to 0 or 1.  If 1 the crash routine will
+:	be executed only once.  the second time through the crash area will
+:	be set up as specified above and then registers will be restored to
+:	their entry value and the slot will be frozen. If it is thawed it
+:	will restart.
+:
+:       The symbol NCRSAV defines the number of crash tables to be saved.
+:       It will be set to 1 by default. (In TYMFIL CRSHTB macro is used
+:       to define NCRSAV)
+:
+:       Entering :R CRAT,CRTSIZ (or 4C) will dump the last 
+:       crash table, CRAT+CRTLEN (or 50),CRTSIZ will dump the    
+:       previous crash table and so on.
+:
+:       CTIME,4 gives the last crash time (in GMT), CTIME+CRTLEN,4
+:       gives the previous crash time and so on.
+:
+:	The symbol EXCRSH, if set to 1, allows a JAL to label
+:	CRSH.P out of the crash routine for extended crash processing.
+:	The link is R5.  EXCRSH is defaulted to 0.
+:
+:
+
+  IF	\CRSTOP
+  ELSE
+CRSTOP	EQ	0
+  EI
+  
+  IF    \NCRSAV                 :# OF CRASH TABLES TO SAVE
+  ELSE                          :IT MAY BE DEFINED IN TYMFIL
+NCRSAV  EQ      1               :OTHERWISE IT IS 1 BY DEFAULT
+  EI
+
+  IF	\EXCRSH			:DEFAULT TO NO EXTENDED CRASH HANDLING
+  ELSE
+EXCRSH	EQ	0
+  EI
+
+
+CRTENT  EQ      .               :CRASH TABLE ENTRY
+        ORG     0
+CRSHCT	HS	1		:CRASH COUNT...HOW MANY TIMES CRASHED
+CRASHC	HS	1		:CRASH CODE (INIT'ED TO MANUAL RESTART)
+CPOINT	HS	2		:WHERE CRASH OCCURED
+CFROM	HS	2    		:WHERE CRASH WAS CALLED FROM
+CRXREG	HS	20		:CRASH REGISTER SAVE AREA
+CRTSIZ  WS      0               :SIZE OF CRASH TABLE WITHOUT CRTIME
+CRTIME  WS      1               :REAL TIME OF CRASH (GMT)
+CRTLEN  WS      0               :LENGTH OF CRASH TABLE WITH CRTIME
+        ORG     CRTENT  
+
+        SEG     A.DATA
+        HS      0
+CTIME   WS      1               :STORAGE FOR CRASH TIME OF LAST CRASH
+CRAT    BS      CRTLEN*NCRSAV   :STORAGE FOR CRASH TABLE(S)
+CRREG   EQ      CRAT+CRXREG
+RGSTOR  WS      10              :TEMPORARY STORAGE FOR REGISTERS
+FGNDFL	HS	1		:FOREGROUND FLAG
+
+TRBOFF  WC      0,FAIL0         :TRACE BIT OFF, GO TO FAIL0
+TRCOFF  WC      0,CRASH0        :TRACE BIT OFF, GO TO CRASH0
+PSWSAV  WC      0,START         :RESTORE PSW,  GO TO INITIALIZATION CODE
+CHFLAG  WC      0               :USED FOR ANY CHANGES ON PSW
+
+
+	SEG	A.CODE		:CODE AREA
+CRSHCD	BC	1	:MANUAL RESTART
+	BC	0	:POWER FAILURE
+	BC	0E	:PARITY ERROR
+	BC	10	:DISPATCHER CRASH
+	BC	11	:ILLEGAL INSTRUCTION
+	BC	12	:ILLEGAL SVC
+	BC	13	:SYSTEM CRASH
+	BC	14	:PROTECTION VIOLATION
+	BC	15	:NON-RECOVERABLE DEVICE CHECK
+	BC	16	:WATCH FROG TIMER - - TIME OUT
+
+	RA	0
+:	GENERAL MACHINE FAILURE
+FAIL	HS	4		:PSD SAVED HERE
+	HS	4		:R0,R1 SAVED HERE
+        ST      R0,RGSTOR,,     :SAVE R0
+        ST      R2,RGSTOR+4,,   :SAVE R2
+        JAL     R2,SAVPSW       :SAVE CURRENT PSW
+        L       R0,RGSTOR,,     :RESTORE R0
+        L       R2,RGSTOR+4,,   :RESTORE R2
+        UPSW    TRBOFF          :TRACE BIT OFF AND CONTINUE
+FAIL0   LB      R0,CRSHCD,R1    :CONVERT CRASH REASON
+	CLHI	R0,12		:TEST IF ILLEGAL SVC
+	JNFS	FAIL1		:NO...SKIP
+	LHL	R0,FGNDFL	:DID FOREGROUND CAUSE THE CRASH?
+	JN	ENTRY2		:YES....JUMP OVER
+FAIL1   STM     R0,RGSTOR,,     :SAVE REGISTERS
+        JAL     R2,PSHTBS       :PUSH DOWN CRASH TABLES
+        L       R1,GMT,,        :GET GMT CLOCK
+        ST      R1,CTIME,,      :SAVE IT AS THE CRASH TIME
+        LM      R0,RGSTOR,,     :RESTORE REGISTERS
+        STM     R2,CRAT+CRXREG+8,, :SAVE THE REGISTERS
+        STH     R0,CRAT+CRASHC,,  :SAVE CRASH CODE
+        LM      R12,FAIL          :GET THE REST
+        STM     R14,CRAT+CRXREG,,  :SAVE R0 & R1
+        ST      R13,CRAT+CPOINT,, :SAVE FAILURE ADDRESS
+	LCS	R1,1
+        ST      R1,CRAT+CFROM,,   :FLUSH PLACE CALLED FROM
+        J       ENTRY1            :AND SKIP TO START UP AGAIN
+
+
+
+:	CRASH ROUTINE AND GENERAL INITIALIZER
+:	IF "GOOD" CALL TO CRASH, HAS HALFWORD 0'S FOLLOWING,
+:	THEN BYTE WITH 4*LINK REGISTER, THEN BYTE WITH CRASH REASON
+
+CRASH   ST      R0,RGSTOR,,     :SAVE R0
+        ST      R2,RGSTOR+4,,   :SAVE R2         
+        JAL     R2,SAVPSW       :SAVE CURRENT PSW
+        L       R0,RGSTOR,,     :RESTORE R0
+        L       R2,RGSTOR+4,,   :RESTORE R2
+        UPSW    TRCOFF          :TRACE BIT OFF AND CONTINUE
+CRASH0  STM     R0,RGSTOR,,     :SAVE REGISTERS
+        JAL     R2,PSHTBS       :PUSH DOWN THE CRASH TABLES
+        L       R1,GMT,,        :GET GMT CLOCK
+        ST      R1,CTIME,,      :SAVE IT AS THE CRASH TIME
+        LM      R0,RGSTOR,,     :RESTORE REGISTERS
+        STM     R0,CRAT+CRXREG,, :SAVE REGISTERS AND
+        ST      R10,CRAT+CPOINT,,                    
+	LIS	R0,$A10		:FAKE UNKNOWN CRASH
+	LCS	R1,1		:FROM NOWHERE
+	LHL	R2,0,R10	:CHECK WHERE CALLED FROM
+	JNFS	CRASH1		:NOT KNOWN...USE DEFAULT
+	LB	R0,3,R10	:GET CRASH CONDITION
+	LB	R2,2,R10	:GET CALLING REGISTER
+        L       R1,CRAT+CRXREG,R2 :GET CONTENTS OF REGISTER
+        
+CRASH1  STH     R0,CRAT+CRASHC,, :SAVE CRASH CODE
+        ST      R1,CRAT+CFROM,,  :SAVE PLACE CRASHED FROM
+	JFS	ENTRY1
+
+:	ENTER HERE WITH RESTART
+ENTRY	LIS	R0,1		:LOAD CRASH CODE REGISTER
+        STH     R0,CRAT+CRASHC,, :STORE IT
+ENTRY1	LIS	R1,1
+        AHM     R1,CRAT+CRSHCT,, :SAVE INTERESTING DATA
+
+  IF	CRSTOP		:IF STOPPING ON CONSECUTIVE CRASHES
+	CLHI	R0,1
+	JLE	ENTRY2		:IF POWER FAILURE OR MANUAL RESTART
+	OHI	R0,0CC00	:CRASH INDICATOR FOR FRONT PANEL
+	STH	R0,FPANEL,,	:SET PANEL TO BAD CRASH
+   IF	EXCRSH
+	JAL	R5,CRSH.P,,	:GO DO EXTENDED CRASH PROCESSING
+   EI	EXCRSH
+        LM      R0,CRAT+CRXREG,, :RESTORE REGISTERS
+	SVC	SYS,HALT.	:HALT THE SLOT
+  EI	CRSTOP
+
+	LIS	R0,1		:WANT SECOND WORD OF PSD
+	SVC	SYS,RFPSD.	:READ FOREGROUND PSD
+	CLI	R0,.		:TEST IF FOREGROUND IS EXECUTING THIS INSTRUCTION
+	JNFS	ENTRY2		:SKIP IF NOT
+	STH	R0,FGNDFL	:SET THE FOREGROUND FLAG
+
+ENTRY2		: NOW RESET OUTPUT RING, REPORT CRASH
+  IF	CRSTOP
+  ELSE
+   IF	EXCRSH
+	JAL	R5,CRSH.P,,	:GO DO EXTENDED CRASH PROCESSING
+   EI	EXCRSH
+  EI	CRSTOP
+	LIS	R0,0
+	ST	R0,ORING,,	:EMPTY OUTPUT RING
+	ST	R0,IRING,,	:EMPTY INPUT RING
+
+	LA	R0,FAIL		:LOAD TRAP AREA ADDRESS
+	SVC	SYS,RSTRT.	:RESTART SVC
+	JAL	R10,CRASH	:NON-SKIP RETURN...CRASH
+
+
+	LIS	R0,0
+	STH	R0,FGNDFL	:CLEAR THE FOREGROUND FLAG
+
+	JAL	R4,SPACE,,	:SET UP FOR DIAGNOSTIC
+	LHI	R0,0300
+	JAL	R4,PUTW,,	:PORT 0 + DIAGNOSTIC MESSAGE + PAD
+	LHL	R0,CRAT+CRSHCT,,
+	JAL	R4,PUTCH,,	:HW4 LOW = CRASH COUNT
+	LIS	R0,0
+	JAL	R4,PUTCH,,	:RESERVED BYTE
+	LIS	R0,1
+	JAL	R4,PUTCH,,	:REPORT TYPE = 1
+	LHL	R0,CRAT+CRASHC,,
+	JAL	R4,PUTCH,,	:HW3 HIGH = CRASH CODE
+	LHI	R0,PRODID
+	JAL	R4,PUTCH,,	:HW2 LOW IS PRODUCT ID
+	JAL	R4,ELOR,,	:END LOGICAL OUTPUT RECORD
+        L       R1,CHFLAG,,     :SEE IF PSW HAS BEEN CHANGED
+        CLHI    R1,1
+        JNFS    CURPSW          :NO CHANGE, GO TO USE CURRENT PSW
+        LIS     R1,0
+        ST      R1,CHFLAG,,     :RESET CHFLAG FOR FUTURE PSW CHANGE
+        UPSW    PSWSAV          :INITIALIZE WITH RESTORED PSW
+CURPSW  J       START,,         :INITIALIZE WITH CURRENT PSW
+
+SAVPSW  LIS     R0,1            :GET PC OF BACKGROUND PSD
+        ST      R0,CHFLAG,,     :ALSO INDICATE PSW WILL BE MODIFIED
+        SVC     SYS,RBPSD.      :READ BACKGROUND PSD
+        CLI     R0,.            :IS IT RUNNING?
+        JNFS    ISFGND          :NO, IT MUST BE FOREGROUND JOB
+        LIS     R0,0            :GET PSW OF BACKGROUND JOB
+        SVC     SYS,RBPSD.
+        ST      R0,PSWSAV,,     :SAVE IT
+        JR      R2              :RETURN
+ISFGND  LIS     R0,0            :GET PSW OF FORGROUND JOB
+        SVC     SYS,RFPSD.
+        ST      R0,PSWSAV,,     :SAVE IT
+        JR      R2              :RETURN
+
+
+PSHTBS  LHI     R1,CRTLEN*NCRSAV-CRTLEN*2
+        JLR     R2              :IF ONLY 1 CRASH TABLE, SKIP AND RETURN
+PUSHIT  LM      R6,CRAT,R1      :PUSH DOWN THE CRASH TABLE
+        STM     R6,CRAT+CRTLEN,R1
+        LM      R6,CRAT+CRTLEN/2,R1
+        STM     R6,CRAT+CRTLEN+CRTLEN/2,R1
+        SHI     R1,CRTLEN
+        JGEBS   PUSHIT
+        L       R1,CTIME,,
+        ST      R1,CRAT+CRTSIZ,,
+        JR      R2              :RETURN
+         
+	EM
+
+    
