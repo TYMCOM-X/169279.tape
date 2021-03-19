@@ -1,0 +1,680 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                          PRELIMINARY OPERATION GUIDE
+                    FOR CONFIGURATION USING EXTENDED MEMORY
+
+
+
+
+
+                                       by
+
+                                  Pierre FENEZ
+                              TYMNET SUPPORT GROUP
+
+
+
+
+
+
+
+
+
+                     McDonnell Douglas Information Systems
+                            106 Bureaux de la Colline
+                                92213 SAINT CLOUD
+                                     FRANCE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+This document is the sole property and confidential information of
+McDonnell Douglas, and may not be copied in whole or in part or
+disclosed to any third party without the prior written consent of
+McDonnell Douglas.
+
+This document may be superseded by a new release without notice to the
+users.
+                                                                  Page 1
+
+
+
+
+                               TABLE OF CONTENTS
+                               =================
+
+
+
+
+Section                                                            Page
+-------                                                            ----
+
+   1     INTRODUCTION                                                2
+
+
+   2     HARDWARE & SOFTWARE REQUIREMENTS                            3
+
+      2.1   HARDWARE REQUIREMENTS                                    3
+      2.2   SOFTWARE REQUIREMENTS                                    4
+
+   3     EXTENDED MEMORY CONCEPTS                                    5
+
+   4     GENERATION                                                  7
+
+      4.1   SLOT TYMFILE                                             7
+      4.2   GENERAL TYMFILE                                          9 
+
+   5     LOADING 2-MEG CONFIGURATION                                10
+
+   6     APPENDIX                                                   11
+
+      6.1   SAMPLE GENERATION                                       11
+      6.2   SAMPLE ISIS CMD FILE                                    12
+      6.3   SAMPLE SLOT TYMFILE                                     13
+      6.4   SAMPLE GENERAL TYMFILE                                  15
+                                                                  Page 2
+
+
+1 :  INTRODUCTION
+=================
+
+
+   The purpose of this document is to provide users with a practical
+guide for configurations using extended memory as installed on customer
+sites at the present time.
+
+   To create this document, extracts have been taken from different
+sources and new parts added.  Our aim is to make it as complete as possible.
+
+   Only Pascal codes in 2 meg configurations will be treated here.
+
+   We would be very grateful to have your comments or suggestions on
+this document.  We can be contacted at :
+
+     - Ontyme : TSG.CS or TSG.P/FENEZ
+     - Tel.   : (331) 49 11 20 70
+     - Fax    : (331) 47 71 06 51
+                (331) 47 71 20 64
+     - Telex  : 203791
+                270315
+                                                                  Page 3
+
+
+2 :  HARDWARE & SOFTWARE REQUIREMENTS
+=====================================
+
+   2.1 :  HARDWARE REQUIREMENTS
+   ----------------------------
+
+
+   At the present time, only the MAC II Engine supports 2 meg
+configuration:  The first memory board is addressed at 80 Hex and the second
+one at A0 Hex.
+
+
+     ECO's or FCO's Required
+     -----------------------
+
+
+
+     Board Type                     ECO/FCO Level
+     ----------                     -------------
+
+     memory                         85-476, 84-189
+     MAC                            85-418, 86-283, 84-090
+     Backplane                      85-447
+                                                                  Page 4
+
+
+     2.2 :  SOFTWARE REQUIREMENTS
+     ----------------------------
+
+
+       Software versions required
+       --------------------------
+
+       ISIS                            7.00 and above
+       Node Code                       5.10 and above
+       PNUC                            11.12 and above
+                                                                  Page 5
+
+
+3 : EXTENDED MEMORY CONCEPTS
+============================
+
+
+        The ISIS support for extended memory has a new concept: that of
+        memory areas.  These areas (ranging from 0 - 15) define contiguous 
+        real addresses for use by a slot.  As the first megabyte is 
+        special (DMA devices can only access the first meg and the Mac
+        registers can only refer to segments), the area concept allows
+        control over memory allocation.
+
+                For use with the Concurrent Pascal Nucleus, the memory
+        areas should be defined as follows:
+
+        area 0  meg 0 data (for both nucleus and Pascal stack)
+        area 1  slot CTA (segment 0E)
+        area 2  slot segment 0F
+        area 3  non-meg 0 code space (for nucleus code and Pascal code)
+
+        Note that areas 0-2 are allocated from meg 0 memory (via the
+        SnCORE parameter in the ISIS TYM file).  Area 3 (the non-meg 0
+        memory) is define via the new ISIS TYM macro DEFEXT (P1,P2,P3,P4,P5)
+        explained later in this document.
+
+                The EMEMRY(area0,area3,nsets) macro in the Nucleus TYM
+        file defines and enables the extended memory function.  The
+        nucleus will then build and manage several MAC register sets so
+        as to allow the Pascal program access to all of the slot's
+        memory.  The nucleus starts with two assembled-in MAC sets.
+        These are the -1 (minus one) set and the 0 (zero) set.  The -1
+        set uses areas wholly within the first meg.  It is required by
+        ISIS and is the set used first when ISIS begins execution of
+        the slot (or if ISIS crashes the slot).  The 0 MAC set defines
+        the area 3 space (nucleus and Pascal code), so that code can
+        be loaded via NAD or LOADII.  Pascal code also begins
+        execution (ie initialization) using MAC set 0.
+
+                The memory segment usage of the Concurrent Pascal
+        Nucleus looks similar with the extended memory option
+        as before:
+
+        Seg 0   Nucleus data
+        Seg 1   Nucleus code
+        Seg 2   Pascal code
+        .       .
+        .       .
+        .       Pascal data (stack)
+        .       .
+        Seg 13  .
+        Seg 14  ISIS CTA
+        Seg 15  ISIS communication
+
+        The difference is that with the extended memory option
+        the Pascal data area will always start on a segment boundary
+        (without the option as before it starts wherever the Pascal
+        code leaves off); and that the Pascal data area does not need
+        to fit at one time within the addressable space.
+                                                                  Page 6
+
+
+                The virtual address space starting with the next
+        segment above, where the Pascal code ends, through virtual
+        address 0DFFFF forms a "window" onto the total area 0
+        space.  Thus, there are two limiting factors as to the amount
+        of available stack space.  Firstly, the size of area 0
+        (ie that space available to this slot in the zero meg) limits
+        the total available stack space.  Secondly, the size of the
+        window (minimum is one segment) defines the maximum
+        stack that a single process can have (usually the process
+        requiring the largest stack space is the parent process).
+
+                As the Concurrent Pascal Nucleus begins execution
+        of the Pascal code (initial execution of the parent process)
+        the stack is allocated right after the data area of the
+        nucleus from within area 0.  This is still within MAC register
+        set 0.  The nucleus continues to allocate storage contiguously.
+        When the nucleus receives a request for stack space that
+        would cause the window size to be exceeded (for MAC
+        register set 0), the window corresponding to MAC set 0 is
+        completed and MAC register set 1 is begun (moving the
+        virtual address of the stack back to the beginning of the
+        window).  A little storage is lost here as ISIS requires
+        that segments begin on page (256 byte) boundaries.  A
+        relatively expensive SVC is issued to ISIS whenever a MAC
+        register set is started and again, when a window is
+        completed (to indicate the exact size).
+
+                The process of building MAC register sets continues
+        as the Pascal code initializes itself.  The maximum number
+        of sets is defined in the nucleus TYM file via the EMEMRY
+        macro.  (Space is reserved in the CTA for building the MAC
+        register sets.)  The real address (relative to the
+        beginning of area 0) of each process' stack space is saved
+        in the Process Header Block in the nucleus.  Thus, when
+        execution of a Concurrent Pascal process begins, the nucleus
+        looks to see if the appropriate MAC register set
+        is active, and if not, a relatively inexpensive ISIS SVC is
+        used to switch.
+
+                Note: all MAC register sets (except for -1) are
+        identical with regards to nucleus, Pascal code and segments
+        0E and 0F.
+                                                                  Page 7
+
+
+4 :  GENERATION
+===============
+
+    4.1 SLOT TYMFILE
+    ----------------
+
+
+   In the slot tymfile, a new macro specific to a configuration using
+extended memory is added: the macro EMEMRY as seen in Chapter 3.
+The macro NBYTES needs to be set accordingly as explained below.
+
+   There are two methods of estimating the score size needed in a Pascal
+configuration :
+
+     - using the resource estimation program
+       (SOURCE)NMRE.
+
+     - or by calculating manually, as described in the (BASELINE).X file
+       for the product (i.e. TMCS10.X20 for TMCS version 10.20).
+
+   The estimated value is used to determine the sizes for area 0, 1 and 3,
+(area 0 and 1 being in the first meg, area 3 in the second).
+
+
+       4.1.1 :  Size for area 3 (Nucleus and Pascal code)
+
+       1) Remove the lower part of the command file as follows :
+
+          COPY (SOURCE)NVAL02.I05+(pfenez)ND9999.A02+(SOURCE)NVAL02.R05
+          ND9999.Z02
+          RUN (SOURCE)CPPRO
+          ND9999.Z02
+          ND9999.Z02
+          RUN (SOURCE)CPAS1
+          ND9999.X02
+          ND9999.Y02
+          ND9999.Z02
+          RUN (SOURCE)OBJNIB
+          ND9999.X02
+          ND9999.X02
+
+          RUN (SOURCE)STADDR
+          ND9999.Y02
+          ND9999.Y02
+
+       2) Run NAD with the modified command file.
+
+       3) Then, run NAD, read the .X file, and issue the command 
+          ;4 20000[ as follows :
+
+          - R NAD
+          %F     ND9999.X01
+          ;G    
+          ;4     20000[    QQQQQ
+
+          NAD will provide you with the value QQQQQ which is the number of
+          bytes in hexadecimal needed for PASCAL CODE.  This value needs to be
+          rounded-up to the segment boundary to obtain the size of area 3. i.e.
+        
+          ;4     20000[     3ab70
+          3AB70 is rounded-up to 40000
+                                                                  Page 8
+
+
+       4.1.2 :  Size for Area 0 and 1
+
+          size for area 0 + area 1 = (size estimated ) - QQQQQ + 10
+                                   = value for the macro NBYTES.
+
+   The size of area 1 depends on the number of mac sets.
+Empirically, the number of mac sets is set at 6, and the size of area 1 is
+equal to 1 KBytes.  If 7 or more mac sets are used, area 1 must be set
+at 2 KBytes.
+          
+
+         e.g.
+    
+         Estimated size : 330 Kbytes.
+         QQQQQ = 3AB70 Hex = 234 KBytes
+         Area 3: 3AB70 ===> 40000 = 256 Kbytes.
+         Area 0+1 = 330-234+10 = 106 Kb.
+         Mac sets = 6.
+         Area 1 = 1 Kb.
+         Area 0 = 105KB.
+
+   In the tymfile,
+
+    NBYTES(,106)
+    and EMEMRY(105,256,6).
+                                                                  Page 9
+
+
+   4.2  GENERAL TYMFILE
+   --------------------
+
+
+   In the general tymfile, the following macro should be added for slots using
+extended memory.
+
+    DEFEXT(Slot#,Area#,Start pages#,# of page,protection mask).
+    Slot # : the slot number.
+    Area # : 3 for Pascal codes
+    Start page # : page # at which the area memory starts.
+    # of page : length of memory area in pages
+    Prot. mask : 3 for Pascal (always).
+
+   (1 page = 100x bytes = 256d bytes.)  The second meg starts at page
+1000.X (address FFFFF+1).
+
+
+e.g.  DEFEXT(1,3,1000,400,3).
+
+  where the slot is slot 1,
+  the area is area 3,
+  starting at page 1000X (in the second meg),
+  ending at page 1400X,
+  the protection mask is 3.
+                                                                  Page 10
+
+
+5 :  LOADING 2-MEG CONFIGURATION
+=================================
+
+   The engine can be reloaded by using LOAD II, or ELF or from a locally
+attached disk.  But this does not reload the slots which use the second
+meg.  The slot load needs to be used to reload these slots, (assuming
+that the MMEG07.P00 patch-file is included in the general CMD file).
+
+   When reloading a multi-meg machine, the total memory needs to be
+erased.  To this end, after having cleared the first meg, the following
+needs to be performed on the front console :
+
+   Press : DTA, 0300, ADR, OFFO, WRT, INC, 0010, WRT
+   Press : 0400, SET, 0, ADR, WRT, INC, RPT (LET CYCLE FROM '0000' to at
+           least '1000').
+   Press : PSW and verify that it is equal to 8400.
+                                                                  Page 11
+
+
+6 :  APPENDIX
+=============
+
+   6.1 :  SAMPLE GENERATION
+   ------------------------
+
+
+-R (TNSM)COM
+
+file= ND9999.CC1
+
+type carriage return to start
+-COPY (SOURCE)NVAL02.I05+(pfenez)ND9999.A02+(SOURCE)NVAL02.R05
+TO: ND9999.Z02
+
+-RUN (SOURCE)CPPRO
+
+Concurrent Pascal Preprocessor. Version 1.0
+
+Input file: ND9999.Z02
+Output file: ND9999.Z02
+
+Preprocessing complete. 37802 lines read, 35762 lines written
+
+End of SAIL execution
+-RUN (SOURCE)CPAS1
+OBJECT    = ND9999.X02
+LIST      = ND9999.Y02
+SOURCE    = ND9999.Z02
+
+CPASCAL/ENGINE-1 OF 11 JUNE MCMLXXXVI
+ 1 2 3 4 5 6 7
+EXIT
+
+-RUN (SOURCE)OBJNIB
+PASCAL E-code to NAD image binary converter - Version 1.5
+                Product ID is 006F
+Concurrent PASCAL OBJECT <input> file : ND9999.X02
+NAD <output> file name : ND9999.X02
+Hex value of E-code load address (Default 20000) : 
+
+Total bytes input: 222340
+Total records output: 8
+End of SAIL execution
+-RUN (SOURCE)STADDR
+
+STADDR - version 1.1
+
+input file: ND9999.Y02
+output file: ND9999.Y02
+
+EXIT
+
+-R NAD
+1.5
+%F   ND9999.X02
+
+;G
+Data ranges read:
+20000-27FF7 27FF8-2FFEF 2FFF0-37FE7 37FE8-3FFDF 3FFE0-47FD7
+47FD8-4FFCF 4FFD0-56483 
+
+;4   20000[   36482     : IN THIS CASE, WE SHALL NEED 4 SEGMENTS FOR PASCAL 
+                        : CODE, SO 256 KB OR 400x pages.
+%Q
+EXIT
+-
+                                                                  Page 12
+
+
+   6.2 :  SAMPLE ISIS COMMAND FILE
+   -------------------------------
+
+
+;; SAMPLE COMMAND FILE FOR ISIS IN CASE OF 2 MEGS MACHINE, WITH A SUP.
+;; ISIS VERSION 7.00 COMMAND FILE
+;;
+;@(SOURCE)I2IS07.I00
+;@ND9999.TYM
+;@GOODGY.LST
+;@(SOURCE)SUP41.I04
+;@ND9999.DSC
+;@ND9999.SUP
+;@(SOURCE)I2IS07.R00
+;X(SOURCE)I2IS07.P00
+;X(TNSM)MMEG07.P00     ;; TO BE REMOVED WHEN PATCH INTEGRATED IN ISIS VERSION,
+                       ;; OR WHEN INTEGRATED IN ISIS PATCH FILE.
+1;FND9999.NIB
+70;T0,SUMTBL;PINTLEN,IEND-INTLEN;P%PSEGF,SFSIZE;P%Q
+                                                                  Page 13
+
+
+   6.3 :  SAMPLE SLOT TYMFILE
+   --------------------------
+
+:*****************************************************************************
+:
+:	CUSTOMER	:	SAMPLE CONFIGURATION
+:	NETWORK NAME	:	THIS IS A REAL CONFIGURATION, RUNNING.
+:	NODE NUMBER	:	2001		SITE      :	
+:	SLOT NUMBER	:	2		SLOT NAME :	NETVAL
+:	VERSION NUMBER	:	2.05
+:
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:
+:	HISTORY FILE :
+:	============
+:
+:	DATE	: YY/MM/JJ	ACTION : 
+:*****************************************************************************
+
+        RA      $0 0A   :radix is decimal
+
+HOST( h ,UP,$0 44,)        :(*)HOST "h", PRODUCT ID 68 (hex 44)
+
+NBYTES(,100)       :(*)SLOT SIZE "ssize", AREAS 0+1
+
+        EMEMRY(99,256,4)       : 256 KBYTES NEEDED FOR PASCAL
+                               : 4 MAC SETS, AND 99K FOR AREA 0.
+
+NUSERS   eq 3           :(*)total number of terminals "n", MUST EQUAL
+                        :  total number of all types of validators
+                        :  (see nval02.a02 file, MAXIMUM_VALIDATOR)
+NSUP    eq 2            :(*)total number of Supervisors "s", MUST EQUAL
+                        :  total number of EXPECTED Supervisors
+                        :  (see nval02.a02 file,
+                        :  MAXIMUM_EXPECTED_SUPERVISORS)
+NTTY(NUSERS,NSUP+1)     :number of terminals,
+			:  auxilliary circuits (1 per sup plus 1 for SYSMSG1)
+
+TTYOPT(120,8,256,1,0)   :timeout on aux circuits,
+                             :  bufferlets allocated per port,
+                             :  maximum number of incoming characters,
+                             :  report black balls,
+                             :  echo on for auxilliary circuits
+
+DDISK(0,2)           :NETVAL disk 0 is (*)ISIS logical unit 0
+                        :  CUD only - must be large enough to accomodate
+                        :  entire CUD plus overflow, if necessary
+                        :  Can be actual Supervisor MUD file
+DDISK(1,3)           :NETVAL disk 1 is (*)ISIS logical unit 1
+                        :  CONFIGURATION, NODE_HOST, CLASS_GROUP,
+			:  MUD_UPDATE, OPERLOG
+
+DSKOPT(1,NUSERS+NSUP+1,):trace off,
+			:  allow each user, MUD updater and class/group
+			:  updater to have simultaneous disk/tape operations,
+                        :  do not retry on disk error
+
+DTAPE(0,0)         : TAPE 0 IS ISIS LOGICAL UNIT 0
+
+pntval	eq NUSERS+NSUP+1+1+1+1  :  one process per VALIDATOR,
+                                :  one process per SUP (MUD updater),
+				:  one login process,
+                                :  one TICK process,
+				:  one class_group_updater process,
+				:  one MAIN process
+                                                                  Page 14
+
+
+mntval	eq NSUP+13
+
+	if pntval-mntval
+	NPROCS(pntval-2*(NUSERS+NSUP+1+1))
+	else
+	NPROCS(mntval-2*(NUSERS+NSUP+1+1))
+	ei
+
+IOCHKS(32)    :number of I/O checks per second
+
+CROPTS(0,1)
+
+NMICRO	eq	1	:(*) =1 if version of microcode is greater than
+			: or equal to s.18, otherwise is = 0
+                                                                  Page 15
+
+   6.4 SAMPLE GENERAL TYMFILE
+   --------------------------
+
+
+:*****************************************************************************
+:
+:	CUSTOMER	:	SAMPLE TYM FILE
+:	NETWORK NAME	:       THIS IS A REAL CONFIGURATION
+:	NODE NUMBER	:	2001		SITE      :
+:	SLOT NUMBER	:	FF
+:	VERSION NUMBER	:	ISIS:7.00  N.CODE:5.10
+:
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:
+:	HISTORY FILE :
+:	============
+:
+:	DATE	: YY/MM/JJ	ACTION : 
+:*****************************************************************************
+
+:               HARDWARE CONFIGURATION
+ENGINE  EQ      1               :  1 IF HARDWARE IS TYMNET ENGINE
+M.NCARD EQ      0               :0 SIO MOTHERBOARDS USED
+MICRO   EQ      2               :* 1 IF ENHANCED ASYNC MICRO-CODE
+ZITEL   EQ      1               : ZITEL MAC BOARD
+MSCDSK  EQ      1               : MSC TYPE DISC CONTROLLER
+NTAPE   EQ      1               : CONFIGURED WITH 1 TAPE DRIVE
+LBOOT	EQ	1		:* RESERVE SPACE FOR VERSION 3 BOOTSTRAP
+N.ADA   EQ      0               :* 1 IF NEW ASYNC ADDRESSING
+NASYNG  EQ      0               :* NO. OF ASYNC GROUPS (2 GRP/CD)
+ASYNEW	EQ	2		:ONLY NEW ASYNC MICRO CODE
+CONSAT	EQ	0		:CONSAT IN THIS ENGINE
+
+:               ISIS CONFIGURATION CONSTRAINTS
+NSLOT   EQ      4               :  NO. OF SLOTS TO CONNECT
+MSLOT   EQ      4
+IKNRNG  EQ      1
+NLU     EQ      $A04		:  MAX. NO. OF LOGICAL UNITS/SLOT
+
+:               NODE CONFIGURATION
+
+NLINES	EQ	4		: # OF SYNC LINES ON NODE CODE
+NDP     EQ      $A64
+NPTHR   EQ      $A32
+SUP	EQ	1		:  NO SUP ON THIS NODE
+TII     EQ      1               :  1 IF TYMNET-II ON NODE
+PTHRU   EQ      0               :  1 IF PASSTHROUGHS INHIBITTED
+MACHNM  EQ      $8 2001         :  NODE NUMBER
+HST0    EQ      $A 121          :  ISIS KERNEL HOST NUMBER
+                                                                  Page 16
+
+
+:               NETWORK CONFIGURATION
+	TIILNK(2010)
+	TIILNK(2002)
+	TIILNK(2030)
+XLINKS	EQ	1               : EXTRA LINKS
+
+:       SLOT 0 - T-II NODE CODE
+S0CORE	EQ	$A 155		:NO. OF KB ASSIGNED TO NODE CODE
+NLUS0   EQ      4               :NO. OF LU'S FOR NODE CODE
+S0L0	S.REF(0)		
+S0L1	S.REF(1)		
+S0L2	S.REF(2)		
+S0L3    S.REF(3)                
+
+:       SLOT 1 -  ELF -
+S1CORE  EQ      $A 210		
+S1LIC   EQ      TL.AUX
+NLUS1   EQ      $A0
+
+:       SLOT 2 - NETVAL - 
+S2CORE  EQ      $A 110
+S2LIC   EQ      TL.AUX
+NLUS2   EQ      $A0
+        DEFEXT(2,3,1000,400,3)  :USING 400 HEX PAGES =256 KB IN EXT. MEM.
+
+
+:       SLOT 3 - TMCS -
+S3CORE  EQ      $A 214          :
+NLUS3   EQ      $A 0            :     
+S3LIC	EQ	TL.AUX
+	DEFEXT(3,3,1400,600,3)
+
+:       SLOT 4 - ISRS
+S4CORE  EQ      $A 8
+NLUS4   EQ      0
+MANRLD  EQ      1               : RELOAD ALL SLOTS ON MAN REST>
+        END
+    8z >ò
