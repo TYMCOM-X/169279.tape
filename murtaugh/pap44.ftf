@@ -1,0 +1,48 @@
+C*******************************************
+C
+C       PAP44.FTF
+C
+C*******************************************
+C
+C-------------------------------------------
+C
+C       SUBROUTINE TO CHANGE THE RELATIONAL DATA
+C       BASE
+C
+C-------------------------------------------
+C
+        SUBROUTINE CHRE3A(BAS10,NT,CKT,ATB,VALU)
+C
+        INTEGER BAS10(3),NT,CKT(3),ATB,VALU(3),NUMBER
+        DIMENSION FLD(3)
+        DATA (FLD(P),P=1,3)/'N','H','C'/
+        DIMENSION FL1(3)
+        DATA (FL1(P),P=1,3)/4,6,7/
+C
+100     CALL DBERR($110,IERT,IERC,0)
+        GOTO 115
+110     IF (IERT.NE.7) GOTO 295
+        TYPE 118
+118     FORMAT(1X,'DATA BASE BUSY... WAITING 8 SECOUNDS')
+        CALL WAIT(8.0)
+115     TYPE 117,BAS10
+117     FORMAT(1X,'OPENING ',3A5,' FOR UPDATE',$)
+        CALL DBOPEN(BAS10)
+        CALL DBUPD(-1)
+        IF (NT.EQ.3) CALL DBFIND(17,1,FLD(NT),1,FL1,1,CKT)
+        IF((NT.EQ.1).OR.(NT.EQ.2))CALL DBFIND(17,1,FLD(NT),1,
+     1  FL1,1,CKT(1))
+        CALL DBNREC(NUMBER)
+        IF (NUMBER.EQ.0) GOTO 280
+        CALL DBCHNG(ATB,VALU)
+        CALL DBCLOSE
+        TYPE 120
+120     FORMAT('+','... CHANGE IS COMPLETE')
+        RETURN
+280     TYPE 285
+285     FORMAT(3X,'NO RELATION RECORD EXISTS...',/)
+        RETURN
+295     TYPE 297,IERT,IERC
+297     FORMAT(1X,'ERROR EQUALS...  IERT = ',I3,4X,'IERC = 'I3)
+        RETURN
+        END
