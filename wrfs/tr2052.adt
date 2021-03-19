@@ -1,0 +1,1217 @@
+-DATE
+MAR 11, 1988	16:12
+-TYP (2052)TEST.TYM
+: ***************************************************************************
+:         FILE:  KERNEL TYMFILE
+: COMPANY NAME:  TRW                       LOCATION:  PARSIPPANY, NJ
+:  NODE NUMBER:  2052                   ENGINE TYPE:  FULL
+:  KERNEL HOST:  562
+:  SLOT NUMBER:  FF
+: S/W VERSIONS:  ISIS - 07.03      T-II NODE CODE - 05.10
+:   UPDATED BY:  ROBERT NOWELL                 DATE:  03/11/88
+: ***************************************************************************
+: >>>>>>>>>>>>>>>>>>>>  REVISION HISTORY  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+: **** DATE OF CREATION ****                                    09/16/87  RRN
+: * INSTALLED ISIS 07.03 CODE.                                  01/27/88  RRN
+: * ADDED SIO ASYNC TO SUPPORT LINE PTR REPLACEMENT PROJECT.    03/11/88  RRN
+: ***************************************************************************
+
+:               HARDWARE CONFIGURATION
+
+MACHIN  EQ      1               : 1 = ENGINE, 2 = HDLC MICRO, 3 = TSI
+ZITEL   EQ      1               : 0 = MICROENGINE, 1 = MAC-II/MAC-III
+LBOOT   EQ      1               : 1 = RESERVE CORE FOR LBOOT VER. 06.00
+BAUDR   EQ      0               : ASYNC SPEEDS(BPS)   0 = 110 - 1200
+                                :                     2 = 300 - 4800
+N.ADA   EQ      1               : ASYNC BRD DMA ADDRING  0 = OLD, 1 = NEW
+NASYNG  EQ      $A 8            : # ASYNC GROUPS (2 GRPS/CARD)
+NPRINT  EQ      1               : # PRINTERS
+M.NCARD EQ      $A 1            : # MOTHERBOARDS
+M.DA0   EQ      $0 80           : DEVICE ADDRING OF MOTHERBOARD 0
+M.NP0   EQ      $A 10           : # PORTS ON MOTHERBOARD 0
+SILINS  EQ      $A 2            : # NODE CODE SIO LINES
+NLINES  EQ      $A 2            : # NODE CODE SYNC LINES
+
+:               ISIS CONFIGURATION CONSTRAINTS
+
+NSLOT   EQ      $A 1            : # SLOTS TO CONNECT
+NLU     EQ      $A 17           : MAX. # LOGICAL UNITS/SLOT
+ASYNEW  EQ      2               : ASYNC DRIVER TYPE  0 = OLD, 1 = BOTH, 2 = NEW
+BGMIN   EQ      $A 60           : BACKGROUND CPU OVERLOAD MESSAGE THRESHOLD
+
+:               NODE CONFIGURATION
+
+IKNRNG  EQ      1               : ISIS KERNAL RING INDEXING
+                                :   0 = POSITIVE (ISIS 5.XX OR EARLIER)
+                                :   1 = NEGATIVE (ISIS 7.XX OR LATER)
+MEMRMK  EQ      2               : ASSEMBLY REMARKS
+TII     EQ      1               : 1 = ISIS NODE.
+PTHRU   EQ      0               : PASSTHROUGHS  0 = ALLOW, 1 = PASSTHROUGH
+MACHNM  EQ      $8 2052         : NODE NUMBER
+HST0    EQ      $A 562          : ISIS KERNEL HOST NUMBER
+:OPTION(REBLD)                   : AUTOMATIC CIRCUIT REBUILDING
+
+:               NETWORK CONFIGURATION
+:       (NOTE - THE NODE LOCATION OF UNCOMMENTED TIILNK'S IS ANAHEIM, CA)
+
+        TIILNK(2124,8,8,,MS)    : PARSIPPANY, NJ
+        TIILNK(2125,8,8,,MS)    : PARSIPPANY, NJ
+
+:
+:       ALL XLINKS
+:
+
+XLINKS  EQ      $A 4            : WILD CARD LINKS
+
+:       SLOT 0 - T-II NODE CODE
+
+S0CORE  EQ      $A 264          : SLOT 0 CORE SIZE IN KB'S
+NLUS0   EQ      $A 4            : # L.U.'S FOR SLOT 0
+S0L0    S.REF(0) 
+S0L1    S.REF(1)
+S0L2    M.REF(0,0)
+S0L3    M.REF(0,1)
+           
+:       SLOT 1 - ISIS CONSAT
+
+S1CORE  EQ      $A 104          : SLOT 1 CORE SIZE IN KB'S
+NLUS1   EQ      $A 17           : # L.U.'S FOR SLOT 1
+S1LIC   EQ      TL.AUX
+S1L0    P.REF(0)
+S1L1    A.REF(0)
+S1L2    A.REF(1)
+S1L3    A.REF(2)
+S1L4    A.REF(3)
+S1L5    A.REF(4)
+S1L6    A.REF(5)
+S1L7    A.REF(6)
+S1L8    A.REF(7)
+S1L9    M.REF(0,2)              : 4800 BPS
+S1L10   M.REF(0,3)              : 4800 BPS
+S1L11   M.REF(0,4)              : 4800 BPS
+S1L12   M.REF(0,5)              : 4800 BPS
+S1L13   M.REF(0,6)              : 4800 BPS
+S1L14   M.REF(0,7)              : 4800 BPS
+S1L15   M.REF(0,8)              : 4800 BPS
+S1L16   M.REF(0,9)              : 4800 BPS
+
+           
+
+-TYP (2052)TEST.CMD
+;; **************************************************************************
+;;         FILE:  ISIS COMMAND FILE
+;; COMPANY NAME:  TRW                             LOCATION:  PARSIPPANY, NJ
+;;  NODE NUMBER:  2052
+;;  KERNEL HOST:  562
+;;  SLOT NUMBER:  FF
+;;      VERSION:  07.03
+;;   UPDATED BY:  ROBERT NOWELL                       DATE:  01/27/88
+;; **************************************************************************
+;; >>>>>>>>>>>>>>>>>>>>>>>>>>  REVISION HISTORY  <<<<<<<<<<<<<<<<<<<<<<<<<<<<
+;; * *** DATE OF CREATION ***                                   09/16/87  RRN
+;; * INSTALLED ISIS 07.03 CODE.                                 01/27/88  RRN
+;; **************************************************************************
+;A(SOURCE)I2IS07.I03
+;@(2052)TEST.TYM
+;@(SOURCE)ISIS.GGL
+;A(SOURCE)I2IS07.R03
+;X(SOURCE)I2IS07.P03
+1;F(2052)TEST.NIB
+;X(SOURCE)I2IS07.W03
+
+-TYP (2052)TEST.S0C
+;; *************************************************************************
+;;         FILE:  NODE CODE COMMAND FILE
+;; COMPANY NAME:  TRW                           LOCATION:  PARSIPPANY, NJ
+;;  NODE NUMBER:  2052
+;;  KERNEL HOST:  562
+;;  SLOT NUMBER:  00
+;;      VERSION:  05.10
+;;   UPDATED BY:  JN                                DATE:  02/24/88
+;; *************************************************************************
+;; >>>>>>>>>>>>>>>>>>>>>>>>>>>  REVISION HISTORY  <<<<<<<<<<<<<<<<<<<<<<<<<<
+;; * CREATION OF THIS FILE.                                    09/16/87  RRN
+;; * DELETED PATCH FILE TII05.PAN.                             02/24/88  JN
+;; *************************************************************************
+;A(SOURCE)TII05.I10
+;A(2052)TEST.TYM
+;A(SOURCE)XRAY.GGL
+;A(SOURCE)TII05.R10
+;A(SOURCE)TII05.F10
+;A(SOURCE)TII05.P10
+1;F(2052)TEST.S0L
+;X(SOURCE)TIII05.W10
+
+-TYP (2052)TEST.S1T
+: ********************************************************************
+:         FILE:  ISIS CONSAT TYMFILE
+: COMPANY NAME:  TRW                       LOCATION:  PARSIPPANY, NJ
+:  NODE NUMBER:  2052
+:  KERNAL HOST:  562
+:  SLOT NUMBER:  01
+:      VERSION:  03.05
+:   UPDATED BY:  ROBERT NOWELL                 DATE:  03/11/88
+: ********************************************************************
+: >>>>>>>>>>>>>>>>>>>>>  REVISION HISTORY  <<<<<<<<<<<<<<<<<<<<<<<<<<<
+:   *** DATE OF CREATION OF ISIS CONSAT.                 09/16/87  RRN
+: * NSR#E00866 CHANGED 105 FROM USER TTY DIAL ALO TO
+:   USER CRT.                                            10/23/87  RRN
+: * CHANGE PORT 65 TO ASYNC PRINTER LOGON.               11/12/87  JN
+: * COSMETICS, & CONVERTED TTY'S & NTT'S TO UTEXT.       01/27/88  RRN
+: * CHANGE PORTS 66-67 TO USER CRT.                      02/24/88  JN
+: * INSTALLED SIO ASYNC FOR LINE PRINTER REPLACEMENT
+:   PROJECT.                                             03/11/88  RRN
+: ********************************************************************
+:   NOTE: ALL PORT #'S REFERED TO ARE LOGICAL WITH REFERENCE TO THE
+:         SLOT UNLESS SPECIFICALLY STATED OTHERWISE.
+
+:     CONTROL AND DIAGNOSIS PARAMETERS
+
+AHIST  EQ       0                : RECORD ASYNC EVENTS  0 = NO, 1 = YES
+SHIST  EQ       0                : RECORD SIO EVENTS  0 = NO, 1 = YES
+RHIST  EQ       0                : RECORD BUFFERLET USE  = NO, 1 = YES
+CRSTOP EQ       1                : SLOT CRASH ACTION  0 = RESTART, 1 = STOP
+DDTDIA EQ       1                : I/O RING DECODER  0 = NO, 1 = YES
+DCPSSW EQ       0                : DISPLAY CPS  0 = NO, 1 = YES
+CPS    EQ       0                : COUNT CPS  0 = NO, 1 = YES  (THIS MUST
+                                 :    BE 1 IF DCPSSW EQ 1)
+PCOTRY EQ       $A 60            : CIRCUIT LIFE LENGTH BEFORE CONSIDERED STABLE
+PCORTY EQ       $A 90            : HOST KILLED UNSTABLE CIRCUIT REBUILD DELAY
+HARDAN EQ       1                : INVOKE PATCH THAT USES "MODMGX" EQUATES TO
+                                 :    SET PORT SIGNALING TO "ANSWERED" FOR
+                                 :    H/W'D (LEASED) & "NORMAL" FOR OTHERS ON
+                                 :    SLOT RESTART/RELOAD   0 = NO, 1 = YES
+
+:
+:   THESE "MODMGX" BINARY ARRAYS IDENTIFY THE TYPE OF SIGNALING USED BY
+:   PORTS ON SLOT RESTART/RELOAD. THESE ARRAYS ARE USED ONLY IF "HARDAN EQ
+:   1" IS SPECIFIED. EACH BIT IN THE ARRAYS CORRESPONDS TO A PORT. THERE
+:   ARE TWO TYPES OF SIGNALING  "NORMAL" AND "ANSWERED".
+:
+:           0 = USE "NORMAL" SIGNALING
+:           1 = USE "ANSWERED" SIGNALING
+:
+MODMG0 EQ       $2 1111111111111111    : PORTS 000-015
+MODMG1 EQ       $2 1111111111111111    :       016-031
+MODMG2 EQ       $2 1110000000000000    :       032-047
+MODMG3 EQ       $2 0001001111110000    :       048-063
+MODMG4 EQ       $2 1111000000111111    :       064-079
+MODMG5 EQ       $2 1111110011101000    :       080-095
+MODMG6 EQ       $2 0000000101001000    :       096-111
+MODMG7 EQ       $2 0001000000111111    :       112-127
+
+
+
+:     CONFIGURATION MACROS (THESE MUST PRECEDE THE EXCEPTION MACROS)
+
+       LOCATION(2052,1)          : TARGET NODE & SLOT #
+       ACHOST(17562)             : ACCOUNTING HOST #
+       DECLARE(ASYNC,128)        : # ASYNC PORTS
+       DECLARE(SIO,8)            : # SIO ASYNC PORTS
+       DECLARE(PRINT,1)          : # PRINTERS
+       SHOWME(9)                 : CONTROLS AMOUNT OF CONFIGURATION INFO
+                                 :    LISTED AT ASSEMBLY
+       LTEXT(TIDM,TRW)           : MSG SENT AT CONNECT TIME
+
+:     EXCEPTION MACROS (THESE MUST FOLLOW THE CONFIGURATION MACROS)
+
+       TID120(0-34)              : PORT(S) TO RECEIVE TID AT 120 CPS
+       NO.CP(0-34,51,54-59,64-67): PORTS NOT USING CP SIGNALS FOR ANSWER/HANG
+       NO.CP(74-85,88-90,92,103) :    (TRW'S NON-DIAL PORTS REQUIRE THIS)
+       NO.CP(105,108,115,122-127)
+
+: ****************************************************************************
+:     ASYNC PVC PORT PARAMETERS
+: ****************************************************************************
+:
+:           LOGICAL  PORT #          PORT   TYPE
+:   PHYS.   ---------------  -----------------------------
+:   PORT #   OCTAL  DECIMAL  CODE / DESCRIPTION             COMMENTS
+:  =======  ======= =======  =============================  ==================
+:  000      000     000       S / LINE PRINTER 
+:  001-034  001-042 001-034   G / USER CRT
+:  035-039  043-047 035-039   B / USER TTY DIAL ALO         *DEFAULT TO PVCDF
+:  040      050     040       T / STAFF TTY DIAL
+:  041-050  051-062 041-050   B / USER TTY DIAL ALO         *DEFAULT TO PVCDF
+:  051      063     051       T / STAFF TTY DIAL
+:  052-053  064-065 052-053   B / USER TTY DIAL ALO         *DEFAULT TO PVCDF
+:  054      066     054       C / USER TTY HARDWIRED ALO
+:  055-059  067-073 055-059   G / USER CRT
+:  060-063  074-077 060-063   B / USER TTY DIAL ALO         *DEFAULT TO PVCDF
+:  064      100     064       G / USER CRT
+:  065      101     065       D / ASYNC PRINTER LOGON
+:  066-067  102-103 066-067     / USER CRT
+:  068-073  104-111 068-073   B / USER TTY DIAL ALO         *DEFAULT TO PVCDF
+:  074-078  112-116 074-078   E / CPU-CPU LEASED
+:  079      117     079       G / USER CRT
+:  080-083  120-123 080-083   C / USER TTY HARDWIRED ALO
+:  084-085  124-125 084-085   G / USER CRT
+:  086-087  126-127 086-087   B / USER TTY DIAL ALO         *DEFAULT TO PVCDF
+:  088-090  130-132 088-090   D / ASYNC PRINTER LOGON
+:  091      133     091       B / USER TTY DIAL ALO         *DEFAULT TO PVCDF
+:  092      134     092       T / STAFF TTY DIAL
+:  093      135     093       B / USER TTY DIAL ALO         *DEFAULT TO PVCDF
+:  094-096  136-140 094-096   T / STAFF TTY DIAL
+:  097-102  141-146 097-102   B / USER TTY DIAL ALO         *DEFAULT TO PVCDF
+:  103      147     103       G / USER CRT
+:  104      150     104       B / USER TTY DIAL ALO         *DEFAULT TO PVCDF
+:  105      151     105       G / USER CRT
+:  106-107  152-153 106-107   B / USER TTY DIAL ALO         *DEFAULT TO PVCDF
+:  108      154     108       G / USER CRT
+:  109-114  155-162 109-114   B / USER TTY DIAL ALO         *DEFAULT TO PVCDF
+:  115      163     115       G / USER CRT
+:  116-121  164-171 116-121   B / USER TTY DIAL ALO         *DEFAULT TO PVCDF
+:  122      172     122       G / USER CRT
+:  123      173     123       E / CPU-CPU LEASED
+:  124-126  174-176 124-126   G / USER CRT
+:  127      177     127       E / CPU-CPU LEASED
+:
+:
+        PVCRNG(000-127)
+:
+:       TERMINAL CHARACTERISTICS FOR USER TTY DIAL ALO / B (DEFAULT VALUE)
+:
+        PVCDF(PAR,HNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP,DSC)
+:
+:
+:
+:       CPU-CPU LEASED / E
+:
+        PVCEX(074,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP,NONPI,AID,
+**TID15)
+        PVCEX(075,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP,NONPI,AID,
+**TID15)
+        PVCEX(076,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP,NONPI,AID,
+**TID15)
+        PVCEX(077,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP,NONPI,AID,
+**TID15)
+        PVCEX(078,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP,NONPI,AID,
+**TID15)
+        PVCEX(123,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP,NONPI,AID,
+**TID15)
+        PVCEX(127,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP,NONPI,AID,
+**TID15)
+:
+:       ASYNC PRINTER LOGON / D
+:
+        PVCEX(065,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(088,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(089,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(090,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+:
+:       USER TTY HARDWIRED ALO / C
+:
+        PVCEX(054,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP)
+        PVCEX(080,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP)
+        PVCEX(081,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP)
+        PVCEX(082,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP)
+        PVCEX(083,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP)
+:
+:       LINE PRINTER / S
+:
+        PVCEX(000,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+:
+:       USER CRT / G
+:
+        PVCEX(001,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(002,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(003,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(004,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(005,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(006,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(007,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(008,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(009,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(010,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(011,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(012,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(013,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(014,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(015,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(016,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(017,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(018,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(019,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(020,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(021,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(022,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(023,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(024,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(025,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(026,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(027,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(028,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(029,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(030,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(031,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(032,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(033,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(034,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(055,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(056,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(057,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(058,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(059,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(064,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(066,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(067,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(079,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(084,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(085,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(103,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(105,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(108,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(115,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(122,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(124,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(125,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(126,PAR,NOHNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+:
+:       STAFF TTY DIAL / T
+:
+        PVCEX(040,PAR,HNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(051,PAR,HNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(092,PAR,HNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+   PVCEX(094,PAR,HNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(095,PAR,HNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+        PVCEX(096,PAR,HNG,NOHDX,NOCRLF,LFCR,TRS,NOALO,NOSLO,NOPCO,RBP)
+
+
+
+        UTEXT("83Q1N2052NTT"BBX25TEST"8D)
+        UTXRNG(54,74-78,80-83,123,127)
+
+
+        UTEXT(T1N2052TTY"BBX25TEST"8D)
+        UTXRNG(35-39,41-50,52-53,60-63,68-73,86-87,91,93)
+        UTXRNG(97-102,104,106-107,109-114,116-121)
+
+
+: *****************************************************************************
+:     SIO PVC PORT PARAMETERS
+: *****************************************************************************
+:
+:   SIO    SIO PHY  LOGICAL  PORT #  L.U.#                  PORT   TYPE
+:   REL.    PORT#   ---------------  -----  PORT   ----------------------------
+:  PORT#    MB/DC    OCTAL  DECIMAL  (DEC)  SPEED  CODE / DESCRIPTION
+: =======  =======  ======= =======  =====  =====  ============================
+: 000      0/02     200     128      09      4800   J / ASYNC PRINTER ALO SIO
+: 001-007  0/03-09  201-207 129-135  10-16   4800   E / CPU-CPU LEASED SIO
+
+
+       SPVRNG(000-007)           : SIO RELATIVE PORT #'S
+
+:
+:     CPU-CPU LEASED / E
+:
+
+       SPVCEX(001,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP,NONPI,AID,
+**TID21)
+       SPVCEX(002,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP,NONPI,AID,
+**TID21)
+       SPVCEX(003,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP,NONPI,AID,
+**TID21)
+       SPVCEX(004,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP,NONPI,AID,
+**TID21)
+       SPVCEX(005,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP,NONPI,AID,
+**TID21)
+       SPVCEX(006,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP,NONPI,AID,
+**TID21)
+       SPVCEX(007,PAR,NOHNG,HDX,NOCRLF,NOLFCR,TRS,ALO,NOSLO,PCO,NORBP,NONPI,AID,
+**TID21)
+
+:
+:     ASYNC PRINTER ALO / J
+:
+
+       SPVCEX(000,PAR,NOHNG,HDX,NOCRLF,LFCR,TRS,ALO,NOSLO,PCO,RBP,AID,TID21)
+
+:
+:     NON-STANDARD SIO PORT LOGON STRINGS
+:
+
+       UTEXT("84P2PARCF"BBP2VERBALS"8D)
+       SUTXRG(000)
+
+       UTEXT("84Q1N2052NTT"BBX25TEST"8D)
+       SUTXRG(001-007)
+
+
+-TYP (2052)TEST.S1C
+;; ********************************************************************
+;;         FILE:  ISIS CONSAT COMMAND FILE
+;; COMPANY NAME:  TRW                       LOCATION:  PARSIPPANY, NJ
+;;  NODE NUMBER:  2052
+;;  KERNEL HOST:  562
+;;  SLOT NUMBER:  01
+;;      VERSION:  03.05
+;;   UPDATED BY:  ROBERT NOWELL                 DATE:  09/16/87
+;; ********************************************************************
+;; >>>>>>>>>>>>>>>>>>>>>  REVISION HISTORY  <<<<<<<<<<<<<<<<<<<<<<<<<<<
+;; * INSTALL ISIS CONSAT NODE.                            09/16/87  RRN
+;; ********************************************************************
+ TITLE ISIS CONSAT - - VERSION 03.05
+;@(SOURCE)ISCS03.I05
+;@(2052)TEST.S1T
+;@(SOURCE)ISCS03.R05
+;X(SOURCE)ISCS03.P05
+;@(SOURCE)ISCS03.PAC
+1;F(2052)TEST.S1L
+;X(SOURCE)ISCS03.W05
+
+-TYP (2052)TEST.MER
+(2052)TEST.BND=(2052)TEST.NIB,(2052)TEST.S0L,(2052)TEST.S1L
+
+-R NAD
+1.5
+;X   (2052)TEST.CMD
+
+;; **************************************************************************
+;;         FILE:  ISIS COMMAND FILE
+;; COMPANY NAME:  TRW                             LOCATION:  PARSIPPANY, NJ
+;;  NODE NUMBER:  2052
+;;  KERNEL HOST:  562
+;;  SLOT NUMBER:  FF
+;;      VERSION:  07.03
+;;   UPDATED BY:  ROBERT NOWELL                       DATE:  01/27/88
+;; **************************************************************************
+;; >>>>>>>>>>>>>>>>>>>>>>>>>>  REVISION HISTORY  <<<<<<<<<<<<<<<<<<<<<<<<<<<<
+;; * *** DATE OF CREATION ***                                   09/16/87  RRN
+;; * INSTALLED ISIS 07.03 CODE.                                 01/27/88  RRN
+;; **************************************************************************
+;A   (SOURCE)I2IS07.I03
+
+End of assembly
+;@   (2052)TEST.TYM
+
+End of assembly
+;@   (SOURCE)ISIS.GGL
+
+End of assembly
+;A   (SOURCE)I2IS07.R03
+
+SYNC 1BCE 2414
+PRINT 2414 2550
+CLOCKS 2550 3CC4
+MBOARD 3CC4 3E9A
+FLASH 3E9A 4336
+KCAREA 4336 45CC
+TTY 45CC 4800
+KERNEL 4800 8F08
+DDT 8F08 0BF00
+   3280d bufferlets allocated to dispatcher
+DISPAT 0BF00 17800
+.............................................
+
+
+
+    ***  ISIS-II  ***
+      Version 7.3d
+
+TYMNET-II Node 2052, Kernel Host 562
+Maximum slot number is 1
+
+       >>> HARDWARE CONFIGURATION <<<
+
+Expects enhanced sync microcode
+Expects enhanced async microcode
+Expects MAC II
+Expects maximum baud rate of 1200
+Expects 1 sync board(s)
+Expects 4 async board(s), device address is 0C1
+Supports new async driver only
+Expects 1 printer(s)
+Expects 1 SIO mother-board processor(s)
+   Board 0 has 10 channel(s), device address 80
+
+       >>> SLOT CONFIGURATIONS <<<
+
+SLOT 0, NODE CODE, has 264 K-bytes of core, from 1CE00 to 5EDFF
+   4 logical unit(s)
+   L.U. 0 is sync line 0
+   L.U. 1 is sync line 1
+   L.U. 2 is M.Board channel 0
+   L.U. 3 is M.Board channel 1
+
+SLOT 1 has 104 K-bytes of core, from 5EE00 to 78DFF
+   17 logical unit(s)
+   L.U. 0 is printer 0
+   L.U. 1 is async group 0
+   L.U. 2 is async group 1
+   L.U. 3 is async group 2
+   L.U. 4 is async group 3
+   L.U. 5 is async group 4
+   L.U. 6 is async group 5
+   L.U. 7 is async group 6
+   L.U. 8 is async group 7
+   L.U. 9 is M.Board channel 2
+   L.U. 10 is M.Board channel 3
+   L.U. 11 is M.Board channel 4
+   L.U. 12 is M.Board channel 5
+   L.U. 13 is M.Board channel 6
+   L.U. 14 is M.Board channel 7
+   L.U. 15 is M.Board channel 8
+   L.U. 16 is M.Board channel 9
+
+***Highest location used in this configuration is 78E00
+
+Requires 488d k-bytes of core
+
+
+.............................................
+
+
+Code Generated:  03/12/88  00:17:17 GMT
+
+.............................................
+
+End of assembly
+;X   (SOURCE)I2IS07.P03
+
+;; ISIS-II Version 7.03 Patch File
+
+;@   (SOURCE)I2IS07.Q03
+
+ISIS 7.03 PATCH 1
+  Fixes reversed CTS and DSR on HDLC micro.
+
+ISIS 7.03 PATCH 2
+  This patch is superseded by patch 4.
+
+ISIS 7.03 PATCH 3
+  Causes ISIS to read memory error log before crashing.
+
+ISIS 7.03 PATCH 4
+  Refreshes CPU and MAC registers to avoid degradation.
+  (Updated version of patch 2)
+
+ISIS 7.03 PATCH 5
+  Correctly initializes registers for checking newlog bit array
+
+ISIS 7.03 PATCH 6
+  Wraps around accounting char counts when count exceeds 28 bits
+
+ISIS 7.03 PATCH 7
+Patch to prevent disk from doing retries on a 
+controller errror
+
+ISIS 7.03 PATCH 8
+  Corrects initialization order of Emulated Sync.
+  Also it allows window for interrupts to be flushed
+  during initialization.
+
+End of assembly
+
+
+1;F   (2052)TEST.NIB
+
+;X   (SOURCE)I2IS07.W03
+
+70;T
+0,SUMTBL;P
+INTLEN,IEND-INTLEN;P
+%P
+SEGF,SFSIZE;P
+%Q
+EXIT
+
+-R NAD
+1.5
+;X   (2052)TEST.S0C
+
+;; *************************************************************************
+;;         FILE:  NODE CODE COMMAND FILE
+;; COMPANY NAME:  TRW                           LOCATION:  PARSIPPANY, NJ
+;;  NODE NUMBER:  2052
+;;  KERNEL HOST:  562
+;;  SLOT NUMBER:  00
+;;      VERSION:  05.10
+;;   UPDATED BY:  JN                                DATE:  02/24/88
+;; *************************************************************************
+;; >>>>>>>>>>>>>>>>>>>>>>>>>>>  REVISION HISTORY  <<<<<<<<<<<<<<<<<<<<<<<<<<
+;; * CREATION OF THIS FILE.                                    09/16/87  RRN
+;; * DELETED PATCH FILE TII05.PAN.                             02/24/88  JN
+;; *************************************************************************
+;A   (SOURCE)TII05.I10
+
+End of assembly
+;A   (2052)TEST.TYM
+
+End of assembly
+;A   (SOURCE)XRAY.GGL
+
+End of assembly
+;A   (SOURCE)TII05.R10
+
+End of assembly
+;A   (SOURCE)TII05.F10
+
+
+TYMNET-II Node Code, Version 5.10, ISIS Node
+
+Node: 2052  Kernel Host: 562
+
+Ports:		Lines:		Links:
+   256d Pthru	     2d Sync	     2d TIILNK
+     3d Xray	     2d SIO	     4d XLNK
+		     4d Total	     6d Total
+   256d Disp
+     2d Krnl
+
+Maximum number of circuits =  550d 
+
+
+Bufferlet storage space:
+
+ 16CB6x bytes ( 92d KB) for  550d total circuits  (169d bytes per circuit)
+
+
+Memory used by this configuration = 42000x, 264d KB.
+
+Optimal amount of memory for this configuration =   195d  KB.
+Memory:
+SEG00=  7D00x 	SEG01= 0B700x 	SEG02=  6D00x 	SEG04=   200x 
+SEG06= 10000x 	SEG07= 0BD00x 	SEG0B=   500x 	SEG0C=  3700x 
+SEG0D=  7400x 	SEG0E=  1000x 
+
+End of assembly
+;A   (SOURCE)TII05.P10
+
+
+PATCH added on 841227 at 1100 by GAZEL.
+     Starts at DZHS02+22 and is 6x bytes long
+	Continues at PATCH1+0 and is 16x bytes long
+	Continues at DZHS02+32 and is 4x bytes long
+<<< FIX HOST REPORTING PROBLEM >>>
+
+PATCH added on 841116 at 1000 by JIM.
+     Starts at ATLNR1+0A and is 4x bytes long
+	Continues at KSPEE4+4 and is 4x bytes long
+	Continues at XND26+26 and is 4x bytes long
+<<< FIX 'MS' LINE SPEED REPORTING >>>
+
+PATCH added on 850926 at 1100 by TONY.
+     Starts at GMTCAL and is 6x bytes long
+	Continues at PATCH1+1E and is 18x bytes long
+	Continues at GMTCA1+0A and is 6x bytes long
+	Continues at PATCH1+30 and is 14x bytes long
+<<< PATCH FOR GMTCAL ROUTINE >>>
+
+PATCH added on 840823 at 1648 by TONY.
+     Starts at LEPRBJ and is 6x bytes long
+<<< PATCH TO FIX REBILD CRASH >>>
+
+PATCH added on 850913 at 1500 by JIM.
+     Starts at NTDSIO and is 6x bytes long
+	Continues at PATCH1+3E and is 14x bytes long
+<<< FIX SIO BUFFER COUNT ERROR REPORTING >>>
+
+PATCH added on 860221 at 0900 by SNILLUKA.
+     Starts at SIOBER+28 and is 4x bytes long
+<<< FIX SIO BUFFER COUNT ERROR REPORTING >>>
+
+PATCH added on 851106 at 150 by SNILLUKA.
+     Starts at TRCS20 and is 0Ax bytes long
+<<< FIX XRAY MASKING ALGORITHM FOR TRACE COMMANDS >>>
+
+PATCH added on 851113 at 1400 by JIM.
+     Starts at LDRP20+12 and is 4x bytes long
+	Continues at LDRP20+1A and is 4x bytes long
+	Continues at LDRP40 and is 4x bytes long
+<<< FIX LINE DIAGNOSTIC REPORTING >>>
+
+PATCH added on 870213 at 1240 by GAZEL.
+     Starts at XND25 and is 6x bytes long
+	Continues at PATCH0+0 and is 4x bytes long
+	Continues at PATCH1+52 and is 22x bytes long
+<<< FIX 5-DIGIT NEIGHBOR >>>
+
+PATCH added on 870108 at 1400 by JIM.
+     Starts at ATTDIE and is 6x bytes long
+	Continues at PATCH1+74 and is 3Ax bytes long
+	Continues at SIOR1+0E and is 4x bytes long
+<<< FIXES MULTI-LINE RESET PROBLEMS >>>
+
+PATCH added on 861114 at 1500 by ALIN.
+     Starts at GETPWR+18 and is 6x bytes long
+	Continues at PATCH1+0AE and is 1Ax bytes long
+<<< fix XRAY GP command >>>
+
+PATCH added on 821218 at 0900 by JIM.
+     Starts at RMKFGB+20 and is 8x bytes long
+	Continues at RMKSQF+20 and is 0Ax bytes long
+	Continues at RMKFZP+28 and is 8x bytes long
+<<< ALLOW VER 5.10 NODES TO HANDLE VER 6.00 NEIGHBORS >>>
+End of assembly
+1;F   (2052)TEST.S0L
+
+;X   (SOURCE)TIII05.W10
+
+SEG0,RSEG0;P
+SEG1,S1SIZE;P
+SEGD,SDSIZE;P
+SEGF,SFSIZE;P
+CTA,CTASIZ;P
+%P
+%Q
+EXIT
+
+-R NAD
+1.5
+;X   (2052)TEST.S1C
+
+;; ********************************************************************
+;;         FILE:  ISIS CONSAT COMMAND FILE
+;; COMPANY NAME:  TRW                       LOCATION:  PARSIPPANY, NJ
+;;  NODE NUMBER:  2052
+;;  KERNEL HOST:  562
+;;  SLOT NUMBER:  01
+;;      VERSION:  03.05
+;;   UPDATED BY:  ROBERT NOWELL                 DATE:  09/16/87
+;; ********************************************************************
+;; >>>>>>>>>>>>>>>>>>>>>  REVISION HISTORY  <<<<<<<<<<<<<<<<<<<<<<<<<<<
+;; * INSTALL ISIS CONSAT NODE.                            09/16/87  RRN
+;; ********************************************************************
+ TITLE ISIS CONSAT - - VERSION 03.05
+;@   (SOURCE)ISCS03.I05
+
+End of assembly
+;@   (2052)TEST.S1T
+
+End of assembly
+;@   (SOURCE)ISCS03.R05
+
+Start.Lib Version 0.05
+DATA 20 72
+STATUS 10000 10204
+CONVRT 10204 1028C
+DATIME 1028C 1049C
+SIGNAL 1049C 1049C
+DATA 0E2 0B82
+DATA 1049C 10B24
+CONSAT 10B24 1233E
+PVC 1233E 12B38
+LOGGER 12B38 12F62
+DATA 1B00 244A
+CRASH 244A 1306E
+CONSAT 132B8 13DA4
+BUFFER 13DFE 1413A
+TIMOUT 1413A 141EC
+ISIS 141EC 149E0
+STATUS 149E0 14E5E
+MERLIN 5BF8 1558C
+CRASH 1558C 15684
+DEFAULT AREA PROTECTIONS ASSUMED.
+
+SEGMENT 0-length 24280d, requires 5F00x bytes of core.
+SEGMENT 1-length 22276d, requires 5800x bytes of core.
+SEGMENT 2-length 36996d, requires 9100x bytes of core.
+SEGMENT 3-length 8192d, requires 2000x bytes of core.
+SEGMENT 0E-length 496d, requires 200x bytes of core.
+       91d K-bytes of core
+
+
+
+  CONSAT configuration - version 3.05
+----------------------------------------
+
+Node:	2052
+Slot:	1
+Default Origination host:	17562
+
+PVC ports:	136
+
+Printer ports:	1	(0)
+
+
+ASYNC ports:	128	(0-127)
+
+  0:  TID 120	VADIC	(PVC)
+  1:  TID 120	VADIC	(PVC)
+  2:  TID 120	VADIC	(PVC)
+  3:  TID 120	VADIC	(PVC)
+  4:  TID 120	VADIC	(PVC)
+  5:  TID 120	VADIC	(PVC)
+  6:  TID 120	VADIC	(PVC)
+  7:  TID 120	VADIC	(PVC)
+  8:  TID 120	VADIC	(PVC)
+  9:  TID 120	VADIC	(PVC)
+ 10:  TID 120	VADIC	(PVC)
+ 11:  TID 120	VADIC	(PVC)
+ 12:  TID 120	VADIC	(PVC)
+ 13:  TID 120	VADIC	(PVC)
+ 14:  TID 120	VADIC	(PVC)
+ 15:  TID 120	VADIC	(PVC)
+ 16:  TID 120	VADIC	(PVC)
+ 17:  TID 120	VADIC	(PVC)
+ 18:  TID 120	VADIC	(PVC)
+ 19:  TID 120	VADIC	(PVC)
+ 20:  TID 120	VADIC	(PVC)
+ 21:  TID 120	VADIC	(PVC)
+ 22:  TID 120	VADIC	(PVC)
+ 23:  TID 120	VADIC	(PVC)
+ 24:  TID 120	VADIC	(PVC)
+ 25:  TID 120	VADIC	(PVC)
+ 26:  TID 120	VADIC	(PVC)
+ 27:  TID 120	VADIC	(PVC)
+ 28:  TID 120	VADIC	(PVC)
+ 29:  TID 120	VADIC	(PVC)
+ 30:  TID 120	VADIC	(PVC)
+ 31:  TID 120	VADIC	(PVC)
+ 32:  TID 120	VADIC	(PVC)
+ 33:  TID 120	VADIC	(PVC)
+ 34:  TID 120	VADIC	(PVC)
+ 35:  TID 30 	VADIC	(PVC)
+ 36:  TID 30 	VADIC	(PVC)
+ 37:  TID 30 	VADIC	(PVC)
+ 38:  TID 30 	VADIC	(PVC)
+ 39:  TID 30 	VADIC	(PVC)
+ 40:  TID 30 	VADIC	(PVC)
+ 41:  TID 30 	VADIC	(PVC)
+ 42:  TID 30 	VADIC	(PVC)
+ 43:  TID 30 	VADIC	(PVC)
+ 44:  TID 30 	VADIC	(PVC)
+ 45:  TID 30 	VADIC	(PVC)
+ 46:  TID 30 	VADIC	(PVC)
+ 47:  TID 30 	VADIC	(PVC)
+ 48:  TID 30 	VADIC	(PVC)
+ 49:  TID 30 	VADIC	(PVC)
+ 50:  TID 30 	VADIC	(PVC)
+ 51:  TID 30 	VADIC	(PVC)
+ 52:  TID 30 	VADIC	(PVC)
+ 53:  TID 30 	VADIC	(PVC)
+ 54:  TID 30 	VADIC	(PVC)
+ 55:  TID 30 	VADIC	(PVC)
+ 56:  TID 30 	VADIC	(PVC)
+ 57:  TID 30 	VADIC	(PVC)
+ 58:  TID 30 	VADIC	(PVC)
+ 59:  TID 30 	VADIC	(PVC)
+ 60:  TID 30 	VADIC	(PVC)
+ 61:  TID 30 	VADIC	(PVC)
+ 62:  TID 30 	VADIC	(PVC)
+ 63:  TID 30 	VADIC	(PVC)
+ 64:  TID 30 	VADIC	(PVC)
+ 65:  TID 30 	VADIC	(PVC)
+ 66:  TID 30 	VADIC	(PVC)
+ 67:  TID 30 	VADIC	(PVC)
+ 68:  TID 30 	VADIC	(PVC)
+ 69:  TID 30 	VADIC	(PVC)
+ 70:  TID 30 	VADIC	(PVC)
+ 71:  TID 30 	VADIC	(PVC)
+ 72:  TID 30 	VADIC	(PVC)
+ 73:  TID 30 	VADIC	(PVC)
+ 74:  TID 30 	VADIC	(PVC)
+ 75:  TID 30 	VADIC	(PVC)
+ 76:  TID 30 	VADIC	(PVC)
+ 77:  TID 30 	VADIC	(PVC)
+ 78:  TID 30 	VADIC	(PVC)
+ 79:  TID 30 	VADIC	(PVC)
+ 80:  TID 30 	VADIC	(PVC)
+ 81:  TID 30 	VADIC	(PVC)
+ 82:  TID 30 	VADIC	(PVC)
+ 83:  TID 30 	VADIC	(PVC)
+ 84:  TID 30 	VADIC	(PVC)
+ 85:  TID 30 	VADIC	(PVC)
+ 86:  TID 30 	VADIC	(PVC)
+ 87:  TID 30 	VADIC	(PVC)
+ 88:  TID 30 	VADIC	(PVC)
+ 89:  TID 30 	VADIC	(PVC)
+ 90:  TID 30 	VADIC	(PVC)
+ 91:  TID 30 	VADIC	(PVC)
+ 92:  TID 30 	VADIC	(PVC)
+ 93:  TID 30 	VADIC	(PVC)
+ 94:  TID 30 	VADIC	(PVC)
+ 95:  TID 30 	VADIC	(PVC)
+ 96:  TID 30 	VADIC	(PVC)
+ 97:  TID 30 	VADIC	(PVC)
+ 98:  TID 30 	VADIC	(PVC)
+ 99:  TID 30 	VADIC	(PVC)
+100:  TID 30 	VADIC	(PVC)
+101:  TID 30 	VADIC	(PVC)
+102:  TID 30 	VADIC	(PVC)
+103:  TID 30 	VADIC	(PVC)
+104:  TID 30 	VADIC	(PVC)
+105:  TID 30 	VADIC	(PVC)
+106:  TID 30 	VADIC	(PVC)
+107:  TID 30 	VADIC	(PVC)
+108:  TID 30 	VADIC	(PVC)
+109:  TID 30 	VADIC	(PVC)
+110:  TID 30 	VADIC	(PVC)
+111:  TID 30 	VADIC	(PVC)
+112:  TID 30 	VADIC	(PVC)
+113:  TID 30 	VADIC	(PVC)
+114:  TID 30 	VADIC	(PVC)
+115:  TID 30 	VADIC	(PVC)
+116:  TID 30 	VADIC	(PVC)
+117:  TID 30 	VADIC	(PVC)
+118:  TID 30 	VADIC	(PVC)
+119:  TID 30 	VADIC	(PVC)
+120:  TID 30 	VADIC	(PVC)
+121:  TID 30 	VADIC	(PVC)
+122:  TID 30 	VADIC	(PVC)
+123:  TID 30 	VADIC	(PVC)
+124:  TID 30 	VADIC	(PVC)
+125:  TID 30 	VADIC	(PVC)
+126:  TID 30 	VADIC	(PVC)
+127:  TID 30 	VADIC	(PVC)
+
+
+SIO ports:	8	(128-135)
+
+  0:	(PVC)
+  1:	(PVC)
+  2:	(PVC)
+  3:	(PVC)
+  4:	(PVC)
+  5:	(PVC)
+  6:	(PVC)
+  7:	(PVC)
+
+   all are expected to be ASCII
+
+
+   ISIS Debugging Options:
+	CRSTOP
+	ASYERR
+	FORRUN
+
+   Assembly Options:
+     CONFIG:	9
+	ISIS2
+
+----------------------------------------
+
+
+
+
+End of assembly
+;X   (SOURCE)ISCS03.P05
+
+;;*** PATCH FILE TYMSAT VERSION 3.05 ***
+;;
+;@   (SOURCE)ISCS03.Q05
+
+
+Patch to initialize OUTMSK in ASYNC initial table
+
+
+Initialize OUTMSK in the case of port hang when:
+YONENA is set (reverse XON enable) and 
+RXON is set (output stopped)
+
+
+Patch to solve SIO PVC's BAUDOT problem
+
+Patch to set async pvc AID ports to answered on restart
+
+Patch to fix 0641 crash problem with printer port.
+
+Patch to check for async ring wrap.  If wrapped then a blackball
+is sent and the ring is cleared
+
+Patch to answer hardwire ports on slot initialization
+
+Patch to make NOHNG disable TID timer
+
+Patch to prevent SIO ports from hanging due to disconnect SVC
+
+Patch to prevent register from getting clobberred in SIOBSY
+
+Patch to change SIO hang program
+
+Patch to stop outputting when signals drop towards consat for SIO ports
+
+End of assembly
+;@   (SOURCE)ISCS03.PAC
+
+End of assembly
+1;F   (2052)TEST.S1L
+
+;X   (SOURCE)ISCS03.W05
+
+CTA,CTASIZ;P
+SEG0,S0SIZE;P
+SEG1,S1SIZE;P
+SEG9,S9SIZE;P
+%P
+
+%Q
+EXIT
+
+-R MERLIN
+MERGE AND LINK ISIS SLOTS
+VERSION  2.10
+* @(2052)TEST.MER
+
+
+
+
+         SLOT MAP
+
+SLOT BEGINS ENDS
+ 0   1CE00  5EDFF
+ 1   5EE00  78DFF
+
+
+
+
+    MAP OF SLOT  0
+
+SEG  BEGINS ENDS
+ 0   1DE00  25AFF
+ 1   25B00  311FF
+ 2   31200  37EFF
+ 4   37F00  380FF
+ 6   38100  480FF
+ 7   48100  53DFF
+11   53E00  542FF
+12   54300  579FF
+13   57A00  5EDFF
+14   1CE00  1DDFF
+
+
+
+
+    MAP OF SLOT  1
+
+SEG  BEGINS ENDS
+ 0   5F000  64ED7
+ 1   64F00  6A7DD
+ 2   6A800  73883
+ 3   73900  758FF
+14   5EE00  5EFEF
+
+EXIT
+
+-R CKSUM
+INPUT: (2052)*.*
+MOXVIS (2052)2052FL.MOD
+KOQYUB (2052)2052FL.TYP
+JADDOC (2052)BKUP1.BND
+YOYLOB (2052)BKUP1.S1L
+JEVKAC (2052)BKUP1.S0L
+QIGTEG (2052)BKUP1.NIB
+MARFEF (2052)BKUP1.ADT
+MEKDIY (2052)BKUP1.S1T
+YAQPER (2052)BKUP1.S1C
+XARWOF (2052)BKUP1.S0C
+LUSSAX (2052)BKUP1.CMD
+HUJZOS (2052)BKUP1.TYM
+CUCCID (2052)BKUP1.MER
+GADMEG (2052)PROD.BND
+MEZYUM (2052)PROD.S1L
+VOLPEP (2052)PROD.S0L
+JEVYEK (2052)PROD.NIB
+ZIVZIK (2052)PROD.ADT
+YEMJUJ (2052)PROD.S1T
+TOQWUY (2052)PROD.S0C
+LOCBED (2052)PROD.S1C
+TOLKEH (2052)PROD.MER
+CIPZOJ (2052)PROD.CMD
+HUJZOS (2052)PROD.TYM
+QOLSOF (2052)2052.ASM
+WEBMER (2052)2052.CSM
+SUYGEY (2052)2052SA.RNM
+QONHEQ (2052)BKUP2.MER
+COQJIC (2052)BKUP2.S1C
+YICNUJ (2052)BKUP2.S0C
+WOZSUY (2052)BKUP2.CMD
+QELNIF (2052)BKUP2.BND
+GEVBOH (2052)BKUP2.S1L
+POYSAY (2052)BKUP2.S0L
+HOHRAV (2052)BKUP2.NIB
+ZADZEP (2052)BKUP2.ADT
+ZIQJAM (2052)BKUP2.S1T
+RAYSOF (2052)BKUP2.TYM
+XEKGUN (2052)2052PT.CPY
+WAGLIK (2052)TEST.CMD
+QONXEP (2052)TEST.MER
+YIGDUG (2052)TEST.S0C
+GAHHAT (2052)TEST.S1C
+LUQPIC (2052)TEST.S1T
+MARQAV (2052)TEST.TYM
+YEGZIV (2052)TEST.ADT
+QEWGIS (2052)TEST.NIB
+WEPFUK (2052)TEST.S0L
+XAVHUT (2052)TEST.S1L
+QORXOY (2052)NAD069.TMP
+SAPHAB (2052)TEST.BND
+INPUT: (SOURCE)*.P##
+DOWPAS (SOURCE)PRB35.P04
+HAQVUS (SOURCE)DINS01.P00
+SOYGAH (SOURCE)PRB35.PAB
+NUDWIG (SOURCE)ACOM02.P03
+YOJXIH (SOURCE)I2IS05.P08
+POTSUG (SOURCE)UTIL01.P02
+POTSUG (SOURCE)ERLG07.P04
+DUSPEW (SOURCE)UTIL01.P03
+FIRNIY (SOURCE)OLDSUP.P04
+PASRIS (SOURCE)ISCS06.PAP
+TADGIJ (SOURCE)ISCS06.PAS
+ZEQQUH (SOURCE)ISCS06.P03
+FUJBOB (SOURCE)ISCS06.PBH
+POTSUG (SOURCE)UN205.P01
+POTSUG (SOURCE)UN205.P04
+SEMSET (SOURCE)RAM10.P07
+QUWCUG (SOURCE)PBH07.P05
+NIHJIY (SOURCE)SUP41.PAA
+KIJKUY (SOURCE)SUP41.PAC
+BAXWIM (SOURCE)RAM10.PAA
+YAFDEJ (SOURCE)SUP41.P04
+MAJPIX (SOURCE)SUP41.PAH
+HAQVUS (SOURCE)DINP01.P00
+COXJUQ (SOURCE)XCOM03.P01
+YEKHIM (SOURCE)I2IS07.P03
+XUBHAJ (SOURCE)NOMSG3.P01
+ZANVIR (SOURCE)OLDXM3.P01
+NUGPIJ (SOURCE)ISCS03.P05
+PURQUG (SOURCE)ISCS03.PAC
+POTSUG (SOURCE)SYSM05.P04
+POTSUG (SOURCE)ACCT05.P04
+PEQTUP (SOURCE)TII05.P10
+QUSHIV (SOURCE)TII05.PAN
+VOFTUX (SOURCE)RXON.PAT
+INPUT: 
+
+-DECLARE ALL RD RD (2052)*.TYM
+
+FILES RENAMED:
+TEST    TYM
+PROD    TYM
+BKUP1   TYM
+BKUP2   TYM
+
+-DECLARE ALL RD RD (2052)*.S1T
+
+FILES RENAMED:
+TEST    S1T
+PROD    S1T
+BKUP1   S1T
+BKUP2   S1T
+
+-DATE
+MAR 11, 1988	16:34
+-SEND
+TO: @(SOURCE)GENS.MSG
+TYPE LETTER:
+
+ NODE 2052 'S GEN IS FINISHED!!!
+
+
+
+mail waiting
+-
+-
+-SEND NOWELLR
+TYPE LETTER:
+; PCOM v1.63 - processed: (2052)TEST.ADT = (2052)2052.ASM
+; Options: DETACH  LOG NOAPPEND SUPERSEDE LICENSE 
+; Limits: TIME:60 TRULIMIT:0 
+; Status: completed.
+; Output recorded in file (2052)TEST.ADT.
+
+mail waiting
+-LOGOUT
+920.59 tru
+terminal time: 0:22:38
+   F4
