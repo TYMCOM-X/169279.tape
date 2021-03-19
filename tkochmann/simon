@@ -1,0 +1,50 @@
+
+TO>     SIMON WRAY
+
+FROM>   TIM KOCHMANN
+
+SUBJ>   NODE CODE CRASHES
+
+DATE>   091687
+======================================================================
+
+SIMON:
+
+     It looks as if your machine crashed in the crash routine in Node
+Code (@10B86).  There is a patch to address this problem as well as
+several other problems for Version 5.21 Node Code.  If you would like
+to assemble the patches for TII05.#21 into your code you can simply call
+up the patch driver in (TECHSERV:37)TII05D.P21.  You did have a
+primary crash in Node Code which led to the subsequent crash.  Node Code
+unit is aware of this "bug" as I ran into it some time ago and it is
+also addressed in Version 5.22 as per Jim Laden this last summer.
+Looking at the crash dump it appears that ISIS may have been looping
+in IT'S crash routine as well!  
+
+     I suspect the ISIS patch that you are concerned about is the patch
+for Emulated Sync.  There is a problem in ISIS with the Emulated Sync
+initialization routine on the micro IV.  Interrupts are not disabled
+for a sufficiently long enough period to permit all interrupts to be
+"flushed" causing outstanding "old" interrupts to flag the CPU for
+attention during INI.  The patch was put in Version 8.00 to open the
+window for flushing interrupts for the TSI also.  This does not seem
+at all related to your crash.
+
+     The other problem you are experiencing with Sync line configuration
+can be circumvented currently be declaring NSYNC EQ 4 in your TYMFILE
+rather than 2.  ISIS will then expect up to 4 LUs to initialize and
+set up S.REFs 2,3 while permitting M.REFs 0,1 to be assigned.
+CAUTION:
+     You may not assign duplicate LU references to Node Code or any
+other slots!  Be certain not to try to assign S.REFs 0 or 1 anywhere
+in the machine if you require SIO on lines 0 and 1.
+     This is not particularly clean but it does permit one to utilize
+LUs 0,1 for V.35 high speed connectivity while reserving LUs 2,3 for
+RS-232C Sync applications.  This is the only way around the restriction
+that I know of at this time.  I am running this in the NTD currently
+with Dennis Ernst on the TSI and also on several micro IV machines and
+it appears to run well.  You will observe a diagnostic message at start
+up reporting that emulated sync line 0,1 failed to initialize which is
+no problem as they have no assignment to any slot.
+
+
