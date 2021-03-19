@@ -1,0 +1,383 @@
+Purpose
+=======
+
+    This file was created initially as a response to RFI #i63688 from
+Sue Heisler of Central Region, dated as May 08, 1986, for SW Bell.
+
+    A total of 55 fields are identified from Bell Corp.'s "PPSN Generic
+Requirements - TA 00301" Appendix A, page A1 through A27.
+
+    The purpose of this document is to provide the Tymnet counterparts
+from the raw accounting data for these 55 items.
+
+
+File History
+============
+
+Created May 13, 1986 by Shirley L. Chiang, Manager of Applications Support,
+                        HQTECH, Tymnet, San Jose.
+
+Modified May 14, 1986 by S.C.
+   Items affected:  11, 12, 13, 14, 27.
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+ 1.  Call Type
+
+     PVC indicator is used in X.25 but currently not being reported to
+     Supervisor's accounting.  Latest news says it will be reported in
+     version 3.02 of X.25 scheduled to be released in July, 86.
+
+     PVC indicator is in Msg. type 14.15.00.ff, where ff=0001 as a flag.
+
+ 2.  Sensor Type
+
+     We are not sure of the definition and therefore unable to give answers
+     unless more explanations are provided.
+
+     From here on, this type of situation will be marked as D.N.C. for
+     Definition Not Clear.
+
+ 3.  Sensor Id.
+
+     D.N.C.
+
+ 4.  Recording Office Type
+
+     D.N.C.
+
+ 5.  Recording Office Id.
+
+     D.N.C.
+
+ 6.  Connect Date
+
+     (If this means the start date/time of a network login session:)
+
+     = timestamp (GMT from 01/01/74 in seconds) on the block where Msg. 
+       type 01 for a session is recorded.  The timestamp can be converted
+       to create the standard MM/DD/YY HH:MM:SS format.
+
+ 7.  Timing Indicator
+
+     Not directly reflected in raw accounting data.  May be obtained by
+     analysing the start/termination time explained in Item #16 and 17.
+
+ 8.  Study Indicator
+
+     N/A. (Not Applicable in Tymnet Accounting)
+
+ 9.  Originating Sensor Id.
+   
+     D.N.C.
+
+10.  Terminating Sensor Id.
+
+     D.N.C.
+
+11.  Originating SR (service region)
+
+     Tymnet Accounting provides the the node/host information of the origi-
+     nation/destination point into/out the Network.  It does not capture
+     the phone numbers of the private or public dial-up accesses unless:
+
+      A.  if the dial-up number is entered after the password (in the login
+          string) and treated as part of the project code, then it will
+          be recorded in multiple Msg. type 13's;
+
+      B.  in order for the project code to be reported, the destination host
+          or host interface must do something special.  It must turn a flag
+          on in ISIS segment "E", so the destination node will capture
+          everything entered after the password up to 27 characters
+          and ship it to the supervisor as accounting Msg. type 13's.
+          Usually this is handled as a patch which may be incorperated
+          or assembled into the code when project code is desired.  Con-
+          sultation with Tymnet technical support shall be needed in search
+          of such a patch for various interfaces.
+
+     Orig. node is in Msg. type 2, bit 4 - 15,
+     orig. host is in Msg. type 4.2, bit 16 -31,
+     dest. node is in Msg. type 4.1, bit 16 -31,
+     dest. host is in Msg. type 3, bit 12 - 20.
+
+12.  Originating SA-EPN (service area-end point number)
+
+     See Item #11.
+
+13.  Terminating SR
+
+     See Item #11.
+
+14.  Terminating SA-EPN
+
+     See Item #11.
+
+15.  Network User Id.
+
+     A. If this means the unique Tymnet invoice or session number:
+   
+        = Msg. type 01, bit 8 - 31, where bit 8 - 11 is prefixed by 
+          Supervisor number as each Supervisor keeps its own set
+          of numbers up to 20 bits long to assign to every logon session.
+          In order to make the invoice/session number unique, the Supervisor
+          number is then prefixed to the 20 bit sequential numbers.
+
+     B.  If this means the user name:
+
+        = multiple Msg. type 4.0, where each Msg. type 4.0 contains up to
+          three characters of the user name string.
+
+     C.  If this means the NUI in X.25:
+
+        NUI will be part of the calling/called address and is dependent
+        on how it is structured and specified in X.25.
+        (Reference Tymnet X.25/X.75 Reference Manual, Chapter 2)
+        (Also see Item #31, 32 for detail on calling/called address)
+
+16.  Connect Time
+
+     See item #6.
+
+17.  Elapsed Time
+
+     If this means the session duration time:
+
+     = (termination GMT) - (start GMT), where termination GMT is the timestamp
+     of the block when the last accounting message (could be type 9, 10, 11
+     or 14) is recorded for the session.
+
+     In Tymnet's own billing process, program will flag if the termination
+     indicator (Msg. type 14) is received.  Otherwise, it will hold the
+     last accounting message (for the session) for six hours as a graceful
+     waiting period, and then uses the timestamp of that last accounting
+     message as the termination time and artificially generates a termination
+     code of 84.
+
+18.  Charging & Packet Indicator
+
+     Definition not clear for Packet Indicator.
+
+     Charging Indicator as used in X.25:
+
+     = Msg. type 14.0.7.nm, where nm is a two byte field,
+       n = 0 for normal charge (i.e. charge to orig. DTE),
+         = 1 for reverse charge (i.e. charge to terminating DTE),
+       m = 0 for originating from host or FEP
+         = 1 for originating from terminal or PAD.
+
+       (X.25 defaults to reverse charge.)
+
+19.  Termination Cause Indicator
+
+     = Msg. type 10, 11 or 12, and/or msg. type 14.0.0.vv where
+       vv is a 16 bit value ranging from 1 to 32 and providing
+       a supplement to the termination reasons indicated in Msg.
+       10, 11 or 12.
+
+       Occasionally Msg. type 14.0.15.nm may be sent by X.25/X.75 as
+       an additional supplement for more detailed termination causes,
+       where n = call clear cause,
+             m = diagonostic code.
+
+20.  Rate Period 1 Segment Count
+
+     Segment count or packet count is reported by X.25/X.75:
+
+     = Msg. type 14.1 through 14.8.  May be reported by both the orig. 
+       and destination interfaces.
+
+     Tymnet internal billing normally uses orig. p/s count.  If orig.
+     p/s count is not presented, then destination p/s count will be used.
+
+     Rate period can be obtained by comparing the session elapsed time.
+
+21.  Rate Period 2 Segment Count
+
+     See Item #20.
+
+22.  Rate Period 3 Segment Count
+
+     See Item #20.
+
+23.  Rate Period 4 Segment Count
+
+     See Item #20.
+
+24.  Originating Service Type
+
+     Not directly reflected in raw accounting data.  Must read the orig.
+     node/host and match with some kind of external table (of SWB's)
+     to identify the type of service or application running within
+     the origination point or terminal interface.
+
+     Orig. node is in Msg. type 2, bit 4 - 15,
+     orig. host is in Msg. type 4.2, bit 16 - 31.
+
+25.  Terminating Service Type
+
+     Similar process needed to identify the termination host or host
+     interface.
+
+     Termination or destination node is in Msg. type 4.1, bit 16 - 31,
+     termination or destination host is in Msg. type 3, bit 12 - 20.
+
+26.  Priority
+
+     N/A.
+
+27.  Segment Size
+
+     If this means the segments generated by X.25 interface:
+
+     not recorded in raw accounting data.  It is dynamically calcu-
+     lated by X.25, some segments may carry more data, some less.
+     In general, guess-timated average is around 22 characters per segment.
+
+28.  Fast Select
+
+     Only applicable in X.25/X.75.
+
+     = Msg. type 14.15.1.  But this is not being reported by X.25/X.75.
+     Version 3.02 of X.25 will report this information as accounting
+     addendum to the Supervisor.  Version 3.02 is scheduled to be released
+     in July, 86.
+
+     When it is implemented, this message will be reported only when
+     Fast Select is requested;otherwise, no such message will even be
+     seen in the raw accounting data.
+
+29.  Present Date
+
+     Generated by SWB.
+
+30.  Present Time
+  
+     Generated by SWB.
+
+31.  Originating DNIC
+
+     = Msg. type 14.10 through 14.13, calling DTE address reported by
+     X.25/X.75.  The first 4 BCD digits are the originating DNIC,
+     followed by another 10 digits for supplementary network id 
+     which is determined by X.25 parameter structures.
+
+32.  Terminating DNIC
+
+     Same as Item #31,
+
+     = Msg. type 14.2 through 14.5 for called DTE address.
+
+33.  Transit Network 1 DNIC
+
+     Reported by X.25/X.75:
+
+     = Msg. type 14.6.nm, where nm is the four BCD digits of DNIC.
+     Multiple Msg. type 14.6.nm will be recorded for multiple transit
+     network DNIC's.  However, one additional such message will also
+     be recorded signaling the ending of the stream where:
+       n = FF (a constant value in hex.),
+       m = the total number of transit networks just previously being
+           reported.
+
+34 - 36  Transit Network 2 - 4 DNIC
+
+     See Item #33.
+
+37.  Local Service Type
+
+     D.N.C.
+
+38.  Tarriff Utility
+
+     Only applicable in DATAPAC for Tymnet.
+
+     = Msg. type 14.18.sssssbbb.  (Reference Acount.doc, Msg. 14.18)
+
+39.  Call id. Billing
+
+     Call id is applicable in X.25/X.75.
+
+     If it is part of the calling/called address, then the 10 BCD digits
+     immediately following the DNIC may be the call id.
+
+     In the case for X.75, call id is reported in Msg. 14.9 which is
+     normally used for the gateway invoice number.
+
+40.  Date
+
+     D.N.C. (If this means the connect date, then see Item #6.)
+
+41.  Auxiliary Sensor Id.
+
+     N/A. or D.N.C.
+
+42.  Service Region
+
+     D.N.C.
+
+43.  Service Area - End Point Number
+
+     D.N.C.
+
+44.  Intrastate Call Aggregate Holding Time
+
+     N/A or D.N.C.
+
+45.  Interstate Call Aggregate Holding Time
+
+     N/A or D.N.C.
+
+46.  Recording Interval End Time
+
+     If this means the interval of node reporting accounting addendum,
+     then it is known to be 15 - 20 minutes and is a function of 
+     Tymnet ISIS/Node Code.
+
+47.  Count of Intrastate attempts
+
+     Not directly reflected in raw data.  Must first go through external
+     table process to identify the location or site of the orig. and
+     dest. interfaces to determine whether the session is an intrastate
+     or interstate one, then must sort out the sessions and verify 
+     the termination reasons and analyse the patterns of the logins.
+     This is strictly an application process utilizing the information
+     provided by the raw data.
+
+48.  Count Of Interstate Attempts
+     
+     See Item #47.
+
+49.  Count Of Intrastate Packet Segment
+
+     This will be another example of application process.
+
+     The packet/segment count is obtainable in Msg. type 14.1 thru 14.8.
+
+50.  Count of Interstate Packet Segment
+
+     Same as Item #49.
+
+51.  Counter Reset
+   
+     N/A.
+
+52.  Connecting DNIC
+
+     See Item #33.
+
+53.  Trunk Id
+
+     N/A.
+
+54.  Logical Channel Number
+
+     The X.25 LCN is not currently being reported as accounting addendum
+     to the Supervisor.
+
+55.  International Data Number
+    
+     If this means the DNIC, see Item #39.
+
+ 
