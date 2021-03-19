@@ -1,0 +1,27 @@
+
+:****************************************************************
+:
+:	Patch by :		Stephane Fisbein - European Operations
+:	Patch to module :	ISCS06.R03
+:	Version :		6.03
+:	Related NSR # :		
+:	Description :		When using the NOIIX option to disable
+:				the IIX capability in the RNP message,
+:	the node code replies eventually with a NCC (B6) message with
+:	the IIX bit off. However, in an SDN environment, the node code
+:	is replaced by the LCP which handles the IIX logic differently
+:	and forgets to reset the IIX bit in the B6. Thus leading to the
+:	consat to wait for the IIX handshaking in vain. Though the bug
+:	is in the LCP, it is easier for the time being, and also
+:	harmless for all possible usages of the consat to patch the
+:	consat in order to simply ignore the IIX flag of the B6 message
+:	when the NOIIX flag is set. This patch is to be assembled AFTER
+:	the (asyncpat)noiix.603 patch
+
+  if	noiix
+  lo	isis
+patch(900215,1630,S/FISBEIN,CIROK2-20,,4)
+	J	CIROK2		: should be the case anyway with NOIIX
+endpatch(Disable IIX in NCC/B6 message if NOIIX already set)
+  fo 	isis
+  ei	noiix
