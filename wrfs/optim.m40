@@ -1,0 +1,1137 @@
+ 
+        SUBTTL  OPT...OPTIMIZER...DISPATCHING
+
+:
+:|--------------------------------------------------------------------|
+:|                           H I S T O R Y                            | 
+:|--------------------------------------------------------------------|
+:| SRS NUMBER | INIT | VSN  |   DATE   |           REASON             |
+:|------------|------|------|----------|------------------------------|
+:| NSR  580   | CC   | 4.00 | 06-27-86 | INIT CFLD FOR UNFORMATTED SCR|
+:| PIR 1972   |JK/KJS| 4.00 | 02/03/86 | IBM KATAKANA                 |
+:| NSR 00065  | JK   | 3.00 | 10/15/85 | WRITE CLEAR SCREEN ADJUST    |
+:| NSR 000266 | KJS  | 3.00 | 09-10-85 | CORRECT SENDING ALARM-OPTEND |
+:| PIR 1639   | CC   | 3.00 | 09-09-85 | CMT STATUS LINE              |
+:| PIR 1716   | KJS  | 2.06 | 03/30/85 | VARIOUS INCL FILE TRANSFER   |
+:| PIR 1716   | KJS  | 2.06 | 03/23/85 | HPORT/PPORT CHECK @ OPT299   |
+:| PIR 1628   | JK   | 2.05 | 03/11/85 | TTY TERMINAL                 |
+:| PIR 1564   | CC   | 2.05 | 02-06-85 | FOR RESET KEY                |
+:|--------------------------------------------------------------------|
+
+	MO	.,OPTIM
+	LO	TPF
+        SEG     A.CODE
+:
+SVNINE	EQ	$A79
+SXFIVE	EQ	$A65
+:
+: OPTIMIZER DISPATCHING SUBROUTINE.  THIS PROCESS FINDS THE TERMINAL
+: DCB'S THAT REQUIRE OPTIMIZER ATTENTION AND EXECUTES THEM
+:
+OPTDSP  ST      R5,OPTRET
+        LHI     R2,((MAXPRT)/10)*2
+OPT010  LH      R0,OPTWAK,R2            :NEXT GROUP
+        NH      R0,ACP,R2               :CHECK ONLY ACTIVE PORTS
+:
+        JFFOH   R0,OPT030
+        SIS     R2,2                    :GO ON TO NEXT GROUP
+        JGEBS   OPT010
+        L       R5,OPTRET               :RETURN IF DONE
+        JR      R5
+:
+OPT030  STH     R2,OPT090               :SAVE FOR NEXT TIME
+        SLLS    R2,3                    :COMPUTE PORT #
+        OR      R1,R2
+        RBT     R1,OPTWAK
+:
+        SLLS    R1,2                    :MAKE FW POINTER
+        L       R12,PORTAB,R1           :LOCATE TERMINAL DCB
+        SRLS    R1,2                    :RESTORE PORT INDEX
+        L       R11,DCCB,R12            :LOCATE CCB
+:
+: SCHEDULE OPTIMIZER TRANSMISSION PROCESS
+:
+        LH      R0,TXLIM,R11            :START OUTPUT
+        JLE     SCHEX1                  :NEGATIVE TRANSMIT LIMIT
+        JAL     R4,SLOR,,
+        LHL     R14,COPT14,R11          :GET R14 VALUE
+        LHL     R10,COPT10,R11          :GET R10 VALUE
+        L       R8,TCSCN,R11            :GET SCREEN BUFFER
+        LHL     R7,TBADR,R11            :CURRENT ADRESS
+        L       R13,TSTCKP,R11          :STACK POSITION
+        L       R9,TTPROF,R11           :TERMINAL PROFILE
+        L       R1,COPTR1,R11           :RECOVER SUSPENSION ADDRESS
+:
+        JALR    R1,R1                   :START USER
+        J       SCH010                  :RETURN IS A CRASHING ERR
+:
+: SUSPEND PROCESS
+:
+	STH     R14,COPT14,R11          :SAVE SOME REGISTERS
+        STH     R10,COPT10,R11
+        STH     R7,TBADR,R11
+        ST      R13,TSTCKP,R11
+        ST      R1,COPTR1,R11
+        JAL     R4,ELODR,,              :CLOSE ANY OUTPUT
+SCHEX1  LH      R2,OPT090               :RECOVER GROUP #
+        J       OPT010
+:
+SCH010  JAL     R10,CRASH,,
+        HC      0
+        BC      4*R1,SCHCSH
+
+        SEG     0
+OPT090  HS      1
+OPT091  HS      1
+OPTRET  WS      1
+STRRET  WS      1
+        SUBTTL  OPT..OPTIMIZER..OPTMIZATION
+:
+:       THIS SECTION MUST DETERMINE THE BEST WAY TO SEND THE DATA TO THE
+:       TERMINAL.  TWO BASIC ITEMS WILL BE TAKEN ADVANTAGE OF:
+:
+:       1) ALL TERMINALS HAVE AN ABILITY TO POINT THE CURSOR AT AN
+:       ARBITRAARY POSITION ON THE SCREEN.  THEREFORE IT IS NOT NECESSARY
+:       TO SEND TO THE TERMINAL ANY CHARACTERS THAT ARE ALREADY ON THE
+:       SCREEN.
+:
+:       2) MOST TERMINALS HAVE A WAY OF ERASING PORTIONS OF THE SCREEN.
+:       LARGE AREAS OF BLANKS CAN BE DISPLAYED USING THESE FUNCTIONS.
+:
+:       TO ACCOMPLISH THIS THE FOLLOWING ALGORITHIM IS APPLIED TO EACH LINE
+:
+:       PE(N)   PRICE OF ERASING UP TO SOME POSITION "N".  THIS INCLUDES
+:               RESTORING GRAPHICS THAT ARE DESTROYED AND THE CHARACTERS
+:               TO MOVE THE CURSOR.
+:
+:       PC(N)   PRICE TO WRITE ONLY THE CHANGED CHARACTERS.  THIS MUST 
+:               INCLUDE THOSE CHARACTERS REQUIRED TO MOVE THE CURSOR.
+:
+:       K       PRICE TO MOVE THE CURSOR
+:
+:       N       POSITION WITHIN THE LINE
+:
+:       THE PRICE IS THE NUMBER OF CHARACTERS THAT MUST BE SENT
+:
+:       FOR ALL "N" LESS THAN K
+:               PC(N)=K+N
+:               PE(N)=K+N
+:
+:
+:       FOR EACH POSITION N STARTING FROM K TO THE LAST POSITION OF A LINE
+:               IF ANY OF THE LAST K POSITIONS AR GRAPHIC PE(N)=PE(N-1)+1
+:                       ELSE PE(N)=PE(N-1)
+:               IF ANY OF THE LAST K POSITIONS AR CHANGED PC(N)=PC(N-1)+1
+:                       ELSE PC(N)=PC(N-1)
+:
+:
+:       NEXT TO DETERMINE THE OPTIMUM CHOICE CONSIDER THE COMBINED PRICES
+:
+:       CL(N)=PE(N)+PCL-PC(N)
+:
+:               WHERE CL(N) IS THE COST AT POSITION "N" FOR ERASING FROM THE 
+:               LEFT UP TO "N" AND USING THE APPROACH OF WRITING ONLY THE 
+:               CHANGED LOCATIONS FROM THEN ON.  PCL IS THE COST OF WRITING
+:               ONLY THE CHANGED CHARACTERS. (PC(N)AT THE LAST POSITION)
+:
+:       CR(N)=PEL-PE(N)+PC(N)
+:
+:               WHERE CR(N) IS LIKE CL(N) EXCEPT THE ERASE IS ON THE RIGHT.
+:               PEL IS THE COST OF ERASING THE ENTIRE LINE AND REPLACING
+:               THE GRAPHICS.  (PE(N) AT THE LAST POSITION)
+:
+:       THE PROBLEM THEN IS TO FIND "N" SUCH THAT THE MINIMUM COST FOR EACH
+:       OF THESE APPROACHES IS FOUND.  IT IS NOT NECESSARY TO INCLUDE THE
+:       CONSTANTS PEL AND PCL FOR THIS PURPOSE.  THUS FIND THE VALUES OF N
+:       THAT GIVE MINIMUMS FOR:
+:
+:       PE(N)-PC(N)
+:
+:       PC(N)-PE(N)
+:
+:       SINCE THESE ARE COMPLEMENTS OF EACH OTHER IF THE MIN AND MAX FOR
+:       ONE OF THEM IS FOUND THEN THE MAX IS THE MIN OF THE COMPLEMENTARY
+:       FUNCTION.  THE ACTUAL COST CAN BE COMPUTED BY ADDING THE
+:       APPROPRIATE CONSTANT.
+:
+:       NEXT CONSIDER THE COST OF ERASING ON BOTH THE RIGHT AND LEFT.
+:       IE ERASE FROM THE BEGINING TO SOME POINT I AND FROM SOME POINT
+:       J TO THE END OF THE LINE.  IF I EQUALS J THEN PEL GIVES THE
+:       COST.  IF I IS GREATER THAN J IS NOT OF CONCERN SINCE IT WOULD
+:       BE CHEAPER TO ERASE THE ENTIRE LINE. (COST PEL)
+:       IF I IS LESS THAN J THE OPTIMUM VALUE FOR I AND J ARE THE OPTIMUM
+:       POINTS FOR CL(N) AND CR(N) SEPARATELY.  THE COST IS:
+:
+:       CL(I)+CR(J)-PCL
+:
+:THE FOLLOWING DOUBLE LOOP FINDS:
+:
+:       MIN&MAX (PE-PC)@LOCATION N
+:               -AND-
+:       PEL,PCL
+:
+:       FOR EACH LINE
+:
+:
+:       REGISTER CONVENTIONS USED
+:
+:       R15             GRAPHIC RENDITION INDEX FOR PE COUNTER
+:       R14             GRAPHIC RENDITION INDEX FOR PC COUNTER
+:       R13             INDEX INTO BIT ARRAYS
+:       R12             POSITION TO STOP LINE SCAN
+:       R11             POSITION ON SCREEN
+:       R10             CCB
+:       R9              LOCATION OF SCREEN BUFFER
+:       R8              NULL ACCUMULATOR
+:       R7              NULL ACCUMULATOR
+:       R6              SCRATCH
+:       R5              CONSTANT MASK PREVIOUS "K" POSITIONS
+:       R4              WORKING SCRATCH REGISTER
+:       R3              MIN
+:       R2              MAX
+:       R1              PE BITS
+:       R0              PC BITS
+:
+:
+:INITIALIZE GLOBOL REGISTERS
+:
+        SEG     0
+OPT910  HS      1               :SIZE OF A LINE IN CHARACTERS
+OPT920  HS      1               :PE INITIAL FOR A LINE
+OPT930  HS      1               :PC
+OPT940  HS      1               :PE
+OPT950  HS      2               :ARRAY OF COSTS FOR GRAPHIC RENDITION
+OPT970  HS      1               :K
+OPT996  HS      1               :SAVED MINIMUM
+OPT997  HS      1               :SAVED MAXIMUM
+OPT998  HS      1               :LINE NUMBER
+        SEG     A.CODE
+:
+:ARRAY OF BYTES USED TO COMPUTE THE COST INDEX OF THE NEXT BYTE GIVEN
+:THAT THE CURRENT BYTE HAS BEEN OUTPUT WITH THE CURRENT GRAPHIC RENDITION.
+:THE COST INDEX IS A 2X2 MATRIX.  THIS INDEX IS FORMED FROM
+:TWO BINARY VALUES.  THE FIRST (AND HIGH ORDER IN THE INDEX) IS THE
+:GRAPHIC RENDITION LAST OUTPUT.  THE LOW ORDER BIT IS THE CURRENT GRAPHIC
+:RENDITION.  THIS ARRAY MAKES THE CURRENT RENDITION THE SAME AS THE LAST
+:OUTPUT.
+:
+OPT960  BC      0               :LAST POSITION LI CURRENT POSITION LI
+        BC      3               :LAST POSITION LI CURRENT POSITION HI
+        BC      0               :LAST POSITION HI CURRENT POSITION LI
+        BC      3               :LAST POSITION HI CURRENT POSITION HI
+:
+:TABLE TO FIND THE COST INDEX GIVEN A NEW ATTRIBUTE AND A PREVIOUS COST
+:INDEX.  THE GRAPHIC RENDITION BIT FROM THE NEW ATTRIBUTE FORM ONE INDEX
+:TO THE MATRIX (HIGH ORDER TWO BITS). AND THE CURRENT COST INDEX FORM
+:THE OTHER (LOW ORDER TWO BITS).  THE VALUE IN THE MATRIX IS THE NEW
+:COST INDEX
+:
+OPT980  BC      0,0,2,2
+        BC      0,0,2,2
+        BC      1,1,3,3
+        BC      0,0,0,0
+:
+:ARRAY TO SET THE COST INDEX FOR GRAPHIC RENDITION GIVEN THE
+:TWO BIT S IN THE ATTRIBUTE BYTE FOR INITIALIZATION
+:
+OPT990  BC      0               :DISPLAY
+        BC      0               :DISPLAY
+        BC      3               :INTENSIFIED
+        BC      0               :NON DISPLAY
+
+OPTMIZ  ST      R5,STRRET       :SAVE RETURN ADDRESS
+        LIS     R7,0            :FIND THE ATTRIBUTE FOR POSITION 0
+        L       R8,TCSCN,R11
+        LR      R12,R11
+        JAL     R5,FNDATR
+        LH      R15,HCATR,R11   :COMPUTE INITIAL COST INDEX
+        JGEFS   OPT01A          :BRANCH IF FORMATTED
+        LIS     R15,0           :USE ZERO IF UNFORMATTED
+        JFS     OPT02A
+OPT01A  LB      R15,SCN,R8,R15          :GET ATTRIBUTE
+OPT02A  SRLS    R15,2
+        NHI     R15,3
+        LB      R15,OPT990,R15
+        LR      R14,R15
+        LIS     R6,0            :LINE NUMBER (FIRST)
+        STH     R6,OPT998               
+        L       R4,TTPROF,R11   :FROM TERMINAL PROFILE FIND
+        L       R5,TRMKMS,R4    :MASK FOR LAST "K" BITS
+        LHL     R9,TRMK,R4      :CONSTANT K
+        STH     R9,OPT970
+        AH      R9,TRMESZ,R4    :COMPUTE INITIAL COST OF ERASE
+        STH     R9,OPT920
+        LHL     R0,TRMLSZ,R4    :SIZE OF A LINE
+        STH     R0,OPT910
+        L       R0,TRMCF,R4     :GET MATRIX OF COST FACTORS
+        ST      R0,OPT950       :EFFECTING GRAPHIC RENDITION
+        LA      R13,CCHANG,R11  :LOCATION INDEX FOR BITS
+        LR      R10,R11         :REMEMBER LOCATION OF CCB
+        L       R9,TCSCN,R11    :LOCATION OF SCREEN BUFFER
+        LIS     R11,0           :POSITION ON SCREEN
+:
+:INITIALIZE PARAMETERS FOR EACH LINE
+:
+OPT100  LIS     R4,0            :INITIAL PC
+        STH     R4,OPT930
+        STH     R4,OPT940
+        LHL     R12,OPT910      :COMPUTE POSITION TO STOP LINE
+        AR      R12,R11
+        LIS     R3,0E           :INITIAL MIN
+        LCS     R2,0E           :INITIAL MAX
+        LHL     R7,OPT970       :INITIALIZE ACCUMULATORS TO K
+        LR      R8,R7
+        LIS     R0,0            :NO INITIAL BITS
+        LIS     R1,0            :NO INITIAL BITS
+:
+:SET UP FOR NEXT HALF WORD
+:
+OPT105  LHL     R6,OPT970               :R6=K
+        L       R4,CGRAPH-CCHANG,R13    :INITIAL SET OF BITS
+        SRL     R4,0,R6                 :MAKE ROOM
+        OR      R1,R4                   :COMBINE WITH OLD BITS
+        L       R4,0,R13
+        SRL     R4,0,R6 
+        OR      R0,R4                   :COMBINE WITH OLD BITS
+        AIS     R13,2           :BUMP TO NEXT R13 VALUE
+:
+:INNER LOOP THROUGH EACH HWD OF BITS WITHIN A LINE
+:
+OPT110  TBT     R11,SCNMAP,R9           :CHECK IF ON AN ATR
+        JE      OPT111                  :SKIP IF NOT
+:
+        LB      R4,SCN,R9,R11           :GET THE ATR
+        NHI     R4,0C                   :STRIP THE GRAPHIC RENDITION
+        CHI     R4,0C                   :NO CHANGE IF NON DISPLAY
+        JEFS    OPT111
+:
+        OR      R15,R4                  :COMPUT NEW INDEX
+        LB      R15,OPT980,R15
+        OR      R14,R4
+        LB      R14,OPT980,R14
+:
+OPT111  AR      R0,R0                   :ADVANCE BIT POSITIONS
+        THI     R0,0,R5                 :ANY CHANGE IN LAST K POSITIONS
+        JE      OPT116                  :BR IF NOT
+:
+        TBT     R11,CGRAPH,R10          :IS THIS A NON GRAPHIC?
+        JNFS    OPT112                  :USE GRAPHIC INDEX FOR COST IF YES
+:
+        LIS     R4,1                    :COST OF NULL IS 1
+        JFS     OPT114
+:
+OPT112  LB      R4,OPT950,R14           :USE COST INDEX TO FIND COST
+:
+OPT114  AR      R7,R4                   :ACCUMULATW COST
+        TBT     R11,CCHANG,R10          :IS THIS POSITION CHANGED
+        JEFS    OPT116
+:
+        AHM     R7,OPT930               :ACCUMULATE PC
+        LIS     R7,0                    :RESET ACCUMULATOR
+        LB      R14,OPT960,R14          :GET NEXT COST INDEX
+        JFS     OPT120
+:
+OPT116  LHL     R7,OPT970               :SET ACCUMULATOR TO K
+:
+OPT120  AR      R1,R1                   :ADVANCE BIT POSTIONS
+        THI     R1,0,R5                 :ANY GRAPHICS IN LAST K
+        JEFS    OPT122
+        TBT     R11,CGRAPH,R10          :IS THIS ONE GRAPHIC?
+        JEFS    OPT123
+:
+        LB      R4,OPT950,R15           :GET COST
+        AR      R8,R4                   :ACCUMULATE IT
+        AHM     R8,OPT940               :ADD IT TO PE
+        LIS     R8,0                    :RESET ACCUMULATED COST
+        LB      R15,OPT960,R15          :UPDATE COST INDEX
+        JFS     OPT130
+:
+OPT122  LHL     R8,OPT970               :R8 GET COST OF MOVE
+        JFS     OPT130
+:
+OPT123  AIS     R8,1                    :ACCUMULATE COST
+:
+OPT130  LH      R4,OPT940       :COMPUTE PE-PC
+        SH      R4,OPT930
+:
+        CR      R4,R2           :NEW MAX?
+        JLEFS   OPT140
+        LR      R2,R4           :RECORD NEW MAX
+        STH     R11,OPT997      :AND NEW MAX N
+:
+OPT140  CR      R4,R3           :NEW MIN?
+        JGFS    OPT150
+        LR      R3,R4           :RECORD NEW MIN
+        STH     R11,OPT996      :NEW MIN POS
+:
+:ADVANCE TO NEXT POSITION
+:
+OPT150  AIS     R11,1           :NEXT SCREEN POSITION
+        CR      R12,R11                 :DONE WITH THIS LINE
+        JLEFS   OPT160
+        THI     R11,0F          :DONE WITH A HALFWORD OF BITS
+        JN      OPT110
+:
+:ADVANCE TO NEXT HWD BIT ARRAY
+:
+        J       OPT105
+:
+:END OF A LINE SAVE AWAY
+:       MAX & MIN
+:       MAX & MIN POSITIONS
+:       PEL & PCL
+:
+: 2/15/83 CHANGE TO PREVENT CALLING SLOR WITH NEG. TRANSMIT LIMIT.       
+:
+: 2/17/83 DETECT SPECIAL EOL CONDITION (2 PLACES).       
+:
+: 3/2/83 SET BIT IN OPTSET TO PROTECT LOGON/OPT. PROCESS
+:        TO PREVENT OVERLAYING OF OPTWAK. RESET.
+:
+:
+OPT160  LH      R1,OPT940               :FINAL PE
+        AH      R1,OPT920               :ADD COST OF ERASE AND MC
+        LH      R0,OPT930               :FINAL PC
+        LH      R7,OPT996               :MINIMUM
+        LH      R8,OPT997               :MAXIMUM
+        LHL     R6,OPT998               :CURRENT LINE NUMBER
+        STH     R0,CPCL,R6,R10          :PCL
+        STH     R1,CPEL,R6,R10          :PEL
+        STH     R7,CNMIN,R6,R10         :MIN POSITION
+        STH     R8,CNMAX,R6,R10         :MAX POSITION
+        AH      R3,OPT920               :FOR BOTH MIN AND MAX
+        AR      R0,R3                   :YIELDS PCL-PC+PE COST FOR OPT CL
+        STH     R0,COPTCL,R6,R10        :SAVE THIS COST
+        SR      R1,R2                   :YIELDS PC+PEL-PE COST FOR OPT CR
+        STH     R1,COPTCR,R6,R10        :SAVE THIS COST
+        AR      R0,R1                   :COMPUTE COST OF COMBINED OPERATION
+        SH      R0,OPT930
+        CR      R7,R8                   :COMBIND VALID ONLY IF MIN POS
+        JLFS    OPT170                  :IS LESS THAN MAX
+        LHI     R0,7FFF                 :ENSURE COMBINED NOT USED
+OPT170  STH     R0,COPTC,R6,R10
+        AIS     R6,2                    :CHECK FOR END
+        STH     R6,OPT998
+        CHI     R6,$A24*2
+        JL      OPT100
+:
+:START SCHEDULED OPTIMIZER OUTPUT
+:
+        LR      R11,R10                 :RECOVER CCB ADDRESS
+        LA      R0,OPTWAK               :SET UP OPTIMIZER FOR WAKEUP
+        ST      R0,TACTV,R11
+        LA      R5,OPTXMT               :SET STARTING POINT
+        ST      R5,COPTR1,R11
+        LHL     R5,TPORT,R11
+        RBT     R5,FRISIS               :INSURE ISIS INPUT IS CUT OFF
+        RBT     R5,BUFWAK               :INSURE BUFFER INPUT IS CUT OFF
+        RBT     R5,EBFWAK
+:
+        SBT     R5,OPTWAK               :START TRANSMIT
+        SBT     R5,OPTSET               :SET UP OPT/LOGON PROCESS        
+:
+	if \prtsw
+	lis	r5,p.prnt		:is it currently connected?
+	tbt	r5,piabit,r11
+	je	opt175			:no
+:
+        LH      R5,pPORT,R11
+	jl	opt175
+        RBT     R5,FRISIS               :INSURE ISIS INPUT IS CUT OFF
+        RBT     R5,BUFWAK               :INSURE BUFFER INPUT IS CUT OFF
+        RBT     R5,EBFWAK
+	la	r5,nobuff
+	st	r5,pactv,r11
+	ei
+:
+opt175  L       R5,STRRET               :RETURN, DONE
+        JR      R5
+
+:
+:START TRANMISSION TO THE TERMINAL
+:
+OPTXMT  LIS     R14,0                   :CURRENT LINE IS 0
+        LIS     R10,0                   :CURRENT POSITION FOR START OF LINE
+	lh	r7,trmesz,r9		:erase screen total
+	lis	r6,0			:init total optimizer choices
+
+
+:
+: BEGIN OPTIMIZER SECTION.  SEND BEGIN OPTIMIZER STRING IF ANY (TPF).
+:
+
+	LHL	R3,TRMBOP,R9		:BEGIN OPTIMIZER STRING ADDRESS
+	JE	OPT200			:ZERO? NO STRING - CONTINUE
+	JAL	R5,PUTSTR,,		:NON-ZERO, SEND BEGIN-OPTIMIZER STRING
+
+
+:
+: FIND THE BEST CHOICE FOR THIS LINE
+:
+
+OPT200  LR      R2,R14                  :USE LINE INDEX TO BIAS COST TABLE
+        LIS     R3,0
+        LHI     R0,7FFF                 :ABSURDLY LARGE COST INITIALLY
+:
+OPT205  TBT     R3,TRMOPT,R9            :IS TERMINAL CAPABLE OF THIS OPTION
+        JEFS    OPT220
+        CH      R0,CCOST,R11,R2,        :IS THEAPER?
+        JLEFS   OPT220
+:
+	LHL     R0,CCOST,R11,R2
+	STH	R3,COPMIN,R11,R14	:SAVE OPTIMIZER LINE CHOICE
+	LHR	R4,R0			:GET CURRENT MINIMUM OPTION
+OPT220  AHI     R2,$A24*2               :GO ON TO NEXT OPTION
+        AIS     R3,1
+        CHI     R3,NOPTNS
+        JL      OPT205
+:
+	AH	R7,CPEL,R11,R14		:ADD COST OF THIS LINE E/W
+	SH	R7,TRMESZ,R9		:SUBTRACT ERASE LINE COST
+	AR	R6,R4			:ADD CURR LINE OPT TO TOTAL
+	AIS	R14,2			:NEXT LINE
+	CHI	R14,$a24*2		:ARE WE DONE?
+	JL	OPT200
+:
+: WEIGHT FACTOR DETERMINATION.  USE MAXWGT IF IN FILE TRANSFER MODE,
+: OTHERWISE USE THE TYMFILE WEIGHT FACTOR.
+:
+	LHI	R4,B.XFER		:FILE TRANSFER BIT
+	TBT	R4,TBITS,R11		:DOING FILE TRANSFER NOW?
+	JN	OPTXFR			:YES, USE MAX WEIGHT FACTOR
+	li	r4,t.writ
+	rbt	r4,tbits,r11		:is this a write clear adjust?
+	jnfs	opt221			:yes
+	SHI	R7,WTFTR           	:SUBTRACT WEIGHT FACTOR
+	J	OPT222
+OPTXFR	SHI	R7,MAXWGT		:USE MAXIMUM WEIGHT FACTOR	
+	j	opt222
+:
+: COMPARE NORMAL OPT PATH VS CLEAR SCREEN/REWRITE
+:
+opt221  shi	r7,03c			:use default wtftr for this screen
+OPT222	LHI	R4,T.CLR		:IS THE CLEAR SCREEN BIT SET?
+	CR	R7,R6			
+	JG	OPTYES			:E/W IS CHEAPER TO DO
+	SBT	R4,TBITS,R11		:SET THE CLEAR SCREEN BIT FLAG
+	JFS	OPTX25
+OPTYES	RBT	R4,TBITS,R11		:CLEAR THE CLEAR SCREEN BIT
+	LIS	R14,0			:RESTORE LINE NUMBER
+:
+: INSURE THAT THE GRAPHIC RENDITION IS INITIALIZED
+:
+OPTX25  LIS     R7,0                    :START WITH CURSOR AT ZERO
+        JAL     R5,FNDATR               :LOCATE CURRENT ATTRIBUTE
+        LH      R6,TCATR,R11            :MAKE THIS THE CURRENT DISPLAY
+        JGEFS   OPTX10                  :BRANCH IF FORMATTED
+        LIS     R0,0                    :USE ATR OF 0 IF UNFORMATTED
+        JFS     OPTX20
+OPTX10  LB      R0,SCN,R8,R6
+OPTX20  STH     R0,CCDATR,R11
+        L       R5,TRMSDP,R9            :LET THE TERM PROFILE KNOW ABOUT IT
+        JALR    R5,R5
+        L       R5,TRMMC,R9             :PUT THE CURSOR THERE
+        JALR    R5,R5
+	lhi     r4,t.clr
+	tbt	r4,tbits,r11		:do we want to clear the screen?
+	je	opt225			:go optimize
+	lhi	r6,780			:end position
+	jal	r5,optclr
+	j	opt292
+:R4 INDEXES TO OPTIMUM CHOICE
+:
+opt225	lh	r4,copmin,r11,r14
+:
+        SLLS    R4,2                    :CONVERT TO WORD INDEX
+        J       OPT230,R4
+:
+:POSSIBLE OPTIMUM CHOICES
+:
+OPT230  J       OPT240                  :ERASE ENTIRE LINE
+        J       OPT250                  :WRITE CHANGED CHARACTERS
+        J       OPT260                  :ERASE ON THE RIGHT
+        J       OPT270                  :ERASE ON THE LEFT
+        J       OPT280                  :ERASE RT AND LEFT
+NOPTNS  EQ      (.-OPT230)/4
+
+:
+: ERASE ENTIRE LINE THEN RESTORE GRAPHICS
+:
+OPT240  LHL     R6,TRMLSZ,R9            :END OF LINE
+        AR      R6,R10                  :R6 STORES THE END OF THE LINE (+1)
+        LR      R3,R10                  :R3 IS THE START OF A LINE
+        L       R5,TRMXER,R9            :LET TERMINAL ROUTINE ERASE LINE
+        JALR    R5,R5
+        JAL     R5,OPTGPH               :RESTORE GRAPHICS
+        J       OPT290
+:
+: WRITE CHANGED CHARACTERS FOR ENTIRE LINE
+:
+OPT250  LH      R6,TRMLSZ,R9            :LOCATE END OF LINE
+        AR      R6,R10
+        LR      R3,R10                  :START AT BEGINNING OF LINE
+        JAL     R5,OPTCHG
+        J       OPT290
+:
+: WRITE CHANGED TO A POINT THEN ERASE ON THE RIGHT
+:
+OPT260  LR      R3,R10                  :START AT THE BEGINNING OF THE LINE
+        LHL     R6,CNMAX,R11,R14        :END LOCATION
+        CR      R3,R6                   :CHECK IF WE HAVE END=START
+        JEFS    OPT261
+        AIS     R6,1                    :MAKE ENDPOINT INCLUSIVE
+        JAL     R5,OPTCHG               :SEND CHANGED POSITION
+:
+OPT261  LR      R3,R6                   :BECOMES START
+        LR      R6,R10
+        AH      R6,TRMLSZ,R9            :LINE SIZE
+        CR      R3,R6                   :CHECK IF END=START
+        JGE     OPT290
+        L       R5,TRMXER,R9            :ERASE SUBROUTINE
+        JALR    R5,R5
+        JAL     R5,OPTGPH               :RESTORE GRAPHICS
+        J       OPT290
+:
+: ERASE ON THE LEFT
+:
+OPT270  LR      R3,R10                  :START AT BEGIN OF LINE
+        LHL     R6,CNMIN,R11,R14        :END LOCATION
+        CR      R3,R6                   :CHECK IF END = START
+        JEFS    OPT275
+        AIS     R6,1                    :INCREMENT FOR INCLUSIVE ERASE
+        L       R5,TRMXER,R9            :ERASE
+        JALR    R5,R5
+        JAL     R5,OPTGPH               :RESTORE GRAPHICS
+:
+OPT275  LR      R3,R6                   :START WHERE ERASE LEFT OFF
+        LR      R6,R10
+        AH      R6,TRMLSZ,R9            :GO ON TO NEXT LINE
+        CR      R3,R6                   :CHECK IF END = START
+        JGE     OPT290
+        JAL     R5,OPTCHG               :WRITE CHANGED CHARACTER
+:
+        J       OPT290                  :NEXT LINE
+:
+: ERASE ON LEFT AND RIGHT
+:
+OPT280  LR      R3,R10                  :START LEFT ERASE
+        LHL     R6,CNMIN,R11,R14        :END POSITION
+        AIS     R6,1                    :ERASE IS TO BE INCLUSIVE
+        L       R5,TRMXER,R9            :ERASE
+        JALR    R5,R5
+        JAL     R5,OPTGPH               :RESTORE GRAPHICS
+:
+        LR      R3,R6                   :START WHERE LEFT OFF
+        LHL     R6,CNMAX,R11,R14        :END WITH START OF ERASE
+        AIS     R6,1                    :INCLUSIVE
+        JAL     R5,OPTCHG               :PLACE CHAGED CHARS
+:
+        LR      R3,R6                   :START WHERE LEFT OFF
+        LR      R6,R10                  :END ON NEXT LINE
+        AH      R6,TRMLSZ,R9
+        L       R5,TRMXER,R9            :ERASE
+        JALR    R5,R5
+        JAL     R5,OPTGPH               :RESTORE GRAPHICS
+
+:
+:
+:       GO ON TO NEXT LINE
+:
+OPT290  AH      R10,TRMLSZ,R9           :ADDRESS OF NEXT LINE
+        AIS     R14,2                   :NEXT LINE
+        CHI     R14,$A24*2              :DONE?
+        JL      OPT225                  :GO DO NEXT LINE
+:
+opt292	LHL     R7,CNCURS,R11           :PLACE CURSOR AS REQUIRED
+        L       R5,TRMMC,R9
+        JALR    R5,R5
+:
+:
+:If cursor on the status display area, turned off the status display 
+:
+cmv10	lh	r3,clnval,r11
+	chi	r3,0
+	je	cmv20			:it is the right upper-corner
+:					:display
+	chi	r3,0ff
+	je	cmv45			:status display already be 
+:					:turned off
+	chi	r3,$a25			:status display one 25th line
+	je	cmv45			:corsor will not on this line
+:
+:It is status line display
+:					
+cmv15	lh	r3,cstloc,r11
+	cr	r3,r7
+	jg	cmv45			:cursor above the status line
+:
+	lh	r3,cedloc,r11
+	cr	r3,r7
+	jge	cmv40			:cursor on the status line
+:
+	j	cmv45			:cursor below the status line
+:
+:It is the right upper-corner display
+:
+cmv20	lis	r4,1			:initial line ct = 1
+	lh	r3,clowrw,r11
+	mh	r3,trmlsz,r9		:r3 is the last pos for the right
+	sis	r3,1			:upper-corner display
+	lhi	r5,sxfive		:r5 is the left boundary
+	lhi	r2,svnine		:r2 is the right most pos of line
+	cr	r7,r3
+	jle	cmv25			:cursor on or above the lower bound
+:
+	j	cmv45			:cursor below the lower boundary
+:
+cmv25	ch	r4,clowrw,r11		:if r4 < total line be used
+	jle	cmv30			:then, check next line
+	j	cmv45			:else, return
+:
+cmv30	cr	r7,r2			:r7 on the current line
+	jle	cmv35			:yes,
+	ah	r2,trmlsz,r9		:no, check next line by update
+	ah	r5,trmlsz,r9		:r2 = r2 + 80, r5 = r5 + 80
+	ais	r4,1			:incre line ct by 1
+	j	cmv25			:check next line
+:
+cmv35	cr	r7,r5
+	jl	cmv45
+	j	cmv40			:r7 between col 65 and col 79
+:
+cmv40	lh	r3,clnval,r11
+	sth	r3,cpreln,r11
+	lhi	r3,0ff
+	sth	r3,clnval,r11
+	jal	r5,stadpl
+:
+:
+cmv45   JAL     R5,FNDATR               :LOCATE CURRENT ATTRIBUTE
+        LH      R5,TCATR,R11            :SET DISPLAY ATTRIBUTE
+        JGEFS   OPT294                  :BRANCH IF FORMATTED
+        LIS     R0,0                    :USE 0 FOR UNFORMATTED
+	LIS	R5,0
+        J       OPTI06
+
+:
+opt293	lis	r5,nulkbt
+	sbt	r5,cstbit,r11		:set nulkbt to 1
+
+        J       OPTEND
+
+:
+OPT294  LB      R0,SCN,R8,R5		:get attribute
+:
+:Cursor is positioned to an unprotected field, on a formatted screen.
+:Is the field Alphanumeric or Numeric only?
+:
+        lis     r5,t.num
+        tbt     r5,tbits,r11            :do we require numeric lock?
+        je      opti05                  :n - treat as alphanumeric/unprot.
+:this user requires numeric lock feature
+	thi	r0,numbit
+	je	opti05			:not numeric...so alphameric
+	lis	r5,cf.nup               :numeric - indicate this to TM
+	jfs	opti06
+opti05	lis	r5,cf.aup		:alphanumeric - indicate to TM
+opti06	stb	r5,cfld,r11			
+:
+	chi	r5,4			:is numeric field ?
+	je	opt293			:yes
+:
+:
+: END OF OPTIMIZER SECTION.  VARIOUS FINISHING-UP FUNCTIONS
+: PERFORMED INCLUDING SOUNDING THE ALARM IF INDICATED, UNLOCKING THE
+: KEYBOARD IF INDICATED, SENDING THE END-OF-OPTIMIZER SEQUENCE
+: IF INDICATED FOR THIS TERMINAL, ETC.
+:
+
+OPTEND	EQ	.
+
+
+	STH     R0,CCDATR,R11
+	lis	r5,0			:initiate fixup count
+	stb	r5,cfxcnt,r11
+        L       R5,TRMSDP,R9            :INSURE GRAPHIC RENDITION IS SET
+        JALR    R5,R5
+        LB      R0,CWCC,R11             :SEE IF ALARM SHOULD BE SOUNDED
+        THI     R0,4
+        JEFS    OPTFOP			:FINISH OPTIMIZER STRING
+        LIS     R0,A.BEL                :SEND A BELL
+        JAL     R4,PUTONE,,
+:
+OPTFOP	LHL	R3,TRMFOP,R9		:CHECK FOR FINISH OPTIMIZER STRING	
+	JE	OPTRST			:ZERO? NO STRING, GO RESTORE KEYBOARD
+	JAL	R5,PUTSTR,,		:NON-ZERO, SEND FINISH-OPTIMIZER STRING
+
+OPTRST  LB      R0,CWCC,R11             :CHECK FOR "KEYBOARD restore"
+
+        THI     R0,2
+:
+	jn	opt29a			:if unlock keyboard
+:
+: If no unlock keyboard, check further for '-F' status item
+:
+	lis	r0,ngfbt
+	tbt	r0,cstbit,r11
+	je	opti10
+	j	opt29b
+opt29a
+	lis	r0,d.klck		:unlock keyboard
+	rbt	r0,tbits,r11		:because wcc told us to
+:
+	lis	r0,lockbt
+	rbt	r0,cstbit,r11		:reset lockbt to 0
+opt29b
+	lhi	r0,b.xfer		:in file transfer ?
+	tbt	r0,tbits,r11
+	jn	opt298			:yes
+:	
+	lh	r5,clnval,r11
+	chi	r5,0			:clnval = 0 ?
+	je	opt229			:yes
+:
+	chi	r5,0ff			:no, check clnval = 0 ?
+	je	opt298			:yes,
+:
+	lhi	r0,t.req
+	rbt	r0,tbits,r11
+	jal	r5,stadpl		:no, go to status display rout	
+:
+opt298	lis	r0,ngfbt
+	tbt	r0,cstbit,r11
+	jn	opti10
+	lhl	r3,trmukb,r9		:tell user the keyboard is
+	jal	r5,putstr,,		:unlocked
+:
+opti10	lhi	r0,t.req
+	rbt	r0,tbits,r11
+	lh	r0,tport,r11		:release back pressure
+	sbt	r0,ebfwak		:by letting BUFACT,
+	sbt	r0,bufwak		:resume TM where we left off
+	la	r0,bufwak		:when we back pressure at
+					:the state of OPT
+:
+OPT299  ST      R0,TACTV,R11
+	lh	r0,tport,r11
+        RBT     R0,OPTSET		:@ optwak no longer in tactv
+        LH      R0,HPORT,R11
+
+	IF \PRTSW
+	JL	OPTPCK			:GO CHECK PRINTER
+	ELSE
+        JL      OPTQUT                  :BRANCH IF NO HOST PORT
+	EI PRTSW
+
+        SBT     R0,EBFWAK               :ALLOW FURTHER INPUT FROM HOST
+        SBT     R0,BUFWAK
+        LA      R0,BUFWAK
+        ST      R0,HACTV,R11
+:
+	if \prtsw
+OPTPCK  LH      R0,PPORT,R11
+        JL      OPTQUT                  :BRANCH IF NO printer PORT
+        SBT     R0,EBFWAK               :ALLOW FURTHER INPUT FROM HOST
+        SBT     R0,BUFWAK
+        LA      R0,BUFWAK
+        ST      R0,pACTV,R11
+	EI PRTSW
+:
+OPTQUT  LH      R0,TPORT,R11            :CHECK IF WE SHOULD ZAP
+        JL      4,R1                    :SKIP CHECK IF NO TERMINAL PORT
+        TBT     R0,ZAPWAT
+        JE      4,R1                    :NO JUST EXIT
+:
+        LH      R2,HPORT,R11            :CHECK DATA IN BUFFER
+        JLEFS   OPTQT1                  :DONT CHECK IF NO PORT
+        AR      R2,R2
+        LHL     R0,BCT,R2
+        JN      4,R1                    :LET BUFFERED DATA PASS
+OPTQT1  PUSH(R1)                        :OOPS! SOMETHING HAPPENED
+        JAL     R1,CLROUT,,
+        POP(R1)
+        J       4,R1
+:
+opt229	jal	r5,stadpl		:before hit aid, clnval = 0
+	j	opt298			:so,after optimizer, go to
+					:status display routine
+:
+
+:
+:OPTGPH REPLACE THE GRAPHICS IN THE AREA BETWEEN
+:       R3 (INCL) AND R6 (EXCLU)
+:
+OPTGPH  PUSH(R5)                        :SAVE FOR LATER
+        PUSHH(R3)
+        CR      R7,R3                   :ARE WE IN THE INITIAL POSITION
+        JEFS    OPTG10                  :SKIP AROUND IF SO
+:
+        LR      R7,R3                   :MOVE THE CURSOR THERE
+        L       R5,TRMMC,R9
+        JALR    R5,R5
+:
+OPTG10  JAL     R5,FNDATR               :MAKE SURE ATTRIBUTE IS CURRENT
+        LH      R2,TCATR,R11
+        JGEFS   OPTG20                  :SKIP IF FORMATTED
+        LIS     R2,0                    :USE THIS ATR IF INFORMAT
+        JFS     OPTG30
+:
+OPTG20  LB      R2,SCN,R8,R2            :GET ACTURAL ATTRIBUTE
+OPTG30  STH     R2,CCDATR,R11
+        LR      R3,R7                   :RECOVER POSITION
+        L       R5,TRMOUT,R9            :LET R5 HOLD THE ADDRESS OF OUTPUT SUB
+:
+OPT300  TBT     R3,CGRAPH,R11           :IS THIS GRAPHIC?
+        JN      OPT310                  :YES
+OPT302  TBT     R3,SCNMAP,R8            :IS THIS AN ATR?
+        JEFS    OPT303
+        LB      R0,SCN,R8,R3            :COPY THE ATTRIBUTE
+        STH     R0,CCDATR,R11
+OPT303  AIS     R3,1                    :GO ON
+        CR      R3,R6                   :DONE?
+        JLBS    OPT300
+:
+OPT305  POPH(R3)
+        RETJ(R5)
+:
+OPT310  SR      R3,R7                   :GET COUNT OF SPACES TO SKIP
+        JL      OPT335                  :IF NEG MOVE CURSOR
+        TBT     R7,TRMSPC,R9            :SPECIAL POSITION
+        JN      OPT335                  :MOVE CURSOR IF YES
+        LR      R3,R3                   :CHECK ON R3
+        JEFS    OPT330                  :IF 0 JUST OUTPUT
+        CH      R3,TRMK,R9              :IS THERE ENOUGH TO BOTHER WITH
+        JG      OPT335
+        AR      R7,R3
+:
+OPT320  LHI     R0,A.SP                 :SEND SPACES
+        JALR    R4,R5                   :SEND IT ON
+        SIS     R3,1
+        JGBS    OPT320
+:
+OPT330  LB      R4,SCN,R7,R8            :GET EBCDIC
+
+:
+	push(R12,r3,r2,r5)
+	lr	r2,r4			:R2 = CHARACTER TO CONVERT
+	LA	R12,HDCB,R11		:TO GET DCHSET
+	jal	r5,hstrm		:use appropriate conversion table
+	pop(r5,r2,r3,R12)
+
+        JALR    R4,R5                   :SEND ON THE DATA
+:
+        AIS     R7,1                    :ADVANCE POSITION
+        TBT     R7,TRMSPC,R9            :END OF LINE?
+        JEFS    OPT332                  :NO
+        L       R5,TRMMC,R9
+        JALR    R5,R5
+        J       OPT305
+OPT332  CR      R7,R6                   :DONE?
+        JE      OPT305
+        TBT     R7,CGRAPH,R11
+        JN      OPT330
+        LR      R3,R7
+        J       OPT302
+:
+OPT335  AR      R7,R3                   :POSITION CURSOR
+        L       R5,TRMMC,R9
+        JALR    R5,R5
+        L       R5,TRMOUT,R9            :RESTORE ADDRESS OF OUTPUT SUBR
+        J       OPT330
+:OPTCLR - SEND ALL GRAPHICS TO THE TERMINAL AFTER CLEARING SCREEN
+: THIS OPTION BYPASSES THE OPTIMIZER TRANSMIT ROUTINES AND IS
+: CHOSEN IF IT IS CHEAPER THAN OPTIMIZING MINUS A WEIGHT FACTOR, WTFTR
+: WTFTR DEFAULTS TO $A60 AND CAN BE CHANGED IN THE TYMFILE
+: TTY terminals use this routine exclusively to send a screen to 
+: the terminal.  CR/LF's are sent instead of cursor movements.
+: r3=nongraphics counter
+:r6=line position counter 
+
+
+OPTCLR	PUSH(R5)
+	LHL 	R3,TRMCLR,R9		:CLEAR SCREEN
+	JAL 	R5,PUTSTR,,
+	L 	R5,TRMOUT,R9		:OUTPUT ROUTINE ADDRESS
+	lhi	r6,t.spc		:init special position flag	
+	rbt	r6,tbits,r11
+	lhi	r4,d.snt		:init graphic char sent flag
+	rbt	r4,tbits,r11
+	lis	r6,0			:init line position counter
+	LIS	R3,0			:init count of nongraphics (spaces)
+	J	OPTCL2
+optcl1	lh	r4,trmdy,r9
+	chi	r4,2			:tty terminal?
+	jn	optc1a
+	chi	r6,50			:are we at the end of the line?
+	jl	optcl2			:no, go check character
+	lis	r6,0			:yes, reset line positin count
+	l 	r5,trmmc,r9
+	jalr	r5,r5			:go send a cr/lf
+	lis	r3,0			:reset the blank counter
+	tbt	r7,cgraph,r11		:is this a graphic?
+	je	optcl4			:no, go check for attribute
+	j	optc2b
+OPTC1A	TBT	R7,TRMSPC,R9		:SPECIAL POSITION?
+	JEFS	OPTCL2			:NO, CONTINUE
+	lhi	r4,t.spc
+	SBT	R4,TBITS,R11		:flag special position	
+OPTCL2	TBT	R7,CGRAPH,R11		:A GRAPHIC?
+	JE	OPTCL4			:NO, GO CHECK FOR ATTR
+	lh	r4,trmdy,r9
+	chi	r4,2
+	je	optc2b
+	lhi	r4,t.spc
+	RBT	R4,TBITS,R11
+	JN	OPTC3A
+	CH	R3,TRMK,R9		:MOVE CURSOR OR SEND SPACES
+	JGFS	OPTC3A			:MOVE THE CURSOR IS CHEAPER
+optc2b	lr	r3,r3			:do we have more blanks?
+	je	optcl3			:no, get the next char
+OPTC3B	lhi	r0,a.sp			:yes, send out spaces
+	l	r5,trmout,r9
+	jalr	r4,r5
+	sis	r3,1			:decrement blank counter
+	jgbs	optc3b
+	jfs	optcl3
+OPTC3A	L	R5,TRMMC,R9		:YES, MOVE CURSOR FIRST
+	JALR	R5,R5
+	LIS	R3,0			:TURN OFF FLAG
+
+OPTCL3	LB	R4,SCN,R7,R8		:GET CHAR TO OUTPUT
+:
+	push(R12,r3,r2)
+	lr	r2,r4			:R2 = CHARACTER TO CONVERT
+	LA	R12,HDCB,R11		:TO GET DCHSET
+	jal	r5,hstrm		:use appropriate conversion table
+	pop(r2,r3,R12)
+
+	L	R5,TRMOUT,R9		:RESTORE OUTPUT RTN ADDR
+	JALR	R4,R5			:OUTPUT IT!
+	JFS	OPTCL5			:GO ON TO NEXT POSITION
+OPTCL4	AIS	R3,1
+	TBT	R7,SCNMAP,R8		:ON ATTRIBUTE?
+	JEFS	OPTCL5			:NO, GO ON TO NEXT POSITION
+	LB	R0,SCN,R8,R7		:YES, UPDATE CCDATR
+	STH	R0,CCDATR,R11
+OPTCL5	ais	r6,1			:increment line position
+	AIS	R7,1			:increment the screen position
+	Chi	r7,780			:DONE? (780=1920=24*80)
+	JL	OPTCL1			:NO, GO BACK FOR MORE
+	RETJ(R5)
+:
+: OPTCHG REPLACE THE CHARACTERS THAT ARE CHANGED FROM R3
+:       (INCL) TO R6 (EXCLUSIVE)
+:
+
+OPTCHG  PUSH(R5)                        :SAVE RETURN
+        PUSHH(R3,R7)                    :SAVE FOR LATER
+        LR      R7,R3
+        JAL     R5,FNDATR               :FIND AND SET UP CURRENT ATR
+        LR      R3,R7                   :RECOVER R3
+        POPH(R7)                        :RECOVER CURRENT POSITION
+        LH      R2,TCATR,R11
+        JGEFS   OPT338                  :BRANCH IF FORMATTED
+        LIS     R2,0                    :ATTRIBUTE IF NOT FORMATTED
+        JFS     OPT339
+OPT338  LB      R2,SCN,R2,R8
+OPT339  L       R5,TRMOUT,R9
+:
+OPT340  TBT     R3,SCNMAP,R8            :ON AN ATR?
+        JEFS    OPT345
+        LB      R2,SCN,R8,R3            :COLLECT AND SAVE ATR IN CASE MC
+OPT345  TBT     R3,CCHANG,R11           :CHANGED?
+        JNFS    OPT370                  :YES
+:
+OPT350  AIS     R3,1                    :GO ON TO NEXT
+        CR      R3,R6                   :DONE?
+        JLBS    OPT340
+:
+OPT360  POPH(R3)
+        RETJ(R5)
+:
+OPT370  SR      R3,R7                   :GET COUNT TO SKIP
+        JL      OPT410                  :JUST MOVE THE CURSOR
+:
+        CH      R3,TRMK,R9              :WORTHWILE TO MOVE CURSOR?
+        JG      OPT410
+:
+:INSURE THAT THIS IS NOT A SPECIAL POSITION FOR THIS TERM
+:
+OPT380  TBT     R7,TRMSPC,R9
+        JN      OPT420                  :MUST MOVE THE CURSOR IF SO
+        LB      R4,SCN,R8,R7            :GET A BYTE
+        TBT     R7,SCNMAP,R8            :IS THIS AN ATR?
+        JEFS    OPT385                  :SKIP IF IT IS NOT
+        STH     R4,CCDATR,R11           :SAVE THE ATR AND CHANGE TO A
+        LHI     R4,E.SP                 :SPACE
+
+opt385	push(R12,r3,r5,r2)
+	lr	r2,r4			:R2 = CHARACTER TO CONVERT
+	LA	R12,HDCB,R11		:TO GET DCHSET
+	jal	r5,hstrm		:use appropriate conversion table
+	pop(r2,r5,r3,R12)
+
+        JALR    R4,R5
+        AIS     R7,1                    :NEXT POSITION
+        SIS     R3,1
+        JG      OPT380
+:
+OPT390  CR      R7,R6                   :DONE?
+        JE      OPT360
+:
+        TBT     R7,CCHANG,R11           :CHANGED?
+        JE      OPT400
+:
+	TBT     R7,TRMSPC,R9            :IS THIS SPECIAL TO THE TERM
+        JN      OPT415                  :MOVE CURSOR IF SO
+OPT396  LB      R4,SCN,R7,R8            :GET THE DATA
+        TBT     R7,SCNMAP,R8            :IS THIS AN ATR
+        JEFS    OPT398
+        STH     R4,CCDATR,R11
+        LHI     R4,E.SP                 :CONVERT ATR TO AN SP
+
+:
+opt398	push(R12,r5,r2,r3)
+	lr	r2,r4			:R2 = CHARACTER TO CONVERT
+	LA	R12,HDCB,R11		:TO GET DCHSET
+	jal	r5,hstrm		:use appropriate conversion table
+	pop(r3,r2,r5,R12)
+
+        JALR    R4,R5
+        AIS     R7,1
+        TBT     R7,TRMSPC,R9            :END OF LINE?
+        JE      OPT390
+        L       R5,TRMMC,R9
+        JALR    R5,R5
+        J       OPT390
+:
+OPT400  LR      R3,R7                   :GO CHECK ON A SKIP
+:::--------bfix
+	push(r3)
+	jal	r5,fndatr,,		:find the current attr
+	lh	r2,tcatr,r11
+	lb	r2,scn,r8,r2
+        sth     R2,CCDATR,R11           :RESTORE CURRENT ATR
+	l	r5,trmout,r9
+	pop(r3)
+:::---------efix
+        J       OPT350
+:
+OPT410  STH     R2,CCDATR,R11           :THIS WILL BE THE ATR
+        AR      R7,R3                   :RECOMPUTE OUR POSITION
+OPT415  L       R5,TRMMC,R9             :MOVE CURSOR TO ADDRESS IN R7
+        JALR    R5,R5
+        L       R5,TRMOUT,R9
+        J       OPT396                  :SEND IT ON
+OPT420  AR      R7,R3                   :GET BACK TO ACTUAL DESTINATION
+        JAL     R5,FNDATR               :FIND ACTUAL ATTRIBUTE
+        LH      R2,TCATR,R11            :GET THE ATTRIBUTE
+        JGEFS   OPT430                  :SKIP IF FORMATTED
+        LIS     R2,0                    :USE ZERO IF UNFORMATTED
+        JFS     OPT440
+OPT430  LB      R2,SCN,R8,R2            :GET ATTRIBUTE
+OPT440  STH     R2,CCDATR,R11
+        J       OPT415                  :GO MOVE CURSOR AND EXIT
+        FO      TPF
+        EM
+    d T¼
