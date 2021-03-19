@@ -1,0 +1,3238 @@
+                                                            November 7, 1985
+
+
+
+
+
+
+
+   ***   ***  *   *  ****  ***  *     ***** ****    *   ***** ***** **** 
+  *   * *   * **  * *     *   * *       *   *   *  * *    *   *     *   *
+  *     *   * * * *  ***  *   * *       *   *   * *****   *   ****  *   *
+  *   * *   * *  **     * *   * *       *   *   * *   *   *   *     *   *
+   ***   ***  *   * ****   ***  ***** ***** ****  *   *   *   ***** **** 
+
+
+                     ***** *   * *   *  ****   *  *****
+                       *    * *  ** ** *      * *   *  
+                       *     *   * * *  ***  *****  *  
+                       *     *   *   *     * *   *  *  
+                       *     *   *   * ****  *   *  *  
+
+
+                             ***** ****   ****
+                             *     *   * *    
+                             ****  ****   *** 
+                             *     *  *      *
+                             ***** *   * **** 
+                             =================
+
+
+                            Consolidated Tymsat
+                      External Reference Specification
+
+
+                          John Kopf, June 22, 1982
+
+                Revised:  John K.C. Liou, November 21, 1983
+
+                          Revised:  Dan Upthegrove
+                       NETWORK TECHNOLOGY DEVELOPMENT
+                              November 7, 1985
+
+
+
+
+    ====================================================================
+    |       THIS DOCUMENT  IS THE SOLE PROPERTY  AND CONFIDENTIAL      |
+    |       INFORMATION  OF  TYMNET   MCDONNELL  DOUGLAS  NETWORK      |
+    |       SYSTEMS COMPANY, AND MAY NOT BE COPIED IN WHOLE OR IN      |
+    |       PART  OR DISCLOSED  TO  ANY  THIRD PARTY  WITHOUT THE      |
+    |       PRIOR  WRITTEN CONSENT  OF  TYMNET  MCDONNELL DOUGLAS      |
+    |       NETWORK SYSTEMS COMPANY.                                   |
+    ====================================================================
+
+                             Copyright 1985 by
+              Tymnet McDonnell Douglas Network Systems Company
+
+                          External Reference Specification        CONSAT.ERS
+                                                            November 7, 1985
+
+
+
+
+
+
+
+                                 TABLE OF CONTENTS
+
+        Section                                                         Page
+
+
+
+        1.   Configuration and Code Generation                             1
+          1.1   Slot Command File - NDxxxx.Css                             1
+          1.2   Initialization file - ISCSvv.Irr                           2
+          1.3   Configuration File - NDxxxx.Tss                            2
+
+
+        2.   Configuration file - NDxxxx.Tss                               6
+          2.1   Ranging Macro Syntax                                       6
+          2.2   Text Argument Syntax                                       7
+             2.2.1    Forbidden Characters                                 7
+             2.2.2    Privileged Characters                                7
+
+          2.3   General features                                           8
+             2.3.1    Macro:  DECLARE(NAME,NUMBER)                         8
+             2.3.2    Macro:  SHOWME(LEVEL)                                8
+             2.3.3    Macro:  LOCATION(NODE,SLOT)                          9
+             2.3.4    Macro:  ACHOST(NUMBER)                               9
+             2.3.5    Macro:  AHRNG(range)                                 9
+             2.3.6    Macro:  SHRNG(range)                                 9
+             2.3.7    Macro:  MHRNG(range)                                 9
+             2.3.8    Macro:  LTEXT(xxxx,text)                            10
+             2.3.9    Macro:  NOBUSY(...)                                 10
+             2.3.10   Macro:  NO.CP(...)                                  10
+             2.3.11   Macro:  TID120(...)                                 10
+             2.3.12   Specialized Terminals and Modems                    11
+                2.3.12.1    Macro:  HD202(...)                            11
+                2.3.12.2    BAUDOT terminals                              11
+                2.3.12.3    LISA (Voice-response) terminals               11
+                2.3.12.4    VIDEOTEXT terminals                           12
+
+          2.4   TYMSAT-CONSAT CONVERSION                                  12
+
+
+        3.   PVC features                                                 13
+          3.1   Functions Common To All PVC                               13
+             3.1.1    Macro:  PTEXT(msg no.,text)                         13
+             3.1.2    Macro:  UTEXT(login string)                         14
+             3.1.3    Parameter:  PCOTRY/PCORTY                           14
+
+          3.2   ASYNC PVC                                                 15
+             3.2.1    Macro:  PVCRNG(...)                                 15
+             3.2.2    Macro:  PVCDF(option1,...,optionx)                  16
+
+                          External Reference Specification        CONSAT.ERS
+                                                            November 7, 1985
+
+
+             3.2.3    Macro:  PVCEX(range,option1,...,optionx)            16
+             3.2.4    Macro:  STEXT(character string)                     16
+             3.2.5    Macro:  UTXRNG(...)                                 17
+
+          3.3   SIO PVC                                                   17
+             3.3.1    Macro:  SPVRNG(...)                                 17
+             3.3.2    Macro:  SPVCEX(...)                                 17
+             3.3.3    Macro:  SUTXRG(...)                                 17
+
+          3.4   PVC Parameters                                            18
+             3.4.1    NPI/NONPI                                           18
+             3.4.2    TXT/NOTXT                                           18
+             3.4.3    MPC/NOMPC                                           18
+             3.4.4    AID/NOAID                                           18
+             3.4.5    ALO/NOALO                                           20
+             3.4.6    PCO/NOPCO                                           20
+             3.4.7    SLO/NOSLO                                           21
+             3.4.8    PAR/NOPAR                                           22
+             3.4.9    HNG/NOHNG                                           22
+             3.4.10   DSC/NODSC                                           22
+             3.4.11   HDX/NOHDX                                           22
+             3.4.12   CRLF/NOCRLF                                         23
+             3.4.13   LFCR/NOLFCR                                         23
+             3.4.14   RBP/NORBP                                           23
+             3.4.15   TRS/NOTRS                                           23
+
+
+        4.   Multiplexed PVC                                              24
+          4.1   Macro:     MUTXRG(...)                                    24
+          4.2   Macro:     MPVCUS(port range,USERID)                      24
+          4.3   Macro:     LTEXT(MPVCx,text-string)                       25
+          4.4   Macro:     MPVCFO(port no.,...)                           26
+
+
+        5.   CONSAT Video Display Unit                                    28
+          5.1   Implementation Constraints                                28
+          5.2   Configuration for Port Addressing                         29
+          5.3   Terminal Usage                                            30
+             5.3.1    Usage while "Seized"                                32
+
+          5.4   External Access                                           32
+             5.4.1    Addressing by the user                              32
+             5.4.2    Addressing at the Host                              33
+
+
+        6.   TELEX Extension Cord Service - TID33                         34
+          6.1   Terminal Interface                                        34
+          6.2   Configuration                                             35
+          6.3   Circuit Establishment                                     35
+          6.4   TELEX IIX Dialect                                         35
+             6.4.1    IIX TELEX Dialect Messages                          36
+
+
+
+                          External Reference Specification        CONSAT.ERS
+                                                            November 7, 1985
+
+
+        7.   TELEX Login Support -- TID34                                 37
+          7.1   TELEX Signalling                                          37
+          7.2   Data Translation                                          38
+          7.3   Connection To CONSAT                                      38
+          7.4   Configuration                                             39
+
+
+                                     APPENDICES
+                                     ==========
+
+
+        I.   Automatic Login String Syntax                                41
+
+
+        II.  Internal control-signal conventions                          42
+
+
+        III. ISIS-Specific features                                       44
+          III-1 Front Panel Display                                       44
+             III-1.1  Configuration Errors                                44
+             III-1.2  Normal Display                                      45
+             III-1.3  CPS Display                                         45
+
+          III-2 DDT Control Features                                      46
+
+
+        IV.  ASCII/BAUDOT TRANSLATIONS                                    47
+          IV-1  ISIS CONSAT BAUDOT TO ASCII TRANSLATION                   47
+          IV-2  ISIS CONSAT ASCII TO BAUDOT TRANSLATION                   49
+             IV-2.1   ASCII PRINTABLE CHARACTERS                          49
+             IV-2.2   ASCII CONTROL CHARACTERS                            50
+
+
+                                      INDEX
+                                      =====                               51
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                          External Reference Specification        CONSAT.ERS
+        Configuration and Code Generation                   November 7, 1985
+
+
+
+
+
+
+                       1 -  Configuration and Code Generation
+
+
+             Each time  a CONSAT  is generated,  a number  of files  must be
+        assembled together in the proper order.  The particular set of files
+        used is environment dependent,  but a number of elements  are common
+        to all environments.
+
+                   Generally, the following five files should be included in
+        the command file (NDxxxx.Css) in order to generate a  CONSAT nibfile
+        (NDxxxx.Nss):
+
+                1.  Initialization file            (ISCSvv.Irr)
+                2.  Configuration file             (NDxxxx.Tss)
+                3.  CONSAT Source file             (ISCSvv.Rrr)
+                4.  Patch file                     (ISCSvv.Prr)
+                5.  File name for expected nibfile (NDxxxx.Nss)
+
+                where:  xxxx  - node number
+                        ss    - slot number
+                        vv    - version number
+                        rr    - revision level
+
+
+                        1.1  Slot Command File - NDxxxx.Css
+
+
+             This file  is used  to help generate  the nib  file in  one NAD
+        command.
+
+                                  ;x    NDxxxx.Css
+
+
+             See code release information for a sample command file  of each
+        version.   The   current  sample  command   file  is   available  in
+        (SOURCE)ISCSvv.Crr.
+
+             The following is an example of the command file:
+
+
+
+
+
+
+
+
+
+
+
+
+        1                 External Reference Specification        CONSAT.ERS
+        Configuration and Code Generation                   November 7, 1985
+
+
+
+        ;;
+        ;; CONSOLIDATED TYMSAT VERSION 03.05
+        ;; SAMPLE COMMAND FILE
+        ;;
+        ;@(SOURCE)ISCS03.I05
+        ;@ND9999.T01
+        ;@(SOURCE)ISCS03.R05
+        ;X(SOURCE)ISCS03.P05
+        1;FND9999.N01
+        CTA,CTASIZ;PSEG0,S0SIZE;PSEG1,S1SIZE;PSEG9,S9SIZE;P%P
+        %Q
+
+
+                       1.2  Initialization file - ISCSvv.Irr
+
+
+             The first file assembled performs general initialization.
+
+             The major function provided is to create a number of Macros and
+        symbolic parameters, used in the succeeding files.
+
+             The initialization file defines a number of macros, used within
+        the  configuration  option  file.   While  these  macros  have  some
+        (limited) ability to  detect syntax and gross  configuration errors,
+        it  is  necessary  to  have  an  additional  process  to  permit the
+        verification of cross-referencing options.
+
+             As the first part  of the CONSAT source file  (ISCSvv.Rrr), the
+        verification   process   is   performed   immediately    after   the
+        configuration option  file, to permit  the immediate  detection (and
+        subsequent repair) of configuration  errors at the beginning  of the
+        generation  process,  before  a  great  deal  of  time  is  spent in
+        fruitless effort.
+
+
+                        1.3  Configuration File - NDxxxx.Tss
+
+
+             The  following  is  a complete  Configuration  Option  File (or
+        called   Tymfile);  a   sample  parameter   file  is   available  in
+        (SOURCE)ISCSvv.Trr.  See  later sections  for definition  and detail
+        information.
+
+
+
+
+
+
+
+
+
+
+
+        2                 External Reference Specification        CONSAT.ERS
+        Configuration and Code Generation                   November 7, 1985
+
+
+        :****************************************************************
+        :       ISIS CONSOLIDATED-TYMSAT CONFIGURATION - ISCS03.T05
+        :****************************************************************
+
+        :THESE PARAMETERS MAY BE SET TO HELP DEBUGGING AND DIAGNOSIS
+        CRSTOP       EQ  0   : IF 1, STOP WHEN SLOT CRASHES
+        AHIST        EQ  0   : IF 1, KEEP HISTORY OF ASYNC ACTIVITIES
+        SHIST        EQ  0   : IF 1, KEEP HISTORY OF SIO ACTIVITIES
+        RHIST        EQ  0   : IF 1, KEEP HISTORY OF SIO ACTIVITIES
+        DCPSSW       EQ  0   : IF 1, DISPLAY CPS
+        CPS          EQ  0   :
+
+        :****************************************************************
+        :    ORPHAN EQUATES -- (SHOULD BE MACROS)
+        :****************************************************************
+
+        OMRON        EQ  1           :OMRON TERMINAL IS USED FOR Y TID
+        YTID         EQ  1           :CCT OF YTID IS 25
+        SLODTR       EQ  1           :REQUIRE SLOW DTR
+        PCOTRY       EQ  $A 120              :PCO TIMEOUT VALUE
+        PCORTY       EQ  $A 120              :PCO RETRY TIMEOUT VALUE
+
+        :****************************************************************
+        :                     DECLARE CONFIGURATION
+        :****************************************************************
+        DECLARE(ASYNC,32)            :DECLARE NUMBER OF ASYNC PORTS
+        DECLARE(PRINT,1)             :DECLARE NUMBER OF PRINTERS
+        DECLARE(SIO,2)               :DECLARE 2 SIO PORTS
+        DECLARE(MPVC,4)              :DECLARE 1 MPVC PSEUDO PORT
+        SHOWME(10)                   :LEVEL OF CONFIGURATION INFO
+        LOCATION(2071,3)             :TARGET NODE/SLOT
+        ACHOST(22071)                :ACCOUNTING HOST
+        AHRNG(0-6)                   :22071 - HOST FOR ASYNC PORTS 0-6
+        SHRNG(0-1)                   :22071 - HOST FOR SIO PORTS 0-1
+        MHRNG(2-3)                   :22071 - HOST FOR MPVC PORTS 2-3
+        ACHOST(22072)                :22072 - ALL OTHER PORTS
+        LTEXT(TIDM,please type your TID `(300-1200 baud`))
+        LTEXT(ULMSG,WELCOME TO HQLAB CONSAT TEST)
+        SIOBUF(16)                   :SIO INPUT BUFFERS ALLOCATED
+
+        :****************************************************************
+        :               DECLARE EXCEPTIONS
+        :                   HARDWARE
+        :****************************************************************
+        TID120(1-2,10-15)    :PORTS TO USE 120 CPS ID-MESSAGE
+        HD202(0-3)           :HALF DUPLEX 202 TYPE MODEM
+        NOBUSY(3-7)          :NON-BUSY-ABLE (NON-VADIC MODEM) PORTS
+        NO.CP(0)             :CP NOT USED FOR HANG/ANSWER
+
+        :****************************************************************
+        :                 ADDRESSABLE PORTS
+        :****************************************************************
+        : TO ADDRESS PORT 11, THE LOGIN STRING SHOULD BE :
+
+        3                 External Reference Specification        CONSAT.ERS
+        Configuration and Code Generation                   November 7, 1985
+
+
+        :   USERNAME:3850.11;PASSWORD<cr>
+        : TO ADDRESS PORT 12 :
+        :   USERNAME:3850.12;PASSWORD<cr>
+        :   USERNAME:3850;PASSWORD<cr>
+        :   USERNAME:3852.0;PASSWORD<cr>
+        : TO ADDRESS PORT 13 :
+        :   USERNAME:3850.13;PASSWORD<cr>
+        :   USERNAME:3850;PASSWORD<cr>
+        :   USERNAME:3852.1;PASSWORD
+        : TO ADDRESS PORT 15 :
+        :   USERNAME:3854.0;PASSWORD<cr>
+        :   USERNAME:3854;PASSWORD<cr>
+        :   USERNAME:3800.15;PASSWORD<cr>
+
+        ADRPRT(11,3850,11,NULL)
+        ADRPRT(12-13,3850,12-13,ANY)  : ALSO SEE EXPLANATIONS IN
+        ADRPRT(12-13,3852,0-1,NULL)   :  (DNDSPEC)CONSAT.ERS
+        ADRPRT(15,3854,00,ZERO)
+        ADRPRT(14-15,3800,14-15,NULL)
+        SADPRT(2-3,3800,0-1,NULL)     : ADDRESSING SIO PORTS
+
+
+
+        :****************************************************************
+        ASYNC PVC PORTS
+        :***********************************************************
+        : DEFAULT PORTS WILL BE 4800 BAUD, AUTO TID, AUTO LOGIN, NODE/PORT
+        : ID, PERMANENT CIRCUIT OPTION, REVERSE BACKPRESSURE, TERMINAL
+        : RESET, NO HANGING, TEXT OUTPUT ALLOWED, NO DISCONNECTING
+        PVCRNG(16-31)
+        PVCDF(TID21,AID,ALO,NPI,PCO,RBP,TRS,NOHNG,TXT,NODSC)
+        PVCEX(17,MPC)
+        PVCEX(18,MPC)
+        PVCEX(19,AID,TID10,MPC,RBP)
+        PVCEX(21,AID,TID10,MPC)
+        :       TELEX extension cord configuration
+        :       (ISIS must be defined BAUDR  EQ 0
+        :                             LOWSPD EQ 1)
+        PVCEX(22,AID,TID33,ALO,PCO,NOHNG,NOTXT) :TID33, 50 BAUD BAUDOT TELEX
+        UTEXT(USERNAME"BA785"BBPASSWORD"8D)
+        UTXRNG(22)
+        PVCEX(23,TID12,AID,ALO,NONPI,SLO)
+        PVCEX(24,TID12,AID,ALO,NONPI,PCO)
+        PVCEX(25,TID12,AID,ALO,SLO)
+        :
+        PVCEX(26,TID12,AID,ALO,PCO,NONPI,RBP,MPC)       :MPVC subport
+        UTEXT(JONES"BA575"BBPASSWORD"8D)
+        UTXRNG(26)
+        PVCEX(27,TID8,AID)              :50 baud BAUDOT
+        PVCEX(28,TID32,AID)             :Videotext
+        PVCEX(29,TID31,AID)             :Videotext (transparent)
+        UTEXT(C"8D)                    :special logon string "C"
+        UTXRNG(27-29)                  :ports to assign this string to
+
+        4                 External Reference Specification        CONSAT.ERS
+        Configuration and Code Generation                   November 7, 1985
+
+
+        :       VIRTUAL TELEX configuration
+        :       (ISIS must be defined BAUDR  EQ 0
+        :                             LOWSPD EQ 1)
+        PVCEX(30,AID,TID34,WRU) :TID34, 50 baud virtual telex
+        ABACK(30,"8D"8ATYMCA010)     :answerback message for response
+        :to WRU
+        PVCEX(31,AID,TID34,NOWRU)       :TID34, 50 baud virtual telex
+        :without answer back message for
+        :response to WRU
+
+        : SPECIAL TEXT STRINGS TO BE USED FOR PVC MESSAGES
+        PTEXT(1,***** CIRCUIT BUILDING IN PROGRESS *****)
+        PTEXT(3,MESSAGE 3 "BA USERNAME ERROR !)
+        PTEXT(4,MESSAGE 4 "BA PASSWORD ERROR !)
+
+        : SPECIAL SECURITY SEQUENCE FOR LOGIN STRING
+        STEXT(XXXX)
+
+        :*******************************
+        :         SIO PVC PORTS        :
+        :*******************************
+        SPVRNG(0-1)
+        SPVCEX(0-1,TID10,AID,ALO,NPI,PCO,RBP,TRS,TXT,NODSC)
+        SUTXRG(0-1)
+
+        :*******************************
+        :     MPVC PORTS               :
+        :*******************************
+        : messages for logon status
+        LTEXT(MPVC1,YOU GOT IT!)
+        LTEXT(MPVC2,FORGET IT !!)
+
+        : LOGIN STRING
+        UTEXT(USNAME"BA4000.5"BBPASSWORD"8D)
+        MUTXRG(0-3)
+        MPVCUS(0-3,NAME})                         :USER ID DECLARATIONS
+
+        : ***** NOTE *****
+        : MPVC PROTOCOL CHARACTERS MUST MATCH THE CHARACTERS OF THE
+        : HOST APPLICATION
+
+        MPVCFO(0,7D,40,21,MPVC1,MPVC2,100)            :7D-},40-@,21-!
+        MPVCFO(1,1E,10,1B,MPVC1,MPVC2,100)            :1E-RS,10-DLE,1B-ESC
+        MPVCFO(2,7D,40,21,MPVC1,MPVC2,100)
+        MPVCFO(3,7D,40,21,MPVC1,MPVC2,100)
+
+        END
+
+
+
+
+
+
+
+        5                 External Reference Specification        CONSAT.ERS
+        Configuration file - NDxxxx.Tss                     November 7, 1985
+
+
+
+
+
+
+                        2 -  Configuration file - NDxxxx.Tss
+
+
+             This  file  specifies  the  environment,  general configuration
+        parameters, and  particular  constraints on the  configuration.  See
+        section 1.3 for sample file.
+
+
+                             2.1  Ranging Macro Syntax
+
+
+             A number of the macros  to be invoked are of the  general class
+        of Ranging Macros.  These all have similar functions  and invocation
+        form,  so  the  form  of  parameters  will  be  discussed  here, and
+        referenced where ever appropriate.
+
+             Each ranging macro accepts a variable number of  parameters (up
+        to 16).  Each of these parameters is of identical format, and may be
+        specified in  any desired order.   Null parameters are  allowed, and
+        will be ignored.
+
+             Each parameter specified may be of two forms: simple or range.
+
+             A  simple  parameter  consists  of  a  simple  decimal  number,
+        normally  specifying  a  particular  port  number  unless  otherwise
+        declared.  This number must be a valid port number.  Later exception
+        macro parameters  are subject  to the range  defined in  the DECLARE
+        macro.
+
+             A range parameter is of  the form "N1-N2", where N1 and  N2 are
+        both decimal numbers,  and each subject  to the same  constraints as
+        simple range  parameters.  N2  must be  greater than  N1; if  not, a
+        diagnostic message is printed and the parameter ignored.
+
+
+                                      EXAMPLE
+
+             The following macro invocation would specify the  condition for
+        ports 1, 2, 3, 6, 7, and 8:
+
+                RMACRO(1,2,3,6-8)
+
+               NOTE:   It  would  have been  simpler  to  write "1-3"
+                       instead of "1,2,3".
+
+             Ranging  macros  may  be  invoked  repeatedly  if  necessary to
+        specify more than 16 parameters.
+
+
+
+        6                 External Reference Specification        CONSAT.ERS
+        Configuration file - NDxxxx.Tss                     November 7, 1985
+
+
+                             2.2  Text Argument Syntax
+
+
+             Certain macros specify that an argument be text.  This  text is
+        subject to certain rules - some characters may not explicitly appear
+        in  the  text  string,  and others  may  appear  only  under certain
+        circumstances.
+
+
+                    2.2.1  Forbidden Characters
+
+
+             The  following  characters  may  not  appear;   instead,  these
+        characters must be represented in an extended form:
+
+                "8D     Carriage Return
+                "8A     Line Feed
+                "AF     slash ('/')
+                "BA     colon (':')
+                "BB     semicolon (';')
+
+               NOTE:   While not forbidden, the NULL  character ("00)
+                       is used internally to signal the end of a text
+                       string.  Since  text beyond this  point cannot
+                       be output, the use of NULL should be avoided.
+
+
+                    2.2.2  Privileged Characters
+
+
+             The following characters may appear only if  escaped (preceeded
+        with an accent grave '`').  These are:
+
+
+            `   accent grave
+            "   double quote
+            ,   comma
+            (   left parenthesis
+            )   right parenthesis
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        7                 External Reference Specification        CONSAT.ERS
+        Configuration file - NDxxxx.Tss                     November 7, 1985
+
+
+                               2.3  General features
+
+
+             The following collection of macros are used to declare specific
+        capabilities for the general configuration.
+
+
+                    2.3.1  Macro:  DECLARE(NAME,NUMBER)
+
+
+             The  first   elements  of  the   file  must   be  configuration
+        declarations.  The DECLARE macro is used for this purpose.   NAME is
+        selected from the following list:
+
+
+           ASYNC -      Async ports.
+           SIO -        SIO ports.
+           MPVC -       Multiplexed PVC ports.
+           PRINT -      Printers.
+
+             The  Macro may  be  invoked repeatedly,  once for  each  set of
+        configuration  attributes.   However,  these  must  all  be declared
+        BEFORE any  exception macros are  declared (the first  invocation of
+        any  exception macro  "fixes" the  configuration;   thereafter, this
+        macro is invalid, and will generate a diagnostic!).
+
+             NUMBER  is  a  decimal  number;   it  specifies  the  number of
+        elements of the specified type.
+
+                        SAMPLE USAGE:
+
+                DECLARE(ASYNC,32)       :declare the configuration to
+                                        :    contain 32d ASYNC ports
+
+
+                    2.3.2  Macro:  SHOWME(LEVEL)
+
+
+             A configuration table may be typed at the end of assembly.  The
+        control of the contents is dependent on the LEVEL  number requested.
+        If  0,  no  table is  printed.   Successively  larger  numbers cause
+        correspondingly greater  quantities of information  (greater detail)
+        to be printed.
+
+             If  not specified,  the default  value is  1.  This  causes the
+        table to  contain minimal information,  such as version  numbers and
+        device ranges.
+
+
+
+
+
+
+
+        8                 External Reference Specification        CONSAT.ERS
+        Configuration file - NDxxxx.Tss                     November 7, 1985
+
+
+                    2.3.3  Macro:  LOCATION(NODE,SLOT)
+
+
+             Declares  the target  NODE and  SLOT numbers.   Node  is octal;
+        Slot is decimal These values are used for identification in listings
+        and configuration table.  The actual node and port numbers used when
+        loaded  are provided  externally, either  by ISIS  or the  node code
+        (standalone).
+
+
+                    2.3.4  Macro:  ACHOST(NUMBER)
+
+
+             Declares  an  origination-only  host  number  NUMBER (decimal).
+        (Must be > 16384d.)
+
+             This declaration is required!
+
+             The  last  such  declaration  is  the  default  used   for  all
+        unsubscribed ports.  Ports may  be subscribed via the use  of AHRNG,
+        SHRNG, or MHRNG macros, below.
+
+
+                    2.3.5  Macro:  AHRNG(range)
+
+
+             This ranging macro subscribes the ASYNC ports specified  to the
+        last ACHOST declaration value.
+
+
+                    2.3.6  Macro:  SHRNG(range)
+
+
+             This ranging  macro subscribes the  SIO ports specified  to the
+        last ACHOST declaration value.
+
+
+                    2.3.7  Macro:  MHRNG(range)
+
+
+             This ranging macro subscribes  the MPVC ports specified  to the
+        last ACHOST declaration value.
+
+
+
+
+
+
+
+
+
+
+
+
+        9                 External Reference Specification        CONSAT.ERS
+        Configuration file - NDxxxx.Tss                     November 7, 1985
+
+
+                    2.3.8  Macro:  LTEXT(xxxx,text)
+
+
+             This macro enables the user  to specify text to be sent  to the
+        terminal at certain times.  The valid arguments for "xxxx" are:
+
+               TIDM    Message to be  sent at connect  time.  Default
+                       is 'please type your terminal identifier'.
+
+               ULMSG   Message to be sent after the terminal  type is
+                       identified.   Default  is  no  message.   This
+                       message is also called the 1-down message, and
+                       can  be  downloaded  to  the  CONSAT  from the
+                       network.
+
+
+                    2.3.9  Macro:  NOBUSY(...)
+
+
+             This ranging macro  specifies an Async  port or range  of ports
+        which are NOT to be considered for BUSY-OUT control  (e.g. non-VADIC
+        modems --  note that  this function  is automatically  performed for
+        HD202 ports).
+
+
+                    2.3.10  Macro:  NO.CP(...)
+
+
+             This ranging macro  specifies an Async  port or range  of ports
+        which are NOT to be considered for Answer/hang based on   CP control
+        signals  (e.g.   LISA  modems   --  note   that  this   function  is
+        automatically performed for HD202 ports).
+
+
+                    2.3.11  Macro:  TID120(...)
+
+
+             This ranging macro specifies an Async port or range of ports to
+        send the  TID message  to the port  at 1200  baud.  The  default for
+        other ports is at 300 baud.
+
+             Note:   In  order  to  avoid  problems  with   noise  detection
+        capabilities in some modems, the  message is output at a rate  of 10
+        characters per second, but at either 300 or 1200 baud.
+
+
+
+
+
+
+
+
+
+
+        10                External Reference Specification        CONSAT.ERS
+        Configuration file - NDxxxx.Tss                     November 7, 1985
+
+
+                    2.3.12  Specialized Terminals and Modems
+
+
+             A  number  of  specialized  terminals,  modems,   and  terminal
+        protocols  are  supported  by the  CONSAT.   The  invocation  of the
+        appropriate  handlers  (which  are  not  normally  present   in  the
+        assembled  CONSAT, unless  invoked)  is performed  by  the following
+        macros:
+
+
+        2.3.12.1  Macro:  HD202(...)
+
+
+             This ranging macro  specifies an Async  port or range  of ports
+        assigned to  Bell 202S half-duplex  modems.  Automatically  sets the
+        specified ports as per NOBUSY option.
+
+             NOTE:  As of version 4.00, this is not a generic HD202 support,
+        but a specific protocol using line turn around characters.
+
+
+        2.3.12.2  BAUDOT terminals
+
+
+             These terminals are supported - both on ASYNC and SIO drivers -
+        but are invoked using  the PVC/AID mechanism.  Support  is available
+        for both transparent  usage, and translate-to-ASCII  (default) mode:
+        in the latter mode, the  CCITT standard is used, with  the following
+        special translations:
+
+                BAUDOT  ASCII
+
+                  WRU    ENQ
+                 NO. 6    $
+                 NO. 7    #
+                 NO. 8    &
+
+             See the PVC section for usage.
+
+               NOTE:   PVC options, PAR, HDX, NOCRLF, NOLFCR, are not
+                       supported by BAUDOT terminal handler.   Use of
+                       these options will cause assembly errors.
+
+
+        2.3.12.3  LISA (Voice-response) terminals
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!  NOTE:  THE CODE supporting these modems displays assembly !!
+        !!  errors when included.  Obviously, a definite indication   !!
+        !!  that this code has not been subjected to our usual        !!
+        !!  extensive testing, and most likely has never been used.   !!
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+        11                External Reference Specification        CONSAT.ERS
+        Configuration file - NDxxxx.Tss                     November 7, 1985
+
+
+             These terminals are  invoked using the PVC/AID  mechanism.  See
+        the PVC section for usage.
+
+
+        2.3.12.4  VIDEOTEXT terminals
+
+
+             These  terminals  are  supported,  but  are  invoked  using the
+        PVC/AID mechanism.  See the PVC section for usage.  Both transparent
+        and  translate-to-ASCII  are  supported;  in  the  latter  mode, the
+        following special keys are mapped:
+
+
+             KEY   ASCII
+
+            SEND    C/R
+           CANCEL   ESC
+
+
+                           2.4  TYMSAT-CONSAT CONVERSION
+
+
+             The following information is  provided to help in  converting a
+        TYMSAT tymfile into a CONSAT tymfile.
+
+
+           TYMSAT                   CONSAT                COMMENT
+           ------                   ------                -------
+           ISIS2   EQ  1                            :NOT NECESSARY IN CONSAT
+           ENGINE  EQ  1                            :NOT NECESSARY IN CONSAT
+           DCPSSW  EQ  1         DCPSSW   EQ  1     :DISPLAY CPS
+           NAPORT  EQ  $A 48     DECLARE(ASYNC,48)  :ASYNC PORTS
+           NSPORT  EQ  $A 4      DECLARE(SIO,4)     :SIO PORTS
+           NUMPRN  EQ  $A 0      DECLARE(PRINT,0)   :PRINTER PORTS
+           T120LO  EQ  $A 0      TID120(0-15)       :PORTS FOR 1200 BAUD TID
+           T120HI  EQ  $A 15                        :
+           ACHOST  EQ  $A 17017  ACHOST(17017)      :ACCOUNTING HOST NUMBER
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        12                External Reference Specification        CONSAT.ERS
+        PVC features                                        November 7, 1985
+
+
+
+
+
+
+                                 3 -  PVC features
+
+
+             PVC macro statements  are included in the  CONSAT configuration
+        file.
+
+
+                          3.1  Functions Common To All PVC
+
+
+             These  functions  are  common  to  all  PVC   usage;  functions
+        specialized  to  specific   devices  are  described   in  succeeding
+        sections.
+
+
+                    3.1.1  Macro:  PTEXT(msg no.,text)
+
+
+             If not specified, this defaults to the standard messages:
+
+             msg no.    text
+             ------     ----
+
+                1       'circuit building in progress'
+                2       'circuit lost - rebuilding'
+                3       'ALO username configuration error'
+                4       'ALO password configuration error'
+                5       'ALO login string configuration error'
+                6       'Circuit lost - will try later'
+
+             This  macro  allows  the  user  to  override  the  default  PVC
+        messages, where msg no. specifies which of the six  default messages
+        is being replaced.  The text must adhere to the syntax described for
+        text arguments.
+
+             Messages 3, 4, and 5, only apply to ports that have ALO set on.
+        They indicate an error in the configuration of STEXT or UTEXT, or in
+        the validation  of the generated  username and password,  and should
+        never be encountered.
+
+
+
+
+
+
+
+
+
+
+
+        13                External Reference Specification        CONSAT.ERS
+        PVC features                                        November 7, 1985
+
+
+                    3.1.2  Macro:  UTEXT(login string)
+
+
+             This macro allows  a user to override  the ALO generation  of a
+        username and password based on a node and port number, and defines a
+        replacement login string.  The replacement string may be used by all
+        ALO ports, or  may, by repetition  of the statement,  specify unique
+        login  strings for  selected ports.   If single  ports or  groups of
+        ports are  to have  different login  strings, each  UTEXT definition
+        must  be  followed immediately  by  a UTXRNG  (or  SUTXRG,  for SIO)
+        statement, which specifies  the ports using the  corresponding login
+        string.  The  text of  the login  string must  adhere to  the syntax
+        described for text arguments.
+
+             If  the  UTEXT  option  is  invoked,  the  rest  of  ports  not
+        explicitly assigned by the use of the UTXRNG (or SUTXRG) macro still
+        use login  strings (username and  password) generated based  on node
+        and port numbers, and optional security characters.
+
+               NOTE:   Multiple UTEXT  entries are expensive  in core
+                       requirements.
+
+
+                    3.1.3  Parameter:  PCOTRY/PCORTY
+
+
+             The configuration equate parameters, PCOTRY and PCORTY, control
+        the  time  delays  in  the  rebuilding  of  a  PCO   circuit.   Both
+        parameters, if not defined, default to 90 (seconds).
+
+               When a PCO port is initialized, it attempts to log in  to the
+        host it is configured for.  One of three things may happen:
+          1.  The circuit can be successfully built by the Supervisor and
+              accepted by the host;
+
+          2.  The circuit may not be built due to lack of Supervisor connec-
+              tion or host unavailability, and therefore the port would
+              remain in login mode; or
+
+          3.  The circuit can be successfully built by the Supervisor, and
+              then zapped or hung by the host.
+
+               Ninety seconds after a login attempt is made, the code checks
+        to see if the port is still in login mode (i.e., the circuit has not
+        been built), and,  if so, zaps the  circuit and attempts  to rebuild
+        it.   If a  circuit to  the host  is completed,  and the  circuit is
+        zapped  by  the host,(or  hung  if 'NOHNG'  is  set),  another login
+        attempt  will  be  made immediately.   If,  upon  this  second login
+        attempt, the circuit  to the host is  completed and then  zapped (or
+        hung) by the host, the following will occur:
+          1.  If more than PCOTRY seconds had elapsed since the login string
+              was sent, another login will be attempted immediately.
+
+
+        14                External Reference Specification        CONSAT.ERS
+        PVC features                                        November 7, 1985
+
+
+          2.  If fewer than PCOTRY seconds had elapsed, the following
+              message is sent to the terminal:
+
+              circuit lost...will try later
+
+              Another login attempt will be delayed until PCORTY (the new
+              TYMfile parameter) seconds have elapsed.  At that time, the
+              message
+
+              circuit building in progress
+
+              will be sent to the user.
+
+             Any subsequent login attempts for PCO ports will be tempered by
+        a determination of whether or  not the previous circuit had  been up
+        long enough  to be  considered stable, i.e.,  up longer  than PCOTRY
+        seconds.  It should be noted  that the parameter PCOTRY is  the same
+        parameter which determined  the delay for subsequent  login attempts
+        if the port is zapped (or hung) while in login mode.   This includes
+        the situation  where the port  is zapped by  the node itself  if the
+        port remains in login mode for more than 90 seconds.
+
+             The number  of elapsed  seconds is  specified in  decimal.  For
+        both of PCOTRY and PCORTY, the minimum time interval that may be set
+        is 32  seconds; the  maximum, 8192  seconds.  These  parameters only
+        apply if ALO has been set on for the port.
+
+
+                                   3.2  ASYNC PVC
+
+
+               NOTE:   Those  macros  refer ONLY  to  ASYNC  ports --
+                       additional macros  are defined to  provide the
+                       same  functionality  for SIO  ports,  to avoid
+                       requiring  knowledge  of  the  internal  port-
+                       assignment structure.
+
+             The first two macros are  required only if PVC ASYNC  ports are
+        defined which are not declared using the PVCEX macro.
+
+
+                    3.2.1  Macro:  PVCRNG(...)
+
+
+             This  ranging  macro defines  the  range of  default  PVC ASYNC
+        ports.   All  ports  which  require  default  PVC  service  must  be
+        included.
+
+
+
+
+
+
+
+        15                External Reference Specification        CONSAT.ERS
+        PVC features                                        November 7, 1985
+
+
+                    3.2.2  Macro:  PVCDF(option1,...,optionx)
+
+
+             Every ASYNC port specified  by the PVCRNG macro which  does not
+        have  an  explicit  option assignment  using  the  PVCEX  macro will
+        default to those options specified by this macro.  If neither option
+        of an option  pair is specified  for a port  by PVCDF or  PVCEX, the
+        port  will default  to  the option  indicated  as a  default  in the
+        following sections.
+
+             This macro defines the default parameters for ASYNC  PVC ports.
+        Parameter  values  may  be  any  valid  combination  of  the options
+        described in  the PVC  Parameters section  of this  document.  Those
+        options which are mutually exclusive are indicated.
+
+             The default options (those used if not specified) are:
+
+                NOAID   NPI     NOALO   NOPCO   NOSLO
+                NOPAR   NOHDX   CRLF    LFCR    NORBP
+                NOTRS   HNG     TXT     NOMPC   
+
+
+                    3.2.3  Macro:  PVCEX(range,option1,...,optionx)
+
+
+             If  PVCEX is  not specified,  all ASYNC  ports will  assume the
+        defaults specified in PVCDF.
+
+             This macro defines PVC  options for a (single)  specified range
+        of port numbers.  The options are entered as in the PVCDF statement.
+        This  statement  overrides  the defaults  set  by  PVCDF.   The port
+        numbers specified must have been declared by PVCRNG.
+
+
+                    3.2.4  Macro:  STEXT(character string)
+
+
+             Default -- no security sequence will be appended to the default
+        password unless this macro is invoked.
+
+             This macro  allows the user  to define up  to a  four character
+        security sequence  string which  will be  appended to  the generated
+        password for ALO  ports.  The characters  must be valid  as password
+        characters.
+
+
+
+
+
+
+
+
+
+
+        16                External Reference Specification        CONSAT.ERS
+        PVC features                                        November 7, 1985
+
+
+                    3.2.5  Macro:  UTXRNG(...)
+
+
+             This  ranging  macro  is  only present  if  a  UTEXT  string is
+        declared.  This statement specifies the ALO ports that will have the
+        login string specified by the UTEXT statement  immediately preceding
+        this statement.
+
+
+                                    3.3  SIO PVC
+
+
+             In order to  avoid a need to  explicitly bias the  port numbers
+        specified for SIO PVC ports, different macros are defined to perform
+        this port-relocation automatically.
+
+
+                    3.3.1  Macro:  SPVRNG(...)
+
+
+             This macro defines the range of SIO PVC ports. Port numbers are
+        specified in decimal.  This  macro, like PVCRNG, may be  repeated as
+        many times as necessary to define all SIO PVC ports.
+
+
+                    3.3.2  Macro:  SPVCEX(...)
+
+
+             Like PVCEX, except that the port number range specified applies
+        to SIO ports only, and must have been declared by SPVRNG.
+
+               NOTE:   ALL  SIO  PVC ports  must  be  specified using
+                       SPVCEX!
+
+
+                    3.3.3  Macro:  SUTXRG(...)
+
+
+             Like UTXRNG, except that  the port number specified  applies to
+        SIO ports only.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        17                External Reference Specification        CONSAT.ERS
+        PVC features                                        November 7, 1985
+
+
+                                3.4  PVC Parameters
+
+
+             PVC parameter values (used  for PVCDF and PVCEX macros)  may be
+        any valid combination of the options described below.  Those options
+        which are mutually exclusive are indicated.  Parameter  defaults are
+        also indicated.
+
+
+                    3.4.1  NPI/NONPI
+
+
+             NPI prints the node/port identifier for AID ports (default).
+
+             NONPI disables printing of the node/port identifier.
+
+
+                    3.4.2  TXT/NOTXT
+
+
+             TXT permits text to be output to ports (default).
+
+             NOTXT  disables  printing of  text  (includes NONPI,  i.  e. no
+        node/port   identifier  will  be output),  but  is  limited  to text
+        generated by the node.
+
+
+                    3.4.3  MPC/NOMPC
+
+
+             MPC (Multiplexed PVC Candidate) specifies that this port  is to
+        to be considered a candidate  for MPVC.  That is, the  username will
+        be examined to  determine if this  port qualifies for  MPVC service.
+        This option is ignored (without comment) if MPVC is not enabled in a
+        particular CONSAT environment.
+
+             NOMPC  specifies that  this port  is not  automatically  a MPVC
+        candidate (but may become one dependent upon TID usage)  (default).
+
+
+                    3.4.4  AID/NOAID
+
+
+             The  AID (Automatic  IDentification) option  specifies  that as
+        soon as a port becomes physically connected, the CONSAT  handles the
+        port  as  if  the  TID prompt  had  been  sent,  and  an appropriate
+        character received.  Once  defined as an AID  port, the port  is not
+        available  to  service  any  terminal  types  other  than   the  one
+        specified.
+
+             AID  sets  automatic  terminal  identification.   It   must  be
+        followed in the option list by a TID type:
+
+
+        18                External Reference Specification        CONSAT.ERS
+        PVC features                                        November 7, 1985
+
+
+
+            Type    SIO   TID   Description
+            ----    ---   ---   -----------
+
+            TID1    OK    D     110 Baud ASCII
+            TID2          P(cr) 134.5 baud EBCD 2741
+            TID3          P(cr) 134.5 baud CORRESPONDENCE 2741
+            TID4          B     150 Baud ASCII
+            TID5          F     150 Baud ASCII
+            TID6          P(cr) 300 baud EBCD 3767
+            TID7          P(cr) 300 baud CORRESPONDENCE 3767
+            TID8    OK    -     50 baud BAUDOT
+            TID9    OK    -     75 baud BAUDOT
+            TID10   OK    A     300 Baud ASCII
+            TID11         C     300 Baud ASCII
+            TID12         E     300 Baud ASCII
+            TID13         G     300 Baud ASCII
+            TID14   OK    Y     300 Baud Transaction Telephone
+            TID15   OK    A     1200 Baud ASCII
+            TID16         I     1200 Baud ASCII
+            TID17         G     1200 Baud ASCII
+            TID18         -     1200 Baud LISA
+            TID19         -     4800 Baud LISA
+            TID20   OK    A     2400 Baud ASCII
+            TID21   OK    A     4800 Baud ASCII
+            TID22   OK    A     9600 Baud ASCII
+            TID23         I     2400 Baud ASCII
+            TID24         I     4800 Baud ASCII
+            TID25         I     9600 Baud ASCII
+            TID26         G     2400 Baud ASCII
+            TID27         G     4800 Baud ASCII
+            TID28         I     300 Baud ASCII
+            TID29               (not used, invalid)
+            TID30         G     9600 Baud ASCII
+            TID31         -     75/1200 ASCII (VIDEOTEXT, transparent)
+            TID32         -     75/1200 ASCII (V-TEXT, non-transparent)
+            TID33         -     50 Baud TELEX (Extension Cord Service)
+            TID34         -     50 Baud TELEX (Login Support)
+
+               NOTE -- The TID type may be applied to either ASYNC or
+                       SIO;  those which  are supported  for  SIO are
+                       flagged  "OK" in  the SIO  column.   SIO ports
+                       have no autospeed detection; the speed  is set
+                       via  a switch  on the  SIO card.   TID8, TID9,
+                       TID18, TID19,  TID31, TID32, TID33,  and TID34
+                       have  no character  TID for  selection  by the
+                       terminal user; the AID option must be set.
+
+             NOAID disables automatic terminal identification (default).
+
+
+
+
+
+        19                External Reference Specification        CONSAT.ERS
+        PVC features                                        November 7, 1985
+
+
+                    3.4.5  ALO/NOALO
+
+
+             ALO (Automatic Login Option)  specifies that as soon as  a port
+        is connected, and terminal identification is supplied (either by the
+        user,  or,  if  enabled,  by  the  AID  option),  the   CONSAT  will
+        automatically generate  a username  and password.   The user  is not
+        prompted  to 'please  log  in:', and  does  not have  the  option of
+        specifying  an  alternate  host number  initially.   Instead  of the
+        'please  log  in:' prompt,  the  CONSAT sends  the  message 'circuit
+        building in progress'.   Nothing else will  be sent to  the terminal
+        until the  host sends its  greeting message.  If  the log in  is not
+        successful ,  a message  such as  'circuit lost  - rebuilding'  , or
+        'circuit lost - will try again later' will be sent to  the terminal.
+        See Appendice I for a description of the format used to  generate an
+        automatic login string.
+
+             If ALO is specified, either PCO or SLO must also be specified.
+
+             NOALO  specifies  that  no  automatic  login  string   will  be
+        generated (default).
+
+
+                    3.4.6  PCO/NOPCO
+
+
+             PCO (Permanent Circuit  Option) specifies that the  CONSAT will
+        attempt to rebuild a circuit to the home host if the circuit is lost
+        and  the  port  remains  connected.   The  message  'circuit  lost -
+        rebuilding' is sent to the terminal, and the generated  login string
+        is  sent to  the network  as was  done when  the port  was initially
+        connected.
+
+             If the login attempt fails (for example, if the host  system or
+        the TYMCOM is down), a  new login string will be  sent automatically
+        to the  network at  intervals specified  by PCOTRY/PCORTY  until the
+        circuit is re-established, as long as the port remains connected.
+
+             The  PCO  user should  be  aware that  forgetting  to  turn the
+        terminal off, thereby leaving the port connected, will cause connect
+        time charges to accrue, since the CONSAT will continue trying to re-
+        establish a circuit for a connected port that has PCO set on.
+
+             NOPCO specifies no permanent circuit (default).
+
+             The options PCO and SLO are mutually exclusive, but one  of the
+        two must be specified if the ALO option has been set.
+
+
+
+
+
+
+
+        20                External Reference Specification        CONSAT.ERS
+        PVC features                                        November 7, 1985
+
+
+                    3.4.7  SLO/NOSLO
+
+
+             SLO (Subsequent  Login Option)  specifies that  a user  has the
+        choice of logging onto the  home host or an alternate host  when his
+        original circuit is lost.  When  the CONSAT detects that a  PVC port
+        circuit with SLO set on has been lost, it sends the 'please log in:'
+        prompt  to the  terminal.   The user  may  choose any  of  the three
+        following responses:
+
+               1.  --  Disconnect the terminal.  If AID  is specified
+                       for this  port, the  user need  only reconnect
+                       the terminal, and a new circuit will  be built
+                       to the home host.
+
+               2.  --  Log  in  to  an  alternate  host,   using  the
+                       standard network format.
+
+               3.  --  Specify a new  circuit (to the home  host), by
+                       entering:
+
+                                :L(carriage return)
+                                      -- or --
+                               :L:HH(carriage return)
+
+               NOTE -  The colon puts  the user in control  mode, and
+                       the L(carriage  return) directs the  CONSAT to
+                       rebuild the circuit to the home host.
+
+               NOTE -  Using  the second  form, the  user is  able to
+                       specify  explicitly an  alternate  host number
+                       ('HH', in decimal) to which the circuit  is to
+                       be  directed.   This  mode  applies   ONLY  to
+                       default username/password  usage --  for ports
+                       which have specified an alternate login string
+                       (via the UTEXT Macro), ':L' (with no carriage-
+                       return needed) is the only available option.
+
+             NOSLO specifies no subsequent  login to an alternate  host will
+        be allowed (default).
+
+             The options SLO and PCO are mutually exclusive.
+
+
+
+
+
+
+
+
+
+
+
+
+        21                External Reference Specification        CONSAT.ERS
+        PVC features                                        November 7, 1985
+
+
+                    3.4.8  PAR/NOPAR
+
+
+             PAR sets even parity.
+
+             NOPAR sets no parity, 8-bit data (default).
+
+               NOTE:   Because  of considerations  in the  history of
+                       the CONSAT and  network, actual parity  at the
+                       terminal interface is ambiguous  during login.
+                       The terminal identifier message (TIDM) is sent
+                       in  even  parity, and  any  network originated
+                       messages will have  mark parity.  If  NOPAR is
+                       set, they will be passed to the  terminal this
+                       way.
+
+
+                    3.4.9  HNG/NOHNG
+
+
+             HNG specifies the  CONSAT will hang  up (disconnect) a  port if
+        the TID is not entered within 16 to 32 seconds following the 'please
+        type your terminal identifier'  prompt, or when the network  sends a
+        hang signal following  the 'Please see your  representative' message
+        (default).
+
+             NOHNG allows an infinite TID timer and prevents the CONSAT from
+        hanging a port when a hang character pair is transmitted.
+
+
+                    3.4.10  DSC/NODSC
+
+
+             DSC specifies the CONSAT will hang up on a port if  the circuit
+        is Zapped.  This parameter overrides NOHNG, PCO, and SLO.
+
+             NODSC prevents the CONSAT from hanging a port when  the circuit
+        is zapped (default).
+
+
+                    3.4.11  HDX/NOHDX
+
+
+             HDX simulates half duplex handling (e.g., no  character echoing
+        except for CR/LF pairs).
+
+             NOHDX specifies no half duplex handling (default).
+
+               NOTE:   This is a simulation of half  duplex involving
+                       echo  handling,  and does  not  support actual
+                       half duplex devices.
+
+
+
+        22                External Reference Specification        CONSAT.ERS
+        PVC features                                        November 7, 1985
+
+
+                    3.4.12  CRLF/NOCRLF
+
+
+             CRLF  specifies  a  carriage return  will  be  echoed  with the
+        linefeed when a linefeed is entered at the terminal (default).
+
+             NOCRLF specifies a carriage return will not be echoed  with the
+        linefeed.
+
+
+                    3.4.13  LFCR/NOLFCR
+
+
+             LFCR  specifies a  linefeed will  be echoed  with  the carriage
+        return when a carriage return is entered at the terminal (default).
+
+             NOLFCR  specifies  a  linefeed  will  not  be  echoed  with the
+        carriage return.
+
+
+                    3.4.14  RBP/NORBP
+
+
+             RBP specifies  reverse backpressure capability  (e.g., terminal
+        control  of  character  flow  as would  occur  if  a  Control-R were
+        imbedded in the login string).
+
+             NORBP specifies no reverse backpressure capability (default).
+
+
+                    3.4.15  TRS/NOTRS
+
+
+             TRS specifies  the CONSAT  will reset  terminal options  to the
+        values as specified by the TID and any PVC parameters when  the port
+        exits from a host.
+
+             NOTRS specifies the terminal  options will remain as  they were
+        set during the previous network connection (default).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        23                External Reference Specification        CONSAT.ERS
+        Multiplexed PVC                                     November 7, 1985
+
+
+
+
+
+
+                                4 -  Multiplexed PVC
+
+
+             The following statement is to be included in the .TYM file:
+
+                DECLARE(MPVC,NUMBER)
+
+             This specifies  the NUMBER of  Multiplexed PVC  Pseudo-ports to
+        assign;  the default is 0.  If zero or not defined,  MPVC capability
+        is NOT included  in the configuration.   The actual number  of ports
+        assigned  to  the configuration  (normally  equal to  the  number of
+        physical ports) is increased by  this amount, and it is  these ports
+        which will originate  the actual PVC's  which are used  to multiplex
+        the other ports.  If this causes the total number of ports to exceed
+        constraints  imposed by  the code,  an assembly  diagnostic  will be
+        issued.
+
+             The  additional  ports are  defined,  and the  macro  PVCRNG is
+        invoked  to   automatically  declare  them   all  PVC   ports.   The
+        appropriate PVC exception conditions are also declared.
+
+
+                            4.1  Macro:     MUTXRG(...)
+
+
+             Like UTXRNG,  except that the port number specified  applies to
+        MPVC pseudo-ports only.
+
+
+                     4.2  Macro:     MPVCUS(port range,USERID)
+
+
+             This macro is  used to define one  of a set of  USERID criteria
+        for  a  port.   "Port  range"  specifies  the  range  of pseudo-port
+        numbers, as above.
+
+               NOTE:   Currently, only the first port of "port range"
+                       will have ports assigned -- the option is open
+                       for  future expansion  in the  areas  of load-
+                       leveling and improving response.
+
+             USERID is a text string, used to distinguish various MPVC ports
+        by matching with the first characters of the username.
+
+             The  USERID  text  string should  be  specified  in upper-case.
+        Failure to do so will prevent successful matches.
+
+             The text may contain special "wild-card" characters:
+
+
+        24                External Reference Specification        CONSAT.ERS
+        Multiplexed PVC                                     November 7, 1985
+
+
+               "|" ("7C)  Match ANY valid user-name  character.  Will
+                       NOT  match  user-name   terminator  characters
+                       (":", ";", or <CR>).
+
+               "}" ("7D)  End_of_match!  Encountering  this character
+                       during    the    matching    process   signals
+                       (successful)  matching  of  username,  even if
+                       entire username has not yet been scanned (also
+                       "matches" user-name terminator characters).
+
+             The following examples should help clarify this:
+
+           USERID username   Remarks
+             US     USE    Fails...names different length
+             US|    USE    Succeeds...wild char
+             US}    USE    Succeeds...end_of_match
+            U|A}   USART   Succeeds...wild char, end_of_match
+            U|E}   USART   Fails...wild char OK, "A" doesn't match "E"
+
+               NOTE:   Successive   MPVC   USERID   declarations  are
+                       examined  for  a  match  USERID  in DEFINITION
+                       order  -- a  USERID  which is  a  substring of
+                       another  (e.g.  "US}"  <<  "USA}")  should  be
+                       defined later for reliable action.   Note also
+                       that the username  is converted to  UPPER case
+                       ASCII before they are compared --  thus "user"
+                       will match "US}".
+
+
+                      4.3  Macro:     LTEXT(MPVCx,text-string)
+
+
+             This macro defines  a text-string to  be output for  MPVC.  The
+        first argument  MUST be  the string  "MPVCx", where  "x" may  be any
+        alphabetic (A-Z) or numeric (0-9) character.
+
+             These strings are used  for the SUCCID and FAILID  arguments of
+        MPVCFO,  and must  be defined  BEFORE the  invocation of  the MPVCFO
+        macro which references them.
+
+           Note:  A single definition of  text "MPVCx" may be  referenced by
+               more than one invocations of MPVCFO.
+
+
+
+
+
+
+
+
+
+
+
+
+        25                External Reference Specification        CONSAT.ERS
+        Multiplexed PVC                                     November 7, 1985
+
+
+                        4.4  Macro:     MPVCFO(port no.,...)
+
+
+             This macro has a number of different fields, each  specifying a
+        particular  option.  These  options specify  format  conventions for
+        each MPVC -- ALL are required:
+
+             Field 2 -- BLOKID
+
+             This  is the  representation of  a single-character,  either in
+        HEX, or defined with radix ($n  V).  It is used to define  a special
+        multiplexed control code to identify that the following byte of data
+        is  a sub-channel  identifier.  The  character chosen  should appear
+        infrequently in the data stream and must be same characters  as used
+        by host application.
+
+             Field 3 -- SIGNID
+
+             This is the representation  of a single-character, as  in Field
+        2.   It is  used to  define a  special multiplexed  control  code to
+        distinguish that  the following  byte (or two  bytes -  for two-byte
+        signals) of data is a circuit-control signal.  The  character chosen
+        should  appear infrequently  in  the data  stream and  must  be same
+        character as used by host application.
+
+             Field 4 -- ESCID
+
+             This is the representation  of a single-character, as  in Field
+        2.  It is used to  define a special escape character code  to permit
+        the distinction of  other codes from  data.  It designates  that the
+        following byte of data is (unconditionally) data, even if it has the
+        same representation as one  of the MPVC control  characters (BLOKID,
+        SIGNID, or ESCID).  The  character chosen must be same  character as
+        used by host application.
+
+             Field 5 -- SUCCID
+
+             This is the  name of a text  string, output on  successful MPVC
+        connection (defined as "MPVCx", using LTEXT).
+
+             Field 6 -- FAILID
+
+             This is the name of a text string, output on  unsuccessful MPVC
+        connection (defined as "MPVCx", using LTEXT).
+
+             Field 7 -- INACT
+
+             This  is  the  numeric  (decimal)  value  in  seconds   for  an
+        inactivity timer.  Circuits which have no ports associated  for this
+        interval will be broken, until regenerated by future usage.
+
+               NOTE:   MPVCFO must be declared for each  MPVC Pseudo-
+
+
+        26                External Reference Specification        CONSAT.ERS
+        Multiplexed PVC                                     November 7, 1985
+
+
+                       port;   This  is  checked,  and  an  assembler
+                       diagnostic is issued if not!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        27                External Reference Specification        CONSAT.ERS
+        CONSAT Video Display Unit                           November 7, 1985
+
+
+
+
+
+
+                           5 -  CONSAT Video Display Unit
+
+
+             The  design  of  the CONSAT  Video  Display  Unit  interface is
+        primarily directed toward the function of "Port Addressing".
+
+             There   are  two   aspects   of  Port   Addressing   which  are
+        visible external to the CONSAT.  These are:
+            o       Configuration of ports susceptible to addressing;
+
+            o       Differences  in usage  (as seen  by  the terminal
+                    user) for such ports.
+
+             This section will address these issues.
+
+
+                          5.1  Implementation Constraints
+
+
+             The implementation has certain constraints associated with it:
+
+             Specifically,  operation  is  not  supportable  for   the  case
+        of terminals  which operate in  a half duplex  line (as  opposed  to
+        terminal) protocol.    The obvious   candidates for   affliction are
+        2741   and 3767  terminals, which   are half-duplex   by source-line
+        (the printer  is not  available while the  keyboard is  unlocked  --
+        seizing these   ports does  not provide the   ability to  inform the
+        terminal of seizure,  let  alone the ability of  communication); and
+        certain types of half-duplex modems, notably the Bell  202S (wherein
+        the communications-link must be "turned-around").   These cases  all
+        use  the  "TYMNET  Green-ball"   to activate  these  "turn-arounds",
+        and  this particular   signal is  not  suited  for terminal-terminal
+        communications, as  it's intended  purpose is  terminal-host  usage,
+        and    there   is    an   incapability    of     distinguishing   an
+        origination request from a response in this environment.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        28                External Reference Specification        CONSAT.ERS
+        CONSAT Video Display Unit                           November 7, 1985
+
+
+                       5.2  Configuration for Port Addressing
+
+
+             In order to provide  externally accessible port addressing,  it
+        is  first   necessary to   configure  the  CONSAT  to   support  the
+        capability.  This capability will not be inherent in the CONSAT;  it
+        will be present only if invoked.
+
+             The parameters which  need to be  associated with  one  another
+        for this service are:
+
+           o   Logical port number (or range of ports);
+           o   Target Host number;
+           o   Target Host attribute;
+           o   Corresponding address (or range of addresses).
+
+             The mechanism  chosen  to perform  these functions  is  the use
+        of a family of macros:
+
+            ADRPRT(Port_range,host,Address_range,Attr.)
+               used for ASYNC ports.
+
+            SADPRT(Port_range,host,Address_range,Attr.)
+               used for SIO ports.
+
+             In all cases arguments are decimal;  these are:
+
+            PORT_RANGE:  this is a port number (or range of ports, specified
+                as "Low-High"), to which this declaration will apply.
+            HOST:   The host  number  which will  be  used to  target  these
+                ports.
+            ####(NOTE:  This also becomes the accounting or origination host
+                for circuits  originating  on  this  port,   overriding  all
+                previous declarations without warning.)
+            ADDRESS_RANGE:  The address (or range of addresses)  assigned to
+                the port  (or range  of  ports);   in this  case, successive
+                ports  will  be  assigned  successive  numeric  addresses of
+                Address_Range,  until  these  are   exhausted  -- subsequent
+                ports are assigned  the  last Address.   The first   port of
+                Port_Range will  be used  if this field is left blank.
+            ATTRibute:  The   attribute to  apply  to  the  specified  host;
+                (this attribute  refers  to  the condition  where  the  host
+                address is  accessed without use  of an  associated sub-host
+                address  [sub-host  address   is   null];     a  declaration
+                overrides     all   previous   declarations).    Values  are
+                symbolic, and selected from the list:
+            #####NULL:   Null address is disallowed;
+            #####ZERO:   Null address maps to address 0;
+            #####ANY:    Null address maps to ANY address.
+            ("NULL" is the default attribute if the field is left blank.)
+
+             A macro can be invoked repeatedly for the same host  to provide
+
+
+        29                External Reference Specification        CONSAT.ERS
+        CONSAT Video Display Unit                           November 7, 1985
+
+
+        the  capability for  several  sets of  ports.  It  also  invokes the
+        functions of the existing ACHOST, AHRNG, and SHRNG macros.
+
+            NOTE:##previous ACHOST declarations will be lost, and -- if  not
+                   overridden   later  --  the   last  such definition  will
+                   become  the   default origination  host.   Thus   all  PA
+                   declarations    should  occur   before    other    ACHOST
+                   declarations,   and   such declarations should  take care
+                   not to override the PA declarations.
+
+             Each  port  specified  by  RANGE  will  be  selected  as  a  PA
+        candidate.   Ports may  be  selected more  than  once,  to  permit a
+        physical port  to be accessible via more than one  host access (this
+        will provide   levels of  access  control  to  specific   ports; one
+        user may   reference  a  single host/sub-host,  while a   second may
+        have access  to  a second  host which  includes the first as  one of
+        the available sub-hosts).
+
+             As a cross-check,  PVC ports  will  be checked to  ensure  that
+        there is  no conflict between  PVC usage and  PA usage (such  as PCO
+        option).
+
+             As a point of interest, the declaration will declare  the host,
+        and create  a unique  host:port:address assignment;   this is  later
+        formed into a set of  lists (one for each  host) relating address to
+        port.  A circuit arriving   for a  particular host  will  cause  the
+        corresponding list   to be  searched,  and  for each   occurrence of
+        that  address, the corresponding port will be examined for activity.
+        If  no address-match is found, the circuit will be  terminated (with
+        an  appropriate message);  likewise if  no port  is  available.  The
+        circuit  will be  assigned  to  the first  available port  with that
+        address.
+
+             The   ability  to   specify  multiple  ports   with   the  same
+        address provides  the  capability  to  create  "rotors"  or   "hunt-
+        groups"   (a  collection  of  ports,  any  of  which  will  accept a
+        message).
+
+
+                                5.3  Terminal Usage
+
+
+             The terminal  user  will  see no  change  in the   initial part
+        of a connection.
+
+             Depending upon the PVC options  (if any), he may get  a "please
+        type  your  terminal  identifier",   "node:port  identifier", and/or
+        "please log in".
+
+             If  optioned for  ALO,  this takes  precedence over   PA;   the
+        ALO circuit is constructed, and the port is declared busy.
+
+
+
+        30                External Reference Specification        CONSAT.ERS
+        CONSAT Video Display Unit                           November 7, 1985
+
+
+             At the end of the ALO  session -- or initially if there  is  no
+        ALO -- the user is presented with a "please log in" and the port  is
+        placed in "limbo mode" state.  It remains in this state until:
+
+            1.  The terminal is powered off (no longer answered);
+
+            2.  The  port  is assigned  to  (commandeered  by) PA usage;
+                or
+
+            3.  The  user enters  the  first character  of  a  new logon
+                (thus        declaring       the        port      busy).
+                (NOTE...terminal    control    characters,     such   as
+                control-H  for   half-duplex,  are  not  considered part
+                of a new logon  for this usage.  The terminal  user  may
+                enter   such   control  characters  while  remaining  in
+                limbo;  the entering  of  the first printable  character
+                of  the username  causes the port to be declared busy.)
+
+             Each session-end  (denoted by  the  arrival of a  zapper)  will
+        cause  the  port   to  re-enter  "limbo   mode",  wherein  it   is a
+        candidate   for PA  service,  and  is  not  attempting  to  build  a
+        circuit.   As  soon  as  the first new  logon character  is entered,
+        limbo gives way to logon.
+
+             Note that there is a small but finite time-window during  which
+        an active session  could be zapped  and PA service  initiated before
+        the  user  could   respond   with  another   attempt   to  build   a
+        circuit.   There is another, even  smaller window,  wherein the user
+        could type   the first character   of a  new  logon,  and  PA  could
+        take   control  away  from  him  before the  CONSAT   saw  the typed
+        character.    Since  the  user   could  not  distinguish  the actual
+        sequence which occurred, he would have to assume that  the character
+        he had just typed was now directed back along the PA circuit.
+
+             When a port is commandeered by a circuit, a message is output:
+
+            "Port seized at [date] (GMT), by [origination I.D.]"
+
+             Where:  [date] is the current time and date (GMT);  and
+
+                     [origination I.D.] is the username, circuit
+                       origination,  or other identification appropriate
+                       to that circuit.
+
+            NOTE:  There  is at   present an  unresolved   problem which
+                   needs  to be  addressed:  While  in limbo,   the user
+                   terminal displays "please log in".  When the  port is
+                   seized, the "Port  seized..." message is output  as a
+                   warning.   It  is  possible,   particularly  with CRT
+                   terminals,  for a  malicious  user to  seize  a port,
+                   erase  that  message,  and lie  in  wait  for  him to
+                   attempt  a    new  logon,   thereby    capturing  his
+
+
+        31                External Reference Specification        CONSAT.ERS
+        CONSAT Video Display Unit                           November 7, 1985
+
+
+                   username and password.  To avoid this, users  must be
+                   cautioned    to   disconnect    and    reconnect  the
+                   terminal   before   use as   a   circuit origination,
+                   after an unattended period of "limbo" usage.
+
+
+                    5.3.1  Usage while "Seized"
+
+
+             A port  in limbo  may be  seized by  an incoming  call.   While
+        seized, there will be no  echoing in response to  input  from either
+        end  of the  circuit (i.e. both ends  of  the circuit are  in "echo-
+        off"  state).  Any echoing  is  thus  the  responsibility   of  (and
+        agreed  upon  by) the terminals at either end of the  circuit.  This
+        includes the insertion of LF  after CR, CR after LF,  and  all other
+        special options.  If  the port is seized  by a  host, that host  may
+        emit   an  "echo-on"   signal, after  which  the   CONSAT  port will
+        operate in the  normal fashion.   This is, however, not  possible if
+        the call originates at a CONSAT or TYMSAT.
+
+             The circuit   is broken   (at the  seized  port)  if  either  a
+        zapper arrives,  or if the  terminal is disconnected  (powered off).
+        The arrival of a zapper will cycle the port back to the limbo state.
+
+
+                                5.4  External Access
+
+
+             The Port-Addressing METHOD has two aspects:
+
+
+                    5.4.1  Addressing by the user
+
+
+             The user specifies  port-addressing by entering a  login-string
+        of the form:
+             USER:[HOSTNO][.ADDR];
+
+            where:
+
+             HOSTNO  The  [optional]  destination  host.    If  "home-
+                     targeting" is used, this field may be omitted.
+
+            .ADDR   The  [optional]  host  sub-address.   This  is  a
+                    string  of  decimal  digits,  delimited   by  the
+                    (required) "." prefix.  The absence of this field
+                    is a "NULL  Sub-Address";  it causes  normal host
+                    addressing.
+
+
+
+
+
+
+        32                External Reference Specification        CONSAT.ERS
+        CONSAT Video Display Unit                           November 7, 1985
+
+
+                    5.4.2  Addressing at the Host
+
+
+             The  "called"  host  will  normally  receive  as part   of  the
+        login needle a username field of the form:
+
+            USER[:[HOSTNO][.ADDR]]
+
+             where  HOSTNO  and  ADDR  are  described  above.   "[...]"  are
+        optional.
+
+             In the normal case, the string consists of "USER".
+
+             In  the  case  of  transparent  logins,  the  string   contains
+        ":HOSTNO", and may also  contain the ".ADDR" field,  requesting sub-
+        addressing.
+
+             In  the  non-transparent  login  case,  the   string   consists
+        of "USER:.ADDR";
+
+             In  all cases,  the called  host may  retrieve the  ADDR  field
+        by scanning the string for ":" (since USER may contain the character
+        "."), and then scanning past the subsequent "." and then  picking up
+        the ADDR field.   If  the ADDR field   is NULL, then  the  scan will
+        encounter the login string  terminator (";" or  <CR>) before finding
+        the ":"  -- "." sequence.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        33                External Reference Specification        CONSAT.ERS
+        TELEX Extension Cord Service - TID33                November 7, 1985
+
+
+
+
+
+
+                     6 -  TELEX Extension Cord Service - TID33
+
+
+                      
+                         /TELEX]   [      ]      [ TELEX ]
+                      [TERMINAL]===[CONSAT]::::::[GATEWAY]===>TELEX
+
+
+             TELEX "Extension Cord" service provides the ability to make and
+        receive   TELEX  calls   through   the  network   using   a teletype
+        terminal.  A TELEX terminal will  be connected to a CONSAT  PVC port
+        which  provides a  circuit to  the TELEX  Gateway, thus  providing a
+        virtual   two   wire   connection  through   the   network.   An IIX
+        protocol  passes the   signalling  necessary  to  place  or  receive
+        TELEX  calls.  In order  for  TELEX "Extension Cord"   services, the
+        TELEX  Gateway has  to  be kept   informed of  the  current terminal
+        signalling state, and must be able to control it.
+
+
+                              6.1  Terminal Interface
+
+
+             All signalling and  character transmission takes  place through
+        the  transmit and  receive wires.   Call signalling  and  states are
+        signalled  by  providing either  steady  space or  marking  on these
+        wires.  The pin assignments on the RS232 connector are:
+
+              Pin no. 2    Transmit
+              Pin no. 3    Receive
+              Pin no. 7    Signal Ground.
+
+             Signalling   is   space    (positive  12   volts)    and   mark
+        (negative 12 volts).   A  change  in signal  (i.e.  space  to  mark)
+        must   be   of  a  duration  greater  than  150  milliseconds  to be
+        recognized.  The default signalling from the CONSAT to  the terminal
+        will be spacing.
+
+             In order to clarify further discussion, the transmit  path from
+        the TELEX terminal through the network to the TELEX network  will be
+        called the forward path;  the path from TELEX to  terminal, backward
+        path.
+
+
+
+
+
+
+
+
+
+        34                External Reference Specification        CONSAT.ERS
+        TELEX Extension Cord Service - TID33                November 7, 1985
+
+
+                                 6.2  Configuration
+
+
+        :       TELEX extension cord configuration
+        :       (ISIS must be defined BAUDR  EQ 0
+        :                             LOWSPD EQ 1)
+        PVCEX(22,aid,tid33,alo,pco,nohng,notxt) :TID33, 50 baud baudot TELEX
+         UTEXT(USERNAME"BA785"BBPASSWORD"8D)
+         UTXRNG(22)
+
+
+                             6.3  Circuit Establishment
+
+
+             The  TELEX Gateway   is  IIX capable,   and has  its   own sub-
+        dialect for  passing the  signalling  states.   After a  circuit  is
+        established the  Gateway  sends the   IIX Select Dialect   with only
+        the TELEX dialect as a choice.  (Although  it is a Gateway,  it does
+        not speak "Gateway".) The  CONSAT must return an acceptance  of this
+        dialect, or  the Gateway  will zap the   circuit.  The  CONSAT sends
+        spacing  on the backward  path  (to  the  terminal)  and   does  not
+        respond   to  any  signalling from  the  terminal  unless  a network
+        circuit is established.
+
+
+                               6.4  TELEX IIX Dialect
+
+
+             Because TELEX  uses an  IIX smart circuit,  it is  necessary to
+        handle all of the Global IIX messages as well as those of  the TELEX
+        dialect. (See attached IIX messages chart.)  The TELEX  dialect type
+        is 11  (8091), the gateway   product ID is  5E, and uses  only TELEX
+        dialect  message   types   0-4  (C080-C083).    The   rightmost  bit
+        represents  the  signal on  the  backward path;  the  next  bit, the
+        forward  path.   The CONSAT  will  only send  these  messages  if it
+        detects a change in the  forward path signalling, or in  response to
+        one of these  messages from the Gateway.   Upon receipt of a  0 type
+        message, the CONSAT will force the backward path to space and return
+        the current states to the Gateway.  Upon receipt of a 1,2, or 3 type
+        message, the CONSAT will compare the state of the forward  path with
+        the message state, and if  they match, will force the  backward path
+        to the message state (1,3 = mark; 2 = space).
+
+
+
+
+
+
+
+
+
+
+
+
+        35                External Reference Specification        CONSAT.ERS
+        TELEX Extension Cord Service - TID33                November 7, 1985
+
+
+                    6.4.1  IIX TELEX Dialect Messages
+
+
+        IIX FORMAT:  SIIX TYPE <cnt> <data> <TIIX>
+
+                SIIX   = Start of IIX flag (01F6)
+                TYPE   = Command or response type (8080!n)
+                <cnt>  = Optional size field (in bytes)
+                <data> = Optional information field, variable length
+                <TIIX> = Optional termination flag (01F7)
+
+        GLOBAL MESSAGES (8080!n):
+
+          0- Select Dialect             01F6 8080 8091 01F7
+               8091 - TELEX Dialect
+
+          1- Dialect Selected           01F6 8081 8091 01F7
+             No Dialect accepted        01F6 8081 8080 01F7
+
+        * 2- Smart host reached         01F6 8082 01F7
+          
+        * 3- Dumb host reached          01F6 8083 01F7
+          
+        * 4- Normal logon status        01F6 8084 <status> 01F7
+               <status> - ISIS B4 msg.
+
+        * 5- Resynchronize interface    01F6 8085 01F7
+          
+          6- Product ID & version       01F6 8086 pppp vvrr 01F7
+               pppp - product id
+               vvrr - version/revision
+               current TELEX Gateway is           005E 0100
+
+          7- Request Product ID         01F6 8087 01F7
+
+        * = not supported
+
+        TELEX DIALECT MESSAGES (C080!n):
+
+          0,1,2,3- Signal States        01F6 C08n 01F7
+              n    Forward Path  Backward Path
+              -    ------------  -------------
+              0       Space          Space  (Free Line)
+              1       Space          Mark
+              2       Mark           Space
+              3       Mark           Mark   (Idle Line)
+
+
+
+
+
+
+
+
+        36                External Reference Specification        CONSAT.ERS
+        TELEX Login Support -- TID34                        November 7, 1985
+
+
+
+
+
+
+                         7 -  TELEX Login Support -- TID34
+
+
+                                           :
+             TELEX         +-------+       :
+             NETWORK       | TELEX |__     :
+                   <-------|SWITCH |  \    :             TYMNET
+                           +-------+   \   +------+      NETWORK
+                                __      \__| ISIS |------->
+                            ___/  |________|CONSAT|
+                           /______|        +------+
+                            TELEX          :
+                           TERMINAL        :
+                                           :
+                
+
+
+             Version 3.05  (and later) of  the ISIS CONSAT  provides support
+        for logging  devices with  TELEX signalling to  log into  the TYMNET
+        network.  This means that either a TELEX terminal, or a switch using
+        single  subscriber signalling,  can be  connected to  a port  on the
+        CONSAT.
+
+
+                               7.1  TELEX Signalling
+
+
+             TELEX  RS-232 Signalling  uses  only three  lines  (pins):  the
+        transmit and receive data lines, and signal ground (pins 2,3 and 7).
+        The state of the terminal  is indicated using only the  transmit and
+        receive  data lines.   DSR/DTR  signals are  not used,  and  will be
+        ignored by the CONSAT.
+
+             The  transmit and  receive data  lines have  two  states, SPACE
+        (positive  12  volts)  and MARK  (negative  12  volts).   When being
+        interpreted as data, SPACE is 0, MARK is 1.
+
+             When the  terminal or device  is not being  used, the  send and
+        receive  data lines  maintain a  spacing (continuous  break) signal.
+        When the device wishes to initiate a Telex call, the signal from the
+        device is changed to marking (all 1's).  In TELEX  terminology, this
+        is  a  CALL REQUEST.   The  receiving device  will  then  respond by
+        changing it's  signal to  marking (CALL CONFIRM).   Data can  now be
+        passed in either direction.
+
+
+
+
+
+
+        37                External Reference Specification        CONSAT.ERS
+        TELEX Login Support -- TID34                        November 7, 1985
+
+
+                               7.2  Data Translation
+
+
+             TELEX  traffic  is  in  ITA  No.  2   (International  Telegraph
+        Alphabet), a five bit data code sometimes called BAUDOT.  The CONSAT
+        will  translate  this  code  to  ASCII  for  communicating  with the
+        network, and all data  received from the network will  be translated
+        to  BAUDOT.   See  the appendix  for  actual  data  code translation
+        tables.
+
+
+                             7.3  Connection To CONSAT
+
+
+              For  connection  to   the  CONSAT,  the  CONSAT   will  supply
+        continuous spacing.  Only if the signalling state from  the terminal
+        goes to  mark from  space (CALL REQUEST),  will the  CONSAT respond.
+        The CONSAT will  respond with a mark  (CALL CONNECT) and  attempt to
+        log in the device.
+
+             For terminals,  the option  NOWRU is  declared, and  the CONSAT
+        will  immediately send  the greeting  message and  "please  log in:"
+        message.  On many terminals, the  CALL REQUEST is sent by  using the
+        CALL CLR key on the terminal.
+
+             For connection directly  to a TELEX  switch, the WRU  option is
+        declared.  After the CALL REQUEST/CONFIRM exchange, the  CONSAT will
+        wait 16 seconds for an ITA  No. 2 WRU character (Figures Shift  - D)
+        from the TELEX switch.  When  this WRU is received, the  CONSAT will
+        respond  with  an assembled  answerback  string, and  then  send the
+        greeting and "please log in:" messages.
+
+             NOTE:  This  connection currently  has only  been tested  on an
+        SIEMAN's EDX switch  at FTCC.  Other equipment  may, or may  not, be
+        compatible with this function.
+
+             The connection to the network is terminated by the receipt of a
+        TELEX DISCONNECT (line state  switches to spacing) from  the device.
+        The CONSAT will zap the  network circuit and respond by  returning a
+        TELEX DISCONNECT to the DEVICE.
+
+             If a network zapper is received by the CONSAT, the  CONSAT will
+        initiate the exchange of disconnects.
+
+
+
+
+
+
+
+
+
+
+
+        38                External Reference Specification        CONSAT.ERS
+        TELEX Login Support -- TID34                        November 7, 1985
+
+
+                                 7.4  Configuration
+
+
+        :       VIRTUAL TELEX configuration
+        :       (ISIS must be defined BAUDR  EQ 0
+        :                             LOWSPD EQ 1)
+        PVCEX(30,AID,TID34,WRU)         :TID34, 50 baud virtual telex
+        ABACK(30,"8D"8ATYMCA010)        :answer back message for response
+                                        :to WRU
+        PVCEX(31,AID,TID34,NOWRU)       :TID34, 50 baud virtual telex
+                                        :without answer back message for
+                                        :response to WRU
+
+
+              A new terminal identifier  was added, TID34.  It  indicates to
+        the CONSAT  that CONSAT a  port is a  connection to a  TELEX device.
+        The port must also be defined as AID; the only speed supported is 50
+        baud async BAUDOT (not SIO).
+
+             There are  two new options  specifically for TID34  type ports:
+        WRU  and  NOWRU.   The  default is  WRU.   The  option  controls the
+        exchange  between  the  TELEX  device  and  the  CONSAT  prior  to a
+        successful  login (see  B1 above).   If WRU,  an answerback  must be
+        defined using the ABACK macro.
+
+             The ABACK macro is used to define a text answerback to  be sent
+        in response to WRU characters received from a TELEX device connected
+        to a TID34 type port.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        39                External Reference Specification        CONSAT.ERS
+                                                            November 7, 1985
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    *   ****  ****  ***** *   * ****  ***** *   *
+                   * *  *   * *   * *     **  * *   *   *    * * 
+                  ***** ****  ****  ****  * * * *   *   *     *  
+                  *   * *     *     *     *  ** *   *   *    * * 
+                  *   * *     *     ***** *   * ****  ***** *   *
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        40                External Reference Specification        CONSAT.ERS
+        Automatic Login String Syntax                       November 7, 1985
+
+
+
+
+
+
+                    APPENDIX I.   Automatic Login String Syntax
+
+
+
+                When the ALO option  is specified, the default  username and
+        password generated by the CONSAT  are based on the  originating node
+        and port numbers.  The format is as follows:
+              XXnnnnppppYY;Pppppnnnnssss <CR>
+
+              where   XX = literally the letters 'XX'
+                    nnnn = node number (in octal)
+                    pppp = port number on the CONSAT (in octal).  The first
+                           digit specifies the slot number.
+                      YY = literally the letters 'YY'  
+                       P = literally the letter 'P' 
+                    ssss = zero to  four character  security sequence  
+                           supplied by the user at system generation
+                           time (see Section 3.2.4)
+
+
+                XXnnnnppppYY  is the  generated  user  name.   The semicolon
+        (;) terminates    the user  name and indicates login to  the default
+        destination    host.  Pppppnnnnssss  is the generated  password, and
+        is terminated by    a  carriage return.  The generated  username and
+        password with an    optional security sequence must be  validated on
+        the Supervisor.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        41                External Reference Specification        CONSAT.ERS
+        Internal control-signal conventions                 November 7, 1985
+
+
+
+
+
+
+                 APPENDIX II.   Internal control-signal conventions
+
+
+
+             These signals and their form  is shown here for the  benefit of
+        MPVC applications.
+
+                              Internal Control Signals
+
+        Function        Usage
+          Code
+
+                        Control Functions
+         0+[V]  Enter TID mode [V]
+         1+V+C  Baud rate V detected with character C
+         2      Break Begin
+         3      Break End
+         4      Enter Data Mode
+         5      Disconnect
+         6+V    Set Delay V
+         7+V+C  Repeat data character C V-times
+         8      Enter DEM
+         9      Leave DEM
+        0A      Hang-up
+        0B      Super Hang-up
+        0C      Zapper
+        0D      Gobbler
+        0E      Red Ball
+        0F      Green Ball
+        10      Orange Ball
+        11      Yellow Ball
+        12      Gray Ball
+        13      Black Ball
+        14      Enter Transparency
+        15      Leave Transparency
+        16      Enter Alternate Output Device Mode
+        17      Leave Alternate Output Device Mode
+        18-1F           Reserved
+
+                        Field parameters
+        20+V    Set Input Baud Rate
+        21      Query Input Baud Rate
+        22+V    Set Output Baud Rate
+        23      Query Output Baud Rate
+        24+V    Set Parameter A
+        25      Query Parameter A
+        26+V    Set Parameter B
+        27      Query Parameter B
+        28+V    Set Parameter C
+
+        42                External Reference Specification        CONSAT.ERS
+        Internal control-signal conventions                 November 7, 1985
+
+
+        29      Query Parameter C
+        2A+V    Set Parameter D
+        2B      Query Parameter D
+        2C-2F           Reserved
+
+                        Bit parameters
+        30+V    Set Echo Control
+        31      Query Echo Control
+        32+V    Set Echo Control-I
+        33      Query Echo Control-I
+        34+V    Set Echo Control-H
+        35      Query Echo Control-H
+        36+V    Set Echo CR with CR/LF
+        37      Query Echo CR with CR/LF
+        38+V    Set Echo LF with LF/CR/RUB
+        39      Query Echo LF with LF/CR/RUB
+        3A+V    Set CR delay
+        3B      Query CR delay
+        3C+V    Set Parity
+        3D      Query Parity
+        3E+V    Set Half-Duplex
+        3F      Query Half-Duplex
+        40+V    Set X-Enable
+        41      Query X-Enable
+        42+V    Set Reverse X-Enable
+        43      Query Reverse X-Enable
+        44+V    Set KATAKANA
+        45      Query KATAKANA
+        46+V    Set Terminate-output on Break
+        47      Query Terminate-output on Break
+        48+V    Set Echo-ESC
+        49      Query Echo-ESC
+        4A-4F           Reserved
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        43                External Reference Specification        CONSAT.ERS
+        ISIS-Specific features                              November 7, 1985
+
+
+
+
+
+
+                       APPENDIX III.   ISIS-Specific features
+
+
+
+             Certain features of the CONSAT are environment specific.  Since
+        these are of interest to users, they are described here.
+
+
+                             III-1  Front Panel Display
+
+
+             The CONSAT  generates a  4-digit display  for the  Engine Front
+        Panel.  The contents of  the display will vary according  to certain
+        options.
+
+
+                    III-1.1  Configuration Errors
+
+
+             Certain  configuration errors  may  not be  detected  until the
+        CONSAT  is executing.   If this  is so,  the display  is  fixed (see
+        Figure III.1.).
+
+                    Figure III.1.  Configuration Error Display:
+
+                --------+-------+-------+--------
+                | TYPE  |     Device Number     |
+                --------+-------+-------+--------
+
+               Where:
+
+
+               TYPE    Device Type --  unable to locate  a configured
+                       device of this type:
+
+                1       ASYNC Group
+                2       Printer
+                3       SIO Port
+
+               Number  The number of the first such device  not found
+                       (e.g. if configured for 3 SIO ports,  and only
+                       2  are  available,  the  display   would  show
+                       "3002".
+
+
+
+
+
+
+
+        44                External Reference Specification        CONSAT.ERS
+        ISIS-Specific features                              November 7, 1985
+
+
+                    III-1.2  Normal Display
+
+
+             The  "normal" display  presents  information on  usage.   It is
+        distinguished from the configuration error by "flashing" (see Figure
+        III.2.).
+
+                       Figure III.2.  "Normal" Error Display:
+
+                --------+-------+-------+--------
+                |F|    USE      |  No. of Ports |
+                --------+-------+-------+--------
+
+               Where:
+
+
+               F       Flashing Bit -- Flashes on and off.
+
+               USE     Displays the average (averaged over 16 cycles)
+                       interval between iterations of the  EXEC loop,
+                       in units of Clock-Ticks.
+
+               No.     The Number of ISIS ports currently active.
+
+
+                    III-1.3  CPS Display
+
+
+             The CONSAT may be set to monitor ASYNC Characters/Second (CPS).
+        In that case,  the normal display  alternates with the  CPS display,
+        with an elapsed interval of 1.7 seconds for each type of display.
+
+             The  CPS display  is further  divided into  "short"  and "long"
+        measurements:
+
+                  T (seconds)
+                 0.0    normal display
+                 1.7    "short" display
+                 3.4    normal display
+                 5.1    "short" display
+                 6.8    normal display
+                ....
+                23.8    normal display
+                25.5    "long" display ("blinks")
+                27.2    normal display (repeat sequence)
+
+             The  "short" display  presents  the CPS  transfered  during the
+        previous 3.4 seconds.
+
+             The  "long"  display  presents the  CPS  transfered  during the
+        previous 54.4  second interval.   This display  "blinks" (alternates
+        rapidly with  "0000").  It occurs  one time out  of every  eight CPS
+        displays.
+
+        45                External Reference Specification        CONSAT.ERS
+        ISIS-Specific features                              November 7, 1985
+
+
+                            III-2  DDT Control Features
+
+
+             In ISIS-DDT, the  "?STAT" command connects  the DDT user  to an
+        ISIS CONSAT control  process.  Command driven, this  process accepts
+        the following commands:
+            EXIT or EXI - Log off (from DDT)|)
+            QUIT or Q   - Exit ?STAT (back to DDT)|)
+            CODE        - Tells code running in this slot|)
+            HELP or ?   - Describes commands available to ?STAT|)
+            PORT        - Query state of all ports|)
+            IPORT       - Query state of specific ISIS port|)
+            APORT       - Query state of specific ASYNC port|)
+            QBUSY       - Query status of busy-able ports|)
+            BUSY        - Busy out the specified port|)
+            UNBUSY      - Un-busy out the specified port|)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        46                External Reference Specification        CONSAT.ERS
+        ASCII/BAUDOT TRANSLATIONS                           November 7, 1985
+
+
+
+
+
+
+                      APPENDIX IV.   ASCII/BAUDOT TRANSLATIONS
+
+
+
+             The following tables are the translations from BAUDOT  to ASCII
+        and ASCII to BAUDOT currently used by the CONSAT in its translations
+        for non-transparent BAUDOT support  (TID8 & TID9) and  Virtual TELEX
+        support (TID34).
+
+
+                   IV-1  ISIS CONSAT BAUDOT TO ASCII TRANSLATION
+
+
+
+                           (TABLE BAUD.A)
+        ----------------------------------------------------
+                    LETTERS          |       FIGURES
+                                     |
+        HEX     BAUDOT  ASCII   HEX  |  BAUDOT  ASCII   HEX
+        ---     ------  -----   ---  |  ------  -----   ---
+         00     blank   null     00  |  blank   null     00
+         01       E       E      C5  |    3       3      B3
+         02      lf      lf [1]  8A  |   lf      lf [1]  8A
+         03       A       A      C1  |    -       -      AD
+         04     space   space    A0  |  space   space    A0
+         05       S       S      D3  |    '       '      A7
+         06       I       I      C9  |    8       8      B8
+         07       U       U      D5  |    7       7      B7
+         08      cr      cr      8D  |   cr      cr      8D
+         09       D       D      C4  |   wru     enq [3] 85
+         0A       R       R      D2  |  ( ?        £I ç    Ç          @    ?ˇ          NODE                          x        @    ` É        ¶I          TPORT@    ?ˇ          TYMNET_PORTS                     ù         Ä  `           I é         MDIAL@    ?ˇ          FTA_DIAL_MIN                   h "         Ä  x           I          M4800@    ?ˇ          FTS_DED4800_MIN                0 ¶         Ä  x           I è         M9600@    ?ˇ          FTS_DED9600_MIN                x +         Ä  h           I          M56  @    ?ˇ          FTS_DED56_MIN                Å @ -       @    @ É        ®I ê    Å     NEW  @    50    0 DANVILLE           VA DEDICATED 9600 X.25           0.0080    1
+   250    0 DANVILLE           VA DEDICATED 9600 OTHERS         0.0009    1
+   250    0 DANVILLE           VA DEDICATED 56KB X.25           0.0068    1
+   250    0 DANVILLE           VA DEDICATED 56KB OTHERS         0.0008    1
+   236  298 FAIRFAX            VA DIAL-UP ASYNC               548.2335  253
+   236  298 FAIRFAX            VA DIAL-UP OTHERS               60.9148   76
+   236  298 FAIRFAX            VA DEDICATED 4800 X.25          26.9072   27
+   236  298 FAIRFAX            VA DEDICATED 4800 OTHERS         2.9897    3
+   236  298 FAIRFAX            VA DEDICATED 9600 X.25          50.4509   51
+   236  298 FAIRFAX            VA DEDICATED 9600 OTHERS         5.6057    6
+   236  298 FAIRFAX            VA DEDICATED 56KB X.25          42.8832   43
+   236  298 FAIRFAX            VA DEDICATED 56KB OTHERS         4.7648    5
+   250    0 FARMVILLE          VA DIAL-UP ASYNC                 0.0000    0
+   250    0 FARMVILLE          VA DIAL-UP OTHERS                0.0000    0
+   250    0 FARMVILLE          VA DEDICATED 4800 X.25           0.0000    0
+   250    0 FARMVILLE          VA DEDICATED 4800 OTHERS         0.0000    0
+   250    0 FARMVILLE          VA DEDICATED 9600 X.25           0.0000    0
+   250    0 FARMVILLE          VA DEDICATED 9600 OTHERS         0.0000    0
+   250    0 FARMVILLE          VA DEDICATED 56KB X.25           0.0000    0
+   250    0 FARMVILLE          VA DEDICATED 56KB OTHERS         0.0000    0
+   236    0 FREDERICKS         VA DIAL-UP ASYNC                 0.0434    2
+   236    0 FREDERICKS         VA DIAL-UP OTHERS                0.0048    1
+   236    0 FREDERICKS         VA DEDICATED 4800 X.25           0.0021    1
+   236    0 FREDERICKS         VA DEDICATED 4800 OTHERS         0.0002    1
+   236    0 FREDERICKS         VA DEDICATED 9600 X.25           0.0040    1-  --- --||--- --  --- --||--- --  --- --
+        SP  20  SP  04||  @ 40     [1]||  60     [1]
+          ! 21     [1]||  A 41    A 03||  a 61    A 03
+          " 22     [1]||  B 42    B 19||  b 62    B 19
+          # 23   #  14||  C 43    C 0E||  c 63    C 0E
+          $ 24   $  0D||  D 44    D 09||  d 64    D 09
+          % 25     [1]||  E 45    E 01||  e 65    E 01
+          & 26   &  1A||  F 46    F 0D||  f 66    F 0D
+          ' 27    ' 05||  G 47    G 1A||  g 67    G 1A
+          ( 28    ( 0F||  H 48    H 14||  h 68    H 14
+          ) 29    ) 12||  I 49    I 06||  i 69    I 06
+          * 2A     [1]||  J 4A    J 0B||  j 6A    J 0B
+          + 2B    + 11||  K 4B    K 0F||  k 6B    K 0F
+          , 2C    , 0C||  L 4C    L 12||  l 6C    L 12
+          - 2D    - 03||  M 4D    M 1C||  m 6D    M 1C
+          . 2E    . 1C||  N 4E    N 0C||  n 6E    N 0C
+          / 2F    / 1D||  O 4F    O 18||  o 6F    O 18
+          0 30    0 16||  P 50    P 16||  p 70    P 16
+          1 31    1 17||  Q 51    Q 17||  q 71    Q 17
+          2 32    2 13||  R 52    R 0A||  r 72    R 0A
+          3 33    3 01||  S 53    S 05||  s 73    S 05
+          4 34    4 0A||  T 54    T 10||  t 74    T 10
+          5 35    5 10||  U 55    U 07||  u 75    U 07
+          6 36    6 15||  V 56    V 1E||  v 76    V 1E
+          7 37    7 07||  W 57    W 13||  w 77    W 13
+          8 38    8 06||  X 58    X 1D||  x 78    X 1D
+          9 39    9 18||  Y 59    Y 15||  y 79    Y 15
+          : 3A    : 0E||  Z 5A    Z 11||  z 7A    Z 11
+          ; 3B     [1]||  [ 5B     [1]||  { 7B     [1]
+          < 3C     [1]||  \ 5C     [1]||  | 7C     [1]
+          = 3D    = 1E||  ] 5D     [1]||  } 7D     [1]
+          > 3E     [1]||  ^ 5E     [1]||   77     [1]
+          ? 3F    ? 19||  _ 5F     [1]||DEL 7F     [1]
+        ==============||==============||==============
+        [1] -- These characters are not translatable and
+               are discarded.  A patch is available
+               which will tranlate these to "?".
+
+
+
+
+
+
+        49                External Reference Specification        CONSAT.ERS
+        ASCII/BAUDOT TRANSLATIONS                           November 7, 1985
+
+
+                    IV-2.2  ASCII CONTROL CHARACTERS
+
+
+           ASCII       BAUDOT
+        ----------   ----------
+        CHR HX KEY   HX S CHR
+        --- -- ---   -- - ---
+        NUL 00  ^@   00 X blank
+        SOH 01  ^A    [1]
+        STX 02  ^B    [1]
+        ETX 03  ^C    [1]
+        EOT 04  ^D    [1]
+        ENQ 05  ^E   09 F wru
+        ACK 06  ^F    [1]
+        BEL 07  ^G    [1]
+        BS  08  ^H    [1]
+        HT  09  ^I    [1]
+        LF  0A  ^J   02 X line feed
+        VT  0B  ^K    [1]
+        FF  0C  ^L    [1]
+        CR  0D  ^M   08 X carriage return
+        SO  0E  ^N    [1]
+        SI  0F  ^O    [1]
+        DLE 10  ^P    [1]
+        DC1 11  ^Q    [1]
+        DC2 12  ^R    [1]
+        DC3 13  ^S    [1]
+        DC4 14  ^T    [1]
+        NAK 15  ^U    [1]
+        SYN 16  ^V    [1]
+        ETB 17  ^W    [1]
+        CAN 18  ^X    [1]
+        EM  19  ^Y    [1]
+        SUB 1A  ^Z    [1]
+        ESC 1B  ^[    [1]
+        FS  1C  ^\    [1]
+        GS  1D  ^]    [1]
+        RS  1E  ^^    [1]
+        US  1F  ^_    [1]
+        =====================
+        [1] -- These characters are not translatable and
+               are discarded.  A patch is available
+               which will tranlate these to "?".
+
+
+
+
+
+
+
+
+
+
+
+        50                External Reference Specification        CONSAT.ERS
+        INDEX                                               November 7, 1985
+
+
+                                       INDEX
+
+        (.) see dot prefix                  Control-R 23
+                                            control-signals 42
+                                            CP 3, 10
+        1-down message see ULMSG            cps 3
+                                            CRLF 16, 23@
+                                            CRSTOP 3
+        :L option 21@
+
+                                            DCPSSW 3
+        ? see ?STAT                         DDT see ?STAT
+        ?STAT 46                            debugging 3
+                                            DECLARE 3, 6, 8, 24
+                                            dot option 5
+        ABACK 5, 39                         dot prefix 4, 32
+        accent grave 7                      double quote 7
+        ACHOST 3, 9@, 30                    DSC 22@
+        ADDRESS_RANGE 29
+        ADRPRT 4, 29@
+        AHIST 3                             echoing 22, 23, 32
+        AHRNG 3, 9@, 30                     ESCID 26
+        AID 4, 18@, 19, 20, 21, 39          EXIT see ?STAT
+        AID table 19@
+        ALO 4, 13, 14, 15, 16, 17, 20@,
+           21, 30, 41                       FAILID 25, 26
+        answerback 5, 38                    forbidden chars. 7
+        ANY attribute 4, 29
+        APORT see ?STAT
+        ASYNC 3, 8, 9, 15, 16, 19, 29       half duplex 3, 22, 28
+        ATTRibute 29                        hang/answer 3
+                                            HD202 3, 10, 11@
+                                            HDX 11, 22@
+        backpressure 23                     HELP see ?STAT
+        BAUDOT 4, 11@, 38, 39, 47           HNG 16, 22@
+        BAUDR 4, 5, 39                      HOST 29
+        BLOKID 26                           host number 3, 4, 9, 29, 32
+        BUSY see ?STAT
+        BUSY-OUT 10, 46
+                                            I-file see initialization file
+                                            IIX 34, 35
+        C-file see command file             IIX messages 36
+        CALL CONFIRM 37                     INACT 26
+        CALL REQUEST 37                     initialization file 1, 2@
+        carriage return 7, 23               IPORT see ?STAT
+        CODE see ?STAT                      ISIS Front Panel Display 44
+        code translation 38, 47             ISIS-DDT see ?STAT
+        colon 7                             ITA No. 2 38
+        comma 7
+        command file 1@
+        configuration errors 44             LFCR 16, 23@
+        configuration file 1, 2@, 3, 6,     limbo  mode 31
+           13                               limbo mode 31
+
+        51                External Reference Specification        CONSAT.ERS
+        INDEX                                               November 7, 1985
+
+
+
+
+        linefeed 7, 23                      parity 22
+        LISA 10, 11                         password 3, 5, 14, 16, 20, 21,
+        LOCATION 3, 9@                         41
+        login 5, 14, see ALO, 20, 21,       patch file 1
+           22, 37                           PCO 3, 4, 14, 20@, 21, 22, 30
+        LOWSPD 4, 5, 39                     PCORTY 3, 14@, 15, 20
+        LTEXT 3, 10@, 25@, 26               PCOTRY 3, 14@, 15, 20
+                                            PORT see ?STAT
+                                            port addressing 3, 28@
+        MHRNG 3, 9@                         port number 14, 18, 29, 41
+        MPC 4, 18@                          PORT_RANGE 29
+        MPVC 3, 4, 5, 8, 9, 18, 24@, 42     PRINT 3, 8
+        MPVCFO 5, 25, 26@                   privileged chars. 7@
+        MPVCUS 5, 24@                       pseudo-port 24
+        Multiplexed PVC see MPVC            PTEXT 5, 13@
+        MUTXRG 5, 24@                       PVC 4, 13, 15, 16, 18, 23, 24,
+                                               30, 34
+                                            PVC messages 13
+        nibfile 1                           PVCDF 4, 16@, 18
+        NO.CP 3, 10@                        PVCEX 4, 15, 16@, 17, 18
+        NOAID 16, 18@                       PVCRNG 4, 15@, 16, 17, 24
+        NOALO 16, 20@
+        NOBUSY 3, 10@, 11
+        NOCRLF 11, 23@                      QBUSY see ?STAT
+        node number 1, 3, 9, 14, 18, 41     QUIT see ?STAT
+        NODSC 4, 5, 22@                     quote 7
+        NOHDX 16, 22@
+        NOHNG 4, 14, 22@
+        NOLFCR 11, 23@                      R-file see source file
+        NOMPC 16, 18@                       range 6@
+        non-VADIC modems 10                 RBP 4, 23@
+        NONPI 4, 18@                        rebuild 14, see PCO, 21
+        NOPAR 16, 22@                       reverse backpressure 23
+        NOPCO 16, 20@                       revision level 1
+        NORBP 16, 23@                       RHIST 3
+        NOSLO 16, 21@
+        NOTRS 16, 23@
+        NOTXT 18@                           SADPRT 4, 29@
+        NOWRU 5, 38, 39                     security sequence 5, 16
+        NPI 4, 16, 18@                      semicolon 7
+        NULL 7                              SHIST 3
+        NULL attribute 4, 29                SHOWME 3, 8@
+                                            SHRNG 3, 9@, 30
+                                            signals 42
+        OMRON 3                             SIGNID 26
+                                            SIO 3, 5, 8, 9, 14, 19, 29
+                                            SIO PVC 5, 17
+        P-file see patch file               SIOBUF 3
+        PA see port addressing              slash 7
+        PAR 11, 22@                         SLO 4, 20, 21@, 22
+        parentheses 7                       SLODTR 3
+
+        52                External Reference Specification        CONSAT.ERS
+        INDEX                                               November 7, 1985
+
+
+
+
+        slot number 1, 3, 9                 Voice Response 11
+        slow DTR 3
+        source file 1, 2
+        SPVCEX 5, 17@                       WRU 5, 38, 39
+        SPVRNG 5, 17@
+        STEXT 5, 13, 16@
+        sub-address 32                      YTID 3
+        SUCCID 25, 26
+        SUTXRG 5, 14, 17@
+        syntax see range, see text          zap 22
+           argument                         ZERO attribute 4, 29
+
+
+        T-file see configuration file
+        TELEX extension cord 4, 34@
+        TELEX Gateway 34, 35
+        TELEX login support 5, 37@
+        TELEX Signalling 34, 37
+        text argument 7@, 10
+        TID 18, 19, 22, 23
+        TID table 19@
+        TID timer 22
+        TID120 3, 10@
+        TID33 4, 35
+        TID34 5, 37, 39, 47
+        TID8 47
+        TID9 47
+        TIDM 3, 10, 22
+        TIDn 4
+        translate-to-ASCII 11, 12
+        transparent 11, 12
+        TRS 4, 5, 23@
+        TXT 4, 5, 16, 18@
+        tymfile see configuration file
+        TYMSAT tymfile 12
+
+
+        ULMSG 3, 10
+        UNBUSY see ?STAT
+        USERID 24
+        username 3, 5, 14, 18, 20, 21,
+           24, 32, 41
+        UTEXT 4, 13, 14@, 17, 21
+        UTXRNG 4, 14, 17@, 24
+
+
+        VDU 28@
+        version number 1
+        Video Display Unit see VDU
+        Videotext 4, 12
+        virtual TELEX 47
+
+        53                External Reference Specification        CONSAT.ERS
+ PErı
