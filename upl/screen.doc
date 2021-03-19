@@ -1,0 +1,2403 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                             SCREEN GENERATOR
+
+                               USER'S GUIDE
+
+                        REVISED SEPTEMBER 25, 1980
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                             J.W. MEADOR
+                                             TYMCARE PROJECT
+                                             PRODUCT DEVELOPMENT DIVISION
+                                             TYMSHARE, INC.
+
+          SCREEN GENERATOR USER'S GUIDE                             Page 2
+          INTRODUCTION
+
+
+          1.0  
+
+          INTRODUCTION
+
+
+          The Screen Generator is a tool that facilitates the creation
+          and   modification   of   transaction  and  inquiry  screens
+          utilizing MAGNUM screen control and the TYMSHARE  MODEL  425
+          terminal.   It  generates  MAGNUM  code  that  provides  for
+          systematic control of  displaying  and  processing  screens,
+          thus  allowing  the  user  to concentrate more on the actual
+          transaction or inquiry rather than the screen control logic.
+
+          The Screen Generator is designed so that it  may  easily  be
+          incorporated  as  a  sub-system  of  the  user's  own MAGNUM
+          application.   It  is  a  self-contained,  screen  oriented,
+          function  key  driven,  menu  select  system  running  under
+          version 12 (or later) of MAGNUM.
+
+          It is expected  that  the  user  has  some  knowledge  about
+          MAGNUM, forms design, and the TYMSHARE MODEL 425 terminal.
+          SCREEN GENERATOR USER'S GUIDE                             Page 3
+          SYSTEM CHARACTERISTICS
+
+
+          2.0  
+
+          SYSTEM CHARACTERISTICS
+
+
+          In order to understand how to run the Screen  Generator  and
+          use  its  generated  code,  it  is  necessary  to  know  the
+          characteristics  of  the  system.   The   terminology   used
+          throughout  the  Screen  Generator will be discussed in this
+          section.  In addition,  the  function  keys  used  and  what
+          functions  they perform will be explained.  Furthermore, the
+          allowable field  types  are  discussed.   And  finally,  the
+          routines generated and what they do are explained.
+          SCREEN GENERATOR USER'S GUIDE                             Page 4
+          SYSTEM CHARACTERISTICS
+
+
+          2.1  
+
+          DEFINITIONS
+
+
+          The following terminology  is  used  throughout  the  Screen
+          Generator:
+
+
+          1.  INPUT/OUTPUT SCREEN - A transaction oriented  screen  on
+              which  fields  may  be  input  and/or output.  All input
+              fields  are  transmitted  at  the  same  time,  but  are
+              processed  one  at  a  time.   Fields  are displayed and
+              processed sequentially from left to  right  and  top  to
+              bottom.
+
+          2.  INQUIRY SCREEN - A  report  oriented  screen  which,  in
+              addition  to  the  features of an I/O screen, allows for
+              the definition of a special row of fields which  may  be
+              displayed  continuously  down  the  screen until another
+              field is encountered or line 23  is  reached.   At  this
+              point the flag SCREEN.FULL is set to 'Y' and the display
+              may be temporarily halted.  If resumed, the display will
+              erase  the previously displayed detail lines and display
+              another set.  Note that unless the SCREEN.FULL flag  has
+              been set, protection is turned off.
+
+          3.  SELECTABLE INQUIRY SCREEN - An inquiry screen from which
+              the  user  may select one of the rows of detail in order
+              that some  action  may  be  performed  on  it.   When  a
+              selection  is made, one or more fields are read from the
+              screen and stored in user defined variables.  Also,  the
+              flag SELECT.screen.name is set to 'Y'.
+
+          4.  MULTI-SELECTABLE INQUIRY SCREEN - An inquiry screen from
+              which  the  user  may  select one or more of the rows of
+              detail in order that some action  may  be  performed  on
+              them.   The  inquiry  keys  are  stored  in the relation
+              screen.name.ITEM along with the flag  SELECT.screen.name
+              for  each  detail  line displayed.  A row is selected by
+              entering  any  non-blank  character  in  the   selection
+              column.   This  character  is  stored  in  the  relation
+              screen.name.ITEM in the field SELECT.screen.name.
+
+          5.  FRAME - A partial screen whose mask consists of  from  1
+              to  23 lines instead of the fixed length of 23 lines for
+              full screens.  The frame starts with the first non-blank
+              line  and  ends  with  the  last  non-blank line or last
+              inquiry detail line.  Frames use the send  message  mode
+              of  transmission instead of the send page mode used with
+              full screens.  Several frames may be  displayed  at  the
+              same  time  as long as their lines do not overlap.  Each
+              of the screens listed above may be either  full  screens
+              or frames.
+          SCREEN GENERATOR USER'S GUIDE                             Page 5
+          SYSTEM CHARACTERISTICS
+
+
+          6.  BLOCK MODE - A mode of transmission in which a block  of
+              data  is  sent  to  the computer at one time rather than
+              being transmitted character by  character.   Also,  when
+              the  terminal  is in block mode, the cursor may be moved
+              to any unprotected space  on  the  screen.   The  Screen
+              Generator  and  the  screens it generates use block mode
+              exclusively.
+
+          7.  MASK - The combination of headings, prompts,  and  field
+              declarations which define a screen.
+
+          8.  DATA - Those fields which are allowed to  change  and/or
+              be  redisplayed  while a mask is displayed on a CRT,i.e.
+              field types C, E, and I.
+
+          9.  DELIMITERS - Characters which  define  boundaries  of  a
+              field.    When  creating  or  modifying  a  mask,  angle
+              brackets <> are used to declare the beginning and end of
+              a  field.   The  angle  brackets are not included in the
+              calculated field length.  For a single character  output
+              only  field,  an  at-sign  @  may  be  used  to mark the
+              position of the field.  The calculated field length must
+              match  the picture used in the FIELDS declaration of the
+              procedure or schema.  When the mask  is  displayed,  the
+              angle  brackets are replaced with blanks for output only
+              and changing output fields,  parentheses  ()  for  input
+              only  and  optional  edit fields, and square brackets []
+              for required edit fields.  An at-sign is  replaced  with
+              the value of the field.
+
+         10.  ATTRIBUTES - The characteristics of  a  field  including
+              its name, type, edits and associated error messages.
+
+         11.  ENTERED - Transmitting one or more non-blank  characters
+              for a field.
+
+         12.  REQUIRED FIELD - A field which must have  at  least  one
+              non-blank character entered.
+
+         13.  OPTIONAL FIELD - A field which never has to be entered.
+
+         14.  MINIMUM LENGTH - The minimum number of characters  which
+              must be input for an edit field.
+
+          SCREEN GENERATOR USER'S GUIDE                             Page 6
+          SYSTEM CHARACTERISTICS
+
+
+          2.2  
+
+          FUNCTION KEYS
+
+
+          The use of function keys is global throughout the system.  A
+          function  key  is  activated  by  depressing the key labeled
+          'FUNCTION' followed by any other character.  Depressing  the
+          'FUNCTION'   key  twice  disables  the  function  key.   The
+          following function keys are used in the Screen Generator:
+
+
+          1.  FUNCTION '/'  -  transmits  unprotected  data  from  the
+              terminal to the program.
+
+          2.  FUNCTION 'Q' - when allowable,  returns  to  a  previous
+              step   in  the  system,  if  one  exists,  and  restarts
+              processing;  or returns to MAGNUM command level.   Also,
+              terminates the edit error checking loop.
+
+          3.  FUNCTION 'R' - restores the current screen  data  values
+              to defaults.
+
+          4.  FUNCTION 'D' - redisplays the mask(s) and  default  data
+              values.
+
+          5.  FUNCTION 'L' -  clears  both  pages  of  the  CRT,  sets
+              conversation mode and logs the user off the system.
+
+          SCREEN GENERATOR USER'S GUIDE                             Page 7
+          SYSTEM CHARACTERISTICS
+
+
+          2.3  
+
+          FIELD TYPES
+
+
+          There are four  types  of  fields  that  may  be  explicitly
+          defined by the user.  these are as follows:
+
+
+          1.  C - A changing output only field.  This is  a  protected
+              field  and  has  no edits.  It is redisplayed every time
+              one of the display routines is used.
+
+          2.  E - An edit field.  This is an  unprotected  field  that
+              allows  any  and  all  available  edits to be performed.
+              This type of field will always  be  checked  for  verify
+              failure,  whether  entered  at  run  time or not.  It is
+              redisplayed every time one of the  display  routines  is
+              used.
+
+          3.  I - An input only field.  This is an  unprotected  field
+              with  no  edits performed on it.  If a field is numeric,
+              date, or has a verify clause, then it must  be  declared
+              as  an  edit  field.  The Screen Generator has no way of
+              knowing if a field should be declared as an edit  field.
+              An  improperly  declared field will eventually cause the
+              program using the screen to give misleading results  for
+              that field and may cause the program to abort.
+
+          4.  O - An output only field.  This  is  a  protected  field
+              designated  to  be  displayed  only  when  the  mask  is
+              displayed.  No edits are performed on this field.
+
+          SCREEN GENERATOR USER'S GUIDE                             Page 8
+          SYSTEM CHARACTERISTICS
+
+
+          2.4  
+
+          ROUTINES GENERATED
+
+
+          All of the routines generated for a screen are output  to  a
+          MAGNUM  text  object  whose  name  is a concatenation of the
+          screen name and the extension '.LIB'.   Individual  routines
+          and formats also contain the screen name as an identifier so
+          that more  than  one  screen  may  be  present  in  a  given
+          procedure.    The   following   routines   and  formats  are
+          generated:
+
+
+          1.  screen.name.MASK  -  This  is  the  MAGNUM  FRAME.FORMAT
+              declaration  which  contains  the  mask.   It  is always
+              generated.
+
+          2.  FRAME screen.name - This is the MAGNUM FRAME declaration
+              which  lists  the  fields and some fields attributes.  A
+              frame is displayed using the MAGNUM  DISPLAY  statement.
+              Fields  declared  in  a  frame  have  a  level  of scope
+              associated with them and can be referenced as  field  OF
+              screen.name.  The FRAME declaration is always generated.
+
+          3.  DISP.screen.name - This is an internal  procedure  which
+              places  the  terminal  in block mode and displays values
+              for all fields except for those in  the  inquiry  detail
+              lines.   For  all  fields,  if  a  default expression is
+              specified, it is displayed.  If a default expression  is
+              not  specified,  the  MAGNUM  default  is  displayed for
+              changing output fields and blanks are displayed for edit
+              and  input  only  fields.   For  output  only fields the
+              current value of the field at the nearest level of scope
+              is  displayed.   If  a  qualifier  was  specified for an
+              output only field, then that  field  reference  will  be
+              displayed.  This routine is always generated.
+
+          4.  RESTORE.screen.name -  This  is  an  internal  procedure
+              which places the terminal in block mode and displays the
+              current value  for  all  fields  excluding  the  inquiry
+              detail lines.  If a qualifier was specified for a field,
+              that field reference  is  displayed.   This  routine  is
+              intended to be used whenever the mask is redisplayed and
+              it is necessary to keep the old values.  For example, if
+              the  terminal  becomes disconnected from the host and it
+              is necessary to redisplay the mask,  this  routine  will
+              display  the  old  values,  whereas the DISP.screen.name
+              displays the default values.   This  routine  is  always
+              generated.
+
+          5.  DEFAULT.screen.name -  This  is  an  internal  procedure
+              which  displays  values  for  changing output, edit, and
+              input  only  fields.   If  a  default   expression   was
+          SCREEN GENERATOR USER'S GUIDE                             Page 9
+          SYSTEM CHARACTERISTICS
+
+
+              specified,  it  is  displayed.   Otherwise,  the  MAGNUM
+              default is displayed  for  changing  output  fields  and
+              blanks  are  displayed  for  edit and input only fields.
+              This routine is generated  if  there  is  at  least  one
+              changing  output,  edit,  or  input  only  field  on the
+              screen.
+
+          6.  EXPAND.screen.name - This is an internal procedure which
+              displays  the  current  value  for  all changing output,
+              edit, and input fields.  If a qualifier  was  specified,
+              then  that field reference will be used.  Otherwise, the
+              field reference of the nearest level of scope  is  used.
+              This  routine  is  generated  if  there  is at least one
+              changing output,  edit,  or  input  only  field  on  the
+              screen.
+
+          7.  MARK.screen.name  -  This  is  a  named  constant  whose
+              purpose  is  to  tell  the user which frame is active if
+              more than one is present on the CRT.  Column 1 is marked
+              with  an  'l' beginning with the first non-blank line of
+              the frame and ending with the last non-blank line or the
+              line  before the first inquiry detail line, whichever is
+              first.  Protection is turned off by this routine, but it
+              is not turned back on.  This named constant is generated
+              for frames only.
+
+          8.  UNMARK.screen.name - This  is  a  named  constant  whose
+              purpose   is   to   erase   the   markings  set  by  the
+              MARK.screen.name routine.  Protection is turned  off  by
+              this  routine, but it is not turned back on.  This named
+              constant is generated for frames only.
+
+          9.  EL.screen.name -  This  is  a  named  constant  used  in
+              inquiries   to   erase   detail   lines.    The  counter
+              CL.screen.name should be set to zero  each  time  it  is
+              typed  to the terminal in order to insure that any other
+              counters are reset the next time the  WL.screen.name  is
+              used.   Protection is turned off by this routine, but it
+              is not turned back on.   This  named  constant  is  only
+              generated for inquiry screens.
+
+         10.  WL.screen.name - This is  an  internal  procedure  which
+              displays  and  erases inquiry detail lines.  The current
+              values for all fields in the detail line  are  displayed
+              once  for  each  time  this  routine  is  invoked.  If a
+              qualifier was specified, then that  field  reference  is
+              used.   Otherwise,  the  field  reference of the nearest
+              level of  scope  is  used.   The  current  line  counter
+              CL.screen.name  is incremented each time this routine is
+              invoked.  Upon reaching its maximum value, this  counter
+              is  set  to zero and the flag SCREEN.FULL is set to 'Y'.
+              The next time this routine is used  the  inquiry  detail
+              lines  will  be  erased if the SCREEN.FULL flag is still
+              set to 'Y'.
+          SCREEN GENERATOR USER'S GUIDE                            Page 10
+          SYSTEM CHARACTERISTICS
+
+
+              For multi-selectable inquiries, the inquiry  key  fields
+              (including  those  defined  in the mask using the 'KEY='
+              phrase) are inserted into the relation  screen.name.ITEM
+              without checking for duplicate instances if the MSI.FLAG
+              field is set to 1.  If the MSI.FLAG field is  set  to  0
+              the  relation  screen.name.ITEM  is  not updated and the
+              line output  to  the  screen  is  not  selectable.   The
+              MSI.FLAG   field  is  set  to  either  0  or  1  by  the
+              application   program   just   prior   to   the    APPLY
+              WL.screen.name statement.  If a qualifier was specified,
+              then that field reference is used.  Otherwise, the field
+              reference  of  the  nearest level of scope is used.  The
+              keys for this relation are CNT.screen.name and CHAR.CNT.
+              CNT.screen.name   is   incremented   by   1   each  time
+              CL.screen.name is set to zero.  CHAR.C set to  zero
+              at  this  time  and  then incremented by 1 for each line
+              displayed.  The value of CHAR.CNT should not be  changed
+              except   by  this  routine  since  it  is  used  by  the
+              PROCESS.screen.name routine when reading  the  selection
+              column.  A MAGNUM FATAL ERROR will occur if the value of
+              this field is not set properly.
+
+              Protection is turned  off  while  the  lines  are  being
+              displayed  and  is  only turned back on if the screen is
+              full.  This routine is  generated  for  inquiry  screens
+              only.    It   is   the  user's  responsibility  to  turn
+              protection on if the "END OF INQUIRY" has  been  reached
+              and the SCREEN.FULL flag is 'N'.
+
+         11.  HELP.screen.name - This is an internal  procedure  which
+              returns  the name of a field on which help is requested.
+              The field name is stored in the  field  HELP.FIELD.   If
+              help  is  requested on an invalid field, then HELP.FIELD
+              contains all blanks.  Only edit fields  for  which  help
+              has  been  specified  are  included in this routine.  If
+              there are none this routine will not be generated.
+
+         12.  PROCESS.screen.name -  This  is  an  internal  procedure
+              which  reads  in  and  processes all edit and input only
+              fields.  All fields are read  into  their  corresponding
+              frame fields.  If the screen is a selectable inquiry and
+              a selection has been made, then the inquiry  key  fields
+              are   also   read   in   at  this  time  and  the  field
+              SELECT.screen.name is set to 'Y'.  The inquiry keys  are
+              then moved unedited to the fields specified by the user.
+              If  the  screen  is  a  multi-selectable  inquiry,   the
+              selection  column  is  read  in  and  for each non-blank
+              character the corresponding  instance  in  the  relation
+              screen.name.ITEM  is updated using the character read in
+              for the field SELECT.screen.name.  If  no  detail  lines
+              have been displayed, then no attempt is made to read the
+              selection column.  Otherwise, the column will be read.
+
+              Each edit field is then validated and any user specified
+          SCREEN GENERATOR USER'S GUIDE                            Page 11
+          SYSTEM CHARACTERISTICS
+
+
+              edits  are  performed  on  a  field by field basis.  Any
+              errors found cause the  error  routine  to  be  invoked.
+              Once  all  errors  for  a field have been corrected, the
+              next field is processed.  While in  the  error  routine,
+              i.e.   when a field is in reverse video, entering either
+              a FUNCTION '/' or a FUNCTION 'U' will cause  that  field
+              to  be  transmitted  to  the  program  and  editing will
+              continue with that field.  If a valid function key other
+              than  FUNCTION  '/' or FUNCTION 'U' is entered, then the
+              error  routine  has  been   canceled   and   the   field
+              EDIT.CANCELED  is set to 'Y'.  If the processing routine
+              has successfully completed, this flag  will  be  set  to
+              'N'.   If  a  function  key  was  entered  while  in the
+              PROCESS.screen.name routine, it is saved  in  the  field
+              FUNCT.KEY and may be referenced by the user's procedure.
+              See section 5.1 for more information on function keys.
+
+              If a field has a qualifier specified and  there  are  no
+              errors,  then  the  value  input  is  moved to the field
+              referenced by the qualifier.
+
+              This routine is generated if there is at least one  edit
+              or  qualified input field on the screen or if the screen
+              is a selectable or multi-selectable inquiry.
+
+          SCREEN GENERATOR USER'S GUIDE                            Page 12
+          INSTALLING THE SCREEN GENERATOR
+
+
+          3.0  
+
+          INSTALLING THE SCREEN GENERATOR
+
+
+          Installation of the Screen Generator has been made as simple
+          as possible.  The following steps are all that is needed:
+
+
+          1.  Enter your schema using version 12 of MAGNUM.
+
+          2.  Enter the command DO FILE  (UPL)SCREEN.GEN.   This
+              command copies text objects into your MAGNUM directory.
+
+          3.  Modify your schema to include  the  texts  SCREEN.FIELDS
+              and SCREEN.RELATIONS.
+
+          4.  Compile your schema.
+
+          5.  Enter the command DO FILE  (UPL)SCREEN.COM.   This
+              command  compiles  the  Screen  Generator procedures and
+              sets up its error messages.
+
+
+          The Screen Generator is now ready to be used.
+          SCREEN GENERATOR USER'S GUIDE                            Page 13
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.0  
+
+          RUNNING THE SCREEN GENERATOR
+
+
+          This section explains  how  to  run  the  Screen  Generator.
+          Refer to the document SCREEN.DMP on username UPL for a
+          copy of the screens used  by  the  Screen  Generator.   This
+          document was produced by option 7 of the Screen Generator.
+
+          To enter the Screen Generator  environment  the  command  DO
+          SCREEN.GEN  is entered at MAGNUM command level.  The user is
+          then presented with the Screen Generator Menu from which  an
+          option  is  selected.   To  leave the system type a FUNCTION
+          'Q'.  The following options are available:
+
+
+          1.  CREATE MASK
+
+          2.  CREATE ATTRIBUTES
+
+          3.  MODIFY
+
+          4.  COPY ONE SCREEN TO ANOTHER
+
+          5.  DELETE
+
+          6.  GENERATE CODE
+
+          7.  PRINT MASK(s) and/or ATTRIBUTES
+
+          8.  UPDATE ERROR MESSAGES
+
+          9.  MODIFY MASK
+
+         10.  MODIFY ATTRIBUTES
+
+         11.  DELETE GENERATED CODE
+
+         12.  SCREEN DIRECTORY
+
+         13.  FIELD DIRECTORY
+
+         14.  DISPLAY ATTRIBUTES
+
+         15.  GENERATE CODE (NOT MAGNUM SCREEN CONTROL)
+
+
+          Upon completion of any the options in the  above  list,  the
+          user is returned to the Screen Generator Menu.
+          SCREEN GENERATOR USER'S GUIDE                            Page 14
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.1  
+
+          CREATE MASK
+
+
+          This option is used to build a  new  mask  by  defining  the
+          headings,  prompts,  and  fields  which are to appear on the
+          screen.
+
+          Enter a 1 for the option, a new screen name, and the  screen
+          type followed by a transmit.  The following screen types are
+          available:
+
+
+          1.  I/O - Input/output (full screen)
+
+          2.  FRM - Frame input/output (partial screen)
+
+          3.  INQ - Inquiry (full screen - may be selectable)
+
+          4.  FI - Frame inquiry (partial screen - may be selectable)
+
+          5.  MSI - Multi-selectable inquiry (full screen)
+
+          6.  FMI - Frame multi-selectable inquiry (partial screen)
+
+
+          When the system is ready, an empty screen will be  displayed
+          with  a  protected line at the bottom of the screen labelled
+          'MESSAGE AREA'.  This line is reserved for error and  action
+          messages.
+
+          Enter your headings, prompts and fields  just  as  you  wish
+          them  to  appear  to  the  end  user.   Left and right angle
+          brackets or an at-sign are used to delimit fields.  A  <  is
+          used  to  mark  the  beginning of the field and a > the end.
+          Fields may not contain other fields within them.  The number
+          of character positions between a < and a > is the calculated
+          field length and must match the picture of the  field.   Any
+          characters  found  between a < and a > will be replaced with
+          blanks.
+
+          If an  inquiry  screen  is  being  created,  place  a  $  in
+          character  position  80  of the detail line.  If there is no
+          room on this line then place the dollar sign in character 80
+          of  a  previous  line  containing  no fields.  The next line
+          containing one or more fields will be considered the  detail
+          line.    Single   spacing  is  assumed  unless  the  literal
+          'SPACING=n', where n equals a 2 or 3, is entered  after  the
+          detail line.  This literal along with the $ will be replaced
+          by blanks.
+
+          If a selectable inquiry screen is being created then enter a
+          ^  on the detail line in the column which you wish to remain
+          SCREEN GENERATOR USER'S GUIDE                            Page 15
+          RUNNING THE SCREEN GENERATOR
+
+
+          unprotected  as  each  detail  line  is   displayed.    This
+          unprotected  column allows the cursor to be moved next to an
+          item which is to be selected.  Column  80  may  not  be  the
+          selection  column  for  multi-selectable  inquiries.   Also,
+          column 80 of the line previous to the inquiry detail line is
+          used  by  the PROCESS.screen.name routine for reading in the
+          selection  column  for  multi-selectable   inquiries.    Any
+          non-blank  character  displayed  in this column will be lost
+          after invoking the PROCESS.screen.name routine.
+
+          The display area for all types of  inquiries  will  normally
+          range  from the line on which the inquiry detail is declared
+          to line 23.  If any  prompts  or  field  declarations  occur
+          after  the  inquiry  detail  line,  the  display  area  will
+          terminate on the line previous to the first such occurrence.
+          For  frame  inquiries  and  frame multi-selectable inquiries
+          (screen types FI and FMI),  placing  a  vertical  bar  |  in
+          column  80  of  an  otherwise  blank line will terminate the
+          display area at that line.  If the line contains  any  other
+          characters,  the vertical bar will be treated as part of the
+          mask and the display area will terminate  on  the  preceding
+          line.   Otherwise,  the vertical bar will be replaced with a
+          blank.
+
+          For multi-selectable inquiries, fields that are not part  of
+          the  inquiry  detail  line may be added to the field list of
+          the relation screen.name.ITEM by  entering  in  the  display
+          area  beginning  in column 1 the phrase 'KEY=' followed by a
+          field name and optionally  '  OF  '  qualifier.   Additional
+          fields  may  be  added  one to a line until there is no more
+          room in the display area.   Each  of  these  lines  will  be
+          replaced  with  blanks at code generation time.  The primary
+          benefit of this feature is to allow dummy keys of a relation
+          to be stored in the relation screen.name.ITEM without having
+          to be displayed on the inquiry detail line.
+
+          Once the screen has been defined, enter a FUNCTION '/'.  The
+          screen  will  then  be read in and processed for errors.  If
+          any errors are found, a message is displayed and the user is
+          given  the  opportunity  to  make  changes  anywhere  on the
+          screen.  After  making  the  changes,  transmit  the  screen
+          again.   If for any reason it is necessary to abort, enter a
+          FUNCTION 'Q'.  No trace of the screen will be saved if  this
+          is done, however.
+          SCREEN GENERATOR USER'S GUIDE                            Page 16
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.2  
+
+          CREATE ATTRIBUTES
+
+
+          This option allows you to  define  the  attributes  for  any
+          screen which has not previously had attributes defined.  All
+          screens must go all the way through this option before  code
+          generation may be performed.
+
+          Enter a 2 for the option and an existing  screen  name.   If
+          this  is  a  continuation  of  attribute definition for this
+          screen, then enter the field number of the field with  which
+          you  wish  to  continue.  When the system is ready, the user
+          will be presented with the FIELD SPECIFICATION SCREEN.
+
+          Attributes must be defined for each  field  declared  during
+          the CREATE MASK phase of screen building.  Each field in the
+          mask is numbered sequentially from left  to  right,  top  to
+          bottom  and presented one at time.  Prompts and headings are
+          not fields and hence do not require additional declarations.
+
+
+
+          4.2.1  COPYING ATTRIBUTES FROM ANOTHER FIELD
+
+          If you wish to copy the attributes of another field  to  the
+          screen,  then  enter a same as field number and screen name.
+          These attributes may be changed if desired.   If  not,  then
+          enter  a  transmit  function key and continue on to the next
+          field.
+
+
+
+          4.2.2  FIELD TYPE
+
+          Enter the type of field that this is, either C, E, I,  or  O
+          for  changing  output,  edit,  input  only,  or output only,
+          respectively.  See section 2.3 for a definition of the field
+          types.  If the field appears on an inquiry detail line, this
+          entry is ignored.
+
+
+
+          4.2.3  FIELD LENGTH
+
+          The number of character positions (field length) occupied by
+          the field is displayed as a convenience.
+          SCREEN GENERATOR USER'S GUIDE                            Page 17
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.2.4  POSITIONING THE CURSOR TO THIS FIELD
+
+          If you wish the cursor to be positioned to  this  field  any
+          time  the  mask  is  displayed  or  one of the other display
+          routines is invoked, then enter a 'Y' to  this  prompt.   If
+          this  is  not  specified  for  any  fields,  the cursor will
+          automatically be positioned to the first input only or  edit
+          field if one exists or to the first unprotected space on the
+          screen, otherwise.  The cursor may not be  positioned  to  a
+          protected  field  (C  or O).  If more than one field has the
+          'Y' specification, the cursor will be positioned to the last
+          field so specified.
+
+
+
+          4.2.5  FIELD NAME and QUALIFIER
+
+          Enter the name of the field and optionally a qualifier  such
+          as  the procedure name or a relation name.  Refer to section
+          2.4, items 3, 4, 6, 10 and 12 for implications on the use of
+          this qualifier.  The field name has to be unique for a given
+          screen, i.e.   it  can  only  appear  once  on  the  screen.
+          Furthermore, the MAGNUM FIELD declaration for this field has
+          to match the field length defined while declaring the  field
+          on the mask.
+
+
+
+          4.2.6  RETURN NAME and QUALIFIER
+
+          If this screen  is  a  selectable  inquiry  and  this  field
+          appears  in  the  inquiry  detail line, then you may wish to
+          enter a return to name and qualifier.  If  one  is  entered,
+          this  field  will  be  considered an inquiry key field.  For
+          screen types INQ or FI, anytime a selection  is  made,  this
+          field  will be read from the screen and stored in the return
+          to  field  name.   For  screen  types  MSI   or   FMI,   the
+          corresponding  instances  in  the  relation screen.name.ITEM
+          will  be  updated  with  any  non-blank  character  entered,
+          indicating  a  selection  has  been  made.  Inquiry keys are
+          necessary for screen types INQ and FI  because  the  program
+          has  no  knowledge  of  what  is  currently displayed in the
+          detail lines of the inquiry.  Futhermore, it is likely  that
+          one or more of the inquiry keys will also have to be keys to
+          a relation so that further processing may be invoked by  the
+          selection.    This  last  point  is  application  dependent,
+          however.  For multi-selectable inquiries, the  inquiry  keys
+          are  used  to  define the contents of the temporary relation
+          screen.name.ITEM which will be used for  further  processing
+          of the items selected.
+          SCREEN GENERATOR USER'S GUIDE                            Page 18
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.2.7  DEFAULT EXPRESSION
+
+          A default expression or constant may be entered if  desired.
+          If  specified,  it will be moved to the screen when the mask
+          is displayed or  when  the  DEFAULT.screen.name  routine  is
+          invoked.   No  conversion  is  performed  on  the expression
+          before it is moved.  If no default expression  is  declared,
+          the  MAGNUM schema default is displayed for changing output,
+          edit, and input only fields,  by  the  DISP.screen.name  and
+          DEFAULT.screen.name   routines.   This  declaration  has  no
+          effect on the EXPAND.screen.name routine.
+
+
+          The  remaining  edits  pertain  only  to  edit  fields.   If
+          specified  for other field types, they will be stored in the
+          database.  However, code generation will simply ignore them.
+
+
+
+          4.2.8  REQUIRED
+
+          If this field must be input by the end user,  then  enter  a
+          'Y'  to  the required prompt.  This attribute may be changed
+          at run time by setting the MAGNUM  REQUIRED  flag  for  this
+          field  to either TRUE or FALSE.  However, changing this flag
+          will not cause the delimiters for this field to  change.   A
+          field which was initially specified to be required will have
+          [] as delimiters.  Optional fields will use ().  The  MAGNUM
+          REQUIRED  flag  is  accessable  only  if the screen has code
+          generated using option  6  of  the  Screen  Generator  Menu.
+          Otherwise,  set  the  field REQUIRED. to 'Y' or 'N' when you
+          wish to change this flag.
+
+
+
+          4.2.9  REQUIRED ERROR NUMBER
+
+          If the field is required or may  become  required,  enter  a
+          required  error  number.   This  error  number and all other
+          error numbers should either already exist or be added to the
+          error  message list through the update error message option.
+          Error messages do not have to exist at this  time,  however.
+          Error numbers are used to do table lookups and display error
+          messages  anytime  an  error  condition  arises  during  the
+          processing   of   screen   input   under   control   of  the
+          PROCESS.screen.name routine.
+          SCREEN GENERATOR USER'S GUIDE                            Page 19
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.2.10  HELP
+
+          If you desire to provide help for this field, enter a 'Y' to
+          the  help prompt.  This will only give you the capability of
+          knowing on which field help is requested.  It is up  to  the
+          user  to  provide  the  actual assistance.  See section 2.4,
+          item 11 for a further explanation.
+
+
+
+          4.2.11  VERIFY ERROR NUMBER
+
+          If the field has a  verify  clause,  enter  a  verify  error
+          number.  When using code generated by option 6 of the Screen
+          Generator Menu, all edit fields are verified whether or  not
+          a value has been entered at run time for the field.
+
+
+
+          4.2.12  MINIMUM LENGTH
+
+          If you wish to require that a specified number of characters
+          must  be  entered  for a field, then enter a minimum length.
+          The minimum length cannot be greater than the field  length.
+          Also, enter a minimum length error number.
+
+
+
+          4.2.13  FORMAT CONVERSION ERROR NUMBER
+
+          If the field is a numeric or  date  field,  enter  a  format
+          conversion  error  number.   Otherwise,  the  field  will be
+          assumed to be a character field.
+
+
+
+          4.2.14  PRE-PROCESSING STATEMENTS
+
+          Pre-processing statements are  used  to  change  the  MAGNUM
+          REQUIRED  flag  for  a  field  or  any  of the error numbers
+          discussed above.  These statements are executed  before  any
+          field  editing  is  performed  on  the  current  field being
+          processed, thus allowing the values of prior fields input to
+          affect  how  the  current field is edited.  Any valid MAGNUM
+          statements may be entered.
+
+
+
+          4.2.15  PRE-SELECT STATEMENT
+
+          A pre-select statement may be entered if a relation name  is
+          entered.   This  statement  may be used to set up key fields
+          for  the  select  or  more  importantly,  make  the   select
+          conditional by defining an IF ...  THEN clause which will be
+          SCREEN GENERATOR USER'S GUIDE                            Page 20
+          RUNNING THE SCREEN GENERATOR
+
+
+          attached to the select if left open-ended.  Any valid MAGNUM
+          statement may be entered here.
+
+
+
+          4.2.16  TABLE LOOKUPS
+
+          If you wish  to  do  a  table  lookup  when  this  field  is
+          processed,  then enter the name of the relation and its full
+          key specification.  Parentheses  will  be  supplied  by  the
+          Screen  Generator  at  code  generation  time,  if required.
+          Also, all reserved words necessary to make  a  valid  select
+          statement  will  be  supplied.   For the 'THEN' clause,enter
+          either an error number if the instance should not  be  found
+          since  finding  it  is  an error or a statement if it should
+          exist since not finding it  is  an  error.   If  neither  is
+          entered,   a   SELECT   ...   THEN  NOTHING  combination  is
+          generated.  For the 'ELSE' clause,enter either an else error
+          number  if the instance should be found or a statement if it
+          should not exist.  If neither is entered, a SELECT ...  THEN
+          ...   ELSE  NOTHING combination is generated.  The lookup is
+          performed only  if  the  field  passed  the  previous  edits
+          specified above.
+
+
+
+          4.2.17  POST-PROCESS STATEMENT
+
+          If there is any additional processing to be performed on the
+          field,  enter  a  post-process  statement.  This is the last
+          edit to be performed under screen control (other than global
+          edits) and is executed only if all other edits were passed.
+
+
+
+          4.2.18  GLOBAL EDITS
+
+          It is possible to define an edit which pertains to  multiple
+          fields  by  entering 'LAST=' as the first five characters of
+          an  edit  field  POST-PROCESS  STATEMENT.    The   remaining
+          characters  will  be  generated  as  a  global edit which is
+          executed for each field, assuming  no  previous  errors  are
+          encountered.   It  is left up to the user to set switches to
+          prevent this edit from executing on  improper  fields.   The
+          PRE-PROCESS STATEMENTS may be used to set these switches and
+          any other parameters  needed  by  this  edit.   If  multiple
+          global edits are defined, they will be executed in the order
+          in  which  the  fields  appear  on  the  screen.    If   the
+          ERROR. flag  is  set  to 'Y' by one of the routines, none of
+          the following will be executed  until  the  error  has  been
+          corrected.
+          SCREEN GENERATOR USER'S GUIDE                            Page 21
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.2.19  ADDITIONAL INFO ABOUT STATEMENTS
+
+          All of the above statements can be one or more valid  MAGNUM
+          statements,  as  space  permits.  Internal procedures may be
+          applied, also.  If these are used, the flag  ERROR. and  the
+          field  ERR.NUM  should  be  set  anytime  an error condition
+          arises.
+
+
+          The above process is repeated for each  field  in  the  mask
+          until all fields have attributes defined.  If for any reason
+          it becomes necessary  to  interupt  this  process,  enter  a
+          FUNCTION 'Q'.  It is important to remember the current field
+          you are on so that when you are able to  continue,  you  may
+          pick  up  where  you  left  off.   If  you forget, the field
+          directory option will show which fields have names declared.
+          The first field without a name should be where you left off.
+          SCREEN GENERATOR USER'S GUIDE                            Page 22
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.3  
+
+          MODIFY
+
+
+          This option is used anytime you wish to make a  modification
+          to  a  screen's  mask and that screen already has attributes
+          defined.  It may also be used for screens which have not had
+          attributes  defined.   However,  attributes  will have to be
+          defined in this option before any  modifications  will  take
+          effect.   This option may be used to change the screen type,
+          also.  Successfully completing this option will  allow  code
+          to be generated for this screen.
+
+          Enter a 3 for the option and the name of an existing screen.
+          The screen type may be changed at this time, also.  When the
+          system is ready, the user will be presented with the current
+          mask   declarations.    Make   your  changes  following  the
+          guidelines set forth in section 4.1.
+
+          If it becomes  necessary  to  abort  during  this  phase  of
+          modify,  enter a FUNCTION 'Q'.  The user will be returned to
+          the Screen Generator Menu, leaving the screen unchanged.
+
+          Once the mask has been modified, the user is presented  with
+          the  reconciliation  screen.   The  total  number  of fields
+          before and after mask modification are displayed.
+
+          The copy step says copy the attributes of a specified  range
+          of  fields  of the screen as it existed before modification,
+          or of any other screen, to a specified range  of  fields  of
+          the  new  screen as it exists after modification, optionally
+          editing each field as it is copied.  The screen  from  which
+          fields  are  copied must have had attributes defined for all
+          of its fields.
+
+          If the fields which are on the new mask are the same as  the
+          ones  on  the  old  one and no attributes have changed, then
+          reconciliation is  simply  a  matter  of  copying  fields  1
+          through the last field on the old screen to fields 1 through
+          the last field on the new screen.
+
+          If fields have been added  or  deleted,  the  process  is  a
+          little  more  complicated.   Suppose, for instance, that the
+          screen formerly had 10 fields and now has 9, with the  fifth
+          field  having  been  deleted.  Reconciliation nows becomes a
+          two step process.  First, fields 1  through  4  of  the  old
+          screen  are  copied to fields 1 through 4 of the new screen.
+          Second, fields 6 through 10 of the old screen are copied  to
+          fields  5  through  9  of  the  new screen.  In either step,
+          editing may be done if desired.
+
+          Now suppose that a field has been inserted between fields  5
+          and  6 of a 10 field screen.  Copy fields 1 through 5 of the
+          SCREEN GENERATOR USER'S GUIDE                            Page 23
+          RUNNING THE SCREEN GENERATOR
+
+
+          old screen to fields 1 through 5 of the new screen,  editing
+          along the way if desired.  For field 6, leave the COPY field
+          range blank, but enter a 6  for  the  TO  field  range  and,
+          optionally a 'Y' for the edit prompt.  The user will then be
+          presented with the field specification  screen.   Enter  the
+          attributes  for  this  field  according  to  the  guidelines
+          specified in section 4.2.  Once these attributes  have  been
+          entered,   the   user  will  again  be  presented  with  the
+          reconciliation screen.  Copy fields 6 through 10 of the  old
+          screen  to  fields  7  through 11 of the new screen, editing
+          along the way, if desired.
+
+          In  the  above  example  the  user  could  have  copied  the
+          attributes  of  any  other  field  for  the  new  field 6 if
+          desired.  If the user tries to  copy  a  non-existing  field
+          while  in  the non-editing mode, editing will be assumed and
+          the field specification screen will be  displayed.   If  the
+          user  tries  to  copy  from  a  non-existing screen an error
+          occurs.
+
+          While on the field specification screen, entering a FUNCTION
+          'Q'  returns  the  user  to  the  reconcilition  screen  and
+          processing continues with the current field.
+
+          While on the reconciliation screen, entering a FUNCTION  'Q'
+          aborts  the  modify.   The  original  screen  will  be  left
+          unchanged if modify is aborted.
+          SCREEN GENERATOR USER'S GUIDE                            Page 24
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.4  
+
+          COPY ONE SCREEN TO ANOTHER
+
+
+          This option allows the user to copy the entire  contents  of
+          one screen to another screen.
+
+          Enter a 4 for the option followed by the name of the  screen
+          you wish to copy and the name of the new screen.
+
+          The mask and all attributes are copied from the first screen
+          to  the  second.   The  new  screen may then be modified, if
+          desired.
+
+          After attributes have been defined, code generation  may  be
+          done.
+
+          Any screen may be copied, whether  or  not  attributes  have
+          been defined or code generation has been performed.
+
+          A message  will  be  displayed  when  the  copy  option  has
+          completed.
+          SCREEN GENERATOR USER'S GUIDE                            Page 25
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.5  
+
+          DELETE
+
+
+          This option allows the user to delete from the database  the
+          entire contents of a screen.
+
+          Enter 5 for the option and the name of the screen  you  wish
+          to delete.
+
+          The mask and all attributes will be removed from the  Screen
+          Generator database.  Any generated code will not be deleted.
+
+          A message will  be  displayed  when  this  option  has  been
+          completed.
+          SCREEN GENERATOR USER'S GUIDE                            Page 26
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.6  
+
+          GENERATE CODE
+
+
+          This option  allows  the  user  to  generate  MAGNUM  screen
+          control code for a screen.
+
+          Enter a 6 for the option and the  name  of  the  screen  for
+          which you wish to generate code.
+
+          Code generation must be done for a new  screen  as  well  as
+          each  time either a mask or attributes have been modified in
+          order for the changes to take effect.  The procedures  using
+          the generated code must be compiled again, also.
+
+          This option generates MAGNUM screen control  code.   If  the
+          screen  for  which  code is being generated is nested within
+          the scope of another screen and the screens have overlapping
+          masks,  option  15 should be used to generate the code since
+          MAGNUM does not allow the nesting of  overlapping  masks  at
+          this  time.   Option  15  may  not  be  used  for  frames or
+          multi-selectable inquiries.
+
+          If code has been  generated  previously,  then  it  must  be
+          deleted  using  either  option  11 or the MAGNUM DELETE TEXT
+          command before new code can be generated.  If the  old  code
+          is  not  deleted,  the  Screen  Generator  session  will  be
+          aborted, because of an implementation limitation which  will
+          be removed when and if the MAGNUM language permits.
+
+          The  code  generator  will  periodically  display   messages
+          indicating  how  far  along  it  is  in  the code generation
+          process.
+
+          The code is output to a MAGNUM text object whose name  is  a
+          concatenation of the screen name and the extension '.LIB'.
+
+          Refer to section 2.4 for a list of routines  which  will  be
+          generated.
+          SCREEN GENERATOR USER'S GUIDE                            Page 27
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.7  
+
+          PRINT MASK(s) and/or ATTRIBUTES
+
+
+          This option allows the user to print the mask, attributes or
+          both for one or more screens.
+
+          Enter a 7 for the option.  The screen name may be left blank
+          or  'ALL'  may be entered, in which case all screens will be
+          printed.  Or  if  you  wish  to  have  a  particular  screen
+          printed,  enter  its  name.   If you wish to have a range of
+          screens printed, enter left subsets  of  the  beginning  and
+          ending  screens separated by a comma.  All screens beginning
+          with either of these left subsets or falling  alphabetically
+          between the two will be printed.
+
+          Enter an 'M' or an 'A' for the print option  to  print  only
+          the  mask(s)  or  attributes,  respectively.  If you wish to
+          have both mask(s) and attributes printed, enter  a  'B'  for
+          the print option.
+
+          Optionally, enter the file name to which the  report  should
+          be  printed.  If a file name is not specified or if TERMINAL
+          is  specified,  the  report  will  be   appended   to   file
+          SCREEN.DMP.  Otherwise, it will be appended to the specified
+          file.
+
+          If the report is printed to file SCREEN.DMP, only the screen
+          name  will  appear in the page heading.  Otherwise, the page
+          heading will contain the date  and  time  of  printing,  the
+          screen  name,  and  the current page number.  Page numbering
+          will remain  consistent  even  if  this  option  is  entered
+          multiple  times.   The page number is set to 1 each time you
+          enter the Screen Generator, generate  code,  or  change  the
+          name of the file to which the report is to be printed.
+
+          Fields on the mask will be delimited by square  brackets  []
+          for  required  edit fields, parentheses () for optional edit
+          fields and input  only  fields,  an  at-sign  @  for  single
+          character  protected  fields (all types), and angle brackets
+          <> for all other protected fields.  If the  mask  is  for  a
+          selectable  inquiry,  a  circumflex  ^  will be shown in the
+          selection   column.    For   frame   inquiries   and   frame
+          multi-selectable inquiries, if, when the mask was created, a
+          vertical bar | was entered in character 80 marking  the  end
+          of  the  display  area,  it  will be shown on the appropiate
+          line.  The angle brackets, at-sign, circumflex, and vertical
+          bar will be converted to spaces in the generated code.
+
+          When the printing has completed, a message will be displayed
+          on the terminal.
+          SCREEN GENERATOR USER'S GUIDE                            Page 28
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.8  
+
+          UPDATE ERROR MESSAGES
+
+
+          This  option  allows  the  user  to  modify  existing  error
+          messages,  add  new ones, delete old ones, or have a listing
+          of current messages printed.
+
+          Enter an 8 for the option.  When the system  is  ready,  the
+          update  error  messages screen will be displayed.  Enter one
+          of the following options:
+
+
+          1.  ADD MESSAGES - Enter the error number  and  the  message
+              you wish to add.
+
+          2.  CHANGE MESSAGES - Enter the error number and  optionally
+              the  message.   If  the  message is not entered, the old
+              message will be displayed and can be modified.   If  the
+              message  is  entered,  then  the  update will take place
+              immediately.  This mechanism can be  used  to  copy  one
+              message  to  a  new one by changing the option and error
+              number on the second pass.
+
+          3.  DELETE MESSAGES - Enter the number of  the  message  you
+              wish to delete.
+
+
+          A message is displayed to the terminal after each option  is
+          completed.   None  of the options necessitate the generation
+          of new code for  any  screen.   Messages  are  automatically
+          printed  to  XEXEC  file  ERRMSG.DMP  when a FUNCTION 'Q' is
+          entered.
+          SCREEN GENERATOR USER'S GUIDE                            Page 29
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.9  
+
+          MODIFY MASK
+
+
+          This option allows  the  user  to  modify  the  mask  of  an
+          existing  screen.   It  is valid only if attributes have not
+          been defined for the screen.  Otherwise, there are potential
+          reconciliation problems between the old and new masks.  This
+          option may also be used to change the screen type  for  this
+          screen.
+
+          Enter a 9 for the option and the name of  the  screen  whose
+          mask  you  wish  to  modify.  Optionally, enter a new screen
+          type.
+
+          When the system is ready, the old mask  will  be  displayed.
+          Make any modifications following the guidelines set forth in
+          section 4.1.
+
+          If for any reason it is  necessary  to  abort  this  option,
+          enter  a  FUNCTION  'Q'.   The  origional  mask will be left
+          unchanged if modify mask is aborted.
+          SCREEN GENERATOR USER'S GUIDE                            Page 30
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.10  
+
+          MODIFY ATTRIBUTES
+
+
+          This option allows the user to modify the attributes of  any
+          screen.   If  attributes  have  not  been completely defined
+          using either  option  2  (CREATE  ATTRIBUTES)  or  option  3
+          (MODIFY), code generation can not be performed after leaving
+          this option.
+
+          Enter a 10 for the option and, optionally, the name  of  the
+          screen whose attributes you wish to modify.  When the system
+          is ready, the field specification screen will be displayed.
+
+          Enter the number of the field you wish  to  modify  and  the
+          name  of  the  screen  on  which  it  appears.  Any existing
+          combination is valid.
+
+          The old attributes will be displayed and  any  modifications
+          may be made according to the guidelines specified in section
+          4.2.
+
+          If you have selected the wrong field, enter a  FUNCTION  'Q'
+          and no changes will be made.
+
+          Entering a FUNCTION 'Q' when you are being  prompted  for  a
+          field  number  and screen name will return you to the Screen
+          Generator Menu.
+          SCREEN GENERATOR USER'S GUIDE                            Page 31
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.11  
+
+          DELETE GENERATED CODE
+
+
+          This option allows the user to delete any code that has been
+          generated by the Screen Generator.
+
+          Enter an 11 for the option  followed  by  the  name  of  the
+          screen for which you wish to delete the generated code.
+
+          Any generated code  must  be  deleted  before  new  code  is
+          generated.  Otherwise, code generation will abort.
+
+          Similarly, if  this  option  is  entered  and  there  is  no
+          generated code, program execution will be aborted.
+
+          This option should be entered before deleting  a  screen  if
+          there  is any generated code, since the option is valid only
+          for existing screens.
+
+          The code is not deleted until you leave the Screen Generator
+          or   enter   an   option   to  generate  code.   However,  a
+          confirmation message is displayed each time  a  delete  code
+          request is made.
+
+          Generated code may be deleted for more than  one  screen  by
+          repeatedly entering this option until you are done.
+
+          MAGNUM will display a message for each text object  deleted.
+          If it does not find one, it will display a '?' and abort.
+          SCREEN GENERATOR USER'S GUIDE                            Page 32
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.12  
+
+          SCREEN DIRECTORY
+
+
+          This  option  is  a  selectable   inquiry   which   displays
+          information about the type and status of each screen listed.
+
+          Enter a 12 for the option.  As  in  option  7  (PRINT),  the
+          screen  name may be left blank 'ALL' may be entered, a range
+          separated by a comma may be entered, or an  existing  screen
+          may  be  entered.  In the first and second cases all screens
+          will be displayed.  In the third only  those  screens  which
+          fall  within the range will be displayed.  And in the fourth
+          case a single screen will be displayed.
+
+          When the system is  ready,  the  screen  directory  will  be
+          displayed, listing information about each screen requested.
+
+          The name of  each  screen  followed  by  its  type,  current
+          status,  creation  date,  last  modification date, last code
+          generation date, and display area are shown.
+
+          The Screen Generator currently supports the following  types
+          of screens:
+
+
+          1.  I/O - Input/output screen
+
+          2.  FRM - Frame input/output screen
+
+          3.  INQ - Inquiry (may be selectable)
+
+          4.  FI - Frame inquiry (may be selectable)
+
+          5.  MSI - Multi-selectable inquiry
+
+          6.  FMI - Frame multi-selectable inquiry
+
+
+          A status of 'MODIFIED' means that  option  3  was  the  last
+          option  performed  on  the  screen.  A status of 'GENERATED'
+          means that the last action performed was  to  generate  code
+          either  through  option  6  or  15.  A status of 'M CREATED'
+          means that  either  option  1  or  9  was  the  last  option
+          executed.   And  a status of 'A CREATED' means that option 2
+          is the last action performed.
+
+          For an I/O screen the display area is always lines 1 through
+          23.   For an inquiry the first number of the display area is
+          the first line on which the inquiry  detail  lines  will  be
+          displayed and the second number is the last line.  For a FRM
+          screen, the first number is the first line of the frame  and
+          the second number is the last line of the frame.
+          SCREEN GENERATOR USER'S GUIDE                            Page 33
+          RUNNING THE SCREEN GENERATOR
+
+
+          If there is more than one page of screens to  be  displayed,
+          the  display  will  pause each time the screen is full.  Any
+          time there is a pause or at the end of the inquiry  you  may
+          select  one of the screens and return its name to the Screen
+          Generator Menu by moving the cursor beside  the  screen  you
+          wish to select and entering a FUNCTION '/'.  The screen name
+          will then be read from the screen and you will  be  returned
+          to the menu.
+
+          If a FUNCTION '/' is entered before end of inquiry  and  the
+          cursor  is  not  beside  a  screen  name,  the  display will
+          continue with the next page.  If a FUNCTION '/'  is  entered
+          after  end  of inquiry and no selection is made, the display
+          will begin again at the point  previously  selected  on  the
+          menu screen.
+
+          A FUNCTION 'Q' will return you to the menu while a  FUNCTION
+          'D' will restart the inquiry.
+          SCREEN GENERATOR USER'S GUIDE                            Page 34
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.13  
+
+          FIELD DIRECTORY
+
+
+          This option is an inquiry which lists some of the attributes
+          of each field in the display.
+
+          Enter an option of  13  and  a  screen  name  following  the
+          methodology  outlined for options 7 and 12.  When the system
+          is ready, the field directory inquiry will be presented.
+
+          The screen name to which it belongs and the number  of  each
+          field  is  shown  followed  by its field type and length.  A
+          field type of 'K' means that this field is  an  inquiry  key
+          field  while a field type of 'D' means that it is an inquiry
+          data field rather than a key.
+
+          If the field is  required,  a  'Y'  will  appear  under  the
+          heading  'REQ'.   Otherwise  a 'N' will appear.  The minimum
+          length is displayed next.  Under the heading 'H' a 'Y'  will
+          be  seen  if help has been requested for this field or a 'N'
+          if it has not.  If a verify error number was entered, a  'Y'
+          will be displayed under the heading 'VER'.  Otherwise, a 'N'
+          will be shown.  Similarly, a 'Y' or 'N' will be  seen  under
+          the  heading 'FMT' signifying that a format conversion error
+          number was either entered or not.  Finally, the name of  the
+          field is shown.
+
+          As in the screen directory, the display will pause each time
+          the  screen  becomes full.  Enter a FUNCTION '/' to continue
+          with the display.  If a FUNCTION '/' is entered  after  "END
+          OF  INQUIRY",  the  display  will  begin  again at the point
+          previously selected on the menu screen.
+
+          A FUNCTION 'D' will restart the display and a  FUNCTION  'Q'
+          will return you to the Screen Generator Menu.
+          SCREEN GENERATOR USER'S GUIDE                            Page 35
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.14  
+
+          DISPLAY ATTRIBUTES
+
+
+          This option is a display which shows all of  the  attributes
+          for  a  specified field.  No attributes may be changed using
+          this option.
+
+          Enter a 14 for the option  and  optionally  a  screen  name.
+          When the system is ready, the display attributes screen will
+          appear.
+
+          Enter the name of the screen and the number of the field you
+          wish to look at followed by a FUNCTION '/'.  The system will
+          respond by showing  all  of  the  attributes  as  they  were
+          entered on one of the field specification screens.
+
+          A field type of 'K' indicates that the field is  an  inquiry
+          key  field while a 'D' indicates an inquiry data field.  See
+          section 4.2.6 for more information  about  inquiry  key  and
+          data  fields.  See section 4.2 for a detailed explanation of
+          other attributes.
+
+          Any field in the data base may be displayed whether  or  not
+          attributes have actually been defined.
+
+          A FUNCTION 'Q' will return you to the Screen Generator Menu.
+          SCREEN GENERATOR USER'S GUIDE                            Page 36
+          RUNNING THE SCREEN GENERATOR
+
+
+          4.15  
+
+          GENERATE CODE (NOT MAGNUM SCREEN CONTROL)
+
+
+          This option generates code which does not utilize the MAGNUM
+          screen control features.  It is needed only when the user is
+          nesting two or more  overlapping  screens  within  the  same
+          procedure.   This is because MAGNUM does not currently allow
+          the  nesting  of  two  or  more  overlapping  screens,  e.g.
+          screens  which  share  all  or  part  of a CRT display, even
+          though they may physically be on separate pages of the  CRT.
+          MAGNUM currently knows nothing about multiple page CRTs.
+
+          It is expected that this version of the code generator  will
+          disappear  once  MAGNUM does allow overlapping screens to be
+          nested.
+
+          Enter a 15 for the option and the name  of  the  screen  for
+          which you wish to generate code.
+
+          Code generation must be done for a new  screen  as  well  as
+          each  time either a mask or attributes have been modified in
+          order for the changes to take effect.  The procedures  using
+          the generated code must be compiled again, also.
+
+          If code has been generated previously for  this  screen,  it
+          must be deleted before new code can be generated.
+
+          The  code  generator  will  periodically  display   messages
+          indicating  how  far  along  it  is  in  the code generation
+          process.
+
+          The code is output to a MAGNUM text object whose name  is  a
+          concatenation of the screen name and the extension '.LIB'.
+
+          The routines generated by this version of the code generator
+          are  functionally  equivalent  to  the routines generated by
+          option 6.  All of the routines listed  in  section  2.4  are
+          generated with the following exceptions and additions:
+
+
+          1.  Only screen  types  I/O  and  INQ  are  supported,  e.g.
+              frames and multi-selectable inquiries are not supported.
+
+          2.  Temporary fields are generated for  each  field  in  the
+              mask.
+
+          3.  Cursor positioning formats are generated for each  field
+              in the mask.
+
+          4.  The FRAME.FORMAT declaration is replaced with  a  FORMAT
+              declaration.
+          SCREEN GENERATOR USER'S GUIDE                            Page 37
+          RUNNING THE SCREEN GENERATOR
+
+
+          5.  The above mentioned format is  displayed  by  using  the
+              DISP.screen.name  routine  rather  than a MAGNUM DISPLAY
+              statement.
+
+          6.  The RESTORE.screen.name routine is never generated.
+
+          7.  There is a new format named  screen.name.DATA  which  is
+              used  by  the DEFAULT.screen.name and EXPAND.screen.name
+              routines.
+
+          8.  The global field REQUIRED. is  used  by  the  processing
+              routine rather than the MAGNUM REQUIRED field flag.
+
+
+          There is no scope associated with  screens  generated  using
+          this  option.   The MAGNUM DISPLAY statement may not be used
+          for these screens.  The INPUT FUNCTION.KEY statement may  be
+          used  as long as this screen is nested within the scope of a
+          MAGNUM  DISPLAY   statement.    Otherwise,   the   following
+          statement should be used to input a function key:
+
+          ACCEPT FROM TERMINAL NO ECHO FUNCT.KEY
+
+          The actual procedure code for  the  transaction  or  inquiry
+          (not  the  generated  code)  should  be similar whether this
+          version of the code generator or option 6 is used.
+          SCREEN GENERATOR USER'S GUIDE                            Page 38
+          USING THE GENERATED CODE
+
+
+          5.0  
+
+          USING THE GENERATED CODE
+
+
+          This section will suggest ways to use  the  generated  code.
+          Function  keys  will  be  discussed  first,  followed  by  a
+          discussion of the named constants which are used to  control
+          certain   actions   on  the  TYMSHARE  MODEL  425  terminal.
+          Finally, some examples of how to structure a procedure using
+          a screen will be shown.
+          SCREEN GENERATOR USER'S GUIDE                            Page 39
+          USING THE GENERATED CODE
+
+
+          5.1  
+
+          FUNCTION KEYS
+
+
+          There are four additional  function  keys  declared  in  the
+          Screen  Generator  which you may use in your own application
+          although they are not used by the Screen  Generator  itself.
+          These are as follows:
+
+
+          1.  FUNCTION 'A' - This function key is intended to be  used
+              as  an  accept  function key, i.e.  accept the data that
+              has already been transmitted and  update  the  database.
+              This function key is useful if the application calls for
+              fields to be expanded  to  their  database  descriptions
+              everytime  data is transmitted, but no updates are to be
+              performed until requested  by  the  person  running  the
+              program.   In  other  words,  a transmit function key is
+              used to read in and process the data, expanding codes to
+              their counterpart descriptions, while an accept function
+              key is used to update the database.
+
+          2.  FUNCTION 'U' - This function key is intended to be  used
+              as  an  update  function key, that is, transmit the data
+              from the screen, edit it, and if  there  are  no  errors
+              update  the  database without performing any expansions.
+              This function key implies an expert mode of data  entry,
+              whereas the transmit and accept imply a novice mode.
+
+          3.  FUNCTION 'C' - This function key is intended to be  used
+              by  command  driven  systems  to  take  the user back to
+              command level.  Thus, if the user is several levels deep
+              in  the  system,  only  one  function key is required to
+              return to command level instead of a series of  FUNCTION
+              'Q's.  It is up to the application to control the return
+              to command level or any other level.
+
+          4.  FUNCTION 'H' - This function key is intended to be  used
+              as  a  help  function  key,  i.e.  it allows a person to
+              request help  on  a  given  field.   It  is  up  to  the
+              application to actually provide the help.
+
+
+          If you do not intend to use these function keys, they should
+          be modified or removed from the text CRT.CONTROLS.
+
+          All function keys except for the display  function  key  are
+          declared  to  be global in nature.  This means that they are
+          activated for each INPUT FUNCTION.KEY  statement.   Function
+          keys can be deactivated by removing the GLOBALLY clause from
+          their declaration.  If this is done,  a  USING  clause  will
+          have  to be specified for each DISPLAY or INPUT FUNCTION.KEY
+          statement (one or the other, not both) which  needs  to  use
+          SCREEN GENERATOR USER'S GUIDE                            Page 40
+          USING THE GENERATED CODE
+
+
+          them.
+
+          If you wish to change the value which activates  a  function
+          key,  then  modify  the function key by substituting the new
+          value for the old one  without  changing  the  function  key
+          leadin  character  or  the  carriage return terminator.  For
+          example, in order to change a FUNCTION '/' to a FUNCTION 'T'
+          you  simply substitute a 'T' for the '/' in the declaration.
+          Similarly, modify the value of the named constant FUNCT.T by
+          substituting  a  'T'  for  the  '/'.  The function key named
+          constants may be found in text CRT.SETUP.
+
+          The named  constants  FUNCT.T  and  FUNCT.U  should  not  be
+          deleted  from  CRT.SETUP  since  they  are referenced by the
+          generated code.
+
+          In order to determine which function key has  been  entered,
+          test the field FUNCT.KEY for the following values:
+
+
+          1.  FUNCT.A - FUNCTION 'A'
+
+          2.  FUNCT.C - FUNCTION 'C'
+
+          3.  FUNCT.D - FUNCTION 'D'
+
+          4.  FUNCT.H - FUNCTION 'H'
+
+          5.  FUNCT.Q - FUNCTION 'Q'
+
+          6.  FUNCT.R - FUNCTION 'R'
+
+          7.  FUNCT.T - FUNCTION '/'
+
+          8.  FUNCT.U - FUNCTION 'U'
+
+
+          FUNCTION 'L' is not listed since this function key  performs
+          an immediate LOGOUT.
+          SCREEN GENERATOR USER'S GUIDE                            Page 41
+          USING THE GENERATED CODE
+
+
+          5.2  
+
+          SCREEN CONTROL NAMED CONSTANTS
+
+
+          The following named constants, which are located in the text
+          CRT.SETUP,  are  used  to  perform  special functions on the
+          terminal.  Many of these named constants along with many  of
+          the  fields  located  in  text SCREEN.FIELDS are used by the
+          generated code.  The following named constants  are  grouped
+          by function:
+
+
+
+          5.2.1  PERSONALITY CHANGING
+
+
+          SET.BLOCK.MODE - Places the terminal in  block  transmission
+          mode.
+
+          SET.CONV.MODE - Places the terminal in conversational mode.
+
+          DISABLE.KEYBOARD - Disables the keyboard so that nothing may
+          be typed.
+
+          ENABLE.KEYBOARD - Enables the keyboard so  that  typing  may
+          continue.
+
+
+
+          5.2.2  PROTECTION
+
+
+          SET.PROTECT.MODE.OFF - Turns  off  protection  so  that  the
+          cursor may be positioned anywhere on the screen.
+
+          SET.PROTECT.MODE.ON - Turns protection on so that the cursor
+          may be positioned only in unprotected areas of the screen.
+
+          SET.WRITE.PROTECT.OFF - Turns write protection off  so  that
+          any  characters  typed  or  displayed  on the screen will be
+          unprotected and will appear at full intensity.
+
+          SET.WRITE.PROTECT.ON - Turns write protection on so that any
+          characters  typed  or displayed on the screen will appear at
+          half intensity.  When protect mode is set,  the  cursor  may
+          not be positioned to these characters.
+          SCREEN GENERATOR USER'S GUIDE                            Page 42
+          USING THE GENERATED CODE
+
+
+          5.2.3  SCREEN CLEARING
+
+
+          CLEAR.FG.TO.SPACES - Clears unprotected areas of the  screen
+          to  spaces.   If protect mode is off, the entire screen will
+          be cleared.
+
+          CLEAR.PAGE.TO.SPACES  -  Clears  unprotected  areas  of  the
+          screen from the current cursor position to the bottom of the
+          screen.
+
+          CLEAR.SCREEN.PROTECTED  -  Clears  the  entire   screen   to
+          protected  spaces  whether  or  not  protect  mode  is  set.
+          Character 80 on line 24 will remain unprotected.
+
+          CLEAR.SCREEN.TO.SPACES - Clears screen to spaces whether  or
+          not  protect mode is on.  This assumes the terminal has been
+          set up to display nulls as spaces.
+
+          LINE.ERASE - Erases from the current cursor position to  the
+          end  of the line if protect mode is not on.  If protect mode
+          is on, it erases from the current  cursor  position  to  the
+          next  protected  character.   If  write  protect  is on, all
+          spaces erased will be write protected.
+
+          SHUT.DOWN - Turns protect mode off,  clears  the  screen  to
+          spaces, and sets conversational mode.
+
+
+
+          5.2.4  DATA TRANSMISSION
+
+
+          SEND.LINE.ALL - Transmits all data from the beginning of the
+          current line up to and including the current cursor position
+          whether or not protect mode is on.
+
+          SEND.LINE.FG - Transmits unprotected data from the beginning
+          of  the  current line up to and including the current cursor
+          position.   If  protect  mode  is  off,  all  data  will  be
+          transmitted.
+
+          SEND.MESSAGE - Transmits unprotected data if protect mode is
+          on  or  all data between the last ETX and the current cursor
+          position.
+
+          SEND.PAGE.ALL - Transmits all data from character 1  line  1
+          up  to and including the current cursor position, whether or
+          not protect mode is on.
+
+          SEND.PAGE.FG - Transmits unprotected data if protect mode on
+          or  all data from character 1 line 1 up to and including the
+          current cursor position.
+          SCREEN GENERATOR USER'S GUIDE                            Page 43
+          USING THE GENERATED CODE
+
+
+          5.2.5  CURSOR ADDRESSING
+
+
+          BACK.SPACE - Moves the cursor one space to the left.
+
+          BACK.TAB - Moves the cursor to the left to the beginning  of
+          an  unprotected  field.   If  the cursor is currently at the
+          beginning of a field, it will be moved to the  beginning  of
+          the previous field.  This only works if protect mode is on.
+
+          ERROR.LINE - Moves the cursor to line  24  character  1  and
+          clears the line.
+
+          FORE.SPACE - Moves the cursor one position to the right.
+
+          HOME - Moves the cursor to the first  unprotected  space  on
+          the  screen.   If  protect  mode  is off, the cursor will be
+          moved to line 1 character 1.
+
+          NEW.LINE - Moves the cursor to the  beginning  of  the  next
+          line.   If this space is protected, the cursor will be moved
+          to the first unprotected space.
+
+          POSITION.CURSOR - Moves the cursor on the  screen  currently
+          being displayed to the coordinates specified by the user.
+
+          POSITION.CURSOR.PAGE - Moves the  cursor  to  the  page  and
+          coordinates specified by the user.
+
+          READ.CURSOR - Reads the current  cursor  position  from  the
+          screen currently being displayed.
+
+          READ.CURSOR.PAGE - Reads the current  cursor  position  from
+          the page specified by the user.
+
+          TAB -  Moves  the  cursor  to  the  beginning  of  the  next
+          unprotected field.  This only works if protect mode is on.
+
+
+
+          5.2.6  PAGE MEMORY ADDRESSING
+
+
+          PAGE.BACK - Clears the current display to  protected  spaces
+          leaving  line 24 unprotected and flips the display in memory
+          to the screen.
+
+          PAGE.FLIP -  Places  the  current  screen  into  memory  and
+          displays the screen which was in memory.
+
+          PAGE.FORWARD - Places the current  screen  into  memory  and
+          clears  the  screen  to  protected  spaces,  leaving line 24
+          unprotected.
+          SCREEN GENERATOR USER'S GUIDE                            Page 44
+          USING THE GENERATED CODE
+
+
+          5.2.7  PRINTER ADDRESSING
+
+
+          PRINT.PAGE - Sends data formatted exactly as it  appears  on
+          the  screen  to the printer.  No printed line will be longer
+          than 80 characters.
+
+          PRINT.UNFORMATTED  -  Sends  data  to  the  printer  without
+          generating  a carriage return, line feed sequence at the end
+          of a screen line.  This sequence must  be  embedded  in  the
+          screen display.  This allows for printing of lines which are
+          longer than 80 characters.
+
+          PRINT.UNPROTECTED - Sends unprotected data  to  the  printer
+          with  protected  data being sent as spaces.  No printed line
+          will be longer than 80 characters.
+
+          SET.BUFFERED.PRINT.MODE1  -  Causes  data  sent   from   the
+          computer  to  be  written into the printer buffer within the
+          terminal and from the  buffer  to  the  printer  at  printer
+          speed.
+
+          SET.BUFFERED.PRINT.MODE2  -  Causes  data  sent   from   the
+          computer  to  be written into the printer buffer while being
+          displayed on the screen and sent to the printer  at  printer
+          speed.
+
+          SET.BUFFERED.PRINT.OFF  -  Turns  both  forms  of   buffered
+          printing off.
+
+
+
+          5.2.8  VIDEO ATTRIBUTES
+
+
+          BLANK.VIDEO - Designates the left limit of  an  area  to  be
+          blanked.
+
+          BLINK.VIDEO - Designates the left limit of  an  area  to  be
+          blinked.
+
+          REVERSE.BLANK.VIDEO - Designates the left limit of  an  area
+          to be reversed and blanked.
+
+          REVERSE.BLINK.VIDEO - Designates the left limit of  an  area
+          to be reversed and blinked.
+
+          REVERSE.VIDEO - Designates the left limit of an area  to  be
+          reversed.
+
+          VIDEO.LEFT - Moves the cursor one  space  to  the  left  and
+          marks reverse video, turning protect mode on.
+
+          VIDEO.OFF - Designates the right limit of a video attribute.
+          SCREEN GENERATOR USER'S GUIDE                            Page 45
+          USING THE GENERATED CODE
+
+
+          VIDEO.RIGHT - Turns protection off and moves the cursor  one
+          space to the right, setting the end of a video limit.
+
+
+
+          5.2.9  SPECIAL FIELDS
+
+
+          MSI.FLAG - Determines WL.screen.name action when  processing
+          a  Multi-Selectable  Inquiry.   If  the MSI.FLAG is set to 1
+          (Default) then the line output is designated  as  selectable
+          and  the  internal relation screen.name.ITEM is updated.  If
+          the  MSI.FLAG  is  set  to  0  the  line   is   treated   as
+          non-selectable  and  the above relation is not updated.  the
+          MSI.FLAG field has a default value of 1, but can be  changed
+          by  assigning  a  value  to  it  just  prior  to  the  APPLY
+          WL.screen.name statement.
+          SCREEN GENERATOR USER'S GUIDE                            Page 46
+          USING THE GENERATED CODE
+
+
+          5.3  
+
+          EXAMPLES
+
+
+          This section includes some examples on how procedures may be
+          structured  to  use  the  various  kinds  of  screens.   The
+          following function keys are used in some  or  all  of  these
+          examples:
+
+
+          1.  FUNCTION '/' - Transmit data
+
+          2.  FUNCTION 'A' - Accept data
+
+          3.  FUNCTION 'H' - Help
+
+          4.  FUNCTION 'Q' - Quit
+
+          5.  FUNCTION 'R' - Redisplay the mask
+
+
+          It should be noted that each  procedure  containing  one  or
+          more  screens  which  were generated by the Screen Generator
+          must include the text CRT.CONTROLS followed by the generated
+          code.   If  option  15  was  used  to  generate  code,  text
+          MULTI.SCREEN.CTL must be included before the generated code.
+          It  is not necessary to include the text CRT.SETUP since the
+          text CRT.CONTROLS already does this.
+          SCREEN GENERATOR USER'S GUIDE                            Page 47
+          USING THE GENERATED CODE
+
+
+          5.3.1  INPUT/OUTPUT SCREEN
+
+
+          This is an example of  a  procedure  using  an  input/output
+          screen  to  read  in  data and update the database.  Help is
+          given on some of the fields being input.
+
+
+          PROCEDURE EXAMPLE1
+          BEGIN
+            %  FIELD DECLARATIONS  %
+            .
+            .
+            .
+            INCLUDE TEXT 'CRT.CONTROLS'
+            INCLUDE TEXT 'screen.name.LIB'
+
+            %  INITIALIZE VARIABLES  %
+            .
+            .
+            .
+            DISP.MASK:
+            DISPLAY screen.name
+            BEGIN
+              APPLY DISP.screen.name
+              LET FUNCT.KEY = DEFAULT
+
+              FUNCT.KEY.LOOP:
+              BEGIN
+                IF FUNCT.KEY EQ FUNCT.T THEN
+                BEGIN
+                  APPLY PROCESS.screen.name
+                  IF EDIT.CANCELED EQ 'N' THEN
+                  BEGIN
+                    %  UPDATE DATABASE  %
+                    .
+                    .
+                    .
+                    %  MOVE DEFAULTS TO THE SCREEN  %
+                    APPLY DEFAULT.screen.name
+                  END
+                END
+
+                ELSE IF FUNCT.KEY EQ FUNCT.Q THEN
+                RETURN
+
+                ELSE IF FUNCT.KEY EQ FUNCT.R THEN
+                REPEAT DISP.MASK
+
+                ELSE IF FUNCT.KEY EQ FUNCT.H THEN
+                CHECK.HELP:
+                BEGIN
+                  APPLY HELP.screen.name
+                  IF HELP.FIELD EQ DEFAULT THEN
+          SCREEN GENERATOR USER'S GUIDE                            Page 48
+          USING THE GENERATED CODE
+
+
+                  BEGIN
+                    TYPE TO TERMINAL BELL
+                    FINISH CHECK.HELP
+                  END
+                  TYPE TO TERMINAL PAGE.FORWARD,@CR
+                  CONDITIONAL ON HELP.FIELD
+                  BEGIN
+                    'FIELD1': RUN HELP1 ACCEPTING (FIELD1)
+                    .
+                    .
+                    .
+                  END
+                  TYPE TO TERMINAL PAGE.BACK,@CR
+                  CONDITIONAL ON HELP.FIELD
+                  BEGIN
+                    'FIELD1':
+                    MOVE FIELD1 TO FIELD1 OF screen.name ECHO
+                    .
+                    .
+                    .
+                  END
+                END
+                %  CHECK.HELP  %
+
+                ELSE IF FUNCT.KEY NE DEFAULT THEN
+                TYPE TO TERMINAL BELL
+
+                INPUT FUNCTION.KEY
+                REPEAT FUNCT.KEY.LOOP
+              END
+              %  FUNCT.KEY.LOOP  %
+            END
+            %  DISP.MASK  %
+          END
+          SCREEN GENERATOR USER'S GUIDE                            Page 49
+          USING THE GENERATED CODE
+
+
+          5.3.2  INPUT/OUTPUT SCREEN WITH FIELD EXPANSIONS
+
+
+          This is an example of  a  procedure  using  an  input/output
+          screen  to  read  in  data  and  expand  some codes to their
+          database descriptions.  Updates are performed after the user
+          has  reviewed  the  expanded  data  and  entered  an  accept
+          function key.  Help is given on some  of  the  fields  being
+          input.
+
+
+          PROCEDURE EXAMPLE2
+          BEGIN
+            %  FIELD DECLARATIONS  %
+            .
+            .
+            .
+            INCLUDE TEXT 'CRT.CONTROLS'
+            INCLUDE TEXT 'screen.name.LIB'
+
+            %  INITIALIZE VARIABLES  %
+            .
+            .
+            .
+            DISP.MASK:
+            DISPLAY screen.name
+            BEGIN
+              APPLY DISP.screen.name
+              LET FUNCT.KEY = DEFAULT
+
+              FUNCT.KEY.LOOP:
+              BEGIN
+                IF FUNCT.KEY EQ FUNCT.T THEN
+                BEGIN
+                  APPLY PROCESS.screen.name
+                  IF EDIT.CANCELED EQ 'N' THEN
+                  BEGIN
+                    %  SELECT RELATIONS FOR EXPANSIONS  %
+                    .
+                    .
+                    .
+                    APPLY EXPAND.screen.name
+
+                    ACCEPT.LOOP:
+                    BEGIN
+                      INPUT FUNCTION.KEY
+
+                      IF FUNCT.KEY EQ FUNCT.A THEN
+                      BEGIN
+                        %  UPDATE DATABASE  %
+                        .
+                        .
+                        .
+                        %  MOVE DEFAULTS TO THE SCREEN FIELDS  %
+          SCREEN GENERATOR USER'S GUIDE                            Page 50
+          USING THE GENERATED CODE
+
+
+                        APPLY DEFAULT.screen.name
+                      END
+
+                      ELSE IF FUNCT.KEY EQ FUNCT.T OR FUNCT.Q OR
+                      FUNCT.H OR FUNCT.R THEN
+                      REPEAT FUNCT.KEY.LOOP
+
+                      ELSE
+                      BEGIN
+                        TYPE TO TERMINAL BELL
+                        REPEAT ACCEPT.LOOP
+                      END
+                    END
+                    %  ACCEPT LOOP  %
+                  END
+                END
+
+                ELSE IF FUNCT.KEY EQ FUNCT.Q THEN
+                RETURN
+
+                ELSE IF FUNCT.KEY EQ FUNCT.R THEN
+                REPEAT DISP.MASK
+
+                ELSE IF FUNCT.KEY EQ FUNCT.H THEN
+                CHECK.HELP:
+                BEGIN
+                  APPLY HELP.screen.name
+                  IF HELP.FIELD EQ DEFAULT THEN
+                  BEGIN
+                    TYPE TO TERMINAL BELL
+                    FINISH CHECK.HELP
+                  END
+                  TYPE TO TERMINAL PAGE.FORWARD,@CR
+                  CONDITIONAL ON HELP.FIELD
+                  BEGIN
+                    'FIELD1': RUN HELP1 ACCEPTING (FIELD1)
+                    .
+                    .
+                    .
+                  END
+                  TYPE TO TERMINAL PAGE.BACK,@CR
+                  CONDITIONAL ON HELP.FIELD
+                  BEGIN
+                    'FIELD1':
+                    MOVE FIELD1 TO FIELD1 OF screen.name ECHO
+                    .
+                    .
+                    .
+                  END
+                END
+                %  CHECK.HELP  %
+
+                ELSE IF FUNCT.KEY NE DEFAULT THEN
+                TYPE TO TERMINAL BELL
+          SCREEN GENERATOR USER'S GUIDE                            Page 51
+          USING THE GENERATED CODE
+
+
+                INPUT FUNCTION.KEY
+                REPEAT FUNCT.KEY.LOOP
+              END
+              %  FUNCT.KEY.LOOP  %
+            END
+            %  DISP.MASK  %
+          END
+          SCREEN GENERATOR USER'S GUIDE                            Page 52
+          USING THE GENERATED CODE
+
+
+          5.3.3  INQUIRY SCREEN
+
+
+          This is an example of a procedure using an inquiry screen to
+          display information from the database.
+
+
+          PROCEDURE EXAMPLE3
+          BEGIN
+            %  FIELD DECLARATIONS  %
+            .
+            .
+            .
+            INCLUDE TEXT 'CRT.CONTROLS'
+            INCLUDE TEXT 'screen.name.LIB'
+
+            %  INITIALIZE VARIABLES  %
+            .
+            .
+            .
+            DISP.MASK:
+            DISPLAY screen.name
+            BEGIN
+              APPLY DISP.screen.name
+
+              LOOP1:
+              BEGIN
+
+                FOR EACH relation
+                BEGIN
+                  %  RETRIEVE ADDITIONAL DATA IF NECESSARY  %
+                  .
+                  .
+                  .
+                  APPLY WL.screen.name
+
+                  IF SCREEN.FULL EQ 'Y' THEN
+                  FUNCT.KEY.LOOP:
+                  BEGIN
+                    INPUT FUNCTION.KEY
+
+                    IF FUNCT.KEY EQ FUNCT.T THEN
+                    FINISH FUNCT.KEY.LOOP
+
+                    ELSE IF FUNCT.KEY EQ FUNCT.Q THEN
+                    RETURN
+
+                    ELSE IF FUNCT.KEY EQ FUNCT.R THEN
+                    REPEAT DISP.MASK
+
+                    ELSE TYPE TO TERMINAL BELL
+
+                    REPEAT FUNCT.KEY.LOOP
+                  END
+          SCREEN GENERATOR USER'S GUIDE                            Page 53
+          USING THE GENERATED CODE
+
+
+                  %  FUNCT.KEY.LOOP  %
+                END
+                %  FOR EACH relation  %
+
+                TYPE TO TERMINAL SET.PROTECT.MODE.ON
+
+                FUNCT.KEY.LOOP2:
+                BEGIN
+                  INPUT FUNCTION.KEY
+
+                  IF FUNCT.KEY EQ FUNCT.T THEN
+                  BEGIN
+                    LET SCREEN.FULL = 'Y'
+                    LET CL.screen.name = DEFAULT
+                    REPEAT LOOP1
+                  END
+
+                  ELSE IF FUNCT.KEY EQ FUNCT.Q THEN
+                  RETURN
+
+                  ELSE IF FUNCT.KEY EQ FUNCT.R THEN
+                  BEGIN
+                    LET SCREEN.FULL = 'N'
+                    REPEAT DISP.MASK
+                  END
+
+                  ELSE TYPE TO TERMINAL BELL
+
+                  REPEAT FUNCT.KEY.LOOP2
+                END
+                %  FUNCT.KEY.LOOP2  %
+              END
+              %  LOOP1  %
+            END
+            %  DISP.MASK  %
+          END
+          SCREEN GENERATOR USER'S GUIDE                            Page 54
+          USING THE GENERATED CODE
+
+
+          5.3.4  SELECTABLE INQUIRY SCREEN
+
+
+          This is an example of a procedure using a selectable inquiry
+          screen  to  display  information  from the database and then
+          allowing the user to select data from the screen for further
+          processing.   This  procedure  assumes  that this additional
+          processing is done in a procedure which called this one.
+
+
+          PROCEDURE EXAMPLE4 RETURNING (some field(s))
+          BEGIN
+            %  FIELD DECLARATIONS  %
+            .
+            .
+            .
+            INCLUDE TEXT 'CRT.CONTROLS'
+            INCLUDE TEXT 'screen.name.LIB'
+
+            %  INITIALIZE VARIABLES  %
+            .
+            .
+            .
+            DISP.MASK:
+            DISPLAY screen.name
+            BEGIN
+              APPLY DISP.screen.name
+
+              LOOP1:
+              BEGIN
+
+                FOR EACH relation
+                BEGIN
+                  %  RETRIEVE ADDITIONAL DATA IF NECESSARY  %
+                  .
+                  .
+                  .
+                  APPLY WL.screen.name
+
+                  IF SCREEN.FULL EQ 'Y' THEN
+                  FUNCT.KEY.LOOP:
+                  BEGIN
+                    INPUT FUNCTION.KEY
+
+                    IF FUNCT.KEY EQ FUNCT.T THEN
+                    BEGIN
+                      APPLY PROCESS.screen.name
+
+                      IF EDIT.CANCELED EQ 'Y' THEN
+                      REPEAT FUNCT.KEY.LOOP
+                      IF SELECT.screen.name EQ 'Y' THEN
+                      FINISH DISP.MASK
+                      ELSE
+                      FINISH FUNCT.KEY.LOOP
+          SCREEN GENERATOR USER'S GUIDE                            Page 55
+          USING THE GENERATED CODE
+
+
+                    END
+
+                    ELSE IF FUNCT.KEY EQ FUNCT.Q THEN
+                    RETURN
+
+                    ELSE IF FUNCT.KEY EQ FUNCT.R THEN
+                    REPEAT DISP.MASK
+
+                    ELSE TYPE TO TERMINAL BELL
+
+                    REPEAT FUNCT.KEY.LOOP
+                  END
+                  %  FUNCT.KEY.LOOP  %
+                END
+                %  FOR EACH relation  %
+
+                TYPE TO TERMINAL SET.PROTECT.MODE.ON
+
+                FUNCT.KEY.LOOP2:
+                BEGIN
+                  INPUT FUNCTION.KEY
+
+                  IF FUNCT.KEY EQ FUNCT.T THEN
+                  BEGIN
+                    APPLY PROCESS.screen.name
+                    IF EDIT.CANCELED EQ 'Y' THEN
+                    REPEAT FUNCT.KEY.LOOP2
+
+                    IF SELECT.screen.name EQ 'Y' THEN
+                    FINISH DISP.MASK
+                    ELSE
+                    BEGIN
+                      LET SCREEN.FULL = 'Y'
+                      LET CL.screen.name = DEFAULT
+                      REPEAT LOOP1
+                    END
+                  END
+
+                  ELSE IF FUNCT.KEY EQ FUNCT.Q THEN
+                  RETURN
+
+                  ELSE IF FUNCT.KEY EQ FUNCT.R THEN
+                  BEGIN
+                    LET SCREEN.FULL = 'N'
+                    REPEAT DISP.MASK
+                  END
+
+                  ELSE TYPE TO TERMINAL BELL
+
+                  REPEAT FUNCT.KEY.LOOP2
+                END
+                %  FUNCT.KEY.LOOP2  %
+              END
+              %  LOOP1  %
+          SCREEN GENERATOR USER'S GUIDE                            Page 56
+          USING THE GENERATED CODE
+
+
+            END
+            %  DISP.MASK  %
+          END
+
+    { 
+
