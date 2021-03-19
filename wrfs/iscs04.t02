@@ -1,0 +1,222 @@
+
+:	*****     ISCS04.T02    *****
+:	ISIS Consolidated Tymsat / PAD sample configuration file
+
+:	*****     !!!NOTE!!!    *****
+:	ISIS Consolidated Tymsat and PAD are mutually exclusive in
+:	configuration of functions and options
+
+
+:	**********************************************************************
+:	Start of ISIS Consolidated Tymsat (CONSAT) configuration sample
+:	**********************************************************************
+
+CRSTOP	EQ	1
+:FORRUN	EQ	0			:0 in debug mode only
+:RHIST	EQ	1
+:AHIST	EQ	1
+:SHIST	EQ	1
+:DB.TRC	EQ	1
+:	GL	TRCSIZ
+:TRCSIZ	EQ	800
+:ASYERR	EQ	1
+:SPYSVC	EQ	1
+:DCPSSW	EQ	1
+:CPS	EQ	1
+:ORTIME	EQ	1
+:IRTIME	EQ	1
+
+:	Examples for new macros
+
+:ISISRING(2048)			:Set Iring/Oring size in decimal
+:ASYNCRING(64)			:Set Async Iring/Oring size in decimal
+:SETFLAG(SLODTR,OFF)		:Same as SLODTR   EQ   0
+:SETFLAG(YTID,OFF)		:Same as YTID     EQ   0
+:SETFLAG(OMRON,OFF)		:Same as OMRON    EQ   0
+PCOPAR(PCWAIT,60)		:Same as PCOWAT   EQ   60
+PCOPAR(RETRYD,40)		:Same as PCORTY   EQ   40
+PCOPAR(TRYDEL,60)		:Same as PCOTRY   EQ   60
+
+:	Declare target node, slot
+	LOCATION(2540,1)
+
+:	Declare configuration
+	DECLARE(ASYNC,16)		:16 Async ports
+:	DECLARE(SIO,2)			:2 SIO ports
+:	DECLARE(MPVC,1)			:1 MPVC pseudo port
+:	DECLARE(PRINT,1)		:1 printer port
+
+:	Origination host
+	ACHOST(22540)
+ 
+:	Declare exceptions
+:		Hardware:
+	TID120(0-15)
+:		Messages:
+:	LTEXT(ULMSG,CONSAT-TELEX test -- call Liza (LLIU) at 6393 for problems"8d"8av-forge`, cup.`, bubb-net ? <v`,c`,username>)
+
+:	Some examples for port declaration 
+
+:	Declare originating ports for TID36 - BAUDOT/50 or TID37 - BAUDOT/75
+:	PROBE - send Probe msg each time circuit built or lost enabled
+:	NOPRB - default
+
+	PVCRNG(0)
+	PVCEX(0,TID36,AID,ALO,PCO,NOHNG,PROBE,NOWRU,NONPI,NOTXT)
+	UTEXT(USERNAME"BA952.01"BBPASSWORD"8D)
+	UTXRNG(0)
+
+:	Declare terminating ports for TDI36 - BAUDOT/50 or TID37 - BAUDOT/75
+:	RCV - Receive only, port ability to originate circuit disabled
+:	NORCV - default
+
+	ADRPRT(1,952,01,NULL)
+	PVCEX(1,TID36,AID,NOHNG,RCV,PROBE,NOWRU,NONPI,NOTXT)
+
+:	Declare uppercase Katakana with space parity
+
+	PVCEX(2-3,AID,TID15)
+	PVCEX(4,KAT,UPC,SPAR)
+
+:	*************************************************************************************************:	*****     !!!NOTE!!!     *****
+:	End of ISIS Consolidated Tymsat (CONSAT) configuration sample
+:	************************************************************************
+
+
+:	*****     !!!NOTE!!!     *****
+:	ISIS Consolidated Tymsat and PAD are mutually exclusive in
+:	configuration of functions and options
+
+:	*********************************************************************
+:	Start of PAD configuration sample
+:	*********************************************************************
+
+:FORRUN	EQ	0		:0 IN DEBUG MODE ONLY!!!!
+:ICATST	EQ	1		:ALLOW INCOMING CALLS
+:CRSTOP	EQ	1
+:RHIST	EQ	1
+:AHIST	EQ	1
+:SHIST	EQ	1
+:ASYERR	EQ	1
+:SPYSVC	EQ	1
+:DCPSSW	EQ	1
+:CPS	EQ	1 
+
+
+:***
+:    Declare target node, slot
+:	LOCATION(2153,4)
+:    Origination host
+:  	ACHOST(22153)
+:***
+
+
+:***
+:    Port definition
+:	DECLARE(ASYNC,16)		:16 ASYNC ports
+:	DECLARE(SIO,2)			:2 SIO ports
+:	DECLARE(MPVC,1)			:1 MPVC pseudo port
+:	DECLARE(PRINT,1)		:1 printer
+:***
+
+
+:***
+: PAD functions and options
+:    Declare configuration
+:	PADRELATEDFUNCTIONS(ON)
+:    Enhanced Options
+:	LESSHELP(OFF)
+:	ODNIC(3210)
+:	BRKRPL(30)
+:	DATABUFFER(ON,1-15)		:has buffer to edit data
+:	PADCOMMANDS(1,1-15)		:support Tymnet extended command
+:	POSMODES(1,1-5)			:Login mode only=default, (ports 1-5) 
+:	POSMODES(2,6-10)		:Command mode only, (ports 6-10)
+:	POSMODES(3,11-15)		:allow PAD command and login mode
+:	INITMODE(1,11-12)		:Pad cmd mode initially (ports 11-12)
+:	INITMODE(0,13-15)		:Login mode initially (ports 13-15)
+:
+:	Define additional terminal profiles
+:	  Profiles #1-2 are listed here for reference.  They can't be changed
+:
+:.........   PROFILE DEFINITIONS   ...........................................
+:
+:	CCITT PARAMETERS 1 - 18
+:
+:       I                                                   P P P P  P   P  P
+:       D                              P P  P    P P P  P   1 1 1 1  1   1  1
+:       X,     Prifile name          , 1,2, 3 ,  4,5,6, 7,  0,2,3,5, 6 , 7, 8
+:--------+---------------------------+--+-+---+---+-+-+--+---+-+-+-+---+--+---
+:PRFDEF(1,CCITT Simple Standard,       1,1,126,  0,1,1,02,  0,1,0,0,127,24,18)
+:PRFDEF(2,CCITT Transparent Standard,  0,0,  0, 20,0,0,02,  0,0,0,0,127,24,18)
+:PRFDEF(3,Tymnet Simple Standard,      1,1, 94,  0,1,5,04, 80,1,0,1,127,24,18)
+:
+:	Define national parameters for additional profiles
+:		Again, national parameters for profiles #1-2 are listed for
+:		reference.  They can't be changed.
+:.............................................................................
+:
+:	TYMNET NATIONAL PARAMETERS 1 - 3
+:
+:	I 
+:	D N N  N
+:	X,1,2, 3
+:--------+-+-+--+-------------------------------------------------------------
+:PRFNDF(1,1,0, 0)
+:PRFNDF(2,0,0, 0)
+:PRFNDF(3,1,1, 0)    : echo <TAB>, Expand <TAB> with <SPACE> characters
+
+:	PROFILE(3,11-15)			:Default profile
+:***
+
+
+:***
+:    Declaration exception 
+:		Hardware:
+:	TID120(1-15)
+:***
+
+
+:***
+:   Addressing ports
+:	ADRPRT(1-5,2716,0,ANY)
+:***
+
+
+:***
+:    PVC ports
+:	PVCEX(1-4,AID,TID15)
+:	PVCEX(5,KAT,UPC,SPAR)           :Uppercase Katakana with space parity
+:***
+
+
+:***
+:    202S (half-duplex) ports
+:	HD202(13)		
+:***			
+
+
+:***
+:    MPVC ports
+:	PVCEX(15,TID12,AID,ALO,PCO,NONPI,RBP,MPC)	:MPVC subport
+:	UTEXT(JONES"BA575"BBPASSWORD"8D)
+:	UTXRNG(15)
+:    MPVC configuration
+:	UTEXT(USERNAME"BA575"BBPASSWORD"8D)		:mpvc logon string
+:	MUTXRG(0)					:for mpvc port 0
+:	MPVCUS(0,JONES)
+:	LTEXT(MPVC1,MPVC LOGON SUCCESS)
+:	LTEXT(MPVC2,MPVC LOGON FAILURE)
+:	MPVCFO(0,1E,10,1B,MPVC1,MPVC2,600)
+:***
+
+
+:***		Messages:
+:LTEXT(ULMSG,Tymnet Consat"AFPAD V4.01"8D"8A)
+:MTEXT(8,"8D"8ACUSTOMER NAME : )                      	:change PAD msg #8
+:***
+
+:	*********************************************************************
+:	End of PAD configuration sample
+:	*********************************************************************
+
