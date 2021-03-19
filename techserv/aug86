@@ -1,0 +1,1319 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TTTTTTTT   EEEEEE    CCCCCC    HHH   HHH   TTTTTTTT   IIII   PPPPP       SSSS
+TTTTTTTT   EEEEEE   CCC   CC   HHH   HHH   TTTTTTTT   IIII   PP   PP    SS  SS
+   TT      EE       CC         HHH   HHH      TT       II    PP    PP   SS
+   TT      EEEE     CC         HHHHHHHHH      TT       II    PPPPPPP     SSSS
+   TT      EE       CC         HHH   HHH      TT       II    PP             SS
+   TT      EEEEEE   CC    CC   HHH   HHH      TT      IIII   PP         SS  SS 
+   TT      EEEEEE    CCCCCC    HHH   HHH      TT      IIII   PP          SSSS 
+
+
+
+
+
+
+
+
+
+ 
+                               August 01, 1986
+
+
+
+                              TABLE OF CONTENTS
+                              -----------------
+
+
+
+DETERMINNG THE PERFORMANCE OF A NODE, WHEN IT MIGHT BE OVERLOADED, ETC. . . 01
+
+OFFICIAL A T C STATUS . . . . . . . . . . . . . . . . . . . . . . . . . . . 03
+
+ONTYME VERSION 22 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 07
+
+UTIL 'LUN' DISPLAY. . . . . . . . . . . . . . . . . . . . . . . . . . . . . 09
+
+GUIDELINES USED FOR TERRESTRIAL AND SATELLITE LINKS' WINDOWSIZES. . . . . . 11
+
+SNA VERSION 1.03 PATCH FILE UPDATE. . . . . . . . . . . . . . . . . . . . . 12
+
+SNA VERSION 1.04 PATCH FILE UPDATE. . . . . . . . . . . . . . . . . . . . . 14
+
+PROBLEM OF "RTS DROPS TOO SOON" . . . . . . . . . . . . . . . . . . . . . . 16
+
+SDLC VERSION 1.12 PATCH FILE UPDATE . . . . . . . . . . . . . . . . . . . . 17
+
+BETA, LMITED & FULL RELEASE REPORTS AS OF 15 JUL 86 . . . . . . . . . . . . 19
+
+GETTING THE MOST OUT OF YOUR HOSTCOST MACRO IN XCOM . . . . . . . . . . . . 21
+
+TECH SUPPORT'S DISTRIBUTION/ESCALATION FILES. . . . . . . . . . . . . . . . 23
+
+NETWORK ROUTING PROBLEMS. . . . . . . . . . . . . . . . . . . . . . . . . . 24
+
+
+
+
+
+                                     01
+                                  --------
+
+
+   DETERMINING THE PERFORMANCE OF A NODE, WHEN IT MIGHT BE OVERLOADED, ETC.
+   ------------------------------------------------------------------------
+   ------------------------------------------------------------------------
+
+
+Written by : Gazel Tan/Dan Lasater, NTD
+      Date : July 01, 1986
+
+
+
+
+  When is a node overloaded?
+  --------------------------
+
+  What does EXCT mean?
+
+    The EXEC Loop count (EXCT) as displayed in the NS command in XRAY is
+    the average number of EXEC loop iterations per second.  As with all
+    statistics available through XRAY, this is the average per second
+    value over a one-minute interval.
+
+    The EXEC loop is one way of expressing one complete execution of all
+    the Node Code processes.  Node Code functionality is performed by running
+    various processes, such as the process that services lines, the process
+    that disassembles the received packets, the process that reads data
+    from the ISIS input/out rings, etc.  These processes are called from a
+    'control' or 'dispatching' process which is known as the executive or
+    EXEC; once all the processes on the EXEC's list have been run, the EXEC
+    goes back to the beginning of the list and proceeds down the list of
+    processes again (and again, and again....).  Each iteration is thus
+    called an EXEC loop.
+
+    In general, the number of EXEC loop counts (per second) will give an
+    overall indication of the activity of the Node Code.  If a certain
+    process takes up a lot of the CPU, then there will be fewer EXEC loop
+    counts per second.  There are other processes that need to be run at a
+    certain minimum interval, and if these processes are not serviced, then
+    problems could result.  It is, HOWEVER, not a hard and fast rule that if
+    the EXCT is low, e.g. less than 40, the node is overloaded.  The EXCT can
+    range from 0 to any value - it all depends on the configuration of the
+    node code slot.  If this value takes a momentary dip, but does not stay
+    at a low value (less than 10) for a sustained period of time, there is
+    no cause for alarm.
+
+
+  ISIS Nodes
+
+    In an ISIS node, the Node Code (slot 0), like all other slots, consists
+    of foreground and background jobs.  The process which services network
+    lines/links is a foreground job and is thus scheduled (by ISIS) to run
+    every 25msec.  All other node code processes run in the background.  In
+    this environment the EXCT only reflects the execution of the background
+    processes of the node code slot; this does not represent the activity of
+    the entire machine.
+
+
+  Foreground and Background Overload
+
+    One good mechanism to detect an overloaded node is from the Foreground
+    and Background overload reports from the ISIS kernel.  The foreground
+    report indicates that successive foreground executions are occurring
+    without any intervening background execution; this means that the
+    foreground is running late and background jobs do not have a chance to
+    run.  The background report indicates that it is requiring more than 60
+    fastc ticks (this is the recommended threshold) for a full cycle of
+    background executions.
+
+    As a rule of thumb, any foreground overload report is cause for concern.
+    Some determination of the cause should be made.  If the overload is
+    infrequent (i.e. one per hour) and there are no other symptoms such as
+    long response times or inexplicable communications errors, then the
+    machine should be considered as at maximum capacity and no increase in
+    load should be planned.
+
+    With the overload report there is a count of the number of times the
+    overload occurred in the last four minutes.  If this number is large
+    (say greater than 10) but the reports are infrequent, then there is some
+    activity occurring with heavy peaks.  You should find out what is
+    happening and evaluate it.
+
+    Foreground overload is a kind of positive feedback system.  As an over-
+    load occurs it is likely to cause another overload resulting in a rapid
+    increase in the overload condition.
+
+    Background overload is likely to be more forgiving.  The events in back-
+    ground are not usually time critical.  As background load increases,
+    response time will get worse.  This tends to cause a reduced load and
+    hence is often self-limiting.  However judgement must be used to evaluate
+    what is acceptable response time and how likely a buffer zap is to occur.
+    No simple rule can be provided.
+
+
+  Delays and Response Times
+
+    Another indicator of load on the node code and on network links is the
+    transit delays through the node code.  Depending on the line speeds of
+    the network links, a total delay of under 100msec can be considered
+    normal or acceptable.  A high code delay (greater than 50msec) may mean
+    that the background process that disassembles and assembles packets is
+    not running frequently enough.  High hardware delay values may indicate
+    that the foreground process is overloaded, or may point to problems with
+    window size, bandwidth limitations, or physical line problems.  Again,
+    judgement must be used to determine if such delay values are cause for
+    concern.
+
+
+  A word of CAUTION
+
+    The EXCT and the delay times should be treated as indicators that further
+    monitoring and investigation may be necessary.  Much depends on the
+    hardware configuration of the machine, the other slots that reside in the
+    machine, the level of activity of the other slots and the swings in
+    traffic distribution.
+
+    It is also very important to remember that network performance or node
+    performance cannot be defined in terms of absolute numbers.  Various
+    parameters (e.g. response times, network delay, block transfer rates..)
+    are used differently by users/customers to determine what is acceptable
+    to them.  If a node is running with an EXCT of less than 20 consistently,
+    but the users of the other slots in that node do not experience 'poor'
+    performance and there are no other discernable problems, then the node
+    is running at an acceptable level and should not be considered overloaded.
+
+
+
+                                     03
+                                  --------
+
+
+                          OFFICIAL  A T C  STATUS
+                          -----------------------
+                          -----------------------
+
+
+Written by : Rourke McCusker, Marketing Product Manager
+      Date : July 02, 1986
+
+
+
+
+   Effective today, I am officially the TYMNET Marketing Product Manager
+   for the ATC, this includes Public and Private (also Virtual Subnets)
+   Networks.  I am the focal point at H.Q. for all ATC issues, questions
+   and answers.
+
+   This Ontyme is designed to bring everyone up-to-date on the status of
+   the ATC.  Numerous meetings have been held involving NTD, HTS, QA, 
+   MKTG and others to collect and validate the information contained in
+   this update.  I would like to personally thank everyone envolved for
+   their willing cooperation and dedication that assisted me in the
+   collection of this information.
+
+   NOW FOR THE NEWS!
+
+   Due to the large number of variations of application environments and
+   locations in which the ATC operates, it is necessary to retain the ATC
+   in beta test status.  In order to get an accurate picture and  better
+   control of the application and configuration of the ATCs, the following
+   rules are applicable.
+   
+   ALL customers using the ATC product must be in compliance with beta test
+   guidelines (*** BETA.TESTGUIDELINES).  This includes a signed beta test
+   agreement (*** BETA.AGREE) to get support.  Further, all anticipated,
+   pending, and backlog orders must be accompanied by signed beta test
+   agreements and a completed Configuration / Application Questionaire
+   (attached).  Each must be fully completed and sent to Headquarters to be
+   considered for acceptance.  An acceptance or rejection response will be
+   sent, after review, within 3 working days.  Acceptance notices will also
+   be copied to the respective order administration personnel at
+   Headquarters.  Rejection notices will state the reason and will not be
+   considered candidates for ATCs.  It will be necessary to submit another
+   order with an alternate equipment choice, at this time.
+   
+   Substitutions of Micro-Engines for ATCs will only be considered when a
+   strong business case has been submitted and reviewed by H.Q.
+
+   Customers having a problem with a currently installed ATC product should
+   be instructed to follow the normal escalation procedures.  If a reported
+   problem is determined to be able to be corrected by the new PROM version,
+   the ATC will have the latest PROM version installed on site.  Please
+   submit a completed Configuration and Application Questionaire with each
+   escalation, it will really help determine the problem source.
+   
+   Problems which do not fall in to the above procedure will be addressed
+   by either of the following two methods:
+   
+   1) If the ATC problem is a known, outstanding issue, not yet corrected
+   by the new PROM version, a strong business case will be necessary for
+   consideration of a temporary replacement with a Micro-Engine.  It might
+   be better to slightly restrict the use of the ATC in the particular
+   manner where the problem shows up and wait for the next PROM version 
+   which will correct the problem.
+   
+   2) If the ATC problem is a new issue, HTS will investigate and attempt
+   to duplicate it in the lab.  Depending on the outcome of the HTS
+   testing, they will make a recommentation on what action should be taken.
+   
+   PIRs are NOT being accepted for modifications to the ATC.
+   
+   
+   Please NOTE:
+   This list supersedes all other documentation during the beta test.  Only
+   after the completion of the beta tests will an updated list of
+   limitations be released.  
+   
+   If you have any of the following configuration or application
+   requirements, DO NOT submit beta test agreements, orders, or
+   questionaires.  Requirements for any of the listed features means a
+   different product is necessary to fulfil customer expectations.
+
+
+  The ATC does NOT support:
+   (Functionality that the ATC was not intended to support)
+   1. Permanent Virtual Circuits (PVC)
+   2. Baudot, EBCDIC, or CORRESPONDENCE codes (not verified yet)
+   3. Addressable ports
+   4. Code downloading
+   5. Dynamic network circuit REBUILD
+   6. An Operations Monitor
+   7. Multi-line links (Parallel network connections to the same neighbor
+      node)
+   8. Passthroughs (Network links supporting traffic destined for another
+      node or other than origination and destination traffic just for the
+      ATC)
+   9. Cooling Fans
+   10. Rack mounting option
+   11. Network technologies other than Tymnet II (No X.25, Telenet etc.)
+
+   For further details, see the PNETS directory on system 28.  The
+   following files are available for other specific issues.
+
+   ATC.REL         Internal overview, primarily Public Network
+   ATCOMP.DOC      ATC description and comparison with Micro-Engine
+   ATC.DOC         Installation and test instructions
+   XRAY.ATC        ATC XRAY documentation
+   TEATC.DOC       Text of the data sheet
+
+
+   The ATC does have the following features:
+
+   -Operates with a Tymnet network
+
+   -Up to 8 asynchronous ports, 110-9600 bps (The quantity of ports
+    supported is dependent on the aggregate total of the port speeds,
+    async device types, application, total throughput, and number of network
+    connections and speed) The ATC will work with asynchronous  ASCII
+    terminals, but not P.C.s performing file transfers or devices operating
+    in block mode at this time.
+   
+   -Up to 2 synchronous network ports, 2400 to 9600 bps Tymnet II, either
+    sync or SIO links without the extended features i.e. Rebuild, Multi-line
+    links, Passthroughs, Downline loading etc.
+   
+   -Modem control signals are available on asynchronous ports at 300, 1200,
+    and 2400 bps dial-up applications
+
+   -Designed to operate in a standard office environment without special
+    conditioning, Temperatures from 50 to 122 degrees F, Relative Humidity
+    from 10 to 90%, noncondensing, Altitudes from 0 to 10,000 feet.
+
+
+   The ATC has had the following problems reported:
+   
+   1. Incorrect node number being reported
+   2. Break key not being processed properly (causes unrecognizable
+      characters)
+   3. Not able to properly operate with a large number of inter-nodal hops
+   4. Not recovering properly from power failures
+   5. Excessive synchronous line retransmissions
+   6. System halts when Command Circuit is cleared
+   7. Not processing backspace key properly (half duplex mode only)
+   8. Not able to recognize Terminal Identifiers (noisy async lines)
+   9. Not able to recognize terminal speed (noisy async lines)
+   10. Not able to process sustained asynchronous input without loss of
+      data (Flow cintrol issues using block mode terminals and P.C. devices)
+
+   Items 1 through 9 have been corrected.  Tests are being conducted to
+   verify this.  All unprocessed ATC orders will include the latest PROMs.
+   
+   ATCs currently installed, potentially have all the above problems,
+   however, some may have been field updated in the interim, correcting
+   1,2,3, and possibly 4 only.
+   
+   In October, a beta test release is expected to correct ALL the problems
+   (1 through 10).  This release, when proven acceptable, will then be
+   applied to the units in the field.  This final release will not increase
+   overall throughput or include any of the previously listed extended 
+   Tymnet II features.
+   
+   The Configuration and Application Questionaire (attached) is required
+   to be reviewed in headquarters before any ATC order will be considered 
+   for processing.  In order to be in compliance, all information must be
+   supplied and sent to:
+
+   John Gomes        Q.A.    QSATS.J/GOMES
+   Don Johnson       H.T.S   QSATS.D/JOHNSON
+   Rourke McCusker   MKTG    NETS.R/MCCUSKER
+   Dean Spieller     MKTG    NSMS.D/SPIELLER
+
+   Remember to include a beta test agreement for each customer.  Any
+   deviations from the initially supplied configuration information may
+   possibly end up classifying that customer as unsupportable.  Please
+   inform your customers so there won't be any suprises.
+
+
+
+         ATC  CONFIGURATION / APPLICATION  QUESTIONAIRE
+
+   1) Account number
+
+   2) Customer
+
+   3) Location of installation (address)
+
+   4) Date planned for installation
+
+   5) The quantity and specific types of async devices i.e. ADM-3 etc.
+      a) Terminal (character mode)
+      b) Terminal (block mode)
+      c) P.C. with terminal emulation (no sustained input/file transfer)
+      d) P.C. without terminal emulation
+      e) Other
+
+   6) Speed of each async device
+
+   7) Will an async rotary be used?
+
+   8) The type and quantity of async modems, by port, if used, both the
+      local end and the remote end (Racal Vadic, Concord etc.)
+
+   9) Full or half duplex and quantity by port
+   
+  10) Distance between async device and ATC and if modems will be used
+
+  11) Quantity of ports used in the application environment (character
+      mode, block mode, file transfer, dialup)
+
+  12) Quantity of ports used for:
+      a) async to async
+      b) async to X.25
+      c) async to CMT BSC
+      d) async to CMT SNA
+      e) other
+
+  13) Host destination address(s) (for inter-nodal hop estimate)
+
+  14) The quantity of sync network ports to be used
+   
+  15) The type of network port(s) (sync or SIO)
+
+  16) The speed of the network port(s)
+
+  17) The type of network port modems, if used, both ends
+
+  18) The total estimated character per second throughput
+
+
+
+
+
+                                     07
+                                  --------
+
+
+                              ONTYME VERSION 22
+                              -----------------
+                              -----------------
+
+
+Written by : Bill Bartlett, O Marketing Support Mgr.
+      Date : July 08, 1986
+
+
+
+
+    Applied Communications Systems (ACS) is pleased to announce that
+    version 22 of OnTyme will be deployed for customers beginning in
+    August!  The following features and enhancements have been added.
+ 
+    SUBJECT LINE.  On a :SEND or :REPLY the system will prompt for
+    subject.  The subject text supplied by the sender will appear in
+    the message header and all the message lists (:IN, :OUT, old,
+    long, short, etc.).
+ 
+    X.ONTYME.  This feature is an interface with which applications,
+    PC "front ends", or intelligent terminal procedures may interact
+    with OnTyme in a consistent, reliable, binary, machine-oriented
+    format.
+    
+    PATHWAY.  This feature allows the user to log into any network
+    host during an OnTyme session, capture data from the target host
+    into the OnTyme workspace, transfer data between OnTyme and the
+    network host, and execute commands on the host. The target host
+    may reside in either the same network as OnTyme or in another
+    network accessible through a gateway.
+ 
+    XMODEM.  This feature is used for binary file transfer using the
+    XMODEM protocol.
+ 
+    SYSTEM GENERATED MESSAGES.  Version 22 of OnTyme will put a
+    message in the :IN list of the sender regarding invalid recipients
+    so they will no longer have to look through their :OUT (OLD) lists.
+ 
+    RESERVED CHARACTERS. To facilitate future enhancements, six
+    characters (!,@,#,$,%,&) will no longer be allowed in file names.
+    These will be used later as 'wildcard' characters for displaying
+    information with the :LIST command.
+ 
+    :REPLY (cc)(msg#).  This command will send the contents of the
+    workspace to the original recipients of msg#.
+ 
+    COMMAND SCANNER. The OnTyme code has been improved and made more
+    efficient.  Many system messages have been grammatically improved
+    and made more consistent.
+ 
+    Version 22 is available on the Marketing test host so that you can
+    become familiar with the new product features. To request a
+    temporary id on the test host, send a request to ACS.ONTYME.
+ 
+    More complete documentation is being written and included in user
+    manuals, technical manuals, and *** files in OnTyme as
+    appropriate.  Definitions of the enhancements in version 22 of
+    OnTyme may be found in the public file *** ONTYME.NEWS. Please
+    distribute this announcement within your organization.  
+ 
+ 
+    Version 22 WARNING!
+    -------------------
+    All 'intelligent front end' processes should be adequately tested
+    for compatibility with version 22 of OnTyme before August 1.  
+ 
+    ACS will provide technical assistance to complete this test.  To
+    provide the longest possible lead time for any necessary code
+    conversions, please schedule these tests as soon as possible.  Ids
+    on the Marketing test host are now available upon request from
+    ACS.ONTYME. Please keep ACS.ONTYME informed of the results.
+ 
+    There are two enhancements in version 22 of OnTyme that have the
+    POTENTIAL of disrupting 'intelligent front end' processes such as
+    OnTyme :EXEC procedures, PC based packages, and intelligent
+    terminal procedures that match on the text of OnTyme messages or
+    the format of the :SEND, :REPLY, :IN and :OUT commands.  
+    
+    First, the text of many of the more obscure (not frequently
+    encountered) system and error messages has been revised for
+    grammatical improvement and consistencey. The most common messages
+    such as ACCEPTED and ALL MESSAGES READ have not been changed.  You
+    may obtain a list of the text changes by sending a request to
+    ACS.ONTYME.  In the event that an incompatibility is found between
+    a front-end process and version 22, ACS will urge that the
+    X.ONTYME protocol be adopted in the front-end to preclude any
+    future problems.  Use of X.ONTYME will fix the problem once and
+    for all.  Please :READ *** ONTYME22.XONTYME for further
+    information about this protocol.
+    
+    Second, each OnTyme session will default to having subject line
+    enabled.  Each :SEND or :REPLY command will be followed by a
+    prompt for subject.  The format of the :IN and :OUT lists will
+    change to show a subject line for each message.  The subject line
+    feature may be disabled at the session level providing a very
+    simple solution to any compatibility problems caused by subject
+    line.  Please :READ *** ONTYME22.SUBJLINE for further information
+    about the subject line feature.
+ 
+    Please direct any questions about this announcement to ACS.ONTYME.
+
+
+
+                                     09
+                                  --------
+
+
+                             UTIL 'LUN' DISPLAY
+                             ------------------
+                             ------------------
+
+
+Written by : Gail Bubsey, HQ Network Staff Consultant
+      Date : July 15, 1986
+
+
+
+         
+
+ORIGINAL QUESTION:
+
+   WHAT DO THE NUMBERS UNDER THE "Status" FIELD MEAN WHEN YOU ISSUE A 'LUN' 
+   IN THE UTILITY SLOT?  AND HOW IS THIS INFORMATION DECODED?  ALSO, WHAT ARE
+   THE 'DDB', 'B/T' AND 'T/C' FIELDS?
+
+
+   EX:
+
+   LUN
+
+   Unit Type DA DDB B/T T/C STCYL ENCYL Status  Protection
+     0   DK  C7 100  18   2    0   155   0200   RD WR AT SS
+     1   DK  C6 100  18   2   59   150   0200   RD WR AT SS
+     A   DK  D6 100  18   2    0   197   0209   RD WR AT SS  offline
+     B   DK  D7 100  18   2    0   197   0309   RD WR AT SS  offline
+     D   MT  D5 200                      0909   RD WR AT     offline
+
+
+
+
+
+
+RESPONSE:
+
+           Regarding your questions about the various fields shown in
+   the UTIL LUN display, I have discovered the following:
+
+   1.  DDB - in version 1.02+ this is now called DSS or Default Sector
+             Size.  I would assume that in this older version, DDB is
+             perhaps Default Data Block size or something.
+
+   2.  B/T - Blocks per Track.  Again in newer versions this is S/T or
+             Sectors per Track.  Note that the values are in hex.
+
+   3.  T/C - Tracks per Cylinder.
+
+   4.  Status - The status field is divided into two bytes - the first
+             8 bits refer to the status of the controller and the other
+             8 are the status of the device.  To decifer the meaning of
+             these bits, depending on the type of device you are using,
+             check out the following manuals:
+
+       MSC type drive - MSC-1400 High Density Disk Controller Operation
+             and Maintenance Manual - sec.4.4.6.6 Status - pp.4-13 thru
+             4-15 (0-7 for controller, 8-15 for drive)
+
+       DK type drive - Disk Diagnostics Users Guide - SS bits on p.47
+             for the controller - SS bits on p.49 for the drive.
+
+       MT tape drive - Model TC-140 Tape Controller Hardware Manual - 
+             pp.3-8.
+
+
+
+
+                                     11
+                                  --------
+
+
+      GUIDELINES USED FOR TERRESTRIAL AND SATELLITE LINKS' WINDOWSIZES
+      ----------------------------------------------------------------
+      ----------------------------------------------------------------
+
+
+Written by : Gail Bubsey, HQ Network Staff Consultant
+      Date : June 30, 1986
+
+
+
+
+ORIGINAL QUESTION:
+
+   Are these any published guidelines on what window sizes should be estab-
+   lished for different links? (ie, satellite links of different speeds, long
+   haul liks of different speeds, [San Fran to London for example], and MS
+   links.)
+
+   If there are now published guidelines, the main concern is what window
+   size 9.6 satellite links should be set for.
+
+
+
+RESPONSE:
+
+           Regarding this RFI, requesting the guidelines used for terrestrial
+   and satellite links' windowsizes, the following is the result of a study
+   done and has been included in the Planet program for windowsize estimation.
+
+   Speed        Terrestrial        Satellite
+    2.4             4                  8
+    4.8             4                 12
+    9.6             8                 24
+   14.4            12                 36
+   19.2            12                 48
+   64.0            16                 72
+
+
+
+
+
+
+                                     12
+                                  --------
+
+
+                     SNA VERSION 1.03 PATCH FILE UPDATE
+                     ----------------------------------
+                     ----------------------------------
+
+
+Written by : Ping Chu, HQ Network Staff Consultant
+      Date : July 15, 1986
+
+
+
+
+          Attached, is a copy of  COMMAND  file  for  your  reference. 
+      Please  note  that  the standard patch file SNA01.P03 contains 2 more
+      patches, which are listed as below.  Be sure not to  double  assemble
+      the  patch  files.   HQTECH only supports all the standard files from
+      the SOURCE directory.  Therefore,  please  update  your  SNA  command
+      files accordingly. 
+     
+          (SOURCE)SNA01.P03 has incorporated the following patch files  as 
+      of July 14, 1986.  
+     
+         1.  (PINGCHU) QRIRSP.P13  
+     
+         2.  (PINGCHU) BIDEXR.P13  
+     
+
+     
+      ;;COMMAND FILE FOR SNA INTERFACE  
+      ;;VERSION 01 REVESION 03
+      LIST -R,-X    
+      TITLE (SNA) SNA INTERFACE    
+      ;;  
+      ;;    To increase the size of patch area, you need to add these two  
+      ;;    statements.  
+      500[PHSIZE:   
+      800[P1SIZE:   
+      ;;  
+      ;;  
+      ;;    For configuration larger than 90 LUs defined in one SNA interface,  
+      ;;    you need to set the next statement.   
+      1[LU128: 
+      ;;  
+      ;;  
+      ;A(SOURCE)SNA01.I03
+      ;A(SOURCE)SNA01.T03
+      LIST -R,X
+      ;A(SOURCE)SNA01.R03
+      ;A(SOURCE)SNA01.P03
+      ;;  
+      ;;  
+      ;;    For Campbell Soup, please add the following patch.   
+      ;A(NTDSNA)RSPDR2.PPP    
+      ;;  
+      ;;  
+      1;FSNA01.N03  
+      SEG0,S0SIZE;P 
+      SEG1,S1SIZE;P 
+      SEG2,S2SIZE;P 
+      SEG3,S3SIZE;P 
+      SEG4,S4SIZE;P 
+      SEG5,S5SIZE;P 
+      SEG6,S6SIZE;P 
+      SEG7,S7SIZE;P 
+      CTA,CTASIZ;P  
+      %P  
+      %Q  
+     
+
+
+
+                                     14
+                                  --------
+
+
+                     SNA VERSION 1.04 PATCH FILE UPDATE
+                     ----------------------------------
+                     ----------------------------------
+
+
+Written by : Ping Chu, HQ Network Staff Consultant
+      Date : July 15, 1986
+
+
+
+
+          Attached,  is a copy of  COMMAND  file  for  your  reference. 
+      Please  note  that  the standard patch file SNA01.P04 contains 4 more
+      patches, which are listed as below.  Be sure not to  double  assemble
+      the  patch  files.   HQTECH only supports all the standard files from
+      the SOURCE directory.  Therefore,  please  update  your  SNA  command
+      files accordingly. 
+     
+          (SOURCE)SNA01.P04 has incorporated the following patch files  as 
+      of July 14, 1986.  
+     
+         1.  (PINGCHU) QRIRSP.P14  
+     
+         2.  (PINGCHU) BIDEXR.P14  
+     
+         3.  (PINGCHU) CURSOR.P14  
+     
+         4.  (PINGCHU) REV104.P14  
+     
+
+     
+      ;;COMMAND FILE FOR SNA INTERFACE  
+      ;;VERSION 01 REVESION 04
+      LIST -R,-X    
+      TITLE (SNA) SNA INTERFACE    
+      ;;  
+      ;;  
+      ;;    To increase the size of patch area, you need to add these two  
+      ;;    statements.  
+      500[PHSIZE:   
+      800[P1SIZE:   
+      ;;  
+      ;;  
+      ;;    For configuration larger than 90 LUs defined in one SNA interface,  
+      ;;    you need to set the next statement.   
+      1[LU128: 
+      ;;  
+      ;;  
+      ;;    For OLNEY and Port Of New Orleans, please add the next statement.   
+      1[SYS38: 
+      ;;  
+      ;;  
+      ;;    For OLNEY, please add the next statement additionally.    
+      1[OLNEY: 
+      ;;  
+      ;;  
+      ;A(SOURCE)SNA01.I04
+      ;A(SOURCE)SNA01.T04
+      LIST -R,X
+      ;A(SOURCE)SNA01.R04
+      ;A(SOURCE)SNA01.P04
+      ;;  
+      ;;  
+      1;FSNA01.N04  
+      SEG0,S0SIZE;P 
+      SEG1,S1SIZE;P 
+      SEG2,S2SIZE;P 
+      SEG3,S3SIZE;P 
+      SEG4,S4SIZE;P 
+      SEG5,S5SIZE;P 
+      SEG6,S6SIZE;P 
+      SEG7,S7SIZE;P 
+      CTA,CTASIZ;P  
+      %P  
+      %Q  
+     
+
+
+
+                                     16
+                                  --------
+
+
+                       PROBLEM OF "RTS DROPS TOO SOON"
+                       -------------------------------
+                       -------------------------------
+
+
+Written by : Ping Chu, HQ Network Staff Consultant
+      Date : July 22, 1986
+
+
+
+
+     The problem of "RTS DROPS TOO SOON" has appeared in several SDLC 
+     Extension Cord customer sites. Please try to gen your RTSCTS
+     statement to NO in your SDLC tymfile in order to avoid this problem.  
+     
+     Normally, if an SDLC link requires RTS/CTS handshaking, the Transmitter    
+     ought to raise its RTS (Request To Send) signal to the Receiver. 
+     When the Receiver is ready to turn the line around, it shall raise    
+     its CTS (Clear To Send) to relinquish the control of SDLC link to the 
+     Transmitter. During the transmission of entire SDLC frame, the   
+     Transmitter has to energize its RTS signal and makes sure that the    
+     RTS signal stays high until the Ending Flag of the Final SDLC frame   
+     is transmitted.
+     
+     However, our SDLC slot code and the Z-80 Daughter Card drop the RTS   
+     signal before transmitting the Ending Flag of the Final SDLC frame.   
+     
+     Dee Halbrook has issued a PIR to implement a new Z-80 Channel Command 
+     Word.  Gary Stoy of Private Net Product Marketing also issued a PIR 
+     for NTD, SDLC Development unit, to enhance the SDLC software to drop 
+     the RTS signal in a more appropriate time. The SIO Microcode change in
+     conjunction with the SDLC software change will fix this "RTS Drop
+     Too Soon" problem.  
+     
+     We have no estimate as to the potential date of completion of this    
+     combined task. But before the announcement of completion is made 
+     available to you, please gen your RTSCTS to NO in your SDLC tymfile   
+     to ignore the RTS/CTS handshaking. 
+     
+
+
+
+                                     17
+                                  --------
+
+
+                     SDLC VERSION 1.12 PATCH FILE UPDATE          
+                     -----------------------------------
+                     -----------------------------------
+
+
+Written by : Ping Chu, HQ Network Staff Consultant
+      Date : July 23, 1986
+
+
+
+
+          Attached,  is a copy of  COMMAND  file  for  your  reference. 
+      Please  note that the standard patch file SDLC01.P12 contains 12 more
+      patches, which are listed as below.  Be sure not to  double  assemble
+      the  patch  files.   HQTECH only supports all the standard files from
+      the  BETATEST  directory.   In  addition,  NTD/HQTECH  only  supports
+      version  1.12  of  SDLC  product right now.  Therefore, please update
+      your SDLC command files accordingly.   
+     
+          (BETATEST)SDLC01.P12 has incorporated the  following  individual 
+      patch files as of July 23, 1986.  
+     
+         1.  CHKV24.P12  
+     
+         2.  SKIP0L.P12  
+     
+         3.  BADADR.P12  
+     
+         4.  OUTTST.P12  
+     
+         5.  NSR617.P12  
+     
+         6.  XMTEOM.PPP  
+     
+         7.  CNTFRM.P12  
+     
+         8.  CRSH22.P12  
+     
+         9.  2PU1AD.P12  
+     
+        10.  CHKLEN.P12  
+     
+        11.  DATAQU.P12  
+     
+        12.  TIFRNR.P12  
+     
+                                                                     Page 2
+     
+      ;;COMMAND FILE FOR SDLC EXTENSION CORD SERVICE   
+      ;;VERSION 01 REVISION 12
+      LIST -R,-X    
+      TITLE (SDLCEX) SDLC EXTENSION CORD SERVICE  
+      ;;  
+      ;;  To increase the size of Patch Area, add the following two statements. 
+      400[PHSIZE:   
+      700[P1SIZE:   
+      ;;  
+      ;A(BETATEST)SDLC01.I12  
+      ;A(BETATEST)SDLC01.T12  
+      LIST -R,X
+      ;A(BETATEST)SDLC01.R12  
+      ;A(BETATEST)SDLC01.P12  
+      ;;  
+      ;;  For Hong Kong Shanghai Bank and Saudi Arabia British Bank, add   
+      ;A(PINGCHU)MNLGTB.P12      -  to fix escalation 69853 and 70891 
+      ;A(LEEA)XIDNDM.P12         -  to fix 2 problems in escalation 87240  
+      ;A(CSHAW)SDLC01.PKK        -  modify foreground processor  
+      ;A(LEEA)LNKSTS.P12         -  to fix one problem in escalation 98235 
+      ;;  
+      ;;  
+      ;;   For CAS MayneNet, add   
+      ;A(PINGCHU)CNTRNR.P12      -  to fix escalation 43956 
+      ;;  
+      ;;  
+      1;FSDLC01.N12 
+      SEG0,S0SIZE;P 
+      SEG1,S1SIZE;P 
+      SEG2,S2SIZE;P 
+      SEG3,S3SIZE;P 
+      SEG4,S4SIZE;P 
+      SEG5,S5SIZE;P 
+      SEG6,S6SIZE;P 
+      CTA,CTASIZ;P  
+      %P%Q
+
+
+
+                                     19
+                                  --------
+
+
+           BETA, LIMITED & FULL RELEASE REPORTS AS OF 15 JUL 86
+           ----------------------------------------------------
+           ----------------------------------------------------
+
+
+Written by : John Gomes, Mgr, Tymnet Quality Assurance
+      Date : July 23, 1986
+
+
+
+
+The  Monthly  Beta,  Limited  and Full Release  reports  are  now 
+available  for  your review.   Highlights for this period are  as 
+follows:
+
+NEW PRODUCTS IN BETA TEST:
+
+     -  ATC  Asynchronous Terminal Concentrator  1.25
+     -  CMTI  3270 Character Mode Terminal w/CRM4  4.00
+     -  ISCS  ISIS Consolidated Tymsat  6.01
+     -  NTR
+     -  PBH  Polled Bisync Host Interface  10.00
+     -  PBT  Polled Bisync Terminal Interface  9.00
+     -  PHI  3270 Host Interface  1.00
+     -  PTI  3270 Terminal Interface  7.00
+     -  SUPERVISOR  42.00
+     -  TYMVAL  Tymnet Validations  1.01
+     -  XCOM  4.00
+
+
+NEW PRODUCTS IN LIMITED RELEASE:
+
+     -  BBXS  X780/HASP/Multileaving
+     -  CMTI  3270 Character Mode Terminal Interface  3.00
+     -  MSV0  Menu Service  1.12
+     -  Coming Aug. 1 :  SOLO CONSAT  5.11
+
+
+NEW PRODUCTS IN FULL RELEASE:
+
+     -  DCPU  Engine CPU Diagnostics  3.01
+     -  DMAC  Universal Engine MAC Diagnostics  6.00
+     -  DMEM  Engine Memory Diagnostic  3.00
+     -  DREL  Engine Relocated Instruct Diagnostic  1.00
+     -  DSIO  Engine SIO Diagnostic  1.00
+
+
+PRODUCTS NO LONGER SUPPORTED
+
+     -  XCOM 3.02 (Beta)
+        Customers must upgrade to beta version 4.00.  New
+        customers must be approved before installation.
+
+     -  TMRE 2.00 (Full)
+        No approval is necessary.
+
+     -  NVAL 1.14 (Full)
+        Customers must upgrade to version 2.05
+        No approval is necessary.
+
+     -  ISCS 3.04 (Full)
+        Customers must upgrade to version 3.05.  No 
+        approval is necessary.
+
+     -  RAM 10.05 (Full)
+        Customers must upgrade to version 10.07.  No
+        approval is necessary.
+
+
+NUMBER OF PRODUCTS AND SITES
+
+     -  37 Beta Test Products
+     -  125 Beta Test Sites
+     -  13 Limited Release Sites
+     -  58 Limited Release Sites
+
+
+The complete beta,  limited and full release reports can be found 
+on  System  56  in  the TECHREF directory.   File  names  are  as 
+follows:
+
+     -  BETA.JUL  (Beta Test Report)
+     -  FULLIM.JUL  (Full and Limited Release Reports)
+
+SITES  WHICH DO NOT HAVE THE PROPER APPROVALS AND A  SIGNED  BETA 
+TEST AGREEMENT, WILL NOT BE INSTALLED.  To receive approval for a
+Beta Test  Site,  please  ontyme a request to  QSATS.D/FOWLER and 
+QSATS.J/GOMES.
+
+If  you require additional information on the beta test  program, 
+please  read the Beta Test Guidelines (***  BETA.TESTGUIDELINES), 
+call me at 408-942-5142, or send me an Ontyme - QSATS.J/GOMES.
+
+Thank you for your continued support.
+
+
+
+                                     21
+                                  --------
+
+
+            GETTING THE MOST OUT OF YOUR HOSTCOST MACRO IN XCOM
+            ---------------------------------------------------
+            ---------------------------------------------------
+
+
+Written by : Jerry Lucas, HQ Network Staff Consultant
+      Date : July 25, 1986
+
+
+
+
+     THE HOSTCOST MACRO PRESENTS A POWERFUL TOOL FOR LOAD-BALANCING
+MULTI-TARGETED HOSTS IN X.25.  UNFORTUNATELY, THIS MACRO IS ALSO
+A SOURCE OF MALEVOLENT AND EVIL PITFALLS FOR THE UNWARY.  ALONG ITS
+PATHS REPOSE THE BONES OF MANY A LUCKLESS CC WHO EMBARKS ON ITS
+TRAILS WITHOUT REALIZING THE HIDDEN DANGERS LURKING IN THE BORDERING
+THICKETS.  THIS ARTICLE IS TO UNRAVEL SOME OF THIS MYSTERY.
+
+     THE FOLLOWING POINTS SHOULD BE REMEMBERED:
+
+
+   - ALL USERNAMES USED IN THE MULTI-TARGETING SCHEME MUST BE MULTI-TARGETED
+     TO ALL HOSTS IN THE MULTI-TARGETING SCHEME.  THE ALERT READER WILL
+     APPRECIATE THAT THROUGH TRICKERY YOU DON'T EVEN NEED THIS RESTRICTION.
+     BUT, FOR THE GENERAL CASE, YOU WILL WANT TO DO THIS.
+
+   - ALL HOSTS IN THE MULTI-TARGETING SCHEME MUST BE ON DIFFERENT NODES.
+
+   - ALL NODES CORRESPONDING TO THE MULTITARGETED HOSTS MUST HAVE A POSITIVE
+     NUMBER OF PASSTHRUS.  ZERO PASSTHRUS ON ANY NODE WILL CREATE LINK COSTS
+     OF 2048 (SUPERVISOR'S APPROXIMATION TO INFINITY) ON ALL LINKS GOING TO
+     THAT NODE, AND ALL HOSTCOST CONSIDERATIONS WILL BE OVERRIDDEN.  NO TRAF-
+     FIC WILL GO THROUGH THE HOST ON A NODE WITH ZERO PASSTHRUS.
+
+   - THE MAXIMUM NUMBER OF HOSTS THAT CAN EXIST IN A SINGLE MULTI-TARGETING
+     SCHEME IS 6.
+
+
+     REMEMBER THAT THE SUPERVISOR ROUTES CALLS BASED ON THE TOTAL COST OF
+GOING TO EACH HOST.  THIS TOTAL COST CONSISTS OF THE HOST COST PLUS THE
+NETWORK COST.  IF ONE HOST HAS A HIGHER HOST COST, BUT THE SECOND HOST
+HAS A HIGHER NETWORK COST, CALLS MAY STILL GO TO THE HOST WITH THE HIGHER
+HOST COST.  BECAUSE OF THIS, HOST COST INCREMENTS SHOULD BE CHOSEN AS
+HIGH AS POSSIBLE.  USE THE FOLLOWING RULES FOR SETTING UP HOSTCOST
+PARAMETERS IF YOUR NUMBER OF DPORTS IS A POWER OF 2:
+
+   - CHOOSE MINIMUM COST TO ZERO
+   - CHOOSE NUMBER OF STEPS EQUAL TO NUMBER OF DPORTS.
+   - CHOOSE MAXIMUM COST EQUAL TO THE HIGHEST MULTIPLE OF YOUR DPORTS
+     THAT DOES NOT EXCEED 255d.
+
+
+EXAMPLES:
+
+  64 PORTS :   HOSTCOST(0,192,64,0,64,64)
+  32 PORTS :   HOSTCOST(0,224,32,0,32,32)
+  16 PORTS :   HOSTCOST(0,240,16,0,16,16)
+
+
+     IF YOUR NUMBER OF DPORTS IS NOT A POWER OF 2, THIS IS TRICKY.  YOU 
+WILL GET A GEN ERROR IF YOU PICK NUMBER OF STEPS TO BE NOT A POWER OF
+2.  YOU HAVE TWO CHOICES:
+
+   - CALL J/LUCAS TO OBTAIN A PATCH THAT WILL HELP YOU OUT.
+   - LOAD-LEVEL FOR THE HIGHEST POWER OF 2 LESS THAN OR EQUAL TO YOUR
+     NUMBER OF PORTS, REALIZING THAT BEYOND THIS CALLS WILL BE ASSIGNED
+     RANDOMLY.  EXAMPLES:
+
+
+   24 PORTS :   HOSTCOST(0,240,24,8,16,16)
+   45 PORTS :   HOSTCOST(0,224,45,13,32,32)
+
+     IN THE FIRST EXAMPLE, CALLS WILL BE BALANCED UNTIL THERE ARE 16 USERS
+(I.E. 8 PORTS AVAILABLE) AND THEN THE HOST COST WILL NO LONGER INCREMENT.
+PARALLEL LOGIC FOR THE SECOND EXAMPLE.
+
+     AN NSR IS CURRENTLY AT NTD TO REMOVE THE RESTRICTION THAT THE NUMBER OF
+STEPS MUST BE A POWER OF 2.  I AM OPTIMISTIC THAT THIS RESTRICTION WILL BE
+ELIMINATED.
+
+
+     ALSO REMEMBER THAT THE HOSTCOST IS REPORTED BY X25 TO THE SUPERVISOR
+EVERY 15 SECONDS.  IF PEOPLE LOG ON RAPIDLY, A LARGE NUMBER OF LOGONS IN
+ONE 15-SECOND INTERVAL WOULD ALL GO TO ONE HOST.  THE OTHER HOST WILL
+CATCH UP ONCE THE LARGER HOST COST IS REPORTED BUT THOSE IN SEARCH OF
+PERFECTION MAY WANT TO REPORT THE HOSTCOST MORE OFTEN.  THIS IS POSSIBLE,
+BUT NOT ADVISABLE FOR EVERYONE.  THE SUP CANNOT BE EXPECTED TO HANDLE
+HOSTCOST MESSAGES EVERY SECOND FOR EVERY HOST IN THE NETWORK.  BUT IF YOU
+THINK YOU HAVE A SPECIAL CASE, YOU CAN TALK TO J/LUCAS ABOUT GETTING A
+PATCH.
+
+
+
+                                     23
+                                  --------
+
+
+               TECH SUPPORT'S DISTRIBUTION/ESCALATION FILES     
+               --------------------------------------------
+               --------------------------------------------
+
+
+Written by : Linda Kypke
+      Date : July 28, 1986
+
+
+
+
+      Attached, for your reference, are the distribution files included in
+   HQ's Escalation Procedures (*** HQTECH.ESCAL/PROC).  These files should
+   be used whenever escalating a problem or submitting and "RFI".
+
+
+                           DISTRIBUTION FILE NAMES
+
+   *** ALLXPC                   X.PC Interfaces
+   *** TYMCOM                   Async & Bisync Tymcoms (Host Interface)
+   *** BSC                      3270, 2770 Host & Terminal Interfaces
+   *** CMT                      3270 CMT Interface Product
+   *** CONSAT                   ISIS Consats
+   *** SOLOCONSAT               Solo Consats
+   *** ELF                      Engine Load Facilities
+   *** ISIS                     ISIS Operating System
+   *** LOADII                   LOADII
+   *** MENUSERVICE              Menu Service
+   *** MERLIN                   Merge and Link
+   *** NETALERT                 NetAlert
+   *** NETMESSAGE               NetMessage
+   *** NETVAL/VAL               Network Validations
+   *** NETWORK                  Network-wide problems
+   *** NETWORK/CONSOLE          Network Console
+   *** NODECODE                 Node Code
+   *** RAM                      Raw Accounting Merger
+   *** RJE                      2780, 3780, HASP, RCS & DOS/MLI
+   *** SNA                      SNA, SDLC & QLLC Interfaces
+   *** SUP                      Supervisor
+   *** TMCS/NEM                 Tymnet Monitor & control Sytem and Network
+                                   Event Monitor
+   *** VIP                      Vip 7700 Extension Cord Service
+   *** X25/X75                  X.25 & X.75 Host Interfaces
+   *** UTS                      UTS 4000 Terminal/Hot Interface
+   *** XPAD                     Consat Pad
+
+   Three new distribution files coming shortly:
+   *** ALC, *** PUB/NETV, *** TYMVAL
+
+   Escalation and RFI forms are filed under:  (:exec *** FORMS.RFI/ESCAL)
+
+
+
+
+                                     24
+                                  --------
+
+
+                          NETWORK ROUTING PROBLEMS
+                          ------------------------
+                          ------------------------
+
+
+Written by : Gail Bubsey, HQ Network Staff Consultant
+      Date : July 28, 1986
+
+
+
+
+ Network Routing Problems
+-------------------------
+
+Of late, a number of response time and routing problems have occurred
+- lines are becoming OV and response time is degrading - while there
+are perfectly good paths being ignored.
+
+To really understand the problem, an explanation of link costs is
+called for.  Link cost is determined by the cumulative consideration
+of 5 factors: links speed, 1-way overloading, 2-way overloading, IRC
+penalties, and the type of link, TER/SAT vs. the type of traffic,
+interactive/batch.
+
+Each factor has a given value in hex.  These are added together to
+obtain the link cost; the various link costs are then added to obtain
+the cost of the circuit.
+
+The cost values are as follows:
+
+    Speed     Value          1-Way OV     2-Way OV
+    ---------------          --------     --------
+      4.8       17              18           30
+      9.6       11
+     14.4       10           Circuit      TER      SAT
+     19.2       0F           -------------------------
+       MS       0C           Batch         31        0
+                             Interactive    0       31
+
+
+An Example:
+                         9.6
+          2010------------------------------2011
+           | \                                |
+           |  \                               |
+           |   \  14.4Sat                     |
+           |    \                             |
+           |     \                            |
+       9.6 |     2012                         | 14.4
+           |    /    \                       /
+           |   /      \                     /
+           |  / Ms     \ Ms                /
+           | /          \                 /
+           |/            \_____          /
+          2013_________________2014_____/
+                     Ms
+
+
+Origin   Destination   Possible Path          Cost
+-----------------------------------------------------------------------
+Interactive Traffic
+2010         2013      2010-2013              11           = 11 <-L.C.P
+                       2010-2012-2013         10+31+0C     = 4D
+                       2010-2011-2014-2013    11+10+0C     = 2D
+             2014      2010-2011-2014         11+10        = 21
+                       2010-2012-2014         10+31+0C     = 4D
+                       2010-2013-2014         11+0C        = 1D <-L.C.P
+
+So, note that all interactive traffic originating at 2010 and going to
+either 2013 or 2014 will be routed over the same link between 2010 and
+2013.  If the link from 2010 were to go overloaded in one direction,
+then the following costs would go into play:
+
+Origin   Destination   Possible Path          Cost
+-----------------------------------------------------------------------
+Interactive Traffic
+2010         2013      2010-2013              11+18        = 29 <-L.C.P
+                       2010-2012-2013         10+31+0C     = 4D
+                       2010-2011-2014-2013    11+10+0C     = 2D
+             2014      2010-2011-2014         11+10        = 21 <-L.C.P
+                       2010-2012-2014         10+31+0C     = 4D
+                       2010-2013-2014         11+0C+18     = 35
+
+Under the one way overload, new traffic from 2010 to 2013 will 
+continue to be routed over the same path, but traffic from 2010 to
+2014 will move to the alternate 2010-2011-2014.
+
+This type of experimentation can be done for all sorts of situations
+and configurations and can help you to understand what is really going
+on and why some of the problems that you are having may occur.
+
+
+
+
+@G
