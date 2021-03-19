@@ -1,0 +1,2047 @@
+
+
+
+
+                                                               June 2, 1987
+
+
+
+
+       SSSSSS  W        W  BBBBB   TTTTT            GGGGG  EEEEE  DDDDD
+       S       W   WW   W  B    B    T             G       E      D    D
+       SSSSSS   W  WW  W   BBBBB     T             G   GG  EEEE   D    D
+            S    W WW W    B    B    T             G    G  E      D    D
+       SSSSSS     WWWW     BBBBB     T              GGGGG  EEEEE  DDDDD
+
+
+
+                         SOUTHWESTERN  BELL  TELEPHONE
+                                NUMBERING PLAN
+
+                      CONSAT / X.28 PAD LOGON PROCESSING
+                                 SPECIFICATION
+                                      AND
+                            GENERAL EXTERNAL DESIGN
+
+
+                           ASYNC DEVELOPMENT SECTION
+                          NETWORK TECHNOLOGY DIVISION
+                                 June 2, 1987
+
+
+
+
+
+
+
+
+
+
+     ********************************************************************
+     ***                  PROPRIETARY INfORMATION                     ***
+     ***                                                              ***
+     ***  MDC-TYMNET's proprietary  rights are included  in the       ***
+     ***  information disclosed herein.  The recipient, by receiving  ***
+     ***  this document,  agrees that neither this document nor  the  ***
+     ***  information disclosed herein nor any part thereof shall be  ***
+     ***  reproduced  or  transferred to other documents or used  or  ***
+     ***  disclosed  to  others for manufacturing or for  any  other  ***
+     ***  purpose  except as specifically authorized in  writing  by  ***
+     ***  MDC-TYMNET.                                                 ***
+     ********************************************************************
+
+
+
+
+
+
+
+
+
+
+                               Logon Processing                  CONSAT/PAD
+
+
+
+
+                                                               June 2, 1987
+
+
+
+
+
+
+
+                               TABLE OF CONTENTS
+
+    Section                                                            Page
+
+
+
+    1.   Introduction                                                     1
+
+
+    2.   Design Considerations                                            2
+      2.1   CONSAT                                                        2
+      2.2   PAD                                                           3
+      2.3   Design Constraints                                            3
+
+
+    3.   New CONSAT Login Syntax                                          4
+      3.1   OPTION FIELD                                                  4
+      3.2   USER FIELD                                                    5
+      3.3   DESTINATION LIST                                              5
+      3.4   EXTENSION FIELD                                               6
+      3.5   PASSWORD FIELD                                                6
+
+
+    4.   Selection PAD Command Signal                                     7
+      4.1   Facility Code Enhancements                                    8
+      4.2   Facility Request Code Changes                                 9
+      4.3   Address Block Format Enhancements                            10
+
+
+    5.   PAD LOGII Service Signals                                       12
+      5.1   Selection PAD Command Signal Error Messages                  12
+      5.2   Help  Display                                                13
+         5.2.1    "HELP_1" Display when XPRADR is OFF                    13
+         5.2.2    "HELP_1" Display when XPRADR is ON                     14
+         5.2.3    "HELP" - with LESSHELP flag ON and XPRADR flag OFF     15
+         5.2.4    "HELP" - with LESSHELP flag ON and XPRADR ON           16
+
+
+    6.   System Generation                                               17
+      6.1   SETFLAG - Enable Flag                                        17
+         6.1.1    LOG II protocol flag                                   17
+         6.1.2    XPRADR - Transparent Addressing Scheme                 18
+
+      6.2   DEFOADR - Define Default Origination Address                 19
+      6.3   MYOADR  - Define My Origination Address                      19
+      6.4   ADRPRT - Define Addressable Port with Reverse Charging       20
+      6.5   OUTHOST - Define OUTDIAL Host with Reverse Charging          22
+      6.6   INCOMINGCALL - Define Incoming Call with Reverse Charging    22
+
+                               Logon Processing                  CONSAT/PAD
+
+
+
+
+                                                               June 2, 1987
+
+
+      6.7   NTNMAP - Map Network Terminal Numbers with Ports             23
+
+
+    7.   SWBT SPECIAL REQUIREMENTS                                       24
+      7.1   SWBT Numbering Plan                                          24
+      7.2   PAD Login Procedure                                          25
+      7.3   System Generation Requirements                               25
+
+
+                                 APPENDICES
+                                 ==========
+
+
+    I.   SAMPLE PAD LOGII TYMFILE                                        27
+
+
+    II.  Summary of Selection Pad Command Signal Format                  30
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                               Logon Processing                  CONSAT/PAD
+
+
+
+
+    Introduction                                               June 2, 1987
+
+
+
+
+
+
+                               1 -  Introduction
+
+
+         The purpose of  this project is to  enhance the CONSAT  to support
+    Logon Session II (LOGII) protocol.
+
+         This  support is  addressed by  Project Initiation  Request Number
+    2214.   The  scope  of   this  document  is  to  cover   the  necessary
+    modifications  and enhancements  to the  CONSAT login  process  and the
+    Selection PAD Command Signal.
+
+         This  project does  not cover  all the  functions provided  by the
+    CONSAT  slot,  follow  up  projects  are  necessary  to   make  further
+    enhancements to the entire CONSAT support for the new login syntax.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                           1
+
+
+
+
+    Design Considerations                                      June 2, 1987
+
+
+
+
+
+
+                          2 -  Design Considerations
+
+
+         The idea behind the new  login syntax is to alleviate  the parsing
+    processes performed by the slot, and allow transparent modifications to
+    the login syntax and content without involving the ISIS, Node Code, and
+    interface slots.
+
+         Users in the CONSAT environment performing the login  process will
+    be governed by  the ADRII login syntax.   If the login  syntax changes,
+    there should be no major changes in the CONSAT slot.
+
+         The same idea should also apply to the CONSAT/PAD environment.
+
+
+
+
+
+
+                                  2.1  CONSAT
+
+
+         For compatibility reasons, the CONSAT slot must be flexible enough
+    so that  after deployment,  the CONSAT  can be  used in  an environment
+    where the node does not support the new login syntax features.
+
+         The enhanced CONSAT will allow users, without any knowledge of the
+    new features, to login as usual.  For users who wish to make use of the
+    new features, the CONSAT must be configured accordingly.
+
+         If the new CONSAT resides in a node without the  LOGII capability,
+    and the CONSAT  is configured to support  the new features,  the CONSAT
+    slot will not be  able to stay up in  the network.  This is due  to the
+    incompatibility of the communications  between the CONSAT slot  and the
+    ISIS.  For this environment, either the CONSAT slot must  be downgraded
+    to  the earlier  version, or  the whole  node is  upgraded to  the most
+    current versions with LOGII capability.
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                           2
+
+
+
+
+    Design Considerations                                      June 2, 1987
+
+
+                                   2.2  PAD
+
+
+         CCITT recommendation X.28  defines how the  PAD should be  used to
+    perform  the  login  process.   The  enhancements  should  consider the
+    restricted X.28 call set up  syntax and implement the X.28 call  set up
+    procedures to make use of the new ADRII login syntax.
+
+
+
+
+
+
+                            2.3  Design Constraints
+
+
+         Due  to  the time  constraints,  the phase  1  implementation will
+    provide only the following functions:
+
+           1. Non-SIO PAD, defined by 1980 CCITT X.3 parameters.
+
+           2. Regular CONSAT connections under ASYNC or SIO, ie. no Telex.
+
+           3. OUTDIAL.
+
+           4. Addressable Ports.
+
+           5. Other restrictions specified by the CONSAT version 6.xx ERS.
+
+         Login process via the mechanism of PVC(Permanent  Virtual Circuit)
+    will  be considered  as  a future  development,  as well  as  the other
+    functions, ie. TELEX.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                           3
+
+
+
+
+    New CONSAT Login Syntax                                    June 2, 1987
+
+
+
+
+
+
+                         3 -  New CONSAT Login Syntax
+
+
+         For a detailed description  of the new login syntax,  please refer
+    to the Address Processing project(ADRII), PIR# 1553.  The  login syntax
+    description provided in this document is for quick reference only.
+
+         The new login syntax for the ADRII is briefly defined as follows:
+
+         New Login Syntax:
+
+       [ option ] [ user  ] [ destination ] [ extension ] [ password ]
+       [ field  ] [ field ] [    list     ] [   field   ] [   field  ]
+
+
+         The  new  login process  does  not preclude  the  old  style login
+    syntax.   Users  can  still logon  to  the  destination  host interface
+    without using the new login syntax.
+
+         The  extension field  is  not interpreted  by the  CONSAT,  and is
+    passed on to the Supervisor.   The extension field can be used  to pass
+    user data to the destination interface.
+
+         The extension field does not exist if the user tries to  login via
+    the X.28  login process provided  by the PAD.   However, the  Call User
+    Data Block can be used to send user data to the destination interface.
+
+
+
+
+
+
+                               3.1  OPTION FIELD
+
+
+         The option  field consists  of control  characters allowed  in the
+    existing  login  process,  and  the  option  enclosed  by  parentheses.
+    Multiple options are separated by a comma(,).
+
+         The option field items include the following:
+
+            TCLass=A                Throughput class(Same as Control A)
+            TCLass=B                Throughput class(Same as Control B)
+            TCLass=C                Throughput class(Same as Control C)
+            TCLass=D                Throughput class(Same as Control D)
+            Hdx, or Halfduplex      Halfduplex device(Same as Control H)
+            Interact                Interactive device(Same as Control I)
+            Batch                   Batch type device(Same as Control V)
+            Volume                  Volume circuit(Same as Control V)
+
+    CONSAT/PAD                 Logon Processing                           4
+
+
+
+
+    New CONSAT Login Syntax                                    June 2, 1987
+
+
+            Rc or Reverse           Reverse Charging request
+
+
+
+
+
+
+
+                                3.2  USER FIELD
+
+
+         This is the field where the user puts in the user name.  Two types
+    of user name formats are allowed; the regular username format,  and the
+    X.121 username format.  The  regular username can be "JSMITH",  and the
+    X.121 username can be in the form of " -<DNIC><NTN>".
+
+
+
+
+
+
+                             3.3  DESTINATION LIST
+
+
+         The destination list consists of multiple destination fields.  The
+    destination  field is  entered  to indicate  the  requested destination
+    interface  address.   This  address  can  be  a  gateway  or  the final
+    destination host interface.
+
+         Possible combinations are:
+
+            username:BUBB:1234;password     or
+
+            username:1234;password
+
+
+         Each destination field starts with a colon(:), and is  followed by
+    one of the following entries.
+
+            HOST-NUMBER.SUBHOST
+              This is a 5-digit host number followed by a 4-digit
+              subhost number.  Multiple entries are separated by a
+              comma(,).
+
+            *
+              This is a login request to the active Supervisor.
+
+            %NODE-NUMBER
+              This address requests a circuit to the node number
+              entered, and will be connected to the DDT process.
+              This is used in place of a kernel host number.
+
+            HOST-NAME
+
+    CONSAT/PAD                 Logon Processing                           5
+
+
+
+
+    New CONSAT Login Syntax                                    June 2, 1987
+
+
+              This address begins with a letter to indicate a name
+              is being entered.  The second character and after can
+              be another letter or digit or punctuation.
+
+            - RPOA
+              This is the Recognized Private Operating Agency.
+
+            - DNIC NTN
+              This format indicates that X.121 addressing is used.
+              DNIC is a 4-digit number, and NTN is a 10-digit number.
+
+
+
+
+
+
+
+                             3.4  EXTENSION FIELD
+
+
+         This field is enclosed by brackets([ ]).  Format of this  field is
+    undefined.
+
+         If it is entered, it will not be examined by the CONSAT,  and will
+    be passed on directly to the Supervisor.
+
+
+
+
+
+
+                              3.5  PASSWORD FIELD
+
+
+         This field  is used if  the username requires  a password  for the
+    network Supervisor to complete the login process.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                           6
+
+
+
+
+    Selection PAD Command Signal                               June 2, 1987
+
+
+
+
+
+
+                       4 -  Selection PAD Command Signal
+
+
+         The Selection PAD Command Signal is used to make an  outgoing call
+    from  a DTE  connected to  a  CONSAT/PAD port  to a  remote  DTE.  This
+    command  signal  consists   of  three  blocks;  the   Facility  Request
+    Block(optional), the Address  Block(mandatory), and the Call  User Data
+    Block(optional).
+
+         X.28 PAD Selection Command Signal Syntax :
+
+     [facility request block] [address block] [call user data block]
+
+
+         The selection command is terminated with a carriage return or plus
+    "+"; therefore these  characters should only appear  at the end  of the
+    command.
+
+         The Facility Request  Block consists of several  facility requests
+    marked by facility request codes.  Each request is separated by a comma
+    ",".  Following is the general format of the facility request block:
+
+            T____,N_________,R,G__,TCL=n-
+
+
+         The dash  "-" marks the  end of this  block.  The  descriptions of
+    each request code can be found on the following sections.
+
+         Following is an example of the facility request:
+
+            T3106,NJSMITH;password,R,G01,TCL=4-
+
+
+         Spaces  and DEL  characters  are discarded  if included  in  a NUI
+    facility request.  A  username and password may  appear as an  NUI, and
+    can not contain the character semicolon ";" or any  control characters.
+    The semicolon will be used to separate the username from  the password.
+    Colon ":" is not allowed in the username string since it marks  the end
+    of the user name string.
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                           7
+
+
+
+
+    Selection PAD Command Signal                               June 2, 1987
+
+
+                        4.1  Facility Code Enhancements
+
+               
+            N      - indicates that NUI selection is being requested.
+                     The "N" is directly followed by the Network User
+                     Identification (NUI).  The NUI will be one of the
+                     following formats:
+
+                    Nusername;password
+
+                      The "username;" is echoed but the optional password
+                      following the ";" is not echoed.  
+
+                    N=ddddnnnnnnnnnn
+
+                      The "=" indicates a Data network identification
+                      code (DNIC) and a Network terminal number (NTN) is
+                      being specified instead of the username format.
+                      The DNIC will consist of four digits (0-9) with the
+                      first digit being greater than 1.
+                      The NTN consists of one to ten digits.
+
+
+
+         Note  :  If  the NUI  is  not  entered, the  OADR  defined  by the
+    MYOADR  macro  is used,  in  place of  the  NUI,                 by the
+    Supervisor for validation purpose.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                           8
+
+
+
+
+    Selection PAD Command Signal                               June 2, 1987
+
+
+                      4.2  Facility Request Code Changes
+
+
+            G     - This code requests the Closed User Group selection.
+                    The "G" should be directly followed
+                    by a closed user group index number.
+                    The index number will be used to find the
+                    associated interlock code.
+
+                    Example:  Gcc
+
+                    The closed user group index number "cc" is 
+               specified by a two digit decimal number.
+
+            R     - This code indicates the Reverse Charging is requested.
+                    The collect call request is subject to network
+                    validation.  The destination
+                    host interface may choose to reject the call based on
+                    other reverse charging criteria.
+                    The default is no reverse charging if R is not entered.
+
+                    Example:  R,
+
+            T     - This facility code indicates RPOA selection
+                    is requested.
+                    The RPOA value follows the T.
+
+                    Example:  Tdnic,
+
+                    The RPOA "dnic" consists of four digits (0-9).
+                    The first digit of dnic must be greater than 1.
+
+            TCL=  - This facility code indicates the throughput class.
+                    The value after the "=" can be from 3 to 12.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                           9
+
+
+
+
+    Selection PAD Command Signal                               June 2, 1987
+
+
+                    4.3  Address Block Format Enhancements
+
+    abbreviated address
+
+                    - A period (.) will begin each abbreviated address,
+                      and must be terminated by an asterisk(*) if
+                      Call User Data Field is requested.
+                      Multiple abbreviated addresses are separated
+                      by a comma(,).
+
+                      The string after the first period(.) will be
+                      passed as is to the Supervisor for validation.
+                      Possible formats of the string are :
+                      
+                      .hhhhh.ssss*
+                            5 digits of host number, and 4 digits of
+                            subhost number.
+                      .%nnnnn*
+                            The kernel host of the specified 5-digit
+                            node number is requested.
+                      .host-name
+                            Host name is requested.
+            Example:  
+
+            .12345.12
+                      12345 is the host number, and 12 is the
+                      subhost number.
+
+            .1234.12,954.78
+                      Multiple host numbers are being requested.
+                      1234 and 954 are the host number.
+                      12 and 78 are the subhost numbers for
+                      each requested host number.
+            .HOST123
+                      Host name HOST123 is being requested.
+            .%1234
+                      Requesting kernel host of node 1234.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          10
+
+
+
+
+    Selection PAD Command Signal                               June 2, 1987
+
+
+
+
+    full address
+                    - There are two possible formats for this entry.
+
+      Following descriptions apply only if the flag XPRADR is set to OFF.
+      Please refer to the system generation section for details.
+
+                      The full address is in the form of
+
+                            <DNIC><NTN>
+            Example:
+
+              31060123456789
+                    3106 is the four digit DNIC.
+                    0123456789 is the 10-digit Network Terminal Number.
+
+      Following descriptions apply only if the flag XPRADR is set to ON.
+      Please refer to the system generation section for details.
+
+                    The full address can be in any form, following are
+                    two possible formats:
+
+                            1 <DNIC> <NTN>
+                            <LOCAL NTN>
+                      
+                    The above two address formats are special to
+                    TYMNET's numbering plan, and are treated
+                    transparently by the PAD.
+                    With the XPRADR set to ON, this full address can be
+                    in any numerical form not defined by Tymnet's
+                    numbering plan.
+                    The interpretations of the addresses are subject to
+                    the TYMNET Supervisor's knowledge of the
+                    specific numbering plan customized for the network.
+
+            Example:
+
+              131060123456789
+                    1 indicates a special numbering plan is requested.
+                    3106 is the four digit DNIC.
+                    0123456789 is the 10-digit Network Terminal Number.
+
+              234567
+                    This is a LOCAL NTN.
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          11
+
+
+
+
+    PAD LOGII Service Signals                                  June 2, 1987
+
+
+
+
+
+
+                        5 -  PAD LOGII Service Signals
+
+
+
+
+
+
+
+               5.1  Selection PAD Command Signal Error Messages
+
+
+         Pad  Service  Signals  will  be  generated  per  the   CCITT  X.28
+    Recommendation.  No TYMNET extended service signals will be generated.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          12
+
+
+
+
+    PAD LOGII Service Signals                                  June 2, 1987
+
+
+
+
+
+
+
+
+                              5.2  Help  Display
+
+
+
+
+
+
+                5.2.1  "HELP_1" Display when XPRADR is OFF
+
+            A call may be established by using the Selection PAD
+            Command Signal, which consists of the following:
+
+                          Facility Request Block Formats
+
+            Nusername(;psword) - the nui facility, username and password
+            N=ddddnnnnnnnnnn   - the nui facility, DNIC and NTN
+            Tnnnn              - a 4  digit RPOA facility
+            R                  - reverse charging is requested
+            Gnn                - a 1 or 2 digit closed user group index
+            TCL(ass)=nn        - a 1 or 2 digit throughput class facility
+            ,                  - facility request separator
+            -                  - an end of facilities delimiter
+
+
+                            Address Block Formats 
+
+            ddddnnnnnnnnnn     - 4 digit DNIC and a 10 digit NTN
+            .hhhhh.ssss*       - a 1 to 5 digit host and a 1 to 4 digit
+                                 sub-host abbreviated address
+
+                            Call User Data Block Formats
+
+            Dc1c2...c12        - call user data of up to 12 characters
+            Pc1c2...c12        - same as D but characters are not echoed
+            Hca1cb1...ca12cb12 - same as D but hexadecimal digit pairs 
+                                 each corresponding to an ascii character
+
+            If the port is so configured, the following command transfers
+            the port from command mode to login mode:
+
+            LOG(in)            - the command 
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          13
+
+
+
+
+    PAD LOGII Service Signals                                  June 2, 1987
+
+
+                5.2.2  "HELP_1" Display when XPRADR is ON
+
+            A call may be established by using the Selection PAD
+            Command Signal, which consists of the following:
+
+                          Facility Request Block Formats
+
+            Nusername(;psword) - the nui facility, username and password
+            N=ddddnnnnnnnnnn   - the nui facility, DNIC and NTN
+            Tnnnn              - a 4  digit RPOA facility
+            R                  - reverse charging is requested
+            Gnn                - a 1 or 2 digit closed user group index
+            TCL(ass)=nn        - a 1 or 2 digit throughput class facility
+            ,                  - facility request separator
+            -                  - an end of facilities delimiter
+
+
+                            Address Block Formats 
+
+            1ddddnnnnnnnnnn    - 1 plus 4 digit DNIC and a 10 digit NTN
+            nnnnnn             - a 6 digit digit local NTN
+            .hhhhh.ssss*       - a 1 to 5 digit host number and a 1 to 4
+                                 digit subhost number
+
+                            Call User Data Block Formats
+
+            Dc1c2...c12        - call user data of up to 12 characters
+            Pc1c2...c12        - same as D but characters are not echoed
+            Hca1cb1...ca12cb12 - same as D but hexadecimal digit pairs 
+                                 each corresponding to an ascii character
+
+            If the port is so configured, the following command transfers
+            the port from command mode to login mode:
+
+            LOG(in)            - the command 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          14
+
+
+
+
+    PAD LOGII Service Signals                                  June 2, 1987
+
+
+
+
+
+
+
+                5.2.3  "HELP" - with LESSHELP flag ON and XPRADR flag OFF
+
+         The following HELP display will appear if the CONSAT  slot tymfile
+    has the LESSHELP flag set on and the XPRADR flag is set to OFF.
+
+            Help Information
+
+            Nusername(;psword),Tnnnn,R,Gnn-<DNIC><NTN>Dc1c2...c12
+            Nusername,tclass=n-.host#.subhost,.host#.subhost*Pc1...c12
+            N=ddddnnnnnnnnnn,Tnnnn-.hostname*hca1cb1...ca12cb12
+
+            CLR
+            RESET
+            INT
+            STAT
+            PROF n
+            PAR?
+            PAR?0:0
+            SET
+            SET?
+            SETn1:v1,n2:v2,...
+            SET?n1:v1,...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          15
+
+
+
+
+    PAD LOGII Service Signals                                  June 2, 1987
+
+
+
+
+
+
+
+                5.2.4  "HELP" - with LESSHELP flag ON and XPRADR ON
+
+         The following HELP display will appear if the CONSAT  slot tymfile
+    has the LESSHELP flag set on and XPRADR is set to ON.
+
+            Help Information
+
+            Nusername(;psword),Tnnnn,R,Gnn-1<DNIC><NTN>Dc1...c12
+            Nusername(;psword),Tnnnn,R,Gnn-<LOCAL NTN>Pc1...c12
+            N=<DNIC><NTN>-<LOCAL NTN>
+            -1<DNIC><NTN>
+
+            CLR
+            RESET
+            INT
+            STAT
+            PROF n
+            PAR?
+            PAR?0:0
+            SET
+            SET?
+            SETn1:v1,n2:v2,...
+            SET?n1:v1,...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          16
+
+
+
+
+    System Generation                                          June 2, 1987
+
+
+
+
+
+
+                            6 -  System Generation
+
+
+
+
+
+
+
+                          6.1  SETFLAG - Enable Flag
+
+
+         Flag "LOGII"  will be  created to enable  the LOGII  logon session
+    protocol.    Flag  "XPRADR"   is  introduced   to   enable/disable  the
+    transparent interpretation of the X.28 destination address field block.
+
+
+
+
+
+                6.1.1  LOG II protocol flag
+
+         Syntax : SETFLAG(LOGII,ON/OFF)
+
+         Default : ON.
+
+         Description :
+
+         This  macro definition  enables/disables the  LOGII  logon session
+    protocol in the CONSAT slot.  The default setting is ON so  that CONSAT
+    always uses the LOGII logon session protocol.
+
+         Example:  SETFLAG(LOGII,OFF)
+
+         The LOGII features are disabled.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          17
+
+
+
+
+    System Generation                                          June 2, 1987
+
+
+                6.1.2  XPRADR - Transparent Addressing Scheme
+
+         Syntax : SETFLAG(XPRADR,OFF/ON)
+
+         Default : OFF.
+
+         Description :
+
+         This macro disables/enables the transparent addressing scheme.  In
+    the Tymnet addressing syntax,  a dash(-) is required before  the <DNIC>
+    <NTN>.  Disabling the  transparent addressing scheme allows  the CONSAT
+    to send the X.28 full address with the dash(-) before it.
+
+         When PAD user enters the - <DNIC> <NTN> with this flag set  to OFF
+    in the PAD selection command mode, the full address will be sent to the
+    Supervisor in the form of : - <DNIC> <NTN>.
+
+         If the flag is set to ON, whatever the PAD users type in after the
+    dash(-), ie.  - <string>,  the :  <string> is  sent to  the Supervisor.
+    CONSAT will not perform any validations on the <string>.
+
+         Following is the  mapping of the login  string entered by  the PAD
+    user and the string that CONSAT/PAD sends out to the Supervisor.
+
+      XPRADR is OFF
+
+             X.28                   Login String to the Supervisor
+
+           - <DNIC> <NTN>               : - <DNIC> <NTN>
+           
+           - .<abbreviated adr>         : <abbreviated adr>
+
+      XPRADR is ON
+
+             X.28                   Login String to the Supervisor
+
+           - <full adr>                 : <full adr>
+           
+           - .<abbreviated adr>         : <abbreviated adr>
+
+
+         Setting this flag to ON  or OFF does not affect the  processing of
+    the abbreviated address.  CONSAT/PAD will send the whole string  to the
+    Supervisor the way it is entered by the user.
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          18
+
+
+
+
+    System Generation                                          June 2, 1987
+
+
+               6.2  DEFOADR - Define Default Origination Address
+
+
+         Syntax : DEFOADR(string)
+
+         Default : None.
+
+         Description :
+
+         This optional  macro defines the  default Origination  Address for
+    the slot.
+
+         OADR  is sent  to the  Supervisor in  the circuit  request  by the
+    CONSAT.  If MYOADR is not defined for the port requesting  the circuit,
+    the "string" defined in  this macro is used  in the OADR field  for the
+    Supervisor.
+
+         The  "string" can  be entered  in the  form of  "-<DNIC><NTN>" for
+    X.121 addressing format, or as  "username string" for  regular Tymnet's
+    username format.
+
+         This OADR will be used by the Supervisor as the user name if it is
+    not  entered by  the user,  and  is subject  to the  validation  by the
+    Supervisor.  It is also used as the CALLING ADDRESS by  the destination
+    interface, ie. X.25 or PAD with incoming call capability.
+
+         If this macro is not  defined, the OADR will be determined  by the
+    macro MYOADR.  If  both are not defined,  the CONSAT will not  send the
+    OADR to the Supervisor.
+
+
+
+
+
+
+                 6.3  MYOADR  - Define My Origination Address
+
+
+         Syntax : MYOADR(string,p0,p1,p2,...,p12,p13,p14)
+
+         Default : Defined by DEFOADR macro.
+
+         Description :
+
+         This macro  defines the  Origination Address that  is sent  to the
+    Supervisor in the circuit request.
+
+         The first argument, string, defines the OADR to be sent out  as is
+    in the circuit request.  This string  can be defined in the form  of "-
+    <DNIC><NTN>" or in the form of "username".
+
+         The second and the rest  of the arguments, up to 15  arguments are
+
+
+    CONSAT/PAD                 Logon Processing                          19
+
+
+
+
+    System Generation                                          June 2, 1987
+
+
+    allowed, associate the "string" with  the ports that CONSAT is  to send
+    out as the  OADR.  The port arguments  can be port ranges  in ascending
+    order.
+
+         If this macro is not  specified, the default OADR will be  used in
+    the  circuit request.   If  both the  DEFOADR  and the  MYOADR  are not
+    defined, the CONSAT will not send any OADR to the Supervisor.
+
+         The OADR  is used by  the Supervisor, in  the absence of  the user
+    name field, as the user name and is subject to the validation process.
+
+         This OADR  is also used  as a CALLING  ADDRESS by  the destination
+    interface, ie. X.25 or PAD with incoming call capability.
+
+         Example :
+
+         MYOADR(-31060123456789,0-4,10-20,22,23)
+
+         MYOADR(MVS1,0-31)
+
+
+
+
+
+
+          6.4  ADRPRT - Define Addressable Port with Reverse Charging
+
+
+         Syntax : ADRPRT(port-range,host#,adr-range,att,rc)
+
+         Description :
+
+         This  macro defines  an addressable  port environment.   The port-
+    range specifies the ports  within this environment.  The  host# defines
+    the  host number  assigned for  the addressable  ports.   The adr-range
+    defines  the addresses  assigned for  the ports.   The att  defines the
+    attribute for the port assignment.  Please refer to the existing CONSAT
+    ERS for detailed descriptions of the above parameters.
+
+         The last  parameter, rc, indicates  whether this  addressable port
+    environment will accept reverse charging or not.
+
+         The rc can be one of the following :
+
+         YES     - Reverse charging is acceptable.
+
+         NO      - No Reverse charging calls.
+
+         If  this parameter  is  not specified,  the default  is  to reject
+    reverse  charging call  request.  CONSAT  reports the  reverse charging
+    capability to the  Supervisor, so that  when user makes  collect calls,
+    the Supervisor validates the request.  Based on the capability reported
+
+
+    CONSAT/PAD                 Logon Processing                          20
+
+
+
+
+    System Generation                                          June 2, 1987
+
+
+    by  the  CONSAT,  the   circuit  request  is  screened   and  validated
+    accordingly.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          21
+
+
+
+
+    System Generation                                          June 2, 1987
+
+
+           6.5  OUTHOST - Define OUTDIAL Host with Reverse Charging
+
+
+         Syntax : OUTHOST(host#,cmd-ports,inactivity-timer,rc)
+
+         Description :
+
+         The  host#  is  used for  the  circuit  targeting.   The cmd-ports
+    indicates  the  maximum  number  of  command  ports  allowed,  and  the
+    inactivity-timer sets the  duration in which  if there is  no activity,
+    the circuit is to be terminated.
+
+         Same as the  ADRPRT, the rc  parameter instructs CONSAT  to report
+    the reverse charging capability to the Supervisor so that  collect call
+    requests can be validated by the Supervisor.
+
+
+
+
+
+
+        6.6  INCOMINGCALL - Define Incoming Call with Reverse Charging
+
+
+         Syntax : INCOMINGCALL(init,p0-pe,host#,adr0-adr1,attr,rc)
+
+         Description :
+
+         The  first parameter,  init, indicates  whether the  incoming call
+    request  will  be  answered  automatically  by  the  PAD,  or  answered
+    specifically by the  DTE.  The p0-pe  associates the port  numbers with
+    the host number defined by the host#.
+
+         This host number is requested by the user in the logon string, and
+    is passed to the PAD  in the incoming needle.  The  adr0-adr1 specifies
+    the addresses requested  by the circuit  request in the  subhost field.
+    The  port  assignment criteria  is  determined by  the  attr parameter.
+    Please refer  to the  CONSAT ERS  for the  detailed description  of the
+    above parameters.
+
+         The last field, rc, is defined the same way as the ADRPRT.
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          22
+
+
+
+
+    System Generation                                          June 2, 1987
+
+
+             6.7  NTNMAP - Map Network Terminal Numbers with Ports
+
+
+         Syntax : NTNMAP(NTN,p0,p1,p2,...,p13,p14)
+
+         Default : No NTN mapping for ports.
+
+         Description :
+
+         This macro associates  the NTN, one to  ten digits long,  with the
+    ports defined in the p0-p14 parameters.
+
+         This NTN is  used by the CONSAT,  when receiving an  incoming call
+    request,  to  search  for  the port  number(s)  defined  for  this NTN.
+    Multiple NTNMAP can be used to map multiple NTNs to the ports.
+
+         When <DNIC> <NTN> is used as the destination address,  CONSAT will
+    receive this X.121 address  in the incoming needle from  the Supervisor
+    in the form of  - <DNIC> <NTN>.  If  the requested <NTN> is  not found,
+    the circuit will be  rejected by the PAD.   If the <NTN> is  found, the
+    port assignment is based on the following rules.
+
+         First,  the  terminating  host  host  number  is  checked  for the
+    associated  port  range  assignments  defined  by  the  host definition
+    macros, ie. ADRPRT or  INCOMINGCALL.  The port number is  cross checked
+    with the  port range  defined.  If no  common ports  can be  found, the
+    circuit is rejected.  If more than one is found, the assignment is then
+    based on the attribute defined by the macros.
+
+         The port number identifiers, p0-p14, can be a single  port number,
+    or they can be a range of ports in ascending order.
+
+         If this macro is not defined, the call requests that come into the
+    CONSAT will  not go  through the NTN-to-port  mapping process,  and the
+    requests will be granted on the basis of port's availability associated
+    with the terminating host number.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          23
+
+
+
+
+    SWBT SPECIAL REQUIREMENTS                                  June 2, 1987
+
+
+
+
+
+
+                        7 -  SWBT SPECIAL REQUIREMENTS
+
+
+         This  section describes  the special  requirements for  the CONSAT
+    operating in the SWBT network.
+
+
+
+
+
+
+                           7.1  SWBT Numbering Plan
+
+
+         SWBT numbering plan defines the X.121 destination full  address to
+    be in two different formats.
+
+                 SWBT                       TYMNET
+           ----------------             ------------
+
+            1 <DNIC> <NTN>               - <DNIC> <NTN>
+            <LOCAL NTN>                  none
+
+
+         The PAD supports either type of full addresses.  However, only one
+    type is supported by the  PAD through the system generation  process in
+    one slot.
+
+         A flag is provided to  enable the PAD to transparently  accept the
+    special  SWBT destination  address and  send it  to the  Supervisor for
+    validation process.
+
+         The <LOCAL  NTN> is composed  of at least  6 decimal  digits.  The
+    first digit must be greater than 1 in order for it to be different from
+    the 1 DNIC NTN format.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          24
+
+
+
+
+    SWBT SPECIAL REQUIREMENTS                                  June 2, 1987
+
+
+                           7.2  PAD Login Procedure
+
+
+         The call  set up  procedures do not  change for  SWBT environment.
+    The user enters in the destination address block the 1 <DNIC> <NTN>, or
+    the  the <LOCAL  NTN>.  The  PAD sends  the address  to  the Supervisor
+    without any conversion.
+
+         The  abbreviated   address  processing  is   the  same   for  SWBT
+    environment.   The  format is  described  in the  address  block format
+    enhancements under Selection PAD Command Signal section.
+
+
+
+
+
+
+                      7.3  System Generation Requirements
+
+
+         In order to  enable the SWBT  numbering plan, the  CONSAT/PAD slot
+    must be configured  by using the  system generation macro  SETFLAG, and
+    the flag XPRADR must be set to ON.  A brief example of the usage  is as
+    follows:
+
+            SETFLAG(XPRADR,ON)
+
+
+         Note  that this  flag  does not  affect the  regular  CONSAT login
+    process, which does not use the X.28 call set up procedures.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          25
+
+
+
+
+                                                               June 2, 1987
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                  *   ****  ****  ***** *   * ****  ***** *   *
+                 * *  *   * *   * *     **  * *   *   *    * * 
+                ***** ****  ****  ****  * * * *   *   *     *  
+                *   * *     *     *     *  ** *   *   *    * * 
+                *   * *     *     ***** *   * ****  ***** *   *
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          26
+
+
+
+
+    SAMPLE PAD LOGII TYMFILE                                   June 2, 1987
+
+
+
+
+
+
+                    APPENDIX I.   SAMPLE PAD LOGII TYMFILE
+
+
+            :***
+            :       ISIS CONSAT / PAD Sample Configuration file
+            :       ISCS07.T00 - APRIL 7, 1987
+            :***
+
+            :***
+            :       Examples for new macros for SWB / LOG II protocol
+            SETFLAG(LOGII,ON)  :enable LOG II logon protocol/syntax
+            SETFLAG(XPRADR,ON) :enable transparent addressing
+            DEFOADR(-31062314867905)
+            :
+            :***
+
+            :***
+            :       Examples of macros
+            ISISRING(1024)     :Set ISIS dispatcher ring size in decimal
+            ASYNCRING(64)      :Set Async I/O ring size in decimal
+            SHOWME(10)         :level of configuration information
+            :
+            :    Declare target node, slot
+            :
+            LOCATION(2657,2)
+            :
+            :    Declare ASYNC physical ports
+            :
+            DECLARE(ASYNC,16)  :64 ASYNC ports
+
+            :    Origination accounting host
+                    ACHOST(912)
+
+            :***
+            :    Port definition
+
+            :       Declare exceptions
+                    TID120(0-1)        :Ports 0-1 to use 120 CPS TID-msg
+                    TID240(2-3)        :Ports 2-3 to use 240 CPS TID-msg
+                    TID480(4)          :Port 4 to use 480 CPS TID-msg
+                    TIDSPP(5-6)        :Ports 5-6 to use TID-message 
+            :                          :with space parity
+            :***
+            : Define Origination Address
+            :
+            MYOADR(-31060000123456,0,5,10-31)
+            MYOADR(PADUSER,1-4,6-9,32-63)
+            :
+            :***
+
+    CONSAT/PAD                 Logon Processing                          27
+
+
+
+
+    SAMPLE PAD LOGII TYMFILE                                   June 2, 1987
+
+
+            : PAD functions and options
+            :    Declare configuration
+                    PADRELATEDFUNCTIONS(ON) :turn PAD functions on
+            :    Enhanced Options
+                    AUTOCAL(DEFCMD,NUSERNAME"BBPASSWORD"AD"AE552,8)
+                    COMTIMER(5,11-12)  :hangs port in cmd state
+            :                          :if timer exp
+                    CUDUSE(-12)        :# chars copied from usern placed in
+            :                          :cud field,(-)from last char entered
+            CUG(1,1,1,3)               :CUG facility sw opt's
+            CUGPREF(0,3)               :specifying preferential cug 
+            CUGROUP(0,3106,0,3)        :specifying interlock code mapping
+            EDITBUFFERSIZE(128,1-15)   :size of editing buffer
+            :
+            INCOMINGCALLS(AUTO,0-15,911,0-15,ANY,YES) :inc calls answ auto
+                                       :YES for collect call
+            :
+            NTNMAP(4084467777,P0-P4)   :NTN 4084467777 is for ports 0-4
+            NTNMAP(4084468888,P4,P5)   :NTN 4084468888 is for P4, P5
+            :
+            INITMODE(1,11-12)          :PAD cmd mode initially(ports 11-12)
+            INITMODE(0,13-15)          :login mode initially (ports 13-15)
+            LESSHELP(OFF)              :provide maximum help
+            MAXASSEMBLYTIMER(5,4)      :packet forwarding timer
+            NNUICAL(ON)                :non NUI facility call
+            ODNIC(3210)                :DNIC used to address the network
+            PADCOMMANDS(1,0-15)        :support TYMENT extended commands
+            POSMODES(1,1-5)            :login mode only=default,(ports 1-5)
+            POSMODES(2,6-10)           :command mode only, (ports 6-10)
+            POSMODES(3,11-15)          :allow PAD cmd and login mode
+            SEGAC(30)                  :# of char in a segment for acctg
+            UUNUMB(ON)                 :implements the NATIONAL NO SYS
+            :
+            :
+            :.........   PROFILE DEFINITIONS   ........................
+            :
+            :    Define additional terminal profiles
+            :Profiles #1-2 are listed here for reference, they can
+            :not be changed.
+            :
+            :       CCITT PARAMETERS 1 - 18
+            :       
+            :       I                                   P P P P  P   P  P
+            :       D              P P  P    P P P  P   1 1 1 1  1   1  1
+            :     Profile name   , 1,2, 3 ,  4,5,6, 7,  0,2,3,5, 6 , 7, 8
+            :+-------------------+--+-+---+---+-+-+--+---+-+-+-+---+--+---
+            :PRFDEF(1,CCITT Smpl , 1,1,126,  0,1,1,02,  0,1,0,0,127,24,18)
+            :PRFDEF(2,CCITT Trnsp, 0,0,  0, 20,0,0,02,  0,0,0,0,127,24,18)
+             PRFDEF(3,Tymnet     , 1,1, 94,  0,1,5,04, 80,1,0,1,127,24,18)
+            :
+            :       Define national parameters for additional profiles
+            :       Again, national parameters for profiles #1-2 are
+            :       listed for reference.  They can't be changed.
+
+    CONSAT/PAD                 Logon Processing                          28
+
+
+
+
+    SAMPLE PAD LOGII TYMFILE                                   June 2, 1987
+
+
+            :..............................................................
+            :
+            :       TYMNET NATIONAL PARAMETERS 1 - 3
+            :
+            :       I 
+            :       D N N  N
+            :       X,1,2, 3
+            :--------+-+-+--+------------------------------------------
+            :PRFNDF(1,1,0, 0)
+            :PRFNDF(2,0,0, 0)
+             PRFNDF(3,1,1, 0)   :echo <TAB>, Expand <TAB> with <SPACES>
+
+            PROFILE(3,11-15)           :Default profile
+            :***
+
+
+            :***            Force a TID to ct like <CR> TID:
+            SETFLAG(CRTID,ON)          :make cr a valid TID
+            SETFLAG(AEQCR,ON)          :change TID of A EQ <CR>
+            :***
+
+
+            :***            Messages:
+             LTEXT(ULMSG,Tymnet Consat"AFPAD"8D"8A)
+             MTEXT(8,"8D"8ACUSTOMER NAME : )    :change PAD msg #8
+            :***
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          29
+
+
+
+
+    Summary of Selection Pad Command Signal Format             June 2, 1987
+
+
+
+
+
+
+         APPENDIX II.   Summary of Selection Pad Command Signal Format
+
+
+
+                   CCITT Format               TYMNET Extended Format
+                   ------------               ----------------------
+
+            [fac1,...]-[adr][Pc1...c12]     [fac1...]-[adr][Pc1...c12]
+            [fac1,...]-[adr][Dc1...c12]     [fac1...]-[adr][Dc1...c12]
+                                            [fac1...]-[adr][Hab1...ab12]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    CONSAT/PAD                 Logon Processing                          30
+}Yz$à
