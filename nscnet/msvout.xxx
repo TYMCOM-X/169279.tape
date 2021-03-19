@@ -1,0 +1,212 @@
+:====================================================================
+:File name = (NSCNET)MSVOUT.303
+: <<<<< This patch apply to Menu sever version 3.03 >>>>>
+:
+: This patch is special only for demonstration of Japanese BBS.
+: 
+:
+: FUNCTION: Consat outdial
+:
+:  (1) This patch allows users go back to menu when outdial fails.
+:      For example Number busy, Call failed, Malfunction are detected
+:      instead of 'Connect'.
+:  (2) In case menu server gets correct answer (Connect) from consat,
+:      menu server moves into transparent mode.
+:
+: EXAMPLE: Consat outdial
+:
+:       C.SeeincludingThen(Dialing)
+:       C.SeeincludingThen("2e)
+:       C.TosincludingThen("0D"0AConnect)
+:
+:
+: FUNCTION: Tymix modem
+:
+:  (1) This patch allows retries of dial command after session has
+:      not been established because of host status (busy or no carrier).
+:  (2) In case menu server gets correct answer (CONNECT 1200) from
+:      modem, menu server moves into transparent mode.
+:
+: EXAMPLE: Tymix mode
+:
+:       C.String(ATFS2=19)
+:       C.Tossincludingthen(OK)
+:       C.Stirng(ATDT5555132)
+:       C.Tossincludingthen(CONNECT 1200)
+:
+:
+:--- Date------Time---:-----Design history-----------------------:-Designer--
+: 03 AUG 1988 PM03:30 : INITIAL PATCH DESIGNED FOR V1.13            BY YAMAUCHI
+: 01 NOV 1989 AM09:45 : ADD SEND LTM(A9)TOWARD TERMINAL SIDE WHEN CIRCUIT
+:                     : WAS ZAPPED BEFORE HOST CONNECTION COMPLETE. BY KANETA
+: 07 NOV 1989 PM04:05 : UPDATE FOR VERSION3.03                      BY KANETA
+:====================================================================
+
+        PATCH(891120,1545,NIS.KANETA,PA0PTR,,NPORT*0B+40)
+
+P.INDEX BS      NPORT
+        WS      0
+P.TEX1  WS      NPORT
+P.TEX2  WS      NPORT
+P.FLG   BS      NPORT
+P.CNT1  BS      NPORT
+P.MSG   SC      /"8d"8a"8a[ms] BBS host has not accepted your call"8d"8a/
+P.R1    BS      1
+BKPOFFBUF       BC      1,0A1           :BACK PRESSURE OFF
+XPROFFBUF       BC      1,0A9           :XPR OFF
+
+        CONPATCH(IDLE+26,,6)
+        J       PA1PTR,,
+        CONPATCH(PA1PTR,,10)
+        STB     RINCOMINGR1,P.R1        :SAVE REGISTER R1
+        lhl     rUCB,(PortToUCBmap),rIncomingR1,rIncomingR1     :
+        J       IDLE+2C,,               :RETURN
+
+        CONPATCH(SENDDATA,,6)
+        J       PA1PTR,,
+        CONPATCH(PA1PTR,,3C)
+SEND01  LIS     R0,0                    :
+        LB      R1,P.R1                 :GET PORT NO.
+        STB     R0,P.INDEX,R1           :CLEAR INDEX
+        STB     R0,P.FLG,R1             :CLEAR FLG
+        STB     R0,P.CNT1,R1            :CLEAR COUNTER 1
+        SLLS    R1,2                    :R1 X 4
+        ST      R0,P.TEX1,R1            :CLEAR STRING
+        ST      R0,P.TEX2,R1            :CLEAR STRING
+        LHI     R0,$09D+3               :ask for max room in ORING,
+        SRLS    R1,2                    :R1 / 4
+        LHL     R1,(HOSTSIDE),RUCB      :LOAD THE PORT NUMBER
+        J       SENDDATA+8              :RETURN
+
+        CONPATCH(MHSTR+28,,6)
+        J       PA1PTR,,
+        CONPATCH(PA1PTR,,94)
+        LB      R4,P.R1                 :RESTORE R1
+        LB      R7,P.INDEX,R4           :GET INDEX
+        AIS     R7,1                    :ADD 1 TO INDEX
+        STB     R7,P.INDEX,R4           :STORE INDEX
+        SIS     R7,3                    :INDEX - 3
+        JL      CHECK
+        CHI     R7,3
+        JGFS    CHECK                   :IF INDEX > 3, SKIP
+        SLLS    R4,2                    :R4 X 4
+        STB     R0,P.TEX2,R7,R4         :STORE CHARACTER
+        SRLS    R4,2                    :R4/4
+CHECK   CLHI    R0,2E                   :'2E' ?
+        JNFS    CHECK1                  :NO
+        STB     R0,P.FLG,R4             :YES, SO FLAG SET
+        J       MAT3N                   :GET NEXT CHARACTER
+CHECK1  LB      R7,P.FLG,R4             :GET FLAG
+        CLHI    R7,2E                   :IS FLAG '2E' ?
+        JN      MAT3N                   :NO
+        LB      R7,P.CNT1,R4            :GET COUNTER
+        CLHI    R7,04                   :COUNTER = 4 ?
+        JEFS    MAT3N                   :NO , COUNTER > 4
+        SLLS    R4,2                    :R4 X 4
+        STB     R0,P.TEX1,R7,R4         :STORE CHARACTER
+        SRLS    R4,2                    :R4/4
+        AIS     R7,1                    :COUNTER +1
+        STB     R7,P.CNT1,R4            :SAVE COUNTER
+MAT3N   LB      R1,(UBUFER),R9,RUCB     :GET THE MATCH CHAR
+        J       MHSTR+2E                :RETURN
+
+        CONPATCH(XGOTMATCH-12,,6)
+        J       PA1PTR,,
+        CONPATCH(PA1PTR,,190)
+        STB     R3,MATCHINDEX,RUCB      :SAVE THE CURRENT MATCH INDEX
+        CH      R15,SAVEOX
+        IFF(N,SHORT)                    :(IF SOMETHING IN THE ORING)
+        JAL     R4,ELODR,,
+        ENDIF
+MAT5B   LIS     R1,0
+        LB      R7,(LOGINEMPTYINDEX),RUCB       :RESISTOR INDEX
+        LB      R4,(UBUFER),R7,RUCB     :CHECK DEFINED TEXT
+        OR      R1,R4
+        LB      R4,(UBUFER+1),R7,RUCB
+        SLLS    R1,8
+        OR      R1,R4
+        LB      R4,(UBUFER+2),R7,RUCB
+        SLLS    R1,8
+        OR      R1,R4
+        LB      R4,(UBUFER+3),R7,RUCB
+        SLLS    R1,8
+        OR      R1,R4
+        CI      R1,$00D0A434F           :'CONNECT 1200' ?
+        JE      ACOM                    :YES , THEN GOTO ACOM
+CONSAT  CI      R1,$00D0A436F           :'Connect ' ?
+        JN      MAT5E                   :NO , THEN GOTO MAT5E
+        LB      R1,P.R1,,               :GET PORT NO.
+        LB      R7,P.CNT1,R1            :COUNTER GET
+        CLHI    R7,04                   :COUNTER = 4 ?
+        JL      XGOTMATCH-4             :NO , COUNTER IS < 4
+        SLLS    R1,2                    :R1 X 4
+        L       R7,P.TEX1,R1 
+        CI      R7,$00D0A4D61           :'Malfunction' ?
+        JE      MAT5Z
+        CI      R7,$00D0A4361           :'Call failed' ?
+        JE      MAT5Z
+        CI      R7,$00D0A4E75           :'Number busy" ?
+        JE      MAT5Z
+        J       XGOTMATCH-4
+ACOM    LB      R1,P.R1                 :RESTORE R1
+        LB      R7,P.INDEX,R1           :GET INDEX
+        CHI     R7,8                    :
+        JN      MAT5C                   :IF NOT EQ 8, SKIP
+        SLLS    R1,2                    :R1 X 4
+        L       R7,P.TEX2,R1            :GET STRING
+        CI      R7,$042555359           :BUSY ?
+        JE      MAT5Z                   :RETRY
+        J       XGOTMATCH-4             :GO TO WAIT
+MAT5C   CHI     R7,$A14                 :
+        JN      MAT5D                   :IF NOT EQ 14, SKIP
+        SLLS    R1,2                    :R1 X 4
+        L       R7,P.TEX2,R1            :GET STRING
+        CI      R7,$04E4F2043           :NO CARRIER ?
+        JE      MAT5Z                   :RETRY
+        J       XGOTMATCH-4             :GO TO WAIT
+MAT5D   CHI     R7,$A15                 :
+        JN      XGOTMATCH-4             :IF NOT EQ 15, GO TO WAIT
+        SLLS    R1,2                    :R1 X 4
+        L       R7,P.TEX2,R1            :GET STRING
+        CI      R7,$04E4F2044           :NO DIALTONE ?
+        JN      XGOTMATCH-4             :GO TO WAIT
+        J       MAT5Z
+MAT5E   LB      R1,P.R1
+        LB      R7,P.INDEX,R1
+        CHI     R7,$A20
+        JN      XGOTMATCH-4
+        LIS     R7,0
+        STB     R7,P.INDEX,R1
+        SLLS    R1,2
+        L       R7,P.TEX2,R1 
+        CI      R7,$004E4F2050          :NO PORT ?
+        JN      XGOTMATCH-4
+MAT5Z   LR      R2,RTSATSIDER10         :GET PORT NO.
+        LA      R3,BKPOFFBUF            :BACK PRESSURE OFF
+        JAL     R5,OCM,,                :SEND IT TO TERMINAL
+        LR      R2,RTSATSIDER10         :GET PORT NO.
+        LA      R3,XPROFFBUF            :XPR OFF
+        JAL     R5,OCM,,                :SEND IT TO TERMINAL
+        LA      R3,P.MSG 
+        LHI     R1,$07F
+        JAL     R5,SHIPTOTSAT,          :DISPLAY TEXT TO USER
+        JAL     R9,ZHOST,,
+        J       IDLE,,
+
+CONPATCH(FREEUPUCB+6,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,3E)
+        LIS     R3,0
+        STB     R3,P.FLG,R1               :CLEAR FLG
+        STB     R3,P.CNT1,R1              :CLEAR COUNTER 1
+        SLLS    R1,2                      :R2 X 4
+        ST      R3,P.TEX1,R1              :CLEAR STRING
+        ST      R3,P.TEX2,R1              :CLEAR STRING
+        SRLS    R1,2                      :R2 / 4
+        LR      R2,R1                     :SAVE R2 TO R1
+        LA      R3,(ZAPBUF),,             :ZAPBUF ADREES SET
+        J       FREEUPUCB+0C,,            :RETRUN
+
+        ENDPATCH(Support CONSAT and ACOM outdial BBS sevice)
+
+ 
