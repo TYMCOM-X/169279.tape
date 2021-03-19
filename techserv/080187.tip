@@ -1,0 +1,694 @@
+
+
+*********************************************************************
+*********************************************************************
+*********************************************************************
+*                                                                   *
+*                                                                   *
+*        ***  T *** E *** C *** H *** T *** I *** P *** S ***       *
+*                                                                   *
+*                                                                   *
+*********************************************************************
+*********************************************************************
+*********************************************************************
+
+
+                             August 1987
+
+
+                           *** CONTENTS ***
+
+
+
+1.     CONSAT 6.02 and "NOIIX" Flag                           Page  1
+
+
+2.     An Anomoly in the IBM System/38's New Operating System       2
+
+
+3.     SNA Crash Codes                                         3 -  4
+
+
+4.     Limitations in Genning Solo Switcher                    5 -  7
+
+
+5.     Explanation of RAM Raw Accounting Blocks                8 -  9
+
+
+6.     CMTU Multiplication of Strings                         10 - 11
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+**********************************************************************
+*                  T *** E *** C *** H *** T *** I *** P             *
+**********************************************************************
+
+Title:     CONSAT 6.02 and "NOIIX" flag
+
+Author:    John Reilly
+           HQ Tech
+           Network Staff Consultant
+
+Product:   CONSAT
+           Version 6.02
+    
+Each  node  requires  a specific NOIXX tymfile  parameter  setting  as 
+follows:
+
+1.  CONSAT  mode - This is the standard CONSAT/TYMSAT mode we are  all 
+familiar  with.  If you are genning a Version 6.02 CONSAT,  and ALL of 
+the ports will operate in this mode (i.e. you are NOT using OUTDIAL or 
+PAD  modes)  it is neccessary to inhibit the CONSAT from  placing  IIX 
+dialect  calls  by  using  the 'SETFLAG'  macro  or  'NOIIX'equate  as 
+follows:
+
+     SETFLAG(NOIIX,ON)     : This forces the 'IIX' bit in the
+                           : pseudo-needle request to 0, inhibiting
+                           : IIX capability.
+              or
+
+     NOIIX        EQ  1    : Same as above.
+
+
+2.  OUTDIAL mode - This mode is a feature of CONSAT 6.02 which  allows 
+users  to log onto the CONSAT through the network,  and place  dial-up 
+calls  to compatible asynchronous modems.  If OUTDIAL capability is to 
+be  included  in  your CONSAT (i.e.  if you are  using  the  'OUTHOST' 
+macro),  then  'NOIXX'  defaults to 'ON' or '1'.  It is a  good  idea, 
+however,  to include the 'SETFLAG(NOIIX,ON)' macro anyway, in case the 
+OUTDIAL capability is removed at a later date.
+
+3.  PAD mode - This Version 6.02 feature allows the CONSAT to function 
+as  a  PAD  per  CCITT  recommendations  X.3,   X.28,  X.29.   If  PAD 
+functionality  is included in your CONSAT (i.e.  if you are using  the 
+'POSMODES' macro), then 'NOIXX' defaults to 'OFF' as IIX capability is 
+needed  for  PAD  calls.  The 'SETFLAG(NOIXX)'  macro  should  not  be 
+included in this case.
+
+Just a reminder:  CONSAT Version 6.02 IS a betatest product and should 
+not  be  used  without  a betatest agreement.  Hope  this  clears  any 
+confusion and allows our X.25's to run more peacefully.
+
+
+
+
+
+                             Page 1
+
+********************************************************************** 
+*              * T *** E *** C *** H *** T *** I *** P *             *
+**********************************************************************
+     
+Title:     An Anomoly in the IBM System/38's New Operating System
+
+Author:    Ping Chu
+           HQ Tech
+           Project Manager
+           SNA/SDLC Support Group
+
+Product:   SNA 
+           Version 1.04
+
+When  the  IBM  System/38's  new  operating  system  (Control  Program 
+Facility  Version  8) is used in the SNA environment,  it  requires  a 
+couple of patches from IBM to avoid causing TYMNET SNA slots to crash.
+     
+Lately,  we  discovered  that  this new version of the  CPF  operating 
+system  violates  SNA  protocol because it  does  not  prioritize  the 
+expedited-flow requests.  When a TYMNET SNA host interface sends in an 
+expedited-flow  request,   it  requires  the  immediate  attention  of 
+System/38.  However, System/38 ignores this request and continues with 
+its  normal-flow  traffic.   This  is in violation  of  SNA  protocol. 
+Furthermore,  this  will result in a TYMNET SNA slot crash with a code 
+of 53.  
+     
+To resolve this anomaly, System/38's customers need to get a couple of 
+IBM  patches -- Program change A and Program Change B  from their  IBM 
+representatives.        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                            Page 2
+
+
+**********************************************************************
+*               T *** E *** C *** H *** T *** I *** P                *
+**********************************************************************
+
+Title:     SNA Crash Codes
+
+Author:    Ping Chu
+           HQ Tech
+           Project Manager
+           SNA/SDLC Support Group
+
+Product:   SNA
+           Version 1.04
+
+       CRASH CODE                         DESCRIPTION    
+           20              Invalid port 0 message 
+           21              No activation routine  
+           22              Invalid needle received  
+           23              Invalid message received 
+           24              DCB chains error    
+           25              Invalid host number 
+           26              No device address   
+           27              Invalid output request   
+           28              No buffers available
+           29              Monitor table overflow   
+           2A              No command link found    
+           2B              Device address list problem   
+           2C              Impossible receive state 
+           2D              Invalid output command   
+           2E              Invalid transmit request 
+           2F              Invalid IIX dialect code 
+           30              Bad command list pointer 
+           50              Command list locked, or all crash 
+                           locations in the SNA Dispatcher modules  
+           51              Command list empty, or all crash locations 
+                           in the SSCP.SVC-MGR modules  
+           52              All crash locations in the PU.SVC-MGR 
+                           modules
+           53              All crash locations in the LU.SVC-MGR 
+                           modules, or wrong signal
+           54              All crash locations in the DFC modules  
+           55              All crash codes in the TC modules   
+           56              All crash locations in the PC modules   
+           57              All crash locations in the High Level 
+                           Scheduler.  
+           58              No buffers/Command lists/SCB available  
+           59              SNA format error    
+
+
+
+
+
+
+
+                           
+                                Page 3
+
+
+
+
+           5A              All crash locations between SNA layers and 
+                           Network
+           66              Timeout on an inactive circuit
+           88              All crash locations in the Protocol Manager
+                           modules, and SDLC layer   
+           A0              All crash locations in the DSP handler 
+                           modules    
+           AA              Host number not found    
+           E1              I/O inquery SVC failure  
+           E2              Device not mother board  
+           E3              SIO input SVC failure    
+           E4              SIO output SVC failure, or failure to build 
+                           output sector during re-transmission   
+           E6              Connect SIO SVC failure  
+           FF              All crash locations that are not described 
+                           above  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                Page 4
+
+
+*********************************************************************
+*               T *** E *** C *** H *** T *** I *** P               *
+*********************************************************************
+
+Title:     Limitations in Genning Solo Switcher
+
+Author:    Clive Rowe
+           HQ Tech
+           Network Staff Consultant
+
+Product:   Solo Switcher
+           Version 5.10 
+
+Original Question:
+
+What  are  the restrictions and/or limitations in configuring  a  Solo 
+Switcher from the point of view of:
+
+1.  Maximum number of sync lines which can be defined.
+2.  Maximum number of SIO lines which can be defined.
+3.  Maximum number of TIILNKS which can be defined.
+4.  Maximum cumulative window size.
+5.  Any other limitations and/or restrictions.
+
+The  reason  for the question is,  when installing a new node  with  a 
+TIILNK  to  a  solo switcher,  a "FATAL ASSEMBLY  ERROR"  occurred  in 
+genning the solo switcher.
+
+Response:
+
+General 
+
+Note:   This  response  applies only to Version 5.10 of the  Switcher.  
+There  are architectural changes as well as limit changes  that  cause 
+this response to NOT APPLY to version 5.2x.
+
+The  maximum  number  of  definable  lines,   both  sync  and  SIO  in 
+combination,  is 32.   The maximum number of definable TIILNKs is  32.  
+The  maximum  aggregate  window size is 256.   The maximum  number  of 
+passthroughs  depend  on  configuration and  memory  constraints  (see 
+below) but the default is 256. 
+
+While other segments are affected by various parameters,  the limiting 
+factor in generating maximum size Solo Switcher is the size of segment 
+zero.
+
+What  are  the  limitations in genning Solo  Switcher  (Version  5.10) 
+August 1987.
+
+In  the following paragraphs are a list of the factors  affecting  the 
+size  of segment 0,  along with notes on how some of the  calculations 
+are performed, plus several examples.
+
+
+
+                               Page 5
+
+
+
+Segment 0 Size:
+
+Base (version 5.10                    4114x        (16660d)
+Sync line (each)                        80x        (  128d)
+SIO overhead (once)                     CCx        (  204d)
+SIO line (each)                        6DOx        ( 1744d)
+Passthru (per 32)                       20x        (   32d)
+  plus (per 64)                        100x        (  256d) see note 1
+Link base (each)                       260x        (  608d)  
+  plus each window size of 4            60x        (   96d) see note 2
+
+
+
+Notes:
+
+1.   32  passthrus = 32d bytes;  64 passthrus = 320d bytes ((1*256)  + 
+(2*32)); 96 passthrus = 352d bytes ((1*256) + (3*32)); 128 passthrus = 
+640d bytes ((2*256) + (4*32)); etc.
+
+2.   Link with a window size of 8 = 800d bytes (608 + (2*96));  with a 
+window  size of 12 = 896d bytes (608 + (3*96));  with a window size of 
+16 = 992d bytes (608 + (4*96));  with a window size of 48 = 1760 bytes 
+(608 + (12*96);  etc.  NOTE:  Total window size for ALL links must not 
+exceed 256.
+
+3.  Maximum size of segment 0 that can be properly generated is 65280d 
+bytes.
+
+Examples:
+
+1.  A solo switcher consisting of:
+
+Base                                  =   16660    (4114x)
+1024 passthrus ((16*256) + (32*32))   =    5120    (1400x)
+14 sync lines (@ 128)                 =    1792    ( 700x)
+16 SIO lines  (@1744)                 =   27904    (6D00x)
+  + SIO overhead                      =     204    (  CCx)
+6 links (WS= 8)  (@ 800)              =    4800    (12C0x)
+7 links (WS=16)  (@ 992)              =    6944    (1B20x)
+1 link  (WS=45)  (@1760)              =    1760    ( 6E0x)
+                                          -----
+                                      
+                                      =   65184    (FEA0x)
+This will assemble properly.
+
+
+
+
+
+
+
+
+
+
+
+ 
+                                Page 6
+
+
+2.  A solo switcher consisting of:
+
+Base                                  =   16660    (4114x)
+1024 passthrus ((16*256) + (32*32))   =    5120    (1400x)
+14 sync lines (@ 128)                 =    1792    ( 700x)
+16 SIO lines  (@1744)                 =   27904    (6D00x)
+  + SIO overhead                      =     204    (  CCx)
+6 links (WS= 8)  (@ 800)              =    4800    (12C0x)
+6 links (WS=16)  (@ 992)              =    5952    (1740x)
+2 links (WS=48)  (@1760)              =    3520    ( DC0x)
+                                          -----
+                                      =   65952    (101A0x)
+This will blow up.
+
+The  only  difference between example #1 and example #2  is  that  the 
+window  size of the link to one of the neighbor nodes was changed from 
+16 to 48.
+
+Using  the above list of sizes will produce a segment 0 size  that  is 
+slightly  larger  than that produced by actual assembly of  the  code.  
+(In the two examples above, the actual assembled values were FE40x and 
+10140x.)   If  the  computed  value is just slightly  over  the  limit 
+(within  100 bytes decimal),  it is recommended that the  assembly  be 
+attempted since it might still assemble properly.
+
+To  obtain the best utilization of resources,  specify only the number 
+of  lines  and  links needed.   Undefined lines/ports  must  NOT  have 
+clocking.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+               
+                             Page 7
+
+
+*********************************************************************
+*               T *** E *** C *** H *** T *** I *** P               *
+*********************************************************************
+
+Title:     Explanation of RAM Raw Accounting Blocks
+
+Author:    K.L. Narayan
+           HQ Tech
+           Software Technical Support Specialist
+
+Product:   RAM
+           Version 11.10
+
+Questions:
+
+For unmerged RAM data:
+
+1.  Are the records a fixed length and if so, what is the exact length 
+and  format,  including  the SUP number and accounting  block  number.  
+Does  setting  the  "RAWBLK" sub-parameter to either ASCII  or  binary 
+affect  the record length?   If binary is chosen,  is the  SUP  number 
+written in binary?  How about the block number?
+
+2.  How many blocks are there in one file?
+
+3.   Currently,  the end of the tap is marked by two tape marks.  What 
+is  the feasilibity of making this a gen option so that instead of two 
+tape marks, you could select ten tape marks?  I realize that RAM would 
+have to erase nine of them when it writes a new file at the end of the 
+current data.
+
+Response:
+
+When the supervisor writes its accounting data into its disk,  it does 
+so  in blocks of 1024 bytes.   An Accounting Block is thus defined  as 
+1024 bytes.
+
+RAM collects data from the Account slave,  one block (1024 bytes) at a 
+time.  In addition, after RAM collects one block, it tags the Sup host 
+number  (2  bytes)  and the block number (2 bytes) IN  FRONT  of  each
+block,  and  writes  the  resulting 1028 bytes  of  data  (1  "logical 
+record")  per block on tape,  if the RAWBLK parameter is set to YES in 
+RAM's tymfile.
+
+
+
+
+
+
+
+
+
+
+                                Page 8
+
+
+
+The raw blocks collected can be merged into sessions by RAM, or it can 
+be stored "as is" on tape.  This choice is made using the RAWBLK macro 
+in  the  RAM tymfile.   The RAWBLK macro can also be  used  to  define 
+whether the data is to be stored in the same format as it is collected 
+(binary),  or  converted to ASCII and stored in ASCII.   If stored  in 
+ASCII,  and later printed or dumped,  the characters appearing in the 
+printout  are  HEXADECIMAL  numbers.    These  numbers  must  then  be 
+interpreted by looking at the appropriate ASCII equivalent.  Note that 
+each  hexadecimal  digit represents 4 bits,  and therefore a  pair  of 
+digits must be looked at to decode each character (byte).   If  stored 
+as binary digits,  and later printed or dumped,  the printout would be 
+un-intelligible,  i.e.,  meaningless  to the reader.   But any billing 
+process should be able to read the RAM tapes, whether stored in binary 
+or ASCII format.
+
+This  leads into the next question,  relating to the  record  lengths.  
+(Note  that irrespective of whether raw blocks or merged sessions  are 
+chosen, RAM ALWAYS COLLECTS DATA IN BLOCKS OF 1024 BYTES.  Only if raw 
+blocks are to be written on tape,  will RAM append Sup host number and 
+block  number  at the beginning of each block.)  Now,  RAM  defines  a 
+"logical record as 1028 bytes, so in the unmerged RAW condition
+
+                   1 "logical record" = 1028 bytes
+
+Now let us go on to define a physical record.  The TAPBLK macro can be 
+used  to define the number of logical records in one physical  record.  
+For  example,  TAPBLK (31) defines 31 logical records in one  physical 
+record, so we have 1028 x 31 = 31868 bytes in one physical record.
+
+An optional second parameter in the TAPBLK macro can be used to define 
+the number of physical records in a file.   If not used, this defaults 
+to one.  Thus in our example above, we have 
+
+ 31868 x 1 = 31868 bytes (31 blocks or logical records) in one file.
+
+In Tymnet, for example, the TAPBLK macro is assigned as:
+
+                            TAPBLK (31,4)
+
+which assigns 4 physical records per file.   In this instance, we have 
+
+       31868 x 4 = 127472 bytes (124 logical records) per file.
+
+Regarding  the  question  on the tape marks,  there are  no  plans  to 
+implement more tape marks.
+
+RAM  can  also be configured to merge the raw  blocks  collected  into 
+session  records.   The  way  that this is done presently  in  Version 
+11.10, and the way that primary, secondary, and tertiary sessions will 
+be handled in Versions 12.00 (and above) will be discussed in a  later 
+edition of TECHTIPS.
+
+
+
+
+                             Page 9
+
+
+****************************************************************
+*               T *** E *** C *** H *** T *** I *** P               *
+*********************************************************************
+
+Title:     CMTU Multiplication of strings
+
+Author:    John Burrough
+           HQ Tech
+           Senior Technical Specialist
+
+Product:   CMTU
+
+There  are  two  rules  of how CMTU operates that are  a  key  to  the 
+problem:
+
+1.   AFTER EVERY MESSAGE RECEIVED BY CMTU FROM THE HOST,  I.E., ENDING 
+WITH  AN "ETX",  CMTU WILL RUN THE "OPTIMIZER".   THIS ROUTINE FIGURES 
+OUT  HOW TO UPDATE THE SCREEN WITH THE NEW HOST DATA,  AND  SENDS  THE 
+UPDATES TO THE TERMINAL.
+
+2.   THE  FIRST THING THE OPTIMIZER DOES IS TO SEE IF IT SHOULD SCROLL 
+THE TERMINAL SCREEN UP ONE LINE.
+
+This  makes sense for "scrolling" type applications,  because  we  can 
+send  just  a  few characters to a VT100 terminal to make  it  scroll.  
+Otherwise, if we did not have this logic, we would have to rewrite the 
+whole screen every time it scrolled.
+
+To do this,  CMTU starts with OLDSCREEN,  an image of how the terminal 
+screen looks right now.  It then adds the host message text changes to 
+this screen to create NEWSCREEN.  So now, CMTU knows the terminal 
+screen looks like OLDSCREEN.  And now, CMTU runs the Optimizer, to 
+send characters to the terminal to make it look like NEWSCREEN.
+
+To  see  if  OLDSCREEN should  be  scrolled,  the  Optimizer  compares 
+OLDSCREEN  line 2 to NEWSCREEN line 1.   If these two lines are equal, 
+then it compares OLDSCREEN line 3 to NEWSCREEN line 2 ...,  etc.,  and 
+finally it compares OLDSCREEN line 21 to NEWSCREEN line 20.
+
+If  these  lines are equal,  down to line 20,  then CMTU  assumes  the 
+application is a scrolling one,  and it will send a scroll command  to 
+the terminal and then fix up the bottom four lines, if they need to be 
+fixed up.
+
+If  the top 20 lines of OLDSCREEN and NEWSCREEN are all  blanks,  then 
+CMTU is STILL GOING TO THINK IT SHOULD SCROLL!!
+
+  ... because OLDSCREEN line 2 = NEWSCREEN line 1, etc., etc., etc.
+
+You  might  say "that is stupid.   CMTU should see that the  first  20 
+lines have not scrolled - they are just all blanks!"  Yes, correct, as 
+a  HUMAN BEING you would instantly detect that pattern  VISUALLY--just 
+by looking at the screen.  But the computer has to detect conditions 
+"serially" by comparing byte after byte.
+
+                               Page 10
+
+
+
+To  make CMTU be able to detect the unusual condition where the  first 
+20  lines  of the screen are all blank,  we would need to  execute  at 
+least 6400 more instructions!!
+
+What  a  waste  of time -- and all to detect a condition  that  rarely 
+happens.
+
+This should suffice as the background.   Following is another  message 
+coming in from the host and CMTU`s reaction to it:
+
+Message # 1    Clear the screen. 
+
+               CMTU reaction:  clear the screen 
+
+Message # 2    Put "ENTER USERID/PASSWORD CLEARANCE LEVEL" on line 22.
+
+               CMTU reaction:  put this message on line 22 
+
+Message # 3    Put "SOE" character on line 23.
+
+               CMTU   reaction:    Because  OLDSCREEN  lines  2-21   = 
+               NEWSCREEN  lines  1-20 = all blanks,  CMTU scrolls  the 
+               entire  screen first.   This causes the message  "ENTER 
+               USERID/..." to move to line 21;  therefore,  CMTU  must 
+               also erase line 21 and display the message, ONCE AGAIN, 
+               on line 22.
+
+Message # 4    Define line 23 rows 2-31 as VIDEO OFF,  so that Userid 
+               and password, to be entered by the user, will not show.
+
+               CMTU reaction:  same thing as for message # 3
+
+***  At this time, the user enters "SIR1/SIR1" as userid/password ***
+                     and this is sent to the host
+
+Message  # 5   Send blanks to where "SIR1/SIR1" was  entered  in  the                
+               terminal screen  memory (this appears to be a security                
+               precaution).
+
+               CMTU reaction:  same as for message # 3
+
+Message # 6    Scroll screen upward.
+
+               CMTU reaction:  scroll screen upward
+
+It  would  be stupid to put logic in CMTU to detect a  rare  situation 
+like this.  That would slow CMTU down too much.  In general, CMTU does 
+an excellent job of:
+
+1. ...sending a minimum number of characters back to the terminal, and
+
+2. ...not taking too much time to figure out how to best update the 
+      screen.  
+
+                             Page 11  w@6þ
