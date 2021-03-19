@@ -1,0 +1,113 @@
+.begin box
+
+:********************************************************************
+:  	TSI - NTS LAB						    *
+:	ISIS-II T-II - DEFINITION PARAMETERS    09-FEB-89	    *
+:	  ISIS: 11.00		N/C:    5.22			    *
+: 	  NODE: 2307            KERNEL: 2307		            *
+*********************************************************************
+
+:********************************************************************
+:********************  HARDWARE CONFIGURATION  **********************
+:********************************************************************
+
+MACHIN  EQ      3               : TSI
+ENGINE	EQ	1		: TYMNET Engine
+MICRO   EQ      2               : Enhanced async/sync micro-code
+ZITEL   EQ      1               : Using Zitel MAC
+LBOOT   EQ      0               : 1 if reserving memory for loader
+BGMIN	EQ	$A 60		: 100 ms background period
+
+NSYNC	EQ	0		: No Sync on machine
+M.NCARD	EQ	1		: Number of SIO motherboards
+M.DA0	EQ	$0 80		: Motherboard 80 
+M.NP0	EQ	4		: Number of ports on MB 80
+
+BAUDR	EQ	0		: Disable high speed interrupts
+MEMRMK	EQ	1		: Print memory requirements
+STRACE	EQ	1		: Enable S-Bus trace facility
+
+
+:*******************************************************************
+:*****************  ISIS CONFIGURATION CONSTRAINTS  ****************
+:*******************************************************************
+
+NSLOT   EQ      1               : No. of slots to connect
+NLU     EQ      4               : Max. no. of logical units/slot
+IKNRNG	EQ	1		: New KIO ring interface
+SPAM	EQ	1		: Turn on SPAM stats  [DEBUG ONLY]
+
+:*******************************************************************
+:**********************  NODE CONFIGURATION  ***********************
+:*******************************************************************
+
+TII     EQ      1               : 1 if Tymnet-II on node
+TIINEW	EQ	1		: 1 if Tymnet-II N/C V-4.0 or later
+PTHRU   EQ      0               : 1 if passthroughs inhibitted
+MACHNM  EQ      $8 2307	        : Node number
+HST0    EQ      $A 2307         : ISIS Kernel host number
+NETID	EQ	$A    2		: Define network id  (BUBBNET)
+SILINS  EQ      4               : Number of SIO  lines in slot 0!!
+NLINES	EQ	0		: Number of SYNC lines in slot 0!!
+
+
+:*******************************************************************
+:**********************  NETWORK CONFIGURATION  ********************
+:*******************************************************************
+
+XLINKS  EQ      4               : Number of Tymnet-II wild card links
+
+:*******************************************************************
+:*********************  SLOT 0 - T-II NODE CODE  *******************
+:*******************************************************************
+
+S0CORE  EQ      $A 300          : Core assigned to slot 0
+NLUS0   EQ      SILINS          : No. of l.u.'s for node code
+S0L0	M.REF(0,0)		: Mb 80 Port 0
+S0L1	M.REF(0,1)		: Mb 80 Port 1
+S0L2	M.REF(0,2)		: Mb 80 Port 2
+S0L3	M.REF(0,3)		: Mb 80 Port 3
+
+
+:*******************************************************************
+:**************************    SLOT 1 - MBASE     ******************
+:*******************************************************************
+
+S1CORE  EQ      $A 300          : Core assigned to slot 1
+S1LIC	EQ	TL.AUX		: Assign aux circuit license
+NLUS1   EQ      4		: No. of l.u.'s for slot 1
+
+:  Define the memory mapping scheme for communicating with the Spirit
+:  memory (the limits of the  extended  MAC  area).  The DEFEXT macro
+:  is  defined as follows  (the values are ALWAYS the same,  and will
+:  not change):
+:
+:	DEFEXT(slot,block,start,number,prot)
+:	         |    |     |     |      |
+:                |    |     |     |       --  protection
+:                |    |     |     |
+:                |    |     |      ---------- number of pages
+:                |    |     |
+:                |    |      ---------------- starting page
+:                |    |
+:                |     ---------------------- block number
+:                |
+:                 --------------------------- slot number
+
+	DEFEXT(1,3,0F00,100,6)
+S1L0	T.REF			: Define the Spirit Bus LU's
+
+
+
+
+PATCH1	EQ	$0 0C00		: Increase size of Patch areas
+P1SIZE	EQ	$0 0C00		:   
+PHSIZE	EQ	$0  300		:
+
+
+
+	END
+
+.end box
+.fill
+.break
