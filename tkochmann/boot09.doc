@@ -1,0 +1,2030 @@
+
+							December 20, 1988
+
+
+
+
+
+
+                    ****    ***    ***   *****   ***    ***
+                    *   *  *   *  *   *    *    *   *  *   *
+                    *   *  *   *  *   *    *    *   *  *   *
+                    ****   *   *  *   *    *    *   *   ****
+                    *   *  *   *  *   *    *    *   *      *
+                    *   *  *   *  *   *    *    *   *  *   *
+                    *****   ***    ***     *     ***    *** 
+
+                              ****    ***    ****
+                              *   *  *   *  *    
+                              *   *  *   *  *    
+                              *   *  *   *  *    
+                              *   *  *   *  *    
+                              *   *  *   *  *    
+                              ****    ***    ****
+
+
+
+
+                            Engine Bootstrap Manual
+                                  Version 9.0
+
+
+				    TYMNET
+                          NETWORK TECHNOLOGY DIVISION
+                               December 20, 1988
+
+
+
+
+
+
+
+
+     ====================================================================
+     |   Tymnet,  Inc.'s  proprietary  rights  are  included  in  the   |
+     |   information disclosed herein.   The recipient,  by receiving   |
+     |   this document,  agrees  that neither this  document nor  the   |
+     |   information  disclosed  herein nor any part thereof shall be   |
+     |   reproduced or transferred to  other  documents  or  used  or   |
+     |   disclosed  to  others  for  manufacturing  or  for any other   |
+     |   purpose except  as  specifically authorized  in  writing  by   |
+     |   Tymnet, Inc.                                                   |
+     ====================================================================
+
+
+
+
+                                                               BOOT09 DOC
+                                                        December 20, 1988
+
+
+
+
+
+
+
+                              TABLE OF CONTENTS
+
+    Section                                                          Page
+
+    1.   INTRODUCTION                                                   1
+      1.1   Purpose of the BOOT09 Document                              1
+      1.2   Overview of the Bootstrap Document                          1
+    2.   GENERAL INFORMATION                                            2
+      2.1   Overview of the Bootstrap                                   2
+      2.2   Enhancements to the Bootstrap                               5
+      2.3   Limitations of the Bootstrap                                7
+    3.   DEVICE INTERFACE SPECIFICATIONS                                8
+      3.1   Synchronous Lines                                           8
+      3.2   HDLC Lines                                                 10
+      3.3   Watchdog Timer                                             10
+      3.4   Front Console                                              11
+      3.5   Semiconductor Memory ECC Chip                              11
+    4.   BOOTSTRAP OPERATION                                           12
+      4.1   Watchdog Timer                                             12
+      4.2   Front Console Displays                                     13
+      4.3   TTY Port Load Procedure                                    14
+         4.3.1    Async Y-Cable Loading                                14
+         4.3.2    PC Loading                                           16
+
+      4.4   SYNC and HDLC Line Load Procedures                         18
+      4.5   MSC 1400 Hard Disk Load Procedure                          20
+         4.5.1    Loading Procedures                                   20
+         4.5.2    Parameter Block                                      21
+         4.5.3    Console Displays                                     22
+
+      4.6   Ampex 10 Meg Disk Load Procedure                           23
+         4.6.1    Loading Procedures                                   23
+         4.6.2    Parameter Block                                      24
+         4.6.3    Console Displays                                     25
+
+      4.7   Magnetic Tape Procedures                                   26
+         4.7.1    Dumping to Magnetic Tape                             26
+         4.7.2    Loading from Magnetic Tape                           28
+         4.7.3    Disk Parameter Block                                 29
+         4.7.4    Console Displays                                     30
+    5.   APPENDIX                                                      31
+      5.1   Checksum for SYNC and HDLC Records                         31
+         5.1.1    Algorithm for Vertical Checksums                     31
+         5.1.2    Algorithm for Diagonal Checksums                     31
+         5.1.3    PROM Checksums                                       32
+
+      5.2   Multifunction Board Diagram                                33
+
+
+                                                               BOOT09 DOC
+    INTRODUCTION                                        December 20, 1988
+
+
+
+
+
+
+                              1 -  INTRODUCTION
+
+
+
+
+
+
+                     1.1  Purpose of the BOOT09 Document
+
+
+
+    The purpose of this document is to provide information concerning the
+    release of version 9.0 of the bootstrap code (BOOT09).  This document
+    will attempt to outline the general functions of the  bootstrap code,
+    and detailed instructions on the use of the individual load methods.
+
+
+
+
+                   1.2  Overview of the Bootstrap Document
+
+
+
+    This  BOOT09   documention  is  divided   into  five   (5)  sections:
+    Introduction,  General Information,  Device  Interface Specification,
+    Bootstrap Operation, and the Appendix.
+
+    Section 1, this Introduction, contains a description and  overview of
+    the bootstrap document.
+
+    Section 2,  General Information,  contains information  regarding the
+    bootstrap functions, enhancements and limitations of this  version of
+    the bootstrap code.
+
+    Section 3, Device Interface Specifications, contains  descriptions of
+    the interface specifications for each of the individual load methods.
+
+    Section  4, Bootstrap  Operation, contains  descriptions of  the user
+    selectable options of the bootstrap, the front console  displays, and
+    the procedures for each of the individual load methods.
+
+    Section  5, Appendix,  contains information  concerning  the checksum
+    algorithms, individual prom checksums, and a diagram of  the location
+    of boot proms on the multifunction board.
+
+
+
+
+
+
+    1                                                          BOOT09 DOC
+    GENERAL INFORMATION                                 December 20, 1988
+
+
+
+
+
+
+                          2 -  GENERAL INFORMATION
+
+
+
+
+
+
+                       2.1  Overview of the Bootstrap
+
+
+
+    BOOT09  is a  release of  the bootstrap  containing a  subset  of the
+    version   9.0  bootstrap   source  code   (BOOT09.SRC)  conditionally
+    assembled using the assembly options in "BOOT09.OPT".  The  major new
+    features  of  BOOT09  are support  for  downloading  from  HDLC lines
+    connected to  the first four  SIO motherboards, including  HDLC lines
+    connected to SIO ports whose SIO port numbers are  discontinuous, and
+    from SYNC lines connected  to either SYNC board.  BOOT09  retains the
+    SYNC  and  HDLC  line  loading  capabilities  of  previous  bootstrap
+    releases and contains  the TTY loader that  was removed from  the MXP
+    bootstrap (BOOT07) because  of space considerations.  The  tape, 10MB
+    disk, and MSC1400  disk loaders that were  also removed from  the MXP
+    bootstrap source code have been restored to BOOT09.SRC.
+
+    The code  to support HDLC  lines connected to  motherboards addressed
+    above 83x has been removed.  Additionally, since there is  no present
+    means of directly loading  multimeg bound files, there is  no support
+    of  multimeg  in  the  boot  code.   Multimeg  boot  support  will be
+    incorporated into the bootstrap code when it becomes  necessary.  The
+    XPI load method  has been disabled in  this version of  the bootstrap
+    code.
+
+    VERSION 7.0 OF THE ENGINE  BOOTSTRAP WILL REMAIN THE ONLY  VERSION TO
+    SUPPORT THE XPI BOARD.
+
+    The function of the bootstrap is to transfer data from  input devices
+    to memory (load)  and from memory  to output devices  (dump).  BOOT09
+    allows data to be dumped  from any memory location in an  Engine (the
+    maximum  amount of  memory  in a  machine is  one  megabyte).  BOOT09
+    allows data to be loaded into any memory location below the relocated
+    copy of BOOT09 at location yF000, where "y" is either 7 or  F (BOOT09
+    uses the top 1000x bytes of memory).
+
+    BOOT09 is initially copied from PROM into the low RAM  addresses 700-
+    FC7x, inclusive.  BOOT09 begins  by determining the amount  of memory
+    in  the Engine  by  attempting to  decrement the  contents  of memory
+    locations  at  the  end  of successively  lower  64K  blocks  until a
+    successful memory access is detected.
+
+
+    2                                                          BOOT09 DOC
+    GENERAL INFORMATION                                 December 20, 1988
+
+
+    Once  it  determines  the  amount of  memory  in  the  Engine, BOOT09
+    relocates itself  into the  top 1000x bytes  of memory.   (NOTE:  The
+    relocation routine itself  is not copied  to high RAM.)   BOOT09 then
+    performs  non-destructive   writes  to  memory   locations  0-FFFFFx,
+    inclusive, regardless  of the actual  amount of memory  present.  The
+    non-destructive writes initialize and reset the  semiconductor memory
+    error-correcting   circuitry   chip   (ECC).    BOOT09   clears   the
+    semiconductor memory  error logs, extinguishing  the amber  (SBE) and
+    red (DBE) LEDs on the front edge of the semiconductor memory board.
+
+    BOOT09 resets SIO motherboard device addresses 80-83x, inclusive.
+
+    BOOT09  then  patches  memory  locations  48-6Bx  with  six  RX3 jump
+    instructions.  These  jump instructions  are used  to access  the six
+    entry points that version  9.0 of the bootstrap source  code (BOOT09)
+    provides:
+
+
+        0048 - Low RAM restoration routine
+        004E - MSC1400 disk loader
+        0054 - Magnetic tape loader
+        005A - SYNC/HDLC line loader
+        0060 - TTY port loader
+        0066 - Ampex 10 Meg disk loader
+
+
+    Having completed  its initialization,  BOOT09 executes  the SYNC/HDLC
+    line loader.
+
+    Once BOOT09  has relocated itself  to high RAM,  all working  data is
+    stored  in the  top 1000x  bytes of  memory.  The  low RAM  area that
+    BOOT09 was  originally loaded  into (700-FC7x)  may be  freely loaded
+    into.  If an attempt  is made to load data  from a SYNC or  HDLC line
+    into  the  top  1000x  bytes of  memory,  BOOT09  will  be restarted.
+    Restarting   BOOT09  resets   device  addresses   80-83x,  inclusive,
+    terminating the  transmission of  the current  acknowledgement record
+    (if it is still being transmitted).  As additional records  that load
+    into the bootstrap's  RAM are received,  the console will  display "0
+    0000 0009", with  the left-most digit  changing but resetting  to "0"
+    constantly.
+
+    NOTE:  Previous releases of the bootstrap did not acknowledge records
+    that attempted to load into the high RAM bootstrap area.  To increase
+    the speed of the  bootstrap, BOOT09 acknowledges records  before they
+    are unpacked  (and an  attempt to  load into  the bootstrap's  RAM is
+    discovered).  Resetting the device addresses of all  SIO motherboards
+    and reinitializing all enhanced SYNC microcoded line descriptors is a
+    reasonable  way  of  destroying  an  acknowledgement  record  that is
+    already being transmitted.
+
+
+
+
+
+    3                                                          BOOT09 DOC
+    GENERAL INFORMATION                                 December 20, 1988
+
+
+    A very simplified flow of the bootstrap operation is as follows:
+
+        
+       +----------------------------------------------------+
+       |  Bootstrap is invoked  by the Multifunction board  |
+       |  toggle switch, or DLOAD in Probe.                 |
+       +----------------------------------------------------+
+                              =
+       +----------------------------------------------------+
+       |  Relocation code executes and loads overlayer.     |
+       +----------------------------------------------------+
+                              =
+       +----------------------------------------------------+
+       |  Overlayer executes and loads initialization code. |
+       +----------------------------------------------------+
+                              =
+       +----------------------------------------------------+
+       |  Initialization  code  executes and  calls the     |
+       |  overlayer to load the SYNC/SIO  loader.           |
+       +----------------------------------------------------+
+                              =
+       +----------------------------------------------------+
+       |  Overlayer loads SYNC/SIO loader.                  |
+       +----------------------------------------------------+
+                              =
+       +----------------------------------------------------+
+       |  SYNC/SIO  loader  executes  and  the  left digit  |
+       |  of the front console begins to cycle 0 to F.      |
+       +----------------------------------------------------+
+                              =
+                              =
+       +----------------------------------------------------+
+       |  Should another loader  be invoked,  the entry is  |
+       |  done via the front console keypad.                |
+       +----------------------------------------------------+
+                              =
+       +----------------------------------------------------+
+       |  A jump is performed  according to the address of  |
+       |  the loader  type requested  (48-Low RAM restore,  |
+       |  4E - MSC disk,   54 - Mag Tape,   5A - SYNC/SIO,  |
+       |  60-TTY or 66-Ampex 10 Meg disk) to the overlayer  |
+       |  entry point.                                      |
+       +----------------------------------------------------+
+                              =
+       +----------------------------------------------------+
+       |  Overlayer loads the loader type module.           |
+       +----------------------------------------------------+
+                              =
+       +----------------------------------------------------+
+       |  Loader type module executes.                      |
+       +----------------------------------------------------+
+
+
+
+    4                                                          BOOT09 DOC
+    GENERAL INFORMATION                                 December 20, 1988
+
+
+    Although any  Engine binary  file that  does not  contain data  to be
+    loaded into the top 1000x bytes of RAM may be loaded into  an Engine,
+    BOOT09 is primarily used with the following types of activity:
+
+
+        o  Bound files (including ISIS images and stand-alone code).
+
+
+        o  Diagnostics (Memory, CPU, MAC, Memory, SIO, etc.).
+
+
+        o  Dumping core images of machines.
+
+
+
+
+    BOOT09 will work with any of the following configurations:
+
+        o  Core or Semiconductor Memory
+
+        o  MAC I,  MAC II  or  MAC III
+
+        o  CPU I
+
+        o  CPU III (8 MHz  or  10 MHz)
+
+
+
+
+                     2.2  Enhancements to the Bootstrap
+
+
+
+    The following enhancements have been made to increase  the usefulness
+    of BOOT09:
+
+    1.   BOOT09 supports  downloading over  HDLC lines  connected  to SIO
+    ports  on  all  four  SIO  motherboards  (device  addresses  80-83x).
+    Previous  versions of  the bootstrap  could only  download  over HDLC
+    lines connected to SIO ports on the SIO motherboard at device address
+    80x.
+
+    2.  BOOT09 supports downloading through any SIO port connected  to an
+    SIO motherboard, regardless of discontinuity in the numbering  of SIO
+    ports.  Previous versions of the bootstrap could not download through
+    an SIO port unless all lower numbered SIO ports were present.
+
+    3.  BOOT09  will allow  downloads through  SIO or  SYNC ports  in the
+    event SIO port  0 is bad or  non-existant.  Previous versions  of the
+    boot would not continue to scan SIO or SYNC ports when SIO port 0 was
+    bad, in effect eliminating any possible downloads.
+
+
+
+    5                                                          BOOT09 DOC
+    GENERAL INFORMATION                                 December 20, 1988
+
+
+    4.  BOOT09  supports downloading  over SYNC  lines connected  to both
+    SYNC boards.  Previous versions  of the bootstrap could  not download
+    over SYNC lines connected to the second SYNC board.
+
+    5.  BOOT09  contains the  TTY loader  that was  removed from  the MXP
+    bootstrap (BOOT07) because of space constraints.
+
+    6.  BOOT09 supports  downloading over HDLC  lines at all  baud rates.
+    Previous releases of the bootstrap could not download over HDLC lines
+    at less than 4800 baud.
+
+    7.   BOOT09   halts the  target  machine when  a  machine malfunction
+    interrupt  occurs.   Previous  releases  of  the  bootstrap  disabled
+    machine malfunction interrupts.
+
+    8.  BOOT09 does not assume that SYNC input records will  be separated
+    by a minimum of one marking halfword (FFFFx).
+
+    9.  BOOT09 will allow downloads over  V.24 SIO lines when  the clocks
+    are provided  internally at speeds  less than 9600  baud and  the N/T
+    jumper on multifunction board is configured for high-speed interrupts
+    (in the "T" position).  Previous versions of the BOOT code  would not
+    allow downloads under these conditions.
+
+    10.  BOOT09  determines the  frequency of C clock  interrupts to
+    ensure  the  timing of  bootstrap  routines is  not  affected  by the
+    position of  the N/T  jumper on the  multifunction card.   This means
+    that the speed of the line scanning on the front console  (left digit
+    cycling between 0 and F) will NOT be affected by position of  the N/T
+    jumper  on   the  multifunction  card   (high  or  low   speed  async
+    interrupts).
+
+    11.  BOOT09 allows 3270  controllers to be connected as  "SYNC lines"
+    to SYNC ports during  the downloading process.  Previous  releases of
+    the  bootstrap  required  that 3270  controllers  be  disconnected or
+    powered-off before downloading  could begin.  Beginning  with version
+    9.0 of the Engine bootstrap source code, the downloading line  is not
+    selected until a complete, correctly checksummed record  is received.
+    Previous releases of the bootstrap selected the downloading line when
+    the first  SYNC pattern  (3232x) was  received.  As  3270 controllers
+    constantly transmit the IBM  SYNC pattern (which is also  3232x), any
+    powered-on 3270 controller was invariably selected as the downloading
+    line.
+
+
+
+
+
+
+
+
+
+
+
+    6                                                          BOOT09 DOC
+    GENERAL INFORMATION                                 December 20, 1988
+
+
+                      2.3  Limitations of the Bootstrap
+
+
+
+    The following is  a list of  the preliminary release  limitations for
+    BOOT09  as  of  the  initial  release  date.   These  limitations are
+    scheduled for correction or inclusion into the BOOT09 code  when time
+    permits.  At this time the only restrictions for BOOT09 usage  are as
+    follows:
+
+    1.  BOOT09 is  unable to access  any SIO motherboard  addressed above
+    83x.
+
+    2.  BOOT09 has no operational XPI interface, therefore it can  NOT be
+    used in XPI cluster machines.  Only BOOT07 will support XPI machines.
+
+    3.  When a receive clock  is connected to the sync board  the console
+    display of the line scanning (left digit cycling between 0 and F) may
+    appear to run  a 1/4 speed (very  slow ... 1-2 seconds  between digit
+    changes).   This  is  a  timing  calculation  problem  that  will  be
+    corrected  while  BOOT09  is in  limited  preliminary  release.  This
+    timing problem does not have any outward effect on  the functionality
+    of the bootstrap code and is  not deemed serious at this point  as it
+    can be an intermittent occurrence.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    7                                                          BOOT09 DOC
+    DEVICE INTERFACE SPECIFICATIONS                     December 20, 1988
+
+
+
+
+
+
+                    3 -  DEVICE INTERFACE SPECIFICATIONS
+
+
+
+    BOOT09 interfaces with the following devices:
+
+         o  SYNC lines
+
+         o  HDLC lines (V.24, V.35 and OCL)
+
+         o  MSC 1400 hard disk
+
+         o  Ampex 10 Meg disk
+
+         o  Magnetic Tape
+
+         o  The RS-232 port on the multifunction board (TTY port)
+
+         o  The watchdog timer
+
+         o  The front console
+
+         o  The SemiConductor memory ECC log
+
+
+    NOTE:  BOOT09 does NOT support the following load devices:
+
+         o  SIO Motherboards addressed between 84x and 90x.
+
+         o  The XPI board.
+
+         o  Multimeg Memory.
+
+
+
+
+                           3.1  Synchronous Lines
+
+
+
+    SYNC lines are scanned  looking for a down-line load  header (3232x).
+    Once a down-line load header is received from a SYNC line, input data
+    from the SYNC line is buffered by the enhanced SYNC microcode.   If a
+    complete,  correctly-checksummed record  is received  in  the buffer,
+    loading begins  on that line  and all other  SYNC and HDLC  lines are
+    ignored.  The format of records is:
+
+
+
+
+    8                                                          BOOT09 DOC
+    DEVICE INTERFACE SPECIFICATIONS                     December 20, 1988
+
+
+
+          3232 tt 0aaaaa nn...nn vvvv dddd
+
+            Where:
+
+               3232    = SYNC pattern
+
+               tt      = Record type:
+
+                           00      Transfer command (jump to the  address
+                                   contained in the record)
+
+                           01-38   Load command (load the number of bytes
+                                   specified by the record type into RAM)
+
+                           80      Dump command (dump 38x bytes from RAM)
+
+               aaaaa   = Address to store data to, retrieve data from, or
+                         jump to
+
+               nn...nn = 38x Data bytes (the data bytes are not  meaning-
+                         ful in dump or transfer records, only the number
+                         of  bytes  specified  by  the  record  type  are
+                         meaningful in load records)
+
+                         For a load record:
+
+                            00-7F   the data byte is stored into RAM
+                            80-85   the data byte  following the 80x  is
+                                    stored into RAM
+                            81-83   unused
+                            84 yy   yy bytes of 00x are stored into RAM
+                            85 yy   yy bytes of FFx are stored into RAM
+                            86-FF   the data byte is stored into RAM
+
+                vvvv   = Vertical  checksum of  the record type, address 
+                         field,  and  the 38x  data  bytes   (taken   as
+                         halfwords).   See Appendix I-1.
+
+                dddd   = Diagonal checksum  of the  record type, address
+                         field, 38x data bytes, and the vertical  check-
+                         sum  halfword  (taken  as  halfwords).      See
+                         Appendix I-2.
+
+
+
+    NOTE:  Unlike  previous releases  of the  bootstrap, BOOT09  does not
+    assume  that input  records will  be separated  by a  minimum  of one
+    marking halfword (FFFFx).
+
+
+
+
+
+    9                                                          BOOT09 DOC
+    DEVICE INTERFACE SPECIFICATIONS                     December 20, 1988
+
+
+                               3.2  HDLC Lines
+
+
+
+    The LOADII/download record format for  HDLC is the same as  for SYNC.
+    Data from one of  the HDLC lines connected to  an SIO port on  one of
+    the four SIO motherboards  (device addresses 80-83x) is  buffered and
+    scanned quickly  for a SYNC  pattern (3232x).  If  a SYNC  pattern is
+    received, data from the HDLC line is buffered for an  extended period
+    of  time  and   checked  continuously  for  a   complete,  correctly-
+    checksummed  record.  If  a  record is  received from  an  HDLC line,
+    loading  begins on  that line;   all other  SYNC and  HDLC  lines are
+    ignored for the  remainder of the  load/dump.  If no  further records
+    appear  on  the  selected  line  within  sixty  seconds,  BOOT09 will
+    timeout.  This causes BOOT09  to reset, reinitialize the  Engine, and
+    resume scanning all SYNC and HDLC lines for input.
+
+    Resets are issued to device addresses 80-90x, inclusive,  when BOOT09
+    first starts, before executing  a transfer command, after  a timeout,
+    and after an attempt to load into the bootstrap's RAM.
+
+
+
+
+                             3.3  Watchdog Timer
+
+
+
+    If the watchdog timer is not reset approximately every two seconds by
+    writing to its device  address, the watchdog timer will,  when armed,
+    cause BOOT09 to be reloaded from PROM into RAM.
+
+    The bootstrap PROMs (located on the multifunction board  at locations
+    7B, 7C and 6B thru 6H) contain, in addition to the bootstrap program,
+    a header used by the CPU microcode during the ROM-to-RAM  copy.  This
+    eight byte header is NOT copied into RAM:
+
+
+      ----------------------------------------------------------------
+     |       Initial PSW              |         Initial PC            |
+      ----------------------------------------------------------------
+     | RAM Address To Store First HW  |  RAM Address To Store Last HW |
+      ----------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+    10                                                         BOOT09 DOC
+    DEVICE INTERFACE SPECIFICATIONS                     December 20, 1988
+
+
+
+    The first  two halfwords of  the header contain  the PSW  and program
+    counter to use after  loading BOOT09.  The program counter  was fixed
+    at 720x by release 6 of the bootstrap to allow Tymnet II  to relocate
+    the  bootstrap from  low RAM  to  high RAM  upon receipt  of  a DLOAD
+    command.  All  future releases  of the  bootstrap should  follow this
+    standard.  The third halfword  contains the RAM address at  which the
+    CPU is to begin placing the bootstrap.  The fourth  halfword contains
+    the RAM address at which the CPU will store the last halfword  of the
+    bootstrap.  This RAM address is FC6x for BOOT09.
+
+
+
+
+                             3.4  Front Console
+
+
+
+    The Engine console  display is updated by  BOOT09 so an  operator may
+    more easily monitor bootstrap status.  See Section 4.2 (Front Console
+    Display) of this document for a description of these displays.
+
+
+
+
+                     3.5  Semiconductor Memory ECC Chip
+
+
+
+    BOOT09 clears the Semiconductor memory Error Checking  and Correction
+    (ECC) chip  error log by  referencing device addresses  78-7Fx.  This
+    ECC error log contains a record of single bit errors (SBE) and double
+    bit errors (DBE) encountered.  The error log data defines  the faulty
+    memory chip for SBE's  and the row that  chip is in for  DBE's.  When
+    BOOT09 clears the semiconductor memory ECC logic, the green and amber
+    LEDs  on the  front  edge of  the  memory board  will  be momentarily
+    illuminated,  then extinguished.   The last  SBE and  DBE encountered
+    during the reset process will be saved.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    11                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+
+
+
+
+                          4 -  BOOTSTRAP OPERATION
+
+
+
+    There are two (2) options of the BOOT09 process that are at the users
+    discretion:  position of the watchdog timer toggle switch  located on
+    the multifunction board and selection of loader type.
+
+
+
+
+                             4.1  Watchdog Timer
+
+
+
+    The watchdog timer toggle switch is located on the front edge  of the
+    multifunction board.  If  BOOT09 is to  be loaded from  PROM whenever
+    BOOT09 stops resetting the watchdog timer, the watchdog  timer should
+    be armed  by depressing the  toggle switch DOWN  until it  clicks and
+    remains in the lower position.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    12                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+
+
+
+
+                         4.2  Front Console Displays
+
+
+
+    BOOT09 reports its current status on the console display as follows:
+
+
+
+         Display                        Current status
+         ===========      ===============================================
+
+         y F000 BA5E      BOOT09  is  initializing  the memory chip  ECC.
+                          BOOT09 uses high RAM locations yF000-yFFFF.
+
+         0 0000 0009      BOOT09  is scanning the SYNC and HDLC lines for
+         :   :    :       a  complete, correctly-checksummed record.  The
+         :   :    :       rightmost two digits are the bootstrap  version
+         F 0000 0009      number  (the  leftmost  digit is  changing, but
+                          is not meaningful).  If the leftmost  digit  is
+                          being  reset  continuously  to  "0"  before  it
+                          reaches "F", an  attempt is being  made to load
+                          into the RAM reserved for the bootstrap.
+
+         a aaaa 00dd      Data is loading from an ASYNC line connected to
+                          the TTY port.   The last memory location to  be
+                          loaded is aaaaa, the last data byte received is
+                          dd.
+
+         p dd0a aaaa      Records are being received through  SYNC or SIO
+                          port  p  (modulo 10x)  at  device  address   dd
+                          (20-3Fx = SYNC  board 1, 40-5Fx = SYNC board 2,
+                          80-83x = SIO  motherboard).  The last complete,
+                          correctly   checksummed  record  received   had
+                          address field aaaaa.
+
+         0 0070 5AFE      The  low  RAM   restoration  routine  has  been
+                          executed.   Pressing the [RUN] key on the front
+                          console will start execution at location 70x.
+                          
+         0 CODE 800x      Results of an  operation performed by the boot-
+                          strap code.  The value represented by "x"  will
+                          indicate   if  the  operation   has   completed
+                          successfully  ("E"  will  replace "x"),   or  a
+                          failure has occurred (a  value other than "E").
+                          See the individual load method for result codes
+                          pertaining to any error conditions.
+
+
+
+
+    13                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+                        4.3  TTY Port Load Procedure
+
+
+
+    There are two (2) different methods of loading through the  TTY async
+    port: using a async line connected to the port, or via a PC using the
+    TERMITE program.   The async  line method  can very  slow and  is not
+    highly recommended.   The PC  load requires the  user to  be familiar
+    with the TERMITE program,  which is a diagnostic tool  propriatary to
+    TYMNET.   Additional  information  on  the  TERMITE  program  can  be
+    obtained by contacting your TYMNET representative or  TYMNET National
+    Technical Support (NTS) personnel.
+
+
+
+
+                        4.3.1  Async Y-Cable Loading
+
+
+
+    The TTY port  loader allows loading from  an ASYNC line  connected to
+    the TTY port on an Engine.  This procedure is more cumbersome  than a
+    load over a  SYNC or HDLC  line and is  very slow, since  the loading
+    must be done at 1200-baud.
+
+    Loading  through the  TTY  port requires  a terminal,  a  Y-cable P/N
+    160041-001 (ASC 192-1), and an ASYNC line (by hardwire or modem) to a
+    functioning network node.  Follow the following steps to  connect the
+    Y-cable:
+
+    1.  Connect  the Y-cable to  the terminal, to  the ASYNC line  from a
+    network node, and to the TTY port on the front of the Engine's multi-
+    function board.
+
+    2.  Press the following keys on the Engine console:
+
+        [PSW] [DTA] 0060 [ADR]
+
+    3.  Set  the terminal baud  rate to 1200-baud  and log into  the host
+    that contains the NIB FILE you want to download.
+
+    4.  Using the NAD  assembler, read in the  file to be loaded  and get
+    the  highest address  to be  loaded.  This  is done  by using  the %F
+    command  which  opens the  file  for read-only,  followed  by  the ;G
+    command which  get the local  image (reads) from  the file.   The NAD
+    assembler  will  display  the range  of  addresses  contained  in the
+    NIB/BND file to the terminal.
+
+    5.  At  this point  the range of  data to  be transfered  (starting a
+    zero, up to the highest value displayed following the ;G  command) is
+    noted via the NAD command "<start>,<end>;8".  This command  tells NAD
+    to start displaying the data range specified in octal.
+
+
+    14                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+    6.   The  NAD assembler  will  display a  <CR><LF>  on  the terminal.
+    Within two seconds  of the line feed  being displayed, press  the RUN
+    key on the Engine's console.
+
+    7.  The terminal will display a random sequence of characters and the
+    console will display a gradually decreasing value that represents the
+    memory  location  into  which data  is  being  downloaded.   When the
+    console  display changes  to  "F FFFF  000A", the  download  has been
+    successfully completed.
+
+    8.  If the value displayed  on the console remains the same  for more
+    than thirty  seconds and is  NOT "F FFFF  000A", repeat the  TTY port
+    procedure.
+
+
+
+    A sample display of the above would be as follows:
+
+
+
+        -r nad
+        1.5
+        %f    (engdiag)dcpu.nib
+        
+        ;g
+        Data ranges read:
+        0-7FFD 7FFE-0FFFB 0FFFC-124F7
+        
+        0,124F7;8
+        
+          [[  Following the <CR><LF> displayed by NAD, the [RUN]    ]] 
+          [[  button on the engine front console should be hit.     ]]
+           
+          <<  NAD will  display the  file in octal,   which will    >> 
+          <<  appear to be meaningless gibberish to the users.      >>
+
+        Loaded
+        %q
+        
+        -
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    15                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+                              4.3.2  PC Loading
+
+
+
+    The  transferring  of files  between  the PC  and  the  TYMNET Engine
+    involves  connecting  the  PC  directly  to  the  TTY  port  (on  the
+    Multifunction board on  full/mini engines) or the  Multifunction port
+    on the Micro Engine.  When loading a Micro Engine, a front console is
+    also necessary for execution of the NAD file once it is  loaded.  The
+    transfer rate from the PC is solely dependent upon the speed selected
+    on the   Multifunction Board or  Micro Engine.  The  transfer process
+    involves the following steps:
+
+
+       o  Connecting the PC to the TTY or Multifunction port as follows:
+
+                                                   +---------------+
+                                                   |               |
+                                                   |               |
+                +-----------+                      |               |
+                |    PC     |    ==============>   | TYMNET Engine |
+                | Comm Port |     ASC140-02PP      |   TTY  Port   |
+                +-----------+                      |               |
+                                                   |               |
+                                                   +---------------+
+
+
+       o  Invoking the TERMITE program by typing the following:
+
+             TERMITE DUMB 1 <speed> <color>
+
+
+       o  Type an ALT-X.
+
+
+       o  Initializing   the   transfer  process   by   typing   "TTYLOAD
+          <pc-filename>" followed by  a carriage return.  This  step will
+          direct the user to place the machine in boot and enter the fol-
+          lowing on the console:
+
+             [DTA] 60 [ADR] [RUN]
+
+          which will allow  the machine to  receive the file  being sent.
+          Following this  a carriage return  is typed  on the PC  and the
+          file transfer begins, with the  display on the Engine's console
+          cycling through the  addresses received.  When the  transfer is
+          complete, the   leftmost 5 digits  on the Engines  console will
+          display "F FFFF"  is the transfer was  successful.  If anything
+          other  than   "F FFFF"  is  displayed,  the  transfer  must  be
+          attempted again.
+
+
+
+
+    16                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+
+
+
+       o  At this point the object  file just sent is ready  to be execu-
+          ted.  The following instructions are entered via the console:
+
+             [DTA] [SET] <start> [ADR] [RUN]
+
+               where
+                 <start> = 0A00 is file loaded was a diagnostic file
+                 <start> = 0070 if file loaded was a bound file
+
+
+     
+       o  At this point the Engine will begin executing the code.  If the
+          code  was a  diagnostic program  the PC  will  now  display the
+          diagnostic banner and prompt  indicating the PC is  now  acting
+          as a  terminal connected  to the  TTY/Multifunction  port.   If
+          the  file was a bound  file, the node will begin the process of
+          bringup and entrance into the network.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    17                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+                   4.4  SYNC and HDLC Line Load Procedures
+
+
+
+    The SYNC/HDLC line  loader allows loading from  or dumping to  a SYNC
+    line connected to either SYNC  board or an HDLC line connected  to an
+    SIO  port  on any  SIO  motherboard addressed  between  80x  and 83x.
+    Loading/dumping may  take place  at any baud  rate between  1.2KB and
+    19.2KB inclusive on sync  or SIO V.24 lines;  up to 64KB on  SIO V.35
+    lines;  and  speeds determined  by SIO motherboard  load for  SIO OCL
+    line loads.
+
+    NOTE:  Previous  releases of  the bootstrap  could not  download over
+    HDLC lines at less than 4800 baud.
+
+    The SYNC/HDLC line loader can be executed in two different ways:
+
+    1.  The SYNC/HDLC line loader jump table entry at location 5A  may be
+    used.  To verify  that the jump table  entry has not  been destroyed,
+    press the following keys on the front console:
+
+
+         [PSW] [DTA] [SET] 005A [ADR] [RD]
+
+
+    the front console display should read
+
+
+         0 005A 4300
+
+    if the front console display is not correct, then reload  BOOT09 from
+    PROM by repeating step 2 (below).
+
+    If the front console display is correct, then press the [RUN]  key on
+    the the front  console to start  the bootstrap execution.   The front
+    console display should change to:
+
+         y F000 BA5E
+
+    for a few seconds, and then to
+
+         0 0000 0009
+
+    with the left-most digit changing from 0 to F.  At this  point LOADII
+    may be used to load or dump via a SYNC line connected to a  SYNC port
+    or an HDLC line connected to an SIO port.
+
+
+
+
+
+
+
+
+    18                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+    2.   If the  bootstrap cannot  be restarted  using the  first method,
+    BOOT09 must be reloaded from PROM.  This is done by the following:
+
+
+        o  Clear memory of the target machine by pressing the front
+           console keys:
+
+               [DTA] [SET] [DTA] 0 [ADR] [DTA] [WRT] [INC] [RPT]
+
+           hold the [RPT] key until the memory address cycles past zero.
+
+
+
+        o  Load  the  BOOT  program  by  toggling  boot  switch  on  the 
+           Multifunction  board and  wait for the line scanning to begin
+           on the front console display.
+
+
+
+    If the SYNC/HDLC  line loader does  not receive a  complete correctly
+    checksummed  record  for  sixty  seconds,  BOOT09  will  timeout  and
+    restart.  BOOT09 will  then begin searching  all SYNC and  HDLC lines
+    for a complete, correctly checksummed record.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    19                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+                   4.5  MSC 1400 Hard Disk Load Procedure
+
+
+
+
+
+
+                          4.5.1  Loading Procedures
+
+
+
+    The MSC 1400 Disk loader  is designed to interface with the  MSC 1400
+    disk controller and the 160/300 mass storage unit (disk  drive).  The
+    Disk Initialization Program (DINP) is designed to save the core image
+    of the  .BND file to  disk just prior  to code  initialization.  This
+    program is commonly used  for supervisor code and  network monitoring
+    and control software (TMCS,  ELF, NEM, etc).   The BOOT  code drivers
+    for interacting with the MSC disk controller and disk drive  are used
+    by  the DINP  program at  load time.   The entire  core image  of the
+    target machine can be loaded  from disk at any time by  following the
+    below procedures.
+
+    NOTE:  The default load type for BOOT09 is the MSC 1400  (160/300 MB)
+    hard disk loader.
+
+    1.  Clear memory of the target machine by pressing the  front console
+    keys:
+
+           [DTA] [SET] [DTA] 0 [ADR] [DTA] [WRT] [INC] [RPT]
+
+    hold the [RPT] key until the memory address cycles past zero
+
+    2.   Load  the   BOOT  program  by   toggling  boot  switch   on  the
+    Multifunction board and  wait for the line  scanning to begin  on the
+    front console display.
+
+    3.  Modify the  parameter block (used by  the MSC 1400  for accessing
+    the disk drive) by writing the "READ" instruction into it at location
+    FF00A  (further  information  on the  parameter  block  follows these
+    instructions).  Execute the BOOT09  MSC 1400 Disk loader  by pressing
+    the front console keys:
+
+             [PSW] [DTA] [SET] [DTA] FF00A [ADR] [RD]
+             [DTA] [WRT] [RD]  [INC] [DTA]  2000 [WRT] 
+             [RD]  [DTA]  004E [ADR] [RUN]
+
+             NOTE:  Since the MSC 1400 hard disk is the default for
+                    BOOT09 this step can be reduced to:
+
+             [PSW] [DTA] [SET] [DTA] 004E [ADR] [RUN]
+
+
+
+
+    20                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+
+
+    when  the  load has  completed  successfully the  front  console will
+    display:
+
+             0 C0DE 800E
+
+
+    4.  Initialize the code by pressing the front console key(s):
+
+
+             [INI]    ---  or  ---    [DTA] [SET] [DTA] 0070 [ADR] [RUN]
+
+
+
+
+
+
+                           4.5.2  Parameter Block
+
+
+
+    The MSC 1400  Hard Disk parameter block  is used to set  those values
+    necessary to perform read or write operations on the disk drive.  The
+    BOOT09 code defines  all of the  parameters necessary to  perform the
+    disk operation except the  actual controller command: read  (value of
+    20)  or write  (value of  14).  The  parameter block  is  outlined as
+    follows:
+
+
+      FF000     +------------------------------------------------+
+                |  memory start address (should be even value)   |
+      FF004     +------------------------------------------------+
+                |  memory  end  address (should be  odd value)   |
+      FF008     +------------------------+-----------------------+
+                |           initial disk cylinder                |
+      FF00C     +------------------------+-----------------------+
+                |  cntrl cmd  |  drive   |
+                +------------------------+
+                
+                   where    
+                     cntrl cmd =   read = 20 or write = 14
+                     drive     =   0-3
+       
+
+
+
+
+
+
+
+
+
+
+    21                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+                           4.5.3  Console Displays
+
+
+
+    The following are the  console display values that BOOT09  will write
+    to the front console following an MSC 1400 Hard Disk load operation:
+
+
+         Console Display    Meaning
+         ------- -------    -------
+         
+           0 CODE 8000      Disk not responding
+           0 CODE 8001      Invalid disk drive number
+           0 CODE 8002      Unrecoverable error occurred while attempting
+                              to perform a read or write
+           0 CODE 800E      Disk operation successful
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    22                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+                    4.6  Ampex 10 Meg Disk Load Procedure
+
+
+
+
+
+
+                          4.6.1  Loading Procedures
+
+
+
+    The  Apmex 10  Meg  disk loader  is  designed to  interface  with the
+    ESELCH, 10 Meg disk controller and the Ampex 10 Meg mass storage unit
+    (disk drive).  The Disk Initialization Program (DINP) is  designed to
+    save the  core image  of the  .BND file  to disk  just prior  to code
+    initialization.  This  program is commonly  used for  supervisor code
+    and network  monitoring and control  software (TMCS, ELF,  NEM, etc).
+    The BOOT  code drivers for  interacting with the  ESELCH, 10  Mb disk
+    controller and disk drive are used by the DINP program at  load time.
+    The entire core image of  the target machine can be loaded  from disk
+    at any time by following the below procedures:
+
+    1.  Clear memory of the target machine by pressing the  front console
+    keys:
+
+           [DTA] [SET] [DTA] 0 [ADR] [DTA] [WRT] [INC] [RPT]
+
+    hold the [RPT] key until the memory address cycles past zero.
+
+    2.   Load  the   BOOT  program  by   toggling  boot  switch   on  the
+    Multifunction board and  wait for the line  scanning to begin  on the
+    front console display.
+
+    3.  Modify the parameter block (used by the ESELCH for  accessing the
+    10M disk drive) by writing the "READ" instruction into it at location
+    FF00A  (further  information  on the  parameter  block  follows these
+    instructions).   Execute  the  BOOT09 Ampex  10  Meg  Disk  loader by
+    pressing the front console keys:
+
+             [PSW] [DTA] FF00A [ADR] [RD]
+              0130 [WRT] [RD]  
+             [DTA]  0066 [ADR] [RUN]
+
+
+
+
+
+
+
+
+
+
+
+
+    23                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+
+    when  the  load has  completed  successfully the  front  console will
+    display:
+
+             0 C0DE 800E
+
+
+    4.  Initialize the code by pressing the front console key(s):
+
+             [INI]    ---  or  ---    [DTA] [SET] [DTA] 0070 [ADR] [RUN]
+
+
+    CAUTION:  The Ampex  10 Meg Disk Loader   was the default  loader for
+    BOOT06,  so step 3 (above) was reduced to simply [DTA] [SET] [DTA] 66
+    [ADR]  [RUN].  This  has been  changed since  the default  loader for
+    BOOT09 is the MSC 1400 Hard Disk Loader.
+
+
+
+
+                           4.6.2  Parameter Block
+
+
+
+    The Ampex  10 Meg Disk  parameter block is  used to set  those values
+    necessary to perform read or write operations on the disk drive.  The
+    BOOT09 code defines  all of the  parameters necessary to  perform the
+    disk operation except the  actual controller command: read  (value of
+    0130) or write (value of  0210).  The parameter block is  outlined as
+    follows:
+
+
+      FF000     +------------------------------------------------+
+                |  memory start address (should be even value)   |
+      FF004     +------------------------------------------------+
+                |  memory  end  address (should be  odd value)   |
+      FF008     +------------------------+-----------------------+
+                |  initial disk cylinder |
+      FF00A     +------------------------+
+                | cntlr cmd | eselch cmd |
+                +-----------+------------+
+                
+                  where
+                    cntlr cmd =   01 for read; 02 for write
+                    eslch cmd =   30 for read; 10 for write
+       
+
+
+
+
+
+
+
+
+    24                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+                           4.6.3  Console Displays
+
+
+
+    The following are the  console display values that BOOT09  will write
+    to the front console following an Ampex 10 Meg Disk load operation:
+
+
+         Console Display    Meaning
+         ------- -------    -------
+         
+           0 CODE 8000      Disk not responding.
+           0 CODE 8001      Unrecoverable error occurred while disk drive
+                               was restoring disk arm.
+           0 CODE 8002      Unrecoverable error occurred while disk drive
+                               was seeking a disk cylinder.
+           0 CODE 8003      Unrecoverable error occurred while disk drive
+                              was being reset.
+           0 CODE 8004      Disk selector channel status is bad
+           0 CODE 8005      Unrecoverable error occurred while disk drive
+                               was performing a read or write operation.
+           0 CODE 800E      Disk operation successful
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    25                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+                        4.7  Magnetic Tape Procedures
+
+
+
+    The  tape loader  allows the  same opportunity  for quick  loading of
+    machines a the  disk loaders,  except the  medium used is  a magnetic
+    tape.   The following  procedures  outline those  steps  necessary to
+    create a  magnetic tape  image and to  use this  image for  loading a
+    machine.
+
+
+
+
+                       4.7.1  Dumping to Magnetic Tape
+
+
+
+    1.  Clear memory of the target machine by pressing the  front console
+    keys:
+
+           [DTA] [SET] [DTA] 0 [ADR] [DTA] [WRT] [INC] [RPT]
+
+    hold the [RPT] key until the memory address cycles past zero.
+
+    2.   Load  the   BOOT  program  by   toggling  boot  switch   on  the
+    Multifunction board and  wait for the line  scanning to begin  on the
+    front console display.
+
+    3.  Load the target machine over an SIO or SYNC line with  the LOADII
+    program using the "/N" option to prevent code start-up at the  end of
+    the load.
+
+    4.  Restore low RAM when the code has finished loading  (as indicated
+    by the output of the  LOADII program), by pressing the  front console
+    keys:
+
+             [PSW] 0048 [ADR] [RUN]
+
+    when low RAM  has been restored  successfully the front  console will
+    display:
+
+             0 0070 5AFE
+
+    5.   Load  the   BOOT  program  by   toggling  boot  switch   on  the
+    Multifunction board and  wait for the line  scanning to begin  on the
+    front console display.  Restore low RAM, after the line  scanning has
+    begun, on the front console by pressing the front console keys:
+
+             [PSW] 0048 [ADR] [RUN]
+
+    when low RAM  has been restored  successfully the front  console will
+    display:
+
+
+    26                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+             0 0070 5AFE
+
+    It is necessary to  repeat the restoring of  low RAM for BOOT  9 code
+    initialization.
+
+    6.  Modify the parameter block (used by the Magnetic Tape  loader for
+    accessing the tape drive) by writing the "WRITE" instruction  into it
+    at location FF00A (further information on the parameter block follows
+    these  instructions).  Execute  the  BOOT09 Magnetic  Tape  loader by
+    pressing the front console keys:
+
+             [PSW] [DTA] [SET] [DTA] FF00A [ADR] [RD]
+             2210  [WRT] [RD]  [INC] [DTA] [WRT] [RD]
+             0054  [ADR] [RUN]
+
+
+    when the  dumping has completed  successfully the front  console will
+    display:
+
+             0 C0DE 800E
+
+    7.  Initialize the code by pressing the front console key(s):
+
+             [INI]    ---  or  ---    [DTA] [SET] [DTA] 0070 [ADR] [RUN]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    27                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+                      4.7.2  Loading from Magnetic Tape
+
+
+
+    1.  Clear memory of the target machine by pressing the  front console
+    keys:
+
+           [DTA] [SET] [DTA] 0 [ADR] [DTA] [WRT] [INC] [RPT]
+
+    hold the [RPT] key until the memory address cycles past zero.
+
+    2.   Load  the   BOOT  program  by   toggling  boot  switch   on  the
+    Multifunction board and  wait for the line  scanning to begin  on the
+    front console display.  Restore low RAM, after the line  scanning has
+    begun, on the front console by pressing the front console keys:
+
+             [PSW] 0048 [ADR] [RUN]
+
+    when low RAM  has been restored  successfully the front  console will
+    display:
+
+             0 0070 5AFE
+
+    3.  Modify the parameter block (used by the Magnetic Tape  loader for
+    accessing the tape drive)  by writing the "READ" instruction  into it
+    at location FF00A (further information on the parameter block follows
+    these  instructions).  Execute  the  BOOT09 Magnetic  Tape  loader by
+    pressing the front console keys:
+
+             [PSW] [DTA] [SET] [DTA] FF00A [ADR] [RD]
+              2130 [WRT] [RD]  [INC] [DTA] [WRT] [RD]
+              0054 [ADR] [RUN]
+
+
+    when the  restore has completed  successfully the front  console will
+    display:
+
+             0 C0DE 800E
+
+    4.  Initialize the code by pressing the front console key(s):
+
+             [INI]    ---  or  ---    [DTA] [SET] [DTA] 070 [ADR] [RUN]
+
+
+
+
+
+
+
+
+
+
+
+
+    28                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+                         4.7.3  Disk Parameter Block
+
+
+
+    The Magnetic Tape  Disk parameter block is  used to set  those values
+    necessary to perform read or write operations on the tape drive.  The
+    BOOT09 code defines  all of the  parameters necessary to  perform the
+    tape operation except the  actual controller command: read  (value of
+    2130) or write (value of  2210).  The parameter block is  outlined as
+    follows:
+
+
+      FF000     +------------------------------------------------+
+                |  memory start address (should be even value)   |
+      FF004     +------------------------------------------------+
+                |  memory  end  address (should be  odd value)   |
+      FF008     +------------------------+-----------------------+
+                |  initial tape file     |                       
+      FF00A     +------------------------+
+                | cntlr cmd | eselch cmd |
+      FF00C     +-----------+------------+
+                |  tape drive number     |
+                +------------------------+
+                
+                
+                  where
+                    cntlr cmd          =  21 for read;  22 for write
+                    eselch cmd         =  30 for read;  10 for write
+                    tape drive number  =  0-3
+       
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    29                                                         BOOT09 DOC
+    BOOTSTRAP OPERATION                                 December 20, 1988
+
+
+
+
+
+
+                           4.7.4  Console Displays
+
+
+
+    The following are the  console display values that BOOT09  will write
+    to the front console following a Magnetic Tape load operation:
+
+
+         Console Display    Meaning
+         ------- -------    -------
+         
+           0 CODE 8001      Device  number  invalid,  device  offline  or
+                              device unavailable.
+           0 CODE 8002      Tape BOT (beginning of tape) is not found.
+           0 CODE 8003      File   not   found  (EOT  reached);    or  an
+                              unrecoverable  error occurred  during skip-
+                              ping of files.
+           0 CODE 8004      Tape select channel status is bad
+           0 CODE 8005      Parity or timing  errors  occurred on each of
+                              15  attempts to  read or write a particular
+                              record; or an  unrecoverable error occurred
+                              while attempting to read or write a record.
+           0 CODE 8006      Tape is write protected for write operation
+           0 CODE 8008      Unrecoverable error  occurred  while  writing
+                              tape mark at end of dumped file.
+           0 CODE 800E      Tape operation successful
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    30                                                         BOOT09 DOC
+    APPENDIX                                            December 20, 1988
+
+
+
+
+
+
+                                5 -  APPENDIX
+
+
+
+
+
+
+                   5.1  Checksum for SYNC and HDLC Records
+
+
+
+    Two halfword  checksums are  transmitted with  each incoming  SYNC or
+    HDLC record.   The first is  a 'vertical' checksum,  the second  is a
+    'diagonal' checksum.
+
+
+
+
+                   5.1.1  Algorithm for Vertical Checksums
+
+
+
+    The following is the algorithm for computing the vertical checksum
+
+    1.  Load 0 into accumulator.
+
+
+    2.  Get a halfword of data.
+
+
+    3.  XOR data with accumulator.
+
+
+    4.  Repeat steps 2-3 until all data is processed.
+
+
+
+
+                   5.1.2  Algorithm for Diagonal Checksums
+
+
+
+    The following is the algorithm for computing the diagonal checksum:
+
+
+    1.  Load 0 into accumulator.
+
+
+    2.  Get a halfword of data.
+
+    31                                                         BOOT09 DOC
+    APPENDIX                                            December 20, 1988
+
+
+    3.   Rotate  16-bit accumulator  left  one bit.   The  high-order bit
+    becomes the low-order bit.
+
+
+    4.  XOR data with accumulator.
+
+
+    5.  Repeat steps 2-4 until all data is processed.
+
+
+    NOTE:  The diagonal checksum includes the vertical checksum.
+
+
+
+
+                            5.1.3  PROM Checksums
+
+
+
+
+
+    The checksums for the BOOT09 proms are as follows:
+
+
+           PROM     CHECKSUM
+         ---------  --------
+
+         BOOT09-00    A6FE
+         BOOT09-01    72A9
+         BOOT09-02    8C9D
+         BOOT09-03    613F
+         BOOT09-04    5D64
+         BOOT09-05    4E8F
+         BOOT09-06    7BBD
+         BOOT09-07    2ABF
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    32                                                         BOOT09 DOC
+    APPENDIX                                            December 20, 1988
+
+
+                      5.2  Multifunction Board Diagram
+
+
+
+    The  following diagram depicts the locations of the eight (8)  BOOT 9
+    proms on the Multifunction board.
+
+
+                                    R E A R
+                  ---------------------+----------------------
+                 | =================== | ==================== |
+                 |                     |                      |
+                 |                     |                      |
+                 |                     |                      |
+                 |                     |                      |
+                 |                     |                      |
+                 |                     |                      |
+                 |                     |                      |
+                 |                     |                      |
+                 |                     |                      |
+                 |                     |                      |
+                  --------------------------------------------
+                 |                     |    B7 B6 B5 B4 B3 B2 |
+                 |                     |                B1 B0 |
+                 |                     |                      |
+                 |                     |                      |
+                 |                     |                      |
+                 |                     |                      |
+                 |                     |                      |
+                 |                     |                      |
+                 |                     |                      |
+                 |                     |                      |
+                 |                     | L L L                |
+                 |                     | 3 2 1     [TTY] [BR] |
+                  ---------------------+----------------------
+                                   F R O N T
+
+
+     The locations noted above are defined as follows:
+
+        B0 through B7 -  Eight (8) BOOT 9 proms (locations 7B-7C, 6B-6H)
+
+        L1 (Red) - Terminal interface at 110 baud indicator LED. 
+
+        L2 (Red) - SYSCLR0 Signal indicator LED. 
+
+        L3 (Red) - Power failure indicator LED.
+
+        TTY - TTY interface (asynchronous multifunction port).
+
+        BR -  TTY interface baud rate thumbwheel switch.
+
+
+
+    33                                                         BOOT09 DOC
+ VIeDw
