@@ -1,0 +1,54 @@
+
+
+To  :  Phililppe Boucachard
+from:  James Wang
+Date:  May 20,1986
+Re  :  X.25, ESC# 69954
+--------------------------------------------------
+
+
+Philippe,
+
+     The dump pw2035.dp2 has been fully checked. The reason for this problem 
+is that the value of n(s) and n(r) was not cleared to zero when 
+the following sequence happens:
+
+           Tymnet X.25            IBM
+          -------------           --------------
+
+               in information transfer state
+
+                       <-------    disc poll
+                   UA F ------>
+               enter not armed state
+
+                       <-------    SABM POLL
+                UA FINAL------>
+               enter information state
+               at this point the values of n(r) and n(s) are not cleared to 0.
+    RESTART with non-zero n(r), N(s)-------->
+                       <------   frame reject, n(r)=0, n(s)=0
+
+    frame reject with the reason of invalid n(r)//n(s)----->
+
+`e
+1. will check when the code should clear n(s) and n(r).
+     (i.e., either at the point when the code receives DISC in information state
+      or when the code receives SABM in not armed state.)
+2. Please recheck the frame/packet sequence when the problem re-occurs
+  
+   to see if the above sequence (disc-ua,sabm-ua,restart-frame reject,....)
+   always happens when the same problem occurs.
+
+   If the sequence is always the same, a patch will be written 
+   under the conclusion of item 1.
+
+
+Best regards,
+James
+
+
+-----------------------
+
+Patch CLVSVR.300 is developed May 21,12:00. this patch is located at 
+jwang:37.
