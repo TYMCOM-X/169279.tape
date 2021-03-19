@@ -1,0 +1,57 @@
+C**********************************************************************
+C
+C                             cuss.ftf
+C
+C          GENERATES REPORT ON NEW TICKETS
+C          IMPACTING SELECTED CUSTOMERS                 09/04/92
+C                                                            JLM
+C
+C***********************************************************************
+C
+C
+        INTEGER TNUM,STDAT,CNAME,SVER,MAINT
+        INTEGER IERT,IERC,NUMBER,I,ONUM
+        INTEGER CM,CD,CY,HOST,NODE,TIME,TUP,COC,HRGN
+        INTEGER CKT(2),COMMNT(5)
+        REAL ELM        
+        CALL DBSTRT(-1,1,-4,0,1,0,5,0,-1,0,-4,1,1,1,5,1)
+        TYPE 20
+20      FORMAT(/5X,'ENTER THE CUSTOMER NAME :  ',$)
+        ACCEPT 21,CNAME
+21      FORMAT(A5)
+        CALL DBERR($100,IERT,IERC,0)
+ 
+        GOTO 101
+100     IF (IERT.NE.7) GOTO 9000
+        TYPE 103
+103     FORMAT(/1X,'DATABASE BUSY, PLEASE WAIT.')
+        CALL WAIT(5.0)
+101     CALL DBOPEN('(TNT)CALBAK','(TNT)BASE1')
+        CALL DBFIND('TNUM',2,0)
+        CALL DBSRCH(4,'CT',CNAME)
+        CALL DBMAP(2,'TNUM','TNUM')
+        CALL DBSRCH(52,2,4)
+        CALL DBSRCH(15,2,'CLSD')
+        CALL DBNREC(NUMBER)
+        CALL DBSORT('SVER','TNUM')
+
+        DO 200 I=1,NUMBER
+        CALL DBGREC($9000,I)
+        CALL DBVAL(1,TNUM,40,NODE,42,HOST,52,SVER,
+     1  51,MAINT,54,ELM,43,CKT,25,COMMNT)
+        ELM=ELM/60
+        TYPE 110,TNUM,NODE,HOST,SVER,MAINT,ELM,CKT,COMMNT
+110     FORMAT(I8,T10,I5,T16,I6,T23,I2,T27,A5,T35,F8.1,3X,2A5,3X,5A5)
+200     CONTINUE
+
+        GOTO 9990
+8000    TYPE 8001
+8001    FORMAT(/5X,'NO RECORDS FOUND')
+        GOTO 9990
+9000    TYPE 9001,IERT,IERC
+9001    FORMAT(/3X,'ERROR TYPE = ',I5,4X,'ERROR CODE = ',I5,
+     1  /,/3X,'PLEASE REPORT THIS TO JIM PARKER AT NSSC!')
+9990    CALL DBCLOSE
+        CALL DBEND
+        STOP
+        END
