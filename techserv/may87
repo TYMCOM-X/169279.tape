@@ -1,0 +1,1161 @@
+                                                                 April 30, 1987
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+TTTTTTTTTTT EEEEEEEEE  CCCCCCCC  HHH    HHH TTTTTTTTTTT IIIIIIIIIII  PPPPPPP
+TTTTTTTTTTT EEEEEEEEE CCCCCCCCCC HHH    HHH TTTTTTTTTTT IIIIIIIIIII PPPPPPPPP
+    TTT     EEE       CCC     CC HHH    HHH     TTT         III     PPP    PPP
+    TTT     EEEEE     CCC        HHHHHHHHHH     TTT         III     PPP    PPP
+    TTT     EEEEE     CCC        HHHHHHHHHH     TTT         III     PPPPPPPPP
+    TTT     EEE       CCC     CC HHH    HHH     TTT         III     PPP
+    TTT     EEEEEEEEE CCCCCCCCCC HHH    HHH     TTT     IIIIIIIIIII PPP
+    TTT     EEEEEEEEE  CCCCCCCC  HHH    HHH     TTT     IIIIIIIIIII PPP
+
+
+
+
+
+
+
+
+
+
+                                 May 01, 1987
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     MMDDYY.TIP
+                                                                 April 30, 1987
+
+
+
+
+
+
+
+                                   TABLE OF CONTENTS
+
+        Section                                                            Page
+
+
+
+        1.   Relations between DEFACT Macro and MXBLK Macro                   1
+
+
+        2.   Circuit Rebuild Requirements/Command Circuit Routing             3
+
+
+        3.   PVC OPTION QUESTIONS/ANSWERS                                     6
+
+
+        4.   SNA Transmission Group Support                                   8
+
+
+        5.   TECHALERT--For Anyone Needing to Gen CMT V 3.00                 10
+
+
+        6.   TECHALERT--XCOM03.P01                                           11
+
+
+        7.   ATC Staging                                                     12
+
+
+        8.   CMT 25th Status Line                                            13
+
+
+        9.   Tentative 3Q TTe Schedule                                       14
+
+
+        10.  Determine Usage of An Async Outdial Host                        17
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                     MMDDYY.TIP
+        Relations between DEFACT Macro and MXBLK Macro           April 30, 1987
+
+
+
+
+
+
+                  1 -  Relations between DEFACT Macro and MXBLK Macro
+
+
+
+
+
+
+
+        Original Question by : Stephen Liang, Communications Specialist
+                 Response by : Gail Bubsey, HQ Network Staff Consultant
+                        Date : March 27, 1987
+
+
+
+
+
+
+
+        QUESTION
+
+        1) Within the Sup. Gen. -
+           The DEFACT macro is required to define the number of sectors allo-
+           cated to the accounting file on disk (in sectors). 
+           
+        2) Within the RAM tymfile - 
+           The MXBLK macro is to specify the max. block no. for non-specified 
+           Sup.  The value of MXBLK is in blocks.
+
+
+        Is there any relation between these two macros? If so,  converting from
+        block to sectors or from sector to block for both macros above in order
+        to have the corresponding values matched. is this correct?
+
+
+        Please advise!
+
+
+
+
+
+
+        RESPONSE
+
+
+        The MXBLK value in blocks should be DEFACT's # of sectors divided by 4,
+        +1.  So if  DEFACT has 3000 sectors,  MXBLK should equal 0C01.   If you
+        have sups with different numbers  of accounting sectors, you can  set a
+        seperate  MXBLK for  each,  I think  the  parameter in  RAM  is MXBLK1,
+
+
+                                           1
+        Relations between DEFACT Macro and MXBLK Macro           April 30, 1987
+
+
+        MXBLK2, etc., but you could  contact the RAM people to make  sure.  Any
+        sups  not  specified  in  RAM will  default  to  the  set  MXBLK value.
+        Remember that  MXBLK is  only the  maximum block  number that  RAM will
+        allow you to  set.  If you  have a smaller  number of sectors,  but are
+        using the larger MXBLK value, simply do not set a value larger than the
+        real number of (sectors/4)+1.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                           2
+        Circuit Rebuild Requirements/Command Circuit Routing     April 30, 1987
+
+
+
+
+
+
+               2 -  Circuit Rebuild Requirements/Command Circuit Routing
+
+
+
+
+
+
+
+        Written by : Sandra Nilluka
+              Date : April 1, 1987
+
+
+
+
+
+
+
+        Below is copy of a  techtip I published April, 1986  describing circuit
+        rebuild  requirements and  related  topic of  command  circuit routing.
+        Nodecode 5.21  does NOT  change requirements;  it corrects  the history
+        buffer  handling  problems  that  caused  rebuildable  circuits  to not
+        rebuild.
+
+
+
+        CIRCUIT REBUILD
+
+        Circuit rebuild is a feature that provides for broken  virtual circuits
+        to be re-constructed by the  network, such that the user  experiences a
+        delay  in service  during the  rebuild process,  but does  not  have to
+        perform a login and loses no data.
+
+
+
+        All  of  the following  conditions  must be  met  for a  circuit  to be
+        successfully rebuilt:
+
+        1. Origination and destination nodes must be nodecode version
+           5.06 (or higher) with rebuild enabled, and all intermediate
+           nodes in a circuit's path must be nodecode version 5.xx.
+           This implies Solo and Isis; ATCs do not support rebuild.
+           The orig. and dest. nodes will exchange control 
+           information on data successfully received and maintain history
+           buffers for re-transmission, should rebuild occur.
+
+        2. There must be an alternate path available for construction
+           of a replacement circuit path.  The link that went out will
+           not be used in the new path.
+
+
+                                           3
+        Circuit Rebuild Requirements/Command Circuit Routing     April 30, 1987
+
+
+        3. The circuit breakage must be caused by a network link outage
+           or an intermediate node outage.  It can not be caused by a host
+           crash, host link outage, host disconnect, user disconnect, or
+           orig./dest. node crash.
+
+        4. The command circuit of the destination node must be intact.
+           If the circuit is down, the destination node does not exist,
+           causing the rebuild request to be rejected.  Currently, the
+           sup holds off rebuild requests for 8 seconds before checking.
+
+        5. The command circuit of the origination node must be intact.
+           If the circuit is down, the node will not request circuit rebuild
+           because the node can not communicate with the supervisor.
+
+        6. The sup can not be saturated with rebuild requests.  Once its
+           limit is reached, the sup will reject rebuild requests.  The
+           current public network limit is 512 outstanding requests.
+
+        7. The origination and destination nodes must be able to ensure
+           no loss of data.  If data cannot be provided from history
+           buffers, or if the nodes can not agree on control sequence
+           numbers, the now-rebuilt circuit is immediately zapped.
+
+
+        The rebuild option requires  additional memory for the  circuit rebuild
+        logic, and history buffers for each circuit originating  or terminating
+        in the node.
+
+
+
+        The  impact on  CPU  utilization is  not measured.   Data  for eligible
+        circuits  must also  be  placed into  history buffers.   The  node must
+        periodically report control information.  Circuit outage   would invoke
+        the rebuild process.
+
+
+        COMMAND CIRCUIT ROUTING
+
+
+        A command  circuit is the  circuit over which  the node  and supervisor
+        communicate.  Its path is determined by the supervisor:
+
+        1. At takeover time when the sup gains control of the network.
+
+        2. At re-take time following a command circuit outage.
+
+        3. At re-take time per Probe command request.
+
+        There is no provision for designated routing.  One can not define which
+        of a node's links will be used for its command circuit.
+
+
+
+
+                                           4
+        Circuit Rebuild Requirements/Command Circuit Routing     April 30, 1987
+
+
+        For a given node, one could force the command circuit to use a specific
+        link, by disconnecting or shutting  all other links and then  issuing a
+        re-take command.  If the disconnection caused the command circuit to be
+        zapped, re-take  would automatically  occur.  Upon  re-take completion,
+        the other links could be re-connected or unshut.
+
+
+
+        However, a subsequent takeover by a new supervisor or a re-take  due to
+        loss of command  circuit or Probe  command results in  command  circuit
+        path re-calculation, and thus defeats the contrived path.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                           5
+        PVC OPTION QUESTIONS/ANSWERS                             April 30, 1987
+
+
+
+
+
+
+                           3 -  PVC OPTION QUESTIONS/ANSWERS
+
+
+
+
+
+
+
+        Original Question by : John Bell, Communications Specialist
+                 Response by : DeeJong Tsao, HQ Network Staff Consultant
+                        Date : April, 1987
+
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+        1.  PVCOPN questions.
+            a. Is OPT1 range 0-PVCTME?
+            b. Is OPT2 range 0-(PVCTME * 2)?
+            c. Is OPT3 range PVCTME-(PVCTME * 2)?
+            d. Is OPT4 range immediate then every PVCTME?
+
+            e. What other factors are involved in determining when a PVC will 
+               be rebuilt within a given range?  i.e. If OPT1 range is 0-3 then
+               what determines that the rebuild will occur at 2 minutes rather 
+               than at 1 minute?  Node load?  Net configuration?  Slot config-
+               uration?
+
+        2. Please explain MINXMT and MAXXMT in more detail than the manual.  
+           What is a threshold to release for transmit?
+
+        3. In the BUFLET statement, what is the algorithm for establishing a 
+           default value based on the number of lines and ports?
+
+        4. What is a return code and why would I want to monitor these?
+
+
+
+
+
+
+
+        RESPONSE:
+
+
+                                           6
+        PVC OPTION QUESTIONS/ANSWERS                             April 30, 1987
+
+
+        1. I can give you some  idea about the algorithm. . . Let's  assume the
+        PVCTIM is 5 minutes, which means  PBT will check if a circuit  needs to
+        be rebuilt (ckt was  zapped by any reason)  or not every 5  minutes. If
+        so, when the CKT  will be rebuilt depends  on the options and  the time
+        (e.g. at the  first minute of  the 5 minutes or  at the 4th  minutes 30
+        seconds of that 5 minutes)  the ckt gets zapped, in another  words, how
+        much time left from the time ckt zapped to the time PBT to check if ckt
+        still there.  Node load and configurations will affect the overall slot
+        performance,but there are not concerns of PVC logic.
+
+
+        2. MINXMT and MAXXMT  are two limits used by  PBT to see if  PBT should
+        start  transmitting data  to CU  or not,  if EDF  is enabled.  When PBT
+        receives data from Network before ETX arrives, MINXMT is limit  to tell
+        PBT  do not  deliver data  to CU  yet no  matter what.  As soon  as the
+        caculated number is over this  MINXMT, then PBT is allowed to  send out
+        data ,as  to how they  caculate the number  is defined by  an algorithm
+        (complicated) in code. But no  matter what the algorithm tells  you, if
+        the caculated number is over MAXXMT, PBT just starts shipping data.
+
+
+        3. BUFLET is  the macro to redefine  the number of Big  Bufferlet.  The
+        basic formula to caculate proper number of bufferlet is
+
+                    IF   NPORT-NDEVM
+           NBBFLT   EQ   (NDEVM+NBILM*2)*MINBUF+BUFLO
+                    ELSE
+           NBBFLT   EQ   (NPORT+NBILIN*2)*MINBUF+BUFLO
+                    EI
+           NBBFLT   EQ   NBBFLT+80
+         
+           note:
+           nport - number of ports
+           ndevm - number of devices
+           minbuf - 10x    :minimum buffers
+           buflo  - 15d    :denger level of buffers
+           nbilin,nbilm - number of lines
+
+
+        4. Return code is  the mnemonic representation of response  received by
+        PBH/PBT after they  send something to  Host/CU.  It is  used internally
+        and will be translated to  meaningful message (e.g ACK0, ENQ  ...) when
+        you enable protocol trace thru PBH BOM or PBT BOM.
+
+
+
+
+
+
+
+
+
+
+
+                                           7
+        SNA Transmission Group Support                           April 30, 1987
+
+
+
+
+
+
+                          4 -  SNA Transmission Group Support
+
+
+
+
+
+
+
+        Original Question by : Bruce Thomson
+                 Response by : John Mckiernan, HQ Network Staff Consultant
+                        Date : April 07, 1987
+
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+
+        Can  we support  'Transmission groups'  using our  SDLC  extension cord
+        service.  The customer specifically  wants to have one of  the multiple
+        lines  transit the  SDLC extension  cord service  and the  other  use a
+        standard  modem-to-modem  connection.  If  there  is likely  to  be any
+        problem with this, what could he expect.
+
+
+
+
+
+
+
+        RESPONSE:
+
+
+
+        SNA  transmission  groups are  composed  of one  (or  more)  SDLC links
+        between adjacent PU.T4 nodes.  The links which make up the transmission
+        group may have  different attributes, such  as mode (HDX/FDX)  or speed
+        (BPS) .  Thus sequenced frames which pass over a transmission group may
+        arrive at the  next node out of  order.  As such, a  transmission group
+        sequence number is assigned within each SDLC frame and the  sequence is
+        recreated at each node.
+
+
+        Since this sequencing is provided in in the PATH CONTROL level of SNA ,
+
+
+                                           8
+        SNA Transmission Group Support                           April 30, 1987
+
+
+        our  SDLC  interface  cannot  handle  some  of  the  subtle  points  of
+        transmission  groups   properly.   Of  special   concern  is   the  SNA
+        'Transmission group sweep' procedure.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                           9
+        TECHALERT--For Anyone Needing to Gen CMT V 3.00          April 30, 1987
+
+
+
+
+
+
+                 5 -  TECHALERT--For Anyone Needing to Gen CMT V 3.00
+
+
+
+
+
+
+
+        Written by : Tod Fiste, HQ Network Staff Consultant
+              Date : April, 1987
+
+
+
+
+
+
+        FOR ANYONE NEEDING TO GEN CMT VERSION 3.00 -
+         
+                The latest patches released to Source make it necessary to
+                be careful with the labels in your tymfile. Please do not use
+                labels beginning with MENU or DSP anywhere (MENU, MENU1, DSP,
+                DSP1, DSP135, etc.). Most tymfiles that use it have it in a 
+                MENUSR macro, i.e., MENUSR(MENU), and its matching DEFMEN 
+                macro, or in a DEFELE macro, i.e., DEFELE(DSP135,. . .). 
+                If MENU or DSP is used as part of a label you may get a gen 
+                error or you may get no gen error and have strange errors 
+                and/or crashes when the code is loaded. As an alternative to
+                re-writing your entire tymfile, you can look up any labels 
+                you have questions about in the Cross Reference of a version 
+                3.00 code listing. If you find it in the Cross Reference you 
+                should not use it in your tymfile. As an example, DSP135 is 
+                a label in the source code which you can find in the Cross 
+                Reference, so you should not use it. DSP136, however is not 
+                an existing label so it is all right to use it in your tymfile.
+
+        SOURCE PATCH FILE UPDATE -
+         
+                The patch file in Source for version 3.00 of CMT - found in
+                (SOURCE)CMTI03.P00 - is now o.k. to use. Those of you who 
+                genned code with the patch file in TFISTE or TECHSERV please
+                change your commands files back to SOURCE. Thank you all for
+                your attention to this matter.
+
+
+
+
+
+
+
+
+                                          10
+        TECHALERT--XCOM03.P01                                    April 30, 1987
+
+
+
+
+
+
+                              6 -  TECHALERT--XCOM03.P01
+
+
+
+
+
+
+
+        Written by : Diana Houge, QA Administration
+              Date : April 13, 1987
+
+
+
+
+
+
+
+        The patch file in source for XCOM version 3.01 ( XCOM03.P01 )  does not
+        support   the FAST  SELECT FACILITY   correctly.   Please   avoid using
+        this  patch if  you use  the  Fast Select  Facility until  the  new and
+        updated  patch  is  released  to source.    Keep  an  eye  out  for the
+        announcement.  Thank You.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          11
+        ATC Staging                                              April 30, 1987
+
+
+
+
+
+
+                                   7 -  ATC Staging
+
+
+
+
+
+
+
+        Written by : Tom Chard, ATC Product Manger
+              Date : April 14, 1987
+
+
+
+
+
+
+         
+                  The  ATC's  with prom version 1.26  have been  running 
+                  successfully   in   the   field   with no   technical 
+                  escalations.  There have been no defects in the ATC's
+                  which have gone through Staging since January 1987.
+    
+                  Effective immediately ATC's are no longer mandatory 
+                  hardware staged by Network Systems Staging.   ATC's may 
+                  be  staged  as  part  of a pilot network  order  or  by 
+                  special   permission  of the  Network  Systems  Staging 
+                  Manager.
+         
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          12
+        CMT 25th Status Line                                     April 30, 1987
+
+
+
+
+
+
+                               8 -  CMT 25th Status Line
+
+
+
+
+
+
+
+        Written by : Tod Fiste, HQ Network Staff Consultant
+              Date : April, 1987
+
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+        Customer is using EXECULINK software / terminal type, which  supports a
+        25th status line.  25th status line works perfectly.  However,  since I
+        have STATUS LINE turned on in code, all terminal types now  have status
+        line, which erases data on 24th line.
+
+
+        I know that all terminals have a keyboard sequence to erase  the status
+        line, however...........
+
+
+        Is there a way  to only turn on STATUS  LINE for one terminal  type and
+        DEFAULT all the others to NO status line?????
+
+
+
+
+
+
+
+        RESPONSE:
+
+
+        The present CMT code allows you to turn the status line on and  off for
+        all terminals, but you  can't turn it on  for some and not  for others.
+        The user can, as you mentioned,  turn his status line off after  he has
+        logged in, but that is about your only option.
+
+
+
+
+                                          13
+        Tentative 3Q TTe Schedule                                April 30, 1987
+
+
+
+
+
+
+                            9 -  Tentative 3Q TTe Schedule
+
+
+
+
+
+
+
+        Written by : Tymnet Training
+              Date : April 16, 1987
+
+
+
+
+
+
+
+        TTE is  pleased to announce  the schedule of  classes for the  3Q 1987.
+        Please note that we have  scheduled classes to       be held  in Vienna
+        VA.  The TTE 510 September 14-18 and TTE 520 September 21-October 2 are
+        open to internal employees.  Even though these classes will be  held in
+        Vienna,  they  will  be  taught  by  TTE  instructors  and   the  usual
+        registration procedure should be used.
+
+
+        We  have also  tried to  clear up  some confusion  in  the     hardware
+        track.  Last quarter we added basic telephony and  satellite technology
+        to the  basic introductory course-     formerly TTE 110  and renumbered
+        the course TTE 310 Data  Communications Concepts.  We also added  a lab
+        course called TTE  320 - Data  Communications Operations. Thus  TTE 110
+        and  TTE 300  were eleminated.   Now  to make  what we  have  done even
+        clearer we  are combining  the theory and  lab portions  into a  15 day
+        course called TTE 310 - Data Communications Concepts and Operations.
+
+
+        Simiarly we have combined the Engine Maintenance course TTE 330 and the
+        Hardware  Troubleshooting course  TTE  340 into  one course  TTE  330 -
+        Tymnet Hardware Maintenance and  Troubleshooting.
+
+
+        The online registration  system via OnTyme  :EXEC *** TTE.ENROLL  in in
+        the  process  of being  modified  to accept  registration  for  the 3Q.
+        Course descriptions, applications for challenge tests, enrollment forms
+        and instructor profiles are available via TTE.ENROll
+
+
+        If you have questions  or need additional information please  call 408-
+        432-5042 or OnTyme NETS.TTE
+
+
+                                          14
+        Tentative 3Q TTe Schedule                                April 30, 1987
+
+
+
+                          TTE Third Quarter Schedule '87
+
+
+          COURSE                             LENGTH         DATES
+
+        Introductory Track
+
+        100 - Basic Data Communication           3        August 12-14
+        101 - TYMNET Concepts (internal)         2        Sept 14-15
+        102 - TYMNET Network Operations (int.)   8        Sept 16-25
+        501 - TYMNET Concepts (private nets)     2        August 17-18
+        502 - TYMNET Network Operations (P.N)    8        August 19-28
+        503 - Network Control Center Operations  5        Aug 31-Sep 4
+             
+        Protocol Interface Track
+
+        210 - IBM Data Comm. and Intro To SNA    5        August 3-7
+        215 - Generic X.25                       5        August 17-21
+        225 - TYMNET X.25                        5        August 24-28
+        230 - TYMNET 3270/CMT                    5        Sept 21-25
+        235 - Async Tymcom/Consat/Public Outdial 5        Sept 28-Oct 2
+        240 - TYMNET SNA                         5        August 10-14
+
+        Hardware Track
+
+        CSS - Customer Satisfaction Skills (int.)2        July 9-10
+        310 - Data Communications Concepts and   
+              Operations (1)                     15       July 13-31
+        330 - TYMNET Hardware Maintenance and
+              Troubleshooting (2)                15       August 3-21
+              
+        Software Track
+
+        400 - Introduction to ISIS Software      5        July 27-31
+        400 - Introduction to ISIS Software      5        Sept 21-25
+        450 - Network Troubleshooting            10       August 10-21
+
+        Network Systems Track
+
+        510 - Network Systems Management                             
+              (internal)-Vienna, VA              5        Sept 14-18
+        520 - Network Design (TOPS) (internal)
+              Vienna, VA                         10       Sept 21-Oct 2
+
+        OTHER
+
+        NECO - New Employee Corporate Orientation 2        August 10-11
+        BPS - Basic Products School               3        August 12-14
+        Internal Packet Switching                 1        June 23
+        Internal Packet Switching                 1        June 24
+
+
+
+                                          15
+        Tentative 3Q TTe Schedule                                April 30, 1987
+
+
+        (1)  310 - Data Communications Concepts and Operations is a
+             combination of courses formerly known as 310 and 320.  
+             We have now combined the theory and lab into one course.
+             TTE 320 is no longer taught as a stand alone course.
+                  
+        (2)  330 - Tymnet Engine Maintenance and Troubleshooting is a
+             combination of the theory and lab previously taught in
+             330 and 340.  TTE 340 no longer is taught as a stand
+             alone course.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          16
+        Determine Usage of An Async Outdial Host                 April 30, 1987
+
+
+
+
+
+
+                    10 -  Determine Usage of An Async Outdial Host
+
+
+
+
+
+
+
+        Original Question by : Chris Chung, Communications Specialist
+                 Response by : John Reilly, HQ Network Staff Consultant
+                        Date : April 24, 1987
+
+
+
+
+
+
+
+        ORIGINAL QUESTION:
+
+
+        WHAT IS THE BEST WAY TO  DETERMINE THE USAGE OF AN ASYNC  OUTDIAL HOST?
+        WHEN  I LOGGEN  INTO DDT  AND TRIED  TO CHECK  THE USAGE  OF  THE ASYNC
+        OUTDIAL HOST (NODE 2035 HOST # 2262), I GOT THAT THERE WERE 6 PORTS AND
+        21 PORTS IN USE. WHAT DOES IT MEAN?
+
+
+
+
+
+
+
+        RESPONSE:
+
+
+        1. The  best way  to determine usage  on an  outdial rotary  is through
+        CONSAT extended  DDT. When  issuing the  'port' command,  physical port
+        numbers suffixed with  a 'C' in the  'port' field are ports  which have
+        successful outdial calls placed.
+
+
+        2. When you logged into DDT you saw 'host 2262 has 6 ports, 21 ports in
+        use', the 6 refers to the number of command ports con-figured using the
+        CONSAT 'OUTHOST' macro. This is the maximum number of users who  can be
+        in command mode at one time.  This does NOT affect the number  of users
+        who can place outdial calls.  Command mode is the time  between logging
+        onto the outdial host and placing a successful outdial call.  The 21 is
+        the total  number of  ports in use  (outdial calls  + incoming  calls +
+        command ports).
+
+                                          17
+        Determine Usage of An Async Outdial Host                 April 30, 1987
+
+
+        3. Additionally, a port which is in command mode will appear  above the
+        physical  range of  async ports  when issuing  the 'port'  command. For
+        example, if you have 16 async ports assigned (log-ical 0-15), the first
+        command  port  will  appear  as 16  in  the  'port'  field,  the second
+        simultaneous command port will appear as 17, etc.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          18
+  r5!Û
