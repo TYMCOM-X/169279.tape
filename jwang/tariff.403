@@ -1,0 +1,275 @@
+:*********************************************************************
+: PATCHNAME: TARIFF.403                    PRODUCT VERSION: XCOM 4.03
+:    AUTHOR: JAMES WANG
+:   CUSTOMER: SWBNET
+: UPGRADED FROM TARIFF.301
+:     DATE: JULY 20,1989
+:*********************************************************************
+
+:
+:
+: Traiff Utility patch for SWBT
+:**********************************************************************
+:
+: WARNING:
+:---------
+:
+: X.25/X.75 hosts table are defined in the file X25X75.TBL.
+: This file should be assembled before assembling this patch file.
+:         (after all patches)
+:         @X25X75.TBL
+:         @TARIFF.403
+:
+:  The followings should be defined correctly in XCOM03.PEP (or X25X75.TBL).
+:         RANGE, X25LOW, X25HGH
+:
+:     
+:**********************************************************************
+:
+: Task: This patch will access the X.25/X.75 Hosts table defined
+:       in XCOM03.PEP (or X25X75.TBL) to choose either '00000600' or '00000608'
+:       to be inserted into CALL REQUEST/CALL CONNECTED packet.
+:
+: Structure:
+: Part 1. Subroutine 'SEARCH'.
+:         This routine accesses the file XCOM03.PEP (or X25X75.TBL) to identify
+:         if the Call is originated form or destinated to a X25/X75
+:         host.
+:
+: Part 2. Subroutine 'TARIFF'.
+:         This routine inserts either '00000600' or '00000608' to
+:         Call Request/Call Connected packet.
+:
+: Part 3. 4 places are patched to jump to these two common routines.
+:
+:         case 1. Outbound call and non-IIX thru the network,
+:                 we are sure that the originator should not be
+:                 X.25/X.75. So, '00000608' will be inserted by
+:                 TARIFF routine.
+:      
+:
+:                 Location patched: CRQ309.
+:
+:         case 2. Outbound call and IIX thru the network,
+:                 the originator may be xcom Consat-Pad or QLLC
+:                 or 3270. SEARCH routine will be executed to
+:                 indentify if this is a xcom to xcom call.
+:                 TARIFF routine will be executed to insert
+:                 '00000600/08'.
+:
+:
+:                 Location patched: ESP958
+:
+:         case 3. Inbound call and non-iix thru the network,
+:                 we are sure that destination is non-xcom.
+:                 so, '00000608' will be inserted by TARIFF
+:                 routine. SEARCH routine will not be executed.
+:
+:
+:                 Location patched: MCA120  (see note under case 4.)
+:
+:         case 4. Inbound call and IIX thru the network,
+:                 the destination may be xcom or Consat-pad or QLLC
+:                 or 3270. 
+:                 Because the destination host number information
+:                 may not be available from the Call request packet.
+:                 So, SEARCH routine will not be executed and
+:                 we assume the destination host is a X.25/X.75 and
+:                 TARIFF routine will insert '00000600'.
+:
+:                 Location patched: ESP122 for IIX C092,
+:                                   MCA120 for IIX C08f.
+:
+:                 (Note: For case 3, we patch the same location MCA120.
+:                        Flag 'IIX8F' will be set if IIX C08F received
+:                        from the network. )
+:
+: Limitation: For the inbound call with TKSUP, this patch function will
+:           not be enbaled for this call. (i.e., The call request should 
+:           contain enough information to create login string to build
+:           circuit to destination host. Any prompt from sup or xcom to
+:           request more information for generating any part of login
+:           string (username or password), this patch function will not
+:           be applied.
+:
+:**********************************************************************
+:
+:*********************************************************************
+:
+: PART 1. routine SEARCH
+:___________________________
+:
+
+
+   IF  X.75
+PA0PTR  EQ      ((PA0PTR+3)/4)*4
+PATCH(871005,1800,JWANG,PA0PTR,,14+2*NDGRPS)
+TARIF0  WS      1
+TARIF4  WS      1
+TARIF5  WS      1
+TARIF6  WS      1
+TARIF7  WS      1
+IIX8F   HS      NDGRPS                  :SET IF IIX C08F RECEIVED
+:
+CONPATCH(PA1PTR,,28)
+SEARCH  LIS     R6,0
+SEARC1  CL      R5,X25HGH,R6,           :COMOPARE HIGH HOST IN EACH RANGE
+        JLE     SEARC2                  :JUMP IF FALLING INTO THIS RANGE
+        AIS     R6,4                    :SEARCH NEXT RANGE
+        CLHI    R6,RANGE*4              :HAVE COMOPARED WITH ALL RANGES?
+        JL      SEARC1                  :NOT FINISHED, BACK TO LOOP
+        J       NMATCH                  :NOT IN THE RANGE, JUMP TO NMATCH
+SEARC2  CL      R5,X25LOW,R6,           :FALLS INTO THIS RANGE?
+        JL      NMATCH                  :NOT. MUST BE NONXCOM HOST
+MATCH   AIS     R4,2                    :SKIP RETURN, USE 0600.
+NMATCH  JR      R4                      :RETURN
+:
+:*************************************************************************
+:
+: PART 2. routine TARIFF
+:___________________________
+:
+CONPATCH(PA1PTR,,22)
+TARIFF  LIS     R0,0
+        JAL     R4,WCI,,
+        LIS     R0,0
+        JAL     R4,WCI,,
+        LIS     R0,6
+        JAL     R4,WCI,,
+        LR      R0,R7                   :R7 CONTAINS EITHER 0 OR 8
+        JAL     R4,WCI,,
+        JR      R6                      :R6 CONTAINS THE RETURN ADDRESS
+:
+:*************************************************************************
+:
+: PART 3. 4 PLACES WILL BE PATCHED TO JUMP TO TARIFF AND/OR SEARCH ROUTINES
+:___________________________________________________________________________
+:
+CONPATCH(DDN005-24,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,12)
+        RBT     R1,CSREQ,,
+        RBT     R1,IIX8F,,              :RESET FLAG IIX8F WHEN CIRCUIT ZAPPED
+        J       DDN005-1E,,
+CONPATCH(ESPF+0A,,6)
+        J       PA1PTR,,
+CONPATCH(PA1PTR,,1A)
+        LHL     R1,DPORT,,
+        SBT     R1,IIX8F,,              :TELLING WE RECEIVED IIX C08F
+        LR      R4,R4
+        JN      ESPF05,,
+        J       ESPF+10,,
+:
+:___________________
+: CASE 1.
+:-------------------
+CONPATCH(CRQ309,,0A)
+        J       PA1PTR,,
+        NOP     0,0,0
+CONPATCH(PA1PTR,,56)
+        ST      R0,TARIF0,,
+        ST      R4,TARIF4,,
+        ST      R5,TARIF5,,
+        ST      R6,TARIF6,,
+        ST      R7,TARIF7,,
+:
+        LIS     R7,8                    :INITIAL VALUE FOR TARIFF CODE
+        JAL     R6,TARIFF,,             :GO ADD TARIFF 00000608
+:
+        L       R0,TARIF0,,
+        L       R4,TARIF4,,
+        L       R5,TARIF5,,
+        L       R6,TARIF6,,
+        L       R7,TARIF7,,
+        LHL     R2,TEMP1,,
+        CBCT(R3)
+        J       CRQ309+0A,,
+:
+:----------------------
+: CASE 2
+:----------------------
+CONPATCH(ESP958,,8)
+        J       PA1PTR,,
+        NOPR    0,0
+CONPATCH(PA1PTR,,6E)
+        LHL     R1,IECBUF,,
+        ST      R0,TARIF0,,
+        ST      R4,TARIF4,,
+        ST      R5,TARIF5,,
+        ST      R6,TARIF6,,
+        ST      R7,TARIF7,,
+:
+        LIS     R7,0
+        LHL     R4,DPORT,,
+        LHL     R5,LO8,R4,R4            :GET THE ORIGINATING HOST
+        NHI     R5,7FFF                 :MASK OFF THE HIGH ORDER BIT
+        JAL     R4,SEARCH,,             :SEARCH THE X25/X75 HOSTS TABLE
+                                        :IN FILE XCOM03.PEP (or X25X75.TBL)
+        LIS     R7,8                    :IF NOMATCH RETURN
+        JAL     R6,TARIFF,,             :INSERT TARIFF UTILITY
+:
+        L       R0,TARIF0,,
+        L       R4,TARIF4,,
+        L       R5,TARIF5,,
+        L       R6,TARIF6,,
+        L       R7,TARIF7,,
+        LHL     R2,TEMP1,,
+        J       ESP958+8,,
+:
+:----------------------------
+: CASE 3
+:----------------------------
+CONPATCH(MCA120,,0A)
+        J       PA1PTR,,
+        NOP     0,0,0
+CONPATCH(PA1PTR,,66)
+        ST      R0,TARIF0,,
+        ST      R4,TARIF4,,
+        ST      R5,TARIF5,,
+        ST      R6,TARIF6,,
+        ST      R7,TARIF7,,
+:
+        LIS     R7,0
+        LHL     R4,DPORT,,
+        RBT     R4,IIX8F,,              :HAVE WE RECEIVED IIX C08F?
+        JNFS    .+4                     :YES, USE 00000600
+        LIS     R7,8                    :NO, USE 00000608
+        JAL     R6,TARIFF,,             :GO INSERT TARIFF UTILITY
+:
+        L       R0,TARIF0,,
+        L       R4,TARIF4,,
+        L       R5,TARIF5,,
+        L       R6,TARIF6,,
+        L       R7,TARIF7,,
+        L       R4,TEMP2,,
+        CBCT(R9)
+        J       MCA120+0A,,
+:
+:-------------------------------
+: CASE 4.
+:-------------------------------
+CONPATCH(ESP122+0C,,8)
+        J       PA1PTR,,
+        NOPR    0,0
+CONPATCH(PA1PTR,,58)
+        ST      R0,TARIF0,,
+        ST      R4,TARIF4,,
+        ST      R5,TARIF5,,
+        ST      R6,TARIF6,,
+        ST      R7,TARIF7,,
+:
+        LIS     R7,0                    :USE TARIFF 00000600
+        JAL     R6,TARIFF,,             :INSERT TARIFF UTILITY
+:
+        L       R0,TARIF0,,
+        L       R4,TARIF4,,
+        L       R5,TARIF5,,
+        L       R6,TARIF6,,
+        L       R7,TARIF7,,
+        AIS     R8,4                    :ADD 4 BYTES TO THE UTILITY LENGTH
+        L       R2,TEMP1,,              :GET THE UTILITY LENGTH FILED ADDRESS
+        STB     R8,,R2,                 :STORE THE FINAL UTILITY FIELD LENGTH
+        J       ESP122+14,,
+ENDPATCH(INSERT TARIFF UTILITY 00000600 or 00000608 INTO UTILITY FIELD)
+   EI
+    
