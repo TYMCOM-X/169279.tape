@@ -1,0 +1,70 @@
+c**********************************************************************
+C                             openup.FTF
+C
+C          GENERATES REPORT ON TKTS DUP/TUP SET - STATE = OPEN
+C          04/10/94                                        JLM
+C***********************************************************************
+        INTEGER START,END,TNUM,STDAT,CLDAT,SM,SD,SY,EM,ED,EY
+        INTEGER IERT,IERC,NUMBER,I,ONUM,SDAT,CDAT,B1,OM,OD,OY
+        INTEGER CM,CD,CY,HOST,NODE,TIME,TUP,TNUM,HRGN,SVE,DUP
+        INTEGER SSDAT,COC(2),RE(2),STATE(2),WHO(2)
+        REAL UNDR5,UNDR10,UN5,UN10
+        REAL ELM
+        CALL DBSTRT(-1,1,-4,0,1,0,5,0,-1,0,-4,1,1,1,5,1)
+        TYPE 10
+10      FORMAT(/5X,'Tks Date/Time Up - Open',$)
+        CALL DBERR($100,IERT,IERC,0)
+        GOTO 101
+100     IF (IERT.NE.7) GOTO 9000
+        TYPE 103
+103     FORMAT(/1X,'DATABASE BUSY, PLEASE WAIT.')
+        CALL WAIT(5.0)
+101     TYPE 102
+102     FORMAT(/2X,'MCI - Data Service Division',$)
+        TYPE 106
+106     FORMAT(/2X,'Customer Response Center',$)
+        TYPE 110
+110     FORMAT(/2x,'Tkt Tracking Report',$)
+        TYPE 105
+105     FORMAT(/2X,'-----------------------------------------------',$)
+        CALL DBOPEN('(TNT)BASE1')
+        CALL DBFIND('HN','EQ',4)
+        CALL DBSRCH('DUP','NE',0)
+        CALL DBSRCH('STAT',1,'OPEN')
+        CALL DBSORT('SVER','SDAT') 
+        Type 180
+180     Format(/,2x,'Tkt#',T10,'State',T18,'Sev.',T24,'Tech',T30,
+     1  'Date Open',$)
+        Type 185
+185     Format(/,2x,'----',T10,'------',T18,'----',T24,'----',T30,
+     1  '---------',/,$)
+
+C-----------------------------------------------------
+        CALL DBNREC(NUMBER)
+        IF (NUMBER.EQ.0) GOTO 8000
+        DO 200 I=1,NUMBER
+        CALL DBGREC($9000,I)
+        Call DBVAL ('TNUM',TNUM)
+        Call DBVAL ('STAT',STATE)
+        Call DBVAL ('SVER',SVER)
+        CALL DBVAL ('WHO',WHO)
+        CALL DBVAL ('SDAT',SSDAT)
+        CALL DBVAL ('ELM',ELM)
+        IF (SSDAT.GT.0) CALL DBNDAT (SSDAT,SM,SD,SY)
+        Type 190,TNUM,STATE,SVER,WHO,SM,SD,SY
+190     Format(I8,T10,2A5,T21,I3,T29,2A5,T35,I2,'/',I2,'/',I4)
+
+200     CONTINUE
+        GOTO 9990
+8000    TYPE 8001
+8001    FORMAT(/5X,'NO RECORDS FOUND')
+        GOTO 9990
+9000    TYPE 9001,IERT,IERC
+9001    FORMAT(/3X,'ERROR TYPE = ',I5,4X,'ERROR CODE = ',I5,
+     1  /,/3X,'PLEASE REPORT THIS TO JOE MILLER!')
+9990    TYPE 9995
+9995    FORMAT(/,2X,'>> END REPORT <<',$)
+        CALL DBCLOSE
+        CALL DBEND
+        STOP
+        END
