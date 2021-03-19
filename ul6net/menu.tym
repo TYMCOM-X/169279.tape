@@ -1,0 +1,269 @@
+:========================================================================:
+:                                                                        :
+:	Test Menu  Server Tymfile					 :
+:	Created for Tim ALlen						 :
+:========================================================================:
+:
+:		Global Slot Parameters					 :
+:------------------------------------------------------------------------:
+:                                                                        :
+	Dtnote(Menu Server First Run)	:text to display in 'version'cmd
+	Crash.Stop(yes)			: halt on crashes until production
+	TimeZone(-5)			: run in EST which is 5 hours 
+					: behind GMT
+	User.Ports(52)			: each user has a menu plus host
+					: port plus 2 for debugging
+					: this will be enuf for 25 users
+	TO.Value(0)			: no timeout			
+:------------------------------------------------------------------------:
+:		Host Parameters						 :
+:------------------------------------------------------------------------:
+:                                                                        :
+	Host.NUmber(588)
+	Port.Quota(25)			: 25 simultaneous users
+	Pass.TPC(C)			: gouge circuits for "C"
+	AUto.Redisplay			: redisplay menu upon exit
+	HostPortAvailability(1,1)	: enable host to send shut msg.
+	tkllines(2)
+	menuadministrator(menumgr)	: user who can access online
+					: menu tickler for changes
+
+	chIStxt				: enable msg for invalid menu 
+					: selection
+		IS.string(Invalid selection, please select again)
+
+
+
+	chNPtxt				: enable out of ports msg
+		NP.string(All ports in use, please try again later)
+
+
+
+	chZappedTxt			: enable msg for host zap
+		Zap.string(You have been disconnected from the host)
+
+
+	:WELCOME			: ALLOW WELCOME TO DEFAULT
+					: TO NONE!!
+
+	:PASSWORD			:NO PASSWORD NECCESARY TO ACCESS!
+
+	LOGOFF				: override default logoff string
+		L.string(You are being returned to GDN II)
+
+:------------------------------------------------------------------------:
+:                                                                        :
+:		Screen-Painting Options					 :
+:------------------------------------------------------------------------:
+MENU
+BITS7				: display the following in 7-bit format
+	M.String("8d"8a"8a"8a)
+	M.String(              Host Selections Available"3a"8d"8a"8a)
+	M.String(  1     Citibank Global Report"8d"8a)
+	M.String(  2     CLEASE"af Chase Leasing System"8d"8a)
+	M.String(  3     Compuserve"8d"8a)
+	M.String(  4     DataStream Int"27l"8a"8d)
+	M.String(  5     Dialog Info Services"8a"8d)
+	M.String(  6     Dow Jones"8a"8d)
+	M.String(  7     DRI"8a"8d)
+	M.String(  8     Dunn & Bradstreet"8a"8d)
+	M.String(  9     EDGAR"afSEC Securities"8a"8d)
+	M.String( 10     IDD M&A DATA"afInvestors Digest"8a"8d)
+	M.String( 11     INVESTEXT"afBusiness Research Corp"8a"8d)
+	M.String( 12     LAS2"afWarren Colbert"8a"8d)
+	M.String( 13     LEXIS"afMead Data"8a"8d)
+	M.String( 14     NEXIS"afMead Data"8a"8d)
+	M.String( 15     MARS"afGeneral Electric"8a"8d)
+	M.String( 16     MCIMAIL & Meta Stock"afMCI"8a"8d)
+	M.String( 17     MARKET RATE SYSTEM"afMicronosis"8a"8d)
+	M.String( 18     Official Airline Guide"afOAG"8a"8d)
+	M.String( 19     SDC"afSecurity Data Corp."8a"8d)
+	M.String( 20     The SOURCE"8a"8d)
+	M.String( 21     SPECTRUM"afCAD Investment Tech"8a"8d)
+	M.String( 22     TECHNICIAN"8a"8d)
+	M.String( 23     TELERATE"8a"8d)
+	M.String( 24     UNITED INFO SERVICE"8a"8d)
+	M.String( 25     VICKERS 1200"afVickers Stock Research"8a"8d)
+	M.String("8a"8d)
+	M.String(  Q     LOGOFF"8a"8a"8d)
+
+SELECT
+	S.String("8d               PLease select a service number >> )
+
+:------------------------------------------------------------------------:
+:		Begin PRocessing Logons					 :
+:------------------------------------------------------------------------:
+:                                                                        :
+COMMAND(1)			:TO CITIBANK VIA TELENET
+	c.string(citibank"8d)	: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83citibank"8d): FROM PROD-GDN
+	C.TosINcludingThen("40)
+	C.String(c"20"32"32"33"34"30)
+
+
+COMMAND(2)				: TO CHASE LEASING 
+	c.string(chase"8d)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83chase"8d)		: FROM PROD-GDN
+	C.TosINcludingThen("3a)
+	c.string("83chase"8d)
+
+
+COMMAND(3)				: TO COMPUSERVE VIA TYMNET
+	c.string(cps"8d)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83cps"8d)		: FROM PROD-GDN
+	C.TosIncludingThen("3a)
+	c.string("83cps"8d)
+
+COMMAND(4)				: TO DATASTREAM
+	c.string(datastream"8d)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83datastream"8d)	: FROM PROD-GDN
+	C.TosIncludingThen("3a)
+	c.string("83datastream"8d)
+
+COMMAND(5)				: TO DIALOG VIA TELENET
+	c.string(dialog"8d)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83dialog"8d)		: FROM PROD-GDN
+	c.TosINcludingThen("40)
+	c.string(c"20"34"31"35"20"34"38"4b"8d)
+
+COMMAND(6)				: TO DOW JONES VIA TYMNET
+	c.string(dow1"8D)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83dow1"8d)		: FROM PROD-GDN
+	C.TosIncludingThen("3a)
+	c.string("83dow1"3b"8d)		: TAKE TO 'WHAT SERVICE...?'
+
+COMMAND(7)				: TO D&B
+	c.string(D"36B"8D)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83d"36b"8d)		: FROM PROD-GDN
+	C.TosIncludingThen("3a)
+	c.string("83d"36b"8d)
+
+COMMAND(8)				:TO EDGAR
+	c.string(sec"8d)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83sec"8d)		: FROM PROD-GDN
+	C.TosINcludingThen("3a)
+	c.string("83sec"8d)
+
+COMMAND(9)				:TO IDD
+	c.string(idd"8d)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83idd"8d)		: FROM PROD-GDN
+	C.TosIncludingThen("3a)
+	c.string("83idd"8d)
+	
+COMMAND(10)				: TO INVESTEX VIA TYMNET
+	c.string(sibrc"8d)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83sibrc"8d)		: FROM PROD-GDN
+	C.TosINcludingThen("3a)
+	c.string("83sibrc"8d)
+
+COMMAND(11)				: TO LAS2
+	c.string(las"8d)		: FROM LAB
+	C.TosINcludingThen("3a)
+	c.string("83las"8d)		: FROM PROD-GDN
+	C.TosIncludingThen("3a)
+	c.string("83las"8d)
+
+COMMAND(12)				: TO LEXIS VIA TYMNET
+	c.string(lexis"8d)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83lexis"8d)		: FROM PROD-GDN
+	C.TosIncludingThen("3a)
+	c.string("83lexis"8d)
+
+COMMAND(13)			:TO NEXIS VIA TYMNET
+	c.string(nexis"8d)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83nexis"8d)		: from prod-gdn
+	C.TosIncludingThen("3a)
+	c.string("83nexis"8d)
+
+COMMAND(14)				: TO MARS 
+	c.string(ge"8d)			: FROM LAB
+	C.TosINcludingThen("3a)
+	c.string("83ge"8d)		: FROM PROD-GDN
+	C.TosIncludingThen("3a)
+	c.string("83ge"8d)
+
+COMMAND(15)				: TO MCI VIA TYMNET
+	c.string(mcimail"8d)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83mcimail"8d)		: FROM PROD-GDN
+	C.TosINcludingThen("3a)
+	c.string("83mcimail"8d)
+
+COMMAND(16)				: TO MARKET RATE SYSTEM
+	c.string(market)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83market"8d)
+	C.TosINcludingThen("3a)
+	c.string("83market"8d)
+
+COMMAND(17)				:TO OAG VIA TYMNET
+	c.string(oag"8d)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83oag"8d)		: FROM PROD-GDN
+	C.TosINcludingThen("3a)
+	c.string("3a)
+
+COMMAND(18)				:TO SDC VIA TELENET
+	c.string(sdc"8d)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83sdc"8d)		: FROM PROD-GDN
+	C.TosINcludingThen("40)
+	c.string(c"20"32"30"31"31"35"36"8d)
+
+COMMAND(19)				: TO THE SOURCE VIA TELENET
+	c.string(source"8d)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83source"8d)		: FROM PROD-GDN
+	C.TosINcludingThen("40)
+	c.string(c"20"33"30"31"32"34"8d)
+
+COMMAND(20)				:TO SPECTRUM VIA TELENET
+	c.string(spectrum"8d)		: FROM LAB
+	C.TosINcludingThen("3a)
+	c.string("83spectrum"8d)	: FROM PROD-GDN
+	C.TosINcludingThen("40)
+	c.string(c"20"33"30"31"35"38"8d)
+
+COMMAND(21)				: TO TECHNICIAN
+	c.string(technician"8d)		: FROM LAB
+	C.TosINcludingThen("3a)
+	c.string("83technician"8d)	: FROM PROD-GDN
+	C.TosIncludingThen("3a)
+	c.string("83technician"8d)
+
+COMMAND(22)				: TO TELERATE
+	c.string(telerate"8d)		: FROM LAB
+	C.TosIncludingThen("3a)
+	c.string("83telerate"8d)	: FROM PROD-GDN
+	C.TosINcludingThen("3a)
+	c.string("83telerate"8d)
+
+COMMAND(23)				: TO UNITED INFO
+	c.string(united"8d)		: FROM LAB
+	C.TosINcludingThen("3a)
+	c.string("83united"8d)		: FROM PROD-GDN
+	C.TosINcludingThen("3a)
+	c.string("83UNITED"8D)		: FROM PUBNET
+
+COMMAND(24)				:TO VICKERS VIA TELENET
+	c.string(vickers"8d)		: FROM LAB
+	C.TosINcludingThen("3a)
+	c.string("83vickers"8d)		: FROM PROD-GDN
+	C.TosIncludingThen("40)
+	c.string(c"20"35"31"36"36"31"30"8d)
+
+COMMAND(Q)
+	c.Quit
+
