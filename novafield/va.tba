@@ -1,0 +1,399 @@
+10 ! change sort to shell sort for speed...4/14/87 da
+100 on error goto 3770
+110 on escape goto 3820
+120 !
+130 ! first, create arrays of INlid files
+140 ! fnam$ (filename) and fdat$ (date and time)
+150 integer c,x,nfiles,c1,cksum,c2,bignum,litl1,litl2,i,j,k,offset
+160 bignum=1000003  ! three
+170 litl1=17        ! prime
+180 litl2=1009      ! numbers
+190 string fnam$(2000),fext$(2000),fdat$(2000)
+200 dir$="INSCODE"
+210 b$=char(8)
+220 mbs$=b$+b$+b$+b$+b$+b$+b$+b$+b$+b$+b$+b$+b$+b$+b$+b$+b$+b$
+230 maxcmd=6
+240 string cmdst$(maxcmd)
+250 cmdst$(1)="DIRECTORY"
+260 cmdst$(2)="CHECKSUM"
+270 cmdst$(3)="TYPE"
+280 cmdst$(4)="HELP"
+290 cmdst$(5)="?"
+300 cmdst$(6)="BYE"
+310 c=0
+320 if fd.open(dir$) then
+330  call fd.wild("######","T##")
+340   if fd.step then
+350     c=c+1
+360     fnam$(c)=fd.name
+370     fext$(c)=fd.ext
+380     fdat$(c)=dt.cnv(fd.date)
+390     goto 340
+400   else
+410     goto 470
+420   endif
+430 else
+440   print "Error, no file directory: "+dir$+"."
+450   end ".Exit."
+460 endif
+470 call fd.close
+480 ! now that we have list of files, sort by name
+481 print "Sorting directory, please wait..."
+495 ! shell sort
+500 nfiles=c         ! number of elements
+505 offset=nfiles     ! initial offset
+510 ! divide_and_conquer
+515 if offset <= 1 then goto 600  ! sort complete
+520 offset = offset/2
+525 ! get_in_order
+530   inorder=1
+535   k=nfiles-offset
+540   for j=1 to k
+545     i=j+offset
+550     if fnam$(j)>fnam$(i) then
+555       inorder=0
+560       temp$=fnam$(i)
+561       fnam$(i)=fnam$(j)
+562       fnam$(j)=temp$
+565       temp$=fext$(i)
+566       fext$(i)=fext$(j)
+567       fext$(j)=temp$
+570       temp$=fdat$(i)
+571       fdat$(i)=fdat$(j)
+572       fdat$(j)=temp$
+575     endif
+580  next j
+585  if inorder then goto 510 ! divide_and_conquer
+590  goto 525  ! loop get_in_order
+595 goto 510 ! loop divide_and_conquer
+600 ! end of sort routine
+601 print "Sort complete!"
+680 ! now we have directory list sorted by name
+690 on escape goto 690
+700 print
+710 print mbs$
+720 on escape goto 690
+730 close 1
+740 print "-":
+750 input in form "r":cmd$
+760 if cmd$="" then 720
+770 cmd$=strip(ucase(cmd$))
+780 op$=getop(cmd$)
+790 cmd$=left(cmd$,index(cmd$+" "," ")-1)
+800 for x=1 to maxcmd
+810 if left(cmdst$(x),length(cmd$))=cmd$ then 870
+820 next x
+830 print
+840 print "Unknown command: "+cmd$+". Type ? for help."
+850 print
+860 goto 720
+870 on x goto 890,1050,1380,1630,1630,3080
+880 goto 840
+890 print
+900 c=0
+910 for x=1 to nfiles
+920  if matches(op$,fnam$(x),fext$(x)) then
+930   print fnam$(x)+"."+fext$(x);tab(15);fdat$(x)
+940   c=c+1
+950  endif
+960 next x
+970 if c=0 then
+980  print "No files matching "+op$
+990 else
+1000  print
+1010  print "Matches =":c
+1020 endif
+1030 print
+1040 goto 720
+1050 if op$="" then
+1060  print
+1070  print "Must supply filespec!  Type ? for help."
+1080  print
+1090  goto 720
+1100 endif
+1110 print
+1120 c=0
+1130 for x=1 to nfiles
+1140  if matches(op$,fnam$(x),fext$(x)) then
+1150   open "("+dir$+")"+fnam$(x)+"."+fext$(x) for binary random input as file 1
+1160    on endfile 1 goto 1230
+1170    c1=0
+1180    c1=c1+1
+1190    input from 1 at c1:c2
+1200    cksum = cksum + ( c1 mod litl1 ) * ( abs(c2) mod litl2 )
+1210    cksum = cksum mod bignum
+1220    goto 1180
+1230    close 1
+1240   print fnam$(x)+"."+fext$(x);tab(15);cksum
+1250   cksum=0
+1260   c=c+1
+1270  endif
+1280 next x
+1290 if c=0 then
+1300  print
+1310  print "No files matching "+op$
+1320 else
+1330  print
+1340  print "Number of files checksumed :":c
+1350 endif
+1360 print
+1370 goto 720
+1380 if op$="" then
+1390  print
+1400  print "Must supply filespec!  Type ? for help."
+1410  print
+1420  goto 720
+1430 endif
+1440 c=0
+1450 for x=1 to nfiles
+1460  if matches(op$,fnam$(x),fext$(x)) then
+1470   print
+1480   print fnam$(x)+"."+fext$(x)+" ----------->"
+1490   print
+1500   copy "("+dir$+")"+fnam$(x)+"."+fext$(x) to "TERM-a"
+1510   c=c+1
+1520  endif
+1530 next x
+1540 if c=0 then
+1550  print
+1560  print "No files matching "+op$
+1570 else
+1580  print
+1590  print "Matching files printed :":c
+1600 endif
+1610 print
+1620 goto 720
+1630 if op$="" then
+1640  print
+1650  print "valid commands are DIRECTORY, TYPE, CHECKSUM, HELP"
+1660  print "and, BYE.  For specific help type  HELP <command>."
+1670  print "Example:"
+1680  print
+1690  print "'HELP TYPE' will  give  help for the TYPE command."
+1700  print
+1710  print "'HELP ?' gives a list of topics for which there is"
+1720  print "help available."
+1730  print
+1740  print "Note:  any command may be abbreviated by using any"
+1750  print "part of the command.  DIRECTORY may be abbreviated"
+1760  print "DIR,  or just D at  the '-' prompt (not 'HELP D')."
+1770  print
+1780  goto 720
+1790 endif
+1800 if op$="HELP" or op$="?" then
+1810  print
+1820  print "HELP ?          Gives this list."
+1830  print "HELP HELP       Same as HELP ?."
+1840  print "HELP BYE        Explains the BYE command."
+1850  print "HELP BUGS       List known bugs."
+1860  print "HELP CHECK      Same as HELP CHECKSUM."
+1870  print "HELP CHECKSUM   Help on the CHECKSUM command."
+1880  print "HELP DATE       Explains date given in DIRECTORY."
+1890  print "HELP DIR        Same as HELP DIRECTORY."
+1900  print "HELP DIRECTORY  Help on the DIRECTORY command."
+1910  print "HELP FILESPEC   Explains file specs."
+1920  print "HELP TYPE       Help on the TYPE command."
+1930  print
+1940  goto 720
+1950 endif
+1960 if op$="BUGS" or op$="BUG" then
+1970  print
+1980  print "Currently, the only known bug is that if more than"
+1990  print "one operand (ie. filespec) is typed on a line, the"
+2000  print "parser thinks that no operand was typed. Example:"
+2010  print
+2020  print "DIR IN2001.* IN2002.*"
+2030  print
+2040  print "In the above example, the parser  would think that"
+2050  print "that you typed  DIR  without any filespecs.  Since"
+2060  print "the default  for  the  DIR  command is to list all"
+2070  print "files, all files  would be listed.  Since  this is"
+2080  print "not easy to fix,  and does  not cause  any serious"
+2090  print "inconvieniance to users,  this will be  left to be"
+2100  print "fixed in a future release."
+2110  print
+2120  goto 720
+2130 endif
+2140 if op$="DIRECTORY" or op$="DIR" then
+2150  print
+2160  print "The directory command prints a list  of files with"
+2170  print "a creation date for each file.  The format for the"
+2180  print "command is:"
+2190  print
+2200  print "DIRECTORY <optional filespec>"
+2210  print
+2220  print "If no  filespec  is specified,  the default  is to"
+2230  print "list all files (######.T##)."
+2240  print
+2250  goto 720
+2260 endif
+2270 if op$="TYPE" then
+2280  print
+2290  print "The TYPE command lists the contents of the file(s)"
+2300  print "specified to your terminal.  The format is:"
+2310  print
+2320  print "TYPE <filespec>"
+2330  print
+2340  print "Note:  the  filespec  is not optional for the type"
+2350  print "command. Type  HELP FILESPEC for information about"
+2360  print "filespecs."
+2370  print
+2380  goto 720
+2390 endif
+2400 if op$="FILESPEC" then
+2410  print
+2420  print "A filespec is either a filename, or a  sequence of"
+2430  print "characters with  'wildcards' that match  the files"
+2440  print "that you are interested in.  This can be explained"
+2450  print "through the use of a few examples:"
+2460  print
+2470  print "*.T01      matches:"
+2480  print "           IN2061.T01"
+2490  print "           IN2001.T01"
+2500  print "           INSCODE.T01"
+2510  print "IN###1.T02 matches:"
+2520  print "           IN2111.T02"
+2530  print "           IN4571.T02"
+2540  print "           INCOD1.T02"
+2550  print "IN2001.*   matches:"
+2560  print "           IN2001.TYM"
+2570  print "           IN2001.T01"
+2580  print "           IN2001.T02"
+2590  print
+2600  print "The '*' means match  any string.  The '#' means to"
+2610  print "match any character."
+2620  print
+2630  goto 720
+2640 endif
+2650 if op$="BYE" then
+2660  print
+2670  print "The BYE command  logs  you off  of the  system and"
+2680  print "displays  connect time  and TRU statistics used to"
+2690  print "calculate  your  billing.  The  Tymshare  Resource"
+2700  print "Unit is a  composite figure   based on  your usage"
+2710  print "of various system resources  (ei. disk, char i/o)."
+2720  print
+2730  goto 720
+2740 endif
+2750 if op$="DATE" then
+2760  print
+2770  print "The date in the date  field of the  directory list"
+2780  print "may be useful  in determining  if a file  has been"
+2790  print "modified recently,  however,  if the file has been"
+2800  print "accessed by  certain  programs, the  date may have"
+2810  print "changed  when  no modification  to  the  file  has"
+2820  print "taken place.  Therefore,  use  CHECKSUM  to verify"
+2830  print "that a change has  really been made."
+2840  print
+2850  goto 720
+2860 endif
+2870 if op$="CHECK" or op$="CHECKSUM" then
+2880  print
+2890  print "The CHECKSUM  program  outputs a  number that  can"
+2900  print "be used  to determine if a  file has been modified"
+2910  print "or if two  files are identical.  The format is:"
+2920  print
+2930  print "CHECKSUM <filespec>"
+2940  print
+2950  print "The  algorithm  for  determining  the  checksum is"
+2960  print "simple  but  effective  and   makes  efficient use"
+2970  print "of resources.  However,  it should  be noted  here"
+2980  print "that CHECKSUM is the most  resource  intensive  of"
+2990  print "the utilities provided,  and hence should  be used"
+3000  print "only  as required  to help keep cost to a minimum."
+3010  print
+3020  goto 720
+3030 endif
+3040 print
+3050 print "No help for "+op$+"."
+3060 print
+3070 goto 720
+3080 print
+3090 call disable
+3100 !
+3110 log "Goodbye."
+3120 def string UCASE(string suc$)                        !@@ convert to upper
+3130  nuc$=""                                              !@@ case
+3140  for xuc=1 to length(suc$)
+3150   csnd$=substr(suc$,xuc,1)
+3160   if csnd$>="a" and csnd$<="z" then csnd$=char(asc(csnd$)-32)
+3170   nuc$=nuc$+csnd$
+3180  next xuc
+3190 exit nuc$
+3200 endf UCASE
+3210 def string STRIP(string stp$)
+3220  if left(stp$,1)=" " then
+3230   stp$=substr(stp$,2)
+3240   goto 3220
+3250  endif
+3260  if right(stp$,1)=" " then
+3270   stp$=left(stp$,length(stp$)-1)
+3280   goto 3260
+3290  endif
+3300  exit stp$
+3310 endf STRIP
+3320 def string GETOP(string gg$)
+3330  if index(gg$," ")=0 then exit ""
+3340  gg1$=strip( substr(gg$,index(gg$," ")) )
+3350  if index(gg1$," ")<>0 then
+3360   gg$=left(gg1$,index(gg1$," "))
+3370   goto 3340
+3380  endif
+3390  exit gg1$
+3400 endf GETOP
+3410 def logical MATCHES(string m1$,string m2$,string m3$)
+3420 !                          ^          ^          ^
+3430 !                         op         fnam       ext
+3440 ! first parse op into fn and ex
+3450  if m1$="" then m1$="*.*"
+3460  if index(m1$,".")=0 then m1$=m1$+"."  ! handle case with no .
+3470  mfn$=left(m1$,index(m1$,".")-1)       ! get fn
+3480  mex$=substr(m1$,index(m1$,".")+1)     ! get ex
+3490 ! now insert wildcards from fn and ex into m2$ and m3$
+3500  if mfn$="*" then m2$="*" ! handle *
+3510  if mex$="*" then m3$="*"
+3520  if index(mfn$,"#")<>0 then ! handle #s in fn
+3530   m21$=""
+3540   for mx=1 to length(mfn$)
+3550    if substr(mfn$,mx,1)="#" then
+3560     m21$=m21$+"#"
+3570    else
+3580     m21$=m21$+substr(m2$,mx,1)
+3590    endif
+3600   next mx
+3610   m2$=m21$+substr(m2$,mx+1) ! add extra characters back on
+3620  endif
+3630  if index(mex$,"#")<>0 then ! handle #s in ex
+3640   m21$=""
+3650   for mx=1 to length(mex$)
+3660    if substr(mex$,mx,1)="#" then
+3670     m21$=m21$+"#"
+3680    else
+3690     m21$=m21$+substr(m3$,mx,1)
+3700    endif
+3710   next mx
+3720   m3$=m21$+substr(m3$,mx+1) ! add extra characters back on
+3730  endif
+3740 ! now see if first the fn matches, then the ex
+3750 if m2$=mfn$ and m3$=mex$ then exit true else exit false
+3760 endf MATCHES
+3770 on escape goto 3770
+3780 on error goto 3780
+3790 call disable
+3800 !
+3810 log "Fatal error :"+str(errcd)+". Location :"+str(errln)+". Aborting..."
+3820 call disable
+3830 !
+3840 log "Aborted durring initialization, logging off."
+3850 !
+3860 !
+3870 def external disable aka ".DISABLE"
+3880 def external fd.open(s$)
+3890 def external fd.wild(s$,s1$)
+3900 def external fd.step
+3910 def string external fd.name
+3920 def string external fd.ext
+3930 def integer external fd.date
+3940 def string external dt.cnv(integer d)
+3950 def external fd.close
+  
