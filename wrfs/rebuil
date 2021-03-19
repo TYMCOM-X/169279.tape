@@ -1,0 +1,195 @@
+BASIC OVERVIEW OF REBUILD:
+
+REBUILD IS VERY SIMPLE IN SCOPE BUT OF GREAT ADVANTAGE TO THE END USER.
+WHAT IT DOES IS TO SET UP HISTORY BUFFERS IN THE ORIGIONATION AND DESTINATION
+NODES WHICH KEEP HOLD A CERTAIN AMOUNT OF THE CIRCUITS DATA AND ROUTING
+INFORMATION.  IF THE CIRCUIT IS BROKEN BECAUSE OF A LINK FAILURE OR NODE
+FAILURE IN THE CIRCUIT PATH (EXCLUDING THE ORIGIONATION AND DESTINATION
+NODES) THEN THE REBUILD LOGIC WILL ATTEMPT TO REBUILD THE CIRCUIT OVER
+A DIFFERENT PATH AND IF SUCESSFUL IT WILL SEND THE DATA THAT WAS IN THE
+PATCH WHEN THE CIRCUIT WENT DOWN.  IN THIS WAY, NO USER DATA IS LOST.
+
+BELOW IS FURTHER INFORMATION ABOUT REBUILD TAKEN FROM THE BASELINE
+DOCUMENTS.
+
+
+
+
+        =================================================================
+                    TYMSHARE NETWORK TECHNOLOGY DIVISION
+
+                       SOFTWARE RELEASE DESCRIPTION       PAGE  14  OF  17
+        ==================================================================
+        DESCR FILE   :  TII005.Y02
+        PRODUCT NAME :  TYMNET-II NODE CODE
+        ==================================================================
+
+	6.  CIRCUIT REBUILD
+
+		Version 5 of the TYMNET-II node code supports the circuit
+		rebuild capability which will mask link and node outages
+		to the user so the user's login session is uninterrupted.
+		This feature is transparent to the user except for an
+		increase in response time when circuit rebuilding is taking
+		place. A brief description of the rebuild process is 
+		included in this document.
+
+		A circuit is rebuildable if it originates in, passes through
+		and terminates on nodes running version 5 of the node code
+		with the rebuild option enabled (REBLD). Information
+		about this circuit is saved at the terminating ends in case
+		a rebuild is need and includes the destination host number,
+		needle flags, the invoice number, sequence numbers and a
+		history buffer which contains a history of the transmit data.
+
+		The invoice number is a 32-bit number created by the supervisor
+		to uniquely identify each circuit built. When a circuit is 
+		rebuilt because of an outage, the existing invoice number is
+		retained. Sequence numbers are kept at both the transmitting
+		and receiving nodes to indicate how much data is travelling on
+		a circuit. The numbers identify the number of bytes sent and
+		the number of bytes received at a node. At regular intervals,
+		a special control character followed by the transmit sequence
+		number is sent to the other end (called a sequence fix) so that
+		it can determine if data has been lost. This sequence number is 
+		then reflected back to the sending node with a sequence ack
+		control character. The sequence fix is sent out after every 
+		200(hex) characters (default value) but this may be changed by
+		setting the Tymfile parameter SQNUMB equal to the desired
+		character interval. Sending out sequence fixes more frequently
+		has the effect of keeping history buffers smaller and thus
+		less memory is required.
+
+		Each terminating point on a rebuildable circuit saves a history
+		of its transmit buffers and puts that information into the
+		history buffer. The history buffer is dynamically allocated
+		for each circuit and the amount of data saved is the maximum
+		that can be in transit in the intervening nodes of the virtual
+		circuit at  one time. Therefore the size of the history buffer
+		for a circuit is computed as follows:
+			(2 x # of links in circuit - 1) x backpressure limit.
+		Once the history buffer is filled, the oldest data is over-
+		written. History data is also discarded according to the
+		sequence number acknowledgement sent from the other end.
+
+
+        =================================================================
+                    TYMSHARE NETWORK TECHNOLOGY DIVISION
+
+                       SOFTWARE RELEASE DESCRIPTION       PAGE  15  OF  17
+        ==================================================================
+        DESCR FILE   :  TII005.Y02
+        PRODUCT NAME :  TYMNET-II NODE CODE
+        ==================================================================
+
+		When a link outage is detected and the circuit is determined
+		to be rebuildable, a soft zapper is sent to the origination and
+		destination nodes. Circuit stubs are maintained on both ends
+		and the origination sends a rebuild request to the Supervisor.
+		The Supervisor sends a rebuild needle back to the originating
+		node to build a new circuit which will splice together the
+		circuit stubs. This needle is sent to the destination followed
+		by the sequence number, data  from the history buffer and
+		finally new data. At the destination, the data from history
+		is reconciled with data already received and when this
+		exchange is complete the circuit is reestablished. In this
+		way no data is lost and the link outage is not apparent to
+		the user. What will be visible is a potential pause in output.
+
+
+
+
+
+        =================================================================
+                    TYMSHARE NETWORK TECHNOLOGY DIVISION
+
+                       SOFTWARE RELEASE DESCRIPTION       PAGE  16  OF  17
+        ==================================================================
+        DESCR FILE   :  TII005.Y02
+        PRODUCT NAME :  TYMNET-II NODE CODE
+        ==================================================================
+
+	7.  MEMORY ALLOCATION/UTILIZATION
+
+	    a.  Memory Requirements:  Additional memory is required for the
+		rebuild code, for table and pointer space and for bufferlets
+		allocated for the history buffers of each circuit.
+			Code		3k bytes
+			Table space	36 bytes / circuit
+			Bufferlets	(2 x # links in circuit - 1) x BP
+					  where BP is      32 - ^A
+							   80 - ^B
+							  256 - ^C
+							 1024 - ^D
+		The additional bufferlet storage is needed for the history
+		buffers which are allocated to every rebuildable circuit
+		originating or terminating on the node.
+
+		Approximate memory requirements for 
+		various T-II node configurations are given below.  All
+		estimates are based on optimum bufferlet allocation (4.00
+		bufferlets per circuit) with the Rebuild feature enabled.
+
+	    MINIMUM BASIC REQUIREMENTS:
+
+		Switcher - 110 KB (1 sync line, 1 network link, 64 passthrus)
+			   (104 KB without Rebuild enabled)
+		ISIS -     117 KB (with 2 other slots, 64 dispatcher ports, 1
+			   sync line, 1 network link, 0 passthroughs)
+			   (110 KB without Rebuild enabled)
+		NOTE: In version 5.02 of the node code, the trace line event
+		      option is enabled by default. This feature takes about
+		      7 KB of memory which is included in the figures above.
+
+
+	    ADDITIONAL REQUIREMENTS:
+
+		Sync line - 				1.0 KB
+		Network link (WS8) -			3.5 KB
+		1st SIO line -				7   KB
+		Add'l SIO line -			2   KB
+		64 dispatcher ports -			6.5 KB
+		64 passthroughs -		       10   KB
+		Supervisor with NSP=128	-	       21   KB
+		Additional 128 supervisor ports -	9   KB
+
+	NOTE: The UPSW trace option (UTRC) dramatically increases memory
+	      requirements in a TYMSAT configuration.  Don't use it.
+
+
+              PROBE MONITERING COMMAND
+
+
+
+            Additional Status Command
+            _________________________
+
+            Syntax:  ASTAT
+
+            This command lists  the number of normal  and auxiliary circuit
+            login timeouts.  The first line of  the output shows the number
+            of normal circuit  login timeouts (using a  2 minute timer) and
+            auxiliary  circuit login  timeouts  (using  a 20 second  timer)
+            respectively.   The second  line shows  the  maximum number  of
+            rebuild requests  made since  the Supervisor  awoke, i.e.,  the
+            peak size  of the queue.   The third  line shows the  number of
+            rebuild requests  that were not satisfied  for lack of  a path,
+            and the two node  numbers at the ends of the  last circuit that
+            was not rebuilt for lack of a  path.  The fourth line shows the
+            number of circuits not rebuilt because an end node was unavail-
+            able.  The fifth line shows the number of rebuild requests that
+            overflowed the queue.
+
+            Example:
+
+                 :astat
+                 LOGIN TIMEOUTS 103 2
+                 MAX REBUILD 53
+                 NO PATH FOR REBUILD 5 2005 2103
+                 NO REBUILD BECAUSE NODE NOT TAKEN OVER 4
+                 REBUILDS REFUSED DUE TO OVERFLOW 0
+                 :
+
+
+            NOTE:  THIS COMMAND HAS BEEN EXPANDED TO INCLUDE ADDITIONAL
+                   INFORMATION.
