@@ -1,0 +1,334 @@
+:----------------------------------------------------------------------
+: THOST.M00 -- FOUR SCREENS (1=ALPHA, 2=NUMBERS, 3=ORDERS TEST, 4=X'S)
+:----------------------------------------------------------------------
+: THOST M-FILE:  MESSAGES FOR THOST -- WAS HSC3 HITACHI/JAPAN
+:----------------------------------------------------------------------
+: 
+        GL      THRCV
+THRCV   EQ      0               : TURN OFF GENRCV CODE FOR MEMORY SAVING
+THOST   EQ      1               : TURN ON TEST HOST
+NMX     EQ      0F1
+MXX1    MACRO [
+        HS      0
+QQY     EQ      .
+        HC      0
+QY      EQ      .
+        BC      ESC.,EWCMD,WCCK
+        BC      SBA.,0E0,0C0
+        BC      SF.,0C6,0C4
+QX      EQ      .-QY
+QQX     HS      0
+        ORG     QQY
+        HC      QX
+        ORG     QQX
+]
+MXX2    MACRO [MXX1]
+MXX3    MACRO [MXX1]
+MXX4    MACRO [
+        MXX1 
+NMX     EQ      0F1
+]
+ 
+MYY1     MACRO [
+        HS      0
+QQY     EQ      .
+        HC      0
+QY      EQ      .
+        BC      ESC.,0F5,0C9
+        BC      3C,40,5C,40,T.,H.,E.,N.,40,N.,L.,T.,H.,E.,N.,40,F.,F.
+        BC      0C
+        BC      NMX
+NMX     EQ      NMX+1
+QX      EQ      .-QY
+ 
+QQX     HS      0
+        ORG     QQY
+        HC      QX
+        ORG     QQX
+]
+MYY2     MACRO [
+        HS      0
+        HC      4
+        BC      ESC.,0F7,0D5
+NMX     EQ      NMX+1
+]
+MYY3     MACRO [MYY1]
+
+MYY4     MACRO [MYY2]
+ 
+:
+: THOST MESSAGES (ONLY SENDS MESSAGES MX1 TO MX4 -- EVEN IF MORE IN FILE)
+:
+:   MX1 -- HALF SCREEN OF ALPHABETIC CHARACTERS (INDIVIDUAL CHARS SENT)
+:   MX2 -- HALF SCREEN OF NUMERIC    CHARACTERS (INDIVIDUAL CHARS SENT)
+:   MX3 -- ORDERS TEST (ERASE/WRITE DATA, REPEAT TO ADDRESS, SET CURSOR)
+:   MX4 -- HALF SCREEN OF XXXXXXXXXX CHARACTERS (INDIVIDUAL CHARS SENT)
+:
+ 
+NMX     EQ      0F1
+MX1     MACRO [
+        HS      0
+IQQY    EQ      .
+        HC      0
+:
+:***    SCREEN NUMBER 1
+:
+:       This screen is copied from the file LB115.CMT. This is the 2nd DSP data
+:       from the host located at x'211F8'.
+:
+IQY     EQ      .
+        BC      27,0F1,0C3,11,5D  
+ 	BC	7F,1D,60,11,40,40,3C,0C1,50,00,5C,0D5,0C4,0E2  
+	BC      40,0E5,0E3,0C1,0D4,5C,3C,0C2,60,00,5C,5C,5C,40  
+        BC      0D5,0C9,0E2,0E2,0C1,0D5,40,0D5,0C5,0E3,0E6,0D6,0D9,0D2  
+	BC	40,5C,5C,5C,3C,0C3,0F0,00,0E4,0E2,0E2,0D4,0E2,0C7  
+	BC      0F1,0F0,40,0D3,0E4,7E,0E3,0E3,0E8,0E5,0C5,0C1,0F0,0F1
+        BC      40,3C,0C5,40,00,0C6,0D6,0D9,40,0C8,0C5,0D3,0D7,40  
+	BC      0D7,0C8,0D6,0D5,0C5,40,0F1,60,4D,0F8,0F0,0F0,5D,60  
+	BC      0D5,0D4,0C3,0C4,0C1,0E3,0C1,40,4D,0F6,0F6,0F2,60,0F3  
+        BC      0F2,0F8,0F2,5D,3C,0C6,4F,00,11,0C6,4F,1D,40,11  
+	BC      0C6,50,13,11,0C7,60,1D,60                 
+IQX     EQ      .-IQY
+IQQX    HS      0
+        ORG     IQQY
+        HC      IQX
+
+        ORG     IQQX
+]
+MX2     MACRO [
+        HS      0
+IQQY    EQ      .
+        HC      0
+:
+:***    SCREEN NUMBER 2
+:
+:       This screen 
+:
+IQY     EQ      .
+:       BC	27,0F5,0C3,11,0C8,0F2,3C,5D,7D,0F3
+	BC	27,0F5,0C3,3C,5D,7D,0F3
+	BC	1D,40,13,00,00,00,00,00,00,00,00,00,00,1D,40
+IQX     EQ      .-IQY
+IQQX    HS      0
+        ORG     IQQY
+        HC      IQX
+        ORG     IQQX
+]
+
+MX3	MACRO [
+	HS	0
+IQQY	EQ	.
+	HC	0
+:
+:***    SCREEN NUMBER 3
+:
+:       This screen 
+:
+IQY	EQ	.
+	BC	27,0F5,0C3,3C,5D,7D,0F3
+	BC	1D,40
+IQX     EQ      .-IQY
+IQQX    HS      0
+        ORG     IQQY
+        HC      IQX
+        ORG     IQQX
+]
+ 
+MX4     MACRO [
+        HS      0
+IQQY    EQ      .
+        HC      0
+:
+:***    SCREEN NUMBER 4
+:
+IQY     EQ      .
+        BC      27,0F5,0C3
+        BC      0C0,0F0,0F8,0F9,0F0,0F0,0F1,0F0,0F5,0F7,0F0,0E8,50,0E3,0C8,0E2
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC      0F3,0F3,0F8,0F3,0F5,0F0,0F8,0F0,0F3,0F0,0F6,0F1,0F9,0F4,0F5
+	BC	Y.,Y.,Y.,Y.
+	BC	0D,1D,40
+IQX     EQ      .-IQY
+IQQX    HS      0
+        ORG     IQQY
+        HC      IQX
+        ORG     IQQX
+] 
+
+MX5	MACRO [
+	HS	0
+IQQY	EQ	.
+	HC	0
+IQY	EQ	.
+	BC	ESC.,0F5,0C3
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+        BC      F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.,F.
+IQX	EQ	.-IQY
+IQQX	HS	0
+	ORG	IQQY
+	HC	IQX
+	ORG	IQQX
+]	
+
+MX6     MACRO [
+        HS      0
+IQQY    EQ      .
+        HC      0
+IQY     EQ      .
+        BC      ESC.,0F5,0C3
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+        BC      G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.,G.
+::        BC      11,0C2,0D1,0F4,1D,7C,00,1D,0F8,0D4,0C9,0D5,4B,1D,7C
+::        BC      11,0C2,6B,13,3C,0C2,0F1,4B,40,40,40,40,1D,0F0,7E,7E,6E
+::        BC      1D,40,40,4C,J.,E.,F.,F.,0A1,79
+IQX     EQ      .-IQY
+IQQX    HS      0
+        ORG     IQQY
+        HC      IQX
+        ORG     IQQX
+]
+ 
+NMX     EQ      0F1
+MY1     MACRO [
+        HS      0
+IQQY    EQ      .
+        HC      0
+IQY      EQ      .
+        BC      ESC.,0F5,0C3
+        BC      89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89
+        BC      89,89,89,89,89,89,89,89,89,88,88,88,88,88,88,88,88,88
+        BC      89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89
+        BC      89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89
+        BC      89,89,89,89,89,89,89,89,89,88,88,88,88,88,88,88,88,88
+        BC      89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89
+        BC      89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89
+        BC      89,89,89,89,89,89,89,89,89,88,88,88,88,88,88,88,88,88
+        BC      89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89
+        BC      89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89
+        BC      89,89,89,89,89,89,89,89,89,88,88,88,88,88,88,88,88,88
+        BC      89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89
+        BC      89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89
+        BC      89,89,89,89,89,89,89,89,89,88,88,88,88,88,88,88,88,88
+        BC      89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89
+        BC      89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89
+        BC      89,89,89,89,89,89,89,89,89,88,88,88,88,88,88,88,88,88
+        BC      89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89
+        BC      89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89
+        BC      89,89,89,89,89,89,89,89,89,88,88,88,88,88,88,88,88,88
+        BC      89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89,89
+        BC      89,89,89,89,89,89,89,89,89,88,88,88,88,88,88,88,88,88
+        BC      P.,R.,I.,N.,T.,SP.,S.,C.,R.,E.,E.,N.,SP.,0F1
+NMX     EQ      NMX+1
+IQX     EQ      .-IQY
+IQQX    HS      0
+        ORG     IQQY
+        HC      IQX
+        ORG     IQQX
+]
+MY2     MACRO [
+        HS      0
+IQQY    EQ      .
+        HC      0
+IQY      EQ      .
+        BC      ESC.,0F5,0C3
+        BC      P.,R.,I.,N.,T.,SP.,S.,C.,R.,E.,E.,N.,SP.,0F2
+NMX     EQ      NMX+1
+IQX     EQ      .-IQY
+IQQX    HS      0
+        ORG     IQQY
+        HC      IQX
+        ORG     IQQX
+]
+MY3     MACRO [
+        HS      0
+IQQY    EQ      .
+        HC      0
+IQY     EQ      .
+        BC      ESC.,0F5,0C3
+        BC      P.,R.,I.,N.,T.,E.,R.,SP.,S.,C.,R.,E.,E.,N.,SP.,0F3
+NMX     EQ      NMX+1
+IQX     EQ      .-IQY
+IQQX    HS      0
+        ORG     IQQY
+        HC      IQX
+        ORG     IQQX
+]
+
+MY4     MACRO [
+        HS      0
+IQQY    EQ      .
+        HC      0
+IQY     EQ      .
+        BC      ESC.,0F5,0C3
+        BC      P.,R.,I.,N.,T.,E.,R.,SP.,S.,C.,R.,E.,E.,N.,0F4
+NMX     EQ      NMX+1
+IQX     EQ      .-IQY
+IQQX    HS      0
+        ORG     IQQY
+        HC      IQX
+        ORG     IQQX
+]
+ 
+MR1     MACRO[
+        HS      0
+        HC      7
+        BC      7D,40,40
+        BC      T.,E.,S.,T.
+        ]
+RCVM1   MACRO [MR1]
+
+   
