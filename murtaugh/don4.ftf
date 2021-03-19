@@ -1,0 +1,269 @@
+c********************************************
+c
+c       routine to print ticket info for those
+c       tickets which the customer needs an update
+c       within 2 hours.
+c
+c********************************************
+4600            type 4605
+4605    format(/1x,'opening data base to get tickets',
+1               ' which need a status call',/)
+                call dbopen('(tnt)statbk','(tnt)base2')
+                call dbset(1)
+                call fgmt(ia1,ia2,ia3,ia4,ia5,ia6)
+                encode(5,4613,tim1)ia4,ia5
+4613            format(i2,':'i2)
+                call dbdatn(sdat,ia1,ia2,ia3)
+                call dbfind(12,1,0,1,4,'le',tim1,1,5,1,sdat)
+                call dbnrec(number)
+                if (number.gt.0) goto 4615
+                type 4610
+4610    format(/3x,'no tickets to status',/)
+                goto 4945
+4615            type 4612,number
+4612            format(/2x,'there are ',i2,' call backs to place')
+                call dbsort(4,'ascen')
+                type 4614
+4614            format(/1x,'tnum',4x,'contact'15,'phone number',
+     1  9x,'time to contact')
+                tnum=0
+                do 4625 i=1,number
+                call dbgrec($4625,i)
+                call dbval(1,cnam,2,tnum,3,sitp,4,sdat,5,tim1)
+                type 4620,tnum,cnam,sitp,tim1
+4620            format(2x,i6,2x,4a5,2x,4a5,3x,a5)
+                tot1=tnum
+                call dbgrec($4616,i+1)
+                call dbval(2,tnum)
+                if (tnum.eq.tot1) goto 4625
+4616            call dbset(2)
+                call dbfind(1,1,tnum)
+                call dbnrec(record)
+                if (record.gt.0) goto 4622
+                type 4621,tnum,ff
+4621            format(2x,'***  no status entries for ticket ',
+     1  'number ',i6,/,a5)
+                call dbset(1)
+                goto 4625
+4622            x=1
+                if (record.gt.4) x=record-3
+                do 4624 p=x,record
+                call dbgrec($4624,p)
+                call dbval(2,sdat,3,tim1,4,int,5,rs,6,stat,7,
+     1  info,8,pnam,9,order)
+                call dbndat(sdat,im,id,iy)
+                iy=iy-1900
+                type 700,order,pnam,int,id,am(im),iy,tim1,as(rs),
+     1  tnum
+                do 4630 ilin=1,4
+                n=(ilin*16)-15
+                if (info(n).eq.'.    ') goto 4629
+                type 701,(info(j),j=n,n+15)
+                goto 4630
+4629            ilin=4
+4630            continue
+4624            continue
+                call dbset(1)
+                type 2084,ff
+                type 4614
+4625            continue
+                goto 4945
+c********************************************
+c
+c       routine to list all call entries
+c
+c********************************************
+c
+4635            type 4636
+4636            format(/1x,'list all status call back entries')
+                call dbopen('(tnt)statbk')
+                call dbfind(12,1,0)
+                call dbnrec(number)
+                if (number.gt.0) goto 4638
+                type 4637
+4637            format(1x,'*** no entries found ***')
+                call dbclose
+                goto 59
+4638            type 4639,number
+4639            format(5x,i3,' entries found...'//1x,'customer ',
+     1  'name',9x,'tnum'4x,'date and time to place call')
+                call dbsort(5,4,1,'ascen')
+                do 4643 i=1,number
+                call dbgrec($4643,i)
+                call dbval(1,cnam,2,tnum,4,tim1,5,sdat)
+                call dbndat(sdat,im,id,iy)
+                type 4640,cnam,tnum,am(im),id,tim1
+4640            format(1x,4a5,2x,i6,2x,a3,'-,i2,2x,a5,'z')
+4643            continue
+                call dbclose
+                goto 59
+c
+c******************************************
+c
+c       routine to place status call backs in data base
+c
+c******************************************
+c
+4645            type 4646
+4646            format(1x,'command to place an entry in the ',
+     1  'status update list')
+                if (ans.eq.'S') goto 4650
+                type 170,tic
+                accept 120,tnum
+                if (tnum.eq.0) goto 59
+4650            type 4651
+4651            format(1x,'how many hours from now should the ',
+     1  'customer be called ?',//1x,'standard intervals are :',
+     2  /5x,'severity 1 : 2 hours',/14x,'2 : 4 hours',/14x,
+     3  '3 : 24 hours',/14x,'4 : 48 hours',/2x,'enter hours ',
+     4  '(1-99) from now or carriage return for standard ',
+     5  'time frame : ',$)
+                accept 120,off
+                if (off.lt.0.or.gt.99) goto 4650
+                call dbopen('(tnt)base1')
+                call dbfind(1,1,tnum)
+                call dbgrec($4655,1)
+                goto 4657
+4655            type 4656,tnum
+4656            format(1x,'ticket number ',i7,' is not valid')
+                call dbclose
+                goto 59
+4657            call dbval(31,cnam,7,repn,8,repf,33,ver)
+                call fgmt(ia1,ia2,ia3,ia4,ia5,ia6)
+                call dbdatn(sdat,ia1,ia2,ia3)
+                if (off.gt.0) goto 4660
+                if (sver.eq.1) off=2
+                if (sver.eq.2) off=4
+                if (sver.eq.3) off=24
+                if (sver.eq.4) off=48
+4660            if (ia4+off.lt.23) goto 4665
+                tot=ia4+off
+                tot1=tot/24
+                sdat=sdat+tot1
+4665            ia4=tot-(tot1*24)
+                encode(5,4613,tim1)ia4,ia5
+4666            call dberr($4667,iert,ierc,0)
+                goto 4668
+4667            if (iert.ne.7) goto 4955
+                type 1379
+                call wait(5.0)
+4668            call dbopen('(tnt)statbk','(tnt)calbak')
+                call dbset(1)
+                call dbupd(-1)
+                call dbadd(1,cnam,2,tnum,3,repf,4,tim1,5,
+     1  sdat,6,0,7,cg,12,0,15,refn)
+                call dbset(2)
+                call dbfind('rs',1,0,'or','rs',1,8,1,1,1,tnum)
+                call dbnrec(number)
+                if (number.eq.0) goto 4670
+                do 4670 i=1,number
+                call dbgrec($4670,i)
+                call dbval(4,rnam,7,sitc,8,sitp)
+                call dbset(1)
+                call dbadd(1,rnam,2,tnum,3,sitp,4,tim1,5,sdat,
+     1  6,0,7,cg,12,0,15,sitc)
+                call dbset(2)
+4670            continue
+                call dberr($4930,iert,ierc,0)
+                if (ans.eq.'s') goto 235
+                goto 4945
+c
+c****************************************************
+c
+c       routine to mark which record was updated for the call
+c       status update
+c
+c****************************************************
+c
+4675            type 4676
+4676            format(1x,'command to mark which people were ',
+     1  'called with a status update',/)
+                type 170,tic
+                accept 120,tnum
+                if (tnum.eq.0) goto 59
+                call dbfind(2,1,tnum,1,12,1,0)
+                call dbnrec(number)
+                if (number.gt.0) goto 4679
+                type 4678,tnum
+4678            format(1x,'ticket ',i6,' does not have pending',
+     1  ' update calls...')
+                call dbclose
+                goto 59
+4679            type 4680
+4680            format(1x,'did you call evryone already ? ',$)
+                call rtim(tim1,sdat)
+                accept 65,ans
+                call hiset(ans)
+                if (ans.ne.'y') goto 4685
+                call dberr($4682,iert,ierc,0)
+                goto 4683
+4682            if (iert.ne.7) goto 4930
+                type 1379
+                call wait(5.0)
+4683            call dbopen('(tnt)statbk')
+                call dbupd(-1)
+                call dbfind(2,1,tnum,1,12,1,0)
+                call dbchng(9,tim1,10,sdat,11,me,12,2)
+                call dberr($4930,iert,ierc,0)
+                call dbclose
+                goto 59
+4685            type 4686,number
+4686            format(1x,'there are ',i3,' people to call...',
+     1  //2x,'selection ',2x,'customer'14x,'person'16x,
+     2  'number')
+                do 4690 i=1,number
+                call dbgrec($4690,i)
+                call dbval(1,cnam,15,sitc,3,sitp)
+                type 4687,i,cnam,sitc,sitp
+4687            format(5x,i2,5x,4a5,2x,4a5,2x,4a5)
+4690            continue
+4691            type 4692
+4692            format(/2x,'enter selection number : ',$)
+4693            accept 120,tot
+                if (tot.lt.0.or.gt.number) goto 4691
+                if (tot.eq.0) goto 4950
+4695            type 4696
+4696            format(1x'who did you speak to ? ',$)
+                accept 100,repf
+                call dberr($4697,iert,ierc,0)
+                goto 4698
+4697            if (iert.ne.7) goto 4955
+                type 1379
+                call wait(5.0)
+4698            call dbopen('(tnt)statbk')
+                call dbupd(-1)
+                call dbfind(2,1,tnum,1,12,1,0)
+                call dbgrec($4700,tot)
+                call dbchng(9,tim1,10,sdat,11,me,8,repf,
+     1  12,2)
+                call dbclose
+                type 4699
+4699            format(1x'did you call anyone else ? ',$)
+                accept 120,ans
+                call hiset(ans)
+                if (ans.eq.'y') got 4693
+                call dberr($4930,iert,ierc,0)
+                goto 59
+c
+c****************************************************
+c
+c       routine to add call backs when we set time up
+c
+c****************************************************
+c
+4700            call dberr($4701,iert,ierc,0)
+                goto 4702
+4701            if (iert.ne.7) goto 4945
+                type 1379
+                call wait(5.0)
+4702            call dbopen('(tnt)statbk')
+                call dbupd(-1)
+                call dbfind(2,1,tnum,1,12,1,0)
+                call dbnrec(number)
+                if (number.eq.0) goto 4720
+                call dbchng(9,tim1,10,sdat,11,me,8,'set ',
+     1  'time up',12,2)
+                call dbclose
+                goto 4666
+c
+    
