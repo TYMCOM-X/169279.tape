@@ -1,0 +1,122 @@
+8%2
+lo sfgptp
+lo sfgrcv
+lo gbldef
+lo sfgxmt
+lo sfgrcv
+lo siodef
+lo ctldef
+lo input
+lo stctlm
+
+;; HOST TABLE           HOS  (10 BYTES PER HOST)  ********** HOS ***** (001)
+;; first symbol is HSTNUM - Host number in Hex
+
+HOSTAB,HSTLEN*MAXHST[
+
+;; CONFIGURATION TABLE  CFG  (20 BYTES PER LINE)  ********** CFG ***** (002)
+;; first symbol is LNHSTN - Host number in this line
+
+CFGTAB,CFGLEN*NLINES[
+
+;; LINE STATION DEVICE  LSD  (20 BYTES PER LINE)  ********** LSD ***** (003)
+;; first symbol is OADR - station address
+
+LSDTAB,LSDLEN*MAXSTN[
+
+;; LINE CONTROL BLOCKS  LCB  (40 BYTES PER PORT)  ********** LCB ***** (004)
+;; first symbol is LCBBAS - LCB base address
+
+LCBTAB,LCBLEN*NLINES[
+
+;; STATION CONTROL BLOCK SCB  (60 BYTES PER PORT) ********** SCB ***** (005)
+;; first symbol is SCBSID - station address
+
+SCBLKS,SCBLEN*MAXSTN[
+
+;; DEVICE CONTROL BLOCK DCB  (50 BYTES PER PORT)  ********** DCB ***** (006)
+;; first symbol is DCBPRT - ISIS Ring port number
+
+DCBLKS+4,DCBLEN*(NPORT+1)[
+
+;; CRASH TABLE         CRAT  (16 RESISTERS)       ********* CRAT ***** (007)
+;; First symbol is CRSHCT - Crash count
+
+CRAT,4C[
+
+;; SIO LINE STATUS, BIT 45-47 MUST BE A HEX 'D'   ********** SIO ***** (008)
+;; First line only
+
+siot0,10[
+
+;; INPUT CCW SIO INITIALIZATION                   ********* ICCW ***** (009)
+
+iccw0,ocpw-iccw[
+
+;; OUTPUT COMMAND PAIR WORKING AREA               ********* OCPW ***** (010)
+
+ocpw0,tccwl-ocpw[
+
+;; TCCWL TRANSMIT COMMAND LIST ADDRESS CONSTANT   ********* TCCL ***** (011)
+
+TCCL0,INCCW-TCCWL[
+
+;; INCW INPUT COMMAND LIST AREA                   ********* INCW ***** (012)
+
+incw0,rbuf-inccw[
+
+;; RECEIVE FRAME INDEX IN SEGMENT 4               ******* RINDEX ***** (013)
+
+rindex,nlines*2[
+
+;; RBUF RECEIVE FRAME BUFFER                      ********* RBUF ***** (014)
+
+rbuf0,outsct-rbuf[
+
+;; OSEC  NON I-FRAME OUTPUT AREA                  ********* OSEC ***** (015)
+;; 16 bytes per entry
+
+OSEC0,TCCW-OUTSCT[
+
+;; TCCW STORAGE AREA FOR LINE OUTPUT SECTORS      ********* TCCW ***** (016)
+
+TCCW0,(SIOX0-50000)-TCCW[
+
+;; SECADR OUTPUT SECTOR BUFFER POINTERS           ******* SECADR ***** (020)
+
+SECADR,SECBIA-SECADR[
+
+;; SECBIA SECTOR BIASING FOR EACH LINE            ******* SECBIA ***** (021)
+
+SECBIA,NLINES*2[
+
+;; NXTSEC - NEXT SECTOR TO SEND BY STATION        ******* NXTSEC ***** (022)
+
+NXTSEC,MAXSTN[
+
+;; PTPTRX  PROTOCOL TRACE TABLE INDEX             ******* PTPTRX ***** (030)
+
+PTPTRX,2[
+
+;; PTPTTB PROTOCOL TRACE TABLE                    ******* PTPTTB ***** (031)
+;; 8 BYTES PER ENTRY, FOR BYTE 0    XMT = 1, RCV = 0
+;;                    FOR BYTE 1    OP CODE
+;;                        BYTE 2    ADDRESS
+;;                        BYTE 3    CONTROL
+;;                        BYTE 4-7  FASTC
+
+PTPTTB,PTPSIZ[
+
+
+;; ORING - ISIS OUTPUT RING                       ******** ORING ***** (040)
+;; First 2 halfwords are indexes
+
+ORING,ORSIZE+4[
+
+;; IRING - ISIS INPUT RING                        ******** IRING ***** (041)
+;; First 2 halfwords are indexes
+
+IRING,IRSIZE+4[
+
+;; RETURN TO NAD COMMAND MODE ############# 
+
