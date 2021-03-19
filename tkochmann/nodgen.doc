@@ -1,0 +1,2553 @@
+                                                                  March 9, 1988
+
+
+
+
+
+
+
+             *   *  ***  ****  *****     ***   ***   ****   *****
+             **  * *   * *   * *        *   * *   *  *   *  *    
+             * * * *   * *   * ****     *     *   *  *   *  **** 
+             *  ** *   * *   * *        *   * *   *  *   *  *    
+             *   *  ***  ****  *****     ***   ***   ****   *****
+
+
+           ***  ***** *   * ***** ***     *   *****  ***   ***  *   *
+          *     *     **  * *     *  *   * *    *     *   *   * **  *
+          * *** ***   * * * ****  ***   *****   *     *   *   * * * *
+          *   * *     *  ** *     *  *  *   *   *     *   *   * *  **
+           **** ***** *   * ***** *   * *   *   *    ***   ***  *   *
+
+
+                                   Node Code
+                                  Generation
+
+
+                    NETWORK TECHNOLOGY MANAGEMENT DIVISION
+                                 March 9, 1988
+
+
+
+
+
+
+
+
+
+
+      ******************************************************************
+      **                  PROPRIETARY INFORMATION                     **
+      **                                                              **
+      **  MDC-TYMNET's   proprietary  rights  are  included  in  the  **
+      **  information disclosed herein.  The recipient, by receiving  **
+      **  this document,  agrees that neither this document nor  the  **
+      **  information disclosed herein nor any part thereof shall be  **
+      **  reproduced  or  transferred to other documents or used  or  **
+      **  disclosed  to  others for manufacturing or for  any  other  **
+      **  purpose  except as specifically authorized in  writing  by  **
+      **  MDC-TYMNET.                                                 **
+      ******************************************************************
+
+
+
+
+
+
+
+                             NODE CODE GENERATION DOCUMENT           TII052.GEN
+                                                                  March 9, 1988
+
+
+
+
+
+
+
+                                   TABLE OF CONTENTS
+
+        Section                                                            Page
+
+
+
+        1.   Configuration file - NDxxxx.Tss                                  1
+          1.1   Text Argument Syntax                                          1
+             1.1.1    Forbidden Characters                                    1
+             1.1.2    Privileged Characters                                   2
+
+          1.2   Radix                                                         2
+
+
+        2.   Node Configuration                                               3
+          2.1   Equate: ENGINE EQ [1]                                         3
+          2.2   Equate: MACHIN EQ [1,2,3]                                     3
+          2.3   Equate: MACHNM EQ $8 [n]                                      3
+          2.4   Equate: HST0   EQ $A [n]                                      4
+          2.5   Equate: ZITEL  EQ [0,1]                                       4
+          2.6   Memory Size                                                   4
+             2.6.1    Equate: S0CORE EQ $A [n]                                4
+             2.6.2    Equate: NBRK   EQ $A [n]                                5
+             2.6.3    Equate: MEMORY EQ $A [n]                                5
+             2.6.4    Equate: MEMRMK EQ [0,3]                                 5
+             2.6.5    Equate: NOSEG  EQ [0,1]                                 5
+
+          2.7   Equate: SIBFRL EQ [0,1]                                       6
+          2.8   Equate: PTHRU  EQ [0,1]                                       6
+          2.9   Equate: NETID  EQ $A [n]                                      6
+          2.10  Equate: INFLGT EQ [0,1]                                       7
+          2.11  Equate: NPTHR  EQ $A [n]                                      8
+          2.12  Equate: NXCMDC EQ $A [n]                                      8
+          2.13  Equate: NXLGSC EQ $A[n]                                       8
+          2.14  Equate: NDP    EQ $A [n]                                      8
+          2.15  Equate: IKNRNG EQ [0,1]                                       9
+          2.16  Equate: P0SIZE EQ $A [n]                                      9
+          2.17  Equate: P1SIZE EQ $A [n]                                      9
+          2.18  Equate: PHSIZE EQ $A [n]                                     10
+          2.19  Crash Options                                                10
+             2.19.1   OPTION(NRSH,NRSS)                                      10
+             2.19.2   OPTION(NRTH,NRTS)                                      10
+             2.19.3   OPTION(NHTH,NHTS)                                      11
+             2.19.4   OPTION(NBTH,NBTS)                                      11
+
+          2.20  OPTION(REBLD)                                                11
+             2.20.1   Equate: SQNUMB EQ [n]                                  11
+
+
+                             NODE CODE GENERATION DOCUMENT           TII052.GEN
+                                                                  March 9, 1988
+
+
+          2.21  Equate: LOG.II EQ [0,1]                                      12
+
+
+        3.   Link  Configuration                                             13
+          3.1   Macro: TIILNK(neighbor,,window size,type,speed)              13
+          3.2   Equate: XLINKS EQ $A [n]                                     13
+          3.3   Equate: DEFWSZ EQ $A [n]                                     14
+          3.4   Equate: TH.ACK EQ $A [n]                                     14
+          3.5   Macro: STRXLK(number,window size)                            14
+          3.6   Macro: STRLNK(line,RSA,remote node ,WSIZ,speed)              14
+          3.7   Macro: STRLIN(line number)                                   15
+          3.8   Equate: LNCKTM EQ $A [n]                                     15
+          3.9   Equate: RSTFRQ EQ $A [n]                                     15
+          3.10  Equate: RESTRY EQ $A [n]                                     16
+
+
+        4.   Line Definitions                                                17
+          4.1   Equate: SILINS EQ $A [n]                                     17
+          4.2   Equate: M.NCARD EQ [n]                                       17
+          4.3   Equate: M.DAx  EQ $0 [n]                                     17
+          4.4   Equate: M.NPx  EQ $A [n]                                     18
+          4.5   Equate: NLINES EQ $A [n]                                     18
+          4.6   Equate: NLUS0  EQ $A [n]                                     18
+          4.7   Equate: T2SYLU EQ $A [n]                                     19
+
+
+        5.   XRAY Configuration                                              20
+          5.1   Equate: DB.CPU EQ [0,1]                                      20
+             5.1.1    Equate: DB.CLK EQ [0,1]                                20
+             5.1.2    Equate: DSPCNT EQ [0,1]                                20
+
+          5.2   Equate: BFLTMR EQ [0,1]                                      21
+          5.3   Equate: NDREAD EQ [0,1]                                      21
+          5.4   Equate: NXUBLK EQ [n]                                        21
+          5.5   Equate: XRYTMC EQ [0,1,2]                                    21
+          5.6   Equate: PRIMSG EQ [0,1]                                      22
+          5.7   Equate: XRSZLV EQ [1,2,3]                                    22
+          5.8   Macro: XRYMSG(text)                                          22
+          5.9   Macro: GG(privilege,xray flag,username,override,target)      23
+          5.10  Macro: XGG                                                   23
+          5.11  OPTION(CIRD)                                                 24
+          5.12  OPTION(NTLEV)/OPTION(TLEV)                                   24
+          5.13  OPTION(UTRC)                                                 24
+          5.14  Equate: TIINEW EQ [0,1]                                      25
+
+
+        6.   Solo Consat                                                     26
+          6.1   Equate: SOLOCS EQ [0,1]                                      26
+          6.2   Equate: BAUDR  EQ [0,2]                                      27
+          6.3   Equate: LOWSPD EQ [0,1]                                      27
+          6.4   Equate: ASYNDA EQ $0 0C1                                     27
+          6.5   Equate: NASYNG EQ [n]                                        27
+
+
+                             NODE CODE GENERATION DOCUMENT           TII052.GEN
+                                                                  March 9, 1988
+
+
+        7.   Solo Switcher                                                   28
+
+
+        8.   ISIS Node Code                                                  29
+          8.1   Equate: TII    EQ [0,1]                                      29
+          8.2   Macro: GGHOST(host numbers)                                  29
+          8.3   Macro: HLIMIT(host,circuits,reports)                         30
+          8.4   Macro: HSTSLT(host,S1,S2,S3,,,S8)                            30
+          8.5   Macro: SLIMIT(slot,circuits,reports)                         30
+
+
+        9.   ISIS Supervisor Environment                                     31
+          9.1   Equate: SUP    EQ [0,1]                                      31
+          9.2   Equate: TII    EQ [0,1]                                      31
+          9.3   Equate: NSP    EQ $A [n]                                     31
+          9.4   Equate: NNODES EQ $A [n]                                     32
+          9.5   Eqaute: NVC530 EQ [0,1]                                      32
+          9.6   Supervisor Xray Goodguy list                                 32
+
+
+        10.  Tymnet II Gateway                                               33
+          10.1  Equate: T2GATE EQ [0,1]                                      33
+          10.2  Equate: IHOST  EQ $A [n]                                     33
+          10.3  Equate: HHOST  EQ $A [n]                                     33
+          10.4  Equate: INCOST EQ $A [n]                                     34
+          10.5  Equate: HNCOST EQ $A [n]                                     34
+          10.6  Equate: ACCT   EQ [0,1]                                      34
+          10.7  Equate: INTACT EQ [0,1]                                      34
+          10.8  Equate: IRCx   EQ $A [n]                                     35
+          10.9  Equate: NETNAM EQ [0,1]                                      35
+             10.9.1   Macro: INAME MACRO[ AC /network name/]                 35
+             10.9.2   Macro: HNAME MACRO[ AC /network name/]                 35
+
+
+        11.  Debugger                                                        36
+
+
+                                     APPENDICES
+                                     ==========
+
+
+        I.   Sample ISIS Node Code Tymfile                                   37
+
+
+                                      INDEX
+                                      =====                                  39
+
+
+
+
+
+
+
+
+                             NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Configuration file - NDxxxx.Tss                           March 9, 1988
+
+
+
+
+
+
+                         1 -  Configuration file - NDxxxx.Tss
+
+
+             This  file   specifies  the  environment,   general  configuration
+        parameters, and particular constraints on the configuration.  Node Code
+        version 5.30  can have  three different  environments: ISIS  node code,
+        ISIS TII Gateway and the  base for an ISIS Supervisor.   Versions prior
+        to  5.30  also  supported  SOLO Switcher,  SOLO  Consat  and  the Split
+        Supervisor  Base.   All  configurations  and  obsolete  parameters  are
+        described.  The configuration file is also called the Tymfile.
+
+
+
+
+
+
+                               1.1  Text Argument Syntax
+
+
+             Certain macros  specify that  an argument be  text.  This  text is
+        subject to certain rules - some characters may not explicitly appear in
+        the   text  string,   and  others   may  appear   only   under  certain
+        circumstances.
+
+
+
+
+
+                    1.1.1  Forbidden Characters
+
+             The following characters may not appear; instead, these characters
+        must be represented in an extended form:
+
+                "8D     Carriage Return
+                "8A     Line Feed
+                "AF     slash ('/')
+                "BA     colon (':')
+                "BB     semicolon (';')
+
+             NOTE:   While  not forbidden, characters  between "00 and  "07 are
+        used internally  as signals.   These characters must  be preceded  by a
+        NULL character ("00) to be interpreted as data.
+
+
+
+
+
+
+
+
+        1                    NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Configuration file - NDxxxx.Tss                           March 9, 1988
+
+
+                    1.1.2  Privileged Characters
+
+             The  following characters  may appear  only if  escaped (preceeded
+        with an accent grave '`').  These are:
+
+
+            `   accent grave
+            "   double quote
+            ,   comma
+            (   left parenthesis
+            )   right parenthesis
+
+
+
+
+
+
+                                      1.2  Radix
+
+
+             The default radix in the Tymfile is hexadecimal.  Some  values are
+        normally enterred in  octal or decimal  and these use  the dollar-sign,
+        hex-digit field ('$n') to indicate the radix of the following value.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        2                    NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Node Configuration                                        March 9, 1988
+
+
+
+
+
+
+                                2 -  Node Configuration
+
+
+             This section describes Tymfile parameters and flags which are used
+        in most environments, but are  not XRAY, link or line  parameters.  The
+        description of a parameter/flag notes what environments do not use this
+        parameter/flag.
+
+
+
+
+
+
+                              2.1  Equate: ENGINE EQ [1]
+
+
+             This equate  has been superceded  by the MACHIN  equate and  is no
+        longer used by the node code.
+
+
+
+
+
+
+                            2.2  Equate: MACHIN EQ [1,2,3]
+
+
+             This equate declares  the hardware the node  code is going  to run
+        on.  The value of 1 (default)  is for a Tymnet engine.  The value  of 2
+        is for the HDLC micro-engine.  The value of 3 is for the  Tymnet Spirit
+        Interface (TSI).
+
+
+
+
+
+
+                             2.3  Equate: MACHNM EQ $8 [n]
+
+
+             This equate declares the node number.  There is no default  and it
+        must be included.
+
+
+
+
+
+
+
+
+        3                    NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Node Configuration                                        March 9, 1988
+
+
+                             2.4  Equate: HST0   EQ $A [n]
+
+
+             This equate declares the Kernel Host number for this node.  If not
+        declared, the Kernel Host number will be calculated from the  MACHNM by
+        subtracting  2000 (octal)  from  MACHNM and  then adding  520d.   It is
+        STRONGLY recommended that the host  number be specified and to  not use
+        the  default  calculation.   In  the  ISIS  Gateway  environment  it is
+        preferred that the HHOST equate be used instead of the HST0 equate.
+
+
+
+
+
+
+                             2.5  Equate: ZITEL  EQ [0,1]
+
+
+             This  equate declares  the  type of  memory on  the  machine.  The
+        default of 0 declares  Tymshare MAC I memory.   The value of 1  is used
+        for MAC II and MAC III memory.
+
+
+
+
+
+
+                                   2.6  Memory Size
+
+
+             A Tymfile parameter declares how much memory node code is  to use.
+        Node code assigns all otherwise unused memory to the bufferlets.  Thus,
+        the memory parameter declares how  much buffering this node is  able to
+        achieve.  While there is no default, during assembly node code displays
+        what it thinks the memory allocation should be.  Different environments
+        use different equates for memory allocation.
+
+
+
+
+
+                    2.6.1  Equate: S0CORE EQ $A [n]
+
+             This equate declares the  memory available used for the  ISIS node
+        code and ISIS supervisor environments.  There is no default.
+
+
+
+
+
+
+
+
+
+        4                    NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Node Configuration                                        March 9, 1988
+
+
+                    2.6.2  Equate: NBRK   EQ $A [n]
+
+             This equate declares the memory available in the SOLO Switcher and
+        SOLO Consat environments.   Since by definition,  the node code  is the
+        only code in the machine, this equate should be set equal to the amount
+        of memory in the machine.
+
+
+
+
+
+                    2.6.3  Equate: MEMORY EQ $A [n]
+
+             This  equate  declares   the  memory  available  in   the  Gateway
+        environment.  There is no default and this equate must be defined.
+
+
+
+
+
+                    2.6.4  Equate: MEMRMK EQ [0,3]
+
+             This  equate  selects the  displaying  of memory  usage  by module
+        during assembly.  This equate does not affect the configuration  in any
+        way.  The default is 0 which does not display module memory usage.  The
+        values of  1 and 2  are currently  unused and have  the same  effect as
+        selecting the value of 0.   Values equal to 3, or greater,  selects the
+     splaying of how much every module is using during assembly.
+
+
+
+
+
+                    2.6.5  Equate: NOSEG  EQ [0,1]
+
+             This equate selects whether certain data arrays and blocks must be
+        within  specified  segment.  The  value  of 0  forces  certian  data to
+        specific segments.  The default value  of 1 allows memory ranges  to be
+        used  as needed.   Many large  configurations will  only  assemble when
+        NOSEG  equals  1.  NOSEG  must  be set  to  0 to  properly  run  in the
+        Supervisor base enviroment (both solo and ISIS) and must be set to 0 to
+        run with ISIS versions 5.08 or older.
+
+             Node Code 5.30 forces NOSEG to 1.  This version does not  run with
+        ISIS versions 5.08 or olde.  Code changes now support the  forced value
+        of 1 in the Supervisor Base enviroment (see NCV530).
+
+
+
+
+
+
+
+
+        5                    NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Node Configuration                                        March 9, 1988
+
+
+                             2.7  Equate: SIBFRL EQ [0,1]
+
+
+             This equate determines what area of memory to put the  SIO blocks.
+        This  can  be  used  to  prevent  segmentation  overflow  errors during
+        assembly.  The default is 0 (no relocation) for less than 13 SIO lines.
+        The default is 1 (relocation) for 13 or more SIO lines.  It is also set
+        to 1  when a very  large number of  passthroughs is  configured.  Thus,
+        this  equate is  only needed  if segment  0 overflows  during assembly.
+        Setting SIBFRL to 1 may then fix the assembly error.
+
+
+
+
+
+
+                             2.8  Equate: PTHRU  EQ [0,1]
+
+
+             This equate declares whether any passthroughs are allowed for this
+        node.  The actual number of allowable passthroughs is defined using the
+        NPTHR symbol.   The default  is PTHRU EQ  0 which  allows passthroughs,
+        except for  the Gateway which  forces PTHRU equal  to 1 to  prevent any
+        passthroughs.
+
+
+
+
+
+
+                             2.9  Equate: NETID  EQ $A [n]
+
+
+             This equate is the NETWORK IDentifier for the links of  this node.
+        The value for every network is known by Technical Support.  If the node
+        lines are connected to a neighbor with a different NETID then that link
+        will never  come up.   There is  no default  for NETID  and it  must be
+        declared.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        6                    NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Node Configuration                                        March 9, 1988
+
+
+        This is a list of current Network ID's:
+
+
+         1 - TYMNET              2 - BUBBNET             3 - TRWNET
+         4 - DECNET              5 - ITALNET             6 - SWEDNET
+         7 - NETHERNET           8 - SUNNET              9 - SWISNET
+        10 - UCCPAC             11 - XEROXNET           12 - BOFANET
+        13 - VANET              14 - CHASENET           15 - CODAN
+        16 - BPNET              17 - DUNET              18 - UCSLNET
+        19 - AVISO              20 - DIALNET            21 - MGTNET
+        22 - STAGENET           23 - GEONET             24 - ALASCOM
+        25 - CASNET             26 - EXXON              27 - INSNET
+        28 - SAHONGKONG         29 - FIRNET             30 - DOLNET
+        31 - PNCR               32 - SWBNET             33 - BRITPETROL
+        34 - ITALCABLE          35 - CABLEWIRELESS      36 - TELEVERKET
+        37 - PHILIPS            38 - UKLAB              39 - EASTNETLAB
+        40 - DATAPAC            41 - TRAINING           42 - LENG
+        43 - SLIGOUS            44 - WESTREGNLAB        45 - REPAIRDEPOT
+        46 - WESTPUB
+
+        NOTE: It is absolutely essential that the radix be correct!  The 
+              NETID must use the decimal radix ($A) for the node's links
+              to come up.
+
+
+
+
+
+
+                             2.10  Equate: INFLGT EQ [0,1]
+
+
+             This equate enables the  infinite logon timer for this  node.  The
+        logon timer cancels logons that have reached a logon  terminator within
+        120 seconds.  The logon terminator (CR, ESC and Semicolon)  cause logon
+        information to  be forwarded to  the Supervisor and  from then  on, the
+        Supervisor  will  time out  logons  which do  not  complete  within the
+        allotted time.  Setting the infinite logon timer flag to 1 disables the
+        normal logon timer.  The default  is INFLGT EQ 0 which enables  the 120
+        second logon timer.  This equate is not used on the Solo Switcher.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        7                    NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Node Configuration                                        March 9, 1988
+
+
+                            2.11  Equate: NPTHR  EQ $A [n]
+
+
+             This equate  declares the  number of  passthroughs for  this node.
+        The default is 256d passthroughs.  This equate is forced to zero in the
+        Gateway environment.
+
+
+
+
+
+
+                            2.12  Equate: NXCMDC EQ $A [n]
+
+
+             This equate declares the number of additional circuits that can be
+        built  through  the node  after  the node  reports  that it  is  out of
+        passthroughs.  The default  is 32.  The value  is not 0 since  the supe
+        may  have  routed more  circuits  through  the node  while  the  out of
+        passthroughs report travels to the supervisor.
+
+
+
+
+
+
+                             2.13  Equate: NXLGSC EQ $A[n]
+
+
+             The  equate  declares  the  number  of  extra  circuits  for logon
+        processing.  The  default is 0.   This equate is  only relevant  in the
+        solo consat enviroment where logon processing must find a free circuit.
+
+
+
+
+
+
+                            2.14  Equate: NDP    EQ $A [n]
+
+
+             This equate declares how many dispatcher ports for the  node code.
+        This  limits  the maximum  number  of circuits  (not  counting  XRAY or
+        command  circuits)  that  originate or  terminate  on  this  node.  The
+        default is 256d dispatcher ports.  This equate is not used in  the Solo
+        Switcher or Solo Consat Tymfiles.
+
+
+
+
+
+
+
+
+        8                    NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Node Configuration                                        March 9, 1988
+
+
+                             2.15  Equate: IKNRNG EQ [0,1]
+
+
+             This  flag   determines  how  node   code  and  the   ISIS  kernel
+        communicate.  The default value of 0 is for ISIS versions prior to 6.00
+        which used positive Kernel ring pointers.  The value of 1 uses negative
+        Kernel ring pointers  which are present in  all ISIS versions  6.00 and
+        above.
+
+             Node Code version 5.30 does  not require this flag.  It  only runs
+        with ISIS version 6.00 and above  and so the flag is assumed to  be set
+        to 1.  If IKNRNG  is set to 0 then  a warning message is  displayed and
+        the assembly is killed.
+
+
+
+
+
+
+                            2.16  Equate: P0SIZE EQ $A [n]
+
+
+             This equate sets aside the specified number of bytes in  Segment 0
+        for  patches.  The  default is  512d.  The  starting location  for this
+        patch data area is PATCH0.   If the patches require more space  than is
+        reserved  then  a warning  message  is displayed  and  the  assembly is
+        killed.
+
+
+
+
+
+
+                            2.17  Equate: P1SIZE EQ $A [n]
+
+
+             This equate sets aside the specified number of bytes in  Segment 1
+        for patches.   The default  is 1024d.  The  starting location  for this
+        patch code area is PATCH1.   If the patches require more space  than is
+        reserved  then  a warning  message  is displayed  and  the  assembly is
+        killed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+        9                    NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Node Configuration                                        March 9, 1988
+
+
+                            2.18  Equate: PHSIZE EQ $A [n]
+
+
+             This equate reserves the  specified number of bytes  for reserving
+        the  time and  author of  the patches.   This information  can  then be
+        displayed in the XRAY PQ command.  The default is 512d.  If  the number
+        of patches  causes this  field to  overflow then  a warning  message is
+        displayed and the assembly is killed.
+
+
+
+
+
+
+                                  2.19  Crash Options
+
+
+             The node code can take several different actions after a crash.  A
+        software crash is  caused by the  code noticing an  unrecoverable error
+        condition  then  jumping  to  a crash  routine.   A  hardware  crash is
+        generated  by  an  interrupt  (illegal  instruction  or  illegal memory
+        reference).   Bad hardware  can  cause a  software crash,  just  as bad
+        software (bug) can  cause a hardware  crash.  Thus, while  hardware and
+        software  crashes  can  have different  crash  handling,  normally both
+        crashes are set to be handled in the same manner.
+
+
+
+
+
+                    2.19.1  OPTION(NRSH,NRSS)
+
+             The  options  NRSH/NRSS  instruct  the  node  to  restart  after a
+        hardware/software crash.  The default  crash options are NRSH  and NRSS
+        (restart after crashing).
+
+
+
+
+
+                    2.19.2  OPTION(NRTH,NRTS)
+
+             The  options  NRTH/NRTS  instruct   the  node  to  stop   after  a
+        hardware/software crash.  In  the SOLO environment, XRAY  will continue
+        to run and be accessible by the TTY port.
+
+
+
+
+
+
+
+
+
+        10                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Node Configuration                                        March 9, 1988
+
+
+                    2.19.3  OPTION(NHTH,NHTS)
+
+             The  options  NHTH/NHTS  instruct   the  node  to  halt   after  a
+        hardware/software crash.  In  the SOLO environment, XRAY  will continue
+        to run and be accessible by the TTY port.
+
+
+
+
+
+                    2.19.4  OPTION(NBTH,NBTS)
+
+             The options NBTH/NBTS  instruct the node to  go into boot  after a
+        hardware/software crash.
+
+
+
+
+
+
+                                  2.20  OPTION(REBLD)
+
+
+             The REBLD (REBuiLD)  option specifies that  a circuit zapped  by a
+        link outage will  be rebuilt.  History  buffers on the  origination and
+        destination nodes contains the most recent messages and are  updated by
+        the  circuit rebuilding  logic.  When  they detect  a circuit  is being
+        zapped due to a link outage then the origination and  destination nodes
+        request a rebuild needle from  the Supervisor in order to create  a new
+        circuit around the failed  link.  All of this is  handled transparently
+        by the node code and the user will only notice a momentary delay.
+
+
+
+
+
+                    2.20.1  Equate: SQNUMB EQ [n]
+
+             This equate is used by the rebuild logic to decide after  how many
+        characters to send the  sequence fix.  The sequence fix  allows pruning
+        of the history  buffers.  The only acceptable  values are (in  hex) 80,
+        100, 200 and 400.  Other values will cause the sequence fix to  be sent
+        much more frequently  than the specified  value and thus  waste network
+        resources.  The  default is  200 (hex).  Analysis  should be  done that
+        considers the  subsequent effect  on the  network before  changing this
+        value.
+
+
+
+
+
+
+
+
+        11                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Node Configuration                                        March 9, 1988
+
+
+                             2.21  Equate: LOG.II EQ [0,1]
+
+
+             The LOG.II equate specifies whether the LOG II functionality is to
+        be enabled.  The value of 1 (default) enables the LOG II functionality.
+        The value of 0 disables the LOG II functionality.  LOG II functionality
+        does  not affect  the older  LOG I  circuit building  capability.  This
+        equate is in Node Code versions 5.30 and higher.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        12                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Link  Configuration                                       March 9, 1988
+
+
+
+
+
+
+                               3 -  Link  Configuration
+
+
+
+
+
+
+
+                 3.1  Macro: TIILNK(neighbor,,window size,type,speed)
+
+
+             This macro defines the links to neighbor nodes.  The  window size,
+        type and speed for this  link should also be declared in  the specified
+        neighbor's  Tymfile by  use  of the  TIILNK  macro.  The  ',,'  must be
+        included.  This skipped field is no longer used.
+
+           NEIGHBOR -      The neighbor node number for which the following
+                           definitions are specified.  These definitions
+                           are only used for the link with the specified
+                           neighbor.
+           WINDOW SIZE -   The window size of the link to the neighbor. This
+                           value must be between 4 and 128 and a multiple of
+                           4.  The default is 8.
+
+           TYPE -          The type is either SAT for satellite link or TER
+                           for terrestrial link.  The default is TER
+
+           SPEED -         The speed of the link in KBPS.  Acceptable values
+                           are: 28, 38, 56 or MS.  MS is for memory shuffler
+                           and indicates a speed of greater than 56 KBPS.
+                           Node code software accurately calculates link
+                           speeds below 28 KBPS.
+
+
+
+
+
+
+                             3.2  Equate: XLINKS EQ $A [n]
+
+
+             XLINKS is the number of unassigned network links  (wildcard link).
+        A neighbor node not assigned by a TIILNK will come up using  a wildcard
+        link.  For XLINKS, the default is a terrestrial link with a window size
+        of DEFWSZ and the speed will be calculated when the link comes up.
+
+
+
+
+
+        13                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Link  Configuration                                       March 9, 1988
+
+
+                             3.3  Equate: DEFWSZ EQ $A [n]
+
+
+             This equate specifies the  windowsize for XLINKS.  The  default is
+        8.  The windowsize matchdown logic will matchdown for XLINKS  just like
+        does for TIILNK.  This equate was added in version 5.30.
+
+
+
+
+
+
+                             3.4  Equate: TH.ACK EQ $A [n]
+
+
+             This equate specifies  how many packets  can be received  before a
+        dummy  record  is  sent to  acknowledge  the  received  packets.  After
+        extensive research and testing,  it has been determined that  the value
+        of 2 is optimal.  The dummy record is sent only if no other  packet was
+        sent since every packet contains an acknowledgement field.   Thus, this
+        only affects links with  one directional traffic.  The dummy  record is
+        sent  on  the  opposite  direction as  the  user  traffic  in  order to
+        acknowledge its successful reception.
+
+
+
+
+
+
+                        3.5  Macro: STRXLK(number,window size)
+
+
+             The STRXLK macro declares how many extra TYMSTAR  link descriptors
+        are generated for  this node.  New TYMSTAR  links can be brought  up by
+        using the XRAY command IK  (Insert remote station Key).  This  macro is
+        only to be used on the TYMSTAR hub.
+
+
+
+
+
+
+                 3.6  Macro: STRLNK(line,RSA,remote node#,WSIZ,speed)
+
+
+             This macro declares a TYMSTAR link on the TYMSTAR hub.  This macro
+        must appear after the TIILNK macro or a assembly error occurs.
+
+             The line number field declares  which line is to be used  for this
+        TYMSTAR link.
+
+             The RSA  field is  the Remote Station  Address of  the destination
+        node for this link.
+
+        14                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Link  Configuration                                       March 9, 1988
+
+
+             The next field declares the remote node number for this link.
+
+             WSIZ is the window size  for this link.  This field has  a default
+        of 12.
+
+             The speed field declares the speed for this link.  The  default is
+        9.6 KBPS.
+
+
+
+
+
+
+                            3.7  Macro: STRLIN(line number)
+
+
+             This macro defines  which lines are  TYMSTAR lines for  the remote
+        station.
+
+
+
+
+
+
+                             3.8  Equate: LNCKTM EQ $A [n]
+
+
+             This parameter defines how  many four second's gaps of  no records
+        received on this line before a link will be declared out.   The default
+        is four.  This parameter should NOT be changed except on TYMSTAR nodes.
+
+
+
+
+
+
+                             3.9  Equate: RSTFRQ EQ $A [n]
+
+
+             This parameter defines how often the TYMSTAR remote  station sends
+        the  initial reset  message.  The  actual frequency  is four  times the
+        specified value.  The  default value is  four, which means  the default
+        frequency of the initial reset message is 16 seconds.
+
+
+
+
+
+
+
+
+
+
+
+        15                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Link  Configuration                                       March 9, 1988
+
+
+                            3.10  Equate: RESTRY EQ $A [n]
+
+
+             This  parameter  declares  how many  TYMSTAR  link  reset attempts
+        before an error message is sent to the SUP and Crypto log.  The default
+        is 10d.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        16                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Line Definitions                                          March 9, 1988
+
+
+
+
+
+
+                                 4 -  Line Definitions
+
+
+             Different  environments  use different  equates  to  determine the
+        number of lines  for the node code.   There are two different  types of
+        lines: SIO and sync lines.
+
+
+
+
+
+
+                             4.1  Equate: SILINS EQ $A [n]
+
+
+             This equate  declares how many  SIO lines there  are for  the node
+        code in the ISIS environments.  The default is 0.
+
+             This equate  is obsolete  in version 5.30  except for  the Gateway
+        enviroment.  The number of SIO  lines is calculated from the  number of
+        M.REFs assigned to SLOT 0.
+
+
+
+
+
+
+                              4.2  Equate: M.NCARD EQ [n]
+
+
+             This  equate  declares how  many  SIO mother  boards  are  in this
+        engine.  The  default is 0.   This equate is  not actually used  in the
+        ISIS  environments by  the node  code,  but it  is needed  for  ISIS to
+        assemble properly.  This parameter is not used in Gateway Tymfiles.
+
+
+
+
+
+
+                             4.3  Equate: M.DAx  EQ $0 [n]
+
+
+             This  equate declares  the SIO  mother board  address for  the 'x'
+        mother  board.  The  address  of the  first mother  board  is virtually
+        always set to 80x and the  address of the second mother is  usually set
+        to 81x.  There is no default and this parameter must be included if any
+        SIO mother boards have been declared.  This equate is not actually used
+
+
+        17                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Line Definitions                                          March 9, 1988
+
+
+        in the ISIS  environment by the  node code, but  is needed for  ISIS to
+        assemble properly.  This parameter is not used in Gateway Tymfiles.
+
+
+
+
+
+
+                             4.4  Equate: M.NPx  EQ $A [n]
+
+
+             This equate declares how many ports on mother board 'x'.  There is
+        no default  and must  be included if  any SIO  mother boards  have been
+        declared.  This equate is not actually used in the ISIS  environment by
+        the  node code,  but is  needed for  ISIS to  assemble  properly.  This
+        parameter is not used in Gateway Tymfiles.
+
+
+
+
+
+
+                             4.5  Equate: NLINES EQ $A [n]
+
+
+             This equate declares how many  sync lines there are for  this node
+        in the SOLO  environments.  The default is  16d lines.  This  equate is
+        not used in the ISIS environments.
+
+
+
+
+
+
+                             4.6  Equate: NLUS0  EQ $A [n]
+
+
+             This equate is used to determine how many sync lines there are for
+        the node code in the  ISIS node code and ISIS  supervisor environments.
+        There is no default.  Node code calculates the number of sync  lines by
+        subtracting the number of SIO lines from NLUS0.
+
+
+
+
+
+
+
+
+
+
+
+
+
+        18                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Line Definitions                                          March 9, 1988
+
+
+                             4.7  Equate: T2SYLU EQ $A [n]
+
+
+             This equate declares how many sync lines there are for the Gateway
+        environment.  There is no default.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        19                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        XRAY Configuration                                        March 9, 1988
+
+
+
+
+
+
+                                5 -  XRAY Configuration
+
+
+             This  section describes  parameters and  flags which  affect XRAY.
+        The XRAY  commands and syntax  are described in  the XRAY  users guide.
+        The XRAY users guide also contains information on CRYPTO  messages, and
+        node code crashes.
+
+
+
+
+
+
+                             5.1  Equate: DB.CPU EQ [0,1]
+
+
+             This equate enables the XRAY CU command.  This equate requires two
+        subsequent equates  to determine  exactly what  the 'CU'  command does.
+        The default is  DB.CPU EQ 0 which  disables the XRAY CU  command.  This
+        command adds substantial  overhead and should not  be used except  in a
+        lab enviroment.
+
+
+
+
+
+                    5.1.1  Equate: DB.CLK EQ [0,1]
+
+             This equate enables the  XRAY 'CU' command to monitor  and display
+        the amount of time spent in each process and how many times the process
+        was run.  The default is DB.CLK EQ 0.
+
+
+
+
+
+                    5.1.2  Equate: DSPCNT EQ [0,1]
+
+             This equate enables the  XRAY 'CU' command to monitor  and display
+        the count of how many processes were dispatched from the EXEC loop, the
+        number of times the EXEC loop  looped, and the amount of time  spent in
+        the EXEC loop.  The default is DSPCNT EQ 0.
+
+
+
+
+
+
+
+
+        20                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        XRAY Configuration                                        March 9, 1988
+
+
+                             5.2  Equate: BFLTMR EQ [0,1]
+
+
+             This equate enables the XRAY BD command.  This equate adds another
+        (theoretically more  accurate) method of  calculating the  buffer delay
+        displayed in  the XRAY KS  command.  The default  is BFLTMR EQ  0 which
+        disables the XRAY BD command.
+
+
+
+
+
+
+                             5.3  Equate: NDREAD EQ [0,1]
+
+
+             This  equate enables  the  XRAY NR  command.  When  issued  the NR
+        command copies  all needles processed  by CRQ into  its own  buffer.  A
+        variation  of  the NR  command  can be  used  to display  all  of these
+        needles.   The  default is  NDREAD  EQ  0 which  disables  the  XRAY NR
+        command.
+
+             In version  5.30 the  'NR' command was  removed.  This  equate now
+        enables the CRQ debugger to save all needles.
+
+
+
+
+
+
+                              5.4  Equate: NXUBLK EQ [n]
+
+
+             The NXUBLK  parameter is  the number  of simultaneous  XRAY users.
+        The TTY port (Solo environment) or entering via ?STAT (ISIS DDT) is not
+        considerred a remote XRAY port.  The default is 3 and the maximum value
+        is 15.
+
+
+
+
+
+
+                            5.5  Equate: XRYTMC EQ [0,1,2]
+
+
+             The XRYTMC determines whether  the Network Console XRAY  should be
+        enabled.
+
+             The default value 0 disables Network Console XRAY and  enables the
+        normal XRAY.
+
+
+
+        21                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        XRAY Configuration                                        March 9, 1988
+
+
+             Setting XRYTMC to 1  enables Network Console XRAY and  enables the
+        normal XRAY.
+
+             Setting XRYTMC  to 2  enables Network Console  XRAY and  enables a
+        reduced normal XRAY.
+
+
+
+
+
+
+                             5.6  Equate: PRIMSG EQ [0,1]
+
+
+             The PRIMSG flag enables the Priority Crypto log.  This log is used
+        in conjunction with the Crypto log to save irregular node  events.  The
+        Priority  Crypto log  is a  separate log  to save  critically important
+        Crypto messages which can get eventually overwritten in the  Crypto log
+        by the  more mundane  Crypto messages.   The default  of 1  enables the
+        Priority Crypto log.
+
+
+
+
+
+
+                            5.7  Equate: XRSZLV EQ [1,2,3]
+
+
+             The  XRSZLV parameter  selects  the level  of XRAY.   The  value 1
+        assembles only the ND,  NS, KS, DC and  PQ XRAY commands.  The  value 2
+        assembles the Crypto commands and  if the UPSW option is  selected, the
+        trace commands.  The value 3 (default) assembles all XRAY commands.
+
+
+
+
+
+
+                               5.8  Macro: XRYMSG(text)
+
+
+             The XRYMSG text defines the XRAY warning message.  This message is
+        displayed whenever a XRAY user logs into XRAY.  It can be  displayed or
+        changed by  use of the  XRAY 'WM' command.   The default is  no warning
+        message.  XRAY automatically adds a CR LF to the end of the message.
+
+
+
+
+
+
+
+
+        22                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        XRAY Configuration                                        March 9, 1988
+
+
+             5.9  Macro: GG(privilege,xray flag,username,override,target)
+
+
+             The XRAY  GG (GoodGuy)  macro defines  usernames along  with their
+        status that are allowed to  log into remote XRAY.  The  privilege field
+        defines  what XRAY  commands this  user may  use: 0  (only unprivileged
+        commands),  1  (privileged  and  unprivileged  commands),  and  2  (all
+        commands).
+
+             The xray flag field must be zero in order for this username  to be
+        added  to the  XRAY  goodguy list.   It  is present  because  ISIS also
+        maintains its own goodguy list.
+
+             The third field contains the  desired username to be added  to the
+        XRAY user list.   All letters in the  username field must  be uppercase
+        for this username to be properly enterred into the XRAY user list.
+
+             The fourth  field contains the  override value.  When  the maximum
+        number of XRAY  users (XRYBLK) are logged  in, a new XRAY  user logging
+        into  XRAY will  only be  successful if  its override  is  greater than
+        another currently  logged in  XRAY user's override.   If this  logon is
+        successful, then the current XRAY user with the lowest override will be
+        logged out  automatically by  XRAY.  The  default is  0 with  a maximum
+        value of FF (hexadecimal).
+
+             Version  5.30 added  a  fifth field  for the  target.   The target
+        specifies which of the internal host processes to direct this username.
+        The value of 0 (default) specifies that this is an Xray  username.  The
+        value of T.IIXRAY (1) specifies that this username is to be directed to
+        the Network Console Xray (IIXRAY).  The value of T.DLOAD specifies that
+        this username is to be  directed to the downline load facility.   If no
+        username  is targeted  to  the downline  load facility  then  this node
+        cannot downline load any of its neighbors.  At assembly time  a warning
+        message will be displayed but the assembly is allowed to continue.
+
+             Example:  GG(1,0,SYSOP,10) lets XRAY user 'SYSOP' use unprivileged
+        and privileged commands with an override value of '10'.
+
+
+
+
+
+
+                                   5.10  Macro: XGG
+
+
+             The XGG  macro is needed  for declaring the  GG macro in  the ISIS
+        environments.  This macro is not used in the SOLO environments.
+
+             The following is the  recommended way to define XRAY  usernames in
+        the ISIS Tymfile:
+        XGG     MACRO[          :this defines XGG macro
+                GG(0,0,DLOAD,0,T.DLOAD) :allow downline loads
+
+        23                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        XRAY Configuration                                        March 9, 1988
+
+
+                GG(0,0,XRAY,0)  :XRAY username is not privileged
+                GG(1,0,BOB,30)  :BOB is privileged
+                GG(2,0,RAY,30)  :RAY has super privilege
+        ]                       :end of XGG macro
+
+
+
+
+
+
+                                  5.11  OPTION(CIRD)
+
+
+             This option enables Cryto messages about circuit building (0B) and
+        circuit teardown (0C).   These two messages  can also enabled  by using
+        the  super-privileged  WS XRAY  command  to write  a  one  into CRYDIS.
+        Likewise, these messages can be disabled by writing a zero into CRYDIS.
+        The default disables these Crypto messages.
+
+
+
+
+
+
+                           5.12  OPTION(NTLEV)/OPTION(TLEV)
+
+
+             The TLEV option allows tracing  of line input events on  both sync
+        and SIO lines (foreground) and,  at the link level, tracing  of record-
+        making and teardown activity (background).  This capability  adds about
+        7K of memory overhead, but adds virtually no execution  overhead.  This
+        capability  should always  be  included unless  memory  constraints are
+        severe, because it is often  useful in isolating reasons for  poor link
+        performance, failure of lines to attach properly, and  other anomalies.
+        The option NTLEV disables XRAY's ability to trace line and link events.
+        The default TLEV allows tracing of line and link events.
+
+
+
+
+
+
+                                  5.13  OPTION(UTRC)
+
+
+             The UTRC option allow usage of the jump trace facility.  It allows
+        usage of  the XRAY TR  and TT UPSW  trace commands.  Upon  crashing the
+        trace table is saved at TRSTAB.  The table size is TRTBSZ (default 100x
+        bytes)  and  must  be  a  multiple  of  100x.   The  UTRC  option  adds
+        considerable CPU overhead  when tracing.  The  trace option is  set off
+        and cannot be enabled on 4800 baud Solo Consats.
+
+
+
+        24                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        XRAY Configuration                                        March 9, 1988
+
+
+                             5.14  Equate: TIINEW EQ [0,1]
+
+
+             This equate  instructs ISIS to  collect information  necessary for
+        the XRAY 'NS' command's EFFICIENCY field.  If this is not included then
+        that field will always be zero.  The default is TIINEW EQ 0.
+
+             Note: In node code versions prior to 5.20, putting TIINEW EQ 0 can
+        lead to  garbage in the  NS EFFICIENCY field.   To properly  select the
+        default for versions prior to 5.20, the equate for TIINEW should not be
+        included in the Tymfile.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        25                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Solo Consat                                               March 9, 1988
+
+
+
+
+
+
+                                   6 -  Solo Consat
+
+
+             The Solo Consat is a combination of node code and some of the ISIS
+        Consat.  A  Solo Consat  Tymfile will contain  many macros  and equates
+        which only affect the Consat part of the code.  Also, Solo  Consat does
+        not support many ISIS  Consat features.  The Solo Consat  supports only
+        the following ISIS Consat  features (which are described in  the Consat
+        ERS):
+
+
+        DECLARE(ASYNC, PRINTER or MPVC options only)
+        PVCDF(port range, all options except PROBE, RCV, UPC, KAT and SPAR)
+        PCVEX(port, all options except PROBE, RCV, UPC, KAT and SPAR)
+          note: PVCDF and PVCEX do not support TIDs above TID34
+
+        TID30(port ranges)              TID120(port ranges)
+        SHOWME(level)                   LTEXT(option,text)
+        PVCRNG(port ranges)             PTEXT(option,text)
+        UTEXT(text)                     UTXRNG(port ranges)
+        MUTXRG(port ranges)             MPVCUS(port range,text)
+        MPVCFO(port,options)            NOBUSY(port ranges)
+        NO.CP(port ranges)              ACHOST(number)
+        SLODTR  EQ  [0|1]               OMRON   EQ  [0|1]
+        YTID    EQ  [0|1]               PCOTRY  EQ  $A [v]
+        PCORTY  EQ  $A [v]
+
+
+
+
+
+
+
+                             6.1  Equate: SOLOCS EQ [0,1]
+
+
+             This  flag  tells  the  node  code  to  assemble  the  Solo Consat
+        environment.   The  default  0  does  not  assemble  the   Solo  Consat
+        environment.  The value 1 assembles the Solo Consat environment.
+
+
+
+
+
+
+
+
+
+
+
+        26                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Solo Consat                                               March 9, 1988
+
+
+                             6.2  Equate: BAUDR  EQ [0,2]
+
+
+             This flag sets the maximum baud rate for the Consat's async ports.
+        The default of 0 sets 1200  baud as the maximum speed.  The value  1 is
+        not used.  The value 2 sets 4800 baud as the maximum speed.  This value
+        must match the clock jumpers on the multifunction board in the engine.
+
+
+
+
+
+
+                             6.3  Equate: LOWSPD EQ [0,1]
+
+
+             If BAUDR is set to 0, then this flag determines whether to support
+        50 and 75 baud baudot async  ports.  The default of 0 does  not support
+        50 and 75  baud baudot devices.  The  value 1 enables support  of these
+        devices.
+
+
+
+
+
+
+                             6.4  Equate: ASYNDA EQ $0 0C1
+
+
+             This parameter is the starting address for the async  devices.  It
+        is set by dip switches on the async board.  The default is C1 (hex).
+
+
+
+
+
+
+                              6.5  Equate: NASYNG EQ [n]
+
+
+             This parameter declares the number of async groups on  the engine.
+        An async groups contains 16 async ports and an async card  contains two
+        async groups.  There is no default and this parameter must be declared.
+
+
+
+
+
+
+
+
+
+
+
+        27                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Solo Switcher                                             March 9, 1988
+
+
+
+
+
+
+                                  7 -  Solo Switcher
+
+
+             The Solo Switcher  environment is the default  environment.  There
+        is  no flag  or  parameter to  select Solo  Switcher  environment.  The
+        absence of  switches for  other environments is  what selects  the Solo
+        Switcher.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        28                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        ISIS Node Code                                            March 9, 1988
+
+
+
+
+
+
+                                  8 -  ISIS Node Code
+
+
+             A common ISIS Node Code Tymfile is used for both the ISIS and node
+        code assemblies.   This section describes  macros and  parameters which
+        are in the ISIS  Node Code Tymfile and  are used by node  code.  Please
+        refer to  the ISIS code  generation manual for  the equates  and macros
+        used exclusively by ISIS.
+
+
+
+
+
+
+                             8.1  Equate: TII    EQ [0,1]
+
+
+             This flag selects the ISIS environment.  If neither the Supervisor
+        or gateway environment is selected then this flag selects the ISIS node
+        code environment.
+
+
+
+
+
+
+                           8.2  Macro: GGHOST(host numbers)
+
+
+             This macro defines a list of hosts which are allowed to come up on
+        this node.   Hosts not  included in  this macro  will receive  the host
+        unacceptable (type 0B)  ISIS message.  Each  macro accepts up  to eight
+        host numbers  and this macro  can be  used as many  times as  needed to
+        define all host numbers allowed to come up on this node.  If this macro
+        is not used (default) then any host is allowed to come up on this node.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        29                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        ISIS Node Code                                            March 9, 1988
+
+
+                       8.3  Macro: HLIMIT(host,circuits,reports)
+
+
+             This macro defines circuit and slot report limits by  host number.
+        The  host  must  have  been  previously  defined  by  a   GGHOST  macro
+        invocation.  The circuits field declares the maximum number  of circuit
+        requests (pseudo needles) a  host may request per minute.   The reports
+        field declares  the maximum number  of slot reports  over a  one minute
+        period.  The default is to not use this macro and thus  allow unlimited
+        circuits requests and slot reports per minute.
+
+
+
+
+
+
+                        8.4  Macro: HSTSLT(host,S1,S2,S3,,,S8)
+
+
+             This macro defines which slots this host may come up in.  The host
+        must  have been  previously defined  in GGHOST  macro  invocation.  The
+        following fields, up to eight per macro, declares which slots  the host
+        may come  up in.  The  macro may be  used repeatedly until  all desired
+        slots are allowed for this  host.  The default does not use  this macro
+        and does not reject hosts based on slot number.
+
+
+
+
+
+
+                       8.5  Macro: SLIMIT(slot,circuits,reports)
+
+
+             This macro defines the maximum number of circuit requests and slot
+        reports for a slot  over a minute period.   The slot field is  the slot
+        number.   The  circuits field  defines  the maximum  number  of circuit
+        requests  that a  slot  may generate  over  a one  minute  period.  The
+        reports field  declares the maximum  number of slot  reports by  a slot
+        over a one  minute period.  The  default is to  not use this  macro and
+        thus allows unlimited circuit requests and slot reports.
+
+
+
+
+
+
+
+
+
+
+
+
+
+        30                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        ISIS Supervisor Environment                               March 9, 1988
+
+
+
+
+
+
+                           9 -  ISIS Supervisor Environment
+
+
+             The ISIS supervisor environment uses two Tymfiles.  The supervisor
+        Tymfile  is described  in the  SUPGEN.DOC.  The  following  equates and
+        parameters are to be added to the node code Tymfile.
+
+
+
+
+
+
+                             9.1  Equate: SUP    EQ [0,1]
+
+
+             This flag declares the Supervisor environment.  The default 0 does
+        not  select the  Supervisor environment.   The value  of 1  selects the
+        Supervisor  environment only  if the  MACHNM is  between 2001  and 2007
+        (octal).
+
+
+
+
+
+
+                             9.2  Equate: TII    EQ [0,1]
+
+
+             The  TII flag  must  be set  to 1  in  order to  assemble  an ISIS
+        Supervisor.  If TII is allowed to default to 0 or is set to 0  then the
+        Standalone Supervisor environment is selected which is not  a generally
+        released product.
+
+
+
+
+
+
+                             9.3  Equate: NSP    EQ $A [n]
+
+
+             This equate sets the number of Supervisor ports in  the Standalone
+        Supervisor environment  .  The default  is 384d Supervisor  ports.  The
+        number of Supervisor  ports is two greater  than the maximum  number of
+        nodes the Supervisor may takeover.
+
+
+
+
+
+        31                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        ISIS Supervisor Environment                               March 9, 1988
+
+
+                             9.4  Equate: NNODES EQ $A [n]
+
+
+             This equate sets  the maximum number of  nodes in the  network for
+        the ISIS Supervisor environment.  The default is 128d nodes.
+
+
+
+
+
+
+                             9.5  Eqaute: NVC530 EQ [0,1]
+
+
+             This  equate must  be set  to 1  for node  code version  5.30 ISIS
+        Supervisor  base.   It instructs  ISIS  to move  the  shared  memory to
+        segment C.   Version 5.30  kills the  assembly if  it is  not set  as a
+        verfication.
+
+
+
+
+
+
+                           9.6  Supervisor Xray Goodguy list
+
+
+             The Supervisor needs the  following Xray Goodguys to  be declared.
+        Please  note  that  the  ISIS  Supervisor  environment  requires  these
+        declarations to be contained within the XGG macro.
+
+
+        XGG     MACRO[
+        :       room for other Goodguy entries
+        :
+        :
+        GGPRO   GG(0,NSLOT+3002,PROBE)
+        GGERR   GG(0,NSLOT+3003,ERLOG)
+        GGACC   GG(0,NSLOT+3004,ACCOUNT)
+        GGSYS   GG(0,NSLOT+3005,SYSMSG1)
+        GGUN2   GG(0,NSLOT+3006,UN2)
+        ]       :end of XGG macro
+
+
+
+
+
+
+
+
+
+
+
+
+        32                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Tymnet II Gateway                                         March 9, 1988
+
+
+
+
+
+
+                                10 -  Tymnet II Gateway
+
+
+             The Gateway is  loaded into a slot  of an ISIS node.   The Gateway
+        then brings up lines and links to another network.  This  other network
+        is called the Home  NET (HNET) since that  is the network in  which the
+        gateway functions most like the node code.  The network  containing the
+        slot in which the Gateway is loaded is called the ISIS NET (INET).
+
+
+
+
+
+
+                             10.1  Equate: T2GATE EQ [0,1]
+
+
+             This equate  selects the  Gateway environment.   The default  of 0
+        does not select the Gateway environment.
+
+
+
+
+
+
+                            10.2  Equate: IHOST  EQ $A [n]
+
+
+             This equate declares the  Gateway host number on the  ISIS network
+        side of the Gateway.  This equate must be declared and has  no default.
+        This host is the host number that users in the INET would use  to build
+        a circuit to the HNET.
+
+
+
+
+
+
+                            10.3  Equate: HHOST  EQ $A [n]
+
+
+             This equate declares the  Gateway host number on the  HOME network
+        side of the Gateway.  This equate has no default and must  be declared.
+        This host is the same  as HST0 and in fact  may be left out if  HST0 is
+        declared.  This  is host  number that users  in the  HNET would  use to
+        build a circuit to  the INET.  This is  also the host number  of remote
+        XRAY which must be accessed from the HNET.
+
+
+
+        33                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Tymnet II Gateway                                         March 9, 1988
+
+
+                            10.4  Equate: INCOST EQ $A [n]
+
+
+             This equate  sets the host  cost reported on  the INET  side.  The
+        default  is 0.   The  host cost  is  used by  the  Supervisor's circuit
+        building  process   for  multi-targetted  usernames.    The  Supervisor
+        calculates the  total cost of  a path and  builds the circuit  over the
+        path with the lowest cost.   Thus, this equate is only  meaningful when
+        there  is more  than one  Gateway between  networks  and multi-targeted
+        usernames are being used for these Gateways.
+
+
+
+
+
+
+                            10.5  Equate: HNCOST EQ $A [n]
+
+
+             This equate  sets the host  cost reported on  the HNET  side.  The
+        default is 0.  For a description of host cost see the above  section on
+        INCOST.
+
+
+
+
+
+
+                             10.6  Equate: ACCT   EQ [0,1]
+
+
+             This equate turns on accounting for the Gateway.  The default is 0
+        which turns off accounting in the Gateway.  This accounting  counts the
+        character count  in the INET  and sends the  accounting message  to the
+        HNET supe.
+
+
+
+
+
+
+                             10.7  Equate: INTACT EQ [0,1]
+
+
+             This  equate  also  enables  accounting  for  internal  hosts.  An
+        internal host is used for downline loads and for XRAY.
+
+
+
+
+
+
+
+
+        34                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Tymnet II Gateway                                         March 9, 1988
+
+
+                            10.8  Equate: IRCx   EQ $A [n]
+
+
+             This equate declares  the International Record  Carrier accounting
+        value for  line x.  This  value is reported  as part of  the accounting
+        message for data sent over that line.
+
+
+
+
+
+
+                             10.9  Equate: NETNAM EQ [0,1]
+
+
+             This flag declares whether the Tymfile defines network names.  The
+        network  names  are displayed  before  the secondary  login  across the
+        Gateway and when clearing a circuit across a Gateway.  The default is 0
+        which says the Tymfile does not define network names.  When the Tymfile
+        does not contain network names then the default INET name is 'ISIS-NET'
+        and default HNET name  is 'HOME-NET'.  If this  equate is not set  to 0
+        then both the INAME and HNAME macros must be defined in the Tymfile.
+
+
+
+
+
+                    10.9.1  Macro: INAME MACRO[ AC /network name/]
+
+             This macro definition declares the network name for the  INET side
+        of the gateway.  This  name is sent when  a user builds a  circuit from
+        the HNET to the INET.  This name is also sent when a circuit  is zapped
+        in the INET when the circuit originated in the HNET.
+
+
+
+
+
+                    10.9.2  Macro: HNAME MACRO[ AC /network name/]
+
+             This  macro  definition  declares the  network  name  of  the host
+        network.  This name is sent to the user when the circuit  originates in
+        the INET and is  being built to the HNET.   The name is also  sent when
+        the circuit  is zapped in  the HNET and  the circuit originated  in the
+        INET.
+
+
+
+
+
+
+
+
+
+        35                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Debugger                                                  March 9, 1988
+
+
+
+
+
+
+                                    11 -  Debugger
+
+
+             The node code has a  debugger which requires the setting  of flags
+        and the  declaration of memory  areas.  The generation  and use  of the
+        debugger is described in document (TIIDEV:39)NCDBG.DOC.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        36                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Sample ISIS Node Code Tymfile                             March 9, 1988
+
+
+
+
+
+
+                      APPENDIX I.   Sample ISIS Node Code Tymfile
+
+
+
+             For reference purposes this appendix contains the sample ISIS node
+        code Tymfile for node code version 5.30.  Sample Tymfiles for the other
+        node code environments and other versions can be found as a part of the
+        code release documentation.
+        ::******************************************************************
+        ::
+        ::      SAMPLE TYMFILE - T-II NODE CODE - VERSION 05.30
+        ::               REVISED  09-MAR-88  S.WEDEL
+        ::                      >>ISIS NODE<<
+        ::
+        ::******************************************************************
+
+        :       * MEANS PARAMETER IS SET TO DEFAULT VALUE
+
+        :       HARDWARE CONFIGURATION
+        ENGINE  EQ      1               : Tymnet Engine
+        MICRO   EQ      2               :*microcode level (enhanced sync)
+        ZITEL   EQ      1               : MAC II
+        M.NCARD EQ      1               : number of SIO mother boards
+        M.DA0   EQ      $0 80           : SIO mother board 0 device address
+        M.NP0   EQ      $A 4            : number of ports on mother board 0
+
+        :       Node Code V5.30 calculates SILINS from from slot 0 M.REFs.
+        :SILINS EQ      $A 4            : number of SIO lines for Node Code
+
+        :       ISIS CONFIGURATION
+        NSLOT   EQ      2               : number of slots + Node Code
+        NLU     EQ      $A 12           : max logical units per slot
+         
+        :       NODE CONFIGURATION
+        NETID   EQ      0               : network ID (network dependent)
+        MACHNM  EQ      $8 2162         : Node number
+        HST0    EQ      $A 634          : kernel host number
+        TII     EQ      1               : Tymnet II
+        NDP     EQ      $A 256          :*number of dispatcher ports
+        NPTHR   EQ      $A 256          :*number of available passthroughs
+        :    Node Code Version 5.30 must be used with ISIS version 6 and above
+        IKNRNG  EQ      1               : ISIS version 6.00 and above
+
+
+        :       XRAY CONFIGURATION
+        NXUBLK  EQ      $A 3            :*number of remote Xray users
+        XRYTMC  EQ      0       :*0 = Network Console Xray off - Xray on
+                                : 1 = Network Console Xray on  - Xray on
+                                : 2 = Network Console Xray on - Xray reduced
+
+        37                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        Sample ISIS Node Code Tymfile                             March 9, 1988
+
+
+
+        :       OPTIONS
+                OPTION(REBLD)           : Enable rebuild option
+                OPTION(NRSH,NRSS)       :*hardware/software crash options
+
+        :       NETWORK CONFIGURATION
+                TIILNK(2160)
+                TIILNK(2161)
+                TIILNK(2163)
+                TIILNK(2164)
+        XLINKS  EQ      $A 4            : Number of wild card links (WSIZ 8)
+
+        :       SLOT 0 - TYMNET-II NODE CODE
+        S0CORE  EQ      $A 320          : number of kilobytes for slot 0
+        NLUS0   EQ      $A 12           : number of logical units for slot 0
+        S0L0    S.REF(0)
+        S0L1    S.REF(1)
+        S0L2    S.REF(2)
+        S0L3    S.REF(3)
+        S0L4    S.REF(4)
+        S0L5    S.REF(5)
+        S0L6    S.REF(6)
+        S0L7    S.REF(7)
+        S0L8    M.REF(0,0)
+        S0L9    M.REF(0,1)
+        S0L10   M.REF(0,2)
+        S0L11   M.REF(0,3)
+
+        :       SLOT 1 - AVAILABLE
+        S1CORE  EQ      $A 300
+
+        :       SLOT 2 - AVAILABLE
+        S2CORE  EQ      $A 40
+
+        :       SAMPLE XRAY GOODGUY LIST FOR ISIS NODE  
+        :       The definition of 'XGG' is used for both ISIS and Xray
+        :       Goodguy List entries.  'GG' calls are not allowed outside of
+        :       the 'XGG' definition for ISIS nodes and the 'XGG' definition
+        :       must always be provided even if it doesn't include any
+        :       'GG' calls.
+        XGG     MACRO [
+
+        :       ISIS ENTRIES CAN BE MADE HERE
+
+                GG(0,0,DLOAD,0,T.DLOAD) :downline load username to allow
+                                        :downline load (no longer hardcoded)
+                GG(2,0,TIIDEV,30)       :entry for TIIDEV
+                GG(0,0,XRAY,0)          :entry for XRAY,
+                                        : no privilege or overide capability
+
+        :       ADDITIONAL ISIS OR XRAY 'GG' ENTRIES CAN BE MADE ANYWHERE
+        :       WITHIN THE 'XGG' DEFINITION.
+        ]
+
+        38                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        INDEX                                                     March 9, 1988
+
+
+                                         INDEX
+
+        ACCENT GRAVE  2                       LINEFEED  1
+        ACCT  34                              LNCKTM  15
+        ASYNDA  27                            LOG.II  12
+                                              LOWSPD  27
+
+        BAUDR  27
+        BFLTMR  21                            M.DAX  17
+                                              M.NCARD  17
+                                              M.NPX  18
+        CARRIAGE RETURN  1                    MACHIN  3
+        CIRD  24                              MACHNM  3, 31
+        COLON  1                              MEMORY  5
+        COMMA  2                              MEMRMK  5
+        CONFIGURATION FILE  1
+        CRYDIS  24
+        CU  20                                NAYSNG  27
+                                              NBRK  5
+                                              NBTH  11
+        DB.CLK  20                            NBTS  11
+        DB.CPU  20                            NCV530  32
+        DEBUGGER|  36                         NDP  8
+        DEFWSZ  14                            NDREAD  21
+        DOUBLE QUOTE  2                       NETID  6
+                                              NETNAM  35
+                                              NHTH  11
+        ENGINE  3                             NHTS  11
+                                              NLINES  18
+                                              NLUS0  18
+        FORBIDDEN CHARS.  1                   NNODES  32
+                                              NOSEG  5
+                                              NPTHR  8
+        GG  23                                NRSH  10
+        GGHOST  29                            NRSS  10
+                                              NRTH  10
+                                              NRTS  10
+        HHOST  4, 33                          NSP  31
+        HLIMIT  30                            NTLEV  24
+        HNAME  35                             NULL  1
+        HNCOST  34                            NXCMDC  8
+        HST0  4                               NXLGSC  8
+        HSTSLT  30                            NXUBLK  21
+
+
+        IHOST  33                             P0SIZE  9
+        IKNRNG  9                             P1SIZE  9
+        INAME  35                             PARENTHESES  2
+        INCOST  34                            PHSIZE  10
+        INFLGT  7                             PRIMSG  22
+        INTACT  34                            PRIVILEGED CHARS.  @2
+        IRC  35                               PTHRU  6
+
+
+        39                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+        INDEX                                                     March 9, 1988
+
+
+
+
+        QUOTE  2
+
+
+        RADIX  @2
+        REBUILD  11
+        RESTRY  16
+        RSTFRQ  15
+
+
+        S0CORE  4
+        SEMICOLON  1
+        SIBFRL  6
+        SILINS  17
+        SLASH  1
+        SLIMIT  30
+        SOLOCS  26
+        SQNUMB  11
+        STRLIN  15
+        STRLNK  14
+        STRXLK  14
+        SUP  31
+        SYNTAX  see text argument
+
+
+        T2GATE  33
+        T2SYLU  19
+        TEXT ARGUMENT  @1
+        TH.ACK  14
+        TII  29, 31
+        TIILNK  13
+        TIINEW  25
+        TLEV  24
+
+
+        UTRC  24
+
+
+        XGG  23
+        XLINKS  13
+        XRSZLV  22
+        XRYMSG  22
+        XRYTMC  21
+
+
+        ZITEL  4
+
+
+
+
+
+
+
+        40                   NODE CODE GENERATION DOCUMENT           TII052.GEN
+ y&"ž
