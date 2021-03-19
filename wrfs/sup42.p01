@@ -1,0 +1,665 @@
+	LO	SUPER
+:
+ESUP	EQ	(SUPESZ*100)&-400 :MAKE CODE ARE A MULTIPLE OF 4 PAGES
+				  :FORCE ESUP TO SIZE ALLOCATED IN SUPCOD MACRO
+SPAPTR	EQ	SPATCH		:INIT SPATCH POINTER
+DATPTR	EQ	DATPCH		:INIT DATPCH POINTER
+:
+	IF	MTSSUP
+:
+: This patch allows the Master to wait for two seconds for ring space to
+: be available on the Slave before determining that the Slave is down.
+: This problem manifested itself with the Master setting the Slave down
+: due to full ring for a whole second, yet the Slave was not crashed.
+: Problem was always seen following large scale command circuit retake
+: incidents, where the Master was running at under 1 Exec loop per second.
+: This problem may also be stimulated by running disimiliar Master and Slave
+: hardware, causing the Slave to run slower than the Master.
+: This is a temporary solution and should not be a problem in the future
+: when the Retake inefficiencies are corrected.  Tested in the Public Network.
+: Omar A. Serang 11/23/86. NO NSR
+:
+	REMARK	%ALLOW MASTER TO WAIT 2 SECONDS FOR SLAVE RING SPACE%
+	ORG	MTSNDS+14
+	BC	0,0
+	ORG	MTSNDS+14
+	LIS	C4,2		:HOW MANY DISMISSES TO WAIT FOR SPACE.
+
+	ORG	MTSSMS+14
+	BC	0,0
+	ORG	MTSSMS+14
+	LIS	C4,2		:HOW MANY DISMISSES TO WAIT FOR SPACE.
+
+	ORG	MTSPMS+14
+	BC	0,0
+	ORG	MTSPMS+14
+	LIS	C4,2		:HOW MANY DISMISSES TO WAIT FOR SPACE.
+	EI	:MTSSUP
+	IF	SVLSUP
+:
+: This patch corrects the race condition that exists in the CHKRTK logic
+: in the Supsprout Slave.  If a node cannot be taken over due to lack
+: of passthrough resource, shut lines or other, it is put on the delayed
+: retake list, which causes another takeover attempt in 1 minute.  The
+: Master is timing out before the Slave and sending out a takeover request
+: and subsequently sending the received takeover response to the Slave
+: before the Slave is ready for it.  This patch reduces the Slave CHKRTK
+: timeout to 48 seconds, to allow the Slave to be ready for the takeover
+: response when the Master sends it.  This is very similiar to the handling
+: of the bad lines timeout.
+:
+: This fix is tested by running in the Public network and observing no
+: more Slave crashes due to topological mismatch with the master. NO NSR
+:
+: OAS 11/03/86
+:
+	REMARK	%REDUCE SLAVE CHKRTK TO PREVENT TOPOLOGY MISMATCH%
+	ORG	REMDN2+0E
+	BC	0,0
+	ORG	REMDN2+0E
+	BC	00,30
+	ORG	T2TSBF+14
+	BC	0,0
+	ORG	T2TSBF+14
+	BC	00,30
+	EI	:SVLSUP
+:
+: This patch increases the number of tries to read the UN2 mud
+: block at TRY021 from one to two. #AC 02/20/87. NSR #1371
+:
+	IF	MSC
+	REMARK	%PATCH TO ENABLE READING OF UN2 MUD BLOCK TWICE IN TRYDSK%
+:
+	ORG	TRY021+60
+	BC	0,0,0,0,0,0
+	ORG	TRY021+60
+:
+	JAL	LINK,SPAPTR,,
+	ORG	SPAPTR
+	LB	T1,V1BLOC+DSKBLK+SHRRS,,	:GET RESPONSE STATUS
+	JE	4,LINK				:READ SUCCESSFUL, CONTINUE
+	LIS	T1,MUDLU			:GET MUD LU
+	EXHR	T1,T1				:POSTION R/S, LU, STATUS
+	ST	T1,V1BLOC+DSKBLK+SHRRS,,	:PUT IN PARAM BLOCK
+	SVC	SHARE,V1BLOC+DSKBLK,,		:READ BLOCK
+	LB	T1,V1BLOC+DSKBLK+SHRRS,,	:GET RESPONSE STATUS
+	JE	4,LINK				:READ SUCCESSFUL, CONTINUE
+	J	TRY070,,			:ERROR, JUMP
+SPAPTR	EQ	.
+	EI	:MSC
+:
+	IF	NOSPAS
+:
+: Change the SUPASS routine to ignore out of passthrus on active SUP
+: during takeover or retake, i.e. reset the NOPASS bit for active SUP
+: even if PASSN indicates that the SUP is out of passthrus. NSR # 1096
+:
+	REMARK	%W/NOSPAS, IGNORE OUT OF PASSTHRUS FOR ACTIVE SUP%
+	ORG	SUPAS3
+	BC	0,0,0,0,0,0
+	ORG	SUPAS3
+	J	SPAPTR,,
+	ORG	SPAPTR
+	CLHI	T1,4*SUPERN		:IS THIS THE ACTIVE SUP?
+	JE	SUPAS3+6,,		:YES, RESET NOPASS BITS
+	LH	R15,PASSN,T2		:PASSTHRUS AVAILABLE?
+	JLE	SUPAS2,,		:NO, RETURN
+	J	SUPAS3+6,,		:YES, RESET NOPASS BITS
+SPAPTR	EQ	.			:UPDATE SPATCH POINTER
+:
+	ELSE
+:
+: This patch is invoked in the Subroutine 'C2TREE' when sprouting
+: a least cost T-II tree rooted at the active Supervisor. If the
+: active Supervisor is out of passthroughs as indicated by 'PASSN'
+: in the node descriptor, every path in the least cost tree has a
+: cost of more than 800 hexadecimal. This leads to a circuit build
+: failure for reasons of high cost. This patch resets the 'NOPASS'
+: bits of all link status bytes in the active Supervisor's node
+: descriptor prior to calling SPROUT. After SPROUT the above bits
+: are set back to reflect their original status. #AC 02/25/87
+:
+	REMARK	%PATCH TO RESET AND SET OOPS BITS FOR SUP IN C2TREE%
+	ORG	C2TREE+4
+	BC	0,0,0,0,0,0
+	ORG	C2TREE+4
+	J	SPAPTR,,
+	ORG	SPAPTR
+:
+	LHI	T1,(T2BN+SUPERN)^2	:SUPs INDEX INTO NODTBP
+	L	R14,NODTBP,T1,		:ADDR. OF SUP'S NODE DESCRIPTOR
+	LH	T1,PASSN,R14		:GET # OF PASSTHROUGHS AVAILABLE
+	JGFS	C2TRE1			:NOT OOPS
+:
+: SUP OUT OF PASSTHROUGHS. RESET THE 'NOPASS' BIT IN STATUS BYTES
+: OF ALL THE LINKS ON IT.
+:
+	LHI	C2,LINPTR,R14		:PTR. TO LINK DESC. POINTERS
+	LIS	C5,NOPASS		:POS. OF OOP BIT IN STATUS/COST
+C2TRE0	LHL	R12,LNKNOD,C2		:GET NEXT NEIGHBOR NODE NUMBER
+	JEFS	C2TRE1			:NO MORE LINKS
+	LHL	R15,LNKDSP,C2		:DISP. TO LINK DESCRIPTOR
+	AIS	C2,LNKPSZ		:POINT TO NEXT LINK DESC. POINTER
+:
+: RESET THE 'NOPASS' OR OOP BIT IN STATUS BYTE FOR THIS LINK
+:
+	RBT	C5,LNKST,R15,R14	:INDICATE NOT OOP IN LINK STATUS
+	JBS	C2TRE0			:EXAMINE NEXT LINK
+C2TRE1	LI	R13,SPCOST		:COST TABLE FOR CONTROL CIRCUITS
+	J	C2TREE+0A,,		:RETURN
+SPAPTR	EQ	.			:UPDATE SPATCH POINTER
+:
+	ORG	C2TREE+36
+	BC	0,0,0,0,0,0
+	ORG	C2TREE+36
+	J	SPAPTR,,
+	ORG	SPAPTR
+:
+	LHI	T1,(T2BN+SUPERN)^2	:SUPs INDEX INTO NODTBP
+	L	R14,NODTBP,T1,		:ADDR. OF SUP'S NODE DESCRIPTOR
+	LH	T1,PASSN,R14		:GET # OF PASSTHROUGHS AVAILABLE
+	JGFS	C2TRE3			:NOT OOPS
+:
+: SUP OUT OF PASSTHROUGS. SET THE 'NOPASS' BIT IN STATUS BYTES
+: OF ALL LINKS ON IT.
+:
+	LHI	C2,LINPTR,R14		:POINTER TO LINK DESC. POINTERS
+	LIS	C5,NOPASS		:POS. OF OOP BIT IN STATUS/COST
+C2TRE2	LHL	R12,LNKNOD,C2		:GET NEXT NEIGHBOR NODE NUMBER
+	JEFS	C2TRE3			:NO MORE LINKS
+	LHL	R15,LNKDSP,C2		:DISPLACEMENT TO LINK DESCRIPTOR
+	AIS	C2,LNKPSZ		:POINT TO NEXT LINK DESC. POINTER
+:
+: SET THE 'NOPASS' OR OOP BIT IN STATUS BYTE FOR THIS LINK
+:
+	SBT	C5,LNKST,R15,R14	:INDICATE OOP IN LINK STATUS
+	JBS	C2TRE2			:EXAMINE NEXT LINE
+C2TRE3	L	LINK,CTLINK		:RESTORE LINK
+	JR	LINK			:RETURN
+SPAPTR	EQ	.			:UPDATE SPATCH POINTER
+:
+	EI	:NOSPAS
+:
+:
+:  Patch to write CHECKPOINT information before freezing SUP when # of
+:  blocks fall below the freeze factor. Not writing the CHECKPOINT info
+:  was causing the SUP to miss the CHECKPOINT in wake up state. NSR # 1396
+:
+	IF	NEWACC&DISK
+	REMARK	%PATCH TO WRITE ACCOUNT CHECKPOINT BEFORE SUP FREEZE%
+	ORG	ACOUNA+0A
+	BC	0,0,0,0,0,0
+	ORG	ACOUNA+0A
+	J	SPAPTR,,
+	ORG	SPAPTR
+:
+	CLR	T1,T2			:LOW ENOUGH TO FREEZE SUP
+	JG	ACTOS3,,		:NO
+	JAL	LINK,CHKWRT,,		:YES, WRITE CHECKPOINT INFO
+	J	ACOUNA+10,,		:PROCEED TO FREEZE THE SUP
+SPAPTR	EQ	.			:UPDATE SPATCH POINTER
+	EI	:NEWACC&DISK
+:
+:
+:  Fix remove/retake logic to allow active SUP to retake its neighbor
+:  when node and link descriptors have out of passthru bit set. NO NSR
+:
+	REMARK	%ALLOW ACTIVE SUP TO RETAKE ITS NEIGHBOR BY%
+	REMARK	IGNORING SUP OUT OF PASSTHRUS CONDITION%
+	ORG	REM25
+	BC	0,0,0,0,0,0
+	ORG	REM25
+	J	SPAPTR,,
+	ORG	SPAPTR
+:
+	CLHI	R11,1^(0F-NOPASS)	:IS THIS LINK USABLE?
+	JL	REM251-12,,		:YES, RETURN
+	THI	R11,(1^(0F-LINOUT))!(1^(0F-LINSHT))!(1^(0F-NOCHAN)) :USABLE?
+	JNFS	REM25D			:LINK OUT, SHUT OR OUT OF CHANNELS
+	CLHI	C3,T2BN+SUPERN		:OOPS. IS THIS ME?
+	JE	REM251-12,,		:YES, OK TO USE ME AS NEIGHBOR
+REM25D	IF	E1C0
+	J	REM25+8,,		:LOG MSG 1C0 W/REASON CODE
+	ELSE
+	J	REMEX2,,		:LOG MSG 1C0 W/O REASON CODE
+	EI
+SPAPTR	EQ	.			:UPDATE SPATCH POINTER
+:
+	ORG	REM34
+	BC	0,0,0,0,0,0
+	ORG	REM34
+	J	SPAPTR,,
+	ORG	SPAPTR
+:
+	CLHI	R11,1^(0F-NOPASS)	:IS THIS LINK USABLE?
+	JL	REM341-12,,		:YES, RETURN
+	THI	R11,(1^(0F-LINOUT))!(1^(0F-LINSHT))!(1^(0F-NOCHAN)) :USABLE?
+	JNFS	REM34D			:LINK OUT, SHUT OR OUT OF CHANNELS
+	CLHI	C2,(SUPERN+T2BN)^1	:OOPS. IS THIS ME?
+	JE	REM341-12,,		:YES, OK TO USE ME AS NEIGHBOR
+REM34D	IF	E1C0
+	J	REM34+8,,		:LOG MSG 1C0 W/REASON CODE
+	ELSE
+	J	REMEX3,,		:LOG MSG 1C0 W/O REASON CODE
+	EI
+SPAPTR	EQ	.			:UPDATE SPATCH POINTER
+:
+:
+: This patch allows circuit building to a base that is out of passthroughs
+: and is a part of multi-targetted/based list of nodes. The halfword H3
+: only indicates a multi-targetting flag, whereas the second node in
+: DIRLIST would be present if the circuit is being multi-targetted or
+: multi-based. This node is used as the multi-target/base flag instead of H3.
+: ANC 12/10/87. NSR # 1315
+:
+	REMARK	%ALLOW CIRCUIT BUILD TO DESTINATION NODES WITH OOPS
+	REMARK	%IN MULTI-TARGETTING/BASING%
+	IF	MTSSUP
+	ORG	MTSDIR+0E
+	BC	0,0,0,0
+	ORG	MTSDIR+0E
+	LHL	T1,DIRLIST+2	:GET MULTI-TARGETTING/BASING FLAG
+	EI	:MTSSUP
+
+	ORG	DIRKL3+6
+	BC	0,0,0,0
+	ORG	DIRKL3+6
+	LHL	T1,DIRLIST+2	:GET MULTI-TARGETTING/BASING FLAG
+:
+:
+:  This patch saves register C1 (used as a byte index into OUTOLD bit
+:  array) before calling REMOVE which clobbers C1. This is a fix for
+:  a crash which occurs only when excessive flow control is detected
+:  on a command port.  The first pass through the remove loop works
+:  fine, but the next time through, C1 is bad and gives an index into
+:  the ozone, usually causing excessive flow control detection
+:  on a non-existent port of a non-existent node. NO NSR
+:
+	IF	E300
+	IF	1-DEBMON
+	REMARK	%PATCH TO SAVE/RESTORE INDEX REG IN OUTBOUND CONGESTION%
+	ORG	OUTB0A+8
+	BC	0,0,0,0,0,0
+	ORG	OUTB0A+8
+	J	SPAPTR,,
+	ORG	SPAPTR
+:
+: C1 should be saved in DATPCH, but since the $%^&* needle dumping code
+: uses this area, we kludge it into TT. This area is normally used for
+: bufferlet debugging, so be aware that enabling bufferlet debugging
+: will disable this patch.
+:
+	ST	C1,TT,,			:SAVE BYTE INDEX INTO OUTOLD
+	JAL	LINK,REMOVE,,		:ZAP THE CIRCUIT AND CLEAN UP
+	L	C1,TT,,			:RESTORE INDEX
+	J	OUTB0A+8+6,,		:PROCEED WITH NEXT INSTRUCTION
+SPAPTR	EQ	.			:SHC UPDATE SPATCH POINTER
+	EI	:DEBMON
+:SPAPTR	EQ	.			:SHC THIS IS MISPLACED 
+	EI	:E300
+:
+: Patch to cause a more appropriate crash point when the command 
+: circuit to the Supervisor's base node gets black-balled.
+: See (SUPDEV:39)CRASH.LOG entry dated 7/22/87 for details
+: David Fields -7/30/87
+
+	IF 1-NOTI
+	IF CHKZAP
+	ORG	INDSP3+$A20
+	BC	0,0,0,0,0,0
+	ORG	INDSP3+$A20
+	ELSE :CHKZAP
+	ORG	INDSP3+$A14
+	BC	0,0,0,0,0,0
+	ORG	INDSP3+$A14
+	EI   :CHKZAP
+	ELSE :NOTI
+	IF CHKZAP
+	ORG INDSP3+$A12
+	BC	0,0,0,0,0,0
+	ORG INDSP3+$A12
+	ELSE :CHKZAP
+	ORG INDSP3+6
+	BC	0,0,0,0,0,0
+	ORG INDSP3+6
+	EI   :CHKZAP
+	EI   :NOTI
+	J	SPAPTR,,
+
+	REMARK	%PATCH FOR VALID CRASH POINT IF BASE CKT GETS BLACK BALLED%
+	ORG	SPAPTR
+	AR	R13,R13
+	L	T1,NODTBP,R13,R13	:USE NODTBP FOR TEST INSTEAD OF NODUPS
+	JLE	IND,,			:IF NO ENTRY , LOOP
+	J	INDSP4,,			:RETURN TO NORMAL EXECUTION
+
+SPAPTR	EQ	.
+
+:
+: Patch to check NODTBP instead of NODUPS when determining if 
+: Supes are up so we can send them sleeping pills.
+:
+	REMARK	%PATCH TO AVOID SENDING SLEEPING PILLS TO LOST SUPES%
+	ORG	SNDPI1
+	HC	0,0,0,0
+
+	ORG	SNDPI1
+	J	SPAPTR,,
+
+	ORG	SPAPTR
+
+	CLHI	C1,SUPERN	:IS IT THIS SUPE?
+	JNFS	SNDPI6		:NO
+	J	SNDPI3,,	:YES, IGNORE IT
+
+SNDPI6	EQ	.
+	AHI	C1,T2BN		:SUPES BASE NO.
+	AR	C1,C1		: X2
+	L	T1,NODTBP,C1,C1	:GET NODE TABLE POINTER
+
+	SRHLS	C1,1		:RESTORE SUPE NUMBER
+	SHI	C1,T2BN
+	LR	T1,T1		:TEST NODE POINTER
+	JGFS	SNDPI9		:NODE UP
+	J	SNDPI3,,	:NOT UP, CHECK NEXT ONE
+
+SNDPI9	EQ	.
+	J	SNDPI1+8,,	:SEND THE PILL
+
+SPAPTR	EQ	.
+
+:
+: Patch to fix bug in restoring DIRNOD after using DIRNOD to keep
+: track of destination nodes in DIRLIST that were out of passthroughs.
+: This bug could lead to a crash at C2OTP6+8 after a DIRLIST
+: overflow condition.
+:
+	REMARK	%PATCH TO RESTORE DIRNOD CORRECTLY%
+	ORG	DPT6B+16
+	BC	0,0,0,0
+	ORG	DPT6B+16
+	STH	R0,DIRNOD-2,K1	:RESTORE DIRNOD
+:
+:
+:  Patch to  a) Bypass checking DSKBIT bit array while writing error
+:  log and accounting buffers,  b) To set total attempts at writing
+:  account buffer to three, and c) To skip a block on failure after
+:  three attempts, and repeat this atleast three times.
+:
+        IF      MSC                     :ONLY IF DISC SPECIFIED
+:
+	REMARK	%PATCH TO SET RETRY COUNT FOR WRITING ACCOUNT BUFFER TO 3%
+	ORG	ERR1+0A
+	BC	0,0
+	ORG	ERR1+0A			:WRITE ERROR LOG BUFFER
+	JFS	ERR1A			:IRRESPECTIVE OF DSKBIT BIT ARRAY
+:
+	ORG	ACNTDW+0A
+	BC	0,0
+	ORG	ACNTDW+0A		:WRITE ACCOUNT BUFFER IRRESPECTIVE
+	JFS	ACNT1			:OF DSKBIT BIT ARRAY
+:
+	ORG	LSTBRW			:END OF DATA AREA BEFORE R/W AREA
+RTRCNT	HS	1			:TOTAL COUNT OF RETRIES
+BSKCNT	HS	1			:TOTAL # OF BLOCKS SKIPPED
+:
+	ORG	ACTWRT
+	BC	0,0,0,0,0,0
+	ORG	ACTWRT
+	J	SPAPTR,,
+	ORG	SPAPTR
+:
+	STM	R13,ACTSAV+8		:SAVE REGISTERS
+	LIS	R13,3			:SET RETRY COUNT TO 3
+	LIS	R14,3			:SKIP UPTO 3 BLOCKS
+ACTWR0	ST	T2,ACTDSK+SHRPOS	:STORE SECTOR ADDR IN PARAM BLOCK
+	SVC	SHARE,ACTDSK		:WRITE BUFFER TO DISK WITH DISMISS
+	LB	T1,ACTDSK+SHRRS		:GET STATUS BYTE
+	JE	ACT999			:OPERATION SUCCESSFUL
+	SIS	R13,1			:ERROR, DECR RETRY COUNT
+	JLEFS	ACTWR1			:JUMP IF FINISHED WITH 3 ATTEMPTS
+	LIS	T1,1			:WRITE WITH DISMISS
+	STB	T1,ACTDSK+SHRRS		:SAVE IN PARAM BLOCK
+	AHM	T1,RTRCNT,,		:BUMP RETRY COUNT
+	J	ACTWR0			:TRY AGAIN
+:
+:  Skip a Block
+:
+ACTWR1	LR	R14,R14			:HAVE WE SKIPPED THREE BLOCKS
+	JLE	ACTWR3			:YES, GO FREEZE THE SUP
+	ST	T2,CHKLST		:UPDATE LAST WRITE IN CHECKPOINT BLOCK
+	AIS	T2,ACTSEC		:NEXT DISK ADDRESS
+	CLI	T2,ACTEND		:CHECK FOR WRAP
+	JLFS	ACTWR2			:JUMP ON NO WRAP
+	LIS	T2,ACTSTA		:WRAP, FIRST ADDRESS
+ACTWR2	ST	T2,ACTDSK+SHRPOS	:SAVE NEW ADDRESS IN PARAM BLOCK
+	XI	T2,55000000		:INCLUDE VALIDITY FLAG
+	ST	T2,ACCDSK,,		:TELL SLAVE FILE POSITION
+	L	T2,ACTDSK+SHRPOS	:RESTORE T2
+	LIS	T1,1
+	AHM	T1,BSKCNT,,		:BUMP # OF BLOCKS SKIPPED
+	LIS	R13,3			:SET RETRY COUNT TO 3
+	SIS	R14,1			:DECR # OF BLOCKS SKIPPED
+	J	ACTWR0			:TRY TO WRITE AGAIN
+:
+:  Skipped 3 blocks and still can't write!!!, Freeze the SUP.
+:
+ACTWR3	LHI	R13,EM03A0		:SUP FREEZE MSG 3A0
+	LIS	R14,0
+	LIS	R15,4			:SUBTYPE 4
+	JAL	LINK,ERRFIL,,		:POST IT IN ERROR LOG
+	SVC	GEN,SV.FRZ		:FREEZE THE SUP
+:
+SPAPTR	EQ	.
+:
+:  Restore R13,R14,R15 saved at the beginning of ACTWRT
+:
+	ORG	ACT999
+	BC	0,0,0,0,0,0
+	ORG	ACT999
+	J	SPAPTR,,
+	ORG	SPAPTR
+:
+	LM	R13,ACTSAV+8		:RESTORE REGISTERS
+	LIS	T1,1
+	STB	T1,ACTDSK		:SET FOR NEXT WRITE
+	JR	K1			:RETURN FROM ACTWRT
+:
+SPAPTR	EQ	.
+:
+:  Patch to attempt writing error log buffers atmost 3 times.
+:
+	REMARK	%PATCH TO SET RETRY COUNT FOR WRITING ERROR-LOG BUFFER TO 3%
+	ORG	LSTBRW+4
+ETRCNT	HS	1			:COUNT OF TOTAL RETRIES
+:
+	ORG	ERR1A+16
+	BC	0,0,0,0,0,0
+	ORG	ERR1A+16
+	J	SPAPTR,,
+	ORG	SPAPTR
+:
+	LB	T1,ERRDK1+SHRRS		:WAS WRITE OF FIRST BUFFER SUCCESSFUL?
+	JE	ERR3,,			:YES, CHECK SECOND BUFFER
+	LIS	K2,3			:SET RETRY COUNT TO 3
+ERRFI1	LIS	T1,1			:WRITE WITH DISMISS
+	AHM	T1,ETRCNT,,		:BUMP TOTAL # OF RETRIES
+	STB	T1,ERRDK1+SHRRS		:SAVE IN PARAM BLOCK
+	SVC	SHARE,ERRDK1		:WRITE FIRST BUFFER
+	LB	T1,ERRDK1+SHRRS		:WAS WRITE SUCCESSFUL?
+	JE	ERR3,,			:YES, CHECK SECOND BUFFER
+	SIS	K2,1			:NO, DECREMENT RETRY COUNT
+	JGBS	ERRFI1			:TRY WRITING AGAIN
+	J	ERR1A+1E,,		:EXHAUSTED ATTEMPTS, JUMP TO
+					:DISK ERROR ANALYZER
+ERRFI2	EQ	.
+:
+	ORG	ERR3+4
+	BC	0,0,0,0,0,0
+	ORG	ERR3+4
+	J	ERRFI2,,
+	ORG	ERRFI2
+:
+	LB	T1,ERRDK2+SHRRS		:WAS WRITE OF SECOND BUFFER SUCCESSFUL?
+	JE	ERR4,,			:YES, CONTINUE
+	LIS	K2,3			:SET RETRY COUNT 3
+ERRFI3	LIS	T1,1			:WRITE WITH DISMISS
+	AHM	T1,ETRCNT,,		:BUMP TOTAL # OF RETRIES
+	STB	T1,ERRDK2+SHRRS		:SAVE IN PARAM BLOCK
+	SVC	SHARE,ERRDK2		:ISSUE WRITE REQUEST OF SECOND BUFFER
+	LB	T1,ERRDK2+SHRRS		:WAS WRITE SUCCESSFUL?
+	JE	ERR4,,			:YES, CONTINUE
+	SIS	K2,1			:NO, DECREMENT RETRY COUNT
+	JGBS	ERRFI3			:TRY WRITING AGAIN
+	L	K2,ERRDK2+SHRPOS	:EXHAUSTED, RESTORE K2
+	J	ERR3+0A,,		:JUMP TO DISK ERROR ANALYZER
+:
+SPAPTR	EQ	.
+:
+: Patch to set retry count to 3 in CHKWRT routine.
+:
+	REMARK	%PATCH TO SET WRITE ATTEMPT COUNT TO 3 IN CHKWRT ROUTINE%
+	ORG	CHKWRT
+	BC	0,0,0,0,0,0
+	ORG	CHKWRT
+	J	SPAPTR,,
+	ORG	SPAPTR
+:
+	LIS	T2,3			:SET RETRY COUNT TO 3
+CHKWR1	LIS	T1,1			:WRITE WITH DISMISS
+	STB	T1,CHKDSK+SHRRS		:STORE IN PARAM BLOCK
+	SVC	SHARE,CHKDSK		:ISSUE WRITE REQUEST
+	LB	T1,CHKDSK+SHRRS		:GET STATUS OF OP
+	JER	LINK			:WRITE SUCCESSFUL, RETURN
+	SIS	T2,1			:DECREMENT RETRY COUNT
+	JGBS	CHKWR1			:TRY SOME MORE
+:
+: Tried 3 times and still can't write, proceed to freeze the SUP
+:
+	J	CHKWRT+1C,,		:EXHAUSTED, FREEZE SUP
+:
+SPAPTR	EQ	.
+        EI      (MSC)
+
+:*****************************************************************************
+:
+: Patch to remove use of obsolete nodups table when handling PROBE
+: UNBORI request in PTL19. This table sometimes gives erroneous
+: indication of the sup's knowledge of a node, causing a crash when
+: C2APPEND is called to send a message to a node which SUPBPV indicates
+: is not known to the supervisor.
+:
+:*****************************************************************************
+
+	IF	FULLTI
+	ORG	PTL19+28
+	BC	0,0,0,0,0,0,0,0,0,0
+	ORG	PTL19+28
+	ELSE	:FULLTI
+	ORG	PTL19+2A
+	BC	0,0,0,0,0,0,0,0,0,0
+	ORG	PTL19+2A
+	EI	:FULLTI
+
+	REMARK	%PATCH TO USE NODTBP INSTEAD OF NODUPS IN PTL19%
+
+	L	T1,NODTBP,R13,R13	:CHECK FOR NODE TABLE ENTRY
+	JLE	PTL19B			:JUMP IF NO NODE
+
+
+:**********************************************************************
+: This patch allows to swap links on nodes with 2 or more neighbors
+: when LLEVEL option is used.
+: DFIELDS 4/30/87
+:**********************************************************************
+:
+	REMARK %PATCH FOR NETWORKS WITH LLEVEL OPTION%
+	IF	LLEVEL
+	ORG	SWAP+4
+	BC	0,0,0,0
+	ORG	SWAP+4
+	CLHI	R12,2
+	EI
+
+:**********************************************************************
+: This patch properly detects the invalid TID during the normal logins 
+: Gamis 7/28/88
+:**********************************************************************
+:
+	REMARK %PATCH FOR DETECT INVALID TID DURING NORMAL LOGIN%
+	ORG	T2TIDB+34
+	BC	0,0,0,0
+	ORG	T2TIDB+34
+	JE	T2TDE1
+
+:**********************************************************************
+: This patch sends timing diagnostic msg to all nodes in the net.
+: Gamis 8/23/88
+:**********************************************************************
+:
+	REMARK %PATCH TO SEND TIMING DIAGNOSTIC MSG TO ALL NODES%
+	ORG	PTLTD0-8
+	BC	0,0
+	ORG	PTLTD0-8
+	CLR	C1,C3
+
+
+:*****************************************************************
+: This patch corrects the Supervisor from sending garbage to nodecode
+: during normal login preprocessing in case of the following errors-
+: a) Invalid TID. b) Invalid requesting host #. c) Host not on
+: requesting node. d) Host down on requesting node. e) Null character
+: string (hence no TID). and f) Requesting host is terminate-only.
+: Register C5 was being used to send the message without being
+: initialized.   ANC  12/20/88
+:**********************************************************************
+:
+	REMARK %PATCH TO CORRECT SUP FROM SENDING GARBAGE TO NODECODE%
+	ORG	LOGNZ2+4
+	BC	0,0,0,0,0,0
+	ORG	LOGNZ2+4
+	J	SPAPTR,,
+	ORG	SPAPTR
+:
+	SRLS	R14,1
+	STH	R14,CBUF+4,,
+	LHI	C5,0DB2
+	J	LOGNZ2+0A,,
+SPAPTR	EQ	.
+
+
+:******************************************************************
+: This patch handles correctly 0E message with null characters from
+: NodeCode. Gamis 04/26/89.
+:******************************************************************
+	REMARK %PATCH TO PREVENT SUP CRASH ON NULL 0E MESSAGE%
+	ORG	LGCHE5+0A
+	BC	0,0,0,0,0,0
+	ORG	LGCHE5+0A
+	J	SPAPTR,,
+
+	ORG	SPAPTR
+	LCS	T1,1		:ASSUME NORMAL CIRCUIT
+	LR	C4,R14		:FLAGS FROM LOGIN LIST
+	NI	C4,@TIDM	:EXTRACT TID TYPE
+	JNFS	LGCH51		:NORMAL CIRCUIT?
+	LIS	T1,0		:NO, IT IS AN AUX CIRCUIT
+LGCH51	STH	T1,AUXFLG,,	:SAVE THE CIRCUIT TYPE
+	LI	C4,5000000
+	J	LGCHE5+10,,
+SPAPTR	EQ	.
+
+
+:-------------------:
+: END OF PATCH FILE :
+:-------------------:
+
+	IF	SPATCH-SPAPTR
+	REMARK	%*** ERROR *** ILLEGAL USE OF SPAPTR!!!%
+	EI
+
+	IF	SPAPTR-(BSUP+ESUP)
+	REMARK	%*** ERROR ***  PATCH AREA OVERFLOWS ADDRESSABLE CORE%
+	EI
+	FO	SUPER
+  |	h¨
