@@ -1,0 +1,1289 @@
+
+
+	RA	0
+
+	IF	280-PHSIZE
+	REMARK	%
+	REMARK	%*********************************************************
+	REMARK	%*                                                       *
+	REMARK	%*  This patch file will cause the patch history buffer  *
+	REMARK	%*  to overflow.  To correct this problem include the    *
+	REMARK	%*  following statement in the TYM file:                 *
+	REMARK	%*                                                       *
+	REMARK	%*       OPTION(PHSIZE,640)                              *
+	REMARK	%*                                                       *
+	REMARK	%*********************************************************
+	REMARK	%
+	EI	(280-PHSIZE)
+
+:**********************************************************************
+:
+:	This patch is merely a test of the PATCH.LIB routine.  All it
+:	does is provide a monitor for each line that keeps track of
+:	how many times BSCPTP was called.  It does this in a halfword
+:	table indexed by line number called CALCNT.
+:
+:	This patch serves no purpose but to validate the PATCH.LIB
+:	routine.
+
+	PATCH(850110,1021,E/BUELL,BSCPTP+48,,6)
+	J	BSCMON,,		:JUMP TO THE PATCH
+
+	CONPATCH(PA1PTR,,0C)
+BSCMON	HS	0
+	LO	BSCEXC
+	ST	R4,PRUNL,R2		:REPLACE PATCHED INSTRUCTION
+	FO	BSCEXC
+	LIS	R4,1			:BUMP CALL COUNTER
+	LO	FCB
+	AHM	R4,CALCNT,RL2
+	FO	FCB
+	JR	R5			:RETURN FROM BSCPTP
+
+	CONPATCH(PA0PTR,,(NBILIN*2))
+	GL	CALCNT
+CALCNT	HS	0			:DEFINE AND ZERO THE COUNTERS
+	RE	NBILIN
+	HC	0
+	ER
+
+	ENDPATCH(Count calls to BSCPTP for each line)
+
+
+:**********************************************************************
+:	This patch defines the BNET option.  The specification of this
+:	option in the TYM file via the LOPTION macro will cause the
+:	interface to reject any data received from the device before
+:	a /$NETCMD SIGNON frame is received.
+
+        LO      FCB
+        LO      R100
+
+Q       EQ      .			:DETERMINE THE LENGTH OF MHDR
+        ORG     PA0PTR
+QQ      EQ      .
+        MHDR
+QQ      EQ      .-QQ
+        ORG     Q
+
+       PATCH(850418,1400,NTD.L/MAURER,PA0PTR,,(1+QQ+22+((NBILIN-1)/10)+1))
+
+:THIS BELONGS IN THE .I FILE
+SCNET   MACRO[ AC /DATA NOT ALLOWED BEFORE NET SIGNON/]
+
+:THIS BELONGS IN MSGS
+        GL      MSCNET
+        SMESG(MSCNET,MHDR,SCNET,ESCNET)
+
+:THIS BELONGS IN LINE
+:	DEFINE THE NET SECURITY PARAMETER.  IF SET TO ONE, IT WILL DISALLOW
+:	ANY DATA RECORDS BEFORE A /$NETCMD SIGNON RECORD.  A DISCONNECT WILL
+:	BE PERFORMED IF THIS OCCURS.
+        RA      $A10
+SECNET  HS      0
+Q       EQ      0
+QQ      EQ      0
+        RE      NBILIN
+        NOLIST
+        IF      \BNET|Q|
+QQ      EQ      QQ+(BNET|Q|&1)^(15-(Q&15))
+        EI      (\BNET|Q|)
+Q       EQ      Q+1
+        IF      Q&15
+        ELSE
+        HC      QQ
+QQ      EQ      0
+        EI      (Q&15)
+        ER
+        IF      Q&15
+        HC      QQ
+        EI
+        LIST
+
+        RA      0
+
+        CONPATCH(STR,,6)
+        J       SECFIX,,
+
+        CONPATCH(PA1PTR,,47)
+SECFIX  HS      0
+        ST      RLINK,F.RET1,RAFCB,
+        LB      R2,F.LINE,RAFCB,	:IS NET SECURITY ENABLED
+        TBT     R2,SECNET
+        JE      STR+6,,			:NO
+
+        LB      R0,F.MODE,RAFCB,	:IS A CIRCUIT ESTABLISHED
+        JN      STR+6,,			:YES
+
+        LA      R1,MSCNET		:SEND THE ERROR MESSAGE
+        SLLS    R2,2
+        ST      R1,L.NMSG,R2
+        SRLS    R2,2
+
+        LHI     R0,E.ERR		:REPORT AN ERROR TO HSEC
+        JAL     R5,MCALL,,
+
+        LIS     RABIX,0			:FAKE QIO INTO THINKING WE'RE DONE
+        STH     RABIX,F.CNT,RAFCB,
+        J       STR5,,
+
+        ENDPATCH(Disallow data before net signon)
+
+        FO      FCB
+        FO      R100
+
+
+	IF	NMLV
+:**********************************************************************
+:
+:	This patch fixes a problem in HASP where a /$NETCMD SIGNON
+:	record contains a signon string that has 3 or more duplicate
+:	characters that would be compressed.  For instance, a host
+:	number of 2000 would have the 3 zeros compressed into a 2
+:	byte sequence.  This bug caused the repeat count for
+:	expansion of duplicate strings to have a hex 20 added to the
+:	count (a repeat count of 3 would become hex 23).
+
+	LO	R500
+	LO	FCB
+
+	PATCH(850502,0927,NTD.E/BUELL,ACSCB1+6,,4)
+	NHI	RDATA,SCBDCT		:GET DUP-STRING LENGTH
+
+	ENDPATCH(Fix HASP problem with compressed net signon records)
+
+	FO	R500
+	FO	FCB
+
+	EI	(NMLV)
+
+
+	IF	VMSW
+:**********************************************************************
+:
+:	This patch fixes a virtual mode problem that causes record
+:	padding to not work.  This was caused by a bit array being
+:	equated to a byte (not halfword) boundary.
+
+	LO	FCB
+	LO	LINE
+
+:	Remove the equate of F.IRF2 to F.RC in the module FCB.  F.IRFL
+:	will now be a 16 bit long bit array.
+
+:	Change the equate of PADSW in the module LINE from 0 to 8
+PADSW	EQ	8
+
+	PATCH(850509,1509,NTD.E/BUELL,EIZAIX+6C,,6)
+	STB	R3,F.IRFL+1,RAFCB,	:..
+
+	LO	IR100
+
+	CONPATCH(EOR301+18,,8)
+	LIS	R0,PADSW		:IF NO PADDING REQUIRED
+	TBT	R0,F.IRFL,RAFCB,	:..
+
+	CONPATCH(EOF01A,,8)
+	LIS	R0,PADSW		:IF NO PADDING REQUIRED
+	TBT	R0,F.IRFL,RAFCB,	:..
+
+	ENDPATCH(Fix Virtual mode padding)
+
+	FO	IR100
+	FO	FCB
+	FO	LINE
+
+	EI	(VMSW)
+
+
+:**********************************************************************
+:
+:	This patch fixes a problem with an interface which is sysgenned
+:	with at least one virtual mode line.  The symptoms of this
+:	problem is the "freezing" of all lines after a net signon is
+:	attempted and fails for some external cause (e.g. slot 0 can't
+:	provide a pseudo needle, error in user id, super-hang, etc).
+
+	LO	HSEC
+	LO	FCB
+	LO	LINE
+	LO	IDS
+
+	IF	VMSW
+
+:	NOTE:  There is a conflict between HSEC and VMBTRC over the label
+:	       BLDSTR.  The label in VMBTRC should be changed to something
+:	       else.
+
+	PATCH(850510,1436,NTD.E/BUELL,PVC04+22,,6)
+	J	FRZFX1,,
+
+	CONPATCH(PA1PTR,,0D)
+FRZFX1	HS	0
+	JAL	R5,PVC04+28,,		:GO QUEUE DATA STRINGS (BLDSTR)
+	LM	R0,LREG
+	JR	R2			:RETURN TO CALLER
+
+	CONPATCH(PVC04+28,,4)		:(BLDSTR)
+	NOP
+
+	CONPATCH(BLDST9,,4)
+	NOP
+
+	ENDPATCH(Fix signon failure freeze - Part 1)
+
+	EI	VMSW
+
+	PATCH(850510,1436,NTD.E/BUELL,PVC99,,6)
+	J	FRZFX2,,
+
+	CONPATCH(PA1PTR,,0D)
+FRZFX2	HS	0
+	IF	VMSW
+PVC98	HS	0
+	LM	R0,QUEREG
+	JR	R2
+	EI	(VMSW)
+
+PVC99	HS	0
+	LM	R0,LREG			:RESTORE REGS
+	JR	R2			:RETURN TO CALLER
+
+	CONPATCH(PVC02,,6)
+	J	FRZFX3,,
+
+	CONPATCH(PA1PTR,,11)
+FRZFX3	HS	0
+	S	R0,SLOWC,,		:IF TIMER NOT EXPIRED
+	JG	PVC99			:..THEN EXIT
+	J	PVC02+0A,,
+
+	ENDPATCH(Fix signon failure freeze - Part 2)
+
+	IF	NMLV
+
+	PATCH(850510,1436,NTD.E/BUELL,PVC10M+2A,,6)
+	J	FRZFX4,,
+
+	CONPATCH(PA1PTR,,0F)
+FRZFX4	HS	0
+	JAL	R5,PVBEOM,,		:GO QUEUE MESG
+	IF	VMSW
+	J	PVC98
+	ELSE
+	J	PVC99
+	EI	(VMSW)
+
+	ENDPATCH(Fix signon failure freeze - Part 3)
+
+	EI	(NMLV)
+
+	FO	HSEC
+	FO	LINE
+	FO	IDS
+	FO	FCB
+
+
+	IF	NVMB
+:**********************************************************************
+:
+:	This patch fixes a problem in VMB caused by an error while
+:	transmitting a signon block to the local host.  Under this
+:	condition a second signon block is queued for transmission
+:	without dequeing the first.  This casues the slot to attempt
+:	to deliver the first signon block to the host as a data block.
+:	This in turn causes deadlock because the signon block does not
+:	contain a sequence number and the interface keeps sending
+:	SYNCH blocks to get the sequence number in the right order,
+:	which never happens.
+
+	LO	BSCDEF
+	LO	BSCPTP
+
+	PATCH(850513,1128,NTD.E/BUELL,ENABL7+10,,4)
+	J	ENABL7+1E		:GET RID OF SOME UNNEEDED INSTRUCTIONS
+
+	CONPATCH(GETBLK+8,,8)
+:GETBLK	IF SIGNON REQUEST THEN
+:	   RESET WAITING OF HOST ACKNOWLEDGEMENT
+:	   IF DEQUEUE REQUIRED THEN
+:	      RESET DEQUEUE REQUIRED
+:	      DEQUEUE BLOCK
+
+	RBT	RL,WHACK		:RESET WAITING ON HOST ACKNOWLEDGEMENT
+	NOP
+
+	ENDPATCH(Fix host signon caused deadlock)
+
+	FO	BSCPTP
+	FO	BSCDEF
+
+	EI	(NVMB)
+
+
+:**********************************************************************
+:
+:	The following suggested changes to the module LINE solve an
+:	inherent flow control problem for VMB (actually the problem is
+:	inherent to all dialects but I don't want to make the correction
+:	for all because the fix requires significant amounts of memory).
+:
+:	All lines are assigned BPARM (or VPARM) bufferlets for each
+:	direction of data flow (inbound or outbound).  We don't apply
+:	backpressure until we have used all of the quota so we can
+:	actually consume more than the quota before backpressure can
+:	take effect.  This causes us to "dip into" bufferlets allocated
+:	to other lines.  If all lines in an interface get into this state,
+:	all available bufferlets can be consummed.
+:
+:	If this happens in foreground it's no big deal because the receiver
+:	just reports "lost data" to the protocol processor.  This normally
+:	results in the transmission of a NAK.  However, if background
+:	runs out of bufferlets it is considered either a line error (the
+:	circuit is cleared) or a fatal error (the slot is crashed).  This
+:	(of course) has dire effects on the operation of the interface.
+:
+:	It turns out that this is a problem that mainly affects interfaces
+:	with only one line because there are no other lines to borrow
+:	bufferlets from.
+:
+:	To greatly alleviate this problem the suggested changes will
+:	create a "reserve tank" of bufferlets that are not assigned to
+:	any one line's quota but which are available for use.  This is a bit
+:	of a kludge but as far as I can tell there is no "reasonable" perfect
+:	solution.
+:
+:	Add the definition of RTANK between the definition of NIS and MINNBB:
+:
+:			IF	RTANK
+:			ELSE
+:		RTANK	EQ	VPARM*(NVMB*2)
+:			EI
+:
+:	Add the following line after the definition of MINNBB:
+:
+:		MINNBB	EQ	MINNBB+RTANK
+
+
+
+	IF	\BSYN
+:**********************************************************************
+:
+:	This patch fixes a problem with SYN insertion for HASP.  Although
+:	the rate at which to insert SYNs is specified on a line basis,
+:	HASP has several OVCs per line, each of which must maintain
+:	it's own counter of when to insert.  This was not done in the past.
+
+	LO	XSUBS
+	LO	FCB
+	LO	EBCCHR
+
+:	DELETE THE DEFINITION OF THE HALFWORD ARRAY, SYNCNT, FROM THE
+:	MODULE XSUBS.
+
+	PATCH(850522,0852,NTD.E/BUELL,SYNINI+18,,6)
+	STH	R5,F.CNT,RAFCB,
+
+	CONPATCH(SYNCHK+26,,6)
+	CH	R5,F.CNT,RAFCB,
+
+	CONPATCH(SYNCHK+30,,6)
+	LO	LINE
+	AH	R5,SYNTIM,R3,R3		:UPDATE TIME TO INSERT COUNT
+	FO	LINE
+
+	CONPATCH(SYNCHK+36,,6)
+	STH	R5,F.CNT,RAFCB,
+
+	ENDPATCH(Fix a HASP SYN insertion problem)
+
+	FO	XSUBS
+	FO	FCB
+	FO	EBCCHR
+
+	EI	(\BSYN)
+
+
+	IF	NMLV
+:**********************************************************************
+:
+:	This patch creates a new option to cause HASP foreground to
+:	accept line bids on a PVC line even if a circuit has not
+:	yet been built.  The option allows net messages to be output
+:	when a circuit build fails.  It is enabled for a line by
+:	setting the line option BPVD "ON", with an LOPTION statement
+:	in the TYM file.
+:
+:	Example:
+:		LOPTION(2,BPVD,ON)
+:
+:		This will cause line 2 to respond to a terminal line
+:		bid even though a circuit has not yet been built
+:		(providing of course, that this line is sysgened as
+:		a PVC).
+
+	LO	BSCDEF
+	LO	BSCEXC
+	LO	BSCPTP
+	LO	LINE
+
+	PATCH(850711,1430,NSS.J/JEFFERS,PA1PTR,,(((NBILIN-1)/10+1)*2+1))
+
+:THIS BELONGS IN LINE
+:	DEFINE THE OVERRIDE PARAMETER FOR HASP PVC LINES.  IF BPVD IS SET ON
+:	FOR A LINE, LINE BIDS FROM A TERMINAL WILL BE ACCEPTED EVEN THOUGH
+:	A CIRCUIT HAS NOT YET BEEN BUILT.  THIS WILL ALLOW THE TERMINAL TO
+:	RECEIVE NET MESSAGES INDICATING THE REASON THE CIRCUIT BUILD WAS
+:	UNSUCCESSFUL.
+
+	RA	$A10
+PVCDAT  HS      0
+Q       EQ      0
+QQ      EQ      0
+        RE      NBILIN
+        NOLIST
+        IF      \BPVD|Q|
+QQ      EQ      QQ+(BPVD|Q|&1)^(15-(Q&15))
+        EI      (\BPVD|Q|)
+Q       EQ      Q+1
+        IF      Q&15
+        ELSE
+        HC      QQ
+QQ      EQ      0
+        EI      (Q&15)
+        ER
+        IF      Q&15
+        HC      QQ
+        EI
+        LIST
+	RA	0
+
+	CONPATCH(TRMLBD,,6)
+	J	PVCFIX,,
+
+	CONPATCH(PA1PTR,,1D)
+PVCFIX	HS	0
+	TBT	RL,PVCDAT		:SHOULD WE OVERRIDE PVC CHECKING
+	JN	ETPVCM,,		:YES
+	TBT	RL,BSCPVC,,		:IF NOT PVC
+	JE	ETPVCM,,		:THEN BYPASS
+	J	TRMLBD+6,,
+
+	ENDPATCH(Add line bid check override for HASP PVCs)
+
+	FO	LINE
+	FO	BSCPTP
+	FO	BSCEXC
+	FO	BSCDEF
+
+	EI	(NMLV)
+
+
+	IF	VMSW
+:**********************************************************************
+:
+:	This patch fixes the blank expansion code for Virtual Mode 3780.
+:	The code exists in IX300.F05.
+
+	LO	FCB
+	LO	IDS
+        LO      LINE
+        LO      EBCCHR
+	LO	IX100
+
+	PATCH(850620,1010,L/GOLD,SDF303,,6)
+
+	J	EBFIX,,
+
+	CONPATCH(PA1PTR,,12E)
+
+EBFIX	LA	RAOS,IX302,,		:SET UP RETURN ADDRESS
+	NHI	RDATA,3F		:CLEAR HIGH ORDER BITS ON COUNTER
+	STB	RDATA,F.WORK,RAFCB,	:SAVE BLANK COUNT
+	LB      R0,F.DIAL,RAFCB,	:SEE IF EBCDIC 3780
+        CLHI    R0,E3780        	:..
+        JGEFS	EBCYES			:YES, SO USE EBCDIC BLANK
+	LHI	RDATA,20		:NO, SO USE ASCII BLANK
+	JFS	EBM0
+EBCYES	LHI	RDATA,40		:EBCDIC "SPACE" CHARACTER
+EBM0	LB	R1,F.LINE,RAFCB,	:GET PROFILE BLOCK
+	SLHLS	R1,1			:..
+	L	R1,L.PROFILE,R1,R1	:..
+	L	R1,PR.OXT,R1		:GET XTAB BLOCK
+	JAL	R5,XLATE,,		:TRANSLATE DATA
+        J       0,RLINK			:NONSKIP RETURN - EAT CHAR
+        LR      R1,R1			:IF THERE'S NOTHING THERE
+        JE      EBL1,,			:..THEN JUST SPIT IT OUT AND GO
+
+EXBLK	LB      R0,0,R1			:"WHEN YOU'RE HAVING MORE THAN ONE"
+	LIS	R3,1			:(BLANK XLATES TO MULTIPLE CHARS)
+EBM	HS	0
+	LB	RDATA,0,R1,R3		:LOAD TRANSLATED BLANK
+	STB	R0,F.TEMP,RAFCB,	:SAVE DATA REGS
+	ST	R1,IX3SVE		:..
+	ST	R3,IX3SVE+4
+	JAL	R5,WRTBYT,,		:PUT IN ORING
+	L	R3,IX3SVE+4
+	LB	R0,F.TEMP,RAFCB,	:RESTORE DATA REGS
+	L	R1,IX3SVE		:..
+	AIS	R3,1			:INCREMENT STRING INDEX
+	SIS	R0,1			:DECREMENT COUNTER
+	JG	EBM,,			:LOOP IF MORE CHARS IN XLATED BLANK
+	LCS	R5,1			:UPDATE COUNTER
+	LB	R5,F.WORK,RAFCB,
+	SIS	R5,1
+	STB	R5,F.WORK,RAFCB,
+	JG	EXBLK,,			:CONTINUE IF MORE XLATED BLANKS
+	JFS	EBL2,,
+
+EBL1	HS	0			
+	JAL	R5,WRTBYT,,		:PUT BYTE IN ORING
+EBL2	LB	R5,F.WORK,RAFCB,	:DECREMENT BLANK EXPANSION COUNTER
+	SIS	R5,1
+	STB	R5,F.WORK,RAFCB,
+	JG	EBL1,,			:IF WE NEED TO, WRITE ANOTHER BLANK
+	JR	RLINK			:RETURN
+
+	ENDPATCH(Fix 3780 Virtual Mode Blank Expansion)
+
+	FO	FCB
+	FO	IDS
+        FO      LINE
+        FO      EBCCHR
+	FO	IX100
+
+	EI	(VMSW)
+
+
+:**********************************************************************
+:
+:	This patch fixes a problem in Xx00.  These routines call BBFAIL
+:	and SYNCHR to report errors to HSEC via an MCALL.  Unfortunately,
+:	both Xx00 and HSEC use F.RET1 to save RLINK on these MCALLs so
+:	the return from Xx00 to IRx00 gets overwritten, causing a looping
+:	condition.
+
+	LO	HSEC
+	LO	FCB
+
+	PATCH(850728,1606,NTD.E/BUELL,SVCXD+6,,6)
+	ST	RLINK,F.LINK,RAFCB,	:(9)
+
+	CONPATCH(RECXD+6,,6)
+	L	RLINK,F.LINK,RAFCB,	:(9)
+
+	ENDPATCH(Fix Xx00/SYNCHR/BBFAIL loop)
+
+	FO	FCB
+	FO	HSEC
+
+
+:**********************************************************************
+:
+:	This patch fixes two bugs in BSCHDX, one of which causes RTS
+:	to be left high on a transmit timeout.  The other shouldn't
+:	cause any problems.
+
+	LO	BSCEXC
+	LO	BSCDEF
+	LO	BSCHDX
+
+	PATCH(850728,1610,NTD.E/BUELL,BSXCO1+20,,4)
+	J	BSXCO1			:JUMP IF SO
+
+	CONPATCH(BSXCKT+1E,,6)
+	LHL	R0,0,RADE,RAD
+
+	ENDPATCH(Fix RTS held high problem)
+
+	FO	BSCEXC
+	FO	BSCDEF
+	FO	BSCHDX
+
+	IF	NMLV
+
+:**********************************************************************
+:	This patch is to allow dynamic HASP host transparency
+
+	LO	X500
+	LO	FCB
+	LO	EBCCHR
+	LO	LINE
+
+	PATCH(850802,1010,L/GOLD,TR001,,6)
+
+	J	TR0PAT,,
+
+	CONPATCH(PA1PTR,,4A)
+
+TR0PAT	LB	R4,F.LINE,RAFCB, :GET ATTACHED LINE NUMBER
+	SLHLS	R4,1		:MAKE HALFWORD INDEX
+	LH	R0,L.HOST,R4,	:IS THIS A HOST?
+	JLE	TR001A,,		:NOPE
+	LB	R4,F.LINE,RAFCB, :GET ATTACHED LINE NUMBER
+	SBT	R4,XFIRST,,	:IS IT OUR FIRST TIME THROUGH?
+	JN	TR001A,,		:NO, SO SKIP THIS STUFF
+	TBT	R4,MLVATP,,	:AUTOMATIC TRANSPARENCY MODE SET UP?
+	JE	TR001A,,	:NOPE
+	SBT	R4,MLVTRP,,	:TRANSPARENT MODE TURNED ON
+TR001A	LHL	R0,F.BIT,RAFCB,
+	SBT	R0,TRFLG,,	:SET "TRANSPARENT BLOCK" FLAG
+	J	BBS01,,		:GO TO START BLOCK
+
+	CONPATCH(BB001,,6)
+
+	J	BB0PAT,,
+
+	CONPATCH(PA1PTR,,3E)
+
+BB0PAT	LB	R4,F.LINE,RAFCB,	:GET ATTACHED LINE NUMBER
+	SLHLS	R4,1			:MAKE HALFWORD INDEX
+	LH	R0,L.HOST,R4,		:IS THIS A HOST?
+	JLE	BB001A,,		:NOPE
+	LB	R4,F.LINE,RAFCB,	:GET ATTACHED LINE NUMBER
+	SBT	R4,XFIRST,,		:FIRST TIME AROUND?
+	JN	BB001A,,			:NOPE, SO DON'T REPEAT OURSELVES
+	TBT	R4,MLVATP,,	:AUTOMATIC TRANSPARENCY MODE SET UP?
+	JE	BB001A,,	:NOPE
+	RBT	R4,MLVTRP,,		:TRANSPARENT MODE TURNED OFF
+BB001A	LHL	R0,F.BIT,RAFCB,
+	RBT	R0,TRFLG,,		:TURN OFF TRANSPARENCY FLAG
+	J	BBS01,,
+
+	CONPATCH(X5INI,,6)
+
+	J	X5IPAT,,
+
+	CONPATCH(PA1PTR,,1E)
+
+X5IPAT	LHL	R0,F.BIT,RAFCB,
+	RBT	R0,ZFLAG,,		:NO TRANSMISSION BEGUN
+	LB	R0,F.LINE,RAFCB,
+	RBT	R0,XFIRST,,		:RESET FIRST TIME THROUGH FLAG
+	J	X5INI+0A,,		:RETURN
+
+	CONPATCH(PA0PTR,,(((NBILIN-1)/10+1)*4))
+
+XFIRST	HS	(NBILIN-1)/10+1
+
+:	DYNAMICALLY SELECTED TRANSPARENT TRANSLATION FOR MULTI-LEAVING HOST
+:	LINES.  DEFINED IN .TYM FILE BY MATP|N|. THE DEFAULT IS OFF FOR
+:	HOST LINES, ON FOR TERMINAL LINES IN THE INIT FILE. THIS GOES IN LINE.
+
+	GL	MLVATP
+
+MLVATP	HS	0
+Q	EQ	0
+QQ	EQ	0
+	NOLIST
+	RE	NBILIN
+	IF	\MATP|Q|
+QQ	EQ	$A QQ+(MATP|Q|&1)^(15-(Q&15))
+	EI	(\MATP|Q|)
+Q	EQ	Q+1
+	IF	$A Q&15
+	ELSE
+	HC	QQ
+QQ	EQ	0
+	EI	(Q&15)
+	ER
+	IF $A Q&15; HC QQ; EI; LIST
+
+	ENDPATCH(Allow dynamic transparency in HASP)
+
+	FO	X500
+	FO	FCB
+	FO	EBCCHR
+	FO	LINE
+
+	EI	(NMLV)
+
+
+:**********************************************************************
+:
+:	This patch fixes a "lost bufferlet" problem caused when a pseudo-
+:	interrupt (EOT) is received by BSCPTP but only if the BABT option
+:	has been specified for the line.
+
+	LO	BSCPTP
+	LO	BSCEXC
+	LO	BSCDEF
+
+	PATCH(850810,1847,NTD.E/BUELL,RDATAB,,6)
+	J	BBFIX1,,
+
+	CONPATCH(PA1PTR,,19)
+BBFIX1	HS	0
+	RBT	RL,BSCABT		:IS THE ABORT FLAG ON
+	JNFS	RDAT01			:YES, SO RETURN AN IMPLICIT ORANGE BALL
+	J	RDATAB+6,,
+
+RDAT01	JAL	R5,PBBC,,
+	J	RDAT02,,
+
+	ENDPATCH(Fix lost bufferloblem when using the BABT option)
+
+	FO	BSCPTP
+	FO	BSCEXC
+	FO	BSCDEF
+
+
+:**********************************************************************
+:
+:	This patch fixes a problem with the SHTMSG option.  If the host
+:	is down when the slot is initially brought up, an attempted signon
+:	will return an error of HOST OUT OF PORTS instead of HOST SHUT.
+:	This problem will only occur on initial startup of the slot.
+:	Once the host is brought the correct stats will be displayed
+:	thereafter.  This patch will cause the correct status to be
+:	returned always.
+:
+:	NOTE:  This patch was modified on 22-Nov-85 by Eric Buell to
+:	       remove the patches that deleted the use of the variable
+:	       HSTPRT from the code.  It turns out that HSTPRT is needed
+:	       for host port rotor processing.
+
+	LO	LINE
+
+	IF	MAXHST
+	PATCH(870819,1118,NTD.E/BUELL,DNHST1+2C,,8)
+	LCS	R0,1			:SET TO UNKNOWN HOST STATUS
+	STH	R0,HSTSTA,R5,R5
+
+	CONPATCH(DNHST1+56,,6)
+	NOP	,,,
+
+	ENDPATCH(Fix HOST OUT OF PORTS instead of HOST SHUT problem.)
+	EI	(MAXHST)
+
+	FO	LINE
+
+
+:**********************************************************************
+:
+:	This patch fixes a problem in the BSCHDX routine that can cause
+:	the output rotors to become "messed up" due to interaction between
+:	background and foreground.  The symptoms of this are varied and
+:	unpredictable.
+
+	LO	BSCDEF
+	LO	BSCEXC
+	LO	BSCHDX
+
+	PATCH(850822,1233,NTD.E/BUELL,BSXCKT+28,,6)
+	J	BSCFX2,,
+
+	CONPATCH(PA1PTR,,23)
+BSCFX2	HS	0
+	TBT	RL,RTSCTS,,		:DOES THIS LINE SUPPORT RTS/CTS
+	JE	BSXCK1,,		:NO
+	TS	BSCOLK,RL2		:CAN WE CAPTURE THE BSCOUT LOCK
+	JN	BSXCK1,,		:NO
+	LIS	RCMD,SO.RSF		:TURN RTS OFF
+	STH	RCMD,0,RADE		:PUT IT ON XMT RUN LIST
+	J	BSXCKT+2E,,
+
+	ENDPATCH(Fix BSCHDX output rotor problem)
+
+	FO	BSCDEF
+	FO	BSCEXC
+	FO	BSCHDX
+
+
+	IF	NMLV
+:**********************************************************************
+:
+:	This patch fixes a bug in HASP that causes the interface to
+:	not send a Request-To-Initiate (RTI) to the local device if
+:	the stream being requested is suspended.  This is not right
+:	because the RTI is not transmitted on the stream in question,
+:	it is asking premission to open the stream.
+
+	LO	BSCDEF
+	LO	BSCEXC
+	LO	BSCPTP
+
+	PATCH(850827,1831,NTD.E/BUELL,MXDAT5+10,,6)
+	J	RTIFX1,,
+
+	CONPATCH(PA1PTR,,31)
+RTIFX1	HS	0
+	TBT	R4,RCVFCS,RL2		:IS THE STREAM SUSPENDED
+	JN	MXDAT5+18,,		:NO
+
+	LB	R5,BBUFER+RCBPS,R3,	:GET THE FIRST RCB
+	LB	R5,REVTAB,R5,
+
+	CHI	R5,RCBREQ		:IS IT REQUEST TO INITIATE
+	JE	MXDAT5+18,,		:YES
+
+	CHI	R5,RCBPER		:IS IT PERMIT TO INITIATE
+	JE	MXDAT5+18,,		:YES
+
+	J	MXDAT4,,
+
+	ENDPATCH(Fix backpressured RTI problem)
+
+	FO	BSCEXC
+	FO	BSCDEF
+	FO	BSCPTP
+
+	EI	(NMLV)
+
+
+	IF	VMSW
+:**********************************************************************
+:
+:	This patch fixes a bug in the /$NETCMD LOGON logic that caused
+:	it to work for line 0 only.
+
+	LO	FCB
+	LO	R100
+
+	PATCH(851124,1350,NTD.E/BUELL,CMLOG9-0A,,6)
+	J	LOGFX1,,
+
+	CONPATCH(PA1PTR,,15)
+LOGFX1	LB	RL2,F.LINE,RAFCB,	:GET THE LINE NUMBER TIMES 2
+	SLLS	RL2,1
+	JAL	R5,BLDSTR,,		:GO QUEUE DATA STRINGS
+	J	CMLOG9-4,,
+
+	ENDPATCH(Fix /$NETCMD LOGON to work for all lines)
+
+	FO	FCB
+	FO	R100
+	EI	(VMSW)
+
+
+	IF	NMLV
+:**********************************************************************
+:	This patch fixes the flow control problem encountered when a
+:	console command is entered from the terminal while a print stream 
+:	is being backpressured from the terminal.
+:	If the dataflow is from the host to the terminal (e.g. print
+:	stream), the host interface should be backpressuring individual
+:	streams rather than using wait-a-bit.
+:
+:	Note:	This patch has been tested with Release 5.01 by USGS
+:		(Esc #86179). De-escalated on 12/20/85.
+
+	LO	FCB
+	LO	X500
+	LO	D500
+
+	PATCH(860103,1101,NTD.B/KRUEGER,ATTSTR+12,,0C)
+
+	JE	ATST1,,			:JUMP IF TERMINAL LINE
+	J	ATST0,,			:JUMP IF HOST LINE
+
+	CONPATCH(PA1PTR,,3C)
+
+:	FOR HOST INTERFACE, THE OUTBOUND DIRECTION (DATA FLOW FROM
+:	TERMINAL TO HOST) MUST USE WAIT-A-BIT FLOW CONTROL.
+:	THE INBOUND DIRECTION (DATA FLOW FROM HOST TO TERMINAL) MUST
+:	USE INDIVIDUAL STREAM SUSPENSION FLOW CONTROL.
+
+ATST0	HS	0
+	AHI	R3,10			:USE BIASED FCBTBL FOR WAIT-A-BIT
+	STB	R3,F.STNO,RAFCB,	:STORE ADJ STREAM NO. INTO OUTBOUND FCB
+	LHL	R5,F.AII,RAFCB,		:GET INBOUND FCB INDIRECTION PTR
+	SHI	R3,10			:USE UNBIASED FCBTBL FOR STREAM SUSP.
+	STB	R3,F.STNO,R5,		:STORE ADJ STREAM NO. INTO INBOUND FCB
+	J	ATTST1+12,,
+
+:	FOR TERMINAL INTERFACE, THE OUTBOUND DIRECTION (DATA FLOW FROM HOST
+:	TO TERMINAL) MUST USE INDIVIDUAL STREAM SUSPENSION FLOW CONTROL.
+:	THE INBOUND DIRECTION (DATA FLOW FROM TERMINAL TO HOST) MUST USE
+:	WAIT-A-BIT FLOW CONTROL.
+
+ATST1					:USE UNBIASED FCBTBL FOR STREAM SUSP.
+	STB	R3,F.STNO,RAFCB,	:STORE ADJ STREAM NO. INTO OUTBOUND FCB
+	LHL	R5,F.AII,RAFCB,		:GET INBOUND FCB INDIRECTION PTR
+	AHI	R3,10			:USE BIASED FCBTBL FOR WAIT-A-BIT
+	STB	R3,F.STNO,R5,		:STORE ADJ STREAM NO. INTO INBOUND FCB
+	J	ATTST1+12,,
+
+	CONPATCH(ATTF2+1C,,0C)
+
+	JE	ATF3,,			:JUMP IF TERMINAL LINE
+	J	ATF2.5,,		:JUMP IF HOST LINE
+
+	CONPATCH(PA1PTR,,3C)
+
+:	FOR HOST INTERFACE, THE INBOUND DIRECTION (DATA FLOW FROM HOST TO 
+:	TERMINAL) MUST USE INDIVIDUAL STREAM SUSPENSION FLOW CONTROL.
+:	THE OUTBOUND DIRECTION (DATA FLOW FROM TERMINAL TO HOST) MUST USE
+:	WAIT-A-BIT FLOW CONTROL.
+
+ATF2.5	HS	0			:USE UNBIASED FCBTBL FOR STREAM SUSP.
+	STB	R4,F.STNO,R3,		:MARK INBOUND FCB HAS STREAM ATTACHED
+	LHL	R3,F.AOI,R3,		:GET OUTBOUND INDIRECTION PTR
+	AHI	R4,10			:USE BIASED FCBTBL FOR WAIT-A-BIT
+	STB	R4,F.STNO,R3,		:MARK OUTBOUND FCB HAS STREAM ATTACHED
+	J	4,R5,,			:SKIP RETURN
+
+:	FOR TERMINAL INTERFACE, THE INBOUND DIRECTION (DATA FLOW FROM TERMINAL
+:	TO HOST) MUST USE WAIT-A-BIT FLOW CONTROL.
+:	THE OUTBOUND DIRECTION (DATA FLOW FROM HOST TO TERMINAL) MUST USE 
+:	INDIVIDUAL STREAM SUSPENSION FLOW CONTROL.
+
+ATF3
+	AHI	R4,10			:USE BIASED FCBTBL FOR WAIT-A-BIT
+	STB	R4,F.STNO,R3,		:MARK INBOUND FCB HAS STREAM ATTACHED
+	LHL	R3,F.AOI,R3,		:GET OUTBOUND INDIRECTIONAL PTR
+	SHI	R4,10			:USE UNBIASED FCBTBL FOR STREAM SUSP.
+	STB	R4,F.STNO,R3,		:MARK OUTBOUND FCB HAS STREAM ATTACHED
+	J	4,R5,,			:SKIP RETURN
+
+	ENDPATCH(Fix MLV Flow Control Problem)
+
+	FO	FCB
+	FO	X500
+	FO	D500
+
+	EI	(NMLV)
+
+	IF	NMLV
+:*****************************************************************************
+:
+:	This patch fixes a problem that was reported by DOL (Esc #86169).
+:	In IMS50 at receiving a hang character (IMSHNG) register 3 was 
+:	destroyed by the SLOR routine. Changed R3 to R6.
+:
+	LO	IMS50
+	LO	FCB
+	LO	LINE
+
+	PATCH(860103,1430,NTD.B/KRUEGER,IMSHNG+8,,6)
+	LHL	R6,OFCB+2,R1,R1
+
+	CONPATCH(IMSHG1,,6)
+	LHL	R1,F.PORT,R6,
+
+	CONPATCH(IMSHG2,,6)
+	LHL	R6,F.LNK,R6,
+
+	ENDPATCH(Fix hang char crash)
+
+	FO	IMS50
+	FO	FCB
+	FO	LINE
+
+	EI	(NMLV)
+
+
+
+	IF	NMLV
+:************************************************************************
+:
+:	This patch eliminates the HASP interface to crash on an unrecoverable
+:	error, such as protocol violation by the transmitter.
+:	HASP will now zap the circuit.
+
+	LO	BSCPTP
+	LO	BSCDEF
+
+	PATCH(860221,1702,B/KRUEGER,SHINIT-10,,6)
+MERROR	J	CRSFX1,,		:JUMP TO PATCH, ALSO DEFINE MERROR
+
+	CONPATCH(PA1PTR,,18)
+CRSFX1	L	R0,FASTC,,		:MAKE BACKGROUND ZAP THE CIRCUIT
+	SI	R0,TMPER*RATE		:...WITHOUT TIME DELAY
+	ST	R0,BSCETM,RL2,RL2
+	J	MIDLE,,
+
+	CONPATCH(SHINIT,MSDISC)
+
+	SUBTTL	** MULTILEAVING **  STATE TABLES - HOST INTERFACE  **  MLVPTP
+
+:       RESPONSE WHILE LINE IN INIT STATE : SHINIT
+:       -------------------------------------------
+:       THE HOST INTERFACE HAS SENT  SOH,ENQ TO THE HOST AND IS WAITING
+:       A POSITIVE ACKNOWLEDGMENT ACK0 FROM HOST. IF HOST NOT RESPODING
+:       OR HOST RESPODING BUT NOT APPROPRIATE (I.E. OTHER THAN
+:       ACK0), AFTER 3 SEC., THE HOST INTERFACE WILL SEND SOH,ENQ
+:       AGAIN.  IF NOT RECEIVE ACK0 WITHIN  XXX  SEC,  THEN  DISCONNECT.
+
+SHINIT	HC	MERROR-PSEG		:GOOD DATA ETX BLOCK
+	HC	HINIT2-PSEG		:GOOD DATA ETB BLOCK(F12/10/21/83/CHS)
+	HC	MERROR-PSEG		:ENQ
+	HC	MERROR-PSEG		:EOT
+	HC	HINIT1-PSEG		:NAK
+	HC	MIDISC-PSEG		:DLE,EOT (DISCONNECT SIGNAL)
+	HC	MERROR-PSEG		:ACK1
+	HC	MERROR-PSEG		:WACK
+	HC	HBDACK-PSEG		:ACK0
+	HC	MERROR-PSEG		:RVI
+	HC	MERROR-PSEG		:TTD (STX,ENQ)
+	HC	MERROR-PSEG		:MULTI-LEAVING BID (SOH,ENQ)
+	HC	MERROR-PSEG		:DATA ABORT (ENQ,EOT,NAK IN TEXT)
+	HC	RCVRTY-PSEG		:LOST SYNCHRONIZATION
+	HC	HINIT1-PSEG		:OVERRUN (EXCEED RCV RESOURCE LIMIT)
+	HC	HINIT1-PSEG		:NO INITIAL BUFFERLET AVAILABLE
+	HC	HINIT1-PSEG		:TIMEOUT BEFORE MSG RECEIVED
+	HC	HINIT1-PSEG		:CRC ERROR IN DATA MESSAGE
+	HC	MERROR-PSEG		:LOST DATA (BUFFERLET UNAVAILABLE)
+	HC	RCVRTY-PSEG		:UNIDENTIFIABLE MSG
+	HC	MERROR-PSEG		:FORCED COMPLETION BY BACKGROUND
+
+
+	SUBTTL	** MULTILEAVING **  STATE TABLES - TERMINAL INTERFACE  **  MLVPTP
+
+:       WAITING FOR TERMINAL TO SEND SOH,ENQ OR DLE,ENQ (MLI): STINIT
+:       ---------------------------------------------------
+:       THE TERMINAL INTERFACE IS WAITING THE TERMIAL TO BID.
+
+STINIT	HC	MERROR-PSEG		:GOOD DATA ETX BLOCK
+	HC	TINIT1-PSEG		:GOOD DATA ETB BLOCK(F12/10/21/83/CHS)
+	HC	RBSCBD-PSEG		:ENQ (BSC 2780/3780 LINE BID)
+	HC	MERROR-PSEG		:EOT
+	HC	TINIT1-PSEG		:NAK
+	HC	MIDISC-PSEG		:DLE,EOT (DISCONNECT SIGNAL)
+	HC	MERROR-PSEG		:ACK1
+	HC	MERROR-PSEG		:WACK
+	HC	TINIT1-PSEG		:ACK0
+	HC	MERROR-PSEG		:RVI
+	HC	MERROR-PSEG		:TTD (STX,ENQ)
+	HC	TRMLBD-PSEG		:MULTI-LEAVING BID (SOH,ENQ)
+	HC	MERROR-PSEG		:DATA ABORT (ENQ,EOT,NAK IN TEXT)
+	HC	RCVRTY-PSEG		:LOST SYNCHRONIZATION
+	HC	TINIT1-PSEG		:OVERRUN (EXCEED RCV RESOURCE LIMIT)
+	HC	TINIT1-PSEG		:NO INITIAL BUFFERLET AVAILABLE
+	HC	TINIT1-PSEG		:TIMEOUT BEFORE MSG RECEIVED
+	HC	MERROR-PSEG		:CRC ERROR IN DATA MESSAGE
+	HC	MERROR-PSEG		:LOST DATA (BUFFERLET UNAVAILABLE)
+	HC	RCVRTY-PSEG		:UNIDENTIFIABLE MSG
+	HC	MERROR-PSEG		:FORCED COMPLETION BY BACKGROUND
+
+
+:	WAITING FOR THE SYSTEM SIGN ON CARD : STWSG
+:	-----------------------------------------------
+:	THE TERMINAL INTERFACE ACKNOWLEGE THE LINE BID WITH A
+:	AFFIRMATIVE ACK0, AND WAITING FOR THE RECEIVING OF A SYSTEM
+:	SIGN ON CARD IMAGE.
+:
+:	FOR MLI (APRIL-84) WAITING FOR "PSIGNON" RECORD
+:	-----------------------------------------------
+STWSG	HC	MERROR-PSEG		:GOOD DATA ETX BLOCK
+	HC	TRSGON-PSEG		:GOOD DATA ETB BLOCK
+	HC	MERROR-PSEG		:ENQ
+	HC	MERROR-PSEG		:EOT
+	HC	MERROR-PSEG		:NAK
+	HC	MIDISC-PSEG		:DLE,EOT (DISCONNECT SIGNAL)
+	HC	MERROR-PSEG		:ACK1
+	HC	MERROR-PSEG		:WACK
+	HC	TRACK0-PSEG		:ACK0
+	HC	MERROR-PSEG		:RVI
+	HC	MERROR-PSEG		:TTD (STX,ENQ)
+	HC	TRMLBD-PSEG		:MULTI-LEAVING BID (SOH,ENQ)
+	HC	MERROR-PSEG		:DATA ABORT (ENQ,EOT,NAK IN TEXT)
+	HC	RCVRTY-PSEG		:LOST SYNCHRONIZATION
+	HC	MERROR-PSEG		:OVERRUN (EXCEED RCV RESOURCE LIMIT)
+	HC	MERROR-PSEG		:NO INITIAL BUFFERLET AVAILABLE
+	HC	TRTMOT-PSEG		:TIMEOUT BEFORE MSG RECEIVED
+	HC	TRCRCR-PSEG		:CRC ERROR IN DATA MESSAGE
+	HC	RCVRTY-PSEG		:LOST DATA (BUFFERLET UNAVAILABLE)
+	HC	RCVRTY-PSEG		:UNIDENTIFIABLE MSG
+	HC	MERROR-PSEG		:FORCED COMPLETION BY BACKGROUND
+
+
+
+
+:	WAITING FOR THE REQUEST TO INITIATE BLOCK : STRTIN
+:	------------------------------------------------------
+:       THE TERMINAL INTERFACE IS WAITING TO RECEIVE THE FIRST RECORD -
+:	A 'REQUEST TO INITIATE' RECORD, TO GRANT PERMISION TO SEND
+:	NETCMD RECORD.
+:
+:	FOR MLI (APRIL-84) TERMINAL INTRF. WAITING FOR "PCOMPLETE" RECORD.
+:	------------------------------------------------------------------
+
+STRTIN	HC	MERROR-PSEG		:GOOD DATA ETX BLOCK
+	HC	TIRTIN-PSEG		:GOOD DATA ETB BLOCK
+	HC	MERROR-PSEG		:ENQ
+	HC	MERROR-PSEG		:EOT
+	HC	TIRNAK-PSEG		:NAK
+	HC	MIDISC-PSEG		:DLE,EOT (DISCONNECT SIGNAL)
+	HC	MERROR-PSEG		:ACK1
+	HC	MERROR-PSEG		:WACK
+	HC	TIRACK-PSEG		:ACK0
+	HC	MERROR-PSEG		:RVI
+	HC	MERROR-PSEG		:TTD (STX,ENQ)
+	HC	TIRST-PSEG		:MULTI-LEAVING BID (SOH,ENQ)
+	HC	MERROR-PSEG		:DATA ABORT (ENQ,EOT,NAK IN TEXT)
+	HC	RCVRTY-PSEG		:LOST SYNCHRONIZATION
+	HC	TIOVRN-PSEG		:OVERRUN (EXCEED RCV RESOURCE LIMIT)
+	HC	TINBUF-PSEG		:NO INITIAL BUFFERLET AVAILABLE
+	HC	TITMOT-PSEG		:TIMEOUT BEFORE MSG RECEIVED
+	HC	TICRCR-PSEG		:CRC ERROR IN DATA MESSAGE
+	HC	TILTDT-PSEG		:LOST DATA (BUFFERLET UNAVAILABLE)
+	HC	RCVRTY-PSEG		:UNIDENTIFIABLE MSG
+	HC	MERROR-PSEG		:FORCED COMPLETION BY BACKGROUND
+
+:	WAITING FOR THE NETCMD RECORD : STNCMD
+:	----------------------------------------
+:	TERMINAL INTERFACE HAS GRANTED PERMISTION TO THE WORK STATION,
+:	AND IS WAITING FOR THE NETCMD CARD.
+
+STNCMD	HC	MERROR-PSEG		:GOOD DATA ETX BLOCK
+	HC	TNCMD-PSEG		:GOOD DATA ETB BLOCK
+	HC	MERROR-PSEG		:ENQ
+	HC	MERROR-PSEG		:EOT
+	HC	TNRNAK-PSEG		:NAK
+	HC	MIDISC-PSEG		:DLE,EOT (DISCONNECT SIGNAL)
+	HC	MERROR-PSEG		:ACK1
+	HC	MERROR-PSEG		:WACK
+	HC	TNRACK-PSEG		:ACK0
+	HC	MERROR-PSEG		:RVI
+	HC	MERROR-PSEG		:TTD (STX,ENQ)
+	HC	TNRST-PSEG		:MULTI-LEAVING BID (SOH,ENQ)
+	HC	MERROR-PSEG		:DATA ABORT (ENQ,EOT,NAK IN TEXT)
+	HC	RCVRTY-PSEG		:LOST SYNCHRONIZATION
+	HC	RCVRTY-PSEG		:OVERRUN (EXCEED RCV RESOURCE LIMIT)
+	HC	RCVRTY-PSEG		:NO INITIAL BUFFERLET AVAILABLE
+	HC	TNTMOT-PSEG		:TIMEOUT BEFORE MSG RECEIVED
+	HC	TNCRCR-PSEG		:CRC ERROR IN DATA MESSAGE
+	HC	RCVRTY-PSEG		:LOST DATA (BUFFERLET UNAVAILABLE)
+	HC	RCVRTY-PSEG		:UNIDENTIFIABLE MSG
+	HC	MERROR-PSEG		:FORCED COMPLETION BY BACKGROUND
+
+
+:	WAITING FOR A EOF RECORD TO COMPLETE 'SIGNON' : STNEOF
+:	--------------------------------------------------------
+:	TERMINAL INTERFACE HAS RECEIVED A PRESUMMED NETCMD RECORD, AND
+:	IS WAITING FOR THE MANDATORY EOF RECORD .
+
+STNEOF	HC	MERROR-PSEG		:GOOD DATA ETX BLOCK
+	HC	TEEOF-PSEG		:GOOD DATA ETB BLOCK
+	HC	MERROR-PSEG		:ENQ
+	HC	MERROR-PSEG		:EOT
+	HC	TERNAK-PSEG		:NAK
+	HC	MIDISC-PSEG		:DLE,EOT (DISCONNECT SIGNAL)
+	HC	MERROR-PSEG		:ACK1
+	HC	MERROR-PSEG		:WACK
+	HC	TERACK-PSEG		:ACK0
+	HC	MERROR-PSEG		:RVI
+	HC	MERROR-PSEG		:TTD (STX,ENQ)
+	HC	TERST-PSEG		:MULTI-LEAVING BID (SOH,ENQ)
+	HC	MERROR-PSEG		:DATA ABORT (ENQ,EOT,NAK IN TEXT)
+	HC	RCVRTY-PSEG		:LOST SYNCHRONIZATION
+	HC	RCVRTY-PSEG		:OVERRUN (EXCEED RCV RESOURCE LIMIT)
+	HC	RCVRTY-PSEG		:NO INITIAL BUFFERLET AVAILABLE
+	HC	TETMOT-PSEG		:TIMEOUT BEFORE MSG RECEIVED
+	HC	TECRCR-PSEG		:CRC ERROR IN DATA MESSAGE
+	HC	TELTDT-PSEG		:LOST DATA (BUFFERLET UNAVAILABLE)
+	HC	RCVRTY-PSEG		:UNIDENTIFIABLE MSG
+	HC	MERROR-PSEG		:FORCED COMPLETION BY BACKGROUND
+
+
+	SUBTTL	 ** MULTILEAVING **   STATE TABLES  - TERMINAL/HOST  **  MLVPTP
+
+:	RESPONSE WHILE LINE IN NORMAL (ACTIVE) STATE : SNORM
+:	----------------------------------------------------
+:	NORMAL RECEIVING AND TRANSMITTING .....
+
+SNORM	HC	MERROR-PSEG		:GOOD DATA ETX BLOCK
+	HC	RDATB-PSEG		:GOOD DATA ETB BLOCK
+	HC	MERROR-PSEG		:ENQ
+	HC	MERROR-PSEG		:EOT
+	HC	SNRNAK-PSEG		:NAK
+	HC	MIDISC-PSEG		:DLE,EOT (DISCONNECT SIGNAL)
+	HC	MERROR-PSEG		:ACK1
+	HC	MERROR-PSEG		:WACK
+	HC	SNRACK-PSEG		:ACK0
+	HC	MERROR-PSEG		:RVI
+	HC	MERROR-PSEG		:TTD (STX,ENQ)
+	HC	SNRST-PSEG		:MULTI-LEAVING BID (SOH,ENQ)
+	HC	MERROR-PSEG		:DATA ABORT (ENQ,EOT,NAK IN TEXT)
+	HC	RCVRTY-PSEG		:LOST SYNCHRONIZATION
+	HC	SNOVRN-PSEG		:OVERRUN (EXCEED RCV RESOURCE LIMIT)
+	HC	RCVRTY-PSEG		:NO INITIAL BUFFERLET AVAILABLE
+	HC	SNTMOT-PSEG		:TIMEOUT BEFORE MSG RECEIVED
+	HC	SNCRCR-PSEG		:CRC ERROR IN DATA MESSAGE
+	HC	SNLTDT-PSEG		:LOST DATA (BUFFERLET UNAVAILABLE)
+	HC	RCVRTY-PSEG		:UNIDENTIFIABLE MSG
+	HC	MERROR-PSEG		:FORCED COMPLETION BY BACKGROUND
+	ENDPATCH(Eliminate HASP crash on protocol violation)
+
+	FO	BSCPTP
+	FO	BSCDEF
+	
+	EI	(NMLV)
+
+
+
+:**********************************************************************
+:
+:	This patch removes some code from R100 in the SIGNOFF processing
+:	routine which was supposed to allow a TYMNET session to be
+:	split in the middle of a frame.  However, this code did not
+:	function due to numerous bugs and is therefore being deleted.
+
+:****************************************
+:>>>>>>	This code belongs in R100
+
+	LO	R100
+	LO	FCB
+	LO	IDS
+	LO	LINE
+
+	PATCH(860412,1708,NTD.E/BUELL,SOF3+8,,6)
+	J	SOFFX1,,
+
+	CONPATCH(PA1PTR,,28)
+SOFFX1	ST	RLINK,F.RET1,RAFCB,	:SAVE RETURN ADDRESS
+	LHI	RDATA,(EOTMSG-FSTCTL)*2	:FAKE THE EOT
+	L	R3,F.BASI,RAFCB,
+	LHL	R4,P.CTL,R3,RDATA
+	JEFS	SOF3.5
+	AR	R4,R3
+	JALR	RLINK,R4
+SOF3.5	L	RLINK,F.RET1,RAFCB,	:RESTORE RETURN ADDRESS
+	J	CREBBA+12,,		:DELETE A BUNCH OF CODE
+
+	CONPATCH(SOF4+38,,6)
+	JAL	R5,IZPROC,,		:INITIALIZE THE LINE
+
+	FO	R100
+	FO	FCB
+	FO	IDS
+	FO	LINE
+
+:****************************************
+:>>>>>>	The following code belongs in HSEC
+
+	LO	HSEC
+	LO	FCB
+	LO	LINE
+	LO	IDS
+
+	CONPATCH(SIG01+8,,4)
+	NOP
+
+	FO	HSEC
+	FO	FCB
+	FO	LINE
+	FO	IDS
+
+	ENDPATCH(Cleanup /$NETCMD SIGNOF processing)
+
+
+
+:**********************************************************************
+:
+:	This patch fixes a small problem in the pseudo-interrupt logic
+:	in BSCPTP.
+
+	LO	BSCPTP
+	LO	BSCDEF
+
+	PATCH(860414,0917,NTD.E/BUELL,SXRENQ+4,,2)
+	HC	IPSRV1-PSEG		:ENQ
+
+	ENDPATCH(Fix fix pseudo-RVI problem)
+
+	FO	BSCDEF
+	FO	BSCPTP
+:
+   yzi~
