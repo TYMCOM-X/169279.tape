@@ -1,0 +1,99 @@
+:************************************************************************
+:*      ROCKVILLE, MARYLAND  -  MICRO TEST CODE                         *
+:*      DEFINITIONS - PARAMETERS - ISIS II                              *
+:*      KERNAL CODE: 5.08       NODE CODE: 5.06                         *
+:*      NODE: 10410     KERNEL: 8420            3/20/89 MB
+:************************************************************************
+
+
+:               HARDWARE CONFIGURATION
+ENGINE  EQ      1               :  1 IF HARDWARE IS TYMNET ENGINE
+MICRO   EQ      2               :* ENHANCED SYNC/ASYNC
+ZITEL	EQ	0		:* 1 IF ZITEL MAC (MAC II)
+N.ADA   EQ      1               :* 1 IF NEW ASYNC ADDRESSING
+NASYNG  EQ      2               :* # OF ASYNC GROUPS (2 CARDS)
+M.NCARD EQ      0               :* NO. OF SIO MOTHER BOARDS
+M.DA0   EQ      0               :  DEVICE ADDRESS FOR MOTHER BOARD 0
+M.NP0   EQ      0               :  NO. OF PORTS FOR MOTHER BOARD 0
+LBOOT	EQ	1		:* 1 IF SPACE SET ASIDE FOR BOOT PROGRAM
+
+:               ISIS CONFIGURATION CONSTRAINTS
+NSLOT	EQ	$A 3		:  NO. OF SLOTS TO CONNECT
+NLU     EQ      $A 6            :MAX NO OF LU/SLOT
+
+        GGHOST(4736)                             :LIST ALL VALID HOSTS
+                                                 :ON THIS MACHINE.
+
+:               NODE CONFIGURATION
+TII     EQ      1               :1 IF TYMNET-II ON NODE
+TIINEW  EQ      1               :  1 IF VERSION 4.00 OR ABOVE
+PTHRU   EQ      0               :* IF PASSTHROUGH INHIBITTED
+NPTHR	EQ	$A 128		:  NUMBER OF PASSTHROUGHSX
+MACHNM  EQ      $8 10410        :  NODE NUMBER
+HST0    EQ      $A 8420         :  ISIS KERNEL HOST NUMBER
+NLINES  EQ      2    		:  NO. OF LINKS (MUST BE.LE.NLUS0)
+ASYNEW  EQ      1               :* O=OLD ASYNC DRIVER, 1=BOTH, 2=NEW DRIVER
+MEMRMK	EQ	1		:* IF 1 PRINT NODE CODE SIZE
+NXUBLK	EQ	8		: NUMBER XRAY USERS
+CRHRMK	EQ	0		:* IF 1 PRINT CRASH CODES
+NDP	EQ	$A 128		:  NUMBER OF DISPATCHER PORTS
+P1SIZE  EQ      $0 800
+PHSIZE  EQ      $0 400
+REBTST  EQ      1                         
+NETID   EQ      1                         
+IKNRNG  EQ      1
+MACHIN  EQ      1
+
+	OPTION(BFTR,TLEV,REBLD)
+
+:               NETWORK CONFIGURATION
+
+        TIILNK(2660,8,8)        :NEIGHBOR 2660, 8 GROUPS, WSIZ 8
+
+SILINS  EQ   $A 0               :NUMBER OF SIO LINES FOR NODE CODE
+XLINKS  EQ   $A 1		:WILD CARD ASSIGNMENT-8
+
+:       SLOT 0 --- THE NODE CODE
+S0CORE  EQ      $A 210
+NLUS0   EQ      $A 2 
+S0L0    S.REF(2)
+S0L1    S.REF(3)
+
+:       SLOT 1 --- MUX SLOT FOR WASHINGTON AREA FE'S - HOST 4736
+S1CORE  EQ      $A 75           :  SLOT 1 KB CORE SIZE
+S1LIC   EQ      TL.AUX
+NLUS1   EQ      0               :  NO. OF LU FOR SLOT 1
+
+:       SLOT 2 --- SLSYNC TEST SLOT
+S2CORE  EQ      $A 40           :  SLOT 2 KB CORE SIZE
+NLUS2   EQ      $A 6            :  NO. OF LU FOR SLOT 2
+S2L0    S.REF(6)
+S2L1    S.REF(7)
+S2L2    S.REF(10)
+S2L3    S.REF(11)
+S2L4    S.REF(14)
+S2L5    S.REF(15)
+
+:       SLOT 3 --- SLASYNC TEST SLOT
+S3CORE  EQ      $A 40           :  SLOT 3 KB CORE SIZE
+NLUS3   EQ      $A 1            :  NO OF LU FOR SLOT 3
+S3L0    A.REF(0)
+
+:       GOOD-GUY LIST
+XGG     MACRO[
+        GG(L.S0A!L.S0R!L.H!L.P,-1,GATEWAY)
+        GG(L.S0A!L.SYA!L.SUA!L.S0R!L.SYR!L.P,-1,MAINTDIAG)
+        GG(L.S0A!L.SYA!L.SUA!L.S0P!L.SYP!L.P!L.DISC,-1,ENFETECH)
+        GG(L.S0A!L.SYA!L.SUA!L.S0P!L.SYP!L.P!L.DISC,-1,DNSONLY)
+        GG(L.S0A!L.SYA!L.SUA!L.S0P!L.SYP!L.P!L.DISC,-1,RVIVIER)
+:
+:       CHECK FOR SPECIAL GOOD-GUY USERS
+:
+        IF      \SGGUSE
+        SGG
+        EI
+
+        GG(2,0,ODDJOB,30)
+        GG(1,0,XRTECH,20)
+        GG(0,0,XRAY,0)
+]
