@@ -1,0 +1,356 @@
+
+
+                1.      MBASE FUNCTIONALITY
+
+1. Reset starts initialization.
+
+2. Provides SBUS driver functions at 2 levels:
+        a. interprets I/O requests that Spirit makes on a channel-by-channel
+           basis using IOCB control blocks.
+        b. moves data and status msgs using Message Control Block
+
+3. Mbase buffers ISIS msgs that a channel cannot immediately receive.
+
+4. Mbase keeps track of which channels area attached to which Dispatcher ports.
+
+5. Mbase interprets ISIS msgs and Spirit msgs pertaining to call establishment
+   and participates in call clearing.
+
+6. Messages are exchanged concerning operation of Mbase and characteristics
+   of individual circuits--these are not ISIS msgs.
+
+7. Mbase reformats ISIS msgs for Spirit--compresses ISIS msg types into fewer
+   than 8 bits.  The msgs are defined by a table in Mbase that is loaded
+   by Spirit at initialization.
+
+8. Mbase makes explicit decisions concerning when to 'forward' current
+   data received from Dispatcher.  
+
+9. Spirit can independently adjust Mbase's data forwarding criteria for
+   each circuit, independently of others.
+
+10. Mbase can suspend I/O on Spirit's request, and resume later.
+
+11. Mbase connects ISIS disk and tape drivers with Spirit peripheral server,
+    so that Spirit can provide disk and tape services needed by a TSI
+    supervisor slot.
+
+                2.      S-BUS LINK LEVEL PROTOCOLS
+
+        2.1      S-Bus Configuration and Design Considerations
+
+1.  S-bus, the communication path between spirit and TSI, is a 
+    computer backplane bus.
+
+2.  TSI is a 'slave' to S-bus, responding to read and write requests,
+    but not initiating transfer requests.
+
+3.  TSI can request interrupt of Spirit cpu and must interrupt during
+    I/O operations.
+
+4.  To S-bus, TSI is a peripheral controller.
+
+5.  TSI (controller) cannot directly access Spirit memory.
+
+6.  TSI (controller) shares some of its memory with Spirit cpu--a 64K
+    S-bus window.
+
+7.  S-bus Window is dual-ported.  The dual porting facility-or something
+    else on the TSI card--resolves contention between the TSI and the Sbus
+    for access to the shared memory.
+
+8.  Spirit cpu uses Bus Hold to avoid slowing down because of contention
+    over S-bus window access, giving S-bus sole control of window until
+    releasing during last access of S-bus window.
+
+9.  Controller (TSI) can interrupt Spirit cpu.  Spirit cpu identifies the
+    controller and looks at the Message Block of the controller's S-bus
+    window to find out why interrupt happened.
+
+10. Controller interrupt priority is configurable by a jumper.
+
+11. Memory Block Service Requests -- controller (TSI) caused transfers.
+        a. controller requests transfer (copy) of S-bus window data by
+        assembling a service request in its message block in shared memory
+        and then interrupting the Spirit cpu.  
+        b. Message Block designates controller memory address to use and
+        channel being serviced.
+        c. transfers are made only as a response to IOCB commands.
+
+12. I/O tasks -- how cpu starts I/O
+        a. an I/O Control Block (IOCB) is assinged to each channel.
+        b. all IOCBs are located after the Message Block at the start of
+        S-bus window.
+        c. controller itself is IOCB0.
+        d. cpu sets the I/O Start byte of IOCB to x'01'to signal 'start I/O'.
+        e. controller responds by using service-request messages to perform
+           the request, and, prior to last service request msg, resets the
+           I/O start byte of IOCB to indicate task completed.
+        f. IOCB designates # of bytes, direction of transfer, device address.
+        g. Mbase must scan all IOCBs for any Start I/O commands from any
+        channel.
+        
+13. Mbase must also look for IOCB HIO (Halt I/O) commands from S-bus.  
+    Mbase will abort command or proceed normally, depending on timing. 
+    Mbase dos not need to check very often for Halt I/O.
+
+14. Mbase must buffer ISIS network messages because it must wait for an
+    IOCB request to transfer any data for an S-bus channel.
+
+15.  Mbase may need to make several S-bus data transfers after processing
+    the ISIS input ring.  Since only one transfer request can be handled
+    at a time, Mbase must queue-up pending transfer requests of ISIS msgs.
+
+        2.2      S-Bus Channel Assignments
+
+1. 256 S-bus channels available--2 channels per Tymnet circuit (send/receive).
+2. Channel 2 and 3 correspond to ISIS Dispatcher port 0--used for circuit
+   construction only.
+3. Channel 1--bidirectional messages between Spirit and Mbase.
+4. Channel 0--bidirectional messages between Spirit and TSI.
+5. Channel -1 used by TSI to interrupt Spirit.
+6. Mbase supports 125 Tymnet circuits.
+
+        2.3     S-Bus Command Definitions
+
+1. Channel 1 commands:
+        reset interface
+        read extended status
+        load mapping table
+        suspend node (mbase)
+        resume node (mbase)
+
+2. Input Channel commands (channels 3,5, ... 253)
+        read data
+
+3. Output Channel commands (channels 2,4, ... 252)
+        write data
+        write single byte
+        send circuit signal long
+        send circuit signal short (3 bytes)
+
+4. Read commmand:  Mbase determines format according to what is
+   appropriate and informs Spirit of format via Message Block.
+
+5. Spirit must specify a transfer length that will be long enough for
+   the longest possible circuit-signal message.  A circuit-signal message
+   cannot be split, but circuit data can/would depending on Read Data's
+   transfer length, forwarding characteristics, and message sequences.
+
+        2.4     S-Bus Driver
+
+1. S-Bus Driver manages a queue of service requests that must await a turn to 
+   use the Message Block.
+
+2. Mbase queues transfer requests  with the S-bus driver, but doesn't have
+   control over when S-bus driver will handle the request.
+
+3. S-bus driver also polls IOCB Start I/O and Halt I/O fields to detect
+   new Spirit commands.
+
+
+                3.      MBASE/SPIRIT SESSION LEVEL PROTOCOLS
+
+        3.1      Messages
+
+1. S-Bus message correspond with ISIS messages--ISIS Logon Character
+    message is the sole exception.
+
+2. 2 type of Spirit message: (1) 'circuit signal' (2) circuit data
+
+3. port number is implied by channel used
+
+4. Messages:
+    a. Load Mapping Table
+    b. Data Message
+        . input buffered by Mbase
+        . output buffered by Mbase; forwarded to ISIS subject to:
+            transfers from Spirit
+            Set Transmit Limit from ISIS
+            space available in ORING
+    c. Apply/Release Backpressure
+        . Mbase applies backpressure if Spirit request, but, Mbase
+             may have data already buffered for S-bus and could reach Spirit
+        . Mbase backpressures if buffer shortage
+        . Mbase releases backpresure if neither Spirit or mbase require it
+        . Mbase obeys ISIS backpressure msgs and passes them to Spirit
+        . mbase continues to process output-channel commands
+        . some circuit signal cmds con't output to ISIS, so aren't effected;
+            some are performed such as 'gobbler' and circuits clearing cmds
+
+    d. Flush Input and Flush Output (Gobbler)
+        . from Spirit, Flush Output msgs buffered in mbase--no effect on ORING
+        . from ISIS, Flush Output could require resynchronization
+        . Flush Input passed along without interpretation--it is a request to
+          interface at other end to send a gobbler.
+
+    e. Set Transmit Limit
+        . from Spirit, just sent along to ISIS
+        . from ISIS, Mbase interprets and passes to Spirit--mbase will obey
+          specified xmit limit when placing data into ORING
+
+    f. Restart Request and Response--obsolete ISIS msg--ignored by mbase
+        and not passed to ISIS
+
+    g. Takeover message--an ISIS message sent when node taken over by a
+        Supervisor--not yet determined if Spirit needs to respond
+
+
+        3.2     ISIS/Spirit Message Code Mapping
+
+1. All ISIS messages map to Spirit circuit messages except Normal Login
+   Character message.  No mapping necessary for ISIS port 0 messages.
+
+
+        3.3     Interface Reset Procedure
+
+1. Mbase  re-initializes:
+    (a) at start-up or ISIS Re-start
+    (b) when it times out an S-Bus Service Request
+    (c) when Spirit issues a Reset Interfac command on Channel 1
+
+2. Mbase initialization:
+    (a) clears all dispatcher ports
+    (b) empties all circuit buffers
+    (c) initializes circuit tables
+    (d) responds with status indication for Interface Reset Required
+        to any S-Bus commands on Channels 1 and above--does not respond
+        to a Channel 1 Reset Interface command until ready.
+    (e) during reset, Mbase ends every active IODB a.s.a.p.--each ended
+        IOCB shows Interface Reset Required status.
+
+    (f) at end of init, Mbase waits for a Reset Interface command
+        on channel 1 and neds it with a Read Status Service Request showing
+        normal status.
+
+    (g) Spirit next iessues Read Extended Status cmd on channel 1; Mbase
+        ends it with a Read Status Serviced Request.
+
+    (h) any out-of-sequence commands on channels 1 and above result in
+        a Read Status Service Request showing 'start i/o error' or 
+        'illegal command'.
+    (g) reset must work under any condition--i.e., one party crashing
+
+
+        3.4     Suspend and Resume
+
+1. Spirit will need to occasionally suspend, then resume, mbase activity on
+   the s-bus (Suspend Node command).
+
+2. Mbase responds by shutting off its S-bus driver (not scanning for new
+   SIOs, not initiating Service Requests).
+
+3. Mbase must handle dispatcher ring traffic, using backpressuring.
+
+4. Suspension, backpressuring means a delay in sending to Spirit any
+   ISIS msgs (including zaps, logons).
+
+
+        3.5     Circuit Establishing and Clearing Procedure
+
+1. Mbase arranges for ISIS to consider its dispatcher ports as non-
+    reusable until Mbase also zaps the port.
+
+2. Two cases of zap handling:
+    a.  Mbase receives a zap in IRING.
+        . forwards it to Spirit
+        . marks tables to show that port was zapped by ISIS
+        . mbase continues to process msgs for this port, if any, into
+          the ORING (ISIS discards most)
+        . When Spirit is ready for port (channel pair) to be reused,
+          Spirit sends Zap on the port (not Zap Acknowledge).
+        . Mbase marks table to show port is fully zapped.
+        . S-bus driver stops looking for I/O cmds on associated channel pair
+    b. Spirit sends a Zap or Detach msg first.
+        . Mbase marks tables to show Spirit-originated zap
+        . Mbase discards any messages waiting to be input to Spirit on this
+          circuit.
+        . next time Spirit starts Read Data cmd on this circuit's receive
+          channel, Mbase delivers a Zap Acknowledge.
+        .  Upon completion of this Read Data cmd:
+            (a) Mbase marks its tables to show that S-bus Driver need not
+                look for I/O on this port's output channel
+            (b) Mbase places a Zap or Detach message into ORING and
+                marks tables accordingly
+        .  When a Zap or Zap Acknowledge is subsequently discovered in IRING,
+           Mbase marks port as completely zapped.
+
+
+        3.6     Circuit Data and Signal Flow Porcedures
+
+1. Messages from Spirit are fully processed before another message is
+   accepted on the same channel, whereas IRING messages are buffered.
+
+2. Mbase makes every effort to minimize problems casued by storage
+   exhaustion (because of buffering)--for instance, certain data msgs
+   may be replaced by Black Ball msgs, or a circuit w/ too many circuit-
+   signal msgs may be zapped.
+
+3. Mbase forward circuit siganl msgs to Spirit as soon as received;
+   data messages are subject to data Forwarding Characteristics.
+
+4. The criteria established byu Set Forwarding Characteristics are
+   modeled after PAD Idle Timer and PAD Forward statements in Tymnet
+   X.25 manual.  Two test:  (1) Idle Timer--interval in 20ths of secs.
+   between characters rec'd from ISIS (2) byte mask of bits denoting
+   sets of characters--rec'ing on of these chars results in forwarding.
+
+
+        3.7     Halting a Pending Output Command
+
+1. A backpressured circuit can get hung, and output commands from Spirit
+   subsequently not handled--therefore cannot even clear circuit.  But
+   Spirit can use Halt I/O to force the S-bus output command to end.
+
+2. Halt I/O:
+    a. Mbase discards any buffered output messages waiting for the port
+    b. Mbase ends the output command w/ 'I/O Halted' statud indication
+    c. If mbase has completed the work specified by the output command,
+       then Halt I/O has no effect--if so, status will not show Halt I/O.
+    d. If Spirit halts I/O, then zap or gobbler follows.
+
+3. Send Circuit Signal Short--Mbase 'peeks' at the circuit siganl visable
+   in the IOCB to see if it is a Zapper or a Gobbler--if so Mbase proceeds
+   with message and call clearing and flushing (regardless of backpressuring).
+
+
+        3.8     Disk and Tape Services
+
+1. To support Supervisor application's I/O SVCs, ISIS communicates w/ Mbase
+   using the ICOM facility (Mbase w/ SPirit via pair of S-bus channels).
+
+2. Mbase originates a new logon to Spirit, using a pre-defined network i.d.
+ 
+3. Mbase sends disk/tape read requests as ISIS text data byte strings
+
+4. Mbase is responsible for all processing of ICOM's slot I/O requests
+   (establishes circuit, times out if unaswered reqeust, etc.)
+
+
+
+                4.      AVAILABILITY AND SERVICABILITY
+
+        4.1     Error Handling Guidelines
+
+1. Usual Tymnet requirments--avoid interrupting service when possible.
+
+2. Invalid input should not crash the code.
+
+3. Mbase must check validity of message it interprets. 
+
+4. Possible progression of damage-limiting steps:
+        . backpressure msg to ISIS
+        . discard all data buffere for Spirit on a circuit
+        . zap a circuit taking too much storage for non-data msgs
+        . zap a circuit which receives invalid message type
+        . if Spirit isn't responding being interface reset procedure
+        . if Mbase entered by a REstart Trap, begin interface reset 
+
+        4.2     Eventg Trace Tables
+
+1. Mbase maintins continuous record in memory of notable events.
+
+2. This record is a ring buffer.
+
+3. Tracing can be turned off with interactive control (i.e., via DDT)
+  
