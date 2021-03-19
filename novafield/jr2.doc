@@ -1,0 +1,216 @@
+JR-Edit 1.0 (C) 1990 John P. Radigan, All Rights Reserved.
+----------------------------------------------------------
+jredit.doc
+----------
+
+
+   JR-Edit is an external phonebook editor for use with JR-Comm 1.0.  It
+gives you the ability to import JR-Comm 0.94a .def, .macros and .phones
+files for conversion to JR-Comm 1.0 format.  JR-Edit also provides you
+with an import facility to convert files that are in "The Final List"(tm)
+format.  Lastly, you can print, globally edit and/or append JR-Comm 1.0
+phonebook files.
+
+   The program itself is basically the same user interface that exists in
+JR-Comm with a few changes and additions.  For this reason, the majority of
+operation of the various parameter requesters used in JR-Edit will not be
+discussed here.  Only those features that deviate from JR-Comm operation or
+are unique to JR-Edit will be described in this document.  Consult the JR-Comm
+1.0 Users Manual for desciptions of the various parameter requesters and other
+related functions.
+
+
+
+START-UP
+--------
+
+   JR-Edit begins by searching and loading the the defaults files in the same
+exact sequence as JR-Comm, it will NOT load files that are other than 1.0
+format.  JR-Edit is considered to be primarily an external editor for JR-Comm
+1.0, not a converter for other format files even though it does contain these
+functions.
+
+   Once loaded, JR-Edit will exist on a 16 color custom screen with the
+phonebook requester permanently open.  The 16 color screen is required so
+that you may edit the color palette for *any* type screen without JR-Edit
+requiring the necessary logic to convert to the proper screen type prior
+to accessing the color palette requester.
+
+
+
+DEFAULT PARAMETERS
+------------------
+
+   As with JR-Comm, JR-Edit will resort to the same exact set of default
+parameter settings if a jrcomm.def file was not found.  So, you may want
+to create your jrcomm.def file with JR-Edit prior to running JR-Comm for
+the first time.
+
+   Although the phonebook requester is always open, you can still change
+the default parameters by opening the respective requester via the items
+in the OPTIONS menu.  It is recommended that you set them prior to doing
+a 0.94a or TFL import operation so that all the new entries created as a
+result inherit the settings that are not explicitly set during the import
+itself.
+
+   A menu item in the PROJECT menu is provided to import and convert a 0.94a
+.def file.  You will still have to do quite a bit of setting on your own due
+to the new options that did not exist in JR-Comm 0.94a after completing the
+import operation.  It was included primarily for completness.
+
+   You will HAVE to import 0.94a format .macros files as well due to a few
+differences in macros format and file structure.  A simple read/write 
+procedure will provide you with conversion "in place" to JR-Comm 1.0.  Refer
+to chapter 11 of the JR-Comm Users Manual for information of the new macro
+escapes that are available in JR-Comm 1.0.
+
+
+
+IMPORTING 0.94a phonebook files
+-------------------------------
+
+   The selection gadget labeled "IMPORT" is used for both 0.94a and TFL
+format files, only 0.94a files will be discussed in this section, refer
+to the next section for TFL files.
+
+   Selecting this gadget will open the JR-Comm file requester so that you
+may select the desired 0.94a phonebook file and closing the file
+requester via the "OK" gadget you are now presented with the IMPORT
+selection requester, select 0.94a.
+
+   All phonebook entries will be imported and converted to 1.0 format.
+The options new to 1.0 that were in effect when you imported the 0.94a
+phonebook will be passed on to each entry.  You can now edit each entry
+individually or with the global edit function described below.
+
+
+
+IMPORTING TFL phonebook files
+-----------------------------
+
+   The same sequence of operations are used to select and import a TFL
+format phonebook.  As with the 0.94a phonebook import function, current
+settings in effect will be copied to each phonebook entry created during
+the conversion.  Since little information in a TFL phone entry is related
+to JR-Comm, almost all the options for each entry will reflect the current
+settings of JR-Edit.  Please make sure that everything is set the way you
+want it to be before you import a TFL file.
+
+   The following data are extracted from a TFL phone entry:
+
+
+   Item        Column position   # of chars     Details
+-----------------------------------------------------------------------------
+   Name        1                 15             (all info copied)
+   Phone #     20                16             (trailing alphas removed)
+   Baud        37                5              (max)
+   Duplex      43                1              (Full or Half)
+   Data len.   44                1              (7 or 8)
+   Parity      45                1              (Even, Odd or None)
+   Stop bits   46                1              (1 or 2)
+   
+
+   Since JR-Edit does not contain any sort of search or matching features,
+you may want to edit a raw TFL file with a text editor into multiple files
+so that you can adjust the default settings (terminal emulation and protocol
+being the most common) for each group of entries that you want to import.
+
+
+
+PRINT
+-----
+
+   JR-Edit provides you with a hardcopy print feature.  It does not print
+out every setting of a phonebook entry however, only the most important
+ones in the following format:
+
+Name  PhoneNumber  Password
+Baud Duplex BitsParityStop Emulation CRxlate LFxlate EOLout protocol
+
+example:
+
+Dynalogic BBS 1-609-625-2453 mypw
+2400 F 8N1 IBM Color CRN LFN CR ZMODEM
+
+
+
+APPEND
+------
+
+   This function will append another JR-Comm 1.0 format phonebook to the
+current one.  The LOAD function clears the current phonebook prior to
+loading a new one.
+
+
+
+SELECT & UNSELECT
+-----------------
+
+   Works as expected.  Select all or unselect all entries in the phonebook.
+
+
+
+GLOBAL
+------
+
+   The global editor enables you to set selected entries to settings of
+your choosing.  This mode can quickly get you into trouble, so save a
+copy of the phonebook to an alternate file prior to making any changes.
+
+   The first step is to select the entries that you wish to globally
+edit.  Now select the GLOBAL gadget.
+
+   You are now greeted with the PHONE ENTRY EDITOR requester, notice that
+the string gadgets for name, phone number, capture file, macros file and
+password are missing.  You cannot globally edit these portions of each
+entry.
+
+   The following actions are applied to every selected entry in the PHONE
+ENTRY EDIT requester:
+
+       Length:  If zero, no effect.  Used otherwise.
+    Cents/min:  Same as Length.
+  Dial Prefix:  If all are "off", no effect.  Selected otherwise.
+Password type:  Same as for Dial Prefix.
+  Reset Timer:  Each entry will be set to the state of this option, off or on.
+
+   Notice that the "mutually excluded" gadget sets (for example, the Dial
+Prefix group), are all "off" to begin with.  If they are, then no change will
+occur to the selected entries when exiting the PHONE ENTRY EDITOR requester.
+If one gadget of the Dial Prefix (or similar option group) is toggled on, all
+entries selected will be updated to this selection.  If you decide to not use
+the selected option, toggle it again and it will turn "off". This action will
+only occur during the global edit mode of operation, otherwise it will operate
+"normally" during a singular edit of a phonebook entry.
+
+   The Reset Timer is an example of an "on/off" option, so, its setting will
+be copied over to each selected entry regardless if you have never touched
+it.
+
+   The SERIAL and XFERS gadgets will open their respective requesters and
+operate the same as the PHONE ENTRY EDITOR requester.  The TERMINAL
+PARAMETERS requester is a different beast altogether however, so please
+pay attention to the following.
+
+   The CR xlate, LF xlate, EOL out and Capture filters work the same as
+the mutually excluded groups described above.  The Miscellaneous group
+of options are all "on/off" gadgets, so you must set the ones you want
+on.  The Screen type, Emulation and Text size gadget groups should only be
+tinkered with *after* you have selected an emulation.  Remember this!
+
+   The four color options at the bottom are all initially set to the
+value of 16, this is an invalid color number, so JR-Edit will not set
+phonebook entries unless these numbers are something other than 16.
+
+   If you find that you've set something that you didn't intend to set or
+you wish to start over, just close the requester (SERIAL, TERMINAL or 
+TRANSFER only) and then re-open it.  Everything will be reset.
+
+   If you decide that you do not want to globally set any of the phonebook
+entries, select the CANCEL gadget in the PHONE ENTRY EDITOR requester.
+
+   Again, please save your phonebook prior to doing any global editing in
+case you muck things up too badly.
+
+
+  
