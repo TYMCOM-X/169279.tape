@@ -1,0 +1,121 @@
+: **********************************************************************
+:           FILE:  Supervisor
+:   COMPANY NAME:  Southwestern Bell
+:    NODE NUMBER:  2003                      LOCATION:  Kansas City
+:    KERNEL HOST:  123                           HOST:  na
+:    SLOT NUMBER:  02
+:        VERSION:  43.03 (LOG-II)                DATE:  10/05/90
+:       INITIALS:  RDH
+: **********************************************************************
+: >>>>>>>>>>>>>>>>>>>>>>>>>REVISION HISTORY<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+: 10/05/90 - Installed as backup supervisor                           RDH
+: **********************************************************************
+	REMARK % SWB-NET Supervisor [SUP 3]   08-22-88 %
+
+	TYMSTR(1,32)		: Sup # 3, Netid 32
+
+	OPTION(ISIS,LLEVEL,OPCIPH,NOPERF,NOSPAS)
+		: ISIS SUP
+		: LOAD LEVELING AT DESTINATION AND ORIGINATION ENDS
+		: ALLOW EMERGENCY CHIPHER
+		: PERFORMANCE REPORTS NOT WRITTEN TO ERROR LOG EACH MINUTE
+		: LOGIN RATE STATS SENT TO ERROR LOG EACH MINUTE
+		: NO USER CIRCUITS THRU SUP NODE
+
+	LOGOPT(LOG2,LOG1,LNTN,HLST,TNDL)
+		: SUPPORT LOG II & LOG I
+		: SUPPORT LOCAL NTNs
+		: HOST NUMBERS AS DESTINATIONS ARE PERMITTED
+		: SUPPORT TRANSIT NETWORK DOUBLE LOOKUP
+	
+	LOGPRM(1)
+	
+	LOGSYN(31)	: 1 MAY BE USED AS A ALTERNATE X121 PREFIX
+
+	ACTOPT(REBIND,LOGNOD,ENACCT) : REPORT STATS ON CIRCUIT REBUILDS 
+				     : TO ACCT. INCLUDE CIRCUIT PATH IN
+				     : ACCOUNTING. ENABLE ACCT STATs TO
+                                     : BE TRACKED BY SUP.
+
+	NOTAKE(2104,3404,5711,5713)      : COPIED FROM PRODUCTION 2001 AND 2002
+
+	DEFTIM(40,20,120,120,CLOCK)
+		: SUPERVISOR FACTOR
+		: NORMAL SLEEP TIME
+		: ADDITIONAL SLEEP TIME
+		: LOGIN LIMIT
+		: SUPER CLOCK PRESENT
+
+:************************  BASIC CONFIGURATION   ****************************
+
+	DEFHST(4096,ALL,3)
+		: MAX HOST IS 4096 - ALL HOST WILL RCV 1 DOWN MSG - OFFSET
+
+	MBHOST(10) 		: NUMBER OF MULTIBASE HOSTS
+
+	DEFNOD(3777,50)     MAX NODE IS 3777 OCTAL - 50   Total Number
+
+	NDASIZ(6400)
+
+	BUFLET(6144)
+
+:*****************************   DISK FILES   *******************************
+
+	DEFMUD(0,10,2,30119,3019)  : DSK STAT 0 - MUD BLOCK SIZE - MUD II
+				: FORMAT - # OF MUD BLOCKS - OVERFLOW BLOCKS
+
+	DEFACT(0,3FFFC,,100)	: DSK STAT 0 - 3FFFC HEX SECTORS - FREEZE @ 100
+
+	DEFERR(0,7000)		: DSK STAT 0 - 7000 HEX SECTORS FOR ERRLOG
+
+	DEFDNC(3146,14,200)	: DEFAULT DNIC - TABLE SIZE - OFFSET IN HEX
+
+	DEFSAV(300,3,3E00)	: OFFSET - SAVE 3 CRASHES - SIZE
+
+ 	HISTRY(0F60)		: HISTORY FILE IS F60 HEX SECTORS 
+
+:************************   LOGIN/TARGETING DEFS   **************************
+
+	CACHE(128,16)
+	
+        FENCE(150,48,150,48)	: DEFINE 150 CLASSES AND GROUPS
+
+	TARGET(6)			: NUMBER OF MULTITARGETED HOST
+
+:********************   SETUP ASSEMBLED IN USERNAMES   ********************
+
+	PRBNAM((CONTROL,364BEBF6,$837))
+
+:****************************************************************************
+:*********************	 SECOND SECTION OF TYM FILE  ************************
+:****************************************************************************
+
+	TYMSUP
+
+:******************   DEFINE SHARED SUPERVISOR PARAMETERS   *****************
+
+	DEFNSP
+
+	SUPDAT(5A8,1AF)
+
+	SUPCOM(32)
+	
+	SUPCOD(178)       
+
+:**************************   SLAVES PARAMETERS    **************************
+
+	PRBPRM(67CEC9F6,16,60,10,0F9,,0E0)
+
+	ERRPRM(0F,110,0F)
+
+	ACCPRM(09,130,09)
+
+	SYSPRM(08,0F0,08)	
+
+	UN2PRM(15,100,08)
+
+	UTLPRM
+
+:****************************************************************************
+
+	TYMEND	
