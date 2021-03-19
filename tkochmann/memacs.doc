@@ -1,0 +1,302 @@
+
+
+
+
+
+
+                       MMiiccrroo--EEMMAACCSS EEddiittoorr
+
+MicroEMACS  is  a  public  domain  editor for both the IBM and TI
+PC's.   It  is very similar in its commands to the PDP-10 editors
+VUE  and  PEAK.   It has been slightly modified it to work better
+with  the  version  of  MS-DOS we are using.  It  doesn't seem to
+have  any outstanding bugs, and all the commands work pretty much
+as  advertised.   Don't try using the function keys (F1-F12),  or
+any  other  special  keys,  since  it  doesn't  understand any of
+them.  
+
+
+To run it, type: 
+
+     MMEEMMAACCSS [[ffiilleennaammee]] [[ccoolloorr]] 
+
+at the MS-DOS command prompt.  
+
+
+VVeerrssiioonn 33..00 cchhaannggeess:: 
+
+    o  added file backup process 
+    o  added color option to command line 
+    o  added    recognition   of   the   cursor   movement   keys
+       (arrows/home) 
+
+    o  fixed  a  bug that caused MicroEMACS to go into a loop and
+       hang  the  PC.   This was intermittent and occurred during
+       a tab across the 80th character in display.  
+
+
+The  color  option has been added in version 3.0, and will accept
+any   of   colors   available   through   the   TERMITE  program.
+Additionally,  color may be invoked by using the color set in the
+TERMITE  environment.    If  an  MS-DOS  "set"  command  has been
+previously  issued, the color designated for the status line will
+be  used  by  MicroEMACS.   If an invalid color is entered in the
+command  line,   MicroEMACS  will prompt with "color: ", at which
+time  the user has the option of entering a valid color or "help"
+to  list all of the colors supported.  For further information on
+the color options, see the TERMITE documenation.  
+
+The  cursor  movement  keys (up, down, left and right arrows, and
+the  home  key)  have  been added to the list of valid executable
+keystrokes, with each performing the same function as in PEAK.  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+The  file  handling  process  incorporated  into MicroEMACS is as
+follows: 
+
+    o  User  enters MicroEMACS with a file to be modified.   This
+       file  is  read  into  memory  and the disk file is closed.
+       All  further  activity  is done to the copy in memory - no
+       access  of  the actual disk file is done until a file save
+       command is issued.  
+
+    o  User  issues a file save command (CNTL-Z or CNTL-X CNTL-S)
+       after modifying the copy of the file in memory.  
+
+    o  The  copy  of  the  file  in memory is written to the disk
+       with  the  file  extention  of  .TMP.  This is a temporary
+       file  that  is  used to insure that the original edit file
+       is  not  destroyed  in  the  case where all available disk
+       storage  is  exhausted.  If this process fails due to lack
+       of  free  disk  space, the user is prompted for one of two
+       recovery option: 
+
+          o  If  a  backup  file  already  exists,  the  user  is
+             prompted  as  to  whether  they wish the backup file
+             deleted.   A  yes response results in the file being
+             deleted,  and  another  attempt  to write the memory
+             copy  to  the  .TMP  file.  A no response results in
+             the  user  being returned to the  command level with
+             no  changes  to  the original edit file on disk.  At
+             this  point  the  user may simply want to change the
+             destination  drive  of  the file (i.ie, from drive A
+             to  drive  B),  or  insert  a  new diskette that has
+             adequate  free  storage  and  issue  the  file  save
+             command again.  
+
+          o  If  no  backup was found, the user is prompted as to
+             whether  they wish to have the entire backup process
+             bypassed.    A  yes  response  will  result  in  the
+             original   edit   file  being  deleted  and  another
+             attempt  to  write the memory copy to the .TMP file.
+             A   no  response  will  result  in  the  user  being
+             returned  to  the  command  level with no changes to
+             the  original  edit file on disk.  At this point the
+             user  may  simply  want  to  change  the destination
+             drive  of  the file (i.ie, from drive A to drive B),
+             or  insert  a  new  diskette  that has adequate free
+             storage and issue the file save command again.  
+
+             CCAAUUTTIIOONN:: 
+
+             A  yes  response  to this prompt does not  guarantee
+             that  the  copy  of  the modified file (contained in
+             memory)  will  be  successfully written to the disk.
+             If  the  memory copy exceeds the amount of free disk
+
+
+
+
+
+
+
+
+             space,  and  the  user  has  responded with a yes to
+             this   option,  the user will lose the original copy
+             of  the edit file and additionally be unable to save
+             the  modified  (memory) copy without inserting a new
+             diskette  with  adequate  storage.   There is no way
+             for  the  user  to  determine  beforehand  the exact
+             amount of disk space required by the memory copy.  
+
+    o  The  original  edit  file is renamed to a backup file with
+       the  extention  .BAK.   If an existing .BAK file is found,
+       it  is  deleted   before  the  rename takes place.  If the
+       rename  fails  the  user  is  informed and returned to the
+       command  level  without renaming the temporary file to the
+       original  edit  filename.  At this point the files present
+       may  be  .TMP  (modified  file  -  from  memory)  and  the
+       original file.  
+
+    o  The  temporary  file  (.TMP  file)  is then renamed to the
+       name  of the original edit file.  If the rename fails, the
+       user  is  informed  via  a message to the message line and
+       returns  to  the  command  level.  At this point the files
+       present  may  be  the  .TMP  and either a .BAK or original
+       edit file.  
+
+    o  At  this point the user is either returned to MS-DOS (if a
+       CNTL-Z  was  executed) or the the main command level (if a
+       CNTL-X CNTL-S was issued).  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                   MMiiccrroo--EEMMAACCSS CCoommmmaanndd SSuummmmaarryy
+
+
+     CTRL-A               Move to start of line
+     CTRL-B               Move back one character
+     CTRL-C               Start up a copy of the MS-DOS command 
+                          processor
+     CTRL-D               Delete character under cursor
+     CTRL-E               Move to end of line
+     CTRL-F               Move forward one character
+     CTRL-G               Abort current command
+     CTRL-H               Delete previous character
+     CTRL-I               Tab
+     CTRL-J               Insert carriage return and indent to 
+                          same depth as the preceding line
+     CTRL-K               Kill to end of line
+     CTRL-L               Redisplay the screen
+     CTRL-M               Carriage return
+     CTRL-N               Move down one line
+     CTRL-O               Open up a blank line
+     CTRL-P               Move up one line
+     CTRL-Q               Quote the next character (insert as 
+                          literal)
+     CTRL-R               Reverse search
+     CTRL-S               Forward search
+     CTRL-T               Swap current and preceding characters
+     CNTL-U               Set an argument
+     CTRL-V               Move to next screen
+     CTRL-W               Erase from current position
+     CTRL-Y               Yank deleted text back from kill buffer
+     CTRL-Z               Save file and exit
+
+     CTRL-X CTRL-B        List buffers
+     CTRL-X CTRL-C        Quit without saving files
+     CTRL-X CTRL-F        Change filename for buffer
+     CTRL-X CTRL-L        Make region from point to mark
+                          lowercase
+     CTRL-X CTRL-O        Delete blank lines
+     CTRL-X CTRL-N        Move down one window
+     CTRL-X CTRL-P        Move up one window
+     CTRL-X CTRL-R        Read a file into the current buffer
+     CTRL-X CTRL-S        Save file
+     CTRL-X CTRL-U        Make region from point to mark 
+                          uppercase
+     CTRL-X CTRL-V        Visit a file
+     CTRL-X CTRL-W        Write buffer to a file
+     CTRL-X CTRL-X        Swap positions of point and mark
+     CTRL-X CTRL-Z        Shrink current window
+     CTRL-X !             Run 1 MS-DOS command (carriage return to
+                          redisplay the screen)
+     CTRL-X =             Show cursor position within buffer
+     CTRL-X (             Start keyboard macro definition
+
+
+
+
+
+
+
+
+     CTRL-X )             End keyboard macro definition
+     CTRL-X 1             Make current window only one
+     CTRL-X 2             Split current window
+     CTRL-X B             Attach a buffer to the current window
+     CTRL-X E             Execute keyboard macro
+     CTRL-X F             Set column for autofill (use CTRL-U to 
+                          set the value)
+     CTRL-X K             Kill the named buffer
+     CTRL-X N             Go to the next window
+     CTRL-X P             Go to the preceding window
+     CTRL-X Z             Enlarge the current window
+
+     ESC CTRL|'H'         Delete the preceding word
+     ESC !                Move current line to top of window
+     ESC .                Set the mark
+     ESC >                Go to the end of the current buffer
+     ESC <                Go to the beginning of the current 
+                          buffer
+     ESC B                Move back one word
+     ESC C                Capitalize this word
+     ESC D                Delete this word
+     ESC F                Move forward one word
+     ESC L                Make this word all lower case
+     ESC U                Make this word all upper case
+     ESC V                Move back one word
+     ESC W                Copy from point to mark into kill
+                          buffer
+
+     UP-ARROW             Move up one line
+     DOWN-ARROW           Move down one line
+     LEFT-ARROW           Move back one character
+     RIGHT-ARROW          Move forward one character
+     HOME                 Move to beginning of buffer
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
