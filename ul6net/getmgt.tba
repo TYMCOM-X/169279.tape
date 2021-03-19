@@ -1,0 +1,113 @@
+100 integer xmax
+110 def external fd.open(a$)
+120 def external fd.wild(a$,b$)
+130 def external fd.step
+140 def string external fd.name
+150 def string external fd.ext
+160 def external fd.close
+170 def external simpl rescn
+180 def string ucase(string s$)                        !@@ convert to upper
+190 n$=""                                              !@@ case
+200 for x=1 to length(s$)
+210 c$=substr(s$,x,1)
+220 if c$>="a" and c$<="z" then c$=char(asc(c$)-32)
+230 n$=n$+c$
+240 next x
+250 exit n$
+260 endf ucase                                         !@@ Get portion of
+270 string ax$(300)
+280 xmax=7
+290 string ex$(xmax)
+300 ex$(1)="T##"
+310 ex$(2)="N##"
+320 ex$(3)="BND"
+330 ex$(4)="MER"
+340 ex$(5)="A0#"
+350 ex$(6)="D##"
+360 ex$(7)="SUP"
+370 integer foo
+380 sdir$="MGTCODE"     !@@ Where code is located
+390 cdir$="MGTCODE"     !@@ Where list of available code is located
+400 cabbr$="MGT"         !@@ Extension for code access list
+410 call rescn
+420 input in form "r":inl$
+430 if index(inl$,";")=0 then
+440  inl$=""
+450 else
+460  inl$=ucase(substr(inl$,index(inl$,";")+1))
+470 endif
+480 if fd.open(sdir$) then
+490  if inl$="HELP" then 680
+500  open "("+cdir$+")CODE."+cabbr$ for symbolic sequential input as file 1,err 1160
+510  on endfile 1 goto 570
+520  c=c+1
+530  input from 1 in form "r":ax$(c)
+540  ax$(c)=ucase(ax$(c))
+550  if inl$="LIST" then print ax$(c)
+560  goto 520
+570  maxax=c-1
+580  if inl$="LIST" then end ".Exit."
+590  if inl$="" then
+600   Print "Code Name : ":
+610   input in form "r":cd$
+620   cd$=ucase(cd$)
+630   if cd$="LIST" then
+640    print "Use 'GO GET;LIST' to list available code."
+650    goto 720
+660   endif
+670   if cd$="HELP" then
+680    print "Use 'TYPE GET.DOC' for documentation."
+690    goto 720
+700   endif
+710   if cd$="" then
+720    call fd.close
+730    end ".Exit."
+740   endif
+750  else
+760   cd$=inl$
+770  endif
+780  open "TERMINAL" for binary input as file 0
+790  fcnt=0
+800  for y=1 to xmax
+810  call fd.close
+820  call fd.open(sdir$)
+830  for x=1 to maxax
+840  if ax$(x)=cd$ then
+850   call fd.wild(ax$(x),ex$(y))
+860   if fd.step then
+870    msg$="Copy "+fd.name+"."+fd.ext+" ? "
+880    for z=1 to length(msg$)
+890    eighto asc(substr(msg$,z,1))
+900    next z
+910    eighti foo
+920    eighto 13
+930    eighto 10
+940    if foo=89 or foo=121 or foo=89+128 or foo=121+128 then
+950     copy "("+sdir$+")"+fd.name+"."+fd.ext to fd.name+"."+fd.ext+"-a"
+960     fcnt=fcnt+1
+970    else
+980     if foo=27 or foo=26 or foo=81 or foo=3 or foo=113 or &
+           foo=27+128 or foo=26+128 or foo=81+128 or foo=3+128 or &
+           foo=113+128 then 1060
+990    endif
+1000    goto 860
+1010   endif
+1020  endif
+1030  next x
+1040  call fd.close
+1050  next y
+1060  close 0
+1070  print fcnt:" files copied."
+1080  if inl$="" then
+1090   goto 600
+1100  else
+1110   call fd.close
+1120   end ".Exit."
+1130  endif
+1140 else
+1150  print "No "+sdir$+" directory on this system."
+1160  end ".Abort."
+1170 endif
+1180 stop
+1190 print "Cannot find ACCESS list!"
+1200 end ".Abort."
