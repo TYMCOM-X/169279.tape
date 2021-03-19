@@ -1,0 +1,43 @@
+
+:
+:********************************************************************
+:
+: Patch name: PSTATE.TRC             Product and version: XCOM 3.01
+:     Author: James WAng                  Organization  : STS
+: !  Customer: NIS                        Date written  : Feb 7,1989
+:
+: Description of the patch:
+:        save the packet state change history in the table PSTATE indexed
+:        by the byte pointer PSPTR. Length of the table is PSLEN.
+:
+:**************************************************************************
+
+PA0PTR  EQ      ((PA0PTR+3)/4)*4
+PSLEN   EQ      1000
+PATCH(890207,1500,JWANG,PA0PTR,,PSLEN+2+NIPORT)
+PSTATE  BS      PSLEN
+PSPTR   HC      0
+VROLD   BS      NIPORT
+CONPATCH(TRCPAT-4,,0E)
+        JAL     R4,PST,,       :JUMP TO SAVE PACKET STATE
+TRCRTN  LM      0,TRCREG
+        UPSW    TRCPSD
+CONPATCH(PA1PTR,,42)
+PST     LB      R3,XVR,,   
+        CLB     R3,VROLD,,
+        JE      PSRTN
+        LHL     R5,PSPTR,,
+        STH     RL,PSTATE,R5,   :SAVE IPORT
+        STH     0F,PSTATE+2,R5, :SAVE JUMP ADDRESS
+        STB     R3,PSTATE+4,R5, :SAVE NEW PACKET STATE
+        STB     R3,VROLD,,    :SAVE PACKET STATE IN OLD PCKSTE ARRAY
+        AIS     R5,8            :ADVANCE POINTER BY 8 BYTES
+        CLHI    R5,PSLEN        :BOUNDARY?
+        JL      PSRTN1
+        LIS     R5,0
+PSRTN1  STH     R5,PSPTR,,
+PSRTN   JR      R4
+CONPATCH(BEXPSD+2,,2)
+        HC      1000            :TURN ON THE BACKGROUND HQRDWARE TRACE
+ENDPATCH(KEEP TRACK OF PACKET STATE CHANGE)
+
