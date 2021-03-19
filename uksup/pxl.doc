@@ -1,0 +1,1381 @@
+
+PXL-I FIELD SERVICE DOCUMENT                                19 DECEMBER 1990
+
+1.  INTRODUCTION.
+
+1.1  OVERVIEW.
+
+The purpose of this document  is to  outline  all  of the areas necessary to
+install, configure and support the PXL harware.
+
+This document has  nine (9)  different  sections  which are  broken down  as
+follows:
+
+Section 1, INTRODUCTION, describes the basic PXL architecture,  outlines the
+remaining sections of this document and related documentation.
+
+Section 2, CODE GENERATION, describes  the code  versions required  for  the
+PXL, and a brief description of the TYMFILE changes necessary.
+
+Section 3, CONFIGURATION GUIDELINES, describes the overall PXL configuration
+guidelines (including SIO, SYNC and ASYNC).
+
+Section 4, HARDWARE DESCRIPTIONS, describes each of the  main communications
+option boards and the basic system components.
+
+Section 5, INSTALLATION,  describes the basic PXL installation procedures.
+
+Section 6, PART NUMEBRS,  describes all necessary PXL part numbers.
+
+Section 7, CABLE SPECIFICATIONS, describes the PXL cables required for  each
+communication option.
+
+Section 8, LOOPBACK SPECIFICATIONS, describes the loopback options (loopback
+plugs and breakouts).
+
+Section 9, SAMPLE FILES, contains a sample ISIS TYMFILE, the commands  files
+for generations the ISIS kernel and node code file, and BITS loading.
+
+
+1.2  PXL ARCHITECTURE.
+
+The  PXL is  designed to  be a phased in replacement for the PICO engine and
+offers  the  same compatibility  as other members of the XL hardware family.
+Because  the  MAC  V  employs  a  different  virtual  to  physical   address
+translation format,  it is  NOT  compatible  with  any  previously  released
+software.
+
+Essentially  the PXL is a repackaging of the Compact XL into a significantly
+smaller  package.  PXL-I has 1 megabyte of memory and communications options
+equivalent  to a  single SIO motherboard, 8 standard sync ports and up to 32
+standard  low speed  async ports.   The PXL utilizes  logic cell  arrays and
+surface mount technology to reduce real estate and power consumption.
+
+1.3.  RELATED DOCUMENTATION.
+
+   o  PXL Maintenance Manual (NPD xxxxxx)
+   o  PXL Hardware Function Specification, dated 20 Novemebr 1990.
+   o  Installation Guide, PXL Systems, by Bob Chen, dated 31 May 1990.
+   o  ISIS Version 13 General External Design Specification
+   o  BITS Version 5.0 External Reference Specification
+
+
+2.  CODE GENERATION.
+
+The  MAC  V  structure of  the  PXL  requries  that modified versions of ALL
+supporting  code be used  to accomate the expanded MAC V addressing.  In the
+initial offering of the PXL the following versions of code MUST be used:
+
+    o  NAD        version  5.00  serial number 41
+    o  BITS       version  3.01  serial number 38
+    o  ISIS       version 13.01
+    o  NODE CODE  version  5.61
+    o  XCOM       version  4.04
+    o  ISCS       version 11.00 or 6.40
+
+    o  Standalone Diagnostics:
+
+       o  DCPU    version  4.60
+       o  DMAC    version  7.60
+       o  DMEM    version  4.60
+       o  DSIO    version  6.60
+       o  DSYA    version  5.01
+       o  DSYN    version  3.00
+
+    o  ISIS Slot Exercisers:
+
+       o  SLSIO   version 6.00
+       o  SLSYNC  version 6.00
+       o  SLASYNC version 6.00
+       o  SLCOPY  version 6.00
+
+
+  ISIS TYMFILE ADDITIONS:
+
+     o  MACHNS Macro   -  Machine level definition macro.  The only option
+        currently implemented is MAC type.  The structure of the MACHNS
+	macro is as follows:
+
+             MACHNS(type,cpu,mac)
+
+	     where
+               type = hardware type  [DEFAULT is ENGINE]
+	              (ENGINE, MINI, MICRO, TSI, PICO,HDLC,HSLCTMI)
+               cpu  = CPU type (CPU2,CPU3 or CPU4)  [DEFAULT is CPU3]
+	       mac  = Relocation hardware (valid only on ENGINE and MINI)
+	              (MAC2, MAC3 or MAC5)   [DEFAULT is MAC2]
+
+     o  NEWARN Equate  -  Indicates whether the Async ring device driver and
+        Async connect I/O SVC is to be used.  Default value is 0  (not using
+	the new async driver/SVC).  A value of enables the new Async code.
+        The NEWARN equate construct is:
+
+	    NEWARN	EQ	1	: Enable NEW ASYNC structure
+
+     o  SLOT Macro     -  A slot level macro to specify the SLOT number.
+        The SLOT macro construct is:
+
+	    SLOT(number)
+
+	    where number = is the the slot number
+
+     o  DMAMAP Macro   -  A slot level  macro to  specify  the slot  DMA are
+        which is relocated to low core memory.   This macro is REQUIRED only
+	for slots with DMA (SIO) devices.  The DMAMAP macro construct is:
+
+            DMAMAP(mem)
+
+	    where mem = is the decimal value of Kmemory reserved for DMA.
+
+
+
+  CODE GENERATION:
+
+  In addition to the above version of code the command line for generating
+  code for the PXL is the following:
+
+      gemini%nad -v -c cmd -m cmd.log
+
+      where
+        -v          = the MAC5 switch
+	-c cmd      = the name of the commands file to assemble
+	-m cmd.log  = the name of the file to generate the assembly log into.
+  
+  
+
+
+3.  CONFIGURATION GUIDELINES.
+
+The bus slots on the PXL look like this:
+
+      +---+---+---+---+---+---+---+---+---+---+
+      | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+      +---+---+---+---+---+---+---+---+---+---+
+      
+        |   |  |______________||______________|
+	|   |         |                |
+	|   |         |                |
+	|   |         |                 ----------  NON-DMA expansion
+	|   |          ---------------------------  DMA expansion
+	|    -------------------------------------  Reserved for TTY/V.24
+	 -----------------------------------------  Reserved for SIO MB
+
+
+    Slot 0:  PXL-1  requires  that  slot  0  be  reserved  for  the   SIO 
+             Motherboard  card.   PXL-2  will  have the  functionality of
+	     the SIO motherboard  rolled down  to  the  main  motherboard
+	     of the PXL.
+
+    Slot 1:  Reserved for the SCV24 card which contains the multifunction
+             logic and two (2) V.24 ports.  These  V.24 ports can be used
+	     for any application (node code, X.25,  SDLC, etc).   This is
+	     considered one of the 5 DMA capable slots.
+
+    Slot 2 - Slot 5:
+             Are the ONLY  DMA capable  expansion  slots.   These can run
+	     any combination of OCL, V.24, V.35 or SIO ASYNC  cards.  The
+	     restriction is the current SIO motherboard  guidelines.   In
+	     addition, the non-SIO async cards can run in these slots.
+
+    Slot 6 - Slot 9: 
+             Are NON-DMA capable  expansion slots.   These  slots can  be
+	     configured for ASYNC or a MAXIMUM of 8 sync ports.  The sync
+	     ports can ONLY be configured to run in these four slots.
+
+The rule of thumb for configurations (at this time) are as follows:
+
+   SYNC:  Maximum of 8 ports (4 on sync primary card, 4 on sync expansion
+          card).  Must be installed in  slots 6-9.   This is the standard
+	  sync available on the engine.  Available at speeds up to 19.2K.
+	  Maximum  sustainable SYNC  speed (aggregate CPS)  is  19200 CPS
+	  (each 19.2K  line has a  value of  2400 CPS  for a  total  of 8
+	  lines  at 19.2K).   The sync boards for the PXL are designed to
+	  be referenced as the  NON-PRIMATIVE ports  (ports which provide
+	  the full range of signals).  This is the reason for restricting
+	  the  number  of  sync  ports  to 8 as  the  8  configurable are
+	  defined as follows:
+
+	      Physical port	Logical Port
+	      -------- ----     ------- ----
+
+	            0		      2
+		    1                 3
+		    2                 6
+		    3                 7
+		    4                10
+		    5                11
+		    6                14
+		    7                15
+
+          Therefore, the NSYNC value in the TYMFILE must be set to 16 if
+	  all 8 sync ports are active.
+
+
+   ASYNC: Maximum of 32 ports  (configurable as 4 per primary card, 4 per
+          expansion card).  Can be installed  in ANY  slots (2-9).   This
+	  is the  standard async  available on the engine.   Available at
+	  300-2400 with BAUDR  set to  0 (low  speed) and  300-4800  with
+	  BAUDR set to 2 (high speed).   Maximum sustainable ASYNC  speed
+	  (aggregate CPS)  is  4200-4500 CPS,  no more  than  10 PC  file
+          transfers simultaneously.
+
+
+   SIO:   Follows CFB 168 (published SIO Configuration Guidelines):
+
+          V.24  lines can be  any  speed up to  19200 BPS (some examples:
+	  4800, 9600, 14400, 19200).   However, the configurations  below
+	  treat all speeds the same!   (Example: You can NOT trade 1 19.2
+	  for 2 9.6 lines.)
+
+          SIO ASYNC lines can be run at any selectable speed (50-9600).
+
+          Valid  configurations  are listed in order of priorities.  Pick
+	  one  configuration.
+
+	  THESE GUIDELINES ENCOMPASS  ALL SIO PORTS  (SVC24 PORTS ARE SIO
+	  AND THERFORE FALL UNDER THESE GUIDELINES).
+
+	  NO OTHER CONFIGURATIONS WILL BE SUPPORTED!
+
+	     #1   2x72KB (V.35)
+
+	     #2   3x64KB (V.35)
+
+             #3   4x56KB (V.35)
+
+             #4   2x56KB (V.35) + 4xV.24
+
+             #5   2x56KB (V.35) + 2xV.24 + 2 MS (OCL),  or
+                  2x56KB (V.35) + 2xV.24
+
+             #6   2x56KB (V.35) + 4 MS (OCL),  or
+                  2x56KB (V.35) + 2 MS (OCL)
+
+             #7   12xV.24,  or
+                  10xV.24,  or
+                   8xV.24
+
+             #8   10xV.24 +  2xASYNC,  or
+                   8xV.24 +  4xASYNC,  or
+                   6xV.24 +  6xASYNC,  or
+                   4xV.24 +  8xASYNC,  or
+                   2xV.24 + 10xASYNC
+
+             #9    6xV.24,  or
+                   4xV.24,  or
+                   2xV.24
+
+             #10   6xV.24 + 2 MS (OCL)
+
+             #11   4xV.24 + 4 MS (OCL)
+
+             #12   2xV.24 + 6 MS (OCL)
+
+             #13   4xV.24 + 2 MS (OCL) + 2xASYNC,  or
+                   2xV.24 + 4 MS (OCL) + 2xASYNC,  or
+                   2xV.24 + 2 MS (OCL) + 4xASYNC
+
+             #14   8 MS (OCL),  or
+                   6 MS (OCL),  or
+                   4 MS (OCL),  or
+                   2 MS (OCL)
+
+             #15   6 MS (OCL) + 2xASYNC,  or
+                   4 MS (OCL) + 4xASYNC,  or
+                   2 MS (OCL) + 6xASYNC
+
+             #16  16xASYNC,  or
+                  14xASYNC,  or
+                  12xASYNC,  or
+                  10xASYNC,  or
+                   8xASYNC,  or
+                   6xASYNC,  or
+                   4xASYNC,  or
+                   2xASYNC,  or
+
+
+
+4.  HARDWARE DESCRIPTION.
+
+4.1  BASIC SYSTEM
+
+Chassis
+
+The  power supply  chosen to  operate the  PXL is  an international DC power
+supply which has the following characteristics:
+
+   o  Automatic selection of AC input (90-132/175-264 VAC, 47-63 Hz)
+   o  All outputs fully regulated
+   o  Internal input line filter
+   o  UL recognized, CSA certified
+   o  80 watt power supply characteristics
+
+SIO Port addressing.
+
+All  daughtercards follow  the same  port address method using a 16 position
+dial to set the motherboard port addressing:
+
+    As viewed from the top down:
+
+    +-------------------------------------------------------------------+
+    |       C                                                           |
+    |     +---+                                                         |
+    |   8 |   | 0							|
+    |     +---+								|
+    |       4                                                           |
+    +-------------------------------------------------------------------+
+
+    where:
+
+       0   =  SIO ports addressed as 0,1
+       1   =  SIO ports addressed as 2,3
+       2   =  SIO ports addressed as 4,5
+       3   =  SIO ports addressed as 6,7
+       4   =  SIO ports addressed as 8,9
+       5   =  SIO ports addressed as A,B
+       6   =  SIO ports addressed as C,D
+       7   =  SIO ports addressed as E,F
+       8-F =  SIO ports DISABLED
+
+
+
+Stake Jumper Pin Orientation.
+
+The  orientatation  of pin 1 on the  stake jumper can  be confusing, but a
+quick check on the  soldered side of  the PCB will  reveal the location of
+pin 1 by the SQUARE solder connection.
+
+
+
+4.1.1  PXL MOTHERBOARD
+
+The  PXL motherboard is  functionally equivalent  to the CPU III and MAC V
+standard engine boards.
+
+
+4.1.2  SIO MOTHERBOARD
+
+The  PXL SIO motherboard is  functionally  equivalent  to SIO  motherboard
+on a standard engine.
+
+4.1.3  SCV24  [470359-001]
+
+The SCV24 combines the standard engine Multifunction card with a Old Style
+SIO  V.24 two (2) port  daughtercard.   
+
+A simplified diagram of the SCV24 daughtercard is as follows:
+
+   	           SCV24 CARD   470359-001          
+
+     +---------------------------------------------------+  
+    |                                                 BT -|-
+    |                          S2   E  E  E  S  E  E     -| 
+    |                               1  4  4  3  2  1  TTY | 
+    |                               2  4  3              -| 
+    |                                                     | 
+    |                                                    -| 
+    |                                                 x1  | 
+    |                                                    -| 
+    |                                                     | 
+    |                                                    -| 
+    |                                                 x0  |   
+    |                                                    -| 
+    |                                                     |
+     ---------------------------                       ---  
+                                |_____________________|    
+
+
+     where:
+
+       S2 =   Multifunction configuration 8 position DIP switch:
+
+                Switch 1:  BRG Interrupter Enabled
+                           OPEN   =  Disabled 
+		           CLOSED =  Enabled  [DEFAULT]
+                Switch 2:  Terminal break key status enabled  
+                           OPEN   =  Disabled  [DEFAULT]
+		           CLOSED =  Enabled
+                Switch 3:  Multifunction logic enabled 
+                           OPEN   =  Disabled
+		           CLOSED =  Enabled  [DEFAULT]
+                Switch 4:  Watchdog Timer
+                           OPEN   =  Disabled
+		           CLOSED =  Enabled  [DEFAULT]
+                Switch 5:  BRG Interrupter Priority Level [3600/14400]
+                           OPEN   =  ATN00  [DEFAULT]
+		           CLOSED =  ATN20
+                Switch 6:  BRG Interrupter Frequency (Hz) [N/T Jumper]
+                           OPEN   =   3600  [BAUDR = 0]   [DEFAULT]
+		           CLOSED =  14400  [BAUDR = 2]
+                Switch 7:  Reserved for future use
+                           OPEN   =  
+		           CLOSED =  [DEFAULT]
+                Switch 8:  Reserved for future use
+                           OPEN   =
+			   CLOSED =  [DEFAULT]
+
+
+       E12 =  TTY port terminal baud rate (4 stake jumper) where
+
+               1-2 OPEN   3-4 OPEN   5-6 OPEN   7-8 OPEN   Baud rate = 9600
+               1-2 CLOSED 3-4 OPEN   5-6 OPEN   7-8 OPEN   Baud rate = 4800
+               1-2 OPEN   3-4 CLOSED 5-6 OPEN   7-8 OPEN   Baud rate = 2400
+               1-2 OPEN   3-4 OPEN   5-6 CLOSED 7-8 OPEN   Baud rate = 1200
+               1-2 OPEN   3-4 OPEN   5-6 OPEN   7-8 CLOSED Baud rate =  300
+
+                 CLOSED = Jumper Installed    OPEN = No Jumper Installed
+
+       E44 =  Port 1 clock speed selector:
+
+                1-2 OPEN   3-4 OPEN   Clock speed =  2400
+		1-2 CLOSED 3-4 OPEN   Clock speed =  4800
+		1-2 OPEN   3-4 CLOSED Clock speed =  9600
+		1-2 CLOSED 3-4 CLOSED Clock speed = 19200
+
+                 CLOSED = Jumper Installed    OPEN = No Jumper Installed
+
+       E43 =  Port 0 clock speed selector (same options as E44).
+
+       S3  =  Port addressing dial switch (see Section 4.1 above).
+
+       E7  =  Clock selection (port 0 and port 1) selector:
+
+               1-2  Port 0 Transmit clock direction
+	       3-4  Port 0 Receive  clock direction
+	       5-6  Port 1 Transmit clock direction
+	       7-8  Port 1 Receive  clock direction
+
+	       OPEN   - No jumper installed  clocks provided EXTERNALLY
+	       CLOSED - Jumper installed     clocks provided INTERNALLY
+
+       E1  =  Watchdog timer status jumper (2 stake jumper) where
+
+               1-2 OPEN   Watchdog timer DISABLED
+	       1-2 CLOSED Wathdcog timer ENABLED
+
+		 CLOSED = Jumper Installed    OPEN = No Jumper Installed
+
+       BT  =  Snap action boot switch.
+       TTY =  Console TTY port
+
+       x0  =  Port  0  RJ45 connector
+       x1  =  Port  1  RJ45 connector           
+
+
+NOTE:  There are two items concerning the WATCHDOG timer,  BOTH must  be set
+       to option desired (enabled or disabled).
+     
+
+4.2  OPTION CARDS.
+
+4.2.1  SV35 CARD  [470370-001]
+
+The  SV35 PXL  daughtercard is  the  equivalent  of  the  SIO V.35 OLD-STYLE
+daughtercard on the  standard engine.  The SV35 provides 2 ports capable  of
+running up to 72Kb  per port.
+
+The  SV35 is capable  of providing both  transmit and receive test clocks at
+56Kb.  These are on-board [INTERNAL] clocks.
+
+A simplified diagram of the SV35 daughtercard is as follows:
+
+              SV35  REVISION  B  [470370-001]
+
+               +---------------------------+  
+              | S   E E S S   E E S S       | 
+              | 5   2 1 2 3   4 5 1 4      -|
+              |                          x1 | 
+              |                            -| 
+              |                             | 
+              |                             | 
+              |                             | 
+              |                            -| 
+              |                          x0 | 
+              |                            -| 
+              |                             | 
+              |                             | 
+              |                             |
+               ---                       ---  
+                  |_____________________|    
+
+
+
+    where:
+   
+       S5  =    Port addressing dial switch (see Section 4.1 above).
+
+       E2  =    4 stake jumper for  determining whether  Port 1  is
+	        configured  for  TRANSMIT  cloc  be   INTERNAL
+	        or EXTERNAL:
+
+ 	            1-2 CLOSED   3-4 OPEN    Clocking is INTERNAL
+ 	            1-2 OPEN     3-4 CLOSED  Clocking is EXTERNAL
+
+		    where
+		      OPEN   - Jumper NOT installed
+		      CLOSED - Jumper installed
+
+        E1  =    4 stake jumper for  determining whether  Port 1  is
+	         configured  for   RECEIVE  clock  to  be   INTERNAL
+		 or EXTERNAL:
+
+ 	            1-2 CLOSED   3-4 OPEN    Clocking is INTERNAL
+ 	            1-2 OPEN     3-4 CLOSED  Clocking is EXTERNAL
+
+		    where
+		      OPEN   - Jumper NOT installed
+		      CLOSED - Jumper installed
+
+        S2  =    Two  position  switch  (up/down) to  determine  the
+	         function of the on-board RECEIVE  clock for Port 1:
+
+		    UP    -  On-board clock is DISABLED
+		    DOWN  -  On-board clock is ENABLED
+
+	S3  =    Two  position  switch  (up/down)  to  determine the
+	         function of the on-board TRANSMIT clock for Port 1:
+
+		    UP    -  On-board clock is DISABLED
+		    DOWN  -  On-board clock is ENABLED
+     
+        E4  =    4 stake jumper for  determining whether  Port 0  is
+	         configured  for  TRANSMIT  clock  to  be   INTERNAL
+		 or EXTERNAL (same options as E2).
+
+        E5  =    4 stake jumper for  determining whether  Port 0  is
+	         configured  for   RECEIVE  clock  to  be   INTERNAL
+		 or EXTERNAL (same options as E1).
+
+        S1  =    Two  position  switch  (up/down) to  determine  the
+	         function of the on-board RECEIVE  clock for  Port 0
+		 (same options as S1).
+
+        S4  =    Two  position  switch  (up/down)  to  determine the
+                 function of the on-board TRANSMIT clock for  Port 0
+		 (same options as S4).
+
+        x0  =    Port 0 DB15 connector (FEMALE)
+        x1  =    Port 1 DB15 connector (FEMALE)
+  
+
+4.2.2  SV24  [470364-001]
+
+The  SV24 PXL daughtercard is  the equivalent of two (2) SIO SYNC  OLD-STYLE
+daughtercards on the  standard engine.  The SV24 provides 4 ports capable of
+running speeds up to 19.2Kb.
+
+A simplified diagram of the SV24 daughtercard is as follows:
+
+	      SV24  REVISION B   [470364-001]
+
+	       +---------------------------+  
+              |                             | 
+              |   S S  E E E E     E E     -|
+              |   1 2  5 6 7 8     2 1   x3 | 
+              |                            -| 
+              |                            -| 
+              |                          x2 | 
+              |                            -| 
+              |                            -| 
+              |                          x1 | 
+              |                            -| 
+              |                            -| 
+              |                          x0 | 
+              |                            -|
+               ---                       ---  
+                  |_____________________|    
+
+
+    where:
+
+       S1  = Port addressing dial switch for port 0 and 1 (see Section 4.1)
+       S2  = Port addressing dial switch for port 2 and 3 (see Section 4.1)
+
+       E5 =  Port 0 clock speed selector:
+
+                1-2 OPEN   3-4 OPEN   Clock speed =  2400
+		1-2 CLOSED 3-4 OPEN   Clock speed =  4800
+		1-2 OPEN   3-4 CLOSED Clock speed =  9600
+		1-2 CLOSED 3-4 CLOSED Clock speed = 19200
+
+                 CLOSED = Jumper Installed    OPEN = No Jumper Installed
+
+       E6 =  Port 1 clock speed selector (same options as E5).
+       E7 =  Port 2 clock speed selector (same options as E5).
+       E8 =  Port 3 clock speed selector (same options as E5).
+
+       E2  =  Clock selection (port 2 and port 3) selector:
+
+               1-2  Port 2 Transmit clock direction
+	       3-4  Port 2 Receive  clock direction
+	       5-6  Port 3 Transmit clock direction
+	       7-8  Port 3 Receive  clock direction
+
+	       OPEN   - No jumper installed  clocks provided EXTERNALLY
+	       CLOSED - Jumper installed     clocks provided INTERNALLY
+
+       E1  =  Clock selection (port 1 and port 1) selector:
+
+               1-2  Port 0 Transmit clock direction
+	       3-4  Port 0 Receive  clock direction
+	       5-6  Port 1 Transmit clock direction
+	       7-8  Port 1 Receive  clock direction
+
+	       OPEN   - No jumper installed  clocks provided EXTERNALLY
+	       CLOSED - Jumper installed     clocks provided INTERNALLY
+
+       x0  =  Port 0 RJ45 connector
+       x1  =  Port 1 RJ45 connector
+       x2  =  Port 2 RJ45 connector
+       x3  =  Port 3 RJ45 connector
+
+4.2.3  AV24  [470363-001]
+
+The  AV24 PXL daughtercard is  the equivalent of two (2) SIO ASYNC OLD-STYLE
+daughtercards on the  standard engine.  The AV24 provides 4 ports capable of
+running speeds up to 9.6Kb.
+
+A simplified diagram of the AV24 daughtercard is as follows:
+
+	      AV24  REVISION B   [470363-001]
+
+	       +---------------------------+  
+              |                             | 
+              |    S S S S S S             -|
+              |    1 2 3 4 5 6           x3 | 
+              |                            -| 
+              |                            -| 
+              |                          x2 | 
+              |                            -| 
+              |                            -| 
+              |                          x1 | 
+              |                            -| 
+              |                            -| 
+              |                          x0 | 
+              |                            -|
+               ---                       ---  
+                  |_____________________|    
+
+
+    where:
+
+       S1 = Port addressing dial switch for port 0 and 1 (see Section 4.1)
+       S2 = Port addressing dial switch for port 2 and 3 (see Section 4.1)
+       
+       S3 =  Ports 0 and 1 TRANSMIT speed selector dial:
+       
+                0   =    300 baud
+		1   =    600 baud
+		2   =   1200 baud
+		3   =   2400 baud
+		4   =   4800 baud
+		5   =   9600 baud
+		6   =  19200 baud
+		7   =  38400 baud
+		8-F =  Clocks OFF
+                
+       S4 =  Ports 0 and 1 RECEIVE  speed selector dial (same options as S3).
+       S5 =  Ports 2 and 3 TRANSMIT speed selector dial (same options as S3).
+       S6 =  Ports 2 and 3 RECEIVE  speed selector dial (same options as S3).
+
+       x0 =  Port 0 RJ45 connector
+       x1 =  Port 1 RJ45 connector
+       x2 =  Port 2 RJ45 connector
+       x3 =  Port 3 RJ45 connector
+
+4.2.4  POCL  [470377-001]
+
+The  POCL PXL  daughtercard is  the  equivalent  of  the  SIO OCL  OLD-STYLE
+daughtercard  on the  standard engine.  The POCL provides 2 ports capable of
+running up to 162Kb per port.
+
+A simplified diagram of the POCL daughtercard is as follows:
+
+              POCL  REVISION B   [470377-001]
+
+	       +---------------------------+  
+              |                             | 
+              |         S1                 -|
+              |                          x1 | 
+              |                            -| 
+              |                             | 
+              |                             | 
+              |                             | 
+              |                            -| 
+              |                          x0 | 
+              |                            -| 
+              |                             | 
+              |                             | 
+              |                             |
+               ---                       ---  
+                  |_____________________|    
+
+
+
+
+    where:
+ 
+       S1  =  Port addressing dial switch (see Section 4.1 above).
+
+       x0  =  Port 0 DB9 connector (FEMALE)
+       x1  =  Port 1 DB9 connector (FEMALE)
+  
+
+4.2.5  SP/SE  [SP 470360-001  -  SE  470362-001]
+
+The SP/SE PXL daughtercards are the equivalent of the standard  Engine  sync
+motherboard.   The SP/SE  daughtercards provide  a  combined 8 ports of sync
+access (speeds to 19.2K bps).  A MAXIMUM of  1 SP and 1 SE can be configured
+and supported in a single PXL.   The SP/SE  provide  a full  set  of  RS-232
+signals  (non-primative  ports)  and  therefore  the  8 ports  available are
+viewed  from ISIS  as a  full 16  port sync  board (primative ports are  not
+available).   The SP/SE cards can be installed in any of the PXL non-SIO bus
+slots (slots 5-9) with the SP prior to the SE board.  The SP board is a full
+size  daughtercard  with  the  logic  to  maintain  8  ports,  while  the SE
+daughtercard  is a half-size  card with only the drivers for 4 ports.
+
+A simplified diagram of the SP and SE  daughtercards is as follows:
+
+    	              SP CARD   470360-001          
+
+     +---------------------------------------------------+  
+    |                                                     |
+    |                          E2   E1        E3  E4     -| 
+    |                                                  x3 | 
+    |                                                    -| 
+    |                                                    -| 
+    |                                                  x2 | 
+    |                                                    -| 
+    |                                                    -| 
+    |                                                  x1 | 
+    |                                                    -| 
+    |                                                    -|
+    |                                                  x0 | 
+    |                                                    -|
+    |                                                     |
+     ---------------------------                       ---  
+                                |_____________________|    
+
+
+ 		   SE CARD   [470362-001]
+	       +---------------------------+  
+              |                             | 
+              |                E2  E1      -|
+              |                          x0 | 
+              |                            -| 
+              |                            -| 
+              |                          x1 | 
+              |                            -| 
+              |                            -| 
+              |                          x2 | 
+              |                            -| 
+              |                            -| 
+              |                          x3 | 
+              |                            -|
+               ---                       ---  
+                  |_____________________|    
+
+
+     where:
+
+       E2 =  Clock speeds available
+
+               1-2 OPEN    Speeds available are 19.2Kb and 9.6Kb
+	       1-2 CLOSED  Speeds available are  9.6Kb and 4.8Kb
+
+       E1 =  Port Addressing jumper
+
+               1-2 OPEN    High ports  (40-5F, FF)
+	       1-2 CLOSED  Low  ports  (20-3F, 8F)
+
+       E3 =  TRANSMIT clock speed selector:
+
+               1-2-3      Transmit clock port 0
+	       4-5-6      Transmit clock port 1
+	       7-8-9      Transmit clock port 2
+	       10-11-12   Transmit clock port 3
+
+	       where  [Depending upon E2 speed selection setting]
+	         a-b-c = Jumper between a-b  speed are 4800 or 9600
+		         Jumper between b-c  speed aer 9600 or 19200
+
+       E4 =  RECEIVE clock speed selector:
+
+               1-2-3      Receive  clock port 0
+	       4-5-6      Receive  clock port 1
+	       7-8-9      Receive  clock port 2
+	       10-11-12   Receive  clock port 3
+
+	       where
+	         a-b-c = Jumper between a-b  speed is 4800
+		         Jumper between b-c  speed is 9600
+
+     
+       x0 =  Port 0 RJ45 connector
+       x1 =  Port 1 RJ45 connector
+       x2 =  Port 2 RJ45 connector
+       x3 =  Port 3 RJ45 connector
+                
+
+
+
+ 4.2.6  AP/AE   [AP  470361-001  -  AE  470365-001]
+
+The AP/AE PXL daughtercards are the equivalent of the standard  Engine async
+motherboard.   The AP/AE  daughtercards provide  a  combined 8 ports of  low
+access  (300-2400  baud).    A  MAXIMUM  of  32 async ports (4 AP/AE) can be
+configured on the PXL.    The AP/AE cards can be installed in any of the PXL
+bus slots except slots 0 (reserved for SIO motherboard) and slot 1 (reserved
+for SCV24 board).
+
+Each  card  is a half-size  card,  with the AP daughtercard  containing  the
+logic  to  maintain  8  ports,  while  the AE  daughtercard  card with  only
+the drivers for 4 ports.
+
+
+A simplified diagram of the async cards is as follows:
+
+
+
+	  AP  (ASYNC  PRIMARY)             AE (ASYNC  EXTENSION)
+    	         470361-001                       470365-001
+
+     +----------------------------+    +----------------------------+
+    |  ||                          |  |                              |
+    |  E1                         -|  |                             -| 
+    |                          x3 _|  |                          x3 _| 
+    |                              |  |                              |
+    |                             -|  |                             -|
+    |                          x2 _|  |                          x2 _| 
+    |                              |  |                              |
+    |                             -|  |                             -|
+    |                          x1 _|  |                          x1 _| 
+    |                              |  |                              |
+    |                             -|  |                             -|
+    |                          x0 _|  |                          x0 _| 
+    |                              |  |                              |
+     ---                        ---    ---                        ---
+        |______________________|          |______________________|
+
+     where:
+
+       E1 =     4 stake jumper used to determine the Async port addressing
+
+       x0 =     Port  0                           Port  4
+       x1 =     Port  1                           Port  5
+       x2 =     Port  2                           Port  6
+       x3 =     Port  3                           Port  7
+                
+
+
+The  E1 jumper on the  AP daughtercard  [470361-001] is  used to specify the
+async board  addressing used by ISIS and to designate the port range for the
+AP/AE boards (s).   Each AP board controls the addressing for itself and one
+(1) AE (if necessary).  As viewed from the top down the  E1 jumper is set as
+follows:
+
+    +-------------------------------------------------------------------+
+    |     3 1                                                      PORT |
+    |     4 2                                                CONNECTORS |
+    +-------------------------------------------------------------------+
+
+	 where:
+
+	   1-2 OPEN   and 3-4   OPEN:  Async MB address 0C1 ports 8-15
+	   1-2 CLOSED and 3-4   OPEN:  Async MB address 0C1 ports 0- 7
+	   1-2 OPEN   and 3-4 CLOSED:  Async MB address 0C8 ports 8-15
+	   1-2 CLOSED and 3-4 CLOSED:  Async MB address 0C8 ports 0- 7
+
+	   OPEN - No jumper  installed      CLOSED - Jumper installed
+
+5.  INSTALLATION AND TROUBLESHOOTING.
+
+The  following section  will describe  the installation process and note any
+on-site troubleshooting that can be performed.
+
+5.1
+
+5.2
+
+5.3
+
+5.4
+
+
+
+
+6.  PART NUMBERS.
+
+The  following section  lists  the  part  numbers  associated with the PXL-I
+hardware:
+
+   BASIC SYSTEM:
+
+      470367-001  PXL motherboard
+      470374-001  SIO Motherboard
+      470359-001  SCV24 board  [SIO V.24       2 ports, TTY port]
+
+   OPTION CARDS:
+
+      470359-001  SV35  board  [SIO V.35       2 ports]
+      470363-001  AV24  board  [SIO Async      4 ports]
+      470364-001  SV24  board  [SIO V.24       4 ports]
+      470377-001  POCL  board  [SIO OCL        2 ports]
+
+      470361-001  AP    board  [Standard Async 4 ports each]
+      470365-001  AE    board  [Standard Async 4 ports each]
+
+      470360-001  SP    board  [Standard Sync  4 ports each]
+      470362-001  SE    board  [Standard Sync  4 ports each]
+
+
+   CABLES:
+
+      160526-001  DB-9  to DB-25 OCL       [POCL]
+      160537-001  RJ-45 to DB-25 Async     [AV24 and AP/AE]
+      160547-002  RJ-45 t0 DB-25 Sync      [SV24 and SCV24]
+      160602-001  DB-15 to Winchester      [SV35]
+      160608-001  RJ-45 to DB-25 Console   [SCV24]
+
+
+   LOOPBACK PLUGS:
+
+      630038-001  DB-9  SIO OCL        [POCL]
+      630050-001  RJ-45 Async          [AE/AP]
+      630080-001  RJ-45 SIO Async      [AV24]
+      630081-001  RJ-45 Sync Loopback  [SCV24 and SV24]
+      630082-001  DB-15 SIO V.35       [SV35]
+
+7.  CABLE SPECIFICATIONS.
+
+The  following  section outlines the cable specifications for the individual
+PXL communication types.
+
+
+7.1  V.35 Cable: 160602-TAB  (DB15 to Winchester)
+
+     DB15 (MALE)  to  WINCHESTER (MALE)  Straight Thru
+
+	  DB15             WINCHESTER
+	  ----             ----------
+
+	    9      TD(a)        P
+	    2      TD(b)        S
+	   11      RD(a)        R
+	    4      RD(b)        T
+	   14      RC(a)        V
+	    7      RC(b)        X
+	   13      TC(a)        Y
+	    6      TC(b)        a
+	    3      RTS          C
+	   10      DTR          H
+           12      CTS          D
+	    5      DSR          E
+	    8      SG           B
+	   15      DCD          F
+
+
+
+7.2  SYNC (V.24)  Cable: 160547-TAB  (RJ45 to DB-25)
+
+     RJ-45 to  DB-25 (MALE)  Straight Thru
+
+
+	   RJ45          DB25
+           ----          ----
+
+	     1    TD       2
+	     2    RD       3
+	     3    RTS      4
+	     4    CTS      5
+	     5    DSR      6
+	          DCD      8
+	     6    TC      15
+	     7    DTR     20
+	     8    RC      17
+
+
+7.3  ASYNC Cable: 160537-TAB  (RJ45 to DB-25)
+
+     RJ-45 to  DB-25 (MALE)  Straight Thru
+
+	   RJ45          DB25
+           ----          ----
+
+	     1    RI      22
+	     2    DSR      6
+	     3    RD       3
+	     4    DCD      8
+	     5    TD       2
+	     6    DTR     20
+	     7    S.GND    7
+	     8    BUSY    25
+
+
+
+7.4  OCL Cable: 160526-TAB  (DB9 to DB-25)
+
+     DB-9 to  DB-25 (MALE)  Straight Thru
+
+
+       DB9 (MALE)  to  DB25 (MALE)
+
+	   DB9           DB25
+           ---           ----
+
+	    2    TD(a)     4
+	    3    TD(b)     5
+	    6    RD(a)    11
+	    7    RD(b)    12
+
+
+
+7.5  CONSOLE TTY Cable: 160608-TAB  (RJ45 to DB-25)
+
+     RJ-45 to  DB-25 (MALE)  Straight Thru
+
+	   RJ45          DB25
+           ----          ----
+
+	     1    RI      22
+	     2    DSR      6
+	     3    RD       3
+	     4    DCD      8
+	     5    TD       2
+	     6    DTR     20
+	     7    SG       7
+	     8    CTS      5
+
+8.  LOOPBACK SPECIFICATIONS.
+
+The  following  section  outlines the  loopback options  for the  individual
+PXL communication cards:
+
+8.1  SV35 Loopback Plug:  630082-001  (DB-15 MALE)
+
+       Pin  3 [RTS]   to  Pin 12 [CTS]
+       Pin 10 [DTR    to  Pin  5 [DSR]
+       Pin  6 [TC(b)] to  Pin  7 [RC(b)]
+       Pin 13 [TC(a)] to  Pin 14 [RC(a)]
+       Pin  2 [TD(b)] to  Pin  4 [RD(b)]
+       Pin  9 [TD(a)] to  Pin 11 [RD(a)]
+
+
+8.2  SIO SYNC  Loopback Plug:  630081-001  (RJ-45)
+
+8.3  SIO ASYNC Loopback Plug:  630080-001  (RJ-45)
+
+8.4  OCL Loopback Plug:  630038-001  (DB-9 FEMALE)
+
+      Pin 2 TD(a)  to   Pin 6 RD(b)
+      Pin 3 RD(b)  to   Pin 7 RD(b)
+
+
+8.5  SP/SE SYNC  Loopback Plug:  630042-001  RJ45
+
+   
+8.6  AP/AE ASYNC Loopback Plug:  630050-001  RJ45
+
+      Pin  2 (TD)   to  Pin  3 (RD)
+      Pin  6 (DSR)  to  Pin 20 (DTR)
+      Pin  8 (DCD)  to  Pin 25 (BUSY)
+
+
+9.  SAMPLE FILES.
+
+9.1  ISIS TYMFILE.
+
+The following is a sample ISIS version 13.01 TYMFILE:
+
+: ***********************************************************************
+: *									*
+: *  NTSNET LAB    PXL   PCI BETATEST					*
+: *									*
+: *  NODE: 4336    KERNEL: 1766						*
+: *									*
+: ***********************************************************************
+
+:               Hardware Configuration
+
+	MACHNS(,,MAC5)	:  ISIS version 13.00 hardware declaration
+
+MACHIN  EQ      1       :  TYMNET engine
+MICRO	EQ	2	:  Enhanced sync/async micro code
+
+NSYNC   EQ      0       :  No. of SYNC  lines
+NASYNG	EQ	1	:  No. of ASYNC groups (1 group = 16d ports)
+ASYNEW	EQ	2	:  Uses new ASYNC driver
+N.ADA	EQ	1	:  Uses new async addressing (0C1)
+M.NCARD EQ      1       :  Number of SIO mother-boards
+M.DA0   EQ      80      :  Device address for mother-board 0
+M.NP0   EQ      $A 10   :  Number of ports for mother-board 0
+
+:               ISIS Configuration Constraints
+NSLOT   EQ      4       :  Number of application/interface slots
+NLU     EQ      5       :  Max. number of logical units per slot
+EE.BP   EQ      1       :  Enable end-to-end backpressuring
+SIOINC  EQ      1       :  Ensure that all channels are polled during a single
+                        :  foreground cycle at initialization.
+FGFREQ  EQ      $A 12   :  Reduce time between FG execution starts from every
+                        :  25ms  to every 20ms.    Each  FG tick is 1.6667 ms
+                        :  (default is $A 15).               
+SPAM	EQ	1	:  Turn on the SPAM monitor
+BAUDR	EQ	2	:  Async HIGH speed  (300-2400 bps)
+NEWARN	EQ	1	:  Enable usage of the new Async ring structure
+
+:               Node Configuration
+MACHNM  EQ      $8 4336 :  Node number
+HST0    EQ      $A 1766 :  ISIS Kernel host number
+NETID   EQ      $A   56 :  Network Identifier (NTSNet)       
+TII     EQ      1       :  1 if using TYMNET-II on this node
+TIINEW	EQ	1	:  XRAY statistic collection enabled
+LBOOT   EQ      0       :  Do NOT reserve 4K of memory for bootstrap
+NOSEG   EQ      0       :  No segmentation optimization
+PTHRU   EQ      0       :  1 if passthroughs inhibitted
+NPTHR   EQ      $A 256  :  Number of passthroughs (default 256)
+IKNRNG  EQ      1       :  Uses negative kernel ring ptrs (ISIS 6.00 or above)
+CKSM	EQ	1	:  So this will talk to $#%&(*& ATC!!
+REBTST	EQ	1	:  Enable rebuild
+
+	:  NODE CODE options:
+	:    REBLD  -  Rebuild enabled
+	:    NSTH   -  Halt hardware on crash
+	:    NSTS   -  Halt software on crash
+
+	OPTION(REBLD,NSTH,NSTS) 
+
+:       Network Configuration - Neighbor, groups, window size
+
+XLINKS  EQ      4       :  Number of wild card neighbors (must be WS8)
+
+
+:       Miscellaneous
+
+MEMRMK  EQ      1       :  Display memory usages during assembly
+
+P1SIZE  EQ      800     :  Increase number of bytes in Segment 1 for patches
+PHSIZE  EQ      $0 400  :  Increase number of bytes reserved for the author
+                        :  and creation time of patches
+
+
+
+:       SLOT 0 --- NODE CODE
+	SLOT(0)				: Slot number 0
+	DMAMAP(64)			: Reserve 64dK low core memory for DMA
+S0CORE  EQ      $A 268			: Slot 0 core allocation
+NLUS0   EQ      3			: Number of LU assigned to slot 0
+S0L0	M.REF(0,0)			: V35   64Kb     SV35    Port 0
+S0L1	M.REF(0,2)			: V24   19.2Kb   SCV24   Port 0
+S0L2	M.REF(0,3)			: V24   19.2Kb   SCV24   Port 1
+
+
+:       SLOT 1 ---  CONSAT  --  ASYNC HIGH SPEED
+	SLOT(1)				: Slot number 1
+	DMAMAP(8)			: Reserve 8dK low core memory for DMA
+S1CORE  EQ      $A 80			: Slot 1 core allocation
+NLUS1   EQ      1			: Number of LU assigned to slot 1
+S1LIC	EQ	TL.AUX			: Assigned aux circuit license
+S1L0	A.REF(0)			: Standard Async  AP/AE  Ports 0-15
+
+:       SLOT 2 ---  CONSAT  --  SIO ASYNC
+	SLOT(2)				: Slot number 2
+	DMAMAP(16)			: Reserve 16dK low core memory for DMA
+S2CORE  EQ      $A 80			: Slot 2 core allocation
+NLUS2   EQ      4			: Number of LU assigned to slot 2
+S2LIC	EQ	TL.AUX			: Assigned aux circuit license
+S2L0    M.REF(0,6)			: ASYNC   9.6Kb   AP24    Port 0
+S2L1    M.REF(0,7)			: ASYNC   9.6Kb   AP24    Port 1
+S2L2    M.REF(0,8)			: ASYNC   9.6Kb   AP24    Port 2
+S2L3    M.REF(0,9)			: ASYNC   9.6Kb   AP24    Port 3
+
+:       SLOT 3 ---  XCOM
+	SLOT(3)				: Slot number 3
+	DMAMAP(16)			: Reserve 16dK low core memory for DMA
+S3CORE  EQ      $A 260			: Slot 3 core allocation
+NLUS3   EQ      1			: Number of LU assigned to slot 3
+S3LIC	EQ	TL.AUX			: Assigned aux circuit license
+S3L0    M.REF(0,4)			: V24   9.6Kb   SV24    Port 0
+S3L1    M.REF(0,5)			: V24   9.6Kb   SV24    Port 1
+
+:       SLOT 4 ---  SPARE
+	SLOT(4)				: Slot number 4
+	DMAMAP(8)			: Reserve 8dK low core memory for DMA
+S4CORE  EQ      $A 100			: Slot 4 core allocation
+NLUS4   EQ      0			: Number of LU assigned to slot 4
+S4LIC	EQ	TL.AUX			: Assigned aux circuit license
+
+
+	END
+
+
+9.2  ISIS COMMAND FILE.
+
+The following is a sample ISIS version 13.01 commands file:
+
+;;
+;;  NTSNET   PXL NODE 4336   KERNEL  1776               19-DEC-90
+;;  ISIS 13.01     NODE CODE  5.61
+;;
+;@ /home/icarus/b/alphatest/pxl/i2is13.i00
+;@ tym
+;@ (nts)goodgy.nts
+;@ /home/icarus/b/alphatest/isis/i2is13.r00
+;@ /home/icarus/b/alphatest/isis/i2is13.qt2
+1;F nib
+70;T0,SUMTBL;PINTLEN,IEND-INTLEN;P%PSEGF,SFSIZE;P%Q
+
+
+
+9.3  NODE CODE COMMAND FILE.
+
+The following is a sample Node Code version 5.61 commands file:
+
+;;
+;;  NTSNET   NODE 4336   KERNEL  1776                   19-DEC-90
+;;  T-II NODE CODE - VERSION 05.60
+;;
+;A /home/icarus/b/alphatest/tii/tii05.i61
+;A tym
+;A (nts)goodgy.nts
+;A /home/icarus/b/alphatest/tii/tii05.r61
+;A /home/icarus/b/alphatest/tii/tii05.q61
+1;F n00
+SEG0,RSEG0;PSEG1,S1SIZE;PSEGD,SDSIZE;PSEGF,SFSIZE;PCTA,CTASIZ;P%P%Q
+
+9.4  BITS LOAD.
+bruces@antares% bits
+BITS-05.00 (S/N 38)
+This version is for SUN OS4 machine
+
+bits command: el
+  Engine merge or standalone. [(?),s,e,k,i=return] : 
+  Enter hardware type. [(?),u,v,e=return] : v
+  Enter ISIS object file name : nib
+  Enter NODE CODE (slot 0) object file name : n00
+  Enter slot number (1-f, none=return) : 1
+  Enter slot 1's object file name [none=return] : n01
+  Enter slot number (1-f, none=return) : 
+  Enter merge map file name. [none=return] : 
+  Enter login for target's neighbor, [nuname]:nkhost!line : :1553!5
+
+Using DLOAD as login username.
+  Enter password for neighbor: 
+  Send startup after load? [n, y=return] : 
+
+        Loading MACV code
+
+        Loading MACV code
+
+        SLOT MAP
+
+   SLOT     BEGINS            ENDS
+    0        2ac00       6cfff
+    1        6d000       a6fff
+    2        a7000       bcbff
+    3        bcc00       cebff
+    4        cec00       e2c7f
+
+
+        MAP OF SLOT  0
+
+   SEG      BEGINS     ENDS
+    0        2b000         34fff
+    1        35000         4dbff
+    2        4dc00         6cfff
+    6        1d800         227ff
+   14        2ac00         2afff
+
+
+
+
+        MAP OF SLOT  1
+
+   SEG      BEGINS     ENDS
+    0        6d400         6f3ff
+    1        22800         23fff
+    5        6f400         977ff
+    7        97800         997ff
+    8        99800         a4fff
+   14        6d000         6d3ff
+
+
+Circuit built
+The load request has been acknowledged
+logical channel number is 60
+XMT=   40    RCV=   32   LOST=   8
+XMT=   80    RCV=   66   LOST=  14
+XMT=  120    RCV=  110   LOST=  10
+XMT=  160    RCV=  151   LOST=   9
+XMT=  200    RCV=  183   LOST=  17
+XMT=  240    RCV=  200   LOST=  40
+XMT=  280    RCV=  237   LOST=  43
+
+..................................
+..................................
+..................................
+
+XMT= 4920    RCV= 4910   LOST=  10
+XMT= 4960    RCV= 4954   LOST=   6
+XMT= 4998    RCV= 4998   LOST=   0
+XMT= 5000    RCV= 4998   LOST=   2
+XMT= 5040    RCV= 5036   LOST=   4
+XMT= 5071    RCV= 5071   LOST=   0
+sending startup.
+Startup acknowledged.
+bits095> zapping after load.
+Transfer completed .
+
+bits command: q
+bruces@antares% 
+
+
+9.5  BITS ENGINE DUMP.
+
+The  following  is  a  sample  of  a  BITS  partial  engine dump.  It is NOT
+recommended  that  a  full  engine  dump  be performed, as BITS will require
+approximately 4 HOURS to complete this.
+
+bruces@antares% bits
+BITS-05.00 (S/N 38)
+This version is for SUN OS4 machine
+
+bits command: ed
+  Enter hardware type. [(?),u,v,e=return] : v
+  Enter login for target's neighbor, [nuname]:nkhost!line : :1553!5
+
+Using DLOAD as login username.
+  Enter password for neighbor: 
+  Enter dump file name : 6606.dump
+  Enter low address (hex digits). [return=0] : 
+  Enter high address (hex digits). [return=0af000] : 004000
+Circuit built
+The load request has been acknowledged
+ RCV = 18    LOST = 0
+ RCV = 36    LOST = 0
+ RCV = 54    LOST = 0
+ RCV = 72    LOST = 0
+ RCV = 90    LOST = 0
+ RCV = 108    LOST = 0
+ RCV = 126    LOST = 0
+ RCV = 144    LOST = 0
+ RCV = 162    LOST = 0
+ RCV = 180    LOST = 0
+ RCV = 198    LOST = 0
+ RCV = 216    LOST = 0
+ RCV = 234    LOST = 0
+ RCV = 252    LOST = 0
+ RCV = 270    LOST = 0
+ RCV = 288    LOST = 0
+ RCV = 293    LOST = 0
+start address        0   byte count    16408
+
+bits command: q
+bits095> Circuit zapped..
+bruces@antares% 
+
+
+9.6  BITS SLOT DUMP.
+
+
+
+    l.u1
